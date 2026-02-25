@@ -3,6 +3,11 @@
 
 {% block title %}Control Deck | DeltaCrown{% endblock %}
 
+{% block extra_head %}
+<!-- CSRF token for JS (works even with CSRF_COOKIE_HTTPONLY=True) -->
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- Cropper.js for image cropping -->
@@ -2496,10 +2501,17 @@
 </div>
 
 <script>
-    // Get CSRF token — try cookie first, fall back to hidden input
-    // (CSRF_COOKIE_HTTPONLY = True makes the cookie invisible to JS)
+    // Get CSRF token — multiple fallbacks for CSRF_COOKIE_HTTPONLY=True
     function getCookie(name) {
-        // 1. Try reading from document.cookie (works when HTTPONLY is false)
+        if (name === 'csrftoken') {
+            // 1. Best source: <meta name="csrf-token"> (server-rendered, always correct)
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.content) return meta.content;
+            // 2. Fall back to Django {% csrf_token %} hidden input
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el && el.value) return el.value;
+        }
+        // 3. Try reading from document.cookie (works when HTTPONLY is off)
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
             for (let i = 0; i < cookies.length; i++) {
@@ -2508,11 +2520,6 @@
                     return decodeURIComponent(cookie.substring(name.length + 1));
                 }
             }
-        }
-        // 2. Fall back to Django {% csrf_token %} hidden input
-        if (name === 'csrftoken') {
-            const el = document.querySelector('[name=csrfmiddlewaretoken]');
-            if (el) return el.value;
         }
         return null;
     }
@@ -3558,7 +3565,9 @@
             }
             
             // Create form data
+            const csrfToken = getCookie('csrftoken');
             const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);  // Form field (primary)
             formData.append('media_type', type);
             formData.append('file', blob, `${type}.jpg`);
             
@@ -3566,7 +3575,7 @@
                 const response = await fetch('{% url "user_profile:upload_media" %}', {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-CSRFToken': csrfToken,  // Header (backup)
                     },
                     body: formData,
                 });

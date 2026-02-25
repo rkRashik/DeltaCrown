@@ -1,5 +1,6 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
+from apps.common.admin_mixins import SafeUploadMixin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -35,7 +36,7 @@ class ProductVariantInline(TabularInline):
     fields = ['name', 'value', 'price_adjustment', 'stock', 'sku', 'is_active']
 
 @admin.register(Product)
-class ProductAdmin(ModelAdmin):
+class ProductAdmin(SafeUploadMixin, ModelAdmin):
     list_display = [
         'name', 'category', 'brand', 'price', 'stock', 'is_featured', 
         'is_active', 'product_type', 'rarity'

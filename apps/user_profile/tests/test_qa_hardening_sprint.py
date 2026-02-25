@@ -84,7 +84,8 @@ class PassportModalSchemaTestCase(TestCase):
             name='Valorant',
             display_name='Valorant',
             slug='valorant',
-            game_code='VAL',
+            short_code='VAL',
+            category='FPS',
             platforms=['PC']
         )
         GamePlayerIdentityConfig.objects.create(
@@ -108,7 +109,8 @@ class PassportModalSchemaTestCase(TestCase):
             name='CS:GO',
             display_name='Counter-Strike: Global Offensive',
             slug='csgo',
-            game_code='CSGO',
+            short_code='CSGO',
+            category='FPS',
             platforms=['PC', 'Console']
         )
         GamePlayerIdentityConfig.objects.create(
@@ -386,7 +388,8 @@ class IntegrationSmokeTestCase(TestCase):
             name='Test Game',
             display_name='Test Game',
             slug='testgame',
-            game_code='TEST'
+            short_code='TEST',
+            category='OTHER'
         )
         GamePlayerIdentityConfig.objects.create(
             game=self.game,

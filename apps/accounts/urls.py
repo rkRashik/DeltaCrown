@@ -3,7 +3,8 @@ from django.contrib.auth import views as auth_views
 from .views import (
     DCLoginView, DCLogoutView, SignUpView, profile_view,
     VerifyEmailView, ResendOTPView,
-    GoogleLoginStart, GoogleCallback
+    GoogleLoginStart, GoogleCallback,
+    SafePasswordResetView,
 )
 from .deletion_api import (
     schedule_deletion_view,
@@ -25,7 +26,7 @@ urlpatterns = [
     path("verify/otp/", VerifyEmailView.as_view(), name="verify_email_otp"),
 
     # Password reset (keeps namespaced email template)
-    path("password_reset/", auth_views.PasswordResetView.as_view(
+    path("password_reset/", SafePasswordResetView.as_view(
         template_name="account/password_reset_form.html",
         email_template_name="account/password_reset_email.txt",
         success_url=reverse_lazy("account:password_reset_done"),

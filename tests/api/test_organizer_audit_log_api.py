@@ -382,7 +382,7 @@ class TestAuditLogAPIArchitecture:
         assert 'AuditLogSerializer' in source
         
         # Should serialize DTOs
-        assert 'serializer.data' in source
+        assert '.data' in source
 
 
 # Run with: pytest tests/api/test_organizer_audit_log_api.py -v

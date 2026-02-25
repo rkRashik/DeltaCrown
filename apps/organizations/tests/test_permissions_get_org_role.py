@@ -6,8 +6,10 @@ and permission flags for different user types.
 """
 
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from apps.organizations.models import Organization, OrganizationStaffMembership
+
+User = get_user_model()
 from apps.organizations.permissions import (
     get_org_role,
     can_access_control_plane,

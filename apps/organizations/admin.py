@@ -8,6 +8,7 @@ QUERY OPTIMIZATION: Uses select_related and raw_id_fields to prevent N+1 queries
 from django import forms
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
+from apps.common.admin_mixins import SafeUploadMixin
 from django.db.models import Count, Q
 from django.utils.html import format_html
 
@@ -82,7 +83,7 @@ class OrganizationProfileInline(StackedInline):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(ModelAdmin):
+class OrganizationAdmin(SafeUploadMixin, ModelAdmin):
     """
     Admin interface for vNext Organizations.
     
@@ -220,7 +221,7 @@ class OrganizationRankingAdmin(ModelAdmin):
 
 # ENABLED: Team admin (vNext canonical model)
 @admin.register(Team)
-class TeamAdmin(ModelAdmin):
+class TeamAdmin(SafeUploadMixin, ModelAdmin):
     """Admin interface for vNext Teams."""
     
     list_per_page = 25

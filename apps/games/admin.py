@@ -2,8 +2,11 @@
 Admin configuration for games app.
 """
 
-from django.contrib import admin
+import logging
+
+from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
+from apps.common.admin_mixins import SafeUploadMixin
 from apps.games.models import (
     Game,
     GameRosterConfig,
@@ -11,6 +14,8 @@ from apps.games.models import (
     GameTournamentConfig,
     GameRole
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GameRosterConfigInline(StackedInline):
@@ -38,7 +43,7 @@ class GameRoleInline(TabularInline):
 
 
 @admin.register(Game)
-class GameAdmin(ModelAdmin):
+class GameAdmin(SafeUploadMixin, ModelAdmin):
     list_display = ['name', 'slug', 'category', 'game_type', 'is_active', 'is_featured']
     list_filter = ['category', 'game_type', 'is_active', 'is_featured']
     search_fields = ['name', 'slug', 'short_code']

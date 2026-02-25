@@ -11,8 +11,10 @@ Verifies that:
 import pytest
 from django.urls import reverse
 from django.test import Client
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.template.loader import get_template
+
+User = get_user_model()
 
 from apps.organizations.models import Organization
 from apps.organizations.views.org import org_control_plane

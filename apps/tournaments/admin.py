@@ -13,6 +13,7 @@ from django.contrib import admin
 from django.db import models
 from django import forms
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
+from apps.common.admin_mixins import SafeUploadMixin
 from unfold.decorators import display
 from unfold.widgets import UnfoldBooleanSwitchWidget
 from django.utils.html import format_html
@@ -292,7 +293,7 @@ class TournamentPaymentMethodInline(StackedInline):
 # NOTE: Game admin is registered in apps/games/admin.py (removed duplicate)
 
 @admin.register(Tournament)
-class TournamentAdmin(ModelAdmin):
+class TournamentAdmin(SafeUploadMixin, ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
     
     list_per_page = 25
@@ -1013,7 +1014,7 @@ class TournamentAnnouncementAdmin(ModelAdmin):
 # ============================================================================
 
 @admin.register(RegistrationFormTemplate)
-class RegistrationFormTemplateAdmin(ModelAdmin):
+class RegistrationFormTemplateAdmin(SafeUploadMixin, ModelAdmin):
     """Admin for registration form templates"""
     list_display = [
         'template_badge', 'name', 'participation_type', 'game',
@@ -1399,7 +1400,7 @@ class WebhookDeliveryAdmin(ModelAdmin):
 # ============================================================================
 
 @admin.register(TournamentSponsor)
-class TournamentSponsorAdmin(ModelAdmin):
+class TournamentSponsorAdmin(SafeUploadMixin, ModelAdmin):
     """Admin for managing tournament sponsors."""
 
     list_display = ['name', 'tournament', 'tier_badge', 'display_order', 'is_active', 'created_at']

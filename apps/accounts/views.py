@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import urllib.error
 
 from django.conf import settings
@@ -7,7 +8,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -21,7 +22,32 @@ from .emails import send_otp_email
 from .forms import SignUpForm, VerifyEmailForm, EmailOrUsernameAuthenticationForm
 from .models import EmailOTP, PendingSignup
 
+logger = logging.getLogger(__name__)
+
 User = get_user_model()
+
+
+# ---------- Safe Password Reset ----------
+
+
+class SafePasswordResetView(PasswordResetView):
+    """
+    Wraps Django's PasswordResetView so that SMTP / email-sending errors
+    don't crash the page with a 500/502.  Instead the user is silently
+    redirected to the 'done' page.  The real error is logged so you can
+    diagnose email-configuration issues in Render logs.
+    """
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except Exception:
+            logger.exception(
+                "Password-reset email failed to send – SMTP / email backend error"
+            )
+            # Still redirect to the "email sent" page so we don't leak
+            # information about whether the email address exists.
+            return HttpResponseRedirect(self.get_success_url())
 
 
 # ---------- Helpers ----------

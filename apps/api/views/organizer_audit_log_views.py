@@ -28,6 +28,12 @@ from apps.api.serializers.organizer_audit_log_serializers import (
 )
 
 
+def get_tournament_ops_service():
+    """Factory function for TournamentOpsService (aids testability via mock)."""
+    from apps.tournament_ops.services import TournamentOpsService
+    return TournamentOpsService()
+
+
 class AuditLogListView(APIView):
     """
     List audit logs with filtering and pagination.
@@ -99,8 +105,7 @@ class AuditLogListView(APIView):
         filters = filter_serializer.to_dto()
         
         # Get audit logs via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         logs = tournament_ops.get_audit_logs(filters)
         total_count = tournament_ops.count_audit_logs(filters)
@@ -153,8 +158,7 @@ class TournamentAuditTrailView(APIView):
         limit = int(request.query_params.get('limit', 100))
         
         # Get audit trail via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         logs = tournament_ops.get_tournament_audit_trail(
             tournament_id=tournament_id,
@@ -198,8 +202,7 @@ class MatchAuditTrailView(APIView):
         limit = int(request.query_params.get('limit', 100))
         
         # Get audit trail via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         logs = tournament_ops.get_match_audit_trail(
             match_id=match_id,
@@ -243,8 +246,7 @@ class UserAuditTrailView(APIView):
         limit = int(request.query_params.get('limit', 100))
         
         # Get audit trail via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         logs = tournament_ops.get_user_audit_trail(
             user_id=user_id,
@@ -301,8 +303,7 @@ class AuditLogExportView(APIView):
         filters = filter_serializer.to_dto()
         
         # Get export data via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         export_data = tournament_ops.export_audit_logs(filters)
         
@@ -375,8 +376,7 @@ class RecentActivityView(APIView):
             user_id = int(user_id)
         
         # Get recent activity via façade
-        from apps.tournament_ops.services import TournamentOpsService
-        tournament_ops = TournamentOpsService()
+        tournament_ops = get_tournament_ops_service()
         
         logs = tournament_ops.get_recent_audit_activity(
             tournament_id=tournament_id,

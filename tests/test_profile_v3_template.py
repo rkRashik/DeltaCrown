@@ -5,8 +5,10 @@ Tests that the new Profile V3 template renders correctly with real backend data.
 
 import pytest
 from django.test import Client, TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from apps.user_profile.models import UserProfile, GameProfile, ProfileAboutItem, SocialLink
+
+User = get_user_model()
 
 
 class ProfileV3TemplateTests(TestCase):

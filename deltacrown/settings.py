@@ -465,6 +465,9 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Allow larger request bodies for admin forms with multiple file uploads
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB (Django default is 2.5 MB)
+
 # -----------------------------------------------------------------------------
 # Storage Backends (Django 5.x STORAGES dict)
 # -----------------------------------------------------------------------------
@@ -712,6 +715,11 @@ else:
 # -----------------------------------------------------------------------------
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", EMAIL_BACKEND)
 
+# Prevent SMTP connections from hanging indefinitely (seconds).
+# Without this, a stuck SMTP server can block a Gunicorn worker until the
+# worker-timeout fires → Render returns 502 to the user.
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+
 # -----------------------------------------------------------------------------
 # Testing niceties
 # -----------------------------------------------------------------------------
@@ -756,6 +764,11 @@ try:
         "cloudinary",
         "cloudinary_storage",
     ]
+    # Set generous upload timeout so Render ↔ Cloudinary doesn't time-out
+    # on larger banners / card images (default is no timeout).
+    cloudinary.config(
+        timeout=30,          # 30 s per upload request
+    )
 except ImportError:
     pass
 

@@ -2,7 +2,7 @@
 ...x............................................FFFFFFFF................ [  2%]
 ........FF..............................................FF.............. [  3%]
 .F.....F.F.........F....F...F....FF..........F.F.F.....FFFFFFFF...FFF.F. [  4%]
-.FEEEEEEEF.EF.F.FFFFF.F...........................FFF..FF.F.F..F...FFFF. [  5%]
+.FEEEEEEEF.EF.F.FFFFF.F...........F...............FFF..FF.F.F..F...FFFF. [  5%]
 ..F.F....FF.F.......FF.....FFFFFFFFFFFFFF.FFFFFFFF.FFFFFFFFFFFFFFF...... [  6%]
 ....F........FF..FFFFFFFFFFFFFFFFFFFF...F.FFFF.F..................FF..FF [  7%]
 F..FF.................................F..........F...F...FF........FFFFF [  9%]
@@ -18,22 +18,22 @@ F.F.FF......FF.................F.....................ssssssss........... [ 18%]
 E.................E.E..E...FF..F....F......EEEEEEEEEEFFsssssssssssssssss [ 20%]
 EE......F...FFFFF..FFF............................FFFFFFFFFF............ [ 21%]
 .............E.E.............................s...........FF.FFFFFFFFF... [ 22%]
-.....FFFFFFFFFFFFFFFFF.....EEEEEEEEEE..........F............F..........F [ 23%]
+.......FFFFFFFFFFFFFFF.....EEEEEEEEEE..........F............F..........F [ 23%]
 ..FF..FFFFFFFF...FFFF.....F.F..FFFFFFFFF.FFFFFF.....F..FFF.FF.....FF.FFF [ 24%]
-FFFFF.FFFFFFFFFFFFFFFFFFFFFFFFFF..F............FFFFFFFFF.FFFF......F.FFF [ 25%]
+FFFFF.FFFFFFFF.................................FFFFFFFFF.FFFF......F.FFF [ 25%]
 FFFFFFF..FFF...FFFFFF.F.FFFFFFFFFFFFFFFF.F..F.....F....F................ [ 27%]
 ...F....F.....FF..F...FFFFFFFFFFFF..........F..................FFFFFFFFF [ 28%]
 FFFFFFF.FFFFFFFF...............................FF..F.F...FF..F.......... [ 29%]
 ....FFFF..F.FFFFFF.FFFFF.F.F.FFF.FF.FFFFFFF.F....FFEEEEEEEFFFF..FF.FF.F. [ 30%]
-FFF...FF.FFFF.FF...FF.FFFFFF...FF..................F............F..F..F. [ 31%]
+FFF...FF....F.FF...FF.FFFF.....FF..................F............F..F..F. [ 31%]
 ...F.F....FF.......FFFF.FFFFFFFF..................FFFFFFFFFFFFFFF...F... [ 32%]
 FFFF.FFFFFF............F....F.FFFFF.FFF...FFFFFFFF.F.................... [ 33%]
 ...F....FFF....FFFF........................FFFFF........F.FFFFFFF..F.... [ 35%]
-....................FFFFFFEFFFFFFFFFFFFFFFFFFFFFFEFEFEEFFEEFEF..FFFFF.F. [ 36%]
+....................FFFFFFEFFFFF.........FFFF...FEFEFEEFFEEFEF..FFFFF.F. [ 36%]
 ....FFFFFFF.FFFFFFFF..FF....FFF...............ssssssssssssssssssssFFFFFF [ 37%]
 FFFFFFF..F.F.........F.....FF........FFFFFFF.....FFF.F...........ssss... [ 38%]
 .......F...............sssssssssssssssssFFFFF.F......................... [ 39%]
-......ssssssss...................FF.FFFFF.......F.....FFFF.....sssssssss [ 40%]
+......ssssssss...................FF.FFFFF.....F.F.....FFFF.....sssssssss [ 40%]
 ssssssss.....F.F........................................................ [ 41%]
 .....................FFF.......F.FEEEE.......EEEEE...............F...... [ 42%]
 FF.EEEEFEFFFFFFFFFE.E....EEEEEEEF..FFFFFFFFFF.FFFFFFFF.FFF.F........FFFF [ 44%]
@@ -48,7 +48,7 @@ FFF........F...F......F..FF.......E..EEE.F......................s....... [ 50%]
 ....F..................FFFFFFFFFFFFFF.FF.FFFFF..FFFFFFFFF............... [ 54%]
 ....FFFFFFFFF.FFFFFFFFFFF.FFF....F.F.F.FF......F..........FFFF.....ss... [ 55%]
 .FFF..FFFFF.FFFF.FF......FF..............F........FFF.F.FFFF..FFFFFFFFFF [ 56%]
-FF.F.FFF.FFFFFFF...FFF....FFFFFFF.FFFF....FFF.FF..........FFFFFFFFF..F.F [ 57%]
+FF.F.FFF.FFFFFFF...FFF....FFFFFFF.FFFF....F.F.FF..........FFFFFFFFF..F.F [ 57%]
 FFFFFFF........FF....................................................... [ 58%]
 ..................s..........FF..........F........F....FF.....FFFFFFFFFF [ 59%]
 .FF.FF.FFFFFFFFFFF.F.F.F.........FFFFFFFFFFFFFFFFFFFFFFFFF............FF [ 61%]
@@ -142,6 +142,7 @@ FAILED apps/organizations/services/tests/test_team_service_logic.py::TestGetTeam
 FAILED apps/organizations/services/tests/test_team_service_logic.py::TestGetTeamIdentity::test_brand_inheritance_not_enforced
 FAILED apps/organizations/services/tests/test_team_service_logic.py::TestGetTeamIdentity::test_nonexistent_team_raises_not_found
 FAILED apps/organizations/services/tests/test_team_service_logic.py::TestGetTeamIdentity::test_independent_team_query_count
+FAILED apps/organizations/tests/test_activity.py::TestTeamActivityLog::test_get_team_feed_returns_recent_logs
 FAILED apps/organizations/tests/test_api.py::TestAuthenticationAndPermissions::test_organization_creation_sets_ceo_correctly
 FAILED apps/organizations/tests/test_api.py::TestAuthenticationAndPermissions::test_org_team_creation_requires_ceo_or_manager
 FAILED apps/organizations/tests/test_api.py::TestAuthenticationAndPermissions::test_independent_team_creation_sets_owner
@@ -468,8 +469,6 @@ FAILED apps/user_profile/tests/test_activity_v2.py::ActivityPrivacyTestCase::tes
 FAILED apps/user_profile/tests/test_activity_v2.py::ActivityPrivacyTestCase::test_activity_page_shows_owner_cta_when_empty
 FAILED apps/user_profile/tests/test_activity_v2.py::ActivityEventDisplayTestCase::test_activity_page_has_event_icons
 FAILED apps/user_profile/tests/test_activity_v2.py::ActivityEventDisplayTestCase::test_activity_page_has_glassmorphic_styling
-FAILED apps/user_profile/tests/test_admin_dynamic_form.py::TestAdminGameChoicesLimitedToGameModel::test_admin_form_game_queryset_uses_game_model
-FAILED apps/user_profile/tests/test_admin_dynamic_form.py::TestAdminGameChoicesLimitedToGameModel::test_admin_form_shows_only_active_games
 FAILED apps/user_profile/tests/test_admin_dynamic_form.py::TestDynamicRequiredFieldsValorant::test_valorant_requires_riot_name_and_tagline
 FAILED apps/user_profile/tests/test_admin_dynamic_form.py::TestDynamicRequiredFieldsValorant::test_valorant_accepts_valid_riot_id
 FAILED apps/user_profile/tests/test_admin_dynamic_form.py::TestDynamicRequiredFieldsValorant::test_valorant_normalizes_case
@@ -543,25 +542,6 @@ FAILED apps/user_profile/tests/test_followers_following_not_410.py::FollowersFol
 FAILED apps/user_profile/tests/test_followers_following_not_410.py::FollowersFollowingNot410Tests::test_following_endpoint_not_410
 FAILED apps/user_profile/tests/test_followers_following_not_410.py::FollowersFollowingNot410Tests::test_following_privacy_enforced
 FAILED apps/user_profile/tests/test_followers_following_not_410.py::FollowersFollowingNot410Tests::test_following_requires_auth_json_401
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_create_valid_valorant_passport
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_create_invalid_valorant_format
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_create_duplicate_passport_same_user
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_global_uniqueness_enforcement
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_create_cs2_passport_with_steam_id
-FAILED apps/user_profile/tests/test_game_passport.py::TestGamePassportCreation::test_create_mlbb_passport_with_zone
-FAILED apps/user_profile/tests/test_game_passport.py::TestIdentityChangeCooldown::test_change_identity_without_cooldown
-FAILED apps/user_profile/tests/test_game_passport.py::TestIdentityChangeCooldown::test_change_identity_during_cooldown
-FAILED apps/user_profile/tests/test_game_passport.py::TestIdentityChangeCooldown::test_metadata_update_does_not_trigger_cooldown
-FAILED apps/user_profile/tests/test_game_passport.py::TestIdentityChangeCooldown::test_same_identity_update_does_not_lock
-FAILED apps/user_profile/tests/test_game_passport.py::TestPinningSystem::test_pin_passport
-FAILED apps/user_profile/tests/test_game_passport.py::TestPinningSystem::test_max_pinned_limit
-FAILED apps/user_profile/tests/test_game_passport.py::TestPinningSystem::test_reorder_pinned_passports
-FAILED apps/user_profile/tests/test_game_passport.py::TestPrivacyControls::test_set_visibility_public
-FAILED apps/user_profile/tests/test_game_passport.py::TestPrivacyControls::test_set_lft_flag
-FAILED apps/user_profile/tests/test_game_passport.py::TestAuditTrail::test_creation_audit
-FAILED apps/user_profile/tests/test_game_passport.py::TestAuditTrail::test_identity_change_audit
-FAILED apps/user_profile/tests/test_game_passport.py::TestAuditTrail::test_deletion_audit
-FAILED apps/user_profile/tests/test_game_passport.py::TestConfigManagement::test_disable_id_changes
 FAILED apps/user_profile/tests/test_game_profiles_safe.py::TestSaveGameProfilesSafe::test_batch_save_creates_game_profiles
 FAILED apps/user_profile/tests/test_game_profiles_safe.py::TestSaveGameProfilesSafe::test_batch_save_creates_audit_events
 FAILED apps/user_profile/tests/test_game_profiles_safe.py::TestSaveGameProfilesSafe::test_batch_save_updates_existing_profiles
@@ -712,9 +692,6 @@ FAILED apps/user_profile/tests/test_profile_trophy_showcase_bug.py::TestTrophySh
 FAILED apps/user_profile/tests/test_profile_trophy_showcase_bug.py::TestTrophyShowcaseValidationFix::test_profile_view_as_visitor
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::URLRoutingConsistencyTestCase::test_settings_page_owner_only
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::URLRoutingConsistencyTestCase::test_spectator_profile_no_owner_links
-FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::PassportModalSchemaTestCase::test_game_schemas_json_present
-FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::PassportModalSchemaTestCase::test_passport_create_requires_game_id
-FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::PassportModalSchemaTestCase::test_passport_create_with_metadata
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::PassportModalSchemaTestCase::test_settings_provides_games_list
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::ProfileNavigationTestCase::test_owner_action_cluster
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::ProfileNavigationTestCase::test_spectator_action_cluster
@@ -724,8 +701,6 @@ FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::SettingsReorganizati
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::SettingsReorganizationTestCase::test_preferences_section_exists
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::IntegrationSmokeTestCase::test_deployment_check_passes
 FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::IntegrationSmokeTestCase::test_user_flow_access_settings
-FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::IntegrationSmokeTestCase::test_user_flow_create_passport
-FAILED apps/user_profile/tests/test_qa_hardening_sprint.py::IntegrationSmokeTestCase::test_user_flow_view_profile
 FAILED apps/user_profile/tests/test_routing.py::test_update_social_links_url_exists
 FAILED apps/user_profile/tests/test_routing.py::test_home_page_renders_without_noreversematch
 FAILED apps/user_profile/tests/test_routing_hardening.py::TestPublicProfileRoute::test_public_profile_404_for_invalid_user
@@ -826,22 +801,10 @@ FAILED tests/api/test_match_history_api.py::TestTeamMatchHistoryAPI::test_get_te
 FAILED tests/api/test_match_history_api.py::TestCurrentUserMatchHistoryAPI::test_get_current_user_match_history_authenticated
 FAILED tests/api/test_match_history_api.py::TestCurrentUserMatchHistoryAPI::test_get_current_user_match_history_unauthenticated
 FAILED tests/api/test_match_history_api.py::TestCurrentUserMatchHistoryAPI::test_get_current_user_match_history_with_filters
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogListView::test_list_audit_logs_success
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogListView::test_list_audit_logs_with_action_filter
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogListView::test_list_audit_logs_with_date_range
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogListView::test_list_audit_logs_pagination
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogListView::test_list_audit_logs_empty
-FAILED tests/api/test_organizer_audit_log_api.py::TestTournamentAuditTrailView::test_get_tournament_audit_trail
-FAILED tests/api/test_organizer_audit_log_api.py::TestTournamentAuditTrailView::test_get_tournament_audit_trail_with_limit
-FAILED tests/api/test_organizer_audit_log_api.py::TestMatchAuditTrailView::test_get_match_audit_trail
-FAILED tests/api/test_organizer_audit_log_api.py::TestUserAuditTrailView::test_get_user_audit_trail
 FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogExportView::test_export_audit_logs_csv
 FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogExportView::test_export_audit_logs_csv_content
 FAILED tests/api/test_organizer_audit_log_api.py::TestRecentActivityView::test_get_recent_activity_default
 FAILED tests/api/test_organizer_audit_log_api.py::TestRecentActivityView::test_get_recent_activity_custom_hours
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogAPIPermissions::test_audit_log_requires_authentication
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogAPIArchitecture::test_views_use_facade_only
-FAILED tests/api/test_organizer_audit_log_api.py::TestAuditLogAPIArchitecture::test_views_return_serialized_dtos
 FAILED tests/api/test_organizer_help_api.py::TestHelpBundleView::test_requires_authentication
 FAILED tests/api/test_organizer_help_api.py::TestHelpBundleView::test_requires_page_identifier_param
 FAILED tests/api/test_organizer_help_api.py::TestCompleteOnboardingStepView::test_requires_authentication
@@ -918,6 +881,7 @@ FAILED tests/certificates/test_s3_storage_module_6_5.py::TestConsistencyChecker:
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestConsistencyChecker::test_consistency_check_detects_count_mismatch
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestIntegritySpotCheck::test_spot_check_detects_hash_mismatch
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestIntegritySpotCheck::test_spot_check_verifies_hash
+FAILED tests/certificates/test_s3_storage_module_6_5.py::TestPerformanceMetrics::test_upload_performance_p99_under_120ms
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestShadowIntegrity::test_s3_failure_local_copy_exists
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestBackfillLogic::test_idempotency_flag_prevents_double_migration
 FAILED tests/certificates/test_s3_storage_module_6_5.py::TestBackfillLogic::test_migrated_timestamp_field_exists
@@ -1212,7 +1176,6 @@ FAILED tests/test_phase12_team_management.py::TestPhase12TeamManagement::test_me
 FAILED tests/test_phase12_team_management.py::TestPhase12TeamManagement::test_branding_form_uses_logo_url_not_file
 FAILED tests/test_phase12_team_management.py::TestPhase12OrgTeamManagement::test_org_team_manage_allows_org_ceo
 FAILED tests/test_phase14_zero_point_teams.py::TestZeroPointTeamRankings::test_rankings_endpoint_renders_zero_point_teams
-FAILED tests/test_phase14_zero_point_teams.py::TestZeroPointTeamRankings::test_zero_point_teams_ordered_by_created_at
 FAILED tests/test_phase14_zero_point_teams.py::TestHubTeamVisibility::test_hub_shows_newly_created_team
 FAILED tests/test_phase16_complete.py::TestHubShowsAllTeams::test_hub_shows_unranked_teams
 FAILED tests/test_phase16_complete.py::TestRankingsIncludeZeroPoint::test_global_rankings_include_zero_point_teams

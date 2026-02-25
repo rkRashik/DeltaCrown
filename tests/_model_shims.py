@@ -339,6 +339,10 @@ def _patch_tournament_model():
 # ---------------------------------------------------------------------------
 _STALE_ORG_KWARGS = frozenset({
     'owner',
+    'logo_url',
+    'banner_url',
+    'primary_color',
+    'tagline',
 })
 
 _ORG_PATCHED = False
@@ -901,6 +905,75 @@ def _patch_apiclient_force_auth():
 
 
 # ---------------------------------------------------------------------------
+# Match model compatibility shim
+# ---------------------------------------------------------------------------
+_STALE_MATCH_KWARGS = frozenset({
+    'round_no', 'position', 'user_a', 'user_b', 'winner_user',
+    'team_a', 'team_b', 'winner_team', 'loser_team',
+    'score_a', 'score_b', 'status',
+})
+
+_MATCH_PATCHED = False
+
+
+def _patch_match_model():
+    global _MATCH_PATCHED
+    if _MATCH_PATCHED:
+        return
+    _MATCH_PATCHED = True
+
+    from apps.tournaments.models.match import Match
+
+    _orig_match_init = Match.__init__
+
+    def _compat_match_init(self, *args, **kwargs):
+        stale_values = {}
+        for key in _STALE_MATCH_KWARGS:
+            if key in kwargs:
+                stale_values[key] = kwargs.pop(key)
+        # Map legacy field names to current schema
+        if 'round_no' in stale_values and 'round_number' not in kwargs:
+            kwargs['round_number'] = stale_values.pop('round_no')
+        if 'position' in stale_values and 'match_number' not in kwargs:
+            kwargs['match_number'] = stale_values.pop('position')
+        # Map user_a/team_a → participant1_id, user_b/team_b → participant2_id
+        p1 = stale_values.pop('user_a', None) or stale_values.pop('team_a', None)
+        if p1 and 'participant1_id' not in kwargs:
+            kwargs['participant1_id'] = getattr(p1, 'pk', p1) if not isinstance(p1, int) else p1
+        p2 = stale_values.pop('user_b', None) or stale_values.pop('team_b', None)
+        if p2 and 'participant2_id' not in kwargs:
+            kwargs['participant2_id'] = getattr(p2, 'pk', p2) if not isinstance(p2, int) else p2
+        # Map winner_user/winner_team → winner_id
+        winner = stale_values.pop('winner_user', None) or stale_values.pop('winner_team', None)
+        if winner and 'winner_id' not in kwargs:
+            kwargs['winner_id'] = getattr(winner, 'pk', winner) if not isinstance(winner, int) else winner
+        # Map loser_team → loser_id
+        loser = stale_values.pop('loser_team', None)
+        if loser and 'loser_id' not in kwargs:
+            kwargs['loser_id'] = getattr(loser, 'pk', loser) if not isinstance(loser, int) else loser
+        # Map score_a/score_b → participant1_score/participant2_score
+        if 'score_a' in stale_values and 'participant1_score' not in kwargs:
+            kwargs['participant1_score'] = stale_values.pop('score_a')
+        if 'score_b' in stale_values and 'participant2_score' not in kwargs:
+            kwargs['participant2_score'] = stale_values.pop('score_b')
+        # Map status → state
+        if 'status' in stale_values and 'state' not in kwargs:
+            kwargs['state'] = stale_values.pop('status').lower()
+        # Default round_number and match_number (NOT NULL)
+        if not args:
+            if 'round_number' not in kwargs:
+                kwargs['round_number'] = 1
+            if 'match_number' not in kwargs:
+                kwargs['match_number'] = 1
+        result = _orig_match_init(self, *args, **kwargs)
+        for key, val in stale_values.items():
+            setattr(self, key, val)
+        return result
+
+    Match.__init__ = _compat_match_init
+
+
+# ---------------------------------------------------------------------------
 # Apply ALL patches
 # ---------------------------------------------------------------------------
 def apply_all_patches():
@@ -923,3 +996,4 @@ def apply_all_patches():
     _patch_payment_model()
     _patch_help_service()
     _patch_apiclient_force_auth()
+    _patch_match_model()

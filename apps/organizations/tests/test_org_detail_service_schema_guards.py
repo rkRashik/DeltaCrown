@@ -14,7 +14,9 @@ import pytest
 from django.db.models import Model
 from apps.organizations.models import Organization, Team
 from apps.organizations.services.org_detail_service import get_org_detail_context
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 @pytest.mark.django_db

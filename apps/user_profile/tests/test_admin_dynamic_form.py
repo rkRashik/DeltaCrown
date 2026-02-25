@@ -63,6 +63,9 @@ class TestAdminGameChoicesLimitedToGameModel:
                     'name': display_name,
                     'display_name': display_name,
                     'short_code': short_code,
+                    'category': 'FPS',
+                    'is_passport_supported': True,
+                    'is_active': True,
                 }
             )
     
@@ -75,7 +78,7 @@ class TestAdminGameChoicesLimitedToGameModel:
         assert game_field.queryset.model == Game
         
         # Count should match number of games in Game table
-        game_count = Game.objects.count()
+        game_count = Game.objects.filter(is_passport_supported=True, is_active=True).count()
         assert game_field.queryset.count() == game_count
     
     def test_admin_form_shows_only_active_games(self):
@@ -249,7 +252,7 @@ class TestRegionChoicesEnforced:
         )
         self.valorant, _ = Game.objects.get_or_create(
             slug='valorant',
-            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL'}
+            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL', 'category': 'FPS', 'is_passport_supported': True, 'is_active': True}
         )
         if not hasattr(self.valorant, 'passport_schema'):
             call_command('seed_game_passport_schemas')
@@ -327,7 +330,7 @@ class TestUniquenessCaseInsensitiveForRiotIDs:
         )
         self.valorant, _ = Game.objects.get_or_create(
             slug='valorant',
-            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL'}
+            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL', 'category': 'FPS', 'is_passport_supported': True, 'is_active': True}
         )
         if not hasattr(self.valorant, 'passport_schema'):
             call_command('seed_game_passport_schemas')
@@ -408,7 +411,7 @@ class TestSteamGameIdentityValidation:
         )
         self.cs2, _ = Game.objects.get_or_create(
             slug='cs2',
-            defaults={'name': 'Counter-Strike 2', 'display_name': 'Counter-Strike 2', 'short_code': 'CS2'}
+            defaults={'name': 'Counter-Strike 2', 'display_name': 'Counter-Strike 2', 'short_code': 'CS2', 'category': 'FPS', 'is_passport_supported': True, 'is_active': True}
         )
         if not hasattr(self.cs2, 'passport_schema'):
             call_command('seed_game_passport_schemas')
@@ -460,7 +463,7 @@ class TestRoleChoicesEnforced:
         )
         self.valorant, _ = Game.objects.get_or_create(
             slug='valorant',
-            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL'}
+            defaults={'name': 'VALORANT', 'display_name': 'VALORANT', 'short_code': 'VAL', 'category': 'FPS', 'is_passport_supported': True, 'is_active': True}
         )
         if not hasattr(self.valorant, 'passport_schema'):
             call_command('seed_game_passport_schemas')
@@ -523,7 +526,10 @@ class TestSchemaNotConfiguredError:
             name='Test Game Without Schema',
             display_name='Test Game',
             slug='test-no-schema',
-            short_code='TEST'
+            short_code='TEST',
+            category='OTHER',
+            is_passport_supported=True,
+            is_active=True,
         )
         
         form_data = {
