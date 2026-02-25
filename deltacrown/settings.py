@@ -686,6 +686,8 @@ GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
 # Priority: Resend (production) > Gmail SMTP (dev/LAN) > console (CI/tests)
 if os.getenv("RESEND_API_KEY"):
     # Production: Resend transactional email via SMTP relay
+    # IMPORTANT: The sender domain MUST be verified in your Resend account.
+    # Using gmail.com or any unverified domain → 550 rejection.
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.resend.com"
     EMAIL_PORT = 465
@@ -693,7 +695,7 @@ if os.getenv("RESEND_API_KEY"):
     EMAIL_USE_TLS = False
     EMAIL_HOST_USER = "resend"  # Resend uses literal "resend" as username
     EMAIL_HOST_PASSWORD = os.getenv("RESEND_API_KEY")
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "DeltaCrown <noreply@deltacrown.xyz>")
+    DEFAULT_FROM_EMAIL = "DeltaCrown <noreply@deltacrown.xyz>"
 elif os.getenv("DeltaCrownEmailAppPassword"):
     # Dev/LAN: Gmail SMTP
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -723,7 +725,23 @@ EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 # -----------------------------------------------------------------------------
 # Testing niceties
 # -----------------------------------------------------------------------------
-# Faster hashing — only when running under pytest, never in production
+# All existing passwords in the database are MD5-hashed (legacy).  Django's
+# default PASSWORD_HASHERS does NOT include MD5, which means check_password()
+# silently fails → nobody can log in.
+#
+# Fix: include MD5PasswordHasher at the end of the list.  PBKDF2 stays first,
+# so any *new* passwords (or password changes) are hashed with PBKDF2.  When a
+# user logs in with an MD5 hash, Django transparently re-hashes it to PBKDF2.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+    "django.contrib.auth.hashers.MD5PasswordHasher",   # legacy — verify existing hashes
+]
+
+# Under pytest, use MD5-only for speed (test passwords are throwaway)
 import sys as _sys
 if "pytest" in _sys.modules or "_pytest" in _sys.modules:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
