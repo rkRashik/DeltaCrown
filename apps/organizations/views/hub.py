@@ -14,8 +14,7 @@ Schema Safety:
 
 import json
 import logging
-from django.shortcuts import render, redirect
-from django.contrib import messages
+from django.shortcuts import render
 from django.conf import settings
 from django.core.cache import cache
 from django.db import ProgrammingError
@@ -365,30 +364,17 @@ def vnext_hub(request):
     - Global rankings preview (via CompetitionService)
     - Dynamic widgets (ticker, LFT, scrims) populated via API
     
-    Feature Flag Protection:
-    - If TEAM_VNEXT_ADAPTER_ENABLED is False, redirects to /teams/
-    - If TEAM_VNEXT_FORCE_LEGACY is True, redirects to /teams/
-    - If TEAM_VNEXT_ROUTING_MODE is 'legacy_only', redirects to /teams/
+    Note: The legacy teams app has been removed. This view now serves
+    /teams/ directly. Feature flags still control optional sub-features
+    (e.g. competition rankings) but no longer gate page access.
     
     Query Budget Target: ≤15 queries
     
     Returns:
         - 200: Renders team_hub.html (Tailwind UI with real data)
-        - 302: Redirects to /teams/ if feature flags disabled
     """
-    # Check feature flags
-    force_legacy = getattr(settings, 'TEAM_VNEXT_FORCE_LEGACY', False)
-    adapter_enabled = getattr(settings, 'TEAM_VNEXT_ADAPTER_ENABLED', False)
-    routing_mode = getattr(settings, 'TEAM_VNEXT_ROUTING_MODE', 'legacy_only')
+    # Feature flags for optional sub-features
     competition_enabled = getattr(settings, 'COMPETITION_APP_ENABLED', True)
-    
-    # If vNext disabled, redirect to legacy teams page
-    if force_legacy or not adapter_enabled or routing_mode == 'legacy_only':
-        messages.info(
-            request,
-            'vNext Team & Organization system is not yet available. Please use the existing team system.'
-        )
-        return redirect('/teams/')
     
     from apps.games.models import Game
     

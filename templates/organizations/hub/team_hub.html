@@ -567,15 +567,21 @@ body::after {
     background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
     opacity: 0;
-    transform: translateX(30px) scale(0.97);
-    transition: opacity 0.5s cubic-bezier(.22,1,.36,1), transform 0.5s cubic-bezier(.22,1,.36,1);
+    transform: translateX(40px) scale(0.97);
+    transition: opacity 0.55s cubic-bezier(.22,1,.36,1), transform 0.55s cubic-bezier(.22,1,.36,1);
     pointer-events: none;
+    will-change: opacity, transform;
 }
 .spotlight-card--active {
     position: relative;
     opacity: 1;
     transform: translateX(0) scale(1);
     pointer-events: auto;
+}
+.spotlight-card--exiting {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.97);
+    pointer-events: none;
 }
 .spotlight-card--empty {
     position: relative;
@@ -662,7 +668,7 @@ body::after {
     <div class="hero-grid-overlay"></div>
     <div class="hero-vignette"></div>
 
-    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-28 pb-8">
+    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-14 sm:pt-16 pb-8">
         <!-- Split: Left CTA + Right Spotlight -->
         <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
 
@@ -1840,11 +1846,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let current = 0;
         let timer = null;
+        let transitioning = false;
 
         function show(idx) {
-            cards.forEach((c, i) => {
-                c.classList.toggle('spotlight-card--active', i === idx);
+            if (idx === current || transitioning) return;
+            transitioning = true;
+
+            const prev = cards[current];
+            const next = cards[idx];
+
+            // Exit: slide current card out to the left
+            prev.classList.add('spotlight-card--exiting');
+            prev.classList.remove('spotlight-card--active');
+
+            // Enter: after a brief overlap, bring new card in from right
+            requestAnimationFrame(() => {
+                next.classList.add('spotlight-card--active');
             });
+
+            // Cleanup after transition completes
+            setTimeout(() => {
+                prev.classList.remove('spotlight-card--exiting');
+                transitioning = false;
+            }, 580);
+
             dots.forEach((d, i) => {
                 d.classList.toggle('spotlight-dot--active', i === idx);
             });
