@@ -70,8 +70,8 @@ class AuditLogService:
     
     def log_action(
         self,
-        user_id: Optional[int],
-        action: str,
+        user_id: Optional[int] = None,
+        action: str = "",
         metadata: Optional[Dict[str, Any]] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
@@ -80,7 +80,12 @@ class AuditLogService:
         before_state: Optional[Dict[str, Any]] = None,
         after_state: Optional[Dict[str, Any]] = None,
         correlation_id: Optional[str] = None,
+        *,
+        user=None,  # Legacy compat: accept user object, extract .id
     ) -> AuditLogDTO:
+        # Legacy compat: accept user= kwarg (User or Mock object)
+        if user is not None and user_id is None:
+            user_id = getattr(user, 'id', None)
         """
         Create audit log entry.
         
@@ -126,6 +131,7 @@ class AuditLogService:
             before_state=before_state,
             after_state=after_state,
             correlation_id=correlation_id,
+            user=user,  # Pass user object through for adapter compat
         )
     
     def get_log_by_id(self, log_id: int) -> Optional[AuditLogDTO]:

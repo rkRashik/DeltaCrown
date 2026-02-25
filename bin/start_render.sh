@@ -20,11 +20,13 @@ echo "[render] Running migrations…"
 python manage.py migrate --noinput
 
 # ── Start Celery worker (background) ───────────────────────────────
+# concurrency=1 + 150 MB memory cap keeps the worker inside Free-Tier limits.
 echo "[render] Starting Celery worker…"
 celery -A deltacrown worker \
     --loglevel=info \
-    --concurrency=2 \
-    --max-tasks-per-child=100 \
+    --concurrency=1 \
+    --max-tasks-per-child=50 \
+    --max-memory-per-child=150000 \
     &
 CELERY_PID=$!
 
@@ -51,8 +53,10 @@ trap cleanup SIGTERM SIGINT
 
 # ── Start web server (foreground) ───────────────────────────────────
 # Render injects $PORT; default to 8000 for local testing.
+# WEB_CONCURRENCY is set in Render env vars (default 1 for Free Tier).
 PORT="${PORT:-8000}"
-echo "[render] Starting Daphne on port $PORT…"
+WORKERS="${WEB_CONCURRENCY:-1}"
+echo "[render] Starting Daphne on port $PORT (workers: $WORKERS)…"
 exec daphne \
     -b 0.0.0.0 \
     -p "$PORT" \

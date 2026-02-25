@@ -446,7 +446,11 @@ def vnext_hub(request):
 
     # --- NEW: Additional context for production Hub template ---
 
-    # Featured tournament (closest upcoming or currently live)
+    # Featured tournament — Smart priority:
+    # 1. Featured + registration_open, ordered by registration_end soonest (closing soon)
+    # 2. If many featured+open, pick the latest one (newest first)
+    # 3. If none open, pick the latest featured + live tournament
+    # 4. Fallback: any featured tournament
     featured_tournament = None
     upcoming_tournament = None
     try:
@@ -454,15 +458,35 @@ def vnext_hub(request):
         from django.utils import timezone
 
         now = timezone.now()
-        featured_tournament = Tournament.objects.filter(
-            status__in=['live', 'registration_open', 'published'],
-        ).select_related('game').order_by(
-            # Prefer LIVE, then REGISTRATION_OPEN, then UPCOMING
-            '-status',
-            'tournament_start',
-        ).first()
 
-        # Separate upcoming tournament (second one, different from featured)
+        # Priority 1: Featured tournaments with registration open, closing soonest
+        featured_tournament = Tournament.objects.filter(
+            is_featured=True,
+            status='registration_open',
+        ).select_related('game').order_by('registration_end').first()
+
+        # Priority 2: If no registration-closing-soon, pick latest featured+open
+        if not featured_tournament:
+            featured_tournament = Tournament.objects.filter(
+                is_featured=True,
+                status='registration_open',
+            ).select_related('game').order_by('-created_at').first()
+
+        # Priority 3: No open registration — show latest featured live
+        if not featured_tournament:
+            featured_tournament = Tournament.objects.filter(
+                is_featured=True,
+                status='live',
+            ).select_related('game').order_by('-tournament_start').first()
+
+        # Priority 4: Any featured upcoming
+        if not featured_tournament:
+            featured_tournament = Tournament.objects.filter(
+                is_featured=True,
+                status__in=['published', 'registration_open', 'live'],
+            ).select_related('game').order_by('-tournament_start').first()
+
+        # Separate upcoming tournament (different from featured, registration open)
         if featured_tournament:
             upcoming_tournament = Tournament.objects.filter(
                 status__in=['registration_open', 'published'],

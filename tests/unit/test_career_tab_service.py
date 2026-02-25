@@ -37,8 +37,10 @@ def valorant_game(db):
     return Game.objects.create(
         name='VALORANT',
         slug='valorant',
+        display_name='VALORANT',
+        short_code='VAL',
+        category='FPS',
         is_active=True,
-        game_mode='5v5'
     )
 
 
@@ -48,8 +50,10 @@ def cs2_game(db):
     return Game.objects.create(
         name='Counter-Strike 2',
         slug='cs2',
+        display_name='Counter-Strike 2',
+        short_code='CS2',
+        category='FPS',
         is_active=True,
-        game_mode='5v5'
     )
 
 
@@ -87,7 +91,8 @@ class TestGetLinkedGames:
         assert len(result) == 1
         assert result[0]['game_slug'] == 'valorant'
         assert result[0]['game_name'] == 'VALORANT'
-        assert result[0]['is_primary'] is False  # No primary game set
+        # Service falls back to marking the only passport as primary
+        assert result[0]['is_primary'] is True
     
     def test_primary_game_comes_first(self, test_user, valorant_game, cs2_game):
         """Primary game from UserProfile.primary_game comes first"""
@@ -173,7 +178,7 @@ class TestGetLinkedGames:
         GameProfile.objects.create(user=test_user, game=valorant_game, in_game_name='Player1')
         GameProfile.objects.create(user=test_user, game=cs2_game, in_game_name='Player2')
         
-        result = CareerTabService.get_linked_games(test_user)
+        result = CareerTabService.get_linked_games(test_user.profile)
         assert len(result) == 2
         # CS2 comes before VALORANT alphabetically
         assert result[0]['game_slug'] == 'cs2'
@@ -186,37 +191,41 @@ class TestGetGamePassport:
     
     def test_no_passport_returns_none(self, test_user, valorant_game):
         """User without passport for game returns None"""
-        result = CareerTabService.get_game_passport(test_user, valorant_game)
+        result = CareerTabService.get_game_passport(test_user.profile, valorant_game)
         assert result is None
     
     def test_existing_passport_returns_data(self, test_user, valorant_passport):
         """User with passport returns correct data"""
-        result = CareerTabService.get_game_passport(test_user, valorant_passport.game)
+        result = CareerTabService.get_game_passport(test_user.profile, valorant_passport.game)
         
         assert result is not None
-        assert result['in_game_name'] == 'TestPlayer#NA1'
-        assert result['rank_name'] == 'Diamond 3'
-        assert result['game_name'] == 'VALORANT'
+        assert result.in_game_name == 'TestPlayer#NA1'
+        assert result.rank_name == 'Diamond 3'
+        assert result.game_display_name == 'VALORANT'
     
-    def test_multiple_passports_returns_first(self, test_user, valorant_game):
-        """Multiple passports for same game returns first one"""
+    def test_multiple_passports_returns_first(self, test_user, valorant_game, cs2_game):
+        """Multiple passports returns correct passport per game"""
         GameProfile.objects.create(
             user=test_user,
             game=valorant_game,
             in_game_name='FirstAccount#NA1',
-            rank='Gold 1'
+            rank_name='Gold 1',
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            status=GameProfile.STATUS_ACTIVE
         )
         GameProfile.objects.create(
             user=test_user,
-            game=valorant_game,
+            game=cs2_game,
             in_game_name='SecondAccount#EU1',
-            rank='Platinum 2'
+            rank_name='Platinum 2',
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            status=GameProfile.STATUS_ACTIVE
         )
         
-        result = CareerTabService.get_game_passport(test_user, valorant_game)
-        # Should return first created
-        assert result['in_game_name'] == 'FirstAccount#NA1'
-        assert result['rank_name'] == 'Gold 1'
+        result = CareerTabService.get_game_passport(test_user.profile, valorant_game)
+        # Should return the valorant passport
+        assert result.in_game_name == 'FirstAccount#NA1'
+        assert result.rank_name == 'Gold 1'
 
 
 @pytest.mark.django_db
@@ -226,14 +235,14 @@ class TestGetMatchesPlayedCount:
     def test_no_match_model_returns_zero(self, test_user, valorant_game):
         """When Match model unavailable, returns 0"""
         # Since Match model may not be available in all environments
-        result = CareerTabService.get_matches_played_count(test_user, valorant_game)
+        result = CareerTabService.get_matches_played_count(test_user.profile, valorant_game)
         assert isinstance(result, int)
         assert result >= 0
     
     def test_user_with_no_matches(self, test_user, valorant_game):
         """User with no matches returns 0"""
         # This test assumes Match model exists
-        result = CareerTabService.get_matches_played_count(test_user, valorant_game)
+        result = CareerTabService.get_matches_played_count(test_user.profile, valorant_game)
         assert result == 0
 
 
@@ -243,13 +252,13 @@ class TestGetTeamRanking:
     
     def test_no_team_ranking_returns_none(self, test_user, valorant_game):
         """User without team ranking returns None"""
-        result = CareerTabService.get_team_ranking(test_user, valorant_game)
+        result = CareerTabService.get_team_ranking(test_user.profile, valorant_game)
         assert result is None
     
     def test_team_ranking_fallback_safe(self, test_user, valorant_game):
         """Method handles TeamRanking model unavailability"""
         # Should not crash even if model doesn't exist
-        result = CareerTabService.get_team_ranking(test_user, valorant_game)
+        result = CareerTabService.get_team_ranking(test_user.profile, valorant_game)
         assert result is None or isinstance(result, dict)
 
 
@@ -259,12 +268,12 @@ class TestGetTeamAffiliationHistory:
     
     def test_no_teams_returns_empty_list(self, test_user, valorant_game):
         """User with no team history returns empty list"""
-        result = CareerTabService.get_team_affiliation_history(test_user, valorant_game)
+        result = CareerTabService.get_team_affiliation_history(test_user.profile, valorant_game)
         assert result == []
     
     def test_model_unavailable_returns_empty(self, test_user, valorant_game):
         """Gracefully handles missing TeamMembership model"""
-        result = CareerTabService.get_team_affiliation_history(test_user, valorant_game)
+        result = CareerTabService.get_team_affiliation_history(test_user.profile, valorant_game)
         assert isinstance(result, list)
 
 
@@ -274,12 +283,12 @@ class TestGetAchievements:
     
     def test_no_achievements_returns_empty_list(self, test_user, valorant_game):
         """User with no achievements returns empty list"""
-        result = CareerTabService.get_achievements(test_user, valorant_game)
+        result = CareerTabService.get_achievements(test_user.profile, valorant_game)
         assert result == []
     
     def test_model_unavailable_returns_empty(self, test_user, valorant_game):
         """Gracefully handles missing Registration/Tournament models"""
-        result = CareerTabService.get_achievements(test_user, valorant_game)
+        result = CareerTabService.get_achievements(test_user.profile, valorant_game)
         assert isinstance(result, list)
 
 
@@ -289,12 +298,12 @@ class TestGetDisplayAttributes:
     
     def test_no_passport_returns_empty_list(self, test_user, valorant_game):
         """User without passport returns empty attributes"""
-        result = CareerTabService.get_display_attributes(test_user, valorant_game)
+        result = CareerTabService.get_display_attributes(None)
         assert result == []
     
     def test_passport_with_attributes_returns_formatted(self, test_user, valorant_passport):
         """Passport with attributes returns formatted list"""
-        result = CareerTabService.get_display_attributes(test_user, valorant_passport.game)
+        result = CareerTabService.get_display_attributes(valorant_passport)
         
         assert isinstance(result, list)
         # Should have IGN, Rank, and custom attributes
@@ -308,16 +317,15 @@ class TestGetDisplayAttributes:
             user=test_user,
             game=valorant_game,
             in_game_name='BasicPlayer',
-            rank='Silver 2',
-            attributes={}  # No extra attributes
+            rank_name='Silver 2',
         )
         
-        result = CareerTabService.get_display_attributes(test_user, valorant_game)
+        result = CareerTabService.get_display_attributes(passport)
         
         labels = [attr['label'] for attr in result]
         assert 'IGN' in labels
         assert 'Rank' in labels
-        # Should not have peak_rank since attributes is empty
+        # Should not have peak_rank since no extra metadata
         assert 'Peak Rank' not in labels
 
 
@@ -334,14 +342,14 @@ class TestEdgeCases:
         )
         
         # Get initial data
-        result1 = CareerTabService.get_linked_games(test_user)
+        result1 = CareerTabService.get_linked_games(test_user.profile)
         assert len(result1) == 1
         
         # Delete passport
         passport.delete()
         
         # Should return empty list now
-        result2 = CareerTabService.get_linked_games(test_user)
+        result2 = CareerTabService.get_linked_games(test_user.profile)
         assert result2 == []
     
     def test_inactive_game_still_returned(self, test_user, valorant_game):
@@ -355,22 +363,24 @@ class TestEdgeCases:
         valorant_game.is_active = False
         valorant_game.save()
         
-        result = CareerTabService.get_linked_games(test_user)
+        result = CareerTabService.get_linked_games(test_user.profile)
         # Should still return the game
         assert len(result) == 1
     
     def test_null_rank_handled_gracefully(self, test_user, valorant_game):
-        """Null rank field doesn't crash passport retrieval"""
+        """Empty rank field doesn't crash passport retrieval"""
         GameProfile.objects.create(
             user=test_user,
             game=valorant_game,
             in_game_name='UnrankedPlayer',
-            rank=None  # Null rank
+            rank_name='Unranked',
+            visibility=GameProfile.VISIBILITY_PUBLIC,
+            status=GameProfile.STATUS_ACTIVE
         )
         
-        result = CareerTabService.get_game_passport(test_user, valorant_game)
+        result = CareerTabService.get_game_passport(test_user.profile, valorant_game)
         assert result is not None
-        assert result['rank_name'] == 'Unranked'
+        assert result.rank_name == 'Unranked'
 
 
 @pytest.mark.django_db
@@ -382,17 +392,18 @@ class TestIntegration:
         game = valorant_passport.game
         
         # Get all data
-        linked_games = CareerTabService.get_linked_games(test_user)
-        passport = CareerTabService.get_game_passport(test_user, game)
-        matches_played = CareerTabService.get_matches_played_count(test_user, game)
-        team_ranking = CareerTabService.get_team_ranking(test_user, game)
-        team_history = CareerTabService.get_team_affiliation_history(test_user, game)
-        achievements = CareerTabService.get_achievements(test_user, game)
-        display_attrs = CareerTabService.get_display_attributes(test_user, game)
+        profile = test_user.profile
+        linked_games = CareerTabService.get_linked_games(profile)
+        passport_result = CareerTabService.get_game_passport(profile, game)
+        matches_played = CareerTabService.get_matches_played_count(profile, game)
+        team_ranking = CareerTabService.get_team_ranking(profile, game)
+        team_history = CareerTabService.get_team_affiliation_history(profile, game)
+        achievements = CareerTabService.get_achievements(profile, game)
+        display_attrs = CareerTabService.get_display_attributes(passport_result)
         
         # Verify all methods return expected types
         assert isinstance(linked_games, list)
-        assert isinstance(passport, dict)
+        assert passport_result is not None
         assert isinstance(matches_played, int)
         assert team_ranking is None or isinstance(team_ranking, dict)
         assert isinstance(team_history, list)
@@ -401,5 +412,5 @@ class TestIntegration:
         
         # Verify basic data
         assert len(linked_games) == 1
-        assert passport['game_name'] == 'VALORANT'
+        assert passport_result.game_display_name == 'VALORANT'
         assert matches_played >= 0

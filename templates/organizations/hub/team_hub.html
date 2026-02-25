@@ -484,6 +484,119 @@ body::after {
     box-shadow: 0 0 25px rgba(6,182,212,0.2), inset 0 0 15px rgba(6,182,212,0.05);
 }
 
+/* Card image: clear at rest, blurred on hover */
+.game-grid-item .game-card-bg {
+    opacity: 1;
+    filter: blur(0);
+    transition: opacity 0.4s ease, filter 0.4s ease;
+}
+.game-grid-item:hover .game-card-bg,
+.game-grid-item.active .game-card-bg {
+    opacity: 0.35;
+    filter: blur(3px);
+}
+/* Gradient veil: hidden at rest, visible on hover */
+.game-grid-item .game-card-veil {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+.game-grid-item:hover .game-card-veil,
+.game-grid-item.active .game-card-veil {
+    opacity: 1;
+}
+/* Content overlay: hidden at rest, visible on hover */
+.game-grid-item .game-card-content {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.game-grid-item:hover .game-card-content,
+.game-grid-item.active .game-card-content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ===== COMPACT MOBILE COMBAT ZONE ===== */
+@media (max-width: 639px) {
+    /* Hide the full grid on mobile, show compact scroll strip */
+    .game-grid-full { display: none; }
+    .game-strip-mobile { display: flex !important; }
+}
+@media (min-width: 640px) {
+    .game-strip-mobile { display: none !important; }
+    .game-grid-full { display: grid; }
+}
+/* Mobile game strip styling */
+.game-strip-mobile {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.25rem 0;
+}
+.game-strip-mobile::-webkit-scrollbar { display: none; }
+.game-chip {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #d1d5db;
+}
+.game-chip:hover, .game-chip:active {
+    border-color: rgba(6,182,212,0.4);
+    background: rgba(6,182,212,0.08);
+    color: #06b6d4;
+}
+.game-chip.active {
+    border-color: #06b6d4;
+    background: rgba(6,182,212,0.15);
+    color: #06b6d4;
+    box-shadow: 0 0 12px rgba(6,182,212,0.2);
+}
+.game-chip img {
+    width: 1.25rem;
+    height: 1.25rem;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* ===== MOBILE-FIRST SECTION PRIORITY ORDERING ===== */
+@media (max-width: 1023px) {
+    .hub-content-grid { display: flex !important; flex-direction: column; gap: 1.5rem; }
+    .hub-col-left, .hub-col-right { display: contents; }
+    /* Mobile priority order: 1=highest */
+    .mob-order-1 { order: 1; } /* Global Standings */
+    .mob-order-2 { order: 2; } /* My Teams */
+    .mob-order-3 { order: 3; } /* Tournament Arena */
+    .mob-order-4 { order: 4; } /* Scouting Grounds */
+    .mob-order-5 { order: 5; } /* Open Challenges */
+    .mob-order-6 { order: 6; } /* Top Organizations */
+    .mob-order-7 { order: 7; } /* Match Finder */
+    /* Hide low-priority sections on very small screens */
+    .mob-hide-sm { display: none; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+    .mob-hide-sm { display: block; }
+}
+/* Hide section dividers within reordered layout on mobile */
+@media (max-width: 1023px) {
+    .hub-col-left > .section-divider,
+    .hub-col-right > .section-divider { display: none; }
+}
+
 /* ===== GRASSROOTS PATH (E1 - Animated) ===== */
 .path-line {
     position: absolute;
@@ -550,45 +663,59 @@ body::after {
 /* ===== PERF: content-visibility for off-screen sections ===== */
 .cv-auto { content-visibility: auto; contain-intrinsic-size: auto 600px; }
 
-/* ===== SPOTLIGHT CAROUSEL ===== */
+/* ===== MODERN SPOTLIGHT CAROUSEL (2026 — scroll-snap + gestures) ===== */
 .spotlight-carousel {
     position: relative;
+    width: 100%;
 }
 .spotlight-track {
-    position: relative;
-    min-height: 200px;
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.5rem 0;
+    cursor: grab;
 }
+.spotlight-track:active { cursor: grabbing; }
+.spotlight-track::-webkit-scrollbar { display: none; }
+
 .spotlight-card {
-    position: absolute;
-    inset: 0;
-    padding: 1.25rem 1.5rem;
-    border-radius: 1rem;
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    padding: 1.5rem;
+    border-radius: 1.25rem;
     border: 1px solid rgba(255,255,255,0.06);
-    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    opacity: 0;
-    transform: translateX(40px) scale(0.97);
-    transition: opacity 0.55s cubic-bezier(.22,1,.36,1), transform 0.55s cubic-bezier(.22,1,.36,1);
-    pointer-events: none;
-    will-change: opacity, transform;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.35s ease, opacity 0.35s ease;
+    transform: scale(0.96);
+    opacity: 0.4;
+    min-width: 0;
+    user-select: none;
+    -webkit-user-select: none;
 }
-.spotlight-card--active {
-    position: relative;
+.spotlight-card.snap-active {
+    transform: scale(1);
     opacity: 1;
-    transform: translateX(0) scale(1);
-    pointer-events: auto;
-}
-.spotlight-card--exiting {
-    opacity: 0;
-    transform: translateX(-40px) scale(0.97);
-    pointer-events: none;
-}
-.spotlight-card--empty {
-    position: relative;
 }
 .spotlight-card:hover {
     border-color: rgba(6,182,212,0.20);
     box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(6,182,212,0.06);
+}
+.spotlight-card--empty {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    transform: scale(1);
+    opacity: 1;
 }
 
 /* Badge pill */
@@ -607,24 +734,40 @@ body::after {
     color: #06b6d4;
 }
 
-/* Dot navigation */
-.spotlight-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+/* Progress bar navigation (modern pip style) */
+.spotlight-progress {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.spotlight-pip {
+    height: 3px;
+    border-radius: 2px;
     border: none;
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.12);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
     padding: 0;
+    flex: 1;
+    max-width: 40px;
 }
-.spotlight-dot--active {
+.spotlight-pip--active {
     background: #06b6d4;
-    box-shadow: 0 0 8px rgba(6,182,212,0.4);
-    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(6,182,212,0.5);
+    height: 4px;
 }
-.spotlight-dot:hover:not(.spotlight-dot--active) {
-    background: rgba(255,255,255,0.35);
+.spotlight-pip:hover:not(.spotlight-pip--active) {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Peek: show edge of next card on smaller screens */
+@media (max-width: 639px) {
+    .spotlight-card { flex: 0 0 92%; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+    .spotlight-card { flex: 0 0 85%; }
 }
 </style>
 {% endblock %}
@@ -661,16 +804,16 @@ body::after {
 <section class="relative overflow-hidden" id="hero-section">
     <canvas id="hero-particles"></canvas>
     <div class="hero-mesh absolute inset-0"></div>
-    <!-- Ambient light orbs -->
-    <div class="absolute top-[-100px] left-[10%] w-[500px] h-[500px] bg-dc-cyan/[0.10] rounded-full blur-[180px] pointer-events-none"></div>
-    <div class="absolute bottom-[-60px] right-[20%] w-[400px] h-[400px] bg-dc-purple/[0.08] rounded-full blur-[160px] pointer-events-none"></div>
+    <!-- Ambient light orbs (smaller on mobile for perf) -->
+    <div class="absolute top-[-100px] left-[10%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-dc-cyan/[0.10] rounded-full blur-[120px] sm:blur-[180px] pointer-events-none"></div>
+    <div class="absolute bottom-[-60px] right-[20%] w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-dc-purple/[0.08] rounded-full blur-[100px] sm:blur-[160px] pointer-events-none"></div>
     <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-dc-cyan/60 to-transparent"></div>
     <div class="hero-grid-overlay"></div>
     <div class="hero-vignette"></div>
 
-    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-14 sm:pt-16 pb-8">
+    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-10 sm:pt-14 lg:pt-16 pb-6 sm:pb-8">
         <!-- Split: Left CTA + Right Spotlight -->
-        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-12 items-center">
 
             <!-- LEFT — Text + CTA (55%) -->
             <div class="flex-1 lg:max-w-[55%] text-center lg:text-left">
@@ -681,7 +824,7 @@ body::after {
                 </div>
 
                 <!-- Main heading -->
-                <h1 class="reveal reveal-delay-1 font-display text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-black leading-[1.05] text-white mb-3 tracking-tight">
+                <h1 class="reveal reveal-delay-1 font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-[1.05] text-white mb-3 tracking-tight">
                     Build Your <span class="grad-text"><span id="hero-typed"></span></span>
                 </h1>
 
@@ -728,10 +871,10 @@ body::after {
             <div class="w-full lg:w-[42%] lg:max-w-[480px] reveal reveal-delay-2">
                 {% if spotlight_teams %}
                 <div class="spotlight-carousel" id="spotlight-carousel">
-                    <!-- Cards -->
-                    <div class="spotlight-track">
+                    <!-- Cards (horizontal scroll-snap track) -->
+                    <div class="spotlight-track" id="spotlight-track">
                         {% for item in spotlight_teams %}
-                        <div class="spotlight-card {% if forloop.first %}spotlight-card--active{% endif %}" data-idx="{{ forloop.counter0 }}">
+                        <div class="spotlight-card" data-idx="{{ forloop.counter0 }}">
                             <!-- Badge -->
                             <div class="flex items-center gap-2 mb-3">
                                 <span class="spotlight-badge">
@@ -744,7 +887,7 @@ body::after {
                             <!-- Team identity -->
                             <div class="flex items-center gap-4 mb-3">
                                 {% if item.team.logo %}
-                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0" loading="lazy">
+                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0" loading="lazy" draggable="false">
                                 {% else %}
                                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-white/10 flex items-center justify-center flex-shrink-0">
                                     <span class="font-display font-bold text-lg text-white/80">{{ item.team.tag|default:item.team.name|truncatechars:2 }}</span>
@@ -781,18 +924,18 @@ body::after {
                         </div>
                         {% endfor %}
                     </div>
-                    <!-- Dot Navigation -->
+                    <!-- Progress pip navigation -->
                     {% if spotlight_teams|length > 1 %}
-                    <div class="flex items-center justify-center gap-2 mt-4">
+                    <div class="spotlight-progress" id="spotlight-pips">
                         {% for item in spotlight_teams %}
-                        <button class="spotlight-dot {% if forloop.first %}spotlight-dot--active{% endif %}" data-idx="{{ forloop.counter0 }}" aria-label="Show team {{ forloop.counter }}"></button>
+                        <button class="spotlight-pip {% if forloop.first %}spotlight-pip--active{% endif %}" data-idx="{{ forloop.counter0 }}" aria-label="Show team {{ forloop.counter }}"></button>
                         {% endfor %}
                     </div>
                     {% endif %}
                 </div>
                 {% else %}
                 <!-- Empty state — motivational card -->
-                <div class="spotlight-card spotlight-card--active spotlight-card--empty">
+                <div class="spotlight-card--empty">
                     <div class="text-center py-4">
                         <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-white/10 flex items-center justify-center mx-auto mb-3">
                             <i data-lucide="crown" class="w-7 h-7 text-dc-gold"></i>
@@ -816,7 +959,7 @@ body::after {
         </div>
 
         <!-- Live Activity Ticker -->
-        <div class="mt-6 pt-4 border-t border-white/[0.06]">
+        <div class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-2">
                 <span class="activity-dot bg-green-400"></span>
                 <p class="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold">Live Activity</p>
@@ -832,8 +975,8 @@ body::after {
 
 <!-- ========== COMBAT ZONE – GAME SELECTOR (Grid Redesign) ========== -->
 <div class="section-divider"></div>
-<section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 section-glow section-glow-cyan cv-auto">
-    <div class="flex items-center justify-between mb-6">
+<section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 section-glow section-glow-cyan cv-auto" id="combat-zone-section">
+    <div class="flex items-center justify-between mb-4 sm:mb-6">
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <i data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Select Combat Zone
         </h3>
@@ -841,10 +984,31 @@ body::after {
             <span id="game-filter-indicator" class="text-xs text-dc-cyan font-semibold flex items-center gap-1.5 bg-dc-cyan/10 border border-dc-cyan/20 px-3 py-1 rounded-full">
                 <i data-lucide="filter" class="w-3 h-3"></i>Showing: Global · All Games
             </span>
-            <span class="text-xs text-gray-500">{{ available_games.count|add:1 }} Filters</span>
+            <span class="text-xs text-gray-500 hidden sm:inline">{{ available_games.count|add:1 }} Filters</span>
         </div>
     </div>
-    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-3 stagger-grid" id="game-grid">
+
+    <!-- MOBILE: Compact horizontal chip strip (< 640px) -->
+    <div class="game-strip-mobile" id="game-strip-mobile">
+        <button class="game-chip {% if selected_game_slug == 'all' %}active{% endif %}" data-game="all" onclick="selectGame('all', this); syncChipActive(this);">
+            <i data-lucide="layout-grid" class="w-4 h-4 text-dc-cyan"></i> All
+        </button>
+        {% for game in available_games %}
+        <button class="game-chip {% if selected_game_slug == game.slug %}active{% endif %}" data-game="{{ game.slug }}" onclick="selectGame('{{ game.slug }}', this); syncChipActive(this);">
+            {% if game.icon %}
+            <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" loading="lazy">
+            {% elif game.logo %}
+            <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" loading="lazy">
+            {% else %}
+            <span>🎮</span>
+            {% endif %}
+            {{ game.short_code }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- DESKTOP: Full game grid (>= 640px) -->
+    <div class="game-grid-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-3 stagger-grid" id="game-grid">
         <!-- "All Games" button -->
         <button class="game-grid-item card-shine {% if selected_game_slug == 'all' %}active{% endif %}"
                 data-game="all" onclick="selectGame('all', this)">
@@ -861,15 +1025,15 @@ body::after {
                 data-game="{{ game.slug }}" onclick="selectGame('{{ game.slug }}', this)" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
             <!-- Blurred cover background -->
             {% if game.card_image %}
-            <img src="{{ game.card_image.url }}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px] group-hover:opacity-50 transition-opacity" alt="" loading="lazy">
+            <img src="{{ game.card_image.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy">
             {% elif game.banner %}
-            <img src="{{ game.banner.url }}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px] group-hover:opacity-50 transition-opacity" alt="" loading="lazy">
+            <img src="{{ game.banner.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy">
             {% else %}
             <div class="absolute inset-0 bg-gradient-to-b from-gray-800/60 to-transparent"></div>
             {% endif %}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+            <div class="game-card-veil absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <!-- Content -->
-            <div class="relative h-full flex flex-col items-center justify-center gap-2 p-3">
+            <div class="game-card-content relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 {% if game.logo %}
                 <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy">
                 {% elif game.icon %}
@@ -888,14 +1052,14 @@ body::after {
 </section>
 
 <!-- ========== MAIN CONTENT ========== -->
-<div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10">
+<div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-10">
+    <div class="hub-content-grid grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 sm:gap-10">
 
         <!-- LEFT COLUMN -->
-        <div class="space-y-10">
+        <div class="hub-col-left space-y-6 sm:space-y-10">
 
             <!-- TOURNAMENT ARENA -->
-            <div class="reveal section-glow section-glow-cyan">
+            <div class="reveal section-glow section-glow-cyan mob-order-3">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2 neon-line">
                         <span class="w-1.5 h-7 bg-dc-cyan rounded-full"></span>Tournament Arena
@@ -903,22 +1067,29 @@ body::after {
                     <a href="/tournaments" class="text-sm text-gray-400 hover:text-white flex items-center gap-1 transition-colors btn-arrow">View All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
                 </div>
                 {% if featured_tournament %}
-                <div class="glass rounded-2xl overflow-hidden relative card-shine" style="transform:none!important">
+                <a href="/tournaments/{{ featured_tournament.slug }}/" class="glass rounded-2xl overflow-hidden relative card-shine block group/arena" style="transform:none!important; text-decoration:none; color:inherit;">
                     {% if featured_tournament.status == 'live' %}
                     <span class="absolute top-3 right-3 z-20 bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">LIVE NOW</span>
                     {% elif featured_tournament.status == 'registration_open' %}
-                    <span class="absolute top-3 right-3 z-20 bg-green-500/20 text-green-400 border border-green-500/40 text-xs font-bold px-2.5 py-1 rounded-full">OPEN</span>
+                    <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
+                        <span class="bg-green-500/20 text-green-400 border border-green-500/40 text-xs font-bold px-2.5 py-1 rounded-full">OPEN</span>
+                        {% if featured_tournament.registration_end %}
+                        <span class="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-1 rounded-full" data-countdown="{{ featured_tournament.registration_end|date:'c' }}">
+                            Closes {{ featured_tournament.registration_end|timeuntil }} left
+                        </span>
+                        {% endif %}
+                    </div>
                     {% else %}
                     <span class="absolute top-3 right-3 z-20 bg-dc-cyan/20 text-dc-cyan border border-dc-cyan/40 text-xs font-bold px-2.5 py-1 rounded-full">UPCOMING</span>
                     {% endif %}
                     <div class="grid md:grid-cols-3 h-full">
                         <div class="relative h-44 md:h-full bg-gray-900">
                             {% if featured_tournament.banner_image %}
-                            <img src="{{ featured_tournament.banner_image.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.name }}" loading="lazy">
+                            <img src="{{ featured_tournament.banner_image.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.name }}" loading="lazy">
                             {% elif featured_tournament.game.card_image %}
-                            <img src="{{ featured_tournament.game.card_image.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
+                            <img src="{{ featured_tournament.game.card_image.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
                             {% elif featured_tournament.game.banner %}
-                            <img src="{{ featured_tournament.game.banner.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
+                            <img src="{{ featured_tournament.game.banner.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
                             {% else %}
                             <div class="w-full h-full bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center">
                                 <i data-lucide="trophy" class="w-12 h-12 text-gray-700"></i>
@@ -931,8 +1102,12 @@ body::after {
                                     <span>{{ featured_tournament.get_format_display|upper }}</span>
                                     <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
                                     <span>{{ featured_tournament.game.name }}</span>
+                                    {% if featured_tournament.is_featured %}
+                                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                    <span class="text-dc-gold flex items-center gap-1"><i data-lucide="star" class="w-3 h-3 fill-dc-gold/50"></i> Featured</span>
+                                    {% endif %}
                                 </div>
-                                <h3 class="text-2xl font-display font-black text-white mb-1">{{ featured_tournament.name }}</h3>
+                                <h3 class="text-2xl font-display font-black text-white mb-1 group-hover/arena:text-dc-cyan transition-colors">{{ featured_tournament.name }}</h3>
                                 <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ featured_tournament.description|striptags|truncatewords:30 }}</p>
                                 <div class="flex items-center gap-6 text-sm">
                                     <div>
@@ -951,9 +1126,15 @@ body::after {
                                         <p class="font-bold text-green-400">FREE</p>
                                         {% endif %}
                                     </div>
+                                    {% if featured_tournament.status == 'registration_open' and featured_tournament.registration_end %}
+                                    <div>
+                                        <p class="text-xs text-gray-500 uppercase">Closes In</p>
+                                        <p class="font-bold text-amber-400 text-xs">{{ featured_tournament.registration_end|timeuntil }}</p>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
-                            <div class="flex gap-2 mt-4">
+                            <div class="flex gap-2 mt-4" onclick="event.stopPropagation();">
                                 {% if featured_tournament.status == 'live' %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/#matches" class="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all text-sm text-center flex items-center justify-center gap-2">
                                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span> Watch Live
@@ -971,7 +1152,7 @@ body::after {
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
                 {% else %}
                 <!-- No Featured Tournament — Empty State -->
                 <div class="glass rounded-2xl p-10 text-center" style="transform:none!important">
@@ -983,7 +1164,7 @@ body::after {
                 {% endif %}
 
                 {% if upcoming_tournament %}
-                <a href="/tournaments/{{ upcoming_tournament.slug }}/" class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer hover:bg-white/5 hover:border-white/20 block" style="transition: background .3s, border-color .3s; transform:none!important; text-decoration:none;">
+                <a href="/tournaments/{{ upcoming_tournament.slug }}/" class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer hover:bg-white/5 hover:border-white/20 block group/upcoming" style="transition: background .3s, border-color .3s; transform:none!important; text-decoration:none;">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center overflow-hidden">
                             {% if upcoming_tournament.game.icon %}
@@ -993,13 +1174,17 @@ body::after {
                             {% endif %}
                         </div>
                         <div>
-                            <h4 class="font-bold text-white text-sm">{{ upcoming_tournament.name }}</h4>
+                            <h4 class="font-bold text-white text-sm group-hover/upcoming:text-dc-cyan transition-colors">{{ upcoming_tournament.name }}</h4>
                             <p class="text-xs text-gray-400">
                                 {{ upcoming_tournament.get_participation_type_display }} · ৳{{ upcoming_tournament.prize_pool|intcomma }}
                             </p>
                         </div>
                     </div>
+                    {% if upcoming_tournament.status == 'registration_open' %}
+                    <span class="bg-green-500/10 text-green-400 text-xs font-bold px-2.5 py-1 rounded-full border border-green-500/20">REG OPEN</span>
+                    {% else %}
                     <span class="bg-dc-cyan/10 text-dc-cyan text-xs font-bold px-2.5 py-1 rounded-full border border-dc-cyan/20">UPCOMING</span>
+                    {% endif %}
                 </a>
                 {% endif %}
             </div>
@@ -1007,7 +1192,7 @@ body::after {
             <div class="section-divider"></div>
 
             <!-- GLOBAL STANDINGS -->
-            <div class="reveal section-glow section-glow-gold">
+            <div class="reveal section-glow section-glow-gold mob-order-1">
                 <div class="glass rounded-2xl p-0 overflow-hidden border-t-4 border-t-dc-gold card-shine">
                     <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-b from-white/5 to-transparent">
                         <div>
@@ -1036,7 +1221,7 @@ body::after {
                     <div class="divide-y divide-white/5" id="rankings-list">
                         {% if rankings_preview %}
                         {% for entry in rankings_preview %}
-                        <div class="rank-row grid grid-cols-12 gap-4 px-6 {% if forloop.counter <= 3 %}py-4{% else %}py-3{% endif %} items-center {% if forloop.counter == 1 %}bg-gradient-to-r from-dc-gold/10 to-transparent{% endif %} relative group cursor-pointer">
+                        <a href="{{ entry.team_url|default:'#' }}" class="rank-row grid grid-cols-12 gap-4 px-6 {% if forloop.counter <= 3 %}py-4{% else %}py-3{% endif %} items-center {% if forloop.counter == 1 %}bg-gradient-to-r from-dc-gold/10 to-transparent{% endif %} relative group cursor-pointer block" style="text-decoration:none; color:inherit;">
                             <!-- Rank Number -->
                             <div class="col-span-1 text-center font-display font-bold {% if forloop.counter == 1 %}text-xl text-dc-gold{% elif forloop.counter == 2 %}text-lg text-gray-300{% elif forloop.counter == 3 %}text-lg text-orange-400{% else %}text-gray-500{% endif %}">
                                 {{ forloop.counter }}
@@ -1046,14 +1231,14 @@ body::after {
                                 {% if entry.team_logo_url %}
                                 <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg object-cover flex-shrink-0 border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %}" alt="{{ entry.team_name }}" loading="lazy">
                                 {% else %}
-                                <div class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg bg-dc-dark border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %} flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg bg-dc-dark border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %} flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                                     {% if forloop.counter == 1 %}<div class="absolute inset-0 bg-dc-gold/20"></div>{% endif %}
                                     <span class="font-bold {% if forloop.counter == 1 %}text-dc-gold{% else %}text-gray-400{% endif %} relative z-10 text-xs">{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}</span>
                                 </div>
                                 {% endif %}
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ entry.team_url|default:'#' }}" class="{% if forloop.counter <= 3 %}text-sm{% else %}text-sm{% endif %} font-bold text-white group-hover:text-dc-cyan transition-colors truncate">{{ entry.team_name }}</a>
+                                        <span class="{% if forloop.counter <= 3 %}text-sm{% else %}text-sm{% endif %} font-bold text-white group-hover:text-dc-cyan transition-colors truncate">{{ entry.team_name }}</span>
                                     </div>
                                     {% if entry.organization_name %}
                                     <p class="text-xs text-gray-500 truncate">{{ entry.organization_name }}</p>
@@ -1068,7 +1253,7 @@ body::after {
                             <div class="col-span-2 text-right font-display font-bold {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }}</div>
                             <!-- Trend -->
                             <div class="col-span-2 flex justify-center text-gray-500 text-xs">—</div>
-                        </div>
+                        </a>
                         {% endfor %}
                         {% else %}
                         <!-- Empty State -->
@@ -1084,7 +1269,7 @@ body::after {
             <div class="section-divider"></div>
 
             <!-- SCOUTING GROUNDS -->
-            <div class="reveal section-glow section-glow-purple">
+            <div class="reveal section-glow section-glow-purple mob-order-4">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2 neon-line">
                         <span class="w-1.5 h-7 bg-dc-purple rounded-full"></span>Scouting Grounds
@@ -1135,10 +1320,10 @@ body::after {
         </div>
 
         <!-- RIGHT SIDEBAR (1/3) -->
-        <div class="space-y-6 sidebar-sticky">
+        <div class="hub-col-right space-y-6 sidebar-sticky">
 
             <!-- MY TEAMS WIDGET -->
-            <div class="glass rounded-2xl p-6 card-shine" id="my-teams-widget">
+            <div class="glass rounded-2xl p-6 card-shine mob-order-2" id="my-teams-widget">
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
                         <i data-lucide="users" class="w-5 h-5 text-dc-cyan"></i>My Teams
@@ -1229,7 +1414,7 @@ body::after {
             </div>
 
             <!-- OPEN CHALLENGES -->
-            <div class="glass rounded-2xl p-6 relative overflow-hidden card-shine">
+            <div class="glass rounded-2xl p-6 relative overflow-hidden card-shine mob-order-5">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-dc-purple/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
@@ -1297,7 +1482,7 @@ body::after {
             </div>
 
             <!-- TOP ORGANIZATIONS -->
-            <div class="glass rounded-2xl p-6">
+            <div class="glass rounded-2xl p-6 mob-order-6 mob-hide-sm">
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
                         <i data-lucide="building-2" class="w-5 h-5 text-dc-purple"></i>Organizations
@@ -1362,7 +1547,7 @@ body::after {
             </div>
 
             <!-- MATCH FINDER -->
-            <div class="glass rounded-2xl overflow-hidden card-shine" id="quick-scrim-widget">
+            <div class="glass rounded-2xl overflow-hidden card-shine mob-order-7 mob-hide-sm" id="quick-scrim-widget">
                 <div class="h-1 w-full bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan"></div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-5">
@@ -1455,12 +1640,12 @@ body::after {
 <div class="section-divider"></div>
 
 <!-- ========== GRASSROOTS TO GLORY — COMPLETE REDESIGN ========== -->
-<section class="border-t border-white/10 bg-dc-surface py-16 sm:py-20 section-glow section-glow-cyan overflow-hidden cv-auto">
+<section class="border-t border-white/10 bg-dc-surface py-10 sm:py-16 lg:py-20 section-glow section-glow-cyan overflow-hidden cv-auto hidden sm:block">
     <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
         <!-- Section header -->
-        <div class="text-center mb-14 reveal">
+        <div class="text-center mb-8 sm:mb-14 reveal">
             <p class="text-xs font-bold uppercase tracking-[0.25em] text-dc-cyan/70 mb-3">Progression System</p>
-            <h2 class="font-display text-3xl sm:text-4xl font-black text-white mb-3">The Path to <span class="grad-text">Pro</span></h2>
+            <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-3">The Path to <span class="grad-text">Pro</span></h2>
             <p class="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">Four stages. One destination. Every match, win, and trophy pushes you closer to the Crown.</p>
         </div>
 
@@ -1557,13 +1742,13 @@ body::after {
 </section>
 
 <!-- ========== CINEMATIC CTA ========== -->
-<section class="relative py-16 overflow-hidden section-glow section-glow-purple cv-auto">
+<section class="relative py-10 sm:py-16 overflow-hidden section-glow section-glow-purple cv-auto">
     <div class="absolute inset-0 opacity-15">
         <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-dc-cyan rounded-full blur-[150px]"></div>
         <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-dc-purple rounded-full blur-[150px]"></div>
     </div>
     <div class="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 text-center">
-        <h2 class="font-display text-3xl sm:text-4xl font-black text-white mb-4">Don't Just Watch.<br><span class="grad-text">Compete.</span></h2>
+        <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-4">Don't Just Watch.<br><span class="grad-text">Compete.</span></h2>
         <p class="text-gray-200 text-sm sm:text-base mb-3 max-w-xl mx-auto leading-relaxed">Every champion started with a roster of one. Create your team, compete in tournaments, climb the DCRS Rankings, and build a legacy that lasts. Your stats, trophies, and match history are permanent — this isn't casual, this is your career.</p>
         <p class="text-gray-400 text-sm mb-6">Independent teams can be scouted and acquired by Organizations — turning your passion into a profession.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -1586,7 +1771,7 @@ body::after {
 <div class="section-divider"></div>
 
 <!-- ========== PLATFORM RULES STRIP ========== -->
-<section class="border-t border-white/10 bg-dc-surface py-10 cv-auto">
+<section class="border-t border-white/10 bg-dc-surface py-8 sm:py-10 cv-auto hidden sm:block">
     <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
         <div class="text-center mb-6 reveal">
             <p class="text-xs font-bold uppercase tracking-[0.25em] text-gray-500 mb-2">Platform Integrity</p>
@@ -1836,72 +2021,135 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load ticker
     loadTicker();
 
-    // === SPOTLIGHT CAROUSEL ===
+    // === MODERN SPOTLIGHT CAROUSEL (scroll-snap + gestures) ===
     (function initSpotlight() {
         const carousel = document.getElementById('spotlight-carousel');
         if (!carousel) return;
-        const cards = carousel.querySelectorAll('.spotlight-card');
-        const dots = carousel.querySelectorAll('.spotlight-dot');
-        if (cards.length <= 1) return;
+        const track = document.getElementById('spotlight-track');
+        if (!track) return;
+        const cards = track.querySelectorAll('.spotlight-card');
+        const pips = carousel.querySelectorAll('.spotlight-pip');
+        if (cards.length === 0) return;
 
         let current = 0;
-        let timer = null;
-        let transitioning = false;
+        let autoTimer = null;
+        let userInteracted = false;
+        let interactionTimeout = null;
 
-        function show(idx) {
-            if (idx === current || transitioning) return;
-            transitioning = true;
+        // ── Utility: scroll to a specific card index ──
+        function scrollToCard(idx) {
+            const card = cards[idx];
+            if (!card) return;
+            track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+        }
 
-            const prev = cards[current];
-            const next = cards[idx];
-
-            // Exit: slide current card out to the left
-            prev.classList.add('spotlight-card--exiting');
-            prev.classList.remove('spotlight-card--active');
-
-            // Enter: after a brief overlap, bring new card in from right
-            requestAnimationFrame(() => {
-                next.classList.add('spotlight-card--active');
+        // ── Update active state based on scroll position ──
+        function updateActiveFromScroll() {
+            const trackLeft = track.scrollLeft;
+            const trackWidth = track.offsetWidth;
+            let closestIdx = 0;
+            let closestDist = Infinity;
+            cards.forEach((card, i) => {
+                const cardCenter = card.offsetLeft - track.offsetLeft + card.offsetWidth / 2;
+                const dist = Math.abs(cardCenter - trackLeft - trackWidth / 2);
+                if (dist < closestDist) { closestDist = dist; closestIdx = i; }
             });
-
-            // Cleanup after transition completes
-            setTimeout(() => {
-                prev.classList.remove('spotlight-card--exiting');
-                transitioning = false;
-            }, 580);
-
-            dots.forEach((d, i) => {
-                d.classList.toggle('spotlight-dot--active', i === idx);
-            });
-            current = idx;
+            if (closestIdx !== current) {
+                current = closestIdx;
+            }
+            // Update visual states
+            cards.forEach((c, i) => c.classList.toggle('snap-active', i === current));
+            pips.forEach((p, i) => p.classList.toggle('spotlight-pip--active', i === current));
         }
 
-        function next() {
-            show((current + 1) % cards.length);
-        }
+        // ── Scroll listener (debounced) ──
+        let scrollRaf = null;
+        track.addEventListener('scroll', () => {
+            if (scrollRaf) cancelAnimationFrame(scrollRaf);
+            scrollRaf = requestAnimationFrame(updateActiveFromScroll);
+        }, { passive: true });
 
-        function startTimer() {
-            timer = setInterval(next, 5000);
-        }
-
-        function resetTimer() {
-            clearInterval(timer);
-            startTimer();
-        }
-
-        // Dot click
-        dots.forEach(d => {
-            d.addEventListener('click', () => {
-                show(parseInt(d.dataset.idx, 10));
-                resetTimer();
+        // ── Pip click navigation ──
+        pips.forEach(p => {
+            p.addEventListener('click', () => {
+                const idx = parseInt(p.dataset.idx, 10);
+                scrollToCard(idx);
+                markUserInteraction();
             });
         });
 
-        // Pause on hover
-        carousel.addEventListener('mouseenter', () => clearInterval(timer));
-        carousel.addEventListener('mouseleave', startTimer);
+        // ── Mouse drag scrolling ──
+        let isDragging = false, startX = 0, scrollStart = 0;
+        track.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.pageX;
+            scrollStart = track.scrollLeft;
+            track.style.scrollBehavior = 'auto';
+            track.style.scrollSnapType = 'none';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.pageX - startX;
+            track.scrollLeft = scrollStart - dx;
+        });
+        document.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            track.style.scrollBehavior = '';
+            track.style.scrollSnapType = '';
+            // Let scroll-snap settle, then read position
+            setTimeout(updateActiveFromScroll, 150);
+            markUserInteraction();
+        });
 
-        startTimer();
+        // ── Mouse wheel (horizontal scroll on hover) ──
+        carousel.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaY) < 5) return;
+            e.preventDefault();
+            const direction = e.deltaY > 0 ? 1 : -1;
+            const nextIdx = Math.max(0, Math.min(cards.length - 1, current + direction));
+            scrollToCard(nextIdx);
+            markUserInteraction();
+        }, { passive: false });
+
+        // ── Touch swipe (native scroll-snap handles it, just track interaction) ──
+        track.addEventListener('touchstart', () => { markUserInteraction(); }, { passive: true });
+
+        // ── Auto-advance ──
+        function startAuto() {
+            stopAuto();
+            autoTimer = setInterval(() => {
+                const nextIdx = (current + 1) % cards.length;
+                scrollToCard(nextIdx);
+            }, 5000);
+        }
+        function stopAuto() {
+            if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        }
+
+        // Pause auto on hover
+        carousel.addEventListener('mouseenter', stopAuto);
+        carousel.addEventListener('mouseleave', () => {
+            if (!userInteracted) startAuto();
+        });
+
+        // After user interaction, pause auto for 10s then resume
+        function markUserInteraction() {
+            userInteracted = true;
+            stopAuto();
+            clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(() => {
+                userInteracted = false;
+                startAuto();
+            }, 10000);
+        }
+
+        // ── Init: mark first card active and start auto ──
+        if (cards.length > 0) {
+            cards[0].classList.add('snap-active');
+        }
+        if (cards.length > 1) startAuto();
     })();
 
     // === SINGLE UNIFIED SCROLL OBSERVER (replaces 5 separate observers) ===
@@ -2013,9 +2261,25 @@ document.getElementById('scrim-game-select')?.addEventListener('change', functio
 
 // === GAME FILTER (AJAX — no page reload) ===
 let _filterAbort = null;
+
+// Sync mobile chip active state with desktop grid and vice-versa
+function syncChipActive(chipEl) {
+    document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+    chipEl.classList.add('active');
+}
+
 function selectGame(slug, el) {
+    // Sync desktop grid active
     document.querySelectorAll('.game-grid-item').forEach(c => c.classList.remove('active'));
-    el.classList.add('active');
+    if (el.classList.contains('game-grid-item')) el.classList.add('active');
+    else {
+        const gridItem = document.querySelector(`.game-grid-item[data-game="${slug}"]`);
+        if (gridItem) gridItem.classList.add('active');
+    }
+    // Sync mobile chips active
+    document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+    const chip = document.querySelector(`.game-chip[data-game="${slug}"]`);
+    if (chip) chip.classList.add('active');
 
     // Sync the Match Finder widget
     syncMatchFinder(slug);

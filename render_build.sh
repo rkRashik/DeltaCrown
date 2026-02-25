@@ -1,22 +1,32 @@
 #!/usr/bin/env bash
 # Build script for Render deployment
-# This script installs dependencies and builds CSS assets
+# Optimised for Render Free Tier (512 MB RAM)
 
 set -o errexit  # exit on error
 
-echo "🔧 Installing Node.js dependencies..."
-npm install --include=dev
+# ── 1. Node / Tailwind CSS build ────────────────────────────────────
+# Cap Node heap to 256 MB so it doesn't crowd out Python later.
+export NODE_OPTIONS="--max-old-space-size=256"
 
-echo "🎨 Building Tailwind CSS..."
+echo "🔧 Installing Node.js dev-dependencies (Tailwind build)…"
+npm install                   # generates lockfile on first run; npm ci on subsequent deploys
+
+echo "🎨 Building Tailwind CSS…"
 npm run build-css
 
-echo "🐍 Installing Python dependencies..."
-pip install -r requirements.txt
+# Free every byte of Node overhead before Python starts
+echo "🧹 Cleaning up Node artefacts…"
+npm cache clean --force 2>/dev/null || true
+rm -rf node_modules            # CSS is already compiled into static/dist/
 
-echo "📦 Collecting Django static files..."
+# ── 2. Python ───────────────────────────────────────────────────────
+echo "🐍 Installing Python dependencies…"
+pip install --no-cache-dir -r requirements.txt
+
+echo "📦 Collecting Django static files…"
 python manage.py collectstatic --noinput
 
-echo "🔄 Running Django migrations..."
+echo "🔄 Running Django migrations…"
 python manage.py migrate
 
 echo "✅ Build completed successfully!"

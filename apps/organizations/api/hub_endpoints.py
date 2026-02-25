@@ -78,19 +78,21 @@ def ticker_feed(request):
         # 1. Recent ranking changes
         try:
             ranking_changes = TeamRanking.objects.filter(
-                updated_at__gte=cutoff_date,
-                previous_rank__isnull=False
-            ).select_related('team').exclude(
-                global_rank=models.F('previous_rank')
-            ).order_by('-updated_at')[:5]
+                last_activity_date__gte=cutoff_date,
+                global_rank__isnull=False,
+            ).exclude(
+                rank_change_24h=0,
+            ).select_related('team').order_by('-last_activity_date')[:5]
             
             for ranking in ranking_changes:
-                direction = 'up' if ranking.global_rank < ranking.previous_rank else 'down'
+                # rank_change_24h: positive = climbing (e.g., +3 means rank improved by 3)
+                previous_rank = ranking.global_rank + ranking.rank_change_24h
+                direction = 'up' if ranking.rank_change_24h > 0 else 'down'
                 items.append({
                     'type': 'rank_change',
-                    'timestamp': ranking.updated_at.isoformat(),
+                    'timestamp': ranking.last_activity_date.isoformat(),
                     'title': f"{ranking.team.name} climbed to #{ranking.global_rank}" if direction == 'up' else f"{ranking.team.name} dropped to #{ranking.global_rank}",
-                    'subtitle': f"From #{ranking.previous_rank}",
+                    'subtitle': f"From #{previous_rank}",
                     'team_slug': ranking.team.slug,
                     'team_url': ranking.team.get_absolute_url(),
                 })

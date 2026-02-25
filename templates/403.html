@@ -3,17 +3,124 @@
 
 {% block title %}Access Denied — DeltaCrown{% endblock %}
 
-{% block content %}
-<main class="container mx-auto px-4 max-w-3xl py-16 text-center">
-  <div class="glass rounded-2xl p-8">
-    <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="DeltaCrown" class="mx-auto mb-4 opacity-90" width="64" height="64">
-    <h1 class="text-3xl font-extrabold mb-2">Access denied</h1>
-    <p class="text-muted mb-6">You don’t have permission to view this page.</p>
-    <div class="flex items-center justify-center gap-3">
-      <a class="btn-primary" href="/">Go home</a>
-      <a class="btn-secondary" href="/contact/">Report an issue</a>
-    </div>
-  </div>
-</main>
+{% block extra_css %}
+<style>
+/* ── Error Page: Esports 2026 ── */
+.err-scene{position:relative;min-height:80vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.err-scene::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 50% at 50% 40%, rgba(139,92,246,.08) 0%, transparent 70%),
+  radial-gradient(ellipse 40% 60% at 30% 60%, rgba(6,182,212,.06) 0%, transparent 60%);
+  pointer-events:none;z-index:0}
+
+/* animated grid floor */
+.err-grid{position:absolute;bottom:0;left:50%;transform:translateX(-50%) perspective(600px) rotateX(55deg);
+  width:200%;height:60%;
+  background-image:
+    linear-gradient(rgba(139,92,246,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(139,92,246,.07) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:linear-gradient(to top,rgba(0,0,0,.35),transparent 80%);
+  -webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.35),transparent 80%);
+  animation:gridScroll 20s linear infinite;z-index:0}
+@keyframes gridScroll{to{background-position:0 60px}}
+
+/* floating orbs */
+.err-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;animation:orbFloat 8s ease-in-out infinite alternate;z-index:0}
+.err-orb--cyan{width:220px;height:220px;background:#06b6d4;bottom:15%;right:10%;animation-delay:-3s}
+.err-orb--purple{width:280px;height:280px;background:#8b5cf6;top:10%;left:15%}
+@keyframes orbFloat{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-30px) scale(1.08)}}
+
+/* glitch code text */
+.err-code{font-family:'Space Grotesk','Rajdhani',monospace;font-size:clamp(7rem,18vw,12rem);font-weight:900;
+  line-height:1;letter-spacing:-.04em;
+  background:linear-gradient(135deg,#8b5cf6 0%,#06b6d4 50%,#8b5cf6 100%);background-size:200% 200%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:codeShift 6s ease-in-out infinite;
+  text-shadow:0 0 80px rgba(139,92,246,.15);position:relative}
+@keyframes codeShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.err-code::after{content:'403';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(6,182,212,.15));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:blur(12px);z-index:-1}
+
+/* scanline overlay */
+.err-scanlines{position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+  pointer-events:none;z-index:1}
+
+/* card */
+.err-card{position:relative;z-index:2;text-align:center;max-width:520px;padding:2.5rem 2rem}
+
+/* status badge */
+.err-badge{display:inline-flex;align-items:center;gap:.5rem;
+  padding:.35rem .85rem;border-radius:9999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  border:1px solid rgba(139,92,246,.25);background:rgba(139,92,246,.08);color:#a78bfa;margin-bottom:1.25rem}
+.err-badge-dot{width:6px;height:6px;border-radius:50%;background:#8b5cf6;animation:dotPulse 2s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+.err-title{font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:800;color:#f1f5f9;margin-bottom:.5rem}
+.err-desc{font-size:.85rem;color:#94a3b8;line-height:1.6;margin-bottom:2rem}
+
+/* buttons */
+.err-actions{display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap}
+.err-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.5rem;border-radius:.625rem;
+  font-size:.8rem;font-weight:700;text-decoration:none;transition:all .3s cubic-bezier(.22,1,.36,1);
+  cursor:pointer;border:none;outline:none}
+.err-btn--primary{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#020617;
+  box-shadow:0 4px 20px rgba(6,182,212,.25)}
+.err-btn--primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(6,182,212,.35)}
+.err-btn--ghost{background:rgba(255,255,255,.04);color:#cbd5e1;border:1px solid rgba(255,255,255,.08)}
+.err-btn--ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);transform:translateY(-2px)}
+.err-btn svg{width:16px;height:16px}
+
+/* separator */
+.err-sep{display:flex;align-items:center;gap:.75rem;margin:1.5rem 0;color:#334155;font-size:.65rem;text-transform:uppercase;letter-spacing:.15em}
+.err-sep::before,.err-sep::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)}
+
+/* tech details */
+.err-meta{font-family:'Rajdhani',monospace;font-size:.65rem;color:#475569;letter-spacing:.05em}
+</style>
 {% endblock %}
+
+{% block content %}
+<div class="err-scene">
+  <!-- Atmospheric layers -->
+  <div class="err-grid"></div>
+  <div class="err-orb err-orb--cyan"></div>
+  <div class="err-orb err-orb--purple"></div>
+  <div class="err-scanlines"></div>
+
+  <!-- Content -->
+  <div class="err-card">
+    <div class="err-code" aria-hidden="true">403</div>
+
+    <div class="err-badge">
+      <span class="err-badge-dot"></span>
+      Access Denied
+    </div>
+
+    <h1 class="err-title">Restricted zone</h1>
+    <p class="err-desc">
+      You don't have permission to access this area.
+      If you believe this is a mistake, try logging in or contact support.
+    </p>
+
+    <div class="err-actions">
+      <a class="err-btn err-btn--primary" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Go Home
+      </a>
+      <a class="err-btn err-btn--ghost" href="/accounts/login/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign In
+      </a>
+    </div>
+
+    <div class="err-sep">system</div>
+    <p class="err-meta">REF: DC-403 &middot; TIMESTAMP: <script>document.write(new Date().toISOString().slice(0,19))</script></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}
 

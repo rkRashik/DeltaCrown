@@ -6,9 +6,16 @@ import uuid
 import time
 import logging
 import json
+
+from django.conf import settings
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.http import Http404
 from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger('deltacrown.requests')
+
+# Paths handled by MediaProxyMiddleware — suppress noisy 404 logs
+_MEDIA_PREFIX = getattr(settings, 'MEDIA_URL', '/media/')
 
 
 class RequestLoggingMiddleware(MiddlewareMixin):
@@ -27,6 +34,12 @@ class RequestLoggingMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         """Log request completion with structured data."""
         if not hasattr(request, 'start_time'):
+            return response
+        
+        # Skip logging for /media/ 404s — MediaProxyMiddleware converts
+        # these to 302 redirects to Cloudinary CDN after this middleware runs.
+        if response.status_code == 404 and request.path.startswith(_MEDIA_PREFIX):
+            response['X-Correlation-ID'] = getattr(request, 'correlation_id', '')
             return response
         
         duration = time.time() - request.start_time
@@ -59,7 +72,16 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         return response
     
     def process_exception(self, request, exception):
-        """Log exceptions with correlation ID."""
+        """Log truly unhandled exceptions with correlation ID.
+        
+        Skip Http404, PermissionDenied, and SuspiciousOperation — Django
+        has built-in handlers for these (404/403/400 pages). They are NOT
+        unhandled exceptions and should not pollute error logs.
+        """
+        # Django-handled exception types — not truly "unhandled"
+        if isinstance(exception, (Http404, PermissionDenied, SuspiciousOperation)):
+            return None
+        
         log_data = {
             'correlation_id': getattr(request, 'correlation_id', None),
             'method': request.method,

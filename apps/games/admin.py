@@ -82,6 +82,12 @@ class GameAdmin(ModelAdmin):
         GameRoleInline,
     ]
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Bust the cached active-games dict so is_active changes take effect immediately
+        from django.core.cache import cache
+        cache.delete('context_active_games')
+
 
 @admin.register(GameRosterConfig)
 class GameRosterConfigAdmin(ModelAdmin):

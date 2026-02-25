@@ -2,16 +2,22 @@
 Context processors for making common data available in all templates.
 """
 
-from apps.common.game_assets import GAMES, get_game_data
+from apps.common.game_assets import _build_legacy_games_dict, get_game_data
+from django.core.cache import cache
 
 
 def game_assets_context(request):
     """
     Add game assets to template context globally.
-    This allows access to game data without loading template tags.
+    Only returns active games (respects is_active flag).
+    Results are cached for 60 seconds to avoid per-request DB hits.
     """
+    games = cache.get('context_active_games')
+    if games is None:
+        games = _build_legacy_games_dict()
+        cache.set('context_active_games', games, 60)
     return {
-        'GAMES': GAMES,
+        'GAMES': games,
         'get_game_data': get_game_data,
     }
 

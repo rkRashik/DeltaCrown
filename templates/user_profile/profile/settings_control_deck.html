@@ -2496,20 +2496,25 @@
 </div>
 
 <script>
-    // Get CSRF token
+    // Get CSRF token — try cookie first, fall back to hidden input
+    // (CSRF_COOKIE_HTTPONLY = True makes the cookie invisible to JS)
     function getCookie(name) {
-        let cookieValue = null;
+        // 1. Try reading from document.cookie (works when HTTPONLY is false)
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
             for (let i = 0; i < cookies.length; i++) {
                 const cookie = cookies[i].trim();
                 if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+                    return decodeURIComponent(cookie.substring(name.length + 1));
                 }
             }
         }
-        return cookieValue;
+        // 2. Fall back to Django {% csrf_token %} hidden input
+        if (name === 'csrftoken') {
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el) return el.value;
+        }
+        return null;
     }
 
     // UP.3 EXTENSION: Character counter for Player Summary

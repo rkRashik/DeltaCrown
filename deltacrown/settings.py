@@ -115,7 +115,14 @@ def get_sanitized_db_info():
     }
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
+
+# Safety: refuse to run with the placeholder secret key in production
+if not DEBUG and SECRET_KEY == "dev-insecure-secret-key-change-me":
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set in production. "
+        "Generate one with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+    )
 
 # -----------------------------------------------------------------------------
 # Feature Flags
@@ -304,6 +311,7 @@ MIDDLEWARE = [
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
+    "deltacrown.middleware.media_proxy.MediaProxyMiddleware",  # Dev: proxy missing media to production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -361,10 +369,19 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "apps.organizations.context_processors.vnext_feature_flags",  # vNext feature flags for UI gating
 ]
 
-# ensure cache exists (in dev the locmem cache is fine)
-CACHES = {
-    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
-}
+# Cache: Redis in production (shared across workers), local memory for dev
+_CACHE_REDIS = os.getenv("REDIS_URL")
+if _CACHE_REDIS and not DEBUG:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _CACHE_REDIS,
+        }
+    }
+else:
+    CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    }
 
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
@@ -472,8 +489,10 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         # Session auth - for browser-based requests
         "rest_framework.authentication.SessionAuthentication",
-        # Basic auth - for development/testing
-        "rest_framework.authentication.BasicAuthentication",
+        # Basic auth - dev only (sends credentials in cleartext)
+        *([
+            "rest_framework.authentication.BasicAuthentication",
+        ] if DEBUG else []),
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
@@ -551,8 +570,13 @@ SPECTACULAR_SETTINGS = {
     
     # Schema customization
     "SCHEMA_PATH_PREFIX": r"/api/",
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
-    "SERVE_AUTHENTICATION": None,
+    "SERVE_PERMISSIONS": [
+        "rest_framework.permissions.AllowAny" if DEBUG
+        else "rest_framework.permissions.IsAdminUser"
+    ],
+    "SERVE_AUTHENTICATION": None if DEBUG else [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     
     # Response wrapping
     "POSTPROCESSING_HOOKS": [
@@ -691,8 +715,9 @@ EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", EMAIL_BACKEND)
 # -----------------------------------------------------------------------------
 # Testing niceties
 # -----------------------------------------------------------------------------
-# Faster hashing during tests
-if os.getenv("FAST_TESTS", "1") == "1":
+# Faster hashing — only when running under pytest, never in production
+import sys as _sys
+if "pytest" in _sys.modules or "_pytest" in _sys.modules:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

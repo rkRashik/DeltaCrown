@@ -44,7 +44,7 @@ def mock_dispute_adapter():
     adapter.get_dispute = Mock()
     adapter.update_dispute_status = Mock()
     adapter.log_verification_step = Mock()
-    adapter.get_open_dispute_for_submission = Mock(side_effect=Exception("No open disputes"))
+    adapter.get_open_dispute_for_submission = Mock(return_value=None)
     return adapter
 
 

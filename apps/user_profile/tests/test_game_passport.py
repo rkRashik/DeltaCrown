@@ -25,6 +25,12 @@ from apps.user_profile.models.audit import UserAuditEvent
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def _seed_games(ensure_common_games):
+    """Auto-seed game objects and schemas for all tests in this module."""
+    pass
+
+
 @pytest.mark.django_db
 class TestGamePassportCreation:
     """Test passport creation and validation"""
