@@ -3564,21 +3564,36 @@
                 return;
             }
             
-            // Create form data
-            const csrfToken = getCookie('csrftoken');
+            // Create form data — read CSRF token directly from meta tag (immune to getCookie overwrites)
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = (csrfMeta && csrfMeta.content && csrfMeta.content.length >= 32) ? csrfMeta.content : getCookie('csrftoken');
+            if (!csrfToken || csrfToken.length < 32) {
+                showToast({ type: 'error', message: 'Session expired. Please refresh the page and try again.' });
+                closeCropModal();
+                return;
+            }
             const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', csrfToken);  // Form field (primary)
+            formData.append('csrfmiddlewaretoken', csrfToken);
             formData.append('media_type', type);
             formData.append('file', blob, `${type}.jpg`);
             
             try {
                 const response = await fetch('{% url "user_profile:upload_media" %}', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'X-CSRFToken': csrfToken,  // Header (backup)
+                        'X-CSRFToken': csrfToken,
                     },
                     body: formData,
                 });
+                
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        showToast({ type: 'error', message: 'Session expired. Please refresh the page and try again.' });
+                        closeCropModal();
+                        return;
+                    }
+                }
                 
                 const result = await response.json();
                 

@@ -77,6 +77,8 @@
 
     {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
     {% block extra_css %}{% endblock %}
+    <!-- CSRF token for JS — works with CSRF_COOKIE_HTTPONLY=True -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
     {% block extra_head %}{% endblock %}
     <!-- Provide a safe no-op `dcLog` early so inline scripts can call it without errors -->
     <script>

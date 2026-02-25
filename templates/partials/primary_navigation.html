@@ -284,7 +284,7 @@
 
 <!-- Notification Script -->
 <script>
-function getCookie(n){let v=null;if(document.cookie)document.cookie.split(';').forEach(c=>{c=c.trim();if(c.startsWith(n+'='))v=decodeURIComponent(c.substring(n.length+1))});return v}
+function getCookie(n){if(n==='csrftoken'){const m=document.querySelector('meta[name="csrf-token"]');if(m&&m.content&&m.content.length>=32)return m.content;const e=document.querySelector('[name=csrfmiddlewaretoken]');if(e&&e.value)return e.value}let v=null;if(document.cookie)document.cookie.split(';').forEach(c=>{c=c.trim();if(c.startsWith(n+'='))v=decodeURIComponent(c.substring(n.length+1))});return v}
 
 {% if request.user.is_authenticated %}
 document.getElementById('dc-mark-read-btn')?.addEventListener('click',async function(){

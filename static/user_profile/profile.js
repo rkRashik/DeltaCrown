@@ -153,6 +153,14 @@ function urlWithId(urlTemplate, actualId) {
 // CSRF TOKEN HELPER
 // ============================================================================
 function getCookie(name) {
+    // 1. Best source: <meta name="csrf-token"> (works with CSRF_COOKIE_HTTPONLY=True)
+    if (name === 'csrftoken') {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content && meta.content.length >= 32) return meta.content;
+        const el = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (el && el.value) return el.value;
+    }
+    // 2. Fall back to document.cookie
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');

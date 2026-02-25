@@ -20,6 +20,7 @@ Architecture:
 """
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
@@ -1644,6 +1645,7 @@ def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
 
 
 @login_required
+@ensure_csrf_cookie
 def profile_settings_view(request: HttpRequest) -> HttpResponse:
     """
     Profile settings page - owner-only.
