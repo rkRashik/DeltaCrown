@@ -122,10 +122,10 @@ class TestMatchResultIntegrator(TestCase):
     def test_process_match_result_skips_when_disabled(self):
         """Test match processing skips vNext when feature flag disabled."""
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         self.assertTrue(result.success)
@@ -178,10 +178,10 @@ class TestMatchResultIntegrator(TestCase):
         
         # Process match result
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify result
@@ -209,10 +209,10 @@ class TestMatchResultIntegrator(TestCase):
         
         # Process match (loser will drop to 26 CP -> UNRANKED)
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify tier change detected
@@ -233,10 +233,10 @@ class TestMatchResultIntegrator(TestCase):
         
         # Process match (3rd win triggers hot streak)
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify hot streak activated
@@ -249,10 +249,10 @@ class TestMatchResultIntegrator(TestCase):
         """Test match processing skips vNext vs legacy matches (Phase 4 limitation)."""
         # Process match with non-existent loser (simulates legacy team)
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=999999,  # Non-existent team
+            winner_team_id=self.winner_team.id,
+            loser_team_id=999999,  # Non-existent team
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify mixed match skipped
@@ -268,10 +268,10 @@ class TestMatchResultIntegrator(TestCase):
         """Test match processing skips when neither team is vNext."""
         # Process match with two non-existent teams (simulates legacy-only match)
         result = MatchResultIntegrator.process_match_result(
-            winner_id=999998,
-            loser_id=999999,
+            winner_team_id=999998,
+            loser_team_id=999999,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify skipped correctly
@@ -287,10 +287,10 @@ class TestMatchResultIntegrator(TestCase):
         """Test match processing handles missing teams gracefully."""
         # Process match with non-existent teams
         result = MatchResultIntegrator.process_match_result(
-            winner_id=999998,
-            loser_id=999999,
+            winner_team_id=999998,
+            loser_team_id=999999,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify handled gracefully (not an error, just skipped)
@@ -306,10 +306,10 @@ class TestMatchResultIntegrator(TestCase):
         
         # Process match
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         # Verify error captured
@@ -330,10 +330,10 @@ class TestMatchResultIntegrator(TestCase):
         
         with CaptureQueriesContext(connection) as context:
             result = MatchResultIntegrator.process_match_result(
-                winner_id=self.winner_team.id,
-                loser_id=self.loser_team.id,
+                winner_team_id=self.winner_team.id,
+                loser_team_id=self.loser_team.id,
                 match_id=1,
-                is_tournament=False
+                is_tournament_match=False
             )
         
         query_count = len(context.captured_queries)
@@ -348,10 +348,10 @@ class TestMatchResultIntegrator(TestCase):
     def test_process_match_result_meets_latency_target(self):
         """Test match processing completes within 100ms target."""
         result = MatchResultIntegrator.process_match_result(
-            winner_id=self.winner_team.id,
-            loser_id=self.loser_team.id,
+            winner_team_id=self.winner_team.id,
+            loser_team_id=self.loser_team.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         
         self.assertTrue(result.success)
@@ -383,28 +383,28 @@ class TestMatchIntegrationEndToEnd(TestCase):
         
         # Match 1: A beats B
         result1 = MatchResultIntegrator.process_match_result(
-            winner_id=team_a.id,
-            loser_id=team_b.id,
+            winner_team_id=team_a.id,
+            loser_team_id=team_b.id,
             match_id=1,
-            is_tournament=False
+            is_tournament_match=False
         )
         self.assertTrue(result1.success)
         
         # Match 2: A beats B again
         result2 = MatchResultIntegrator.process_match_result(
-            winner_id=team_a.id,
-            loser_id=team_b.id,
+            winner_team_id=team_a.id,
+            loser_team_id=team_b.id,
             match_id=2,
-            is_tournament=False
+            is_tournament_match=False
         )
         self.assertTrue(result2.success)
         
         # Match 3: A beats B again (hot streak!)
         result3 = MatchResultIntegrator.process_match_result(
-            winner_id=team_a.id,
-            loser_id=team_b.id,
+            winner_team_id=team_a.id,
+            loser_team_id=team_b.id,
             match_id=3,
-            is_tournament=False
+            is_tournament_match=False
         )
         self.assertTrue(result3.success)
         

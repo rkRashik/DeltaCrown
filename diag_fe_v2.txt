@@ -1,0 +1,188 @@
+﻿....FFF.FFF.FF....FFF.                                                   [100%]
+================================== FAILURES ===================================
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\views\public_profile_views.py:909: AttributeError: 'UserProfileStats' object has no attribute 'total_matches'
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\views\public_profile_views.py:909: AttributeError: 'UserProfileStats' object has no attribute 'total_matches'
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\views\public_profile_views.py:909: AttributeError: 'UserProfileStats' object has no attribute 'total_matches'
+G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\template\loader.py:19: django.template.exceptions.TemplateDoesNotExist: user_profile/profile/activity.html
+G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\template\loader.py:19: django.template.exceptions.TemplateDoesNotExist: user_profile/profile/activity.html
+G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\template\loader.py:19: django.template.exceptions.TemplateDoesNotExist: user_profile/profile/activity.html
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\tests\test_fe_v2_views.py:270: assert b'Profile Settings' in b'\n<!doctype html>\n<html lang="en" data-theme="system" class="h-full">\n  <head>\n    <!-- Preconnect for Google aut....js"></script>\n    <script src="/static/siteui/js/toast.js"></script>\n    \n    \n\n    \n    \n  </body>\n</html>\n'
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\tests\test_fe_v2_views.py:283: assert 0 == 1
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\views\public_profile_views.py:909: AttributeError: 'UserProfileStats' object has no attribute 'total_matches'
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\tests\test_fe_v2_views.py:417: AssertionError: Alpine.js should be included
+G:\My Projects\WORK\DeltaCrown\apps\user_profile\tests\test_fe_v2_views.py:440: assert "activeSection === 'profile'" in '\n<!doctype html>\n<html lang="en" data-theme="system" class="h-full">\n  <head>\n    <!-- Preconnect for Google auth....js"></script>\n    <script src="/static/siteui/js/toast.js"></script>\n    \n    \n\n    \n    \n  </body>\n</html>\n'
+============================== warnings summary ===============================
+apps\tournaments\models\tournament.py:546
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:546: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\tournament.py:550
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:550: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:244
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:244: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:264
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:264: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:645
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:645: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:650
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:650: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:657
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:657: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:664
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:664: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\bracket.py:391
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:391: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:396
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:396: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:401
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:401: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\match.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:295
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:295: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:300
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:300: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:308
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:308: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:528
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:528: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:538
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:538: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:197
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:197: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:201
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:201: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\prize.py:130
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\prize.py:130: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\group.py:116
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:116: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:120
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:120: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:360
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:360: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:496
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:496: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:500
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:500: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:504
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:504: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:191
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:191: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:195
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:195: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\lobby.py:309
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\lobby.py:309: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\user_profile\models_main.py:2548
+  G:\My Projects\WORK\DeltaCrown\apps\user_profile\models_main.py:2548: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\user_profile\models\endorsements.py:205
+  G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\endorsements.py:205: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\user_profile\models\endorsements.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\endorsements.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\economy\models.py:335
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:335: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\economy\models.py:980
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:980: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:78
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:78: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\competition\models\challenge.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\competition\models\challenge.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+.venv\Lib\site-packages\django\db\backends\utils.py:98
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py:98: RuntimeWarning: Accessing the database during app initialization is discouraged. To fix this warning, avoid executing queries in AppConfig.ready() or when your app modules are imported.
+    warnings.warn(self.APPS_NOT_READY_WARNING_MSG, category=RuntimeWarning)
+
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+.venv\Lib\site-packages\PyPDF2\__init__.py:21
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\PyPDF2\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_public_v2_renders_successfully
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_public_v2_no_raw_user_in_context
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_public_v2_does_not_expose_email_to_anonymous
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_activity_v2_renders_successfully
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_activity_v2_paginates_events
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_activity_v2_page_2_works
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_settings_v2_renders_for_owner
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_settings_v2_shows_game_profiles
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_profile_public_v2_follow_import_regression
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_settings_page_loads_without_js_errors
+FAILED apps/user_profile/tests/test_fe_v2_views.py::test_settings_page_includes_all_sections
+11 failed, 11 passed, 40 warnings in 5.87s

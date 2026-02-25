@@ -322,6 +322,18 @@ class Team(models.Model):
         help_text="Team focus tag (e.g., 'Aim-Heavy', 'Strategy-First', 'Utility-Rich')"
     )
 
+    # Spotlight / Featured (admin-curated hero showcase)
+    is_featured = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Show this team in the Hero spotlight carousel (admin toggle)"
+    )
+    featured_label = models.CharField(
+        max_length=60,
+        blank=True,
+        help_text="Spotlight badge text (e.g. 'Season 1 Champion', 'Community Pick')"
+    )
+
     # Metadata
     is_temporary = models.BooleanField(
         default=False,

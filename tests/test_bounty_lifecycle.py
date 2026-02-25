@@ -53,8 +53,8 @@ class BountyLifecycleTestCase(TestCase):
         self.outsider_profile = UserProfile.objects.get(user=self.outsider)
         
         # Fund wallets
-        self.creator_wallet = DeltaCrownWallet.objects.get(profile=self.creator_profile)
-        self.acceptor_wallet = DeltaCrownWallet.objects.get(profile=self.acceptor_profile)
+        self.creator_wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=self.creator_profile)
+        self.acceptor_wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=self.acceptor_profile)
         
         self.creator_wallet.cached_balance = 1000
         self.creator_wallet.save()

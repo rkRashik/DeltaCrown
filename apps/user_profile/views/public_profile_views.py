@@ -906,9 +906,9 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     try:
         stats = UserProfileStats.objects.get(user_profile=user_profile)
         context['user_stats'] = {
-            'total_matches': stats.total_matches,
-            'total_wins': stats.total_wins,
-            'win_rate': round((stats.total_wins / stats.total_matches * 100) if stats.total_matches > 0 else 0, 1),
+            'total_matches': stats.matches_played,
+            'total_wins': stats.matches_won,
+            'win_rate': round((stats.matches_won / stats.matches_played * 100) if stats.matches_played > 0 else 0, 1),
             'tournaments_played': stats.tournaments_played,
             'tournaments_won': stats.tournaments_won,
             'total_kills': getattr(stats, 'total_kills', 0),

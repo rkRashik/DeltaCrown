@@ -26,7 +26,7 @@ class TestTeamStatsAdapter:
     @pytest.fixture
     def team(self):
         """Create test team."""
-        from apps.organizations.models import Team
+        from apps.teams.models import Team
         from django.contrib.auth import get_user_model
         
         User = get_user_model()

@@ -226,7 +226,7 @@ class TeamAdmin(ModelAdmin):
     list_per_page = 25
     list_display = ['name', 'slug', 'game_id_display', 'region', 'created_by_link', 'organization_link', 'status', 'created_at']
     search_fields = ['name', 'slug', 'created_by__username', 'organization__name']
-    list_filter = ['region', 'status', 'created_at']
+    list_filter = ['region', 'status', 'is_featured', 'created_at']
     raw_id_fields = ['created_by', 'organization']
     ordering = ['-created_at']
     readonly_fields = ['created_at', 'updated_at']
@@ -241,6 +241,10 @@ class TeamAdmin(ModelAdmin):
         ('Tournament Operations', {
             'fields': ('preferred_server', 'emergency_contact_discord', 'emergency_contact_phone'),
             'classes': ('collapse',),
+        }),
+        ('Spotlight', {
+            'fields': ('is_featured', 'featured_label'),
+            'description': 'Feature this team in the Hero spotlight carousel on the Team Hub page.',
         }),
         ('Status', {
             'fields': ('status', 'is_temporary', 'created_at', 'updated_at')

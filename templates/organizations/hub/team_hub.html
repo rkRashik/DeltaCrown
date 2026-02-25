@@ -10,48 +10,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>
-tailwind.config = {
-    darkMode: 'class',
-    theme: {
-        extend: {
-            colors: {
-                'dc-cyan': '#06b6d4',
-                'dc-purple': '#8b5cf6',
-                'dc-gold': '#facc15',
-                'dc-dark': '#050505',
-                'dc-surface': '#0d0d0d'
-            },
-            fontFamily: {
-                'sans': ['Inter', 'system-ui', 'sans-serif'],
-                'display': ['Space Grotesk', 'sans-serif']
-            },
-            animation: {
-                'marquee': 'marquee 35s linear infinite',
-                'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite'
-            },
-            keyframes: {
-                marquee: {
-                    '0%': { transform: 'translateX(0%)' },
-                    '100%': { transform: 'translateX(-50%)' }
-                },
-                pulseGlow: {
-                    '0%,100%': { boxShadow: '0 0 15px rgba(6,182,212,0.4)' },
-                    '50%': { boxShadow: '0 0 5px rgba(6,182,212,0.1)' }
-                }
-            }
-        }
-    }
-};
-</script>
+<script src="https://unpkg.com/lucide@latest" defer></script>
 {% endblock %}
 
 {% block extra_css %}
 <style>
 /* ===== BASE ===== */
 body {
-    background: #050505;
+    background: #030308;
     color: #fff;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
@@ -72,29 +38,50 @@ p, span, a, button, input, select, label {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== GRAIN OVERLAY ===== */
-body::before {
+/* ===== AMBIENT MESH GRADIENT BACKGROUND (A1 — static, no filter) ===== */
+body::after {
     content: '';
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    z-index: -1;
     pointer-events: none;
-    opacity: .035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 30%, rgba(6,182,212,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 75% 60%, rgba(139,92,246,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 35% at 50% 80%, rgba(250,204,21,0.03) 0%, transparent 70%);
 }
 
-/* ===== GLASSMORPHISM V2 ===== */
+/* ===== GRAIN OVERLAY — REMOVED for performance ===== */
+/* Was: body::before with SVG noise at z:9999 — caused full-page compositing every frame */
+
+/* ===== SECTION AMBIENT LIGHTING (A3 — no blur, paint-friendly) ===== */
+.section-glow { position: relative; }
+.section-glow::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: var(--glow-opacity, 0.06);
+    z-index: 0;
+}
+.section-glow-cyan::before { background: radial-gradient(circle, rgba(6,182,212,0.35), transparent 70%); }
+.section-glow-purple::before { background: radial-gradient(circle, rgba(139,92,246,0.30), transparent 70%); }
+.section-glow-gold::before { background: radial-gradient(circle, rgba(250,204,21,0.25), transparent 70%); }
+
+/* ===== GLASS CARD (B1 — no backdrop-filter for perf) ===== */
 .glass {
-    background: rgba(255, 255, 255, 0.025);
-    backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: all .4s cubic-bezier(.22, 1, .36, 1);
+    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3);
+    transition: border-color .3s, box-shadow .3s;
     position: relative;
 }
 .glass:hover {
-    background: rgba(255, 255, 255, 0.055);
-    border-color: rgba(6, 182, 212, 0.3);
-    transform: translateY(-2px)
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border-color: rgba(6, 182, 212, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.05);
 }
 .glass-glow { position: relative; overflow: hidden }
 .glass-glow::before {
@@ -103,23 +90,19 @@ body::before {
     inset: -1px;
     z-index: -1;
     border-radius: inherit;
-    background: conic-gradient(from var(--angle, 0deg), transparent 40%, #06b6d4 50%, #8b5cf6 60%, transparent 70%);
+    background: conic-gradient(from 0deg, transparent 40%, #06b6d4 50%, #8b5cf6 60%, transparent 70%);
     opacity: 0;
     transition: opacity .5s;
-    animation: spin-border 4s linear infinite;
 }
-.glass-glow:hover::before { opacity: 1 }
-@property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false }
-@keyframes spin-border { to { --angle: 360deg } }
+.glass-glow:hover::before { opacity: 0.6 }
 
-/* ===== 3D TILT ===== */
+/* ===== TILT CARD (B2 — simplified, no 3D perspective) ===== */
 .tilt-card {
-    transition: transform .4s cubic-bezier(.22, 1, .36, 1), box-shadow .4s;
-    transform-style: preserve-3d
+    transition: transform .3s ease, box-shadow .3s;
 }
 .tilt-card:hover {
-    transform: perspective(800px) rotateX(2deg) rotateY(-3deg) translateY(-4px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, .4), 0 0 30px rgba(6, 182, 212, .08)
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .35), 0 0 20px rgba(6, 182, 212, .06)
 }
 
 /* ===== GRADIENTS & TEXT ===== */
@@ -133,11 +116,127 @@ body::before {
     background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(6, 182, 212, .08) 0%, transparent 50%),
         radial-gradient(ellipse 60% 40% at 80% 20%, rgba(139, 92, 246, .06) 0%, transparent 50%),
         radial-gradient(ellipse 50% 50% at 50% 80%, rgba(250, 204, 21, .04) 0%, transparent 50%);
-    animation: mesh-shift 12s ease-in-out infinite alternate;
 }
-@keyframes mesh-shift {
-    0% { background-position: 0% 0%, 100% 0%, 50% 100% }
-    100% { background-position: 100% 50%, 0% 100%, 80% 0% }
+
+/* ===== PRIMARY CTA BUTTONS ===== */
+.btn-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #000 !important;
+    background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%);
+    border-radius: 0.75rem;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(.22, 1, .36, 1);
+    box-shadow: 0 0 30px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+    text-decoration: none;
+}
+.btn-cta-primary:hover {
+    transform: scale(1.03) translateY(-1px);
+    box-shadow: 0 0 50px rgba(6,182,212,0.5), 0 8px 32px rgba(6,182,212,0.25), inset 0 1px 0 rgba(255,255,255,0.4);
+    color: #000 !important;
+}
+.btn-cta-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+.btn-cta-primary:hover::before { transform: translateX(100%); }
+
+.btn-cta-gold {
+    color: #000 !important;
+    background: linear-gradient(135deg, #facc15 0%, #fbbf24 50%, #fde68a 100%);
+    box-shadow: 0 0 20px rgba(250,204,21,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn-cta-gold:hover {
+    box-shadow: 0 0 40px rgba(250,204,21,0.4), 0 8px 32px rgba(250,204,21,0.2), inset 0 1px 0 rgba(255,255,255,0.4);
+    color: #000 !important;
+}
+.btn-cta-sm {
+    padding: 0.625rem 1.5rem;
+}
+.btn-cta-muted {
+    color: #fff !important;
+    background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(34,211,238,0.15));
+    box-shadow: 0 0 15px rgba(6,182,212,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+    border: 1px solid rgba(6,182,212,0.3);
+}
+.btn-cta-muted:hover { color: #fff !important; }
+
+/* ===== FIND A SQUAD BUTTON ===== */
+.btn-cta-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 0.75rem;
+    transition: background .3s, border-color .3s, box-shadow .3s;
+    cursor: pointer;
+}
+.btn-cta-search:hover {
+    background: rgba(6,182,212,0.1);
+    border-color: rgba(6,182,212,0.4);
+    box-shadow: 0 0 30px rgba(6,182,212,0.15);
+    transform: translateY(-1px);
+}
+
+/* ===== HERO TITLE GLOW ===== */
+.hero-title-glow {
+    filter: drop-shadow(0 0 50px rgba(6,182,212,0.12));
+}
+
+/* ===== PRO PATH CARD ===== */
+.pro-path-card {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: all 0.6s cubic-bezier(.22,1,.36,1);
+}
+.pro-path-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.pro-path-card:nth-child(1) { transition-delay: 0.05s; }
+.pro-path-card:nth-child(2) { transition-delay: 0.15s; }
+.pro-path-card:nth-child(3) { transition-delay: 0.25s; }
+.pro-path-card:nth-child(4) { transition-delay: 0.35s; }
+
+/* ===== CARD SHINE SWEEP (C4) ===== */
+.card-shine { position: relative; overflow: hidden; }
+.card-shine::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(to right, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
+    transform: rotate(30deg) translateX(-100%);
+    transition: transform 0.8s cubic-bezier(.22,1,.36,1);
+    pointer-events: none;
+    z-index: 1;
+}
+.card-shine:hover::after { transform: rotate(30deg) translateX(100%); }
+
+/* ===== SECTION DIVIDERS (C5) ===== */
+.section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(6,182,212,0.3), rgba(139,92,246,0.2), transparent);
+    border: none;
+    margin: 0;
 }
 
 /* ===== CARD IMAGE OVERLAY ===== */
@@ -163,26 +262,20 @@ body::before {
 .scroll-x>* { scroll-snap-align: start; flex-shrink: 0 }
 .scroll-x:active { cursor: grabbing }
 
-/* ===== GAME CARDS ===== */
-.game-card-active {
-    border-color: #06b6d4 !important;
-    background: linear-gradient(to bottom, rgba(6, 182, 212, 0.15), transparent) !important;
-    box-shadow: 0 0 25px rgba(6, 182, 212, 0.2), inset 0 0 15px rgba(6, 182, 212, 0.05)
-}
+/* ===== GAME CARDS (legacy — kept for tooltip) ===== */
 .game-tooltip {
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%) scale(0.9);
-    background: rgba(13, 13, 13, .95);
+    background: rgba(13, 13, 13, .97);
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 8px;
     padding: 6px 10px;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    transition: all .25s cubic-bezier(.22, 1, .36, 1);
-    backdrop-filter: blur(12px);
+    transition: opacity .25s, transform .25s;
     z-index: 50;
 }
 .game-tooltip::after {
@@ -194,7 +287,7 @@ body::before {
     border: 5px solid transparent;
     border-top-color: rgba(255, 255, 255, .1);
 }
-.game-card:hover .game-tooltip { opacity: 1; transform: translateX(-50%) scale(1) }
+.game-grid-item:hover .game-tooltip { opacity: 1; transform: translateX(-50%) scale(1) }
 
 /* ===== CROWN GLOW (rank #1) ===== */
 .crown-card {
@@ -231,13 +324,30 @@ body::before {
 }
 .neon-line:hover::after { width: 100% }
 
-/* ===== STAGGERED SCROLL REVEAL ===== */
-.reveal { opacity: 0; transform: translateY(24px); transition: all .7s cubic-bezier(.22, 1, .36, 1) }
+/* ===== STAGGERED SCROLL REVEAL (C2) ===== */
+.reveal { opacity: 0; transform: translateY(28px); transition: all .8s cubic-bezier(.22, 1, .36, 1) }
 .reveal.visible { opacity: 1; transform: translateY(0) }
 .reveal-delay-1 { transition-delay: .1s }
 .reveal-delay-2 { transition-delay: .2s }
 .reveal-delay-3 { transition-delay: .3s }
 .reveal-delay-4 { transition-delay: .4s }
+.reveal-delay-5 { transition-delay: .5s }
+.reveal-delay-6 { transition-delay: .6s }
+.reveal-delay-7 { transition-delay: .7s }
+.reveal-delay-8 { transition-delay: .8s }
+
+/* Staggered card entrance */
+.stagger-grid > * { opacity: 0; transform: translateY(20px) scale(0.97); transition: all 0.5s cubic-bezier(.22,1,.36,1); }
+.stagger-grid.visible > *:nth-child(1) { transition-delay: 0s; }
+.stagger-grid.visible > *:nth-child(2) { transition-delay: 0.06s; }
+.stagger-grid.visible > *:nth-child(3) { transition-delay: 0.12s; }
+.stagger-grid.visible > *:nth-child(4) { transition-delay: 0.18s; }
+.stagger-grid.visible > *:nth-child(5) { transition-delay: 0.24s; }
+.stagger-grid.visible > *:nth-child(6) { transition-delay: 0.30s; }
+.stagger-grid.visible > *:nth-child(7) { transition-delay: 0.36s; }
+.stagger-grid.visible > *:nth-child(8) { transition-delay: 0.42s; }
+.stagger-grid.visible > *:nth-child(n+9) { transition-delay: 0.48s; }
+.stagger-grid.visible > * { opacity: 1; transform: translateY(0) scale(1); }
 
 /* ===== TYPING CURSOR ===== */
 .type-cursor::after { content: '|'; animation: blink 1s step-end infinite; color: #06b6d4 }
@@ -265,19 +375,17 @@ body::before {
     border-radius: 19px;
     background: conic-gradient(from 0deg, rgba(6, 182, 212, .6), transparent 40%, rgba(139, 92, 246, .6) 60%, transparent);
     z-index: -1;
-    animation: spin-border 3s linear infinite;
-    opacity: .6;
+    opacity: .4;
 }
 .fab-label {
     position: absolute; right: calc(100% + 12px);
     white-space: nowrap;
-    background: rgba(13, 13, 13, .95);
+    background: rgba(13, 13, 13, .97);
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 8px; padding: 6px 12px;
     font-size: 12px; font-weight: 700; color: #06b6d4;
     opacity: 0; transform: translateX(8px);
-    transition: all .25s; pointer-events: none;
-    backdrop-filter: blur(12px);
+    transition: opacity .25s, transform .25s; pointer-events: none;
 }
 .fab:hover .fab-label { opacity: 1; transform: translateX(0) }
 
@@ -285,12 +393,11 @@ body::before {
 .back-to-top {
     position: fixed; bottom: 90px; right: 28px; z-index: 79;
     width: 36px; height: 36px; border-radius: 10px;
-    background: rgba(255, 255, 255, .05);
+    background: rgba(13, 13, 13, .9);
     border: 1px solid rgba(255, 255, 255, .1);
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all .3s;
+    cursor: pointer; transition: transform .3s, opacity .3s;
     transform: translateY(80px); opacity: 0;
-    backdrop-filter: blur(8px);
 }
 .back-to-top.visible { transform: translateY(0); opacity: 1 }
 .back-to-top:hover { background: rgba(6, 182, 212, .15); border-color: rgba(6, 182, 212, .3) }
@@ -301,11 +408,12 @@ body::before {
 ::-webkit-scrollbar-thumb { background: #222; border-radius: 3px }
 ::-webkit-scrollbar-thumb:hover { background: #06b6d4 }
 
-/* ===== SEARCH MODAL ===== */
-.search-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .85); backdrop-filter: blur(12px) }
+/* ===== SEARCH MODAL (Redesigned) ===== */
+.search-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .92); align-items: flex-start; justify-content: center; padding-top: 12vh; }
 .search-modal.active { display: flex }
+@media (max-width: 640px) { .search-modal { padding-top: 0; align-items: stretch; } .search-modal > div { border-radius: 0; max-height: 100vh; height: 100vh; } }
 
-/* ===== UTILITY ANIMATIONS ===== */
+/* ===== UTILITY ANIMATIONS (Enhanced) ===== */
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
 .fade-in { animation: fadeInUp .5s ease-out both }
 @keyframes float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
@@ -327,7 +435,6 @@ body::before {
     -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 }
 .hero-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(5,5,5,0.65) 100%); pointer-events: none; z-index: 2; }
-.hero-scanline { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.007) 2px, rgba(255,255,255,0.007) 4px); pointer-events: none; z-index: 2; }
 
 /* Live activity ticker */
 .activity-ticker-wrap {
@@ -339,6 +446,7 @@ body::before {
     display: flex; gap: 2.5rem;
     animation: ticker-scroll 45s linear infinite;
     white-space: nowrap;
+    will-change: transform;
 }
 .activity-ticker:hover { animation-play-state: paused; }
 @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -353,6 +461,165 @@ body::before {
 /* ===== RANKING ROW HOVER (demo-style) ===== */
 .rank-row { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .rank-row:hover { transform: scale(1.01); background: linear-gradient(90deg, rgba(6,182,212,0.05), transparent); border-left: 2px solid #06b6d4; }
+
+/* ===== COMBAT ZONE GRID ===== */
+.game-grid-item {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(to bottom, rgba(255,255,255,0.03), transparent);
+    transition: all 0.35s cubic-bezier(.22,1,.36,1);
+    cursor: pointer;
+    aspect-ratio: 3/4;
+}
+.game-grid-item:hover {
+    border-color: rgba(6,182,212,0.5);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.1);
+}
+.game-grid-item.active {
+    border-color: #06b6d4 !important;
+    background: linear-gradient(to bottom, rgba(6,182,212,0.15), rgba(6,182,212,0.03)) !important;
+    box-shadow: 0 0 25px rgba(6,182,212,0.2), inset 0 0 15px rgba(6,182,212,0.05);
+}
+
+/* ===== GRASSROOTS PATH (E1 - Animated) ===== */
+.path-line {
+    position: absolute;
+    top: 50%; left: 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, #374151, #06b6d4 40%, #8b5cf6 60%, #facc15 100%);
+    transform: translateY(-50%);
+    z-index: 0;
+}
+.path-line::after {
+    content: '';
+    position: absolute;
+    top: -3px; left: 0;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #06b6d4;
+    box-shadow: 0 0 12px #06b6d4;
+    animation: pathTravel 4s ease-in-out infinite;
+}
+@keyframes pathTravel {
+    0% { left: 0; } 100% { left: 100%; }
+}
+.path-node {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s;
+}
+.path-node:hover { transform: scale(1.08); }
+.path-node:hover .path-tooltip { opacity: 1; transform: translateY(0); }
+.path-tooltip {
+    position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%) translateY(8px);
+    background: rgba(13,13,13,0.97); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 8px 12px; white-space: nowrap;
+    font-size: 11px; color: #9ca3af;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+}
+
+/* ===== STICKY SIDEBAR (D2) ===== */
+@media (min-width: 1024px) {
+    .sidebar-sticky { position: sticky; top: 5rem; align-self: start; }
+}
+
+/* ===== CTA GLOW (C4 — static, no infinite animation) ===== */
+.btn-breathe {
+    box-shadow: 0 0 25px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn-breathe:hover {
+    box-shadow: 0 0 40px rgba(6,182,212,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+/* ===== PLATFORM RULES ANIMATED ICONS (E4) ===== */
+.rule-icon { transition: all 0.5s; }
+.rule-card:hover .rule-icon { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 8px currentColor); }
+.rule-card {
+    transition: all 0.4s cubic-bezier(.22,1,.36,1);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.rule-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(6,182,212,0.2);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+}
+
+/* ===== PERF: content-visibility for off-screen sections ===== */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: auto 600px; }
+
+/* ===== SPOTLIGHT CAROUSEL ===== */
+.spotlight-carousel {
+    position: relative;
+}
+.spotlight-track {
+    position: relative;
+    min-height: 200px;
+}
+.spotlight-card {
+    position: absolute;
+    inset: 0;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateX(30px) scale(0.97);
+    transition: opacity 0.5s cubic-bezier(.22,1,.36,1), transform 0.5s cubic-bezier(.22,1,.36,1);
+    pointer-events: none;
+}
+.spotlight-card--active {
+    position: relative;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+}
+.spotlight-card--empty {
+    position: relative;
+}
+.spotlight-card:hover {
+    border-color: rgba(6,182,212,0.20);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(6,182,212,0.06);
+}
+
+/* Badge pill */
+.spotlight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background: rgba(6,182,212,0.10);
+    border: 1px solid rgba(6,182,212,0.20);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #06b6d4;
+}
+
+/* Dot navigation */
+.spotlight-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+.spotlight-dot--active {
+    background: #06b6d4;
+    box-shadow: 0 0 8px rgba(6,182,212,0.4);
+    transform: scale(1.2);
+}
+.spotlight-dot:hover:not(.spotlight-dot--active) {
+    background: rgba(255,255,255,0.35);
+}
 </style>
 {% endblock %}
 
@@ -384,62 +651,169 @@ body::before {
     </div>
 </div>
 
-<!-- ========== HERO ========== -->
+<!-- ========== HERO (Split Layout + Spotlight Carousel) ========== -->
 <section class="relative overflow-hidden" id="hero-section">
     <canvas id="hero-particles"></canvas>
     <div class="hero-mesh absolute inset-0"></div>
-    <div class="absolute top-[-150px] left-1/4 w-[750px] h-[750px] bg-dc-cyan/[0.14] rounded-full blur-[220px] pointer-events-none"></div>
-    <div class="absolute bottom-[-130px] right-[15%] w-[650px] h-[650px] bg-dc-purple/[0.11] rounded-full blur-[200px] pointer-events-none"></div>
-    <div class="absolute top-[40%] left-[-120px] w-[450px] h-[450px] bg-dc-gold/[0.07] rounded-full blur-[160px] pointer-events-none"></div>
-    <div class="absolute top-[10%] right-[-80px] w-[350px] h-[350px] bg-red-500/[0.04] rounded-full blur-[140px] pointer-events-none"></div>
+    <!-- Ambient light orbs -->
+    <div class="absolute top-[-100px] left-[10%] w-[500px] h-[500px] bg-dc-cyan/[0.10] rounded-full blur-[180px] pointer-events-none"></div>
+    <div class="absolute bottom-[-60px] right-[20%] w-[400px] h-[400px] bg-dc-purple/[0.08] rounded-full blur-[160px] pointer-events-none"></div>
     <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-dc-cyan/60 to-transparent"></div>
     <div class="hero-grid-overlay"></div>
     <div class="hero-vignette"></div>
-    <div class="hero-scanline"></div>
 
-    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 sm:pt-12 pb-10">
-        <div class="text-center max-w-3xl mx-auto">
-            <div class="reveal inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dc-purple/10 border border-dc-purple/25 text-dc-purple text-xs font-bold uppercase tracking-widest mb-5">
-                <span class="w-2 h-2 rounded-full bg-dc-purple animate-pulse"></span>Season 1 · Now Live
+    <div class="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-28 pb-8">
+        <!-- Split: Left CTA + Right Spotlight -->
+        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
+
+            <!-- LEFT — Text + CTA (55%) -->
+            <div class="flex-1 lg:max-w-[55%] text-center lg:text-left">
+                <!-- Season badge -->
+                <div class="reveal inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dc-purple/10 border border-dc-purple/25 text-dc-purple text-[11px] font-bold uppercase tracking-widest mb-4">
+                    <span class="w-2 h-2 rounded-full bg-dc-purple animate-pulse"></span>
+                    Season 1 · Now Live
+                </div>
+
+                <!-- Main heading -->
+                <h1 class="reveal reveal-delay-1 font-display text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-black leading-[1.05] text-white mb-3 tracking-tight">
+                    Build Your <span class="grad-text"><span id="hero-typed"></span></span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="reveal reveal-delay-2 text-gray-400 text-sm sm:text-base max-w-lg mb-6 leading-relaxed {% if not spotlight_teams %}mx-auto lg:mx-0{% endif %}">
+                    Create a team in <span class="text-white font-semibold">30 seconds</span>. Climb DCRS tiers. Earn revenue, get scouted, build a <span class="text-dc-cyan font-medium">legacy</span>.
+                </p>
+
+                <!-- CTA Buttons -->
+                <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center mb-5">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'organizations:team_create' %}" class="btn-cta-primary btn-breathe btn-arrow">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                    {% else %}
+                    <a href="/accounts/signup/" class="btn-cta-primary btn-breathe btn-arrow">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>JOIN & CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                    {% endif %}
+                    <button onclick="openSearch()" class="btn-cta-search btn-arrow">
+                        <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a Squad
+                    </button>
+                </div>
+
+                <!-- Stats strip -->
+                <div class="reveal reveal-delay-4 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-gray-500">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                        <span class="font-bold text-white counter" data-target="{{ stats.teams_active|default:'0' }}">0</span>+ Active Teams
+                    </span>
+                    <span class="w-px h-3 bg-white/10 hidden sm:block"></span>
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="trophy" class="w-3 h-3 text-dc-gold"></i>
+                        <span class="font-bold text-dc-cyan">৳<span class="counter" data-target="{{ stats.total_prize_pool|default:'0' }}">0</span>K</span> Prize Pool
+                    </span>
+                    <span class="w-px h-3 bg-white/10 hidden sm:block"></span>
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="zap" class="w-3 h-3 text-dc-purple"></i>Under 30s to start
+                    </span>
+                </div>
             </div>
-            <h1 class="reveal reveal-delay-1 font-display text-4xl sm:text-5xl lg:text-[3.8rem] font-black leading-[1.05] text-white mb-4">
-                <span id="hero-typed"></span>
-            </h1>
-            <p class="reveal reveal-delay-2 text-gray-300 text-base sm:text-lg max-w-2xl mx-auto mb-7 leading-relaxed">
-                Create a team in 30 seconds. Climb the DCRS tiers from Bronze to Crown. Earn real revenue, get scouted by organizations, and build a legacy that stays forever.
-            </p>
-            <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 justify-center mb-5">
-                {% if user.is_authenticated %}
-                <a href="{% url 'organizations:team_create' %}" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
-                    <div class="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <span class="relative flex items-center justify-center gap-2 text-sm"><i data-lucide="plus-circle" class="w-5 h-5"></i>CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i></span>
-                </a>
+
+            <!-- RIGHT — Spotlight Carousel (45%) -->
+            <div class="w-full lg:w-[42%] lg:max-w-[480px] reveal reveal-delay-2">
+                {% if spotlight_teams %}
+                <div class="spotlight-carousel" id="spotlight-carousel">
+                    <!-- Cards -->
+                    <div class="spotlight-track">
+                        {% for item in spotlight_teams %}
+                        <div class="spotlight-card {% if forloop.first %}spotlight-card--active{% endif %}" data-idx="{{ forloop.counter0 }}">
+                            <!-- Badge -->
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="spotlight-badge">
+                                    <span>{{ item.badge_emoji }}</span> {{ item.badge_text }}
+                                </span>
+                                {% if item.team.organization %}
+                                <span class="text-[10px] text-gray-500 font-medium truncate">{{ item.team.organization.name }}</span>
+                                {% endif %}
+                            </div>
+                            <!-- Team identity -->
+                            <div class="flex items-center gap-4 mb-3">
+                                {% if item.team.logo %}
+                                <img src="{{ item.team.logo.url }}" alt="{{ item.team.name }}" class="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0" loading="lazy">
+                                {% else %}
+                                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-white/10 flex items-center justify-center flex-shrink-0">
+                                    <span class="font-display font-bold text-lg text-white/80">{{ item.team.tag|default:item.team.name|truncatechars:2 }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <h3 class="font-display font-bold text-lg text-white truncate leading-tight">{{ item.team.name }}</h3>
+                                    {% if item.team.tagline %}
+                                    <p class="text-xs text-gray-400 italic truncate mt-0.5">"{{ item.team.tagline|truncatechars:50 }}"</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- Meta row -->
+                            <div class="flex items-center gap-3 text-[11px] text-gray-500 mb-4">
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="gamepad-2" class="w-3 h-3 text-dc-cyan/70"></i>
+                                    {{ item.team.get_game_display|default:"Unknown" }}
+                                </span>
+                                <span class="w-px h-3 bg-white/10"></span>
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="map-pin" class="w-3 h-3 text-dc-purple/70"></i>
+                                    {{ item.team.region|default:"Global" }}
+                                </span>
+                                <span class="w-px h-3 bg-white/10"></span>
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="users" class="w-3 h-3 text-dc-gold/70"></i>
+                                    {{ item.team.vnext_memberships.count }} member{{ item.team.vnext_memberships.count|pluralize }}
+                                </span>
+                            </div>
+                            <!-- CTA -->
+                            <a href="{{ item.team.get_absolute_url }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-dc-cyan hover:text-white transition-colors group/link">
+                                View Team <i data-lucide="arrow-right" class="w-3 h-3 transition-transform group-hover/link:translate-x-0.5"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Dot Navigation -->
+                    {% if spotlight_teams|length > 1 %}
+                    <div class="flex items-center justify-center gap-2 mt-4">
+                        {% for item in spotlight_teams %}
+                        <button class="spotlight-dot {% if forloop.first %}spotlight-dot--active{% endif %}" data-idx="{{ forloop.counter0 }}" aria-label="Show team {{ forloop.counter }}"></button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
                 {% else %}
-                <a href="/accounts/signup/" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
-                    <div class="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <span class="relative flex items-center justify-center gap-2 text-sm"><i data-lucide="plus-circle" class="w-5 h-5"></i>JOIN & CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i></span>
-                </a>
+                <!-- Empty state — motivational card -->
+                <div class="spotlight-card spotlight-card--active spotlight-card--empty">
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-white/10 flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="crown" class="w-7 h-7 text-dc-gold"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-base text-white mb-1">Be the First</h3>
+                        <p class="text-xs text-gray-500 mb-3">No teams yet — create yours and own this spotlight.</p>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'organizations:team_create' %}" class="inline-flex items-center gap-1.5 text-xs font-bold text-dc-cyan hover:text-white transition-colors">
+                            Create Team <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </a>
+                        {% else %}
+                        <a href="/accounts/signup/" class="inline-flex items-center gap-1.5 text-xs font-bold text-dc-cyan hover:text-white transition-colors">
+                            Sign Up to Start <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
                 {% endif %}
-                <button onclick="openSearch()" class="px-8 py-4 bg-white/[0.06] border border-white/15 text-white font-semibold rounded-xl hover:bg-white/12 hover:border-white/25 transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-sm btn-arrow">
-                    <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a Squad
-                </button>
             </div>
-            <!-- Inline stats ticker -->
-            <div class="reveal reveal-delay-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <span class="flex items-center gap-1.5 text-gray-400"><span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span><span class="font-bold text-white counter" data-target="{{ stats.teams_active|default:'0' }}">0</span>+ Active Teams</span>
-                <span class="w-1 h-1 bg-gray-600 rounded-full hidden sm:block"></span>
-                <span class="flex items-center gap-1.5 text-gray-400"><i data-lucide="trophy" class="w-3.5 h-3.5 text-dc-gold"></i><span class="font-bold text-dc-cyan">৳<span class="counter" data-target="{{ stats.total_prize_pool|default:'0' }}">0</span>K</span> Prize Pool</span>
-                <span class="w-1 h-1 bg-gray-600 rounded-full hidden sm:block"></span>
-                <span class="flex items-center gap-1.5 text-gray-400"><i data-lucide="zap" class="w-3.5 h-3.5 text-dc-purple"></i>Under 30 seconds to start</span>
-            </div>
+
         </div>
 
         <!-- Live Activity Ticker -->
-        <div class="mt-8 pt-5 border-t border-white/[0.06]">
-            <div class="flex items-center gap-2.5 mb-3">
+        <div class="mt-6 pt-4 border-t border-white/[0.06]">
+            <div class="flex items-center gap-2 mb-2">
                 <span class="activity-dot bg-green-400"></span>
-                <p class="text-xs text-gray-400 uppercase tracking-[0.15em] font-bold">Live Activity</p>
-                <span class="text-xs text-gray-500 ml-1">— updates in real-time</span>
+                <p class="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold">Live Activity</p>
             </div>
             <div class="activity-ticker-wrap">
                 <div class="activity-ticker" id="live-ticker">
@@ -450,9 +824,10 @@ body::before {
     </div>
 </section>
 
-<!-- ========== COMBAT ZONE – GAME SELECTOR ========== -->
-<section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-5">
-    <div class="flex items-center justify-between mb-5">
+<!-- ========== COMBAT ZONE – GAME SELECTOR (Grid Redesign) ========== -->
+<div class="section-divider"></div>
+<section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 section-glow section-glow-cyan cv-auto">
+    <div class="flex items-center justify-between mb-6">
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <i data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Select Combat Zone
         </h3>
@@ -463,11 +838,12 @@ body::before {
             <span class="text-xs text-gray-500">{{ available_games.count|add:1 }} Filters</span>
         </div>
     </div>
-    <div class="flex gap-3 overflow-x-auto pb-2 scroll-x" id="game-grid">
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-3 stagger-grid" id="game-grid">
         <!-- "All Games" button -->
-        <button class="game-card {% if selected_game_slug == 'all' %}game-card-active{% endif %} group relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-dc-cyan/20 to-dc-dark flex-shrink-0 w-[100px] h-[120px] transition-all duration-300 hover:scale-105 hover:border-dc-cyan/50"
+        <button class="game-grid-item card-shine {% if selected_game_slug == 'all' %}active{% endif %}"
                 data-game="all" onclick="selectGame('all', this)">
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div class="absolute inset-0 bg-gradient-to-b from-dc-cyan/20 to-transparent"></div>
+            <div class="relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 <div class="w-12 h-12 rounded-xl bg-dc-cyan/15 border border-dc-cyan/25 flex items-center justify-center">
                     <i data-lucide="layout-grid" class="w-6 h-6 text-dc-cyan"></i>
                 </div>
@@ -475,7 +851,7 @@ body::before {
             </div>
         </button>
         {% for game in available_games %}
-        <button class="game-card group relative rounded-2xl overflow-hidden border border-white/10 flex-shrink-0 w-[100px] h-[120px] transition-all duration-300 hover:scale-105 hover:border-dc-cyan/50 {% if selected_game_slug == game.slug %}game-card-active{% endif %}"
+        <button class="game-grid-item card-shine {% if selected_game_slug == game.slug %}active{% endif %}"
                 data-game="{{ game.slug }}" onclick="selectGame('{{ game.slug }}', this)" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
             <!-- Blurred cover background -->
             {% if game.card_image %}
@@ -483,20 +859,22 @@ body::before {
             {% elif game.banner %}
             <img src="{{ game.banner.url }}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px] group-hover:opacity-50 transition-opacity" alt="" loading="lazy">
             {% else %}
-            <div class="absolute inset-0 bg-gradient-to-b from-gray-800 to-dc-dark"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-gray-800/60 to-transparent"></div>
             {% endif %}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <!-- Content -->
-            <div class="relative h-full flex flex-col items-center justify-center gap-1.5 p-2">
+            <div class="relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 {% if game.logo %}
-                <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-10 h-10 object-contain drop-shadow-lg" loading="lazy">
+                <img src="{{ game.logo.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy">
                 {% elif game.icon %}
-                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-10 h-10 object-contain drop-shadow-lg" loading="lazy">
+                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="w-11 h-11 object-contain drop-shadow-lg" loading="lazy">
                 {% else %}
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl">🎮</div>
+                <div class="w-11 h-11 rounded-lg flex items-center justify-center text-xl">🎮</div>
                 {% endif %}
-                <span class="font-display font-black text-white text-xs leading-none drop-shadow-lg text-center">{{ game.short_code }}</span>
-                <span class="text-[8px] text-gray-300 text-center leading-tight opacity-80">{{ game.display_name }}</span>
+                <div class="text-center">
+                    <span class="font-display font-black text-white text-xs leading-none drop-shadow-lg block">{{ game.short_code }}</span>
+                    <span class="text-[9px] text-gray-300 leading-tight mt-0.5 block opacity-80">{{ game.display_name|truncatewords:3 }}</span>
+                </div>
             </div>
         </button>
         {% endfor %}
@@ -511,7 +889,7 @@ body::before {
         <div class="space-y-10">
 
             <!-- TOURNAMENT ARENA -->
-            <div class="reveal">
+            <div class="reveal section-glow section-glow-cyan">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2 neon-line">
                         <span class="w-1.5 h-7 bg-dc-cyan rounded-full"></span>Tournament Arena
@@ -519,7 +897,7 @@ body::before {
                     <a href="/tournaments" class="text-sm text-gray-400 hover:text-white flex items-center gap-1 transition-colors btn-arrow">View All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
                 </div>
                 {% if featured_tournament %}
-                <div class="glass rounded-2xl overflow-hidden relative" style="transform:none!important">
+                <div class="glass rounded-2xl overflow-hidden relative card-shine" style="transform:none!important">
                     {% if featured_tournament.status == 'live' %}
                     <span class="absolute top-3 right-3 z-20 bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">LIVE NOW</span>
                     {% elif featured_tournament.status == 'registration_open' %}
@@ -577,9 +955,9 @@ body::before {
                                 {% elif featured_tournament.status == 'registration_open' %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/register/{% if featured_tournament.participation_type == 'team' %}team/{% endif %}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all text-sm text-center">Register Now</a>
                                 {% elif featured_tournament.status == 'completed' %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 bg-gradient-to-r from-dc-gold to-amber-400 text-gray-950 font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all text-sm text-center">View Results</a>
+                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 btn-cta-gold btn-cta-sm text-center rounded-lg text-sm font-bold">View Results</a>
                                 {% else %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all text-sm text-center">View Tournament</a>
+                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 btn-cta-primary btn-cta-sm text-center rounded-lg text-sm">View Tournament</a>
                                 {% endif %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/" class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors" title="Tournament Details">
                                     <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
@@ -620,9 +998,11 @@ body::before {
                 {% endif %}
             </div>
 
+            <div class="section-divider"></div>
+
             <!-- GLOBAL STANDINGS -->
-            <div class="reveal">
-                <div class="glass rounded-2xl p-0 overflow-hidden border-t-4 border-t-dc-gold">
+            <div class="reveal section-glow section-glow-gold">
+                <div class="glass rounded-2xl p-0 overflow-hidden border-t-4 border-t-dc-gold card-shine">
                     <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-b from-white/5 to-transparent">
                         <div>
                             <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2">
@@ -695,8 +1075,10 @@ body::before {
                 </div>
             </div>
 
+            <div class="section-divider"></div>
+
             <!-- SCOUTING GROUNDS -->
-            <div class="reveal">
+            <div class="reveal section-glow section-glow-purple">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2 neon-line">
                         <span class="w-1.5 h-7 bg-dc-purple rounded-full"></span>Scouting Grounds
@@ -747,10 +1129,10 @@ body::before {
         </div>
 
         <!-- RIGHT SIDEBAR (1/3) -->
-        <div class="space-y-6">
+        <div class="space-y-6 sidebar-sticky">
 
             <!-- MY TEAMS WIDGET -->
-            <div class="glass rounded-2xl p-6" id="my-teams-widget">
+            <div class="glass rounded-2xl p-6 card-shine" id="my-teams-widget">
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
                         <i data-lucide="users" class="w-5 h-5 text-dc-cyan"></i>My Teams
@@ -820,7 +1202,7 @@ body::before {
                             <h4 class="font-display font-bold text-white text-base mb-1">Your Arena Awaits</h4>
                             <p class="text-sm text-gray-400 mb-1">No active rosters yet.</p>
                             <p class="text-xs text-gray-500 mb-5">Create a team, invite friends, and start competing in tournaments. Your stats and trophies are permanent.</p>
-                            <a href="{% url 'organizations:team_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-bold text-sm rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all">
+                            <a href="{% url 'organizations:team_create' %}" class="btn-cta-primary btn-cta-sm">
                                 <i data-lucide="plus-circle" class="w-4 h-4"></i>Create Your First Team
                             </a>
                             <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
@@ -841,7 +1223,7 @@ body::before {
             </div>
 
             <!-- OPEN CHALLENGES -->
-            <div class="glass rounded-2xl p-6 relative overflow-hidden">
+            <div class="glass rounded-2xl p-6 relative overflow-hidden card-shine">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-dc-purple/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
@@ -974,7 +1356,7 @@ body::before {
             </div>
 
             <!-- MATCH FINDER -->
-            <div class="glass rounded-2xl overflow-hidden" id="quick-scrim-widget">
+            <div class="glass rounded-2xl overflow-hidden card-shine" id="quick-scrim-widget">
                 <div class="h-1 w-full bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan"></div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-5">
@@ -1046,15 +1428,15 @@ body::before {
                     {% endif %}
 
                     {% if user.is_authenticated and user_teams %}
-                    <button id="scrim-find-btn" class="w-full py-3.5 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold text-sm rounded-xl hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2">
+                    <button id="scrim-find-btn" class="w-full btn-cta-primary rounded-xl">
                         <i data-lucide="zap" class="w-4 h-4"></i> Find Match
                     </button>
                     {% elif user.is_authenticated %}
-                    <a href="{% url 'organizations:team_create' %}" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-white font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                    <a href="{% url 'organizations:team_create' %}" class="block w-full btn-cta-muted rounded-xl text-center">
                         <i data-lucide="plus" class="w-4 h-4"></i> Create Team First
                     </a>
                     {% else %}
-                    <a href="/accounts/login/" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-white font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                    <a href="/accounts/login/" class="block w-full btn-cta-muted rounded-xl text-center">
                         <i data-lucide="log-in" class="w-4 h-4"></i> Sign In to Play
                     </a>
                     {% endif %}
@@ -1064,44 +1446,112 @@ body::before {
     </div>
 </div>
 
-<!-- ========== GRASSROOTS TO GLORY ========== -->
-<section class="border-t border-white/10 bg-dc-surface py-10">
+<div class="section-divider"></div>
+
+<!-- ========== GRASSROOTS TO GLORY — COMPLETE REDESIGN ========== -->
+<section class="border-t border-white/10 bg-dc-surface py-16 sm:py-20 section-glow section-glow-cyan overflow-hidden cv-auto">
     <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div class="text-center mb-8">
-            <h2 class="font-display text-2xl sm:text-3xl font-black text-white mb-2">The Path to <span class="grad-text">Pro</span></h2>
-            <p class="text-gray-300 text-sm">Reach Diamond to unlock Direct Invites (৳0 Entry Fees). Your stats and trophies are permanent.</p>
+        <!-- Section header -->
+        <div class="text-center mb-14 reveal">
+            <p class="text-xs font-bold uppercase tracking-[0.25em] text-dc-cyan/70 mb-3">Progression System</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-black text-white mb-3">The Path to <span class="grad-text">Pro</span></h2>
+            <p class="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">Four stages. One destination. Every match, win, and trophy pushes you closer to the Crown.</p>
         </div>
-        <div class="relative flex flex-col md:flex-row justify-between items-center max-w-4xl mx-auto gap-6 md:gap-0">
-            <div class="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-gray-800 via-dc-cyan to-dc-gold -z-0 -translate-y-1/2"></div>
-            <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
-                <div class="w-14 h-14 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-xl mb-2">🏁</div>
-                <h3 class="font-bold text-white text-sm">Create</h3>
-                <p class="text-xs text-gray-400">Unranked</p>
+
+        <!-- Journey Track -->
+        <div class="relative max-w-6xl mx-auto">
+            <!-- Animated connecting line (desktop only) -->
+            <div class="hidden lg:block absolute top-[88px] left-[12%] right-[12%] h-[3px] rounded-full overflow-hidden z-0">
+                <div class="absolute inset-0 bg-gradient-to-r from-gray-700 via-dc-cyan via-dc-purple to-dc-gold opacity-40"></div>
+                <div class="absolute inset-y-0 left-0 w-[30px] h-full bg-dc-cyan rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)]" style="animation: pathTravel 5s ease-in-out infinite"></div>
             </div>
-            <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
-                <div class="w-14 h-14 rounded-full bg-dc-cyan/15 border-2 border-dc-cyan flex items-center justify-center text-xl mb-2 shadow-[0_0_12px_rgba(6,182,212,0.3)]">⚔️</div>
-                <h3 class="font-bold text-white text-sm">Compete</h3>
-                <p class="text-xs text-gray-400">Earn CP</p>
-            </div>
-            <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
-                <div class="w-14 h-14 rounded-full bg-dc-purple/15 border-2 border-dc-purple flex items-center justify-center text-xl mb-2 shadow-[0_0_12px_rgba(139,92,246,0.3)]">💎</div>
-                <h3 class="font-bold text-white text-sm">Diamond</h3>
-                <p class="text-xs text-gray-400">Direct Invites</p>
-            </div>
-            <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
-                <div class="w-14 h-14 rounded-full bg-dc-gold/15 border-2 border-dc-gold flex items-center justify-center text-xl mb-2 shadow-[0_0_15px_rgba(250,204,21,0.4)] animate-pulse-glow">👑</div>
-                <h3 class="font-bold text-dc-gold text-sm">Crown</h3>
-                <p class="text-xs text-gray-400">Sponsorships</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
+                <!-- Stage 1: Create -->
+                <div class="pro-path-card group">
+                    <div class="relative p-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all duration-500 hover:border-gray-500/50 hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(107,114,128,0.15)] overflow-hidden h-full">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-500/30 to-transparent"></div>
+                        <div class="absolute top-4 right-4 text-[10px] font-black text-gray-600 bg-gray-800/60 w-6 h-6 rounded-full flex items-center justify-center border border-gray-700/50">1</div>
+                        <div class="w-16 h-16 rounded-2xl bg-gray-700/30 border border-gray-600/40 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(107,114,128,0.2)] transition-all duration-300">
+                            🏁
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-1">Create</h3>
+                        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">Unranked</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Form your squad, choose your game, set your roster. It takes under 30 seconds.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gray-700/40 border border-gray-600/30 text-gray-400">Free to start</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gray-700/40 border border-gray-600/30 text-gray-400">5 roster slots</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 2: Compete -->
+                <div class="pro-path-card group">
+                    <div class="relative p-6 rounded-2xl border border-dc-cyan/15 bg-dc-cyan/[0.02] transition-all duration-500 hover:border-dc-cyan/40 hover:bg-dc-cyan/[0.05] hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] overflow-hidden h-full">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-dc-cyan/40 to-transparent"></div>
+                        <div class="absolute top-4 right-4 text-[10px] font-black text-dc-cyan/80 bg-dc-cyan/10 w-6 h-6 rounded-full flex items-center justify-center border border-dc-cyan/25">2</div>
+                        <div class="w-16 h-16 rounded-2xl bg-dc-cyan/10 border border-dc-cyan/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all duration-300">
+                            ⚔️
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-1">Compete</h3>
+                        <p class="text-xs text-dc-cyan font-semibold uppercase tracking-wider mb-3">Earn CP</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Enter tournaments, win matches, and climb through the DCRS ranking tiers.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan/80">Bronze → Gold</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-cyan/10 border border-dc-cyan/20 text-dc-cyan/80">CP rewards</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 3: Diamond -->
+                <div class="pro-path-card group">
+                    <div class="relative p-6 rounded-2xl border border-dc-purple/15 bg-dc-purple/[0.02] transition-all duration-500 hover:border-dc-purple/40 hover:bg-dc-purple/[0.05] hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] overflow-hidden h-full">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-dc-purple/40 to-transparent"></div>
+                        <div class="absolute top-4 right-4 text-[10px] font-black text-dc-purple/80 bg-dc-purple/10 w-6 h-6 rounded-full flex items-center justify-center border border-dc-purple/25">3</div>
+                        <div class="w-16 h-16 rounded-2xl bg-dc-purple/10 border border-dc-purple/30 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(139,92,246,0.3)] transition-all duration-300">
+                            💎
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-1">Diamond</h3>
+                        <p class="text-xs text-dc-purple font-semibold uppercase tracking-wider mb-3">Direct Invites</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Unlock ৳0 entry fees, exclusive tournaments, and priority matchmaking.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-purple/10 border border-dc-purple/20 text-dc-purple/80">Free entry</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-purple/10 border border-dc-purple/20 text-dc-purple/80">Exclusive events</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 4: Crown -->
+                <div class="pro-path-card group">
+                    <div class="relative p-6 rounded-2xl border border-dc-gold/20 bg-dc-gold/[0.02] transition-all duration-500 hover:border-dc-gold/50 hover:bg-dc-gold/[0.05] hover:shadow-[0_0_50px_rgba(250,204,21,0.15)] overflow-hidden h-full">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-dc-gold/50 to-transparent"></div>
+                        <div class="absolute top-4 right-4 text-[10px] font-black text-dc-gold/80 bg-dc-gold/10 w-6 h-6 rounded-full flex items-center justify-center border border-dc-gold/25">4</div>
+                        <div class="w-16 h-16 rounded-2xl bg-dc-gold/10 border border-dc-gold/30 flex items-center justify-center text-3xl mb-5 btn-breathe group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(250,204,21,0.35)] transition-all duration-300">
+                            👑
+                        </div>
+                        <h3 class="font-display font-bold text-dc-gold text-lg mb-1">Crown</h3>
+                        <p class="text-xs text-dc-gold/70 font-semibold uppercase tracking-wider mb-3">Sponsorships</p>
+                        <p class="text-sm text-gray-400 leading-relaxed mb-4">Organization sponsorships, featured placement, pro team invites, and revenue sharing.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-gold/10 border border-dc-gold/20 text-dc-gold/80">Org scouting</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dc-gold/10 border border-dc-gold/20 text-dc-gold/80">Revenue share</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="text-center mt-6">
-            <a href="/ranking-policy" class="text-sm text-dc-cyan hover:underline">View DCRS Ranking Rules →</a>
+
+        <!-- CTA link -->
+        <div class="text-center mt-10 reveal">
+            <a href="/ranking-policy" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-dc-cyan hover:bg-dc-cyan/[0.08] hover:border-dc-cyan/25 transition-all group">
+                View DCRS Ranking Rules <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+            </a>
         </div>
     </div>
 </section>
 
 <!-- ========== CINEMATIC CTA ========== -->
-<section class="relative py-16 overflow-hidden">
+<section class="relative py-16 overflow-hidden section-glow section-glow-purple cv-auto">
     <div class="absolute inset-0 opacity-15">
         <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-dc-cyan rounded-full blur-[150px]"></div>
         <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-dc-purple rounded-full blur-[150px]"></div>
@@ -1112,14 +1562,14 @@ body::before {
         <p class="text-gray-400 text-sm mb-6">Independent teams can be scouted and acquired by Organizations — turning your passion into a profession.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
             {% if user.is_authenticated %}
-            <a href="{% url 'organizations:team_create' %}" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
+            <a href="{% url 'organizations:team_create' %}" class="btn-cta-primary btn-breathe btn-arrow">
                 <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
-                <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% else %}
-            <a href="/accounts/signup/" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
+            <a href="/accounts/signup/" class="btn-cta-primary btn-breathe btn-arrow">
                 <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
-                <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% endif %}
             <a href="/team-guide" class="px-8 py-3.5 bg-white/5 border border-white/10 text-gray-300 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm">Read the Team Guide</a>
@@ -1127,37 +1577,56 @@ body::before {
     </div>
 </section>
 
+<div class="section-divider"></div>
+
 <!-- ========== PLATFORM RULES STRIP ========== -->
-<section class="border-t border-white/10 bg-dc-surface py-8">
+<section class="border-t border-white/10 bg-dc-surface py-10 cv-auto">
     <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass p-4 rounded-xl text-center" style="transform:none!important">
-                <i data-lucide="shield-check" class="w-5 h-5 text-green-400 mx-auto mb-2"></i>
-                <p class="text-sm font-bold text-white mb-0.5">Admin Verified</p>
-                <p class="text-sm text-gray-400">All results confirmed</p>
+        <div class="text-center mb-6 reveal">
+            <p class="text-xs font-bold uppercase tracking-[0.25em] text-gray-500 mb-2">Platform Integrity</p>
+            <h3 class="font-display text-xl font-bold text-white">Built on Trust & Fair Play</h3>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-grid">
+            <div class="rule-card glass p-5 rounded-xl text-center group" style="transform:none!important">
+                <div class="rule-icon w-12 h-12 rounded-xl bg-green-400/10 border border-green-400/20 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-green-400"></i>
+                </div>
+                <p class="text-sm font-bold text-white mb-1">Admin Verified</p>
+                <p class="text-xs text-gray-500 leading-relaxed">All match results verified by platform admins</p>
             </div>
-            <div class="glass p-4 rounded-xl text-center" style="transform:none!important">
-                <i data-lucide="lock" class="w-5 h-5 text-dc-cyan mx-auto mb-2"></i>
-                <p class="text-sm font-bold text-white mb-0.5">Roster Locks</p>
-                <p class="text-sm text-gray-400">No mid-tourney swaps</p>
+            <div class="rule-card glass p-5 rounded-xl text-center group" style="transform:none!important">
+                <div class="rule-icon w-12 h-12 rounded-xl bg-dc-cyan/10 border border-dc-cyan/20 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="lock" class="w-6 h-6 text-dc-cyan"></i>
+                </div>
+                <p class="text-sm font-bold text-white mb-1">Roster Locks</p>
+                <p class="text-xs text-gray-500 leading-relaxed">No mid-tournament roster swaps allowed</p>
             </div>
-            <div class="glass p-4 rounded-xl text-center" style="transform:none!important">
-                <i data-lucide="users" class="w-5 h-5 text-dc-purple mx-auto mb-2"></i>
-                <p class="text-sm font-bold text-white mb-0.5">One Team Rule</p>
-                <p class="text-sm text-gray-400">1 roster per game</p>
+            <div class="rule-card glass p-5 rounded-xl text-center group" style="transform:none!important">
+                <div class="rule-icon w-12 h-12 rounded-xl bg-dc-purple/10 border border-dc-purple/20 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="users" class="w-6 h-6 text-dc-purple"></i>
+                </div>
+                <p class="text-sm font-bold text-white mb-1">One Team Rule</p>
+                <p class="text-xs text-gray-500 leading-relaxed">One active roster per game per player</p>
             </div>
-            <div class="glass p-4 rounded-xl text-center" style="transform:none!important">
-                <i data-lucide="headphones" class="w-5 h-5 text-dc-gold mx-auto mb-2"></i>
-                <p class="text-sm font-bold text-white mb-0.5">Instant Support</p>
-                <p class="text-sm text-gray-400">24/7 admin response</p>
+            <div class="rule-card glass p-5 rounded-xl text-center group" style="transform:none!important">
+                <div class="rule-icon w-12 h-12 rounded-xl bg-dc-gold/10 border border-dc-gold/20 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="headphones" class="w-6 h-6 text-dc-gold"></i>
+                </div>
+                <p class="text-sm font-bold text-white mb-1">Instant Support</p>
+                <p class="text-xs text-gray-500 leading-relaxed">24/7 admin response for disputes</p>
             </div>
         </div>
     </div>
 </section>
 
 <!-- ========== FOOTER ========== -->
-<footer class="bg-dc-dark border-t border-white/[0.06] pt-12 pb-6">
-    <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
+<footer class="relative bg-dc-dark border-t border-white/[0.06] pt-14 pb-6 overflow-hidden cv-auto">
+    <!-- Ambient glow -->
+    <div class="absolute top-0 left-1/3 w-[400px] h-[200px] bg-dc-cyan/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-0 right-1/4 w-[300px] h-[200px] bg-dc-purple/[0.03] rounded-full blur-[100px] pointer-events-none"></div>
+    <!-- Gradient top line -->
+    <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-dc-cyan/40 to-transparent"></div>
+    <div class="relative w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
         <!-- Top: Brand + Links -->
         <div class="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 mb-10">
             <!-- Brand Column -->
@@ -1223,7 +1692,10 @@ body::before {
         <div class="border-t border-white/[0.06] pt-5">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <p class="text-xs text-gray-600">&copy; {% now "Y" %} DeltaCrown. All rights reserved.</p>
-                <p class="text-xs text-gray-600">From the Delta to the Crown 👑</p>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs text-gray-700 hidden sm:inline">Built with</span>
+                    <span class="text-xs text-gray-600 font-medium">From the Delta to the Crown 👑</span>
+                </div>
             </div>
         </div>
     </div>
@@ -1239,59 +1711,72 @@ body::before {
 
 {% block extra_js %}
 <script>
-// === INIT ===
-lucide.createIcons();
+// === INIT (Lucide may be deferred) ===
+if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+else { document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
 
-// === PARTICLE SYSTEM ===
+// === PARTICLE SYSTEM (lightweight — pauses when hero not visible) ===
 (function initParticles() {
     const canvas = document.getElementById('hero-particles');
-    if (!canvas) return;
+    if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = canvas.getContext('2d');
-    let particles = [], w, h, mouse = { x: null, y: null };
+    let particles = [], w, h, running = true, rafId = null;
     function resize() { const r = canvas.parentElement.getBoundingClientRect(); w = canvas.width = r.width; h = canvas.height = r.height }
-    resize(); window.addEventListener('resize', resize);
-    canvas.parentElement.addEventListener('mousemove', e => { const r = canvas.parentElement.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top });
-    canvas.parentElement.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null });
-    for (let i = 0; i < 40; i++) particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, r: Math.random() * 1.5 + .5, o: Math.random() * .4 + .1 });
+    resize(); window.addEventListener('resize', resize, { passive: true });
+    for (let i = 0; i < 18; i++) particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .25, vy: (Math.random() - .5) * .25, r: Math.random() * 1.2 + .4, o: Math.random() * .3 + .08 });
     function draw() {
+        if (!running) return;
         ctx.clearRect(0, 0, w, h);
-        particles.forEach((p, i) => {
+        for (const p of particles) {
             p.x += p.vx; p.y += p.vy;
             if (p.x < 0 || p.x > w) p.vx *= -1;
             if (p.y < 0 || p.y > h) p.vy *= -1;
-            if (mouse.x !== null) { const dx = mouse.x - p.x, dy = mouse.y - p.y, d = Math.sqrt(dx * dx + dy * dy); if (d < 150) { p.vx += dx * .0003; p.vy += dy * .0003 } }
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(6,182,212,${p.o})`; ctx.fill();
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = p.x - particles[j].x, dy = p.y - particles[j].y, d = Math.sqrt(dx * dx + dy * dy);
-                if (d < 100) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(particles[j].x, particles[j].y); ctx.strokeStyle = `rgba(6,182,212,${.06 * (1 - d / 100)})`; ctx.stroke() }
-            }
-        });
-        requestAnimationFrame(draw);
+        }
+        rafId = requestAnimationFrame(draw);
     }
+    // Pause particles when hero scrolls off-screen
+    const heroObs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) { if (!running) { running = true; draw(); } }
+        else { running = false; if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+    }, { threshold: 0 });
+    heroObs.observe(canvas.parentElement);
     draw();
 })();
 
-// === TYPING EFFECT ===
+// === TYPING EFFECT (cycles words under "Build Your") ===
 (function typeHero() {
     const el = document.getElementById('hero-typed');
     if (!el) return;
-    const lines = ['YOUR TEAM.', 'YOUR KINGDOM.'];
-    let lineIdx = 0, charIdx = 0;
-    function type() {
-        const current = lines[lineIdx];
-        const typed = current.substring(0, charIdx + 1);
-        el.innerHTML = lineIdx === 0 ? typed : `YOUR TEAM.<br>${typed.includes('KINGDOM') ? typed.replace('KINGDOM', '<span class="grad-text">KINGDOM</span>') : typed}`;
-        el.classList.add('type-cursor');
-        charIdx++;
-        if (charIdx === current.length) {
-            if (lineIdx === lines.length - 1) { el.classList.remove('type-cursor'); return; }
-            setTimeout(() => { lineIdx++; charIdx = 0; type() }, 400);
-            return;
+    const words = ['Team.', 'Kingdom.', 'Dynasty.', 'Legacy.', 'Empire.'];
+    let wordIdx = 0, charIdx = 0, deleting = false;
+    function tick() {
+        const word = words[wordIdx];
+        if (!deleting) {
+            charIdx++;
+            el.textContent = word.substring(0, charIdx);
+            el.classList.add('type-cursor');
+            if (charIdx === word.length) {
+                // Pause at full word, then start deleting (skip delete on last word)
+                if (wordIdx === words.length - 1) { el.classList.remove('type-cursor'); return; }
+                setTimeout(() => { deleting = true; tick(); }, 1800);
+                return;
+            }
+            setTimeout(tick, 70 + Math.random() * 40);
+        } else {
+            charIdx--;
+            el.textContent = word.substring(0, charIdx);
+            if (charIdx === 0) {
+                deleting = false;
+                wordIdx = (wordIdx + 1) % words.length;
+                setTimeout(tick, 300);
+                return;
+            }
+            setTimeout(tick, 35 + Math.random() * 20);
         }
-        setTimeout(type, 60 + Math.random() * 40);
     }
-    setTimeout(type, 600);
+    setTimeout(tick, 600);
 })();
 
 // === COUNTER ANIMATION ===
@@ -1345,39 +1830,88 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load ticker
     loadTicker();
 
-    // === SCROLL REVEAL SYSTEM ===
-    const revealObserver = new IntersectionObserver(entries => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target) } });
-    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    // === SPOTLIGHT CAROUSEL ===
+    (function initSpotlight() {
+        const carousel = document.getElementById('spotlight-carousel');
+        if (!carousel) return;
+        const cards = carousel.querySelectorAll('.spotlight-card');
+        const dots = carousel.querySelectorAll('.spotlight-dot');
+        if (cards.length <= 1) return;
 
-    // Glass scroll animation
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)' } }), { threshold: 0.08 });
-    document.querySelectorAll('.glass:not(.reveal)').forEach(el => {
-        if (el.closest('header') || el.closest('nav') || el.closest('#search-modal') || el.closest('.reveal')) return;
-        if (el.style.transform === 'none') return; // Skip elements that opt out
-        el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = 'all 0.5s cubic-bezier(.22,1,.36,1)'; io.observe(el);
-    });
+        let current = 0;
+        let timer = null;
+
+        function show(idx) {
+            cards.forEach((c, i) => {
+                c.classList.toggle('spotlight-card--active', i === idx);
+            });
+            dots.forEach((d, i) => {
+                d.classList.toggle('spotlight-dot--active', i === idx);
+            });
+            current = idx;
+        }
+
+        function next() {
+            show((current + 1) % cards.length);
+        }
+
+        function startTimer() {
+            timer = setInterval(next, 5000);
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            startTimer();
+        }
+
+        // Dot click
+        dots.forEach(d => {
+            d.addEventListener('click', () => {
+                show(parseInt(d.dataset.idx, 10));
+                resetTimer();
+            });
+        });
+
+        // Pause on hover
+        carousel.addEventListener('mouseenter', () => clearInterval(timer));
+        carousel.addEventListener('mouseleave', startTimer);
+
+        startTimer();
+    })();
+
+    // === SINGLE UNIFIED SCROLL OBSERVER (replaces 5 separate observers) ===
+    const revealObs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal, .stagger-grid, .pro-path-card').forEach(el => revealObs.observe(el));
+
+    // Section glow
+    const glowObs = new IntersectionObserver(entries => {
+        entries.forEach(e => e.target.style.setProperty('--glow-opacity', e.isIntersecting ? '0.06' : '0'));
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.section-glow').forEach(el => { el.style.setProperty('--glow-opacity', '0'); glowObs.observe(el); });
 
     // Counter animation on scroll
     const counterObserver = new IntersectionObserver(entries => {
-        entries.forEach(e => { if (e.isIntersecting) { animateCounters(); counterObserver.unobserve(e.target) } });
+        entries.forEach(e => { if (e.isIntersecting) { animateCounters(); counterObserver.unobserve(e.target); } });
     }, { threshold: 0.3 });
-    const statsEl = document.getElementById('hero-stats');
-    if (statsEl) counterObserver.observe(statsEl);
+    document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
 
     // Progress bar animation
     const progressObserver = new IntersectionObserver(entries => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('animate'); progressObserver.unobserve(e.target) } });
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('animate'); progressObserver.unobserve(e.target); } });
     }, { threshold: 0.5 });
     document.querySelectorAll('.progress-fill').forEach(el => progressObserver.observe(el));
 
-    // Back-to-top
+    // Back-to-top (passive scroll)
     const btt = document.getElementById('back-to-top');
+    let ticking = false;
     window.addEventListener('scroll', () => {
-        const y = window.scrollY;
-        if (btt) btt.classList.toggle('visible', y > 800);
-    });
+        if (!ticking) { ticking = true; requestAnimationFrame(() => { if (btt) btt.classList.toggle('visible', window.scrollY > 800); ticking = false; }); }
+    }, { passive: true });
 
     // Match Finder tab switching
     document.querySelectorAll('.scrim-tab').forEach(tab => {
@@ -1448,15 +1982,15 @@ function syncMatchFinder(slug) {
 document.getElementById('scrim-game-select')?.addEventListener('change', function() {
     syncMatchFinder(this.value);
     // Trigger full Combat Zone sync
-    const card = document.querySelector(`.game-card[data-game="${this.value}"]`);
+    const card = document.querySelector(`.game-grid-item[data-game="${this.value}"]`);
     if (card) selectGame(this.value, card);
 });
 
 // === GAME FILTER (AJAX — no page reload) ===
 let _filterAbort = null;
 function selectGame(slug, el) {
-    document.querySelectorAll('.game-card').forEach(c => c.classList.remove('game-card-active'));
-    el.classList.add('game-card-active');
+    document.querySelectorAll('.game-grid-item').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
 
     // Sync the Match Finder widget
     syncMatchFinder(slug);
@@ -1574,41 +2108,127 @@ function selectGame(slug, el) {
 window.addEventListener('popstate', (e) => {
     if (e.state && e.state.game) {
         const slug = e.state.game;
-        const card = document.querySelector(`.game-card[data-game="${slug}"]`);
+        const card = document.querySelector(`.game-grid-item[data-game="${slug}"]`);
         if (card) selectGame(slug, card);
     }
 });
 
 // === SEARCH MODAL ===
-function openSearch() { document.getElementById('search-modal').classList.add('active'); document.getElementById('search-input').focus(); document.body.style.overflow = 'hidden' }
-function closeSearch() { document.getElementById('search-modal').classList.remove('active'); document.body.style.overflow = '' }
+function openSearch() {
+    document.getElementById('search-modal').classList.add('active');
+    const inp = document.getElementById('search-input');
+    inp.focus();
+    inp.select();
+    document.body.style.overflow = 'hidden';
+}
+function closeSearch() {
+    document.getElementById('search-modal').classList.remove('active');
+    document.body.style.overflow = '';
+}
 
-// === SEARCH AUTOCOMPLETE ===
-let searchTimeout;
+// === SEARCH AUTOCOMPLETE (multi-category) ===
+let _searchTimeout, _searchAbort, _searchFilter = 'all';
+
+// Filter tab clicks
+document.querySelectorAll('.search-filter').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.search-filter').forEach(b => {
+            b.classList.remove('active','bg-dc-cyan/15','border-dc-cyan/30','text-dc-cyan');
+            b.classList.add('bg-white/5','border-white/10','text-gray-400');
+        });
+        this.classList.add('active','bg-dc-cyan/15','border-dc-cyan/30','text-dc-cyan');
+        this.classList.remove('bg-white/5','border-white/10','text-gray-400');
+        _searchFilter = this.dataset.filter;
+        // Re-trigger search with new filter
+        const inp = document.getElementById('search-input');
+        if (inp && inp.value.trim().length >= 2) inp.dispatchEvent(new Event('input'));
+    });
+});
+
 const searchInput = document.getElementById('search-input');
 if (searchInput) {
     searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
+        clearTimeout(_searchTimeout);
         const q = this.value.trim();
-        if (q.length < 2) return;
-        searchTimeout = setTimeout(async () => {
+        const results = document.getElementById('search-results');
+        if (!results) return;
+
+        if (q.length < 2) {
+            results.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Type to search...</p>';
+            return;
+        }
+
+        // Show loading
+        results.innerHTML = '<div class="flex items-center justify-center py-8 gap-3"><div class="w-5 h-5 border-2 border-dc-cyan border-t-transparent rounded-full animate-spin"></div><span class="text-sm text-gray-400">Searching...</span></div>';
+
+        _searchTimeout = setTimeout(async () => {
+            if (_searchAbort) _searchAbort.abort();
+            _searchAbort = new AbortController();
             try {
-                const res = await fetch(`/api/vnext/system/teams/search/?q=${encodeURIComponent(q)}&limit=10`);
-                if (!res.ok) return;
+                const res = await fetch(`/api/vnext/system/teams/search/?q=${encodeURIComponent(q)}&limit=8&filter=${_searchFilter}`, { signal: _searchAbort.signal });
+                if (!res.ok) throw new Error('Network error');
                 const json = await res.json();
-                const results = document.getElementById('search-results');
-                if (!results || !json.ok) return;
-                const teams = json.data.teams || [];
-                if (teams.length === 0) {
-                    results.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No results found</p>';
+                if (!json.ok) throw new Error('API error');
+                const { teams = [], players = [], tournaments = [] } = json.data;
+                const total = teams.length + players.length + tournaments.length;
+
+                if (total === 0) {
+                    results.innerHTML = `<div class="text-center py-8"><i data-lucide="search-x" class="w-8 h-8 text-gray-700 mx-auto mb-2"></i><p class="text-sm text-gray-400">No results for "<span class="text-white">${q}</span>"</p><p class="text-xs text-gray-600 mt-1">Try different keywords or filters</p></div>`;
+                    lucide.createIcons();
                     return;
                 }
-                results.innerHTML = '<p class="text-xs text-gray-500 mb-3">RESULTS</p><div class="space-y-2">' +
-                    teams.map(t => `<a href="${t.url}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"><div class="w-8 h-8 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center text-xs font-bold text-white">${(t.name || '').substring(0,2)}</div><div><p class="text-sm text-gray-300 font-medium">${t.name}</p><p class="text-xs text-gray-500">${t.tier || 'Unranked'} · ${t.cp || 0} CP</p></div></a>`).join('') +
-                    '</div>';
-            } catch (e) { console.warn('[Hub] Search failed:', e); }
-        }, 300);
+
+                let html = '';
+
+                // Teams section
+                if (teams.length > 0) {
+                    html += `<div class="mb-4"><p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3"></i>Teams (${teams.length})</p><div class="space-y-1">`;
+                    html += teams.map(t => {
+                        const logo = t.logo ? `<img src="${t.logo}" class="w-9 h-9 rounded-lg object-cover" alt="${t.name}" loading="lazy">` : `<div class="w-9 h-9 rounded-lg bg-dc-cyan/10 border border-dc-cyan/20 flex items-center justify-center text-xs font-bold text-dc-cyan">${(t.name||'').substring(0,2)}</div>`;
+                        return `<a href="${t.url}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all group">${logo}<div class="flex-1 min-w-0"><p class="text-sm text-white font-semibold group-hover:text-dc-cyan transition-colors truncate">${t.name}</p><p class="text-xs text-gray-500">${t.game||'Multi-game'} · ${t.tier||'Unranked'} · ${t.cp||0} CP</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-dc-cyan transition-colors flex-shrink-0"></i></a>`;
+                    }).join('');
+                    html += '</div></div>';
+                }
+
+                // Players section
+                if (players.length > 0) {
+                    html += `<div class="mb-4"><p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3"></i>Players (${players.length})</p><div class="space-y-1">`;
+                    html += players.map(p => {
+                        const avatar = p.avatar ? `<img src="${p.avatar}" class="w-9 h-9 rounded-full object-cover" alt="${p.username}" loading="lazy">` : `<div class="w-9 h-9 rounded-full bg-dc-purple/10 border border-dc-purple/20 flex items-center justify-center text-xs font-bold text-dc-purple">${(p.username||'').substring(0,2).toUpperCase()}</div>`;
+                        return `<a href="${p.url}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all group">${avatar}<div class="flex-1 min-w-0"><p class="text-sm text-white font-semibold group-hover:text-dc-purple transition-colors truncate">${p.username}</p><p class="text-xs text-gray-500">${p.team||'Free Agent'}</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-dc-purple transition-colors flex-shrink-0"></i></a>`;
+                    }).join('');
+                    html += '</div></div>';
+                }
+
+                // Tournaments section
+                if (tournaments.length > 0) {
+                    html += `<div class="mb-2"><p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="trophy" class="w-3 h-3"></i>Tournaments (${tournaments.length})</p><div class="space-y-1">`;
+                    html += tournaments.map(t => {
+                        const statusColors = { live: 'bg-red-500/15 text-red-400 border-red-500/30', registration_open: 'bg-green-500/15 text-green-400 border-green-500/30', upcoming: 'bg-dc-cyan/15 text-dc-cyan border-dc-cyan/30' };
+                        const sc = statusColors[t.status] || 'bg-white/5 text-gray-400 border-white/10';
+                        return `<a href="${t.url}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all group"><div class="w-9 h-9 rounded-lg bg-dc-gold/10 border border-dc-gold/20 flex items-center justify-center"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i></div><div class="flex-1 min-w-0"><p class="text-sm text-white font-semibold group-hover:text-dc-gold transition-colors truncate">${t.name}</p><p class="text-xs text-gray-500">${t.game||''} · ৳${(t.prize||0).toLocaleString()}</p></div><span class="text-[9px] font-bold px-2 py-0.5 rounded-full border ${sc} flex-shrink-0">${(t.status_display||t.status||'').toUpperCase()}</span></a>`;
+                    }).join('');
+                    html += '</div></div>';
+                }
+
+                results.innerHTML = html;
+                lucide.createIcons();
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                console.warn('[Hub] Search failed:', e);
+                results.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Search temporarily unavailable</p>';
+            }
+        }, 250);
     });
 }
+
+// === CURSOR GLOW (CSS-only via hover, no JS RAF needed) ===
+// Removed JS cursor glow — use CSS :hover effects on cards instead for perf.
+
+// === PARALLAX removed for performance ===
+// Scroll-driven parallax on blur elements was causing paint storms.
+
+// === BACK TO TOP BUTTON ===
+// (handled in DOMContentLoaded scroll listener above)
 </script>
 {% endblock %}

@@ -135,6 +135,83 @@ def _get_hero_carousel_context(request):
     return carousel_data
 
 
+def _get_spotlight_teams(limit=5):
+    """
+    Get teams for the Hero spotlight carousel.
+
+    Priority cascade (fills up to `limit` teams):
+      1. Admin-featured teams (is_featured=True) — curated picks
+      2. Recruiting teams (is_recruiting=True) — always fresh
+      3. Newest active teams — never empty
+
+    Each returned dict contains:
+      team, badge_emoji, badge_text
+
+    Cache: 60 seconds
+    """
+    from apps.organizations.models import Team
+    from apps.organizations.choices import TeamStatus
+
+    cache_key = f'spotlight_teams_{limit}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    spotlight = []
+    seen_ids = set()
+
+    try:
+        base_qs = Team.objects.filter(
+            status=TeamStatus.ACTIVE,
+            visibility='PUBLIC',
+        ).select_related('organization', 'created_by').prefetch_related(
+            'vnext_memberships'
+        )
+
+        # 1. Admin-featured teams
+        featured_qs = base_qs.filter(is_featured=True).order_by('-updated_at')
+        for t in featured_qs[:limit]:
+            label = t.featured_label or 'Featured'
+            spotlight.append({
+                'team': t,
+                'badge_emoji': '\u2B50',
+                'badge_text': label,
+            })
+            seen_ids.add(t.pk)
+
+        # 2. Recruiting teams
+        if len(spotlight) < limit:
+            recruiting_qs = base_qs.filter(
+                is_recruiting=True,
+            ).exclude(pk__in=seen_ids).order_by('-updated_at')
+            for t in recruiting_qs[:limit - len(spotlight)]:
+                spotlight.append({
+                    'team': t,
+                    'badge_emoji': '\U0001F4E2',
+                    'badge_text': 'Recruiting',
+                })
+                seen_ids.add(t.pk)
+
+        # 3. Newest active teams
+        if len(spotlight) < limit:
+            newest_qs = base_qs.exclude(
+                pk__in=seen_ids
+            ).order_by('-created_at')
+            for t in newest_qs[:limit - len(spotlight)]:
+                spotlight.append({
+                    'team': t,
+                    'badge_emoji': '\U0001F680',
+                    'badge_text': 'Just Launched',
+                })
+                seen_ids.add(t.pk)
+
+    except Exception as e:
+        logger.warning(f"Could not fetch spotlight teams: {e}")
+
+    cache.set(cache_key, spotlight, 60)
+    return spotlight
+
+
 def _get_featured_teams(game_id=None, limit=12):
     """
     Get featured teams (top by CP) with caching.
@@ -332,6 +409,7 @@ def vnext_hub(request):
     # Fetch data using helper functions (with caching)
     carousel_data = _get_hero_carousel_context(request)
     featured_teams = _get_featured_teams(game_id=selected_game_id, limit=12)
+    spotlight_teams = _get_spotlight_teams(limit=5)
     
     # Phase 10: Use CompetitionService for rankings preview
     rankings_preview = []
@@ -560,6 +638,7 @@ def vnext_hub(request):
         'user_org_role': user_org_role,
         'stats': stats,
         'game_configs_json': game_configs_json,
+        'spotlight_teams': spotlight_teams,
     })
 
 

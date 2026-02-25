@@ -388,99 +388,136 @@ def active_scrims(request):
 
 
 @require_http_methods(["GET"])
-@login_required
 def team_search(request):
     """
-    Team search autocomplete for hub search bar.
+    Hub universal search — teams, players, and tournaments.
     
-    Returns teams matching search query with consistent schema.
+    Public endpoint — no login required so guest users can search too.
     
     Query params:
-        - q: Search query (team name) - minimum 2 characters
-        - limit: Max results (default 10, max 20)
+        - q: Search query - minimum 2 characters
+        - filter: 'all' | 'teams' | 'players' | 'tournaments' (default: all)
+        - limit: Max results per category (default 8, max 20)
     
-    Returns:
-        JSON: {
-            "ok": true,
-            "data": {
-                "teams": [
-                    {
-                        "slug": str,
-                        "name": str,
-                        "logo": str (optional),
-                        "tier": str,
-                        "cp": int,
-                        "url": str
-                    }
-                ]
-            }
-        }
-        
-        OR (if query too short):
-        JSON: {
-            "ok": false,
-            "error_code": "QUERY_TOO_SHORT",
-            "safe_message": "Search requires at least 2 characters",
-            "data": {"teams": []}
-        }
+    Returns JSON with teams, players, and tournaments arrays.
     """
     from apps.organizations.models import Team
     from apps.games.models import Game
-    
+
     query = request.GET.get('q', '').strip()
-    limit = min(int(request.GET.get('limit', 10)), 20)  # Max 20
-    
-    # Validate minimum length
+    filter_type = request.GET.get('filter', 'all')
+    limit = min(int(request.GET.get('limit', 8)), 20)
+
     if not query or len(query) < 2:
         return JsonResponse({
             'ok': False,
             'error_code': 'QUERY_TOO_SHORT',
             'safe_message': 'Search requires at least 2 characters',
-            'data': {'teams': []}
+            'data': {'teams': [], 'players': [], 'tournaments': []}
         }, status=400)
-    
+
+    result = {'teams': [], 'players': [], 'tournaments': []}
+
     try:
-        # Search teams by name
-        teams = Team.objects.filter(
-            name__icontains=query,
-            status='ACTIVE'
-        ).select_related(
-            'organization',
-            'ranking'
-        ).order_by('-ranking__current_cp')[:limit]
-        
-        # Get game names map (cached)
-        game_names_cache_key = 'game_names_map'
-        game_names = cache.get(game_names_cache_key)
-        if game_names is None:
-            game_names = {g.id: g.display_name for g in Game.objects.filter(is_active=True)}
-            cache.set(game_names_cache_key, game_names, 300)  # 5 minutes
-        
-        results = []
-        for team in teams:
-            results.append({
-                'slug': team.slug,
-                'name': team.name,
-                'logo': team.logo.url if team.logo else None,
-                'tier': team.ranking.tier if hasattr(team, 'ranking') and team.ranking else 'UNRANKED',
-                'cp': team.ranking.current_cp if hasattr(team, 'ranking') and team.ranking else 0,
-                'url': team.get_absolute_url(),
-            })
-        
-        return JsonResponse({
-            'ok': True,
-            'data': {
-                'teams': results
-            }
-        })
-        
+        # --- Teams ---
+        if filter_type in ('all', 'teams'):
+            teams = Team.objects.filter(
+                name__icontains=query,
+                status='ACTIVE'
+            ).select_related('organization').order_by('name')[:limit]
+
+            game_names = cache.get('game_names_map')
+            if game_names is None:
+                game_names = {g.id: g.display_name for g in Game.objects.filter(is_active=True)}
+                cache.set('game_names_map', game_names, 300)
+
+            for team in teams:
+                # Safely check for ranking snapshot (vNext uses competition snapshots, not legacy ranking)
+                tier = 'UNRANKED'
+                cp = 0
+                try:
+                    snapshot = team.global_ranking_snapshot
+                    if snapshot:
+                        tier = getattr(snapshot, 'tier', 'UNRANKED') or 'UNRANKED'
+                        cp = getattr(snapshot, 'total_cp', 0) or 0
+                except Exception:
+                    pass
+
+                result['teams'].append({
+                    'slug': team.slug,
+                    'name': team.name,
+                    'tag': getattr(team, 'tag', '') or '',
+                    'logo': team.logo.url if team.logo else None,
+                    'game': game_names.get(team.game_id, ''),
+                    'tier': tier,
+                    'cp': cp,
+                    'url': team.get_absolute_url(),
+                })
+
+        # --- Players ---
+        if filter_type in ('all', 'players'):
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                players = User.objects.filter(
+                    username__icontains=query,
+                    is_active=True,
+                ).only('username', 'id')[:limit]
+                for p in players:
+                    avatar_url = None
+                    team_name = None
+                    try:
+                        if hasattr(p, 'profile') and p.profile and p.profile.avatar:
+                            avatar_url = p.profile.avatar.url
+                    except Exception:
+                        pass
+                    try:
+                        membership = p.team_memberships.filter(
+                            status='active'
+                        ).select_related('team').first()
+                        if membership:
+                            team_name = membership.team.name
+                    except Exception:
+                        pass
+                    result['players'].append({
+                        'username': p.username,
+                        'avatar': avatar_url,
+                        'team': team_name,
+                        'url': f'/u/{p.username}/',
+                    })
+            except Exception:
+                pass
+
+        # --- Tournaments ---
+        if filter_type in ('all', 'tournaments'):
+            try:
+                from apps.tournaments.models import Tournament
+                tournaments = Tournament.objects.filter(
+                    name__icontains=query,
+                    status__in=['published', 'registration_open', 'live', 'completed'],
+                ).select_related('game').order_by('-tournament_start')[:limit]
+                for t in tournaments:
+                    result['tournaments'].append({
+                        'name': t.name,
+                        'slug': t.slug,
+                        'game': t.game.display_name if t.game else '',
+                        'status': t.status,
+                        'status_display': t.get_status_display() if hasattr(t, 'get_status_display') else t.status,
+                        'prize': int(t.prize_pool) if hasattr(t, 'prize_pool') and t.prize_pool else 0,
+                        'url': f'/tournaments/{t.slug}/',
+                    })
+            except Exception:
+                pass
+
+        return JsonResponse({'ok': True, 'data': result})
+
     except Exception as e:
-        logger.error(f"Team search error: {e}", exc_info=True)
+        logger.error(f"Hub search error: {e}", exc_info=True)
         return JsonResponse({
             'ok': False,
             'error_code': 'SEARCH_QUERY_FAILED',
             'safe_message': 'Search temporarily unavailable',
-            'data': {'teams': []}
+            'data': {'teams': [], 'players': [], 'tournaments': []}
         }, status=500)
 
 

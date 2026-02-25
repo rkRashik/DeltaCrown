@@ -46,7 +46,7 @@ class TestUserStatsAdapter:
     
     def test_get_user_stats_found(self, adapter, mock_user_stats):
         """Test get_user_stats() when stats exist."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             MockUserStats.objects.filter.return_value.first.return_value = mock_user_stats
             
             result = adapter.get_user_stats(user_id=101, game_slug="valorant")
@@ -65,7 +65,7 @@ class TestUserStatsAdapter:
     
     def test_get_user_stats_not_found(self, adapter):
         """Test get_user_stats() when stats don't exist."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             MockUserStats.objects.filter.return_value.first.return_value = None
             
             result = adapter.get_user_stats(user_id=999, game_slug="valorant")
@@ -74,7 +74,7 @@ class TestUserStatsAdapter:
     
     def test_get_all_user_stats(self, adapter, mock_user_stats):
         """Test get_all_user_stats() returns all games for user."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             # Mock queryset with multiple stats
             MockUserStats.objects.filter.return_value = [mock_user_stats, mock_user_stats]
             
@@ -88,7 +88,7 @@ class TestUserStatsAdapter:
     
     def test_get_all_user_stats_empty(self, adapter):
         """Test get_all_user_stats() with no stats."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             MockUserStats.objects.filter.return_value = []
             
             results = adapter.get_all_user_stats(user_id=999)
@@ -97,7 +97,7 @@ class TestUserStatsAdapter:
     
     def test_increment_stats_for_match_new_record(self, adapter):
         """Test increment_stats_for_match() creates new record."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             # Mock get_or_create for new record
             mock_stats = MagicMock()
             mock_stats.user_id = 101
@@ -117,7 +117,7 @@ class TestUserStatsAdapter:
             MockUserStats.objects.get_or_create.return_value = (mock_stats, True)
             
             # Mock F() expressions
-            with patch('apps.tournament_ops.adapters.user_stats_adapter.F') as MockF:
+            with patch('django.db.models.F') as MockF:
                 MockF.return_value = MagicMock()
                 
                 result = adapter.increment_stats_for_match(
@@ -140,7 +140,7 @@ class TestUserStatsAdapter:
     
     def test_increment_stats_for_match_existing_win(self, adapter, mock_user_stats):
         """Test increment_stats_for_match() updates existing record for win."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             mock_stats = MagicMock()
             mock_stats.user_id = 101
             mock_stats.game_slug = "valorant"
@@ -158,7 +158,7 @@ class TestUserStatsAdapter:
             
             MockUserStats.objects.get_or_create.return_value = (mock_stats, False)
             
-            with patch('apps.tournament_ops.adapters.user_stats_adapter.F') as MockF:
+            with patch('django.db.models.F') as MockF:
                 MockF.return_value = MagicMock()
                 
                 result = adapter.increment_stats_for_match(
@@ -175,7 +175,7 @@ class TestUserStatsAdapter:
     
     def test_increment_stats_for_match_draw(self, adapter):
         """Test increment_stats_for_match() handles draw correctly."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             mock_stats = MagicMock()
             mock_stats.user_id = 101
             mock_stats.game_slug = "valorant"
@@ -191,7 +191,7 @@ class TestUserStatsAdapter:
             
             MockUserStats.objects.get_or_create.return_value = (mock_stats, False)
             
-            with patch('apps.tournament_ops.adapters.user_stats_adapter.F') as MockF:
+            with patch('django.db.models.F') as MockF:
                 MockF.return_value = MagicMock()
                 
                 result = adapter.increment_stats_for_match(
@@ -208,7 +208,7 @@ class TestUserStatsAdapter:
     
     def test_get_stats_by_game(self, adapter, mock_user_stats):
         """Test get_stats_by_game() returns ordered leaderboard."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             # Mock queryset
             mock_queryset = MagicMock()
             mock_queryset.order_by.return_value = [mock_user_stats, mock_user_stats]
@@ -224,7 +224,7 @@ class TestUserStatsAdapter:
     
     def test_get_stats_by_game_with_limit(self, adapter):
         """Test get_stats_by_game() respects limit parameter."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             mock_queryset = MagicMock()
             mock_queryset.order_by.return_value = []
             MockUserStats.objects.filter.return_value = mock_queryset
@@ -236,7 +236,7 @@ class TestUserStatsAdapter:
     
     def test_increment_tournament_participation(self, adapter):
         """Test increment_tournament_participation() updates tournament stats."""
-        with patch('apps.tournament_ops.adapters.user_stats_adapter.UserStats') as MockUserStats:
+        with patch('apps.leaderboards.models.UserStats') as MockUserStats:
             mock_stats = MagicMock()
             mock_stats.tournaments_played = 5
             mock_stats.tournaments_won = 2
@@ -244,7 +244,7 @@ class TestUserStatsAdapter:
             
             MockUserStats.objects.get_or_create.return_value = (mock_stats, False)
             
-            with patch('apps.tournament_ops.adapters.user_stats_adapter.F') as MockF:
+            with patch('django.db.models.F') as MockF:
                 MockF.return_value = MagicMock()
                 
                 result = adapter.increment_tournament_participation(

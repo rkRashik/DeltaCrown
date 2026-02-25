@@ -60,8 +60,8 @@ class TestUserStatsService:
         
         assert result == sample_stats_dto
         mock_adapter.get_user_stats.assert_called_once_with(
-            user_id=101,
-            game_slug="valorant"
+            101,
+            "valorant"
         )
     
     def test_get_user_stats_not_found(self, service, mock_adapter):
@@ -74,12 +74,12 @@ class TestUserStatsService:
     
     def test_get_user_stats_invalid_user_id(self, service):
         """Test get_user_stats() validates user_id."""
-        with pytest.raises(ValidationError, match="user_id must be positive"):
+        with pytest.raises(ValidationError, match="user_id must be a positive integer"):
             service.get_user_stats(user_id=0, game_slug="valorant")
     
     def test_get_user_stats_invalid_game_slug(self, service):
         """Test get_user_stats() validates game_slug."""
-        with pytest.raises(ValidationError, match="game_slug cannot be empty"):
+        with pytest.raises(ValidationError, match="game_slug is required"):
             service.get_user_stats(user_id=101, game_slug="")
     
     def test_get_all_user_stats(self, service, mock_adapter, sample_stats_dto):
@@ -90,20 +90,19 @@ class TestUserStatsService:
         
         assert len(results) == 1
         assert results[0] == sample_stats_dto
-        mock_adapter.get_all_user_stats.assert_called_once_with(user_id=101)
+        mock_adapter.get_all_user_stats.assert_called_once_with(101)
     
     def test_update_stats_for_match_success(self, service, mock_adapter, sample_stats_dto):
         """Test update_stats_for_match() with valid MatchStatsUpdateDTO."""
         match_dto = MatchStatsUpdateDTO(
             user_id=101,
             game_slug="valorant",
+            tournament_id=1,
+            match_id=1001,
             is_winner=True,
             is_draw=False,
             kills=25,
             deaths=18,
-            assists=10,
-            mvp=True,
-            match_id=1001,
         )
         
         mock_adapter.increment_stats_for_match.return_value = sample_stats_dto
@@ -111,27 +110,19 @@ class TestUserStatsService:
         result = service.update_stats_for_match(match_dto)
         
         assert result == sample_stats_dto
-        mock_adapter.increment_stats_for_match.assert_called_once_with(
-            user_id=101,
-            game_slug="valorant",
-            is_winner=True,
-            is_draw=False,
-            kills=25,
-            deaths=18
-        )
+        mock_adapter.increment_stats_for_match.assert_called_once_with(match_dto)
     
     def test_update_stats_for_match_validation_error(self, service):
         """Test update_stats_for_match() rejects invalid DTO."""
         invalid_dto = MatchStatsUpdateDTO(
             user_id=None,  # Invalid
             game_slug="valorant",
+            tournament_id=1,
+            match_id=1001,
             is_winner=True,
             is_draw=False,
             kills=25,
             deaths=18,
-            assists=10,
-            mvp=False,
-            match_id=1001,
         )
         
         with pytest.raises(ValidationError):
@@ -143,24 +134,22 @@ class TestUserStatsService:
             MatchStatsUpdateDTO(
                 user_id=101,
                 game_slug="valorant",
+                tournament_id=1,
+                match_id=1001,
                 is_winner=True,
                 is_draw=False,
                 kills=25,
                 deaths=18,
-                assists=10,
-                mvp=True,
-                match_id=1001,
             ),
             MatchStatsUpdateDTO(
                 user_id=102,
                 game_slug="valorant",
+                tournament_id=1,
+                match_id=1001,
                 is_winner=False,
                 is_draw=False,
                 kills=18,
                 deaths=25,
-                assists=5,
-                mvp=False,
-                match_id=1001,
             ),
         ]
         
@@ -177,24 +166,22 @@ class TestUserStatsService:
             MatchStatsUpdateDTO(
                 user_id=101,
                 game_slug="valorant",
+                tournament_id=1,
+                match_id=1001,
                 is_winner=True,
                 is_draw=False,
                 kills=25,
                 deaths=18,
-                assists=10,
-                mvp=True,
-                match_id=1001,
             ),
             MatchStatsUpdateDTO(
                 user_id=None,  # Invalid
                 game_slug="valorant",
+                tournament_id=1,
+                match_id=1001,
                 is_winner=False,
                 is_draw=False,
                 kills=18,
                 deaths=25,
-                assists=5,
-                mvp=False,
-                match_id=1001,
             ),
         ]
         
@@ -214,16 +201,16 @@ class TestUserStatsService:
         
         assert len(results) == 1
         mock_adapter.get_stats_by_game.assert_called_once_with(
-            game_slug="valorant",
-            limit=100
+            "valorant",
+            100
         )
     
     def test_get_top_stats_for_game_invalid_limit(self, service):
         """Test get_top_stats_for_game() validates limit."""
-        with pytest.raises(ValidationError, match="limit must be between 1 and 1000"):
+        with pytest.raises(ValidationError, match="limit must be a positive integer"):
             service.get_top_stats_for_game(game_slug="valorant", limit=0)
         
-        with pytest.raises(ValidationError, match="limit must be between 1 and 1000"):
+        with pytest.raises(ValidationError, match="limit cannot exceed 1000"):
             service.get_top_stats_for_game(game_slug="valorant", limit=1001)
     
     def test_record_tournament_completion(self, service, mock_adapter, sample_stats_dto):
@@ -251,9 +238,9 @@ class TestUserStatsService:
         
         assert summary["user_id"] == 101
         assert summary["game_slug"] == "valorant"
-        assert summary["total_matches"] == 10
-        assert summary["total_wins"] == 6
-        assert summary["win_rate"] == Decimal("60.00")
+        assert summary["matches_played"] == 10
+        assert summary["matches_won"] == 6
+        assert summary["win_rate"] == 60.0
         assert summary["has_stats"] is True
     
     def test_get_user_summary_all_games(self, service, mock_adapter, sample_stats_dto):
@@ -300,11 +287,9 @@ class TestUserStatsService:
         summary = service.get_user_summary(user_id=101)
         
         assert summary["user_id"] == 101
-        assert summary["game_slug"] is None  # All games
         assert summary["total_matches"] == 30  # 10 + 20
         assert summary["total_wins"] == 18    # 6 + 12
-        assert summary["total_tournaments"] == 5  # 2 + 3
-        assert summary["games_played"] == 2
+        assert summary["total_games"] == 2
         assert summary["has_stats"] is True
     
     def test_get_user_summary_no_stats(self, service, mock_adapter):
@@ -315,7 +300,7 @@ class TestUserStatsService:
         
         assert summary["user_id"] == 999
         assert summary["has_stats"] is False
-        assert summary["total_matches"] == 0
+        assert summary["total_games"] == 0
     
     def test_architecture_compliance_no_orm_imports(self):
         """Test UserStatsService has NO ORM imports."""

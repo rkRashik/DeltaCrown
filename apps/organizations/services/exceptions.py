@@ -30,6 +30,7 @@ class TeamServiceError(Exception):
         details: Optional[Dict[str, Any]] = None
     ):
         super().__init__(message)
+        self.message = message
         self.error_code = error_code
         self.safe_message = safe_message or "An error occurred while processing your request."
         self.details = details or {}
@@ -53,12 +54,16 @@ class NotFoundError(TeamServiceError):
         message: str,
         resource_type: str = "Resource",
         resource_id: Any = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
+        error_code: Optional[str] = None,
+        safe_message: Optional[str] = None,
     ):
-        error_code = f"{resource_type.upper()}_NOT_FOUND"
-        safe_message = f"{resource_type} not found."
-        if resource_id is not None:
-            safe_message = f"{resource_type} with ID {resource_id} not found."
+        if error_code is None:
+            error_code = f"{resource_type.upper()}_NOT_FOUND"
+        if safe_message is None:
+            safe_message = f"{resource_type} not found."
+            if resource_id is not None:
+                safe_message = f"{resource_type} with ID {resource_id} not found."
         
         details = details or {}
         details.update({
