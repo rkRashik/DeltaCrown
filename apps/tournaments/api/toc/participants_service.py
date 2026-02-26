@@ -219,8 +219,8 @@ class TOCParticipantService:
         """Approve a pending registration via RegistrationService."""
         reg = cls._get_registration(tournament, registration_id)
         RegistrationService.approve_registration(
-            registration_id=reg.id,
-            organizer=actor,
+            registration=reg,
+            approved_by=actor,
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)
@@ -232,9 +232,8 @@ class TOCParticipantService:
         """Reject a registration with optional reason."""
         reg = cls._get_registration(tournament, registration_id)
         RegistrationService.reject_registration(
-            registration_id=reg.id,
-            organizer=actor,
-            reason=reason,
+            registration=reg,
+            rejected_by=actor,
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)
@@ -247,9 +246,9 @@ class TOCParticipantService:
         """Disqualify a confirmed registration."""
         reg = cls._get_registration(tournament, registration_id)
         RegistrationService.disqualify_registration(
-            registration_id=reg.id,
-            actor=actor,
+            registration=reg,
             reason=reason,
+            disqualified_by=actor,
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)
@@ -260,10 +259,14 @@ class TOCParticipantService:
     ) -> Dict[str, Any]:
         """Manually verify a payment."""
         reg = cls._get_registration(tournament, registration_id)
+        # RegistrationService.verify_payment expects a Payment ID, not Registration ID
+        payment = Payment.objects.filter(registration=reg).order_by('-created_at').first()
+        if not payment:
+            raise ValidationError("No payment found for this registration.")
         RegistrationService.verify_payment(
-            registration_id=reg.id,
-            admin=actor,
-            reason='Verified via TOC',
+            payment_id=payment.id,
+            verified_by=actor,
+            admin_notes='Verified via TOC',
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)

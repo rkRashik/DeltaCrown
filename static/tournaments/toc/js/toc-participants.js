@@ -642,6 +642,7 @@
   window.TOC = window.TOC || {};
   window.TOC.participants = {
     load,
+    refresh: load,
     goPage,
     toggleSelect,
     toggleSelectAll,

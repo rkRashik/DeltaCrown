@@ -1,11 +1,11 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark scroll-smooth overflow-hidden antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <title>{{ tournament.name }} — TOC | DeltaCrown</title>
+    <title>{{ tournament.name }} â€” TOC | DeltaCrown</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
 
-    {# TOC-specific Tailwind overrides — exact design from demo_TOC.html #}
+    {# TOC-specific Tailwind overrides â€” exact design from demo_TOC.html #}
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -64,7 +64,7 @@
 
     <style type="text/tailwindcss">
         body {
-            @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[13px] antialiased;
+            @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[14px] antialiased;
         }
         .toc-grid-bg {
             @apply absolute inset-0 z-0 opacity-[0.03] pointer-events-none;
@@ -86,10 +86,10 @@
             @apply w-full border-collapse border-spacing-0;
         }
         .data-grid th {
-            @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-2.5 font-display text-[0.65rem] font-extrabold uppercase tracking-widest text-dc-text text-left backdrop-blur-md;
+            @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-3 font-display text-[0.7rem] font-extrabold uppercase tracking-widest text-dc-text text-left backdrop-blur-md;
         }
         .data-grid td {
-            @apply px-4 py-3 border-b border-dc-border bg-dc-surface text-[0.8rem] transition-colors relative z-10;
+            @apply px-4 py-3.5 border-b border-dc-border bg-dc-surface text-sm transition-colors relative z-10;
         }
         .data-grid tbody tr:hover td {
             @apply bg-dc-panel;
@@ -112,32 +112,37 @@
 </head>
 <body data-game="{{ game_slug }}">
 
-    {# ── Background grid ── #}
+    {# â”€â”€ Background grid â”€â”€ #}
     <div class="toc-grid-bg"></div>
 
-    {# ══════════════════════════════════════════════════════════════ #}
-    {# SIDEBAR — 240px, collapsible, grouped nav                    #}
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# SIDEBAR â€” 240px, collapsible, grouped nav                    #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
     <aside id="toc-sidebar" class="w-[240px] xl:w-[260px] h-full glass-box border-r border-dc-border flex flex-col shrink-0 z-30 transition-all duration-300">
 
         {# Brand header #}
         <div class="h-[64px] flex items-center px-5 border-b border-dc-border bg-dc-bg/50">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-theme to-theme-dark text-black flex items-center justify-center font-display font-black text-lg mr-3 shadow-[0_0_15px_var(--color-primary-muted)]">D</div>
-            <div class="sidebar-label">
-                <h1 class="font-display font-black text-sm tracking-wide leading-tight text-white">DeltaCrown</h1>
-                <p class="text-[9px] text-theme font-mono uppercase tracking-[0.2em]">Ops Center</p>
-            </div>
+            <a href="/" class="flex items-center gap-3 group">
+                <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-8 h-8 drop-shadow-[0_0_12px_var(--color-primary-muted)]">
+                <div class="sidebar-label">
+                    <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DELTACROWN" class="h-5 w-auto">
+                    <p class="text-[10px] text-theme font-mono uppercase tracking-[0.2em] mt-0.5">Ops Center</p>
+                </div>
+            </a>
         </div>
 
         {# Active tournament context #}
         <div class="p-4 border-b border-dc-border sidebar-label">
-            <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Active Context</label>
-            <div class="flex items-center justify-between bg-dc-bg border border-dc-borderLight rounded-lg px-3 py-2.5 group">
-                <div class="overflow-hidden">
-                    <p class="text-xs font-bold text-white truncate group-hover:text-theme transition-colors">{{ tournament.name }}</p>
+            <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2.5 block">Active Context</label>
+            <div class="flex items-center gap-3 bg-dc-bg border border-theme/30 rounded-xl px-3.5 py-3 group hover:border-theme/60 transition-all shadow-[0_0_10px_var(--color-primary-muted)]">
+                <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0">
+                    <i data-lucide="trophy" class="w-4 h-4 text-theme"></i>
+                </div>
+                <div class="overflow-hidden min-w-0 flex-1">
+                    <p class="text-sm font-bold text-white truncate leading-tight">{{ tournament.name }}</p>
                     <div class="flex items-center gap-1.5 mt-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow"></span>
-                        <p class="text-[9px] text-dc-text font-mono">{{ game.short_code|default:game.slug|upper }} | {{ tournament.slug }}</p>
+                        <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow shrink-0"></span>
+                        <p class="text-[10px] text-dc-text font-mono truncate">{{ game.short_code|default:game.slug|upper }} &middot; {{ tournament.slug }}</p>
                     </div>
                 </div>
             </div>
@@ -149,7 +154,7 @@
 
             {% regroup toc_tabs by group as tab_groups %}
             {% for group in tab_groups %}
-            <p class="px-3 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3 {% if not forloop.first %}mt-6{% else %}mt-1{% endif %}">{{ group.grouper }}</p>
+            <p class="px-3 text-[10px] font-bold text-dc-text uppercase tracking-widest mb-3 {% if not forloop.first %}mt-6{% else %}mt-1{% endif %}">{{ group.grouper }}</p>
 
             {% for tab in group.list %}
             <button
@@ -158,27 +163,31 @@
                 onclick="TOC.navigate('{{ tab.id }}')"
             >
                 <div class="flex items-center gap-3">
-                    <i data-lucide="{{ tab.icon }}" class="w-4 h-4 {% if tab.id == 'overview' %}text-theme{% endif %}"></i>
-                    <span class="text-xs sidebar-label">{{ tab.label }}</span>
+                    <i data-lucide="{{ tab.icon }}" class="w-[18px] h-[18px] {% if tab.id == 'overview' %}text-theme{% endif %}"></i>
+                    <span class="text-[13px] sidebar-label">{{ tab.label }}</span>
                 </div>
-                <span class="toc-badge hidden bg-dc-borderLight text-white text-[9px] px-2 py-0.5 rounded font-mono sidebar-label" data-badge="{{ tab.id }}"></span>
+                <span class="toc-badge hidden bg-dc-borderLight text-white text-[10px] px-2 py-0.5 rounded font-mono sidebar-label" data-badge="{{ tab.id }}"></span>
             </button>
             {% endfor %}
             {% endfor %}
         </nav>
 
-        {# Sidebar footer — user info + collapse button #}
+        {# Sidebar footer â€” user info + collapse button #}
         <div class="p-4 border-t border-dc-border bg-dc-bg/80 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="relative">
-                    <div class="w-9 h-9 rounded-lg border border-dc-borderLight bg-dc-panel flex items-center justify-center text-xs font-bold text-white">
-                        {{ request.user.username|truncatechars:2|upper }}
+                    {% if request.user.profile and request.user.profile.avatar %}
+                    <img src="{{ request.user.profile.avatar.url }}" alt="{{ request.user.username }}" class="w-9 h-9 rounded-lg border border-dc-borderLight object-cover">
+                    {% else %}
+                    <div class="w-9 h-9 rounded-lg border border-dc-borderLight bg-theme-surface flex items-center justify-center text-sm font-bold text-theme">
+                        {{ request.user.username|make_list|first|upper }}
                     </div>
+                    {% endif %}
                     <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-dc-bg rounded-full flex items-center justify-center"><div class="w-2 h-2 bg-dc-success rounded-full"></div></div>
                 </div>
                 <div class="overflow-hidden sidebar-label">
-                    <p class="text-xs font-bold text-white truncate">{{ request.user.username }}</p>
-                    <p class="text-[9px] text-dc-text font-mono truncate">{% if is_organizer %}Organizer{% else %}Staff{% endif %}</p>
+                    <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
+                    <p class="text-[10px] text-dc-text font-mono truncate">{% if is_organizer %}Organizer{% else %}Staff{% endif %}</p>
                 </div>
             </div>
             <button id="sidebar-collapse-btn" class="text-dc-text hover:text-white p-1" title="Collapse sidebar">
@@ -187,42 +196,42 @@
         </div>
     </aside>
 
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
     {# MAIN CONTENT AREA                                             #}
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
     <main class="flex-1 flex flex-col h-full relative z-10">
 
-        {# ── Top bar ── #}
+        {# â”€â”€ Top bar â”€â”€ #}
         <header class="h-[64px] glass-box border-b border-dc-border flex items-center justify-between px-6 shrink-0 z-20">
             {# Search / Cmd+K trigger #}
             <div class="flex-1 max-w-lg relative group">
-                <i data-lucide="search" class="w-4 h-4 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-theme transition-colors"></i>
+                <i data-lucide="search" class="w-4 h-4 text-dc-text absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-theme transition-colors"></i>
                 <input
                     id="toc-search-input"
                     type="text"
-                    class="w-full bg-dc-bg border border-dc-borderLight rounded-lg pl-10 pr-16 py-2 text-xs text-white focus:outline-none focus:border-theme focus:ring-1 focus:ring-theme transition-all placeholder-dc-text/50"
+                    class="w-full bg-dc-bg border border-dc-borderLight rounded-xl pl-10 pr-20 py-2.5 text-sm text-white focus:outline-none focus:border-theme focus:ring-1 focus:ring-theme/40 transition-all placeholder-dc-text/60"
                     placeholder="Search Teams, Match #'s or Settings..."
                     readonly
                     onclick="TOC.cmdk.open()"
                 >
-                <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[9px] font-mono border border-dc-borderLight">Cmd</span>
-                    <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[9px] font-mono border border-dc-borderLight">K</span>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <span id="toc-search-mod-key" class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[10px] font-mono border border-dc-borderLight">Ctrl</span>
+                    <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[10px] font-mono border border-dc-borderLight">K</span>
                 </div>
             </div>
 
             {# Status + WS indicator + Freeze controls #}
             <div class="flex items-center gap-5">
-                {# S11-F3: WebSocket live indicator #}
-                <div id="ws-indicator" class="flex items-center gap-1.5" title="Real-time connection">
-                    <div id="ws-dot" class="w-2 h-2 rounded-full bg-dc-text/30 transition-colors"></div>
-                    <span id="ws-label" class="text-[9px] font-mono text-dc-text/50 uppercase">Offline</span>
+                {# S11-F3: WebSocket live indicator â€” shows Connected when API reachable #}
+                <div id="ws-indicator" class="flex items-center gap-1.5" title="API connection status">
+                    <div id="ws-dot" class="w-2 h-2 rounded-full bg-dc-success transition-colors"></div>
+                    <span id="ws-label" class="text-[10px] font-mono text-dc-success/80 uppercase">Online</span>
                 </div>
                 <div class="h-6 w-px bg-dc-borderLight"></div>
                 <div class="flex items-center gap-3">
-                    <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Status</span>
+                    <span class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Status</span>
                     <div class="relative group">
-                        <div class="appearance-none bg-theme-surface border border-theme text-theme text-xs font-bold rounded-lg pl-8 pr-4 py-1.5 shadow-[0_0_15px_var(--color-primary-muted)] flex items-center gap-2">
+                        <div id="toc-status-pill" class="appearance-none bg-theme-surface border border-theme text-theme text-sm font-bold rounded-xl pl-8 pr-4 py-2 shadow-[0_0_15px_var(--color-primary-muted)] flex items-center gap-2 cursor-default">
                             <div class="w-2 h-2 rounded-full bg-theme absolute left-3 top-1/2 -translate-y-1/2 {% if status == 'live' %}animate-pulse{% endif %}"></div>
                             <span id="toc-status-label">{{ tournament.get_status_display }}</span>
                         </div>
@@ -231,17 +240,19 @@
 
                 <div class="h-6 w-px bg-dc-borderLight"></div>
 
+                {# Dynamic action button â€” changes based on tournament state #}
                 <button
-                    id="toc-freeze-btn"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dc-dangerBg text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white transition-all text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(255,42,85,0.1)]"
-                    onclick="document.getElementById('modal-freeze').classList.remove('hidden')"
+                    id="toc-action-btn"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg {% if is_frozen %}bg-dc-successBg text-dc-success border border-dc-success/30 hover:bg-dc-success hover:text-white{% else %}bg-dc-dangerBg text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white{% endif %}"
+                    onclick="{% if is_frozen %}TOC.overview && TOC.overview.executeUnfreeze(){% else %}document.getElementById('modal-freeze').classList.remove('hidden'){% endif %}"
                 >
-                    <i data-lucide="power" class="w-3.5 h-3.5"></i> Freeze
+                    <i data-lucide="{% if is_frozen %}play{% else %}pause{% endif %}" class="w-3.5 h-3.5"></i>
+                    <span>{% if is_frozen %}Resume{% else %}Freeze{% endif %}</span>
                 </button>
             </div>
         </header>
 
-        {# ── Freeze banner (shown when tournament frozen) ── #}
+        {# â”€â”€ Freeze banner (shown when tournament frozen) â”€â”€ #}
         <div id="toc-freeze-banner" class="{% if not is_frozen %}hidden{% endif %} bg-dc-danger/10 border-b border-dc-danger/30 px-6 py-2.5 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <i data-lucide="snowflake" class="w-4 h-4 text-dc-danger animate-pulse"></i>
@@ -253,27 +264,39 @@
             </button>
         </div>
 
-        {# ── Tab content viewport ── #}
+        {# â”€â”€ Stale data warning banner (shown when auto-refresh fails) â”€â”€ #}
+        <div id="toc-stale-banner" class="hidden bg-dc-warning/10 border-b border-dc-warning/30 px-6 py-2 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <i data-lucide="wifi-off" class="w-4 h-4 text-dc-warning animate-pulse"></i>
+                <span class="text-xs font-bold text-dc-warning uppercase tracking-widest">Data May Be Stale</span>
+                <span class="text-[10px] text-dc-text">Last refresh failed. Retrying automaticallyâ€¦</span>
+            </div>
+            <button id="toc-stale-dismiss" class="text-[10px] font-bold text-dc-warning border border-dc-warning/30 px-3 py-1 rounded hover:bg-dc-warning/20 transition-colors">
+                Dismiss
+            </button>
+        </div>
+
+        {# â”€â”€ Tab content viewport â”€â”€ #}
         <div class="flex-1 overflow-y-auto relative" id="toc-viewport">
 
-            {# Overview tab (default visible) — S1-F1 through S1-F8 #}
+            {# Overview tab (default visible) â€” S1-F1 through S1-F8 #}
             <div id="view-overview" data-tab-content="overview" class="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
 
-                {# ── Page title + ghost icon ── #}
+                {# â”€â”€ Page title + ghost icon â”€â”€ #}
                 <div class="flex items-end justify-between mb-4 relative">
                     <i data-lucide="shield-half" class="ghost-icon w-72 h-72 -left-24 -top-16 opacity-[0.015]"></i>
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
-                        <h2 class="font-display font-black text-2xl text-white tracking-tight">Command Center</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">{{ tournament.name }} | {{ game.display_name|default:game.name }}</p>
+                        <h2 class="font-display font-black text-3xl text-white tracking-tight">Command Center</h2>
+                        <p class="text-sm text-dc-text mt-1 font-mono">{{ tournament.name }} | {{ game.display_name|default:game.name }}</p>
                     </div>
                 </div>
 
-                {# ── S1-F2: Lifecycle State Machine Visualizer ── #}
+                {# â”€â”€ S1-F2: Lifecycle State Machine Visualizer â”€â”€ #}
                 <div id="overview-lifecycle" class="glass-box rounded-xl p-5">
                     <div class="flex items-center gap-2 mb-4">
                         <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
-                        <h3 class="text-xs font-bold text-white uppercase tracking-widest">Lifecycle Pipeline</h3>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Lifecycle Pipeline</h3>
                         <div class="ml-auto">
                             <button id="btn-transition" class="px-3 py-1.5 bg-theme-surface border border-theme text-theme text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-theme hover:text-dc-bg transition-all shadow-[0_0_15px_var(--color-primary-muted)] hidden">
                                 <i data-lucide="arrow-right" class="w-3.5 h-3.5 inline-block mr-1"></i> Advance
@@ -286,7 +309,7 @@
                     </div>
                 </div>
 
-                {# ── S1-F1 + S1-F6: Status hero + 4-column stat grid ── #}
+                {# â”€â”€ S1-F1 + S1-F6: Status hero + 4-column stat grid â”€â”€ #}
                 <div id="overview-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     {# Skeleton placeholders replaced by JS #}
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
@@ -295,43 +318,43 @@
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                 </div>
 
-                {# ── S9-F1: Advanced Stats Dashboard ── #}
+                {# â”€â”€ S9-F1: Advanced Stats Dashboard â”€â”€ #}
                 <div id="advanced-stats" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Completion</p>
-                        <p id="stat-completion" class="text-2xl font-display font-black text-dc-success">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Completion</p>
+                        <p id="stat-completion" class="text-2xl font-display font-black text-dc-success">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Avg Duration</p>
-                        <p id="stat-avg-duration" class="text-2xl font-display font-black text-dc-info">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Avg Duration</p>
+                        <p id="stat-avg-duration" class="text-2xl font-display font-black text-dc-info">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">DQ Rate</p>
-                        <p id="stat-dq-rate" class="text-2xl font-display font-black text-dc-danger">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">DQ Rate</p>
+                        <p id="stat-dq-rate" class="text-2xl font-display font-black text-dc-danger">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Checked In</p>
-                        <p id="stat-checked-in" class="text-2xl font-display font-black text-dc-warning">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Checked In</p>
+                        <p id="stat-checked-in" class="text-2xl font-display font-black text-dc-warning">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Open Disputes</p>
-                        <p id="stat-open-disputes" class="text-2xl font-display font-black text-dc-danger">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Open Disputes</p>
+                        <p id="stat-open-disputes" class="text-2xl font-display font-black text-dc-danger">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Matches In Progress</p>
-                        <p id="stat-in-progress" class="text-2xl font-display font-black text-theme">—</p>
+                        <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Matches In Progress</p>
+                        <p id="stat-in-progress" class="text-2xl font-display font-black text-theme">â€”</p>
                     </div>
                 </div>
 
-                {# ── Bottom row: Alerts panel + Events timeline ── #}
+                {# â”€â”€ Bottom row: Alerts panel + Events timeline â”€â”€ #}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
 
                     {# S1-F4: Alerts panel #}
                     <div class="lg:col-span-2 glass-box rounded-xl flex flex-col max-h-[420px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="cpu" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">System Alerts</h3>
-                            <span id="alerts-count" class="ml-2 text-[9px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">System Alerts</h3>
+                            <span id="alerts-count" class="ml-2 text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
                         <div id="overview-alerts" class="p-5 space-y-4 flex-1 overflow-y-auto">
                             <div class="flex items-center justify-center h-32"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
@@ -342,7 +365,7 @@
                     <div class="lg:col-span-1 glass-box rounded-xl flex flex-col max-h-[420px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="calendar-clock" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Upcoming Events</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Upcoming Events</h3>
                         </div>
                         <div id="overview-events" class="p-5 space-y-4 flex-1 overflow-y-auto">
                             <div class="flex items-center justify-center h-32"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
@@ -351,7 +374,7 @@
 
                 </div>
 
-                {# ── S1-F3: Transition modal (hidden by default) ── #}
+                {# â”€â”€ S1-F3: Transition modal (hidden by default) â”€â”€ #}
                 <div id="modal-transition" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-transition').classList.add('hidden')"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -365,7 +388,7 @@
                             </div>
 
                             <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 mb-5">
-                                <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (optional)</label>
+                                <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (optional)</label>
                                 <input id="transition-reason" type="text" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-theme outline-none" placeholder="Why are you making this transition?">
                             </div>
 
@@ -378,13 +401,13 @@
                 </div>
             </div>
 
-            {# Participants tab — Sprint 2 #}
+            {# Participants tab â€” Sprint 2 #}
             <div id="view-participants" data-tab-content="participants" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# ── S2-F8: Ghost icon ── #}
+                {# â”€â”€ S2-F8: Ghost icon â”€â”€ #}
                 <i data-lucide="users" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# ── S2-F2: Filter bar ── #}
+                {# â”€â”€ S2-F2: Filter bar â”€â”€ #}
                 <div class="glass-box rounded-xl p-4 flex flex-wrap items-center gap-3">
                     {# Status dropdown #}
                     <div class="relative">
@@ -451,7 +474,7 @@
                     </button>
                 </div>
 
-                {# ── S2-F1: Dense data grid ── #}
+                {# â”€â”€ S2-F1: Dense data grid â”€â”€ #}
                 <div class="glass-box rounded-xl overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="data-grid w-full text-xs">
@@ -461,28 +484,28 @@
                                         <input id="select-all" type="checkbox" class="toc-checkbox" onclick="TOC.participants.toggleSelectAll(this)">
                                     </th>
                                     <th class="px-3 py-3 text-left">
-                                        <button class="sort-header flex items-center gap-1 text-[9px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors" data-sort="user__username">
+                                        <button class="sort-header flex items-center gap-1 text-[10px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors" data-sort="user__username">
                                             Participant <i data-lucide="arrow-up-down" class="w-2.5 h-2.5"></i>
                                         </button>
                                     </th>
                                     <th class="px-3 py-3 text-left">
-                                        <button class="sort-header flex items-center gap-1 text-[9px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors" data-sort="status">
+                                        <button class="sort-header flex items-center gap-1 text-[10px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors" data-sort="status">
                                             Status <i data-lucide="arrow-up-down" class="w-2.5 h-2.5"></i>
                                         </button>
                                     </th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Payment</th>
-                                    <th class="px-3 py-3 text-center text-[9px] font-bold text-dc-text uppercase tracking-widest">Check-In</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Payment</th>
+                                    <th class="px-3 py-3 text-center text-[10px] font-bold text-dc-text uppercase tracking-widest">Check-In</th>
                                     <th class="px-3 py-3 text-center">
-                                        <button class="sort-header flex items-center gap-1 text-[9px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors mx-auto" data-sort="seed">
+                                        <button class="sort-header flex items-center gap-1 text-[10px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors mx-auto" data-sort="seed">
                                             Seed <i data-lucide="arrow-up-down" class="w-2.5 h-2.5"></i>
                                         </button>
                                     </th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Game ID</th>
-                                    <th class="px-3 py-3 text-right text-[9px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Game ID</th>
+                                    <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="participants-tbody">
-                                {# Skeleton rows — replaced by JS #}
+                                {# Skeleton rows â€” replaced by JS #}
                                 {% for _ in "12345" %}
                                 <tr class="border-b border-dc-border/50">
                                     <td class="px-3 py-3" colspan="8">
@@ -494,7 +517,7 @@
                         </table>
                     </div>
 
-                    {# ── S2-F6: Pagination ── #}
+                    {# â”€â”€ S2-F6: Pagination â”€â”€ #}
                     <div id="participants-pagination" class="flex items-center justify-between px-4 py-3 border-t border-dc-border/50 bg-dc-panel/30">
                         <span id="pagination-info" class="text-[10px] text-dc-text font-mono">Loading...</span>
                         <div id="pagination-controls" class="flex items-center gap-1">
@@ -503,17 +526,17 @@
                     </div>
                 </div>
 
-                {# ══════════════════════════════════════════════════════════ #}
+                {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
                 {# Sprint 3: Advanced Participant Panels                     #}
-                {# ══════════════════════════════════════════════════════════ #}
+                {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
 
-                {# ── S3-F1: Emergency Substitution Panel ── #}
+                {# â”€â”€ S3-F1: Emergency Substitution Panel â”€â”€ #}
                 <div id="emergency-sub-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="user-round-x" class="w-4 h-4 text-dc-warning"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Emergency Substitutions</h3>
-                            <span id="esub-count" class="text-[9px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Emergency Substitutions</h3>
+                            <span id="esub-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
                         <button onclick="TOC.participantsAdv.refreshEmergencySubs()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
@@ -527,13 +550,13 @@
                     </div>
                 </div>
 
-                {# ── S3-F2: Free Agent Pool ── #}
+                {# â”€â”€ S3-F2: Free Agent Pool â”€â”€ #}
                 <div id="free-agent-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="user-plus" class="w-4 h-4 text-dc-info"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Free Agent Pool</h3>
-                            <span id="fa-count" class="text-[9px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Free Agent Pool</h3>
+                            <span id="fa-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="relative">
@@ -555,12 +578,12 @@
                         <table class="data-grid w-full text-xs">
                             <thead>
                                 <tr>
-                                    <th class="px-3 py-2.5 text-[9px]">Player</th>
-                                    <th class="px-3 py-2.5 text-[9px]">Role</th>
-                                    <th class="px-3 py-2.5 text-[9px]">Rank</th>
-                                    <th class="px-3 py-2.5 text-[9px]">Game ID</th>
-                                    <th class="px-3 py-2.5 text-[9px]">Status</th>
-                                    <th class="px-3 py-2.5 text-[9px] text-right">Actions</th>
+                                    <th class="px-3 py-2.5 text-[10px]">Player</th>
+                                    <th class="px-3 py-2.5 text-[10px]">Role</th>
+                                    <th class="px-3 py-2.5 text-[10px]">Rank</th>
+                                    <th class="px-3 py-2.5 text-[10px]">Game ID</th>
+                                    <th class="px-3 py-2.5 text-[10px]">Status</th>
+                                    <th class="px-3 py-2.5 text-[10px] text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="fa-tbody">
@@ -570,13 +593,13 @@
                     </div>
                 </div>
 
-                {# ── S3-F3: Waitlist Management ── #}
+                {# â”€â”€ S3-F3: Waitlist Management â”€â”€ #}
                 <div id="waitlist-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="list-ordered" class="w-4 h-4 text-dc-warning"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Waitlist Queue</h3>
-                            <span id="waitlist-count" class="text-[9px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Waitlist Queue</h3>
+                            <span id="waitlist-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="TOC.participantsAdv.autoPromote()" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">
@@ -597,22 +620,22 @@
 
             </div>
 
-            {# Payments tab — Sprint 4 #}
+            {# Payments tab â€” Sprint 4 #}
             <div id="view-payments" data-tab-content="payments" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# ── S4-F8: Ghost icon — Wallet ── #}
+                {# â”€â”€ S4-F8: Ghost icon â€” Wallet â”€â”€ #}
                 <i data-lucide="wallet" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# ── Page title ── #}
+                {# â”€â”€ Page title â”€â”€ #}
                 <div class="flex items-end justify-between mb-2 relative">
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Financial Operations</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Payments · Revenue · Prizes · Bounties</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Payments Â· Revenue Â· Prizes Â· Bounties</p>
                     </div>
                 </div>
 
-                {# ── S4-F4: Revenue summary cards ── #}
+                {# â”€â”€ S4-F4: Revenue summary cards â”€â”€ #}
                 <div id="revenue-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
@@ -620,7 +643,7 @@
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                 </div>
 
-                {# ── S10-F3: DeltaCoin Economy Card ── #}
+                {# â”€â”€ S10-F3: DeltaCoin Economy Card â”€â”€ #}
                 <div class="glass-box rounded-xl p-5 flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full bg-dc-warning/10 border border-dc-warning/30 flex items-center justify-center">
@@ -628,7 +651,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] uppercase tracking-widest text-dc-text">DeltaCoin Economy</p>
-                            <p class="text-sm text-white font-bold mt-0.5">Pool Balance: <span id="economy-pool-balance" class="text-dc-warning">—</span></p>
+                            <p class="text-sm text-white font-bold mt-0.5">Pool Balance: <span id="economy-pool-balance" class="text-dc-warning">â€”</span></p>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -637,14 +660,14 @@
                     </div>
                 </div>
 
-                {# ── S4-F1: Payments grid ── #}
+                {# â”€â”€ S4-F1: Payments grid â”€â”€ #}
                 <div class="glass-box rounded-xl overflow-hidden">
 
                     {# Filter bar #}
                     <div class="p-4 border-b border-dc-borderLight flex flex-wrap items-center gap-3 bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="wallet" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Payments</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Payments</h3>
                         </div>
 
                         <div class="relative">
@@ -701,14 +724,14 @@
                                     <th class="px-3 py-3 text-left w-10">
                                         <input id="pay-select-all" type="checkbox" class="toc-checkbox" onclick="TOC.payments.toggleSelectAll(this)">
                                     </th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Participant</th>
-                                    <th class="px-3 py-3 text-right text-[9px] font-bold text-dc-text uppercase tracking-widest">Amount</th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Method</th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">TXN ID</th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Status</th>
-                                    <th class="px-3 py-3 text-center text-[9px] font-bold text-dc-text uppercase tracking-widest">Proof</th>
-                                    <th class="px-3 py-3 text-left text-[9px] font-bold text-dc-text uppercase tracking-widest">Date</th>
-                                    <th class="px-3 py-3 text-right text-[9px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Participant</th>
+                                    <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Amount</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Method</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">TXN ID</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Status</th>
+                                    <th class="px-3 py-3 text-center text-[10px] font-bold text-dc-text uppercase tracking-widest">Proof</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Date</th>
+                                    <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="payments-tbody">
@@ -728,7 +751,7 @@
                     </div>
                 </div>
 
-                {# ── Bottom row: Prize Distribution + Bounties ── #}
+                {# â”€â”€ Bottom row: Prize Distribution + Bounties â”€â”€ #}
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
 
                     {# S4-F5: Prize distribution panel #}
@@ -736,7 +759,7 @@
                         <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="trophy" class="w-4 h-4 text-dc-warning"></i>
-                                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Prize Distribution</h3>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Prize Distribution</h3>
                             </div>
                             <button onclick="TOC.payments.refreshPrizePool()" class="text-[10px] text-dc-text hover:text-white transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -752,8 +775,8 @@
                         <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="target" class="w-4 h-4 text-theme"></i>
-                                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Bounties</h3>
-                                <span id="bounty-count" class="text-[9px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Bounties</h3>
+                                <span id="bounty-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                             </div>
                             <button onclick="TOC.payments.openCreateBountyDrawer()" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme hover:text-dc-bg transition-all">
                                 <i data-lucide="plus" class="w-3 h-3 inline-block mr-1"></i> New
@@ -765,7 +788,7 @@
                     </div>
                 </div>
 
-                {# ── S4-F6: Refund modal ── #}
+                {# â”€â”€ S4-F6: Refund modal â”€â”€ #}
                 <div id="modal-refund" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-refund').classList.add('hidden')"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -774,7 +797,7 @@
                             <h2 class="font-display font-black text-xl text-white mb-2">Process Refund</h2>
                             <p id="refund-modal-info" class="text-sm text-dc-text mb-5"></p>
                             <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 mb-5">
-                                <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason</label>
+                                <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason</label>
                                 <textarea id="refund-reason" rows="3" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-dc-danger outline-none resize-none" placeholder="Reason for refund..."></textarea>
                             </div>
                             <input type="hidden" id="refund-payment-id" value="">
@@ -788,10 +811,10 @@
 
             </div>
 
-            {# Brackets tab — Sprint 5 #}
+            {# Brackets tab â€” Sprint 5 #}
             <div id="view-brackets" data-tab-content="brackets" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon — Git Branch #}
+                {# S5-F7: Ghost icon â€” Git Branch #}
                 <i data-lucide="git-branch" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + actions #}
@@ -799,7 +822,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Brackets & Draws</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Bracket Generation · Seeding · Groups · Pipelines</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Bracket Generation Â· Seeding Â· Groups Â· Pipelines</p>
                     </div>
                     {# S5-F3: Generate / Reset / Publish buttons #}
                     <div class="flex items-center gap-2">
@@ -817,18 +840,18 @@
 
                 {# Bracket info bar #}
                 <div id="bracket-info-bar" class="glass-box rounded-xl p-4 flex items-center gap-6 text-xs hidden">
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Format:</span> <span id="bracket-format" class="text-dc-textBright font-bold uppercase">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Rounds:</span> <span id="bracket-rounds" class="text-dc-textBright font-mono font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Matches:</span> <span id="bracket-matches" class="text-dc-textBright font-mono font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Seeding:</span> <span id="bracket-seeding" class="text-dc-textBright font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Status:</span> <span id="bracket-status" class="font-bold">—</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Format:</span> <span id="bracket-format" class="text-dc-textBright font-bold uppercase">â€”</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Rounds:</span> <span id="bracket-rounds" class="text-dc-textBright font-mono font-bold">â€”</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Matches:</span> <span id="bracket-matches" class="text-dc-textBright font-mono font-bold">â€”</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Seeding:</span> <span id="bracket-seeding" class="text-dc-textBright font-bold">â€”</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Status:</span> <span id="bracket-status" class="font-bold">â€”</span></div>
                 </div>
 
                 {# S5-F1: Bracket visualizer #}
                 <div id="bracket-visualizer" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50">
                         <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
-                        <h3 class="text-xs font-bold text-white uppercase tracking-widest">Bracket Tree</h3>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Bracket Tree</h3>
                     </div>
                     <div id="bracket-tree" class="p-6 overflow-x-auto min-h-[300px]">
                         <div class="flex items-center justify-center h-60 text-dc-text text-sm">
@@ -846,7 +869,7 @@
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="list-ordered" class="w-4 h-4 text-dc-warning"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Seeding Order</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Seeding Order</h3>
                         </div>
                         <button onclick="TOC.brackets.saveSeedOrder()" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold rounded-lg hover:bg-theme hover:text-dc-bg transition-all">Save Order</button>
                     </div>
@@ -861,11 +884,11 @@
                         <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="layout-grid" class="w-4 h-4 text-dc-info"></i>
-                                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Group Stage</h3>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Group Stage</h3>
                             </div>
                             <div class="flex items-center gap-1">
-                                <button onclick="TOC.brackets.openGroupConfig()" class="px-2 py-1 text-[9px] text-dc-text hover:text-white transition-colors border border-dc-border rounded">Configure</button>
-                                <button onclick="TOC.brackets.drawGroups()" class="px-2 py-1 text-[9px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Draw</button>
+                                <button onclick="TOC.brackets.openGroupConfig()" class="px-2 py-1 text-[10px] text-dc-text hover:text-white transition-colors border border-dc-border rounded">Configure</button>
+                                <button onclick="TOC.brackets.drawGroups()" class="px-2 py-1 text-[10px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Draw</button>
                             </div>
                         </div>
                         <div id="groups-panel" class="p-4 flex-1 overflow-y-auto max-h-[400px]">
@@ -878,7 +901,7 @@
                         <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="git-merge" class="w-4 h-4 text-purple-400"></i>
-                                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Qualifier Pipelines</h3>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Qualifier Pipelines</h3>
                             </div>
                             <button onclick="TOC.brackets.openCreatePipeline()" class="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold rounded-lg hover:bg-purple-500/20 transition-colors">
                                 <i data-lucide="plus" class="w-3 h-3 inline-block mr-1"></i> New
@@ -891,10 +914,10 @@
                 </div>
             </div>
 
-            {# Matches tab — Sprint 6 #}
+            {# Matches tab â€” Sprint 6 #}
             <div id="view-matches" data-tab-content="matches" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S6-F7: Ghost icon — Swords #}
+                {# S6-F7: Ghost icon â€” Swords #}
                 <i data-lucide="swords" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + action buttons #}
@@ -902,7 +925,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Match Operations</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Live Matches · Scoring · Match Medic · Stations</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Live Matches Â· Scoring Â· Match Medic Â· Stations</p>
                     </div>
                     <div class="flex items-center gap-2">
                         {# Filters #}
@@ -926,24 +949,24 @@
                 {# Match stats row #}
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Total</p>
-                        <p id="matches-stat-total" class="font-mono font-black text-lg text-white">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Total</p>
+                        <p id="matches-stat-total" class="font-mono font-black text-lg text-white">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
-                        <p id="matches-stat-scheduled" class="font-mono font-black text-lg text-dc-info">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
+                        <p id="matches-stat-scheduled" class="font-mono font-black text-lg text-dc-info">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Live</p>
-                        <p id="matches-stat-live" class="font-mono font-black text-lg text-dc-success">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Live</p>
+                        <p id="matches-stat-live" class="font-mono font-black text-lg text-dc-success">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
-                        <p id="matches-stat-completed" class="font-mono font-black text-lg text-dc-textBright">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
+                        <p id="matches-stat-completed" class="font-mono font-black text-lg text-dc-textBright">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Disputed</p>
-                        <p id="matches-stat-disputed" class="font-mono font-black text-lg text-dc-danger">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Disputed</p>
+                        <p id="matches-stat-disputed" class="font-mono font-black text-lg text-dc-danger">â€”</p>
                     </div>
                 </div>
 
@@ -952,7 +975,7 @@
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="swords" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Match Grid</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Match Grid</h3>
                         </div>
                         <button onclick="TOC.matches.refresh()" class="text-[10px] text-dc-text hover:text-white transition-colors">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -962,13 +985,13 @@
                         <table class="w-full text-xs">
                             <thead>
                                 <tr class="border-b border-dc-border bg-dc-bg text-dc-text">
-                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Round</th>
-                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Match #</th>
-                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Team A</th>
-                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Score</th>
-                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Team B</th>
-                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Status</th>
-                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[9px]">Actions</th>
+                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Round</th>
+                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Match #</th>
+                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Team A</th>
+                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Score</th>
+                                    <th class="text-left py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Team B</th>
+                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Status</th>
+                                    <th class="text-center py-3 px-4 font-bold uppercase tracking-widest text-[10px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="match-grid-body">
@@ -983,7 +1006,7 @@
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="radio" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Broadcast Stations</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Broadcast Stations</h3>
                         </div>
                     </div>
                     <div id="stations-panel" class="p-4">
@@ -998,10 +1021,10 @@
                 <div id="match-detail-drawer" class="hidden"></div>
             </div>
 
-            {# Schedule tab — Sprint 5 #}
+            {# Schedule tab â€” Sprint 5 #}
             <div id="view-schedule" data-tab-content="schedule" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon — Calendar #}
+                {# S5-F7: Ghost icon â€” Calendar #}
                 <i data-lucide="calendar" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title #}
@@ -1009,11 +1032,11 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Schedule Manager</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline · Auto-Schedule · Bulk Shift · Breaks</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline Â· Auto-Schedule Â· Bulk Shift Â· Breaks</p>
                     </div>
                     {# S5-F6: Schedule action buttons #}
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.schedule.autoGenerate()" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                        <button onclick="TOC.schedule.openAutoSchedule()" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
                         </button>
                         <button onclick="TOC.schedule.openBulkShift()" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
@@ -1028,20 +1051,20 @@
                 {# Schedule stats #}
                 <div id="schedule-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Total Matches</p>
-                        <p id="sched-total-matches" class="font-mono font-black text-xl text-white">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Total Matches</p>
+                        <p id="sched-total-matches" class="font-mono font-black text-xl text-white">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
-                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-success">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
+                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-success">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">In Progress</p>
-                        <p id="sched-live" class="font-mono font-black text-xl text-dc-warning">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">In Progress</p>
+                        <p id="sched-live" class="font-mono font-black text-xl text-dc-warning">â€”</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
-                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-info">—</p>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
+                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-info">â€”</p>
                     </div>
                 </div>
 
@@ -1050,7 +1073,7 @@
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="calendar" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Match Schedule</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Match Schedule</h3>
                         </div>
                         <button onclick="TOC.schedule.refresh()" class="text-[10px] text-dc-text hover:text-white transition-colors">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -1068,10 +1091,10 @@
                 </div>
             </div>
 
-            {# Disputes tab — Sprint 7 #}
+            {# Disputes tab â€” Sprint 7 #}
             <div id="view-disputes" data-tab-content="disputes" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
 
-                {# S7-F7: Ghost icon — Scale #}
+                {# S7-F7: Ghost icon â€” Scale #}
                 <i data-lucide="scale" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + filters #}
@@ -1079,7 +1102,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Dispute Resolution</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Queue · Evidence · Rulings · Escalation</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Queue Â· Evidence Â· Rulings Â· Escalation</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <select id="dispute-filter-status" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
@@ -1102,8 +1125,8 @@
                             <i data-lucide="alert-triangle" class="w-4 h-4 text-dc-danger"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Open Disputes</p>
-                            <p id="disputes-open-count" class="font-mono font-black text-xl text-dc-danger">—</p>
+                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Open Disputes</p>
+                            <p id="disputes-open-count" class="font-mono font-black text-xl text-dc-danger">â€”</p>
                         </div>
                     </div>
                     <div class="glass-box rounded-xl px-6 py-3 flex items-center gap-3">
@@ -1111,8 +1134,8 @@
                             <i data-lucide="clock" class="w-4 h-4 text-dc-warning"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Under Review</p>
-                            <p id="disputes-review-count" class="font-mono font-black text-xl text-dc-warning">—</p>
+                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Under Review</p>
+                            <p id="disputes-review-count" class="font-mono font-black text-xl text-dc-warning">â€”</p>
                         </div>
                     </div>
                     <div class="glass-box rounded-xl px-6 py-3 flex items-center gap-3">
@@ -1120,8 +1143,8 @@
                             <i data-lucide="arrow-up-right" class="w-4 h-4 text-purple-400"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Escalated</p>
-                            <p id="disputes-escalated-count" class="font-mono font-black text-xl text-purple-400">—</p>
+                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Escalated</p>
+                            <p id="disputes-escalated-count" class="font-mono font-black text-xl text-purple-400">â€”</p>
                         </div>
                     </div>
                 </div>
@@ -1131,7 +1154,7 @@
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
                             <i data-lucide="scale" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">Dispute Queue</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Dispute Queue</h3>
                         </div>
                         <button onclick="TOC.disputes.refresh()" class="text-[10px] text-dc-text hover:text-white transition-colors">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -1148,7 +1171,7 @@
                 {# Ghost icon #}
                 <i data-lucide="megaphone" class="ghost-icon w-72 h-72 fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none"></i>
 
-                {# Header row — title + compose + quick comms #}
+                {# Header row â€” title + compose + quick comms #}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Announcements</h2>
@@ -1235,7 +1258,7 @@
                     </button>
                 </div>
 
-                {# ─── Section: Basic Info ─── #}
+                {# â”€â”€â”€ Section: Basic Info â”€â”€â”€ #}
                 <details open class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1267,7 +1290,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Format & Registration ─── #}
+                {# â”€â”€â”€ Section: Format & Registration â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1314,7 +1337,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Prizes ─── #}
+                {# â”€â”€â”€ Section: Prizes â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1338,7 +1361,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Game Match Config ─── #}
+                {# â”€â”€â”€ Section: Game Match Config â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1376,7 +1399,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Map Pool ─── #}
+                {# â”€â”€â”€ Section: Map Pool â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1397,7 +1420,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Server Regions ─── #}
+                {# â”€â”€â”€ Section: Server Regions â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1418,7 +1441,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Rulebook ─── #}
+                {# â”€â”€â”€ Section: Rulebook â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1439,7 +1462,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: BR Scoring (conditional) ─── #}
+                {# â”€â”€â”€ Section: BR Scoring (conditional) â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group" id="settings-br-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1464,7 +1487,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Certificate Templates (S9-F2 + S9-F3) ─── #}
+                {# â”€â”€â”€ Section: Certificate Templates (S9-F2 + S9-F3) â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group" id="settings-cert-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1490,7 +1513,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Staff Management (S10-F1) ─── #}
+                {# â”€â”€â”€ Section: Staff Management (S10-F1) â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group" id="settings-staff-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1511,7 +1534,7 @@
                     </div>
                 </details>
 
-                {# ─── Section: Audit Log (S11-F1) ─── #}
+                {# â”€â”€â”€ Section: Audit Log (S11-F1) â”€â”€â”€ #}
                 <details class="glass-box rounded-xl group" id="settings-audit-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1542,7 +1565,7 @@
                 </details>
             </div>
 
-    {# ── Right slide-out drawer ── #}
+    {# â”€â”€ Right slide-out drawer â”€â”€ #}
     <div id="toc-drawer" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="TOC.drawer.close()"></div>
         <div class="absolute right-0 top-0 bottom-0 w-[500px] max-w-full bg-dc-surface border-l border-dc-border shadow-2xl flex flex-col transform translate-x-0 transition-transform duration-300">
@@ -1557,7 +1580,7 @@
         </div>
     </div>
 
-    {# ── Command Palette (Cmd+K) ── #}
+    {# â”€â”€ Command Palette (Cmd+K) â”€â”€ #}
     <div id="cmd-palette" class="fixed inset-0 z-[110] hidden flex items-start justify-center pt-[20vh]">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="TOC.cmdk.close()"></div>
         <div class="relative z-10 w-full max-w-xl bg-dc-surface border border-dc-borderLight rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden">
@@ -1570,22 +1593,22 @@
                     placeholder="Type a command or search..."
                     autofocus
                 >
-                <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[9px] font-mono border border-dc-borderLight">Esc</span>
+                <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[10px] font-mono border border-dc-borderLight">Esc</span>
             </div>
             <div id="cmdk-results" class="max-h-80 overflow-y-auto p-2">
-                <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-2">Quick Navigation</p>
+                <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest px-3 py-2">Quick Navigation</p>
                 {% for tab in toc_tabs %}
                 <button class="cmdk-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white transition-colors text-left" data-action="navigate" data-target="{{ tab.id }}">
                     <i data-lucide="{{ tab.icon }}" class="w-4 h-4"></i>
                     <span class="text-xs font-medium">{{ tab.label }}</span>
-                    <span class="ml-auto text-[9px] text-dc-text font-mono">{{ tab.group }}</span>
+                    <span class="ml-auto text-[10px] text-dc-text font-mono">{{ tab.group }}</span>
                 </button>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-    {# ── Freeze Modal ── #}
+    {# â”€â”€ Freeze Modal â”€â”€ #}
     <div id="modal-freeze" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-freeze').classList.add('hidden')"></div>
         <div class="bg-dc-surface border border-dc-danger shadow-[0_0_50px_rgba(255,42,85,0.3)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -1597,7 +1620,7 @@
                 <h2 class="font-display font-black text-2xl text-white mb-2">Execute Global Freeze?</h2>
                 <p class="text-sm text-dc-text mb-6">This will instantly halt all tournament automation, lock brackets, pause active match timers, and notify all participants of a technical pause.</p>
                 <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 text-left mb-6">
-                    <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason for Freeze (Required)</label>
+                    <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason for Freeze (Required)</label>
                     <input id="freeze-reason" type="text" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-dc-danger outline-none" placeholder="e.g. Server Outage, Broadcast Issue...">
                 </div>
                 <div class="flex gap-3">
@@ -1608,12 +1631,12 @@
         </div>
     </div>
 
-    {# ── Toast stack ── #}
+    {# â”€â”€ Toast stack â”€â”€ #}
     <div id="toc-toast-stack" class="fixed bottom-6 right-6 z-[120] flex flex-col gap-3 pointer-events-none"></div>
 
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
     {# CONFIG INJECTION + SCRIPTS                                    #}
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
     <script>
         window.TOC_CONFIG = {
             tournamentSlug: '{{ tournament.slug }}',

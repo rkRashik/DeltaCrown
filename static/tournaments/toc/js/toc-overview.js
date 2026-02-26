@@ -61,11 +61,17 @@
 
   async function load() {
     try {
-      const data = await TOC.tocFetch(`${API}/overview/`);
+      const data = await TOC.fetch(`${API}/overview/`);
       render(data);
+      // Hide stale data banner on success
+      const staleBanner = $('#toc-stale-banner');
+      if (staleBanner) staleBanner.classList.add('hidden');
     } catch (e) {
       console.error('[TOC:overview] Load failed:', e);
       renderError();
+      // Show stale data banner on failure
+      const staleBanner = $('#toc-stale-banner');
+      if (staleBanner) staleBanner.classList.remove('hidden');
     }
   }
 
@@ -314,7 +320,7 @@
     if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.textContent = 'Processing…'; }
 
     try {
-      const result = await TOC.tocFetch(`${API}/lifecycle/transition/`, {
+      const result = await TOC.fetch(`${API}/lifecycle/transition/`, {
         method: 'POST',
         body: { to_status: _selectedTransition, reason },
       });
@@ -341,7 +347,7 @@
     }
 
     try {
-      const result = await TOC.tocFetch(`${API}/lifecycle/freeze/`, {
+      const result = await TOC.fetch(`${API}/lifecycle/freeze/`, {
         method: 'POST',
         body: { reason },
       });
@@ -357,7 +363,7 @@
 
   async function executeUnfreeze() {
     try {
-      const result = await TOC.tocFetch(`${API}/lifecycle/unfreeze/`, {
+      const result = await TOC.fetch(`${API}/lifecycle/unfreeze/`, {
         method: 'POST',
         body: { reason: 'Manual unfreeze from TOC' },
       });
@@ -380,6 +386,38 @@
 
     const banner = $('#toc-freeze-banner');
     if (banner) banner.classList.toggle('hidden', !data.is_frozen);
+
+    // ── Dynamic status pill styling ──
+    const pill = $('#toc-status-pill');
+    if (pill) {
+      // Remove old color classes
+      pill.className = pill.className.replace(/bg-\S+|text-\S+|border-\S+/g, '').trim();
+      const statusColors = {
+        draft:        'bg-dc-text/10 text-dc-text border border-dc-border',
+        registration: 'bg-dc-info/15 text-dc-info border border-dc-info/30',
+        check_in:     'bg-dc-warning/15 text-dc-warning border border-dc-warning/30',
+        live:         'bg-dc-success/15 text-dc-success border border-dc-success/30',
+        completed:    'bg-dc-text/10 text-dc-textBright border border-dc-border',
+        cancelled:    'bg-dc-danger/15 text-dc-danger border border-dc-danger/30',
+      };
+      const colorClasses = statusColors[data.status] || statusColors.draft;
+      pill.className += ` inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider ${colorClasses}`;
+    }
+
+    // ── Dynamic action button (Freeze/Resume) ──
+    const actionBtn = $('#toc-action-btn');
+    if (actionBtn) {
+      if (data.is_frozen) {
+        actionBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Resume';
+        actionBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-xl bg-dc-success/20 text-dc-success border border-dc-success/30 text-sm font-bold hover:bg-dc-success/30 transition-colors';
+        actionBtn.setAttribute('onclick', "TOC.overview.executeUnfreeze()");
+      } else {
+        actionBtn.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4"></i> Freeze';
+        actionBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-xl bg-dc-danger/20 text-dc-danger border border-dc-danger/30 text-sm font-bold hover:bg-dc-danger/30 transition-colors';
+        actionBtn.setAttribute('onclick', "document.getElementById('modal-freeze').classList.remove('hidden')");
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
 
     // Update badge for alerts
     const alertCount = (data.alerts || []).length;
@@ -414,7 +452,7 @@
   async function dismissAlert(title, alertId) {
     addDismissed(title);
     // Fire-and-forget server dismiss
-    TOC.tocFetch(`${API}/alerts/${alertId}/dismiss/`, { method: 'POST' }).catch(() => {});
+    TOC.fetch(`${API}/alerts/${alertId}/dismiss/`, { method: 'POST' }).catch(() => {});
     // Re-render alerts from last data
     const el = $(`[data-alert-title="${CSS.escape(title)}"]`);
     if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; setTimeout(() => el.remove(), 200); }
@@ -476,6 +514,15 @@
   function _init() {
     load();
     startAutoRefresh();
+
+    // Bind stale banner dismiss button
+    const staleDismiss = $('#toc-stale-dismiss');
+    if (staleDismiss) {
+      staleDismiss.addEventListener('click', () => {
+        const banner = $('#toc-stale-banner');
+        if (banner) banner.classList.add('hidden');
+      });
+    }
   }
 
 })();

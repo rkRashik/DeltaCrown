@@ -32,6 +32,8 @@
        ─────────────────────────────────────────────── */
 
     const CFG = window.TOC_CONFIG || {};
+    const IS_MAC = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+    const MOD_KEY_LABEL = IS_MAC ? '⌘' : 'Ctrl';
 
     /* ───────────────────────────────────────────────
        S0-J3: Tab Router (hash-based)
@@ -495,6 +497,10 @@
         initCmdK();
         initKeyboard();
 
+        // Set platform-aware modifier key label
+        const modKeyEl = $('#toc-search-mod-key');
+        if (modKeyEl) modKeyEl.textContent = MOD_KEY_LABEL;
+
         // Navigate to hash or default to overview
         const hash = window.location.hash.replace('#', '').trim();
         navigate(hash || 'overview');
@@ -512,10 +518,31 @@
        Public API — window.TOC
        ─────────────────────────────────────────────── */
 
+    /* ── Build api helper: callable as api(url, opts) AND api.get/post/put/delete ── */
+    const apiBase = CFG.apiBase || '';
+    const _apiUrl = (path) => `${apiBase}/${String(path).replace(/^\//, '')}`;
+    const api = function (path, opts) { return tocFetch(_apiUrl(path), opts); };
+    api.get    = (path) => tocFetch(_apiUrl(path));
+    api.post   = (path, data) => tocFetch(_apiUrl(path), { method: 'POST', body: data });
+    api.put    = (path, data) => tocFetch(_apiUrl(path), { method: 'PUT', body: data });
+    api.patch  = (path, data) => tocFetch(_apiUrl(path), { method: 'PATCH', body: data });
+    api.delete = (path) => tocFetch(_apiUrl(path), { method: 'DELETE' });
+    api.getRaw = async (path) => {
+        const res = await fetch(_apiUrl(path), {
+            headers: { 'X-CSRFToken': CFG.csrfToken || '', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!res.ok) throw new Error(`TOC API ${res.status}`);
+        return res;
+    };
+
     window.TOC = {
         config: CFG,
+        slug: CFG.tournamentSlug || '',
+        api,
         navigate,
         fetch: tocFetch,
+        tocFetch: tocFetch,
         drawer,
         toast,
         cmdk,

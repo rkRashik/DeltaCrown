@@ -60,11 +60,14 @@ class EmergencySubListView(TOCBaseView):
 
     def get(self, request, slug):
         status_filter = request.query_params.get("status")
-        results = TOCParticipantsAdvancedService.list_emergency_subs(
-            self.tournament,
-            status_filter=status_filter,
-        )
-        return Response({"results": results, "total": len(results)})
+        try:
+            results = TOCParticipantsAdvancedService.list_emergency_subs(
+                self.tournament,
+                status_filter=status_filter,
+            )
+            return Response({"results": results, "total": len(results)})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmergencySubApproveView(TOCBaseView):
@@ -118,12 +121,15 @@ class FreeAgentListView(TOCBaseView):
     def get(self, request, slug):
         status_filter = request.query_params.get("status")
         search = request.query_params.get("search")
-        results = TOCParticipantsAdvancedService.list_free_agents(
-            self.tournament,
-            status_filter=status_filter,
-            search=search,
-        )
-        return Response({"results": results, "total": len(results)})
+        try:
+            results = TOCParticipantsAdvancedService.list_free_agents(
+                self.tournament,
+                status_filter=status_filter,
+                search=search,
+            )
+            return Response({"results": results, "total": len(results)})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ── S3-B4: Free Agent — Assign to Team ──────────────────────────
@@ -239,5 +245,8 @@ class WaitlistListView(TOCBaseView):
     """GET /api/toc/<slug>/waitlist/"""
 
     def get(self, request, slug):
-        results = TOCParticipantsAdvancedService.get_waitlist(self.tournament)
-        return Response({"results": results, "total": len(results)})
+        try:
+            results = TOCParticipantsAdvancedService.get_waitlist(self.tournament)
+            return Response({"results": results, "total": len(results)})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

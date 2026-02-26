@@ -76,9 +76,13 @@ class TOCService:
         # Valid transitions from current state
         transitions = cls._get_transitions(tournament)
 
-        # Frozen state
-        is_frozen = tournament.status == 'cancelled'  # TODO: add FROZEN when model has it
-        freeze_reason = getattr(tournament, 'freeze_reason', '') or ''
+        # Frozen state (via config JSONB — proper check)
+        is_frozen = cls.is_frozen(tournament)
+        freeze_reason = ''
+        if is_frozen:
+            config = tournament.config or {}
+            freeze_data = config.get('frozen', {})
+            freeze_reason = freeze_data.get('reason', '') if isinstance(freeze_data, dict) else ''
 
         return {
             'status': tournament.status,
