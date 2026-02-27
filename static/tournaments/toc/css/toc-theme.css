@@ -231,3 +231,51 @@
 #toc-sidebar.collapsed #sidebar-collapse-btn i {
   transform: rotate(180deg);
 }
+/* ─── Bracket Connector Lines ─────────────────────────────── */
+.bracket-tree-wrap {
+  position: relative;
+}
+
+.bracket-tree-wrap svg.bracket-connectors {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bracket-tree-wrap svg.bracket-connectors path {
+  fill: none;
+  stroke: var(--dc-border, rgba(255,255,255,0.12));
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.bracket-tree-wrap svg.bracket-connectors path.winner-path {
+  stroke: var(--dc-success, #22c55e);
+  stroke-width: 2.5;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-width: 230px;
+  position: relative;
+  z-index: 2;
+}
+
+.bracket-match-card {
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.bracket-match-card:hover {
+  box-shadow: 0 0 12px rgba(var(--theme-rgb, 255,255,255), 0.15);
+  z-index: 5;
+}
+
+.bracket-bye-card {
+  opacity: 0.45;
+}

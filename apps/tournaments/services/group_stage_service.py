@@ -214,7 +214,7 @@ class GroupStageService:
             standing = GroupStanding.objects.create(
                 group=group,
                 user=registration.user if tournament.participation_type == 'solo' else None,
-                team=registration.team if tournament.participation_type == 'team' else None,
+                team_id=registration.team_id if tournament.participation_type == 'team' else None,
                 rank=0,  # Will be calculated after matches
                 matches_played=0,
                 matches_won=0,

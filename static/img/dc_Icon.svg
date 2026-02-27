@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="dcGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#6C00FF"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
+    </linearGradient>
+
+    <filter id="violetGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#6C00FF"/>
+    </filter>
+
+    <filter id="goldGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#FFD700"/>
+    </filter>
+
+    <filter id="blueGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00E5FF"/>
+    </filter>
+  </defs>
+
+  <!-- Elegant dark radial background -->
+  <radialGradient id="bgGrad" cx="50%" cy="40%" r="70%">
+    <stop offset="0%" stop-color="#141428"/>
+    <stop offset="100%" stop-color="#0A0A14"/>
+  </radialGradient>
+  <rect width="256" height="256" fill="url(#bgGrad)" rx="32"/>
+
+  <!-- Crown -->
+  <path d="M32 200 L64 96 L128 152 L192 96 L224 200 Z"
+        fill="url(#dcGrad)" filter="url(#violetGlow)"/>
+
+  <!-- Gems -->
+  <circle cx="64" cy="72" r="14"
+          fill="#FFD700" filter="url(#goldGlow)"/>
+  <circle cx="128" cy="48" r="18"
+          fill="#FFD700" filter="url(#goldGlow)"/>
+  <circle cx="192" cy="72" r="14"
+          fill="#FFD700" filter="url(#goldGlow)"/>
+
+  <!-- Base Bar -->
+  <rect x="48" y="200" width="160" height="20" rx="4"
+        fill="url(#dcGrad)" filter="url(#blueGlow)"/>
+</svg>

@@ -17,6 +17,7 @@ from apps.tournaments.models import (
     GroupStage,
     GroupStanding,
     Match,
+    Registration,
     TournamentStage,
 )
 from apps.tournaments.models.qualifier_pipeline import (
@@ -40,7 +41,6 @@ class TOCBracketsService:
         """Generate bracket from confirmed registrations + seeding."""
         bracket = BracketService.generate_bracket_universal_safe(
             tournament_id=tournament.id,
-            requested_by=user,
         )
         return TOCBracketsService._serialize_bracket(bracket)
 
@@ -150,12 +150,29 @@ class TOCBracketsService:
     @staticmethod
     def configure_groups(tournament, data: Dict, user) -> Dict[str, Any]:
         """Configure group stage settings."""
-        stage = GroupStageService.configure_groups(
+        num_groups = data.get("num_groups", 4)
+        group_size = data.get("group_size", 4)
+        match_format = data.get("format", "round_robin")
+        advancement_count = data.get("advancement_count", 2)
+
+        groups = GroupStageService.configure_groups(
             tournament_id=tournament.id,
-            num_groups=data.get("num_groups", 4),
-            group_size=data.get("group_size", 4),
-            format_type=data.get("format", "round_robin"),
-            advancement_count=data.get("advancement_count", 2),
+            num_groups=num_groups,
+            match_format=match_format,
+            advancement_count=advancement_count,
+        )
+
+        # Create or update GroupStage record (the TOC UI queries this)
+        stage, _ = GroupStage.objects.update_or_create(
+            tournament=tournament,
+            defaults={
+                'name': 'Group Stage',
+                'num_groups': num_groups,
+                'group_size': group_size,
+                'format': match_format,
+                'state': 'pending',
+                'advancement_count_per_group': advancement_count,
+            }
         )
         return TOCBracketsService.get_groups(tournament)
 
@@ -168,9 +185,12 @@ class TOCBracketsService:
             raise ValueError("Configure groups first.")
 
         GroupStageService.draw_groups(
-            stage_id=stage.id,
+            tournament_id=tournament.id,
             draw_method=draw_method,
         )
+        # Update stage state
+        stage.state = 'active'
+        stage.save(update_fields=['state'])
         return TOCBracketsService.get_groups(tournament)
 
     @staticmethod
@@ -393,19 +413,46 @@ class TOCBracketsService:
 
     @staticmethod
     def _serialize_standing(s) -> Dict:
+        # Resolve team or user name
+        display_name = None
+        if s.team_id:
+            try:
+                from apps.teams.models import Team
+                team = Team.objects.filter(id=s.team_id).values_list('name', flat=True).first()
+                display_name = team
+            except Exception:
+                pass
+            if not display_name:
+                # Fallback: check Registration for display_name_override
+                try:
+                    reg = Registration.objects.filter(
+                        team_id=s.team_id,
+                        tournament=s.group.tournament
+                    ).values_list('display_name_override', flat=True).first()
+                    display_name = reg
+                except Exception:
+                    pass
+            if not display_name:
+                display_name = f'Team #{s.team_id}'
+        elif hasattr(s, 'user') and s.user:
+            display_name = s.user.get_display_name() if hasattr(s.user, 'get_display_name') else str(s.user)
+        else:
+            display_name = '—'
+
         return {
             "id": s.id,
             "rank": s.rank,
             "team_id": s.team_id,
+            "team_name": display_name,
             "user_id": s.user_id if hasattr(s, "user_id") else None,
             "matches_played": s.matches_played,
             "wins": s.matches_won,
             "draws": s.matches_drawn,
             "losses": s.matches_lost,
-            "points": s.points,
+            "points": float(s.points) if s.points else 0,
             "goals_for": s.goals_for,
             "goals_against": s.goals_against,
-            "goal_difference": s.goals_difference,
+            "goal_difference": s.goal_difference,
             "is_advancing": s.is_advancing,
             "is_eliminated": s.is_eliminated,
         }

@@ -35,7 +35,7 @@
     const round = $('#match-filter-round')?.value || '';
     const search = $('#match-search')?.value || '';
     try {
-      const data = await API.get(`/api/toc/${slug}/matches/` +
+      const data = await API.get(`matches/` +
         `?state=${state}&round=${round}&search=${encodeURIComponent(search)}`);
       allMatches = data.matches || [];
       renderStats(allMatches);
@@ -137,23 +137,23 @@
 
   /* ─── Quick actions ──────────────────────────────────────── */
   async function markLive(id) {
-    try { await API.post(`/api/toc/${slug}/matches/${id}/mark-live/`); toast('Match started', 'success'); refresh(); }
+    try { await API.post(`matches/${id}/mark-live/`); toast('Match started', 'success'); refresh(); }
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
   async function pause(id) {
-    try { await API.post(`/api/toc/${slug}/matches/${id}/pause/`); toast('Match paused', 'info'); refresh(); }
+    try { await API.post(`matches/${id}/pause/`); toast('Match paused', 'info'); refresh(); }
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
   async function resume(id) {
-    try { await API.post(`/api/toc/${slug}/matches/${id}/resume/`); toast('Match resumed', 'success'); refresh(); }
+    try { await API.post(`matches/${id}/resume/`); toast('Match resumed', 'success'); refresh(); }
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
   async function forceComplete(id) {
     if (!confirm('Force-complete this match?')) return;
-    try { await API.post(`/api/toc/${slug}/matches/${id}/force-complete/`); toast('Match force-completed', 'info'); refresh(); }
+    try { await API.post(`matches/${id}/force-complete/`); toast('Match force-completed', 'info'); refresh(); }
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
@@ -182,7 +182,7 @@
 
   async function submitScore(id) {
     try {
-      await API.post(`/api/toc/${slug}/matches/${id}/score/`, {
+      await API.post(`matches/${id}/score/`, {
         participant1_score: parseInt($('#sd-p1')?.value) || 0,
         participant2_score: parseInt($('#sd-p2')?.value) || 0,
       });
@@ -216,7 +216,7 @@
     const time = $('#rs-time')?.value;
     if (!time) { toast('Time required', 'error'); return; }
     try {
-      await API.post(`/api/toc/${slug}/matches/${id}/reschedule/`, {
+      await API.post(`matches/${id}/reschedule/`, {
         new_time: new Date(time).toISOString(),
         reason: $('#rs-reason')?.value || '',
       });
@@ -282,7 +282,7 @@
 
   async function confirmForfeit(matchId, forfeiterId) {
     try {
-      await API.post(`/api/toc/${slug}/matches/${matchId}/forfeit/`, { forfeiter_id: forfeiterId });
+      await API.post(`matches/${matchId}/forfeit/`, { forfeiter_id: forfeiterId });
       toast('Forfeit declared', 'info');
       closeOverlay('forfeit-overlay');
       refresh();

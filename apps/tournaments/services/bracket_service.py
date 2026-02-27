@@ -366,6 +366,12 @@ class BracketService:
         if bracket_format is None:
             bracket_format = tournament.format or Bracket.SINGLE_ELIMINATION
         
+        # Normalize format: Tournament uses underscores, Bracket uses hyphens
+        bracket_format = bracket_format.replace('_', '-')
+        # Handle group_playoff -> group-stage mapping
+        if bracket_format == 'group-playoff':
+            bracket_format = 'group-stage'
+        
         # Validate bracket format
         valid_formats = [choice[0] for choice in Bracket.FORMAT_CHOICES]
         if bracket_format not in valid_formats:
@@ -833,9 +839,9 @@ class BracketService:
                 round_number=1,
                 match_number_in_round=match_number,
                 participant1_id=participant1['id'] if participant1 else None,
-                participant1_name=participant1['name'] if participant1 else None,
+                participant1_name=participant1['name'] if participant1 else '',
                 participant2_id=participant2['id'] if participant2 else None,
-                participant2_name=participant2['name'] if participant2 else None,
+                participant2_name=participant2['name'] if participant2 else '',
                 is_bye=is_bye,
                 bracket_type=BracketNode.MAIN
             )

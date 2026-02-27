@@ -150,7 +150,7 @@
         <a href="/notifications/" class="qa-pill">
           <i class="fa-regular fa-bell text-[10px]"></i>
           {% if unread_notif_count > 0 %}
-            <span class="bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 min-w-[16px] text-center leading-[16px]">{{ unread_notif_count }}</span>
+            <span class="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 min-w-[16px] text-center leading-[16px]">{{ unread_notif_count }}</span>
           {% endif %}
         </a>
         <a href="/crownstore/" class="qa-pill"><i class="fa-solid fa-store text-[10px]"></i> Store</a>
@@ -164,7 +164,7 @@
       <div class="flex items-center gap-2 mb-3">
         <div class="tile-icon bg-amber-500/15"><i class="fa-solid fa-envelope-open-text text-amber-400 text-[10px]"></i></div>
         <span class="tile-title text-amber-300">Pending Invites</span>
-        <span class="bg-amber-500/20 text-amber-300 text-[9px] font-bold rounded-full px-1.5 py-0.5">{{ invite_count }}</span>
+        <span class="bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-full px-1.5 py-0.5">{{ invite_count }}</span>
       </div>
       <div class="flex gap-3 overflow-x-auto pb-2 dash-scroll">
         {% for inv in pending_invites %}
@@ -266,7 +266,7 @@
                 <span class="text-white/30"><i class="fa-solid fa-users text-[8px]"></i> {{ team.member_count }}</span>
               </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-[9px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
+            <i class="fa-solid fa-chevron-right text-[10px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
           </a>
           {% endfor %}
         </div>
@@ -301,15 +301,15 @@
         <div class="grid grid-cols-3 gap-2 text-center mb-3">
           <div class="p-2.5 rounded-lg bg-white/[0.02]">
             <div class="text-sm font-bold text-white">{{ team_count }}</div>
-            <div class="text-[9px] text-white/30 font-semibold">Teams</div>
+            <div class="text-[10px] text-white/30 font-semibold">Teams</div>
           </div>
           <div class="p-2.5 rounded-lg bg-white/[0.02]">
             <div class="text-sm font-bold text-white">{{ social_stats.followers }}</div>
-            <div class="text-[9px] text-white/30 font-semibold">Followers</div>
+            <div class="text-[10px] text-white/30 font-semibold">Followers</div>
           </div>
           <div class="p-2.5 rounded-lg bg-white/[0.02]">
             <div class="text-sm font-bold text-white">{{ social_stats.following }}</div>
-            <div class="text-[9px] text-white/30 font-semibold">Following</div>
+            <div class="text-[10px] text-white/30 font-semibold">Following</div>
           </div>
         </div>
         {% if profile.lft_status %}
@@ -371,13 +371,13 @@
                 {% endif %}
                 <span class="font-bold text-white truncate">{{ m.team2_name }}</span>
               </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-[9px] text-white/30">
+              <div class="flex items-center gap-1.5 mt-0.5 text-[10px] text-white/30">
                 {% if m.game_name %}<span>{{ m.game_name }}</span>{% endif %}
                 <span>{{ m.created_at|timesince }} ago</span>
               </div>
             </div>
             {% if m.result %}
-            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {% if m.result == 'WIN' %}badge-win{% elif m.result == 'LOSS' %}badge-loss{% else %}badge-draw{% endif %}">{{ m.result }}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {% if m.result == 'WIN' %}badge-win{% elif m.result == 'LOSS' %}badge-loss{% else %}badge-draw{% endif %}">{{ m.result }}</span>
             {% endif %}
           </div>
           {% endfor %}
@@ -398,7 +398,7 @@
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="text-2xl font-black text-white">{{ wallet.balance|floatformat:0 }} <span class="text-sm text-amber-400 font-bold">DC</span></div>
-            <div class="text-[9px] text-white/30">DeltaCrown Coins</div>
+            <div class="text-[10px] text-white/30">DeltaCrown Coins</div>
           </div>
           <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/15 to-orange-500/15 grid place-items-center">
             <i class="fa-solid fa-coins text-amber-400 text-sm"></i>
@@ -464,10 +464,10 @@
         {% if active_tournaments %}
         <div class="grid sm:grid-cols-2 gap-2.5 max-h-[210px] overflow-y-auto dash-scroll pr-1">
           {% for t in active_tournaments %}
-          <a href="/tournaments/{{ t.slug }}/" class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-purple-500/15 transition block no-underline group">
+          <a href="{% if t.is_live %}/tournaments/{{ t.slug }}/hub/{% else %}/tournaments/{{ t.slug }}/{% endif %}" class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-purple-500/15 transition block no-underline group">
             <div class="flex items-center justify-between mb-1.5">
               <div class="text-xs font-bold text-white group-hover:text-purple-300 transition truncate flex-1 mr-2">{{ t.name }}</div>
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0
                 {% if t.is_live %}bg-red-500/15 text-red-400 animate-pulse
                 {% elif t.status == 'registration_open' %}bg-cyan-500/15 text-cyan-400
                 {% elif t.status == 'completed' %}bg-emerald-500/15 text-emerald-400
@@ -475,7 +475,8 @@
                 {% if t.is_live %}LIVE{% else %}{{ t.status|upper|truncatechars:12 }}{% endif %}
               </span>
             </div>
-              <div class="flex items-center gap-2 text-[9px] text-white/30">
+              <div class="flex items-center gap-2 text-[10px] text-white/30">
+              {% if t.game_icon %}<img src="{{ t.game_icon }}" alt="" class="w-3.5 h-3.5 rounded object-cover">{% endif %}
               {% if t.game_name %}<span>{{ t.game_name }}</span>{% endif %}
               {% if t.prize_pool %}<span class="text-amber-400/60"><i class="fa-solid fa-coins"></i> {{ t.prize_pool }}</span>{% endif %}
               {% if t.tournament_start %}<span>{{ t.tournament_start|date:"M d" }}</span>{% endif %}
@@ -510,7 +511,7 @@
             <div class="flex-1 min-w-0">
               <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">
                 {{ org.name }}
-                {% if org.is_verified %}<i class="fa-solid fa-circle-check text-[9px] text-blue-400 ml-0.5"></i>{% endif %}
+                {% if org.is_verified %}<i class="fa-solid fa-circle-check text-[10px] text-blue-400 ml-0.5"></i>{% endif %}
               </div>
               <div class="text-[10px] text-white/30">
                 <span class="text-indigo-400/60 font-semibold">{{ org.role }}</span>
@@ -525,7 +526,7 @@
         <div class="empty" style="min-height:100px;">
           <i class="fa-solid fa-building text-base text-indigo-400/20 mb-1.5"></i>
           <p class="text-white/40 text-xs font-medium">No organization</p>
-          <p class="text-[9px] text-white/25 mt-0.5">Join or create an organization</p>
+          <p class="text-[10px] text-white/25 mt-0.5">Join or create an organization</p>
         </div>
         {% endif %}
       </div>
@@ -551,7 +552,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-[11px] font-semibold text-white/60 group-hover:text-white/90 transition truncate">{{ n.title }}</div>
-              <div class="text-[9px] text-white/25 mt-0.5">{{ n.created_at|timesince }} ago</div>
+              <div class="text-[10px] text-white/25 mt-0.5">{{ n.created_at|timesince }} ago</div>
             </div>
             {% if not n.is_read %}<span class="w-1.5 h-1.5 bg-cyan-400 rounded-full shrink-0 mt-2"></span>{% endif %}
           </a>
@@ -575,8 +576,8 @@
           <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
             <div class="text-2xl font-black text-amber-400">#{{ lb.rank }}</div>
             <div class="text-[10px] text-white/45 font-semibold">{{ lb.leaderboard_type|title }}</div>
-            {% if lb.game_name %}<div class="text-[9px] text-white/15">{{ lb.game_name }}</div>{% endif %}
-            <div class="flex justify-center gap-2 mt-1.5 text-[9px]">
+            {% if lb.game_name %}<div class="text-[10px] text-white/15">{{ lb.game_name }}</div>{% endif %}
+            <div class="flex justify-center gap-2 mt-1.5 text-[10px]">
               <span class="text-white/35">{{ lb.points }} pts</span>
               <span class="text-emerald-400/50">{{ lb.wins }}W</span>
               <span class="text-red-400/50">{{ lb.losses }}L</span>
@@ -603,7 +604,7 @@
                 <i class="fa-solid fa-medal text-indigo-400 text-[10px]"></i>
               </div>
             {% endif %}
-            <div class="text-[9px] text-white/40 font-semibold truncate">{{ b.name }}</div>
+            <div class="text-[10px] text-white/40 font-semibold truncate">{{ b.name }}</div>
           </div>
           {% endfor %}
         </div>
@@ -645,8 +646,8 @@
               <span class="text-sm font-bold text-white">{{ o.total|floatformat:0 }} DC</span>
             </div>
             <div class="flex items-center justify-between mt-1">
-              <span class="text-[9px] text-white/30">{{ o.created_at|timesince }} ago</span>
-              <span class="text-[9px] font-bold
+              <span class="text-[10px] text-white/30">{{ o.created_at|timesince }} ago</span>
+              <span class="text-[10px] font-bold
                 {% if o.status == 'COMPLETED' %}text-emerald-400{% elif o.status == 'PENDING' %}text-amber-400{% else %}text-white/25{% endif %}">{{ o.status }}</span>
             </div>
           </div>

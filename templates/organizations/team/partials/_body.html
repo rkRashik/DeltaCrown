@@ -433,7 +433,7 @@
             {% if operations_log %}
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5">
+                <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5">
                   <th class="px-5 py-3 font-mono">Status</th>
                   <th class="px-5 py-3 font-mono">Squad</th>
                   <th class="px-5 py-3 font-mono">Event</th>
@@ -446,11 +446,11 @@
                 <tr class="group hover:bg-white/[0.02] transition-colors border-b border-white/5">
                   <td class="px-5 py-3">
                     {% if op.status == 'live' %}
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 text-[9px] font-bold uppercase tracking-wide animate-pulse">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-bold uppercase tracking-wide animate-pulse">
                       <span class="w-1 h-1 rounded-full bg-red-500"></span> Live
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[9px] font-bold uppercase tracking-wide">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[10px] font-bold uppercase tracking-wide">
                       {{ op.status|default:"Finished" }}
                     </span>
                     {% endif %}

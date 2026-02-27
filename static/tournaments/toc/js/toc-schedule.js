@@ -30,7 +30,7 @@
 
   async function refresh() {
     try {
-      const data = await API.get(`/api/toc/${slug}/schedule/`);
+      const data = await API.get('schedule/');
       scheduleData = data;
       renderSchedule(data);
       renderStats(data);
@@ -41,17 +41,20 @@
 
   /* ─── Stats rendering ───────────────────────────────────── */
   function renderStats(data) {
-    const matches = Object.values(data.rounds || {}).flat();
+    const roundsRaw = data.rounds || [];
+    const matches = Array.isArray(roundsRaw)
+      ? roundsRaw.flatMap(r => r.matches || [])
+      : Object.values(roundsRaw).flat();
     const total = matches.length;
     const scheduled = matches.filter(m => m.state === 'scheduled' || m.state === 'check_in_open').length;
     const inProgress = matches.filter(m => m.state === 'live').length;
     const completed = matches.filter(m => m.state === 'completed' || m.state === 'forfeit').length;
 
-    const el = (id, val) => { const e = $(`#sched-stat-${id}`); if (e) e.textContent = val; };
-    el('total', total);
-    el('scheduled', scheduled);
-    el('inprogress', inProgress);
-    el('completed', completed);
+    const el = (id, val) => { const e = $(`#${id}`); if (e) e.textContent = val; };
+    el('sched-total-matches', total);
+    el('sched-scheduled', scheduled);
+    el('sched-live', inProgress);
+    el('sched-completed', completed);
   }
 
   /* ─── Timeline rendering ─────────────────────────────────── */
@@ -59,7 +62,14 @@
     const container = $('#schedule-timeline');
     if (!container) return;
 
-    const rounds = data.rounds || {};
+    const roundsRaw = data.rounds || [];
+    // API returns [{round, matches}, ...] — convert to dict keyed by round number
+    const rounds = {};
+    if (Array.isArray(roundsRaw)) {
+      roundsRaw.forEach(r => { rounds[r.round] = r.matches || []; });
+    } else {
+      Object.assign(rounds, roundsRaw);
+    }
     const roundKeys = Object.keys(rounds).sort((a, b) => parseInt(a) - parseInt(b));
 
     if (!roundKeys.length) {
@@ -97,7 +107,7 @@
 
   function renderScheduleCard(m) {
     const stateInfo = matchStates[m.state] || matchStates.scheduled;
-    const scheduledAt = m.scheduled_at ? formatTime(m.scheduled_at) : '—';
+    const scheduledAt = m.scheduled_time ? formatTime(m.scheduled_time) : '—';
 
     return `
       <div class="bg-dc-bg border border-dc-border rounded-lg p-3 hover:border-dc-borderLight transition-colors">
@@ -161,10 +171,10 @@
     const startVal = $('#as-start')?.value;
     if (!startVal) { toast('Start time required', 'error'); return; }
     try {
-      await API.post(`/api/toc/${slug}/schedule/auto-generate/`, {
+      await API.post('schedule/auto-generate/', {
         start_time: new Date(startVal).toISOString(),
         match_duration_minutes: parseInt($('#as-duration')?.value) || 60,
-        break_between_minutes: parseInt($('#as-break')?.value) || 15,
+        break_minutes: parseInt($('#as-break')?.value) || 15,
         max_concurrent: parseInt($('#as-concurrent')?.value) || 1,
       });
       toast('Schedule generated', 'success');
@@ -203,7 +213,7 @@
     const roundVal = $('#bs-round')?.value;
     if (roundVal) payload.round_number = parseInt(roundVal);
     try {
-      await API.post(`/api/toc/${slug}/schedule/bulk-shift/`, payload);
+      await API.post('schedule/bulk-shift/', payload);
       toast(`Shifted ${minutes > 0 ? '+' : ''}${minutes} min`, 'success');
       closeOverlay('bulk-shift-overlay');
       refresh();
@@ -239,9 +249,9 @@
 
   async function confirmAddBreak() {
     try {
-      await API.post(`/api/toc/${slug}/schedule/add-break/`, {
+      await API.post('schedule/add-break/', {
         after_round: parseInt($('#ab-round')?.value) || 1,
-        break_duration_minutes: parseInt($('#ab-minutes')?.value) || 30,
+        break_minutes: parseInt($('#ab-minutes')?.value) || 30,
         label: $('#ab-label')?.value?.trim() || 'Break',
       });
       toast('Break inserted', 'success');

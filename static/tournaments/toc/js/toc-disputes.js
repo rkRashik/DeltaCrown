@@ -38,7 +38,7 @@
     const status = $('#dispute-filter-status')?.value || '';
     const search = $('#dispute-search')?.value || '';
     try {
-      const data = await API.get(`/api/toc/${slug}/disputes/` +
+      const data = await API.get(`disputes/` +
         `?status=${status}&search=${encodeURIComponent(search)}`);
       allDisputes = data.disputes || [];
       renderQueue(allDisputes);
@@ -138,7 +138,7 @@
   /* ─── S7-F2: Dispute detail drawer ──────────────────────── */
   async function openDetail(id) {
     try {
-      const d = await API.get(`/api/toc/${slug}/disputes/${id}/`);
+      const d = await API.get(`disputes/${id}/`);
       const sev = severityConfig[d.severity] || severityConfig.low;
       const st = statusConfig[d.status] || statusConfig.open;
       const isOpen = ['open', 'under_review', 'escalated'].includes(d.status);
@@ -233,7 +233,7 @@
 
   async function confirmResolve(id) {
     try {
-      await API.post(`/api/toc/${slug}/disputes/${id}/resolve/`, {
+      await API.post(`disputes/${id}/resolve/`, {
         ruling: $('#resolve-ruling')?.value || 'submitter_wins',
         resolution_notes: $('#resolve-notes')?.value || '',
       });
@@ -248,7 +248,7 @@
     const reason = prompt('Escalation reason (optional):');
     if (reason === null) return;
     try {
-      await API.post(`/api/toc/${slug}/disputes/${id}/escalate/`, { reason: reason || '' });
+      await API.post(`disputes/${id}/escalate/`, { reason: reason || '' });
       toast('Dispute escalated', 'info');
       closeOverlay('dispute-detail-overlay');
       refresh();
@@ -260,7 +260,7 @@
     const staffId = $('#assign-staff-id')?.value;
     if (!staffId) { toast('Enter staff user ID', 'error'); return; }
     try {
-      await API.post(`/api/toc/${slug}/disputes/${id}/assign/`, { staff_user_id: parseInt(staffId) });
+      await API.post(`disputes/${id}/assign/`, { staff_user_id: parseInt(staffId) });
       toast('Dispute assigned', 'success');
       closeOverlay('dispute-detail-overlay');
       refresh();

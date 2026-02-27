@@ -28,7 +28,7 @@
 
   async function refresh() {
     try {
-      const data = await API.get(`/api/toc/${slug}/brackets/`);
+      const data = await API.get('brackets/');
       bracketData = data;
       renderBracket(data);
       refreshGroups();
@@ -82,31 +82,40 @@
       return;
     }
 
-    // Group by round
-    const rounds = {};
-    nodes.forEach(n => {
-      const rn = n.round_number || 0;
-      if (!rounds[rn]) rounds[rn] = [];
-      rounds[rn].push(n);
-    });
+    // Check for double elimination (losers bracket nodes exist)
+    const hasLosers = nodes.some(n => n.bracket_type === 'losers');
 
-    const sortedRounds = Object.keys(rounds).sort((a, b) => a - b);
-    const totalRounds = sortedRounds.length;
+    if (hasLosers) {
+      const winnersNodes = nodes.filter(n => n.bracket_type !== 'losers');
+      const losersNodes = nodes.filter(n => n.bracket_type === 'losers');
 
-    tree.innerHTML = `
-      <div class="flex gap-6 min-w-max">
-        ${sortedRounds.map((rn, idx) => {
-          const roundNodes = rounds[rn];
-          const roundLabel = idx === totalRounds - 1 ? 'Final'
-            : idx === totalRounds - 2 ? 'Semi-Finals'
-            : `Round ${parseInt(rn)}`;
-          return `
-            <div class="flex flex-col gap-3 min-w-[220px]">
-              <div class="text-[9px] font-bold text-dc-text uppercase tracking-widest text-center mb-2 pb-2 border-b border-dc-border">${roundLabel}</div>
-              ${roundNodes.map(n => renderMatchCard(n)).join('')}
-            </div>`;
-        }).join('')}
-      </div>`;
+      tree.innerHTML = `
+        <div class="space-y-6">
+          <div>
+            <div class="flex items-center gap-2 mb-3 px-2">
+              <div class="w-3 h-3 rounded-full bg-dc-success"></div>
+              <h3 class="text-sm font-bold text-white uppercase tracking-widest">Winners Bracket</h3>
+            </div>
+            ${buildBracketGrid(winnersNodes, 'winners')}
+          </div>
+          <div class="border-t border-dc-border/30 pt-6">
+            <div class="flex items-center gap-2 mb-3 px-2">
+              <div class="w-3 h-3 rounded-full bg-dc-danger"></div>
+              <h3 class="text-sm font-bold text-white uppercase tracking-widest">Losers Bracket</h3>
+            </div>
+            ${buildBracketGrid(losersNodes, 'losers')}
+          </div>
+        </div>`;
+
+      requestAnimationFrame(() => {
+        drawBracketConnectors('bracket-grid-winners');
+        drawBracketConnectors('bracket-grid-losers');
+      });
+    } else {
+      // Single elimination or round robin
+      tree.innerHTML = buildBracketGrid(nodes, 'main');
+      requestAnimationFrame(() => drawBracketConnectors('bracket-grid-main'));
+    }
 
     // Show seeding editor if not finalized
     if (seedEditor && !b.is_finalized && nodes.length) {
@@ -119,25 +128,125 @@
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  function renderMatchCard(node) {
+  function buildBracketGrid(nodes, gridId) {
+    const rounds = {};
+    nodes.forEach(n => {
+      const rn = n.round_number || 0;
+      if (!rounds[rn]) rounds[rn] = [];
+      rounds[rn].push(n);
+    });
+
+    const sortedRounds = Object.keys(rounds).sort((a, b) => a - b);
+    const totalRounds = sortedRounds.length;
+
+    sortedRounds.forEach(rn => {
+      rounds[rn].sort((a, b) => (a.match_number_in_round || a.position || 0) - (b.match_number_in_round || b.position || 0));
+    });
+
+    return `
+      <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-${gridId}">
+        ${sortedRounds.map((rn, idx) => {
+          const roundNodes = rounds[rn];
+          const roundLabel = idx === totalRounds - 1 && totalRounds > 1 ? 'Final'
+            : idx === totalRounds - 2 && totalRounds > 2 ? 'Semi-Finals'
+            : `Round ${parseInt(rn)}`;
+          return `
+            <div class="bracket-round" data-round="${rn}">
+              <div class="text-[9px] font-bold text-dc-text uppercase tracking-widest text-center mb-3 pb-2 border-b border-dc-border mx-2">${roundLabel}</div>
+              ${roundNodes.map((n, mi) => renderMatchCard(n, idx, mi)).join('')}
+            </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function renderMatchCard(node, roundIdx, matchIdx) {
     const m = node.match;
     const state = m?.state || 'scheduled';
     const sc = stateColors[state] || stateColors.scheduled;
     const hasWinner = !!node.winner_id;
     const p1Win = node.winner_id && node.winner_id === node.participant1_id;
     const p2Win = node.winner_id && node.winner_id === node.participant2_id;
+    const isBye = node.is_bye;
+    const nodeId = node.id || `${roundIdx}-${matchIdx}`;
 
     return `
-      <div class="bg-dc-bg border ${sc} rounded-lg overflow-hidden hover:border-dc-borderLight transition-colors">
+      <div class="bracket-match-card bg-dc-bg border ${sc} rounded-lg overflow-hidden hover:border-dc-borderLight mx-2 my-1 ${isBye ? 'bracket-bye-card' : ''}"
+           data-node-id="${nodeId}" data-round="${roundIdx}" data-match="${matchIdx}"
+           onclick="TOC.brackets.onMatchCardClick && TOC.brackets.onMatchCardClick(${JSON.stringify(node).replace(/"/g, '&quot;')})">
         <div class="flex items-center justify-between px-3 py-2 border-b border-dc-border/50 ${p1Win ? 'bg-dc-success/5' : ''}">
-          <span class="text-xs ${p1Win ? 'text-dc-success font-bold' : 'text-dc-textBright'} truncate max-w-[120px]">${node.participant1_name || (node.is_bye ? 'BYE' : 'TBD')}</span>
+          <span class="text-xs ${p1Win ? 'text-dc-success font-bold' : 'text-dc-textBright'} truncate max-w-[140px]">${node.participant1_name || (isBye ? 'BYE' : 'TBD')}</span>
           <span class="text-xs font-mono font-bold ${p1Win ? 'text-dc-success' : 'text-dc-text'}">${m?.participant1_score ?? '—'}</span>
         </div>
         <div class="flex items-center justify-between px-3 py-2 ${p2Win ? 'bg-dc-success/5' : ''}">
-          <span class="text-xs ${p2Win ? 'text-dc-success font-bold' : 'text-dc-textBright'} truncate max-w-[120px]">${node.participant2_name || 'TBD'}</span>
+          <span class="text-xs ${p2Win ? 'text-dc-success font-bold' : 'text-dc-textBright'} truncate max-w-[140px]">${node.participant2_name || 'TBD'}</span>
           <span class="text-xs font-mono font-bold ${p2Win ? 'text-dc-success' : 'text-dc-text'}">${m?.participant2_score ?? '—'}</span>
         </div>
       </div>`;
+  }
+
+  /* ─── SVG bracket connector lines ────────────────────────── */
+  function drawBracketConnectors(gridId) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    // Remove old SVG if present
+    const oldSvg = grid.querySelector('svg.bracket-connectors');
+    if (oldSvg) oldSvg.remove();
+
+    const roundCols = grid.querySelectorAll('.bracket-round');
+    if (roundCols.length < 2) return;
+
+    const gridRect = grid.getBoundingClientRect();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('bracket-connectors');
+    svg.setAttribute('width', gridRect.width);
+    svg.setAttribute('height', gridRect.height);
+    svg.style.width = gridRect.width + 'px';
+    svg.style.height = gridRect.height + 'px';
+
+    // For each consecutive pair of rounds, draw connectors
+    for (let ri = 0; ri < roundCols.length - 1; ri++) {
+      const curCards = roundCols[ri].querySelectorAll('.bracket-match-card');
+      const nextCards = roundCols[ri + 1].querySelectorAll('.bracket-match-card');
+
+      // Each pair of matches in current round feeds into one match in next round
+      for (let ni = 0; ni < nextCards.length; ni++) {
+        const topIdx = ni * 2;
+        const botIdx = ni * 2 + 1;
+        const topCard = curCards[topIdx];
+        const botCard = curCards[botIdx];
+        const destCard = nextCards[ni];
+
+        if (!destCard) continue;
+
+        const destRect = destCard.getBoundingClientRect();
+        const destY = destRect.top + destRect.height / 2 - gridRect.top;
+        const destX = destRect.left - gridRect.left;
+
+        if (topCard) {
+          const topRect = topCard.getBoundingClientRect();
+          const topY = topRect.top + topRect.height / 2 - gridRect.top;
+          const topX = topRect.right - gridRect.left;
+          drawConnector(svg, topX, topY, destX, destY);
+        }
+        if (botCard) {
+          const botRect = botCard.getBoundingClientRect();
+          const botY = botRect.top + botRect.height / 2 - gridRect.top;
+          const botX = botRect.right - gridRect.left;
+          drawConnector(svg, botX, botY, destX, destY);
+        }
+      }
+    }
+
+    grid.prepend(svg);
+  }
+
+  function drawConnector(svg, x1, y1, x2, y2) {
+    const midX = x1 + (x2 - x1) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    // Right-angle stepped connector: horizontal → vertical → horizontal
+    path.setAttribute('d', `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`);
+    svg.appendChild(path);
   }
 
   /* ─── Seeding editor (S5-F2) ─────────────────────────────── */
@@ -203,7 +312,7 @@
       seed: i + 1,
     }));
     try {
-      await API.put(`/api/toc/${slug}/brackets/seeds/`, { seeds });
+      await API.put('brackets/seeds/', { seeds });
       toast('Seed order saved', 'success');
       refresh();
     } catch (e) {
@@ -215,7 +324,7 @@
   async function generate() {
     if (!confirm('Generate bracket from current registrations?')) return;
     try {
-      await API.post(`/api/toc/${slug}/brackets/generate/`);
+      await API.post('brackets/generate/');
       toast('Bracket generated', 'success');
       refresh();
     } catch (e) {
@@ -226,7 +335,7 @@
   async function resetBracket() {
     if (!confirm('RESET bracket? This deletes the current bracket and all matches. This cannot be undone.')) return;
     try {
-      await API.post(`/api/toc/${slug}/brackets/reset/`);
+      await API.post('brackets/reset/');
       toast('Bracket reset', 'info');
       refresh();
     } catch (e) {
@@ -237,7 +346,7 @@
   async function publish() {
     if (!confirm('Publish bracket? Participants will be able to see it.')) return;
     try {
-      await API.post(`/api/toc/${slug}/brackets/publish/`);
+      await API.post('brackets/publish/');
       toast('Bracket published', 'success');
       refresh();
     } catch (e) {
@@ -248,7 +357,7 @@
   /* ─── Group stage (S5-F4) ────────────────────────────────── */
   async function refreshGroups() {
     try {
-      const data = await API.get(`/api/toc/${slug}/groups/`);
+      const data = await API.get('groups/');
       renderGroups(data);
     } catch (e) {
       console.error('[brackets] groups error', e);
@@ -283,7 +392,7 @@
             <tbody>${g.standings.map(s => `
               <tr class="border-b border-dc-border/30 ${s.is_advancing ? 'bg-dc-success/5' : ''} ${s.is_eliminated ? 'opacity-50' : ''}">
                 <td class="py-1 px-1 font-mono font-bold text-dc-text">${s.rank || '—'}</td>
-                <td class="py-1 px-1 text-dc-textBright font-semibold">${s.team_id || s.user_id || '—'}</td>
+                <td class="py-1 px-1 text-dc-textBright font-semibold">${s.team_name || s.user_id || '—'}</td>
                 <td class="py-1 px-1 text-center text-dc-success font-mono">${s.wins}</td>
                 <td class="py-1 px-1 text-center text-dc-text font-mono">${s.draws}</td>
                 <td class="py-1 px-1 text-center text-dc-danger font-mono">${s.losses}</td>
@@ -328,7 +437,7 @@
 
   async function confirmGroupConfig() {
     try {
-      await API.post(`/api/toc/${slug}/groups/configure/`, {
+      await API.post('groups/configure/', {
         num_groups: parseInt($('#gc-num-groups')?.value) || 4,
         group_size: parseInt($('#gc-group-size')?.value) || 4,
         format: $('#gc-format')?.value || 'round_robin',
@@ -345,7 +454,7 @@
   async function drawGroups() {
     if (!confirm('Execute group draw?')) return;
     try {
-      await API.post(`/api/toc/${slug}/groups/draw/`, { method: 'random' });
+      await API.post('groups/draw/', { method: 'random' });
       toast('Groups drawn', 'success');
       refreshGroups();
     } catch (e) {
@@ -356,7 +465,7 @@
   /* ─── Pipelines ──────────────────────────────────────────── */
   async function refreshPipelines() {
     try {
-      const data = await API.get(`/api/toc/${slug}/pipelines/`);
+      const data = await API.get('pipelines/');
       renderPipelines(data);
     } catch (e) {
       console.error('[brackets] pipelines error', e);
@@ -415,7 +524,7 @@
     const name = $('#pl-name')?.value?.trim();
     if (!name) { toast('Name required', 'error'); return; }
     try {
-      await API.post(`/api/toc/${slug}/pipelines/`, {
+      await API.post('pipelines/', {
         name,
         description: $('#pl-desc')?.value?.trim() || '',
       });
@@ -430,7 +539,7 @@
   async function deletePipeline(id) {
     if (!confirm('Delete this pipeline?')) return;
     try {
-      await API.delete(`/api/toc/${slug}/pipelines/${id}/`);
+      await API.delete(`pipelines/${id}/`);
       toast('Pipeline deleted', 'success');
       refreshPipelines();
     } catch (e) {
@@ -458,6 +567,60 @@
     document.getElementById(id)?.remove();
   }
 
+  /* ─── Match card interaction ───────────────────────────────── */
+  function onMatchCardClick(node) {
+    if (!node || node.is_bye) return;
+    const m = node.match;
+    const state = m?.state || 'scheduled';
+    const p1Name = node.participant1_name || 'TBD';
+    const p2Name = node.participant2_name || 'TBD';
+    
+    const html = `
+      <div class="p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-display font-black text-lg text-white">Match Details</h3>
+          <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${stateColors[state] || 'border-dc-border text-dc-text'}">${state}</span>
+        </div>
+        
+        <div class="bg-dc-bg rounded-xl border border-dc-border p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex-1 text-center">
+              <p class="text-sm font-bold ${node.winner_id === node.participant1_id ? 'text-dc-success' : 'text-white'}">${p1Name}</p>
+              <p class="text-2xl font-mono font-black mt-1 ${node.winner_id === node.participant1_id ? 'text-dc-success' : 'text-dc-text'}">${m?.participant1_score ?? '—'}</p>
+            </div>
+            <div class="mx-4 text-dc-text/30 font-bold text-lg">VS</div>
+            <div class="flex-1 text-center">
+              <p class="text-sm font-bold ${node.winner_id === node.participant2_id ? 'text-dc-success' : 'text-white'}">${p2Name}</p>
+              <p class="text-2xl font-mono font-black mt-1 ${node.winner_id === node.participant2_id ? 'text-dc-success' : 'text-dc-text'}">${m?.participant2_score ?? '—'}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2 text-[10px]">
+          <div class="bg-dc-bg rounded-lg p-2 border border-dc-border/50">
+            <span class="text-dc-text">Round</span>
+            <p class="text-white font-mono font-bold">${node.round_number || '—'}</p>
+          </div>
+          <div class="bg-dc-bg rounded-lg p-2 border border-dc-border/50">
+            <span class="text-dc-text">Match</span>
+            <p class="text-white font-mono font-bold">#${node.match_number_in_round || node.position || '—'}</p>
+          </div>
+          ${m?.scheduled_time ? `
+          <div class="bg-dc-bg rounded-lg p-2 border border-dc-border/50 col-span-2">
+            <span class="text-dc-text">Scheduled</span>
+            <p class="text-white font-mono font-bold">${new Date(m.scheduled_time).toLocaleString()}</p>
+          </div>` : ''}
+        </div>
+
+        ${m && state !== 'completed' && state !== 'forfeit' ? `
+        <div class="flex gap-2">
+          ${state === 'scheduled' ? `<button onclick="TOC.matches?.markLive && TOC.matches.markLive(${m.id})" class="flex-1 py-2 bg-dc-success/20 text-dc-success text-xs font-bold rounded-lg hover:bg-dc-success/30 transition-colors">Start Match</button>` : ''}
+          ${state === 'live' ? `<button onclick="TOC.matches?.openScoreDrawer && TOC.matches.openScoreDrawer(${m.id}, '${p1Name}', '${p2Name}')" class="flex-1 py-2 bg-theme/20 text-theme text-xs font-bold rounded-lg hover:bg-theme/30 transition-colors">Enter Score</button>` : ''}
+        </div>` : ''}
+      </div>`;
+    showOverlay('bracket-match-detail', html);
+  }
+
   /* ─── Init ───────────────────────────────────────────────── */
   function init() { refresh(); }
 
@@ -466,7 +629,7 @@
     init, refresh, generate, resetBracket, publish,
     saveSeedOrder, refreshGroups, openGroupConfig, confirmGroupConfig,
     drawGroups, refreshPipelines, openCreatePipeline, confirmCreatePipeline,
-    deletePipeline, closeOverlay,
+    deletePipeline, closeOverlay, onMatchCardClick,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

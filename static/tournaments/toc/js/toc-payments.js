@@ -58,7 +58,7 @@
   /* ─── Revenue summary cards (S4-F4) ──────────────────────── */
   async function refreshRevenue() {
     try {
-      const data = await API.get(`/api/toc/${slug}/payments/summary/`);
+      const data = await API.get('payments/summary/');
       renderRevenueCards(data);
     } catch (e) {
       console.error('[payments] revenue fetch error', e);
@@ -104,7 +104,7 @@
       if (method) qs.set('method', method);
       if (search) qs.set('search', search);
 
-      const data = await API.get(`/api/toc/${slug}/payments/?${qs}`);
+      const data = await API.get(`payments/?${qs}`);
       renderPayments(data);
     } catch (e) {
       console.error('[payments] list fetch error', e);
@@ -231,7 +231,7 @@
   /* ─── Payment actions (S4-F3) ──────────────────────────────── */
   async function verify(id) {
     try {
-      await API.post(`/api/toc/${slug}/payments/${id}/verify/`);
+      await API.post(`payments/${id}/verify/`);
       toast('Payment verified', 'success');
       selectedIds.delete(id);
       refresh();
@@ -245,7 +245,7 @@
     const reason = prompt('Rejection reason:');
     if (!reason) return;
     try {
-      await API.post(`/api/toc/${slug}/payments/${id}/reject/`, { reason });
+      await API.post(`payments/${id}/reject/`, { reason });
       toast('Payment rejected', 'info');
       selectedIds.delete(id);
       refresh();
@@ -258,7 +258,7 @@
   async function bulkVerify() {
     if (!selectedIds.size) return;
     try {
-      await API.post(`/api/toc/${slug}/payments/bulk-verify/`, { payment_ids: Array.from(selectedIds) });
+      await API.post('payments/bulk-verify/', { payment_ids: Array.from(selectedIds) });
       toast(`${selectedIds.size} payments verified`, 'success');
       selectedIds.clear();
       refresh();
@@ -281,7 +281,7 @@
     const reason = $('#refund-reason').value.trim();
     if (!reason) { toast('Reason is required', 'error'); return; }
     try {
-      await API.post(`/api/toc/${slug}/payments/${id}/refund/`, { reason });
+      await API.post(`payments/${id}/refund/`, { reason });
       toast('Refund processed', 'success');
       $('#modal-refund').classList.add('hidden');
       refresh();
@@ -309,7 +309,8 @@
   /* ─── CSV export ────────────────────────────────────────────── */
   async function exportCSV() {
     try {
-      const blob = await API.getRaw(`/api/toc/${slug}/payments/export/`);
+      const res = await API.getRaw('payments/export/');
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -326,7 +327,7 @@
   /* ─── Prize Distribution (S4-F5) ───────────────────────────── */
   async function refreshPrizePool() {
     try {
-      const data = await API.get(`/api/toc/${slug}/prize-pool/`);
+      const data = await API.get('prize-pool/');
       renderPrizePool(data);
     } catch (e) {
       console.error('[payments] prize-pool error', e);
@@ -386,7 +387,7 @@
   /* ─── Bounties (S4-F7) ─────────────────────────────────────── */
   async function refreshBounties() {
     try {
-      const data = await API.get(`/api/toc/${slug}/bounties/`);
+      const data = await API.get('bounties/');
       renderBounties(data.results || data);
     } catch (e) {
       console.error('[payments] bounties error', e);
@@ -516,7 +517,7 @@
     if (prize_amount <= 0) { toast('Amount must be positive', 'error'); return; }
 
     try {
-      await API.post(`/api/toc/${slug}/bounties/`, { name, bounty_type, prize_amount, source, description, sponsor_name });
+      await API.post('bounties/', { name, bounty_type, prize_amount, source, description, sponsor_name });
       toast('Bounty created', 'success');
       // Close drawer / overlay
       if (window.TOC?.closeDrawer) window.TOC.closeDrawer();
@@ -538,7 +539,7 @@
 
   async function assignBounty(bountyId, registrationId, reason) {
     try {
-      await API.post(`/api/toc/${slug}/bounties/${bountyId}/assign/`, {
+      await API.post(`bounties/${bountyId}/assign/`, {
         registration_id: registrationId,
         reason: reason,
       });
@@ -552,7 +553,7 @@
   async function deleteBounty(bountyId) {
     if (!confirm('Delete this bounty?')) return;
     try {
-      await API.delete(`/api/toc/${slug}/bounties/${bountyId}/`);
+      await API.delete(`bounties/${bountyId}/`);
       toast('Bounty deleted', 'success');
       refreshBounties();
       refreshPrizePool();

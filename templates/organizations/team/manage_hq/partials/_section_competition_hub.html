@@ -285,6 +285,46 @@
             </div>
 
             <div id="active-tournaments-list">
+                {% if team_tournaments %}
+                <div class="space-y-2.5">
+                    {% for t in team_tournaments %}
+                    <a href="{% if t.is_live %}/tournaments/{{ t.slug }}/hub/{% else %}/tournaments/{{ t.slug }}/{% endif %}"
+                       class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/8 hover:border-emerald-500/20 hover:bg-white/[0.04] transition group block">
+                        {% if t.game_icon %}
+                        <img src="{{ t.game_icon }}" alt="" class="w-8 h-8 rounded-lg object-cover">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 grid place-items-center shrink-0">
+                            <i data-lucide="trophy" class="w-4 h-4 text-emerald-400/60"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-white group-hover:text-emerald-300 transition truncate">{{ t.name }}</div>
+                            <div class="text-[10px] text-white/30 flex items-center gap-2 mt-0.5">
+                                {% if t.game_name %}<span>{{ t.game_name }}</span>{% endif %}
+                                {% if t.tournament_start %}<span>{{ t.tournament_start|date:"M d" }}</span>{% endif %}
+                                {% if t.prize_pool %}<span class="text-amber-400/60">৳{{ t.prize_pool }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if t.is_live %}bg-red-500/15 text-red-400 animate-pulse
+                                {% elif t.status == 'registration_open' %}bg-cyan-500/15 text-cyan-400
+                                {% else %}bg-white/5 text-white/30{% endif %}">
+                                {% if t.is_live %}LIVE{% else %}{{ t.status|upper|truncatechars:10 }}{% endif %}
+                            </span>
+                            {% if t.reg_status %}
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold
+                                {% if t.reg_status == 'confirmed' %}bg-emerald-500/10 text-emerald-400
+                                {% elif t.reg_status == 'pending' %}bg-amber-500/10 text-amber-400
+                                {% else %}bg-white/5 text-white/30{% endif %}">
+                                {{ t.reg_status|title }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
                 <div class="rounded-xl border border-dashed border-white/10 p-8 text-center">
                     <div class="h-12 w-12 rounded-2xl bg-white/5 grid place-items-center mx-auto mb-3">
                         <i data-lucide="trophy" class="w-6 h-6 text-white/20"></i>
@@ -297,6 +337,7 @@
                     </a>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -314,10 +355,42 @@
             </div>
 
             <div id="upcoming-matches-list">
+                {% if team_upcoming_matches %}
+                <div class="space-y-2">
+                    {% for m in team_upcoming_matches %}
+                    <a href="/tournaments/{{ m.tournament_slug }}/matches/{{ m.match_id }}/room/"
+                       class="flex items-center gap-3 p-3 rounded-xl border transition group block
+                         {% if m.is_live %}bg-red-500/5 border-red-500/15 hover:border-red-500/30{% else %}bg-white/[0.02] border-white/8 hover:border-purple-500/20{% endif %}">
+                        <div class="w-8 h-8 rounded-lg grid place-items-center shrink-0
+                            {% if m.is_live %}bg-red-500/15{% else %}bg-purple-500/10{% endif %}">
+                            {% if m.is_live %}<i data-lucide="swords" class="w-4 h-4 text-red-400 animate-pulse"></i>
+                            {% else %}<i data-lucide="calendar-clock" class="w-4 h-4 text-purple-400"></i>{% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-white truncate">
+                                vs <span class="{% if m.is_live %}text-red-400{% else %}text-white/70{% endif %}">{{ m.opponent }}</span>
+                            </div>
+                            <div class="text-[10px] text-white/30 mt-0.5">
+                                {{ m.tournament_name|truncatewords:4 }}
+                                {% if m.round_number %} · Round {{ m.round_number }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="shrink-0 text-right">
+                            {% if m.is_live %}
+                            <span class="text-[10px] font-bold text-red-400 animate-pulse">● LIVE</span>
+                            {% elif m.scheduled_time %}
+                            <span class="text-[10px] text-white/40">{{ m.scheduled_time|date:"M d, g:i A" }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
                 <div class="rounded-xl border border-dashed border-white/10 p-6 text-center">
                     <p class="text-sm text-white/30">No upcoming matches scheduled</p>
                     <p class="text-xs text-white/20 mt-1">Matches appear here when tournament brackets are generated</p>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -400,7 +473,7 @@
                 <div class="mt-3 space-y-1.5" id="toc-stats">
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-white/40">Tournaments Entered</span>
-                        <span class="text-white/70 font-mono" id="toc-entered">—</span>
+                        <span class="text-white/70 font-mono" id="toc-entered">{{ team_tournament_count|default:"0" }}</span>
                     </div>
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-white/40">Best Placement</span>
@@ -428,10 +501,34 @@
             </div>
 
             <div id="tournament-history-list">
+                {% if team_tournament_history %}
+                <div class="space-y-2">
+                    {% for t in team_tournament_history %}
+                    <a href="/tournaments/{{ t.slug }}/"
+                       class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/8 hover:bg-white/[0.04] transition group block">
+                        {% if t.game_icon %}
+                        <img src="{{ t.game_icon }}" alt="" class="w-8 h-8 rounded-lg object-cover opacity-60">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-lg bg-white/5 grid place-items-center shrink-0">
+                            <i data-lucide="history" class="w-4 h-4 text-white/30"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-white/60 group-hover:text-white/80 transition truncate">{{ t.name }}</div>
+                            <div class="text-[10px] text-white/25 mt-0.5">
+                                {% if t.game_name %}{{ t.game_name }} · {% endif %}{{ t.tournament_start|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-white/30">Completed</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
                 <div class="rounded-xl border border-dashed border-white/10 p-6 text-center">
                     <p class="text-sm text-white/30">No tournament history yet</p>
                     <p class="text-xs text-white/20 mt-1">Results from completed tournaments will appear here</p>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>

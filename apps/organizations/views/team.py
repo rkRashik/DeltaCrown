@@ -410,6 +410,69 @@ def team_manage(request, team_slug, org_slug=None):
             except Exception:
                 pass
 
+        # ── Tournament & Match data (Competition Hub) ──
+        team_tournaments = []
+        team_tournament_count = 0
+        team_upcoming_matches = []
+        team_tournament_history = []
+        try:
+            from apps.tournaments.models import Registration, Tournament, Match
+            team_regs = (
+                Registration.objects.filter(
+                    team_id=team.id, is_deleted=False,
+                )
+                .exclude(status__in=['cancelled', 'rejected', 'draft'])
+                .select_related('tournament', 'tournament__game')
+                .order_by('-created_at')
+            )
+            team_tournament_count = team_regs.values('tournament').distinct().count()
+            for reg in team_regs[:10]:
+                t = reg.tournament
+                if t:
+                    entry = {
+                        'id': t.id,
+                        'name': t.name,
+                        'slug': getattr(t, 'slug', ''),
+                        'status': getattr(t, 'status', ''),
+                        'game_name': t.game.display_name if t.game else '',
+                        'game_icon': t.game.icon.url if t.game and t.game.icon else None,
+                        'tournament_start': getattr(t, 'tournament_start', None),
+                        'prize_pool': getattr(t, 'prize_pool', None),
+                        'format': getattr(t, 'format', ''),
+                        'reg_status': getattr(reg, 'status', ''),
+                        'is_live': t.status == 'live',
+                    }
+                    if t.status == 'completed':
+                        team_tournament_history.append(entry)
+                    else:
+                        team_tournaments.append(entry)
+
+            # Upcoming matches for this team
+            upcoming_states = ['scheduled', 'check_in', 'ready', 'live']
+            team_matches = (
+                Match.objects.filter(
+                    models.Q(participant1_id=team.id) | models.Q(participant2_id=team.id),
+                    state__in=upcoming_states,
+                    is_deleted=False,
+                )
+                .select_related('tournament')
+                .order_by('scheduled_time', 'round_number', 'match_number')[:6]
+            )
+            for m in team_matches:
+                opponent = m.participant2_name if str(m.participant1_id) == str(team.id) else m.participant1_name
+                team_upcoming_matches.append({
+                    'match_id': m.id,
+                    'tournament_name': m.tournament.name if m.tournament else '',
+                    'tournament_slug': m.tournament.slug if m.tournament else '',
+                    'opponent': opponent or 'TBD',
+                    'scheduled_time': m.scheduled_time,
+                    'round_number': m.round_number,
+                    'state': m.state,
+                    'is_live': m.state == 'live',
+                })
+        except Exception:
+            pass
+
         context = {
             'team': team,
             'members': members,
@@ -475,6 +538,11 @@ def team_manage(request, team_slug, org_slug=None):
             'org_policies': org_policies,
             # Phase 4: Economy
             'wallet_context': wallet_context,
+            # Competition Hub data
+            'team_tournaments': team_tournaments,
+            'team_tournament_count': team_tournament_count,
+            'team_upcoming_matches': team_upcoming_matches,
+            'team_tournament_history': team_tournament_history,
             # Discord bot invite URL
             'discord_bot_invite_url': (
                 f'https://discord.com/api/oauth2/authorize?client_id={settings.DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands'

@@ -91,6 +91,8 @@ def get_team_detail_context(
         'media_highlights': _build_media_highlights_context(team, is_private_restricted),
         'challenges': _build_challenges_context(team, is_private_restricted),
         'match_history': _build_match_history_context(team, is_private_restricted),
+        # Operations log — tournament participation + match results
+        'operations_log': _build_operations_log_context(team, is_private_restricted),
         # 7-Point Overhaul — recruitment & sponsors
         'recruitment': _build_recruitment_context(team, is_private_restricted),
         'sponsors': _build_sponsors_context(team, is_private_restricted),
@@ -1189,6 +1191,76 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
         pass
 
     return matches
+
+
+def _build_operations_log_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    Operations Log — team's tournament participation and match results
+    combined into a unified activity feed for the team detail page.
+    Shows live matches, recent results, and tournament registrations.
+    """
+    if is_restricted:
+        return []
+
+    ops = []
+    try:
+        from apps.tournaments.models import Match, Registration
+        from django.db.models import Q
+        from django.utils import timezone
+
+        # 1. Live + recent matches (last 10)
+        match_qs = Match.objects.filter(
+            Q(participant1_id=team.id) | Q(participant2_id=team.id),
+        ).select_related('tournament', 'tournament__game').order_by('-updated_at')[:10]
+
+        for m in match_qs:
+            is_p1 = (str(m.participant1_id) == str(team.id))
+            opponent = m.participant2_name if is_p1 else m.participant1_name
+
+            # Determine result
+            winner_id = getattr(m, 'winner_id', None)
+            state = getattr(m, 'state', '')
+            if state in ('live', 'LIVE'):
+                result = None
+                status = 'live'
+            elif str(winner_id) == str(team.id):
+                result = 'win'
+                status = 'completed'
+            elif winner_id:
+                result = 'loss'
+                status = 'completed'
+            else:
+                result = None
+                status = state.lower() if state else 'scheduled'
+
+            score = ''
+            if hasattr(m, 'score_participant1') and hasattr(m, 'score_participant2'):
+                s1 = m.score_participant1 or 0
+                s2 = m.score_participant2 or 0
+                score = f'{s1}-{s2}' if is_p1 else f'{s2}-{s1}'
+
+            prize_text = ''
+            if result == 'win' and m.tournament and m.tournament.prize_pool:
+                prize_text = f'৳{m.tournament.prize_pool:,.0f}'
+
+            ops.append({
+                'status': status,
+                'squad_name': team.name,
+                'event_name': m.tournament.name if m.tournament else 'Match',
+                'opponent': opponent or 'TBD',
+                'result': result,
+                'score': score,
+                'prize': prize_text,
+                'date': m.updated_at,
+            })
+
+        # Sort: live first, then by date
+        ops.sort(key=lambda x: (0 if x['status'] == 'live' else 1, -(x.get('date') or timezone.now()).timestamp()))
+
+    except Exception:
+        pass
+
+    return ops[:10]
 
 
 # ============================================================================

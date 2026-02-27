@@ -261,12 +261,15 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         Tournament = _safe_model("tournaments.Tournament")
         Match = _safe_model("tournaments.Match")
         if Registration and Tournament:
+            excluded_statuses = ["cancelled", "rejected", "draft"]
+            reg_filter = Q(is_deleted=False)
+            reg_filter &= ~Q(status__in=excluded_statuses)
+            reg_filter &= (Q(user=user) | Q(team_id__in=[t["id"] for t in my_teams])) if my_teams else Q(user=user)
+
             regs = (
-                Registration.objects.filter(
-                    Q(team__in=[t["id"] for t in my_teams]) | Q(user=user)
-                )
-                .select_related("tournament")
-                .order_by("-created_at")[:6]
+                Registration.objects.filter(reg_filter)
+                .select_related("tournament", "tournament__game")
+                .order_by("-created_at")[:8]
             )
             for reg in regs:
                 t = reg.tournament
@@ -276,7 +279,8 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         "name": t.name,
                         "slug": getattr(t, "slug", ""),
                         "status": getattr(t, "status", ""),
-                        "game_name": game_map.get(getattr(t, "game_id", None), ""),
+                        "game_name": t.game.display_name if t.game else game_map.get(getattr(t, "game_id", None), ""),
+                        "game_icon": t.game.icon.url if t.game and t.game.icon else None,
                         "scheduled_at": getattr(t, "scheduled_at", None),
                         "tournament_start": getattr(t, "tournament_start", None),
                         "prize_pool": getattr(t, "prize_pool", None),
@@ -284,9 +288,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         "reg_status": getattr(reg, "status", ""),
                         "is_live": getattr(t, "status", "") == "live",
                     })
-            tournament_count = Registration.objects.filter(
-                Q(team__in=[t["id"] for t in my_teams]) | Q(user=user)
-            ).values("tournament").distinct().count()
+            tournament_count = (
+                Registration.objects.filter(reg_filter)
+                .values("tournament").distinct().count()
+            )
 
         # Find user's next upcoming match across all tournaments
         if Match:

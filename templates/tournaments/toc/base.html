@@ -1,11 +1,11 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark scroll-smooth overflow-hidden antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <title>{{ tournament.name }} â€” TOC | DeltaCrown</title>
+    <title>{{ tournament.name }} — TOC | DeltaCrown</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
 
-    {# TOC-specific Tailwind overrides â€” exact design from demo_TOC.html #}
+    {# TOC-specific Tailwind overrides — exact design from demo_TOC.html #}
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -112,12 +112,12 @@
 </head>
 <body data-game="{{ game_slug }}">
 
-    {# â”€â”€ Background grid â”€â”€ #}
+    {# ── Background grid ── #}
     <div class="toc-grid-bg"></div>
 
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
-    {# SIDEBAR â€” 240px, collapsible, grouped nav                    #}
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# ══════════════════════════════════════════════════════════════ #}
+    {# SIDEBAR — 240px, collapsible, grouped nav                    #}
+    {# ══════════════════════════════════════════════════════════════ #}
     <aside id="toc-sidebar" class="w-[240px] xl:w-[260px] h-full glass-box border-r border-dc-border flex flex-col shrink-0 z-30 transition-all duration-300">
 
         {# Brand header #}
@@ -172,7 +172,7 @@
             {% endfor %}
         </nav>
 
-        {# Sidebar footer â€” user info + collapse button #}
+        {# Sidebar footer — user info + collapse button #}
         <div class="p-4 border-t border-dc-border bg-dc-bg/80 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="relative">
@@ -196,12 +196,12 @@
         </div>
     </aside>
 
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# ══════════════════════════════════════════════════════════════ #}
     {# MAIN CONTENT AREA                                             #}
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# ══════════════════════════════════════════════════════════════ #}
     <main class="flex-1 flex flex-col h-full relative z-10">
 
-        {# â”€â”€ Top bar â”€â”€ #}
+        {# ── Top bar ── #}
         <header class="h-[64px] glass-box border-b border-dc-border flex items-center justify-between px-6 shrink-0 z-20">
             {# Search / Cmd+K trigger #}
             <div class="flex-1 max-w-lg relative group">
@@ -222,7 +222,7 @@
 
             {# Status + WS indicator + Freeze controls #}
             <div class="flex items-center gap-5">
-                {# S11-F3: WebSocket live indicator â€” shows Connected when API reachable #}
+                {# S11-F3: WebSocket live indicator — shows Connected when API reachable #}
                 <div id="ws-indicator" class="flex items-center gap-1.5" title="API connection status">
                     <div id="ws-dot" class="w-2 h-2 rounded-full bg-dc-success transition-colors"></div>
                     <span id="ws-label" class="text-[10px] font-mono text-dc-success/80 uppercase">Online</span>
@@ -240,7 +240,7 @@
 
                 <div class="h-6 w-px bg-dc-borderLight"></div>
 
-                {# Dynamic action button â€” changes based on tournament state #}
+                {# Dynamic action button — changes based on tournament state #}
                 <button
                     id="toc-action-btn"
                     class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg {% if is_frozen %}bg-dc-successBg text-dc-success border border-dc-success/30 hover:bg-dc-success hover:text-white{% else %}bg-dc-dangerBg text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white{% endif %}"
@@ -252,7 +252,7 @@
             </div>
         </header>
 
-        {# â”€â”€ Freeze banner (shown when tournament frozen) â”€â”€ #}
+        {# ── Freeze banner (shown when tournament frozen) ── #}
         <div id="toc-freeze-banner" class="{% if not is_frozen %}hidden{% endif %} bg-dc-danger/10 border-b border-dc-danger/30 px-6 py-2.5 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <i data-lucide="snowflake" class="w-4 h-4 text-dc-danger animate-pulse"></i>
@@ -264,25 +264,25 @@
             </button>
         </div>
 
-        {# â”€â”€ Stale data warning banner (shown when auto-refresh fails) â”€â”€ #}
+        {# ── Stale data warning banner (shown when auto-refresh fails) ── #}
         <div id="toc-stale-banner" class="hidden bg-dc-warning/10 border-b border-dc-warning/30 px-6 py-2 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <i data-lucide="wifi-off" class="w-4 h-4 text-dc-warning animate-pulse"></i>
                 <span class="text-xs font-bold text-dc-warning uppercase tracking-widest">Data May Be Stale</span>
-                <span class="text-[10px] text-dc-text">Last refresh failed. Retrying automaticallyâ€¦</span>
+                <span class="text-[10px] text-dc-text">Last refresh failed. Retrying automatically…</span>
             </div>
             <button id="toc-stale-dismiss" class="text-[10px] font-bold text-dc-warning border border-dc-warning/30 px-3 py-1 rounded hover:bg-dc-warning/20 transition-colors">
                 Dismiss
             </button>
         </div>
 
-        {# â”€â”€ Tab content viewport â”€â”€ #}
+        {# ── Tab content viewport ── #}
         <div class="flex-1 overflow-y-auto relative" id="toc-viewport">
 
-            {# Overview tab (default visible) â€” S1-F1 through S1-F8 #}
+            {# Overview tab (default visible) — S1-F1 through S1-F8 #}
             <div id="view-overview" data-tab-content="overview" class="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
 
-                {# â”€â”€ Page title + ghost icon â”€â”€ #}
+                {# ── Page title + ghost icon ── #}
                 <div class="flex items-end justify-between mb-4 relative">
                     <i data-lucide="shield-half" class="ghost-icon w-72 h-72 -left-24 -top-16 opacity-[0.015]"></i>
                     <div class="relative">
@@ -292,7 +292,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S1-F2: Lifecycle State Machine Visualizer â”€â”€ #}
+                {# ── S1-F2: Lifecycle State Machine Visualizer ── #}
                 <div id="overview-lifecycle" class="glass-box rounded-xl p-5">
                     <div class="flex items-center gap-2 mb-4">
                         <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
@@ -309,7 +309,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S1-F1 + S1-F6: Status hero + 4-column stat grid â”€â”€ #}
+                {# ── S1-F1 + S1-F6: Status hero + 4-column stat grid ── #}
                 <div id="overview-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     {# Skeleton placeholders replaced by JS #}
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
@@ -318,35 +318,35 @@
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                 </div>
 
-                {# â”€â”€ S9-F1: Advanced Stats Dashboard â”€â”€ #}
+                {# ── S9-F1: Advanced Stats Dashboard ── #}
                 <div id="advanced-stats" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Completion</p>
-                        <p id="stat-completion" class="text-2xl font-display font-black text-dc-success">â€”</p>
+                        <p id="stat-completion" class="text-2xl font-display font-black text-dc-success">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Avg Duration</p>
-                        <p id="stat-avg-duration" class="text-2xl font-display font-black text-dc-info">â€”</p>
+                        <p id="stat-avg-duration" class="text-2xl font-display font-black text-dc-info">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">DQ Rate</p>
-                        <p id="stat-dq-rate" class="text-2xl font-display font-black text-dc-danger">â€”</p>
+                        <p id="stat-dq-rate" class="text-2xl font-display font-black text-dc-danger">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Checked In</p>
-                        <p id="stat-checked-in" class="text-2xl font-display font-black text-dc-warning">â€”</p>
+                        <p id="stat-checked-in" class="text-2xl font-display font-black text-dc-warning">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Open Disputes</p>
-                        <p id="stat-open-disputes" class="text-2xl font-display font-black text-dc-danger">â€”</p>
+                        <p id="stat-open-disputes" class="text-2xl font-display font-black text-dc-danger">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[11px] uppercase tracking-widest text-dc-text mb-1">Matches In Progress</p>
-                        <p id="stat-in-progress" class="text-2xl font-display font-black text-theme">â€”</p>
+                        <p id="stat-in-progress" class="text-2xl font-display font-black text-theme">—</p>
                     </div>
                 </div>
 
-                {# â”€â”€ Bottom row: Alerts panel + Events timeline â”€â”€ #}
+                {# ── Bottom row: Alerts panel + Events timeline ── #}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
 
                     {# S1-F4: Alerts panel #}
@@ -374,7 +374,7 @@
 
                 </div>
 
-                {# â”€â”€ S1-F3: Transition modal (hidden by default) â”€â”€ #}
+                {# ── S1-F3: Transition modal (hidden by default) ── #}
                 <div id="modal-transition" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-transition').classList.add('hidden')"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -401,13 +401,13 @@
                 </div>
             </div>
 
-            {# Participants tab â€” Sprint 2 #}
+            {# Participants tab — Sprint 2 #}
             <div id="view-participants" data-tab-content="participants" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# â”€â”€ S2-F8: Ghost icon â”€â”€ #}
+                {# ── S2-F8: Ghost icon ── #}
                 <i data-lucide="users" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# â”€â”€ S2-F2: Filter bar â”€â”€ #}
+                {# ── S2-F2: Filter bar ── #}
                 <div class="glass-box rounded-xl p-4 flex flex-wrap items-center gap-3">
                     {# Status dropdown #}
                     <div class="relative">
@@ -474,7 +474,7 @@
                     </button>
                 </div>
 
-                {# â”€â”€ S2-F1: Dense data grid â”€â”€ #}
+                {# ── S2-F1: Dense data grid ── #}
                 <div class="glass-box rounded-xl overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="data-grid w-full text-xs">
@@ -505,7 +505,7 @@
                                 </tr>
                             </thead>
                             <tbody id="participants-tbody">
-                                {# Skeleton rows â€” replaced by JS #}
+                                {# Skeleton rows — replaced by JS #}
                                 {% for _ in "12345" %}
                                 <tr class="border-b border-dc-border/50">
                                     <td class="px-3 py-3" colspan="8">
@@ -517,7 +517,7 @@
                         </table>
                     </div>
 
-                    {# â”€â”€ S2-F6: Pagination â”€â”€ #}
+                    {# ── S2-F6: Pagination ── #}
                     <div id="participants-pagination" class="flex items-center justify-between px-4 py-3 border-t border-dc-border/50 bg-dc-panel/30">
                         <span id="pagination-info" class="text-[10px] text-dc-text font-mono">Loading...</span>
                         <div id="pagination-controls" class="flex items-center gap-1">
@@ -526,11 +526,11 @@
                     </div>
                 </div>
 
-                {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+                {# ══════════════════════════════════════════════════════════ #}
                 {# Sprint 3: Advanced Participant Panels                     #}
-                {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+                {# ══════════════════════════════════════════════════════════ #}
 
-                {# â”€â”€ S3-F1: Emergency Substitution Panel â”€â”€ #}
+                {# ── S3-F1: Emergency Substitution Panel ── #}
                 <div id="emergency-sub-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
@@ -550,7 +550,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S3-F2: Free Agent Pool â”€â”€ #}
+                {# ── S3-F2: Free Agent Pool ── #}
                 <div id="free-agent-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
@@ -593,7 +593,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S3-F3: Waitlist Management â”€â”€ #}
+                {# ── S3-F3: Waitlist Management ── #}
                 <div id="waitlist-panel" class="glass-box rounded-xl overflow-hidden">
                     <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
                         <div class="flex items-center gap-2">
@@ -620,22 +620,22 @@
 
             </div>
 
-            {# Payments tab â€” Sprint 4 #}
+            {# Payments tab — Sprint 4 #}
             <div id="view-payments" data-tab-content="payments" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# â”€â”€ S4-F8: Ghost icon â€” Wallet â”€â”€ #}
+                {# ── S4-F8: Ghost icon — Wallet ── #}
                 <i data-lucide="wallet" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# â”€â”€ Page title â”€â”€ #}
+                {# ── Page title ── #}
                 <div class="flex items-end justify-between mb-2 relative">
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Financial Operations</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Payments Â· Revenue Â· Prizes Â· Bounties</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Payments · Revenue · Prizes · Bounties</p>
                     </div>
                 </div>
 
-                {# â”€â”€ S4-F4: Revenue summary cards â”€â”€ #}
+                {# ── S4-F4: Revenue summary cards ── #}
                 <div id="revenue-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
@@ -643,7 +643,7 @@
                     <div class="glass-box rounded-xl p-5 animate-pulse"><div class="h-20 bg-dc-bg rounded"></div></div>
                 </div>
 
-                {# â”€â”€ S10-F3: DeltaCoin Economy Card â”€â”€ #}
+                {# ── S10-F3: DeltaCoin Economy Card ── #}
                 <div class="glass-box rounded-xl p-5 flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full bg-dc-warning/10 border border-dc-warning/30 flex items-center justify-center">
@@ -651,7 +651,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] uppercase tracking-widest text-dc-text">DeltaCoin Economy</p>
-                            <p class="text-sm text-white font-bold mt-0.5">Pool Balance: <span id="economy-pool-balance" class="text-dc-warning">â€”</span></p>
+                            <p class="text-sm text-white font-bold mt-0.5">Pool Balance: <span id="economy-pool-balance" class="text-dc-warning">—</span></p>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -660,7 +660,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S4-F1: Payments grid â”€â”€ #}
+                {# ── S4-F1: Payments grid ── #}
                 <div class="glass-box rounded-xl overflow-hidden">
 
                     {# Filter bar #}
@@ -751,7 +751,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ Bottom row: Prize Distribution + Bounties â”€â”€ #}
+                {# ── Bottom row: Prize Distribution + Bounties ── #}
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
 
                     {# S4-F5: Prize distribution panel #}
@@ -788,7 +788,7 @@
                     </div>
                 </div>
 
-                {# â”€â”€ S4-F6: Refund modal â”€â”€ #}
+                {# ── S4-F6: Refund modal ── #}
                 <div id="modal-refund" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-refund').classList.add('hidden')"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -811,10 +811,10 @@
 
             </div>
 
-            {# Brackets tab â€” Sprint 5 #}
+            {# Brackets tab — Sprint 5 #}
             <div id="view-brackets" data-tab-content="brackets" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon â€” Git Branch #}
+                {# S5-F7: Ghost icon — Git Branch #}
                 <i data-lucide="git-branch" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + actions #}
@@ -822,7 +822,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Brackets & Draws</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Bracket Generation Â· Seeding Â· Groups Â· Pipelines</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Bracket Generation · Seeding · Groups · Pipelines</p>
                     </div>
                     {# S5-F3: Generate / Reset / Publish buttons #}
                     <div class="flex items-center gap-2">
@@ -840,11 +840,11 @@
 
                 {# Bracket info bar #}
                 <div id="bracket-info-bar" class="glass-box rounded-xl p-4 flex items-center gap-6 text-xs hidden">
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Format:</span> <span id="bracket-format" class="text-dc-textBright font-bold uppercase">â€”</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Rounds:</span> <span id="bracket-rounds" class="text-dc-textBright font-mono font-bold">â€”</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Matches:</span> <span id="bracket-matches" class="text-dc-textBright font-mono font-bold">â€”</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Seeding:</span> <span id="bracket-seeding" class="text-dc-textBright font-bold">â€”</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Status:</span> <span id="bracket-status" class="font-bold">â€”</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Format:</span> <span id="bracket-format" class="text-dc-textBright font-bold uppercase">—</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Rounds:</span> <span id="bracket-rounds" class="text-dc-textBright font-mono font-bold">—</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Matches:</span> <span id="bracket-matches" class="text-dc-textBright font-mono font-bold">—</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Seeding:</span> <span id="bracket-seeding" class="text-dc-textBright font-bold">—</span></div>
+                    <div class="flex items-center gap-2"><span class="text-dc-text">Status:</span> <span id="bracket-status" class="font-bold">—</span></div>
                 </div>
 
                 {# S5-F1: Bracket visualizer #}
@@ -914,10 +914,10 @@
                 </div>
             </div>
 
-            {# Matches tab â€” Sprint 6 #}
+            {# Matches tab — Sprint 6 #}
             <div id="view-matches" data-tab-content="matches" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S6-F7: Ghost icon â€” Swords #}
+                {# S6-F7: Ghost icon — Swords #}
                 <i data-lucide="swords" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + action buttons #}
@@ -925,7 +925,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Match Operations</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Live Matches Â· Scoring Â· Match Medic Â· Stations</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Live Matches · Scoring · Match Medic · Stations</p>
                     </div>
                     <div class="flex items-center gap-2">
                         {# Filters #}
@@ -950,23 +950,23 @@
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="glass-box rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Total</p>
-                        <p id="matches-stat-total" class="font-mono font-black text-lg text-white">â€”</p>
+                        <p id="matches-stat-total" class="font-mono font-black text-lg text-white">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
-                        <p id="matches-stat-scheduled" class="font-mono font-black text-lg text-dc-info">â€”</p>
+                        <p id="matches-stat-scheduled" class="font-mono font-black text-lg text-dc-info">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Live</p>
-                        <p id="matches-stat-live" class="font-mono font-black text-lg text-dc-success">â€”</p>
+                        <p id="matches-stat-live" class="font-mono font-black text-lg text-dc-success">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
-                        <p id="matches-stat-completed" class="font-mono font-black text-lg text-dc-textBright">â€”</p>
+                        <p id="matches-stat-completed" class="font-mono font-black text-lg text-dc-textBright">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Disputed</p>
-                        <p id="matches-stat-disputed" class="font-mono font-black text-lg text-dc-danger">â€”</p>
+                        <p id="matches-stat-disputed" class="font-mono font-black text-lg text-dc-danger">—</p>
                     </div>
                 </div>
 
@@ -1021,10 +1021,10 @@
                 <div id="match-detail-drawer" class="hidden"></div>
             </div>
 
-            {# Schedule tab â€” Sprint 5 #}
+            {# Schedule tab — Sprint 5 #}
             <div id="view-schedule" data-tab-content="schedule" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon â€” Calendar #}
+                {# S5-F7: Ghost icon — Calendar #}
                 <i data-lucide="calendar" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title #}
@@ -1032,7 +1032,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Schedule Manager</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline Â· Auto-Schedule Â· Bulk Shift Â· Breaks</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline · Auto-Schedule · Bulk Shift · Breaks</p>
                     </div>
                     {# S5-F6: Schedule action buttons #}
                     <div class="flex items-center gap-2">
@@ -1052,19 +1052,19 @@
                 <div id="schedule-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Total Matches</p>
-                        <p id="sched-total-matches" class="font-mono font-black text-xl text-white">â€”</p>
+                        <p id="sched-total-matches" class="font-mono font-black text-xl text-white">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
-                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-success">â€”</p>
+                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-success">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">In Progress</p>
-                        <p id="sched-live" class="font-mono font-black text-xl text-dc-warning">â€”</p>
+                        <p id="sched-live" class="font-mono font-black text-xl text-dc-warning">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
                         <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
-                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-info">â€”</p>
+                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-info">—</p>
                     </div>
                 </div>
 
@@ -1091,10 +1091,10 @@
                 </div>
             </div>
 
-            {# Disputes tab â€” Sprint 7 #}
+            {# Disputes tab — Sprint 7 #}
             <div id="view-disputes" data-tab-content="disputes" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
 
-                {# S7-F7: Ghost icon â€” Scale #}
+                {# S7-F7: Ghost icon — Scale #}
                 <i data-lucide="scale" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
                 {# Page title + filters #}
@@ -1102,7 +1102,7 @@
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Dispute Resolution</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Queue Â· Evidence Â· Rulings Â· Escalation</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Queue · Evidence · Rulings · Escalation</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <select id="dispute-filter-status" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
@@ -1126,7 +1126,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Open Disputes</p>
-                            <p id="disputes-open-count" class="font-mono font-black text-xl text-dc-danger">â€”</p>
+                            <p id="disputes-open-count" class="font-mono font-black text-xl text-dc-danger">—</p>
                         </div>
                     </div>
                     <div class="glass-box rounded-xl px-6 py-3 flex items-center gap-3">
@@ -1135,7 +1135,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Under Review</p>
-                            <p id="disputes-review-count" class="font-mono font-black text-xl text-dc-warning">â€”</p>
+                            <p id="disputes-review-count" class="font-mono font-black text-xl text-dc-warning">—</p>
                         </div>
                     </div>
                     <div class="glass-box rounded-xl px-6 py-3 flex items-center gap-3">
@@ -1144,7 +1144,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Escalated</p>
-                            <p id="disputes-escalated-count" class="font-mono font-black text-xl text-purple-400">â€”</p>
+                            <p id="disputes-escalated-count" class="font-mono font-black text-xl text-purple-400">—</p>
                         </div>
                     </div>
                 </div>
@@ -1171,7 +1171,7 @@
                 {# Ghost icon #}
                 <i data-lucide="megaphone" class="ghost-icon w-72 h-72 fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none"></i>
 
-                {# Header row â€” title + compose + quick comms #}
+                {# Header row — title + compose + quick comms #}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Announcements</h2>
@@ -1258,7 +1258,7 @@
                     </button>
                 </div>
 
-                {# â”€â”€â”€ Section: Basic Info â”€â”€â”€ #}
+                {# ─── Section: Basic Info ─── #}
                 <details open class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1290,7 +1290,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Format & Registration â”€â”€â”€ #}
+                {# ─── Section: Format & Registration ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1337,7 +1337,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Prizes â”€â”€â”€ #}
+                {# ─── Section: Prizes ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1361,7 +1361,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Game Match Config â”€â”€â”€ #}
+                {# ─── Section: Game Match Config ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1399,7 +1399,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Map Pool â”€â”€â”€ #}
+                {# ─── Section: Map Pool ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1420,7 +1420,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Server Regions â”€â”€â”€ #}
+                {# ─── Section: Server Regions ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1441,7 +1441,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Rulebook â”€â”€â”€ #}
+                {# ─── Section: Rulebook ─── #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1462,7 +1462,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: BR Scoring (conditional) â”€â”€â”€ #}
+                {# ─── Section: BR Scoring (conditional) ─── #}
                 <details class="glass-box rounded-xl group" id="settings-br-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1487,7 +1487,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Certificate Templates (S9-F2 + S9-F3) â”€â”€â”€ #}
+                {# ─── Section: Certificate Templates (S9-F2 + S9-F3) ─── #}
                 <details class="glass-box rounded-xl group" id="settings-cert-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1513,7 +1513,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Staff Management (S10-F1) â”€â”€â”€ #}
+                {# ─── Section: Staff Management (S10-F1) ─── #}
                 <details class="glass-box rounded-xl group" id="settings-staff-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1534,7 +1534,7 @@
                     </div>
                 </details>
 
-                {# â”€â”€â”€ Section: Audit Log (S11-F1) â”€â”€â”€ #}
+                {# ─── Section: Audit Log (S11-F1) ─── #}
                 <details class="glass-box rounded-xl group" id="settings-audit-section">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -1565,7 +1565,7 @@
                 </details>
             </div>
 
-    {# â”€â”€ Right slide-out drawer â”€â”€ #}
+    {# ── Right slide-out drawer ── #}
     <div id="toc-drawer" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="TOC.drawer.close()"></div>
         <div class="absolute right-0 top-0 bottom-0 w-[500px] max-w-full bg-dc-surface border-l border-dc-border shadow-2xl flex flex-col transform translate-x-0 transition-transform duration-300">
@@ -1580,7 +1580,7 @@
         </div>
     </div>
 
-    {# â”€â”€ Command Palette (Cmd+K) â”€â”€ #}
+    {# ── Command Palette (Cmd+K) ── #}
     <div id="cmd-palette" class="fixed inset-0 z-[110] hidden flex items-start justify-center pt-[20vh]">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="TOC.cmdk.close()"></div>
         <div class="relative z-10 w-full max-w-xl bg-dc-surface border border-dc-borderLight rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden">
@@ -1608,7 +1608,7 @@
         </div>
     </div>
 
-    {# â”€â”€ Freeze Modal â”€â”€ #}
+    {# ── Freeze Modal ── #}
     <div id="modal-freeze" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-freeze').classList.add('hidden')"></div>
         <div class="bg-dc-surface border border-dc-danger shadow-[0_0_50px_rgba(255,42,85,0.3)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -1631,12 +1631,12 @@
         </div>
     </div>
 
-    {# â”€â”€ Toast stack â”€â”€ #}
+    {# ── Toast stack ── #}
     <div id="toc-toast-stack" class="fixed bottom-6 right-6 z-[120] flex flex-col gap-3 pointer-events-none"></div>
 
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# ══════════════════════════════════════════════════════════════ #}
     {# CONFIG INJECTION + SCRIPTS                                    #}
-    {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+    {# ══════════════════════════════════════════════════════════════ #}
     <script>
         window.TOC_CONFIG = {
             tournamentSlug: '{{ tournament.slug }}',
