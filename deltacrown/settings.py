@@ -915,6 +915,17 @@ DISCORD_NOTIFICATIONS_ENABLED = bool(DISCORD_WEBHOOK_URL)
 # Create a bot at https://discord.com/developers/applications
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN', '')
 DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '') or os.getenv('DISCORD_APPLICATION_ID', '')  # For OAuth2 bot invite URL
+DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', '')  # OAuth2 client secret
+
+# Guild / server identity
+DISCORD_GUILD_ID = os.getenv('DISCORD_GUILD_ID', '')  # The DeltaCrown Discord Server ID
+
+# Role IDs (set these once the bot is registered in the server)
+DISCORD_LINKED_ROLE_ID = os.getenv('DISCORD_LINKED_ROLE_ID', '')  # @Linked role granted on OAuth link
+
+# Channel IDs for platform → Discord webhook announcements
+DISCORD_TOURNAMENT_ANNOUNCEMENTS_CHANNEL_ID = os.getenv('DISCORD_TOURNAMENT_ANNOUNCEMENTS_CHANNEL_ID', '')
+DISCORD_MATCH_RESULTS_CHANNEL_ID = os.getenv('DISCORD_MATCH_RESULTS_CHANNEL_ID', '')
 
 # -----------------------------------------------------------------------------
 # Notification Preferences

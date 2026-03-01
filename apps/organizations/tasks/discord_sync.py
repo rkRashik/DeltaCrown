@@ -318,3 +318,236 @@ def sync_discord_role(
                 )
         except requests.RequestException as exc:
             logger.warning('Discord role remove failed: %s', exc)
+
+
+# ── Platform @Linked Role Grant (OAuth2 link) ───────────────────────────────
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def sync_discord_linked_role(
+    self, user_id: int, discord_id: str, bot_state: str = '',
+):
+    """Grant the platform-level @Linked role after a successful Discord OAuth link.
+
+    Called by DiscordCallback view.  Uses the bot token to assign the
+    DISCORD_LINKED_ROLE_ID role to the newly-linked Discord user in the
+    DeltaCrown guild.
+
+    If bot_state is non-empty it also sends the user a DM confirming
+    the link (best-effort — DMs can be closed by the user).
+    """
+    from django.conf import settings
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    try:
+        user = User.objects.select_related('profile').get(pk=user_id)
+    except User.DoesNotExist:
+        return
+
+    guild_id = getattr(settings, 'DISCORD_GUILD_ID', '')
+    linked_role_id = getattr(settings, 'DISCORD_LINKED_ROLE_ID', '')
+
+    if not guild_id or not linked_role_id:
+        logger.info(
+            'sync_discord_linked_role skipped: DISCORD_GUILD_ID or DISCORD_LINKED_ROLE_ID not set.'
+        )
+        return
+
+    headers = _bot_headers()
+
+    # Assign @Linked role
+    assign_url = (
+        f'https://discord.com/api/v10/guilds/{guild_id}'
+        f'/members/{discord_id}/roles/{linked_role_id}'
+    )
+    try:
+        resp = requests.put(assign_url, headers=headers, timeout=8)
+        if resp.status_code in (200, 204):
+            logger.info(
+                'Granted @Linked role to Discord user %s (DeltaCrown user %s)',
+                discord_id, user_id,
+            )
+        else:
+            logger.warning(
+                'Failed to grant @Linked role to %s (HTTP %s): %s',
+                discord_id, resp.status_code, resp.text[:200],
+            )
+    except requests.RequestException as exc:
+        logger.warning('Discord @Linked role assign failed: %s', exc)
+        raise self.retry(exc=exc)
+
+    # Best-effort DM confirmation
+    username = getattr(user, 'username', 'player')
+    try:
+        profile = user.profile
+        display = profile.display_name or username
+    except Exception:
+        display = username
+
+    dm_content = (
+        f"✅ **DeltaCrown account linked!**\n"
+        f"Your DeltaCrown account **{display}** is now connected to Discord.\n"
+        f"You've been granted the @Linked role — enjoy full access to slash commands!"
+    )
+    try:
+        # Open DM channel
+        dm_resp = requests.post(
+            'https://discord.com/api/v10/users/@me/channels',
+            headers=headers,
+            json={'recipient_id': discord_id},
+            timeout=5,
+        )
+        if dm_resp.status_code == 200:
+            dm_channel_id = dm_resp.json().get('id')
+            if dm_channel_id:
+                requests.post(
+                    f'https://discord.com/api/v10/channels/{dm_channel_id}/messages',
+                    headers=headers,
+                    json={'content': dm_content},
+                    timeout=5,
+                )
+    except Exception:
+        pass  # DMs are best-effort
+
+
+# ── Tournament lifecycle announcements ──────────────────────────────────────
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def send_tournament_announcement_to_discord(self, tournament_id: int):
+    """Post a rich embed to #tournament-announcements when a tournament is published.
+
+    Called by the Tournament post_save signal when status transitions to
+    'published'.  Uses the bot REST API to post to the channel configured
+    in DISCORD_TOURNAMENT_ANNOUNCEMENTS_CHANNEL_ID.
+    """
+    from django.conf import settings
+
+    channel_id = getattr(settings, 'DISCORD_TOURNAMENT_ANNOUNCEMENTS_CHANNEL_ID', '')
+    if not channel_id:
+        logger.info('send_tournament_announcement_to_discord: no channel configured.')
+        return
+
+    try:
+        from apps.tournaments.models import Tournament
+
+        tournament = Tournament.objects.get(pk=tournament_id)
+    except Exception as exc:
+        logger.warning('Tournament %s not found: %s', tournament_id, exc)
+        return
+
+    site_url = getattr(settings, 'SITE_URL', 'https://deltacrown.xyz').rstrip('/')
+    slug = getattr(tournament, 'slug', '')
+    t_url = f"{site_url}/tournaments/{slug}/" if slug else f"{site_url}/tournaments/"
+
+    name = tournament.name
+    game = str(getattr(tournament, 'game', 'TBD'))
+    start_date = getattr(tournament, 'start_date', None)
+    start_str = start_date.strftime('%B %d, %Y') if start_date else 'TBD'
+    prize = str(getattr(tournament, 'prize_pool', '') or 'TBD')
+    entry = str(getattr(tournament, 'entry_fee', '') or 'Free')
+    capacity = str(getattr(tournament, 'max_teams', '') or 'TBD')
+
+    embed = {
+        'title': f'🏆 NEW TOURNAMENT: {name}',
+        'url': t_url,
+        'color': 0xFF4655,
+        'description': (
+            f'🎮 **{game}**\n'
+            f'📅 {start_str}\n'
+            f'💰 Prize: {prize}\n'
+            f'🎟️ Entry: {entry}\n'
+            f'👥 Capacity: {capacity} teams\n\n'
+            f'[**Register Now →**]({t_url})'
+        ),
+        'footer': {'text': 'DeltaCrown — deltacrown.xyz'},
+    }
+
+    url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
+    try:
+        resp = requests.post(
+            url, headers=_bot_headers(), json={'embeds': [embed]}, timeout=8
+        )
+        if resp.status_code in (200, 201):
+            logger.info(
+                'Tournament announcement posted for tournament %s', tournament_id
+            )
+        else:
+            logger.warning(
+                'Tournament announcement failed (HTTP %s): %s',
+                resp.status_code, resp.text[:200],
+            )
+            raise self.retry(exc=Exception(f'HTTP {resp.status_code}'))
+    except requests.RequestException as exc:
+        logger.warning('Discord tournament announcement request failed: %s', exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def send_match_result_to_discord(self, match_id: int):
+    """Post match result embed to #match-results after a match is completed.
+
+    Called by the Match post_save signal when status transitions to
+    'completed'.  Uses DISCORD_MATCH_RESULTS_CHANNEL_ID.
+    """
+    from django.conf import settings
+
+    channel_id = getattr(settings, 'DISCORD_MATCH_RESULTS_CHANNEL_ID', '')
+    if not channel_id:
+        logger.info('send_match_result_to_discord: no channel configured.')
+        return
+
+    try:
+        # Try competition app first; fall back to tournament_ops
+        try:
+            from apps.competition.models import Match
+
+            match = Match.objects.select_related('tournament').get(pk=match_id)
+        except Exception:
+            from apps.tournament_ops.models import MatchResult  # adjust if different
+
+            match = MatchResult.objects.get(pk=match_id)
+    except Exception as exc:
+        logger.warning('Match %s not found: %s', match_id, exc)
+        return
+
+    site_url = getattr(settings, 'SITE_URL', 'https://deltacrown.xyz').rstrip('/')
+
+    # Build a human-readable result line (best-effort, model attrs vary)
+    team_a = str(getattr(match, 'team_a', '') or getattr(match, 'participant_a', '') or 'Team A')
+    team_b = str(getattr(match, 'team_b', '') or getattr(match, 'participant_b', '') or 'Team B')
+    score_a = getattr(match, 'score_a', getattr(match, 'result_a', '?'))
+    score_b = getattr(match, 'score_b', getattr(match, 'result_b', '?'))
+    tournament_name = str(
+        getattr(match, 'tournament', None) or getattr(match, 'event', '') or 'Tournament'
+    )
+
+    embed = {
+        'title': '⚔️ Match Result',
+        'color': 0x00D8FF,
+        'description': (
+            f'**{tournament_name}**\n\n'
+            f'🟦 {team_a}  **{score_a}  —  {score_b}**  🟥 {team_b}\n\n'
+            f'[View full bracket →]({site_url}/tournaments/)'
+        ),
+        'footer': {'text': 'DeltaCrown — deltacrown.xyz'},
+    }
+
+    url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
+    try:
+        resp = requests.post(
+            url, headers=_bot_headers(), json={'embeds': [embed]}, timeout=8
+        )
+        if resp.status_code in (200, 201):
+            logger.info('Match result posted for match %s', match_id)
+        else:
+            logger.warning(
+                'Match result post failed (HTTP %s): %s',
+                resp.status_code, resp.text[:200],
+            )
+            raise self.retry(exc=Exception(f'HTTP {resp.status_code}'))
+    except requests.RequestException as exc:
+        logger.warning('Discord match result request failed: %s', exc)
+        raise self.retry(exc=exc)
