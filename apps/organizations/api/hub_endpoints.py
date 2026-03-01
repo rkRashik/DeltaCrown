@@ -141,22 +141,19 @@ def ticker_feed(request):
         
         # 4. Recent match results (optional - guarded by import)
         try:
-            from apps.matches.models import Match
+            from apps.tournaments.models import Match
             recent_matches = Match.objects.filter(
-                status='COMPLETED',
+                state=Match.COMPLETED,
                 completed_at__gte=cutoff_date
-            ).select_related('team_a', 'team_b', 'tournament').order_by('-completed_at')[:3]
+            ).select_related('tournament').order_by('-completed_at')[:3]
             
             for match in recent_matches:
-                if match.team_a and match.team_b:
-                    winner = match.team_a if match.score_team_a > match.score_team_b else match.team_b
+                if match.participant1_name and match.participant2_name:
                     items.append({
                         'type': 'match_result',
                         'timestamp': match.completed_at.isoformat(),
-                        'title': f"{match.team_a.name} {match.score_team_a}-{match.score_team_b} {match.team_b.name}",
+                        'title': f"{match.participant1_name} {match.participant1_score}-{match.participant2_score} {match.participant2_name}",
                         'subtitle': match.tournament.name if match.tournament else "Competitive Match",
-                        'team_slug': winner.slug,
-                        'team_url': winner.get_absolute_url(),
                     })
         except ImportError:
             # Match model doesn't exist - skip

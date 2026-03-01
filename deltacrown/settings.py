@@ -412,7 +412,13 @@ if not db_config:
     raise ImproperlyConfigured(f"Failed to parse database URL for {db_label} environment")
 
 # Apply optimized connection settings
-db_config['CONN_MAX_AGE'] = 600
+# Neon serverless Postgres drops idle connections; CONN_MAX_AGE=0 closes
+# the DB connection after every request so Django never reuses a stale socket.
+# CONN_HEALTH_CHECKS is kept True as a safety net for any edge-case reuse.
+if "neon.tech" in database_url:
+    db_config['CONN_MAX_AGE'] = 0
+else:
+    db_config['CONN_MAX_AGE'] = 600
 db_config['CONN_HEALTH_CHECKS'] = True
 
 # SSL Configuration for Neon

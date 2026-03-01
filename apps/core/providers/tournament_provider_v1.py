@@ -214,14 +214,14 @@ class TournamentProviderV1(ITournamentProvider):
     def get_match(self, match_id: int) -> Any:
         """Get match by ID"""
         return self.Match.objects.select_related(
-            'tournament', 'team_a', 'team_b', 'user_a', 'user_b'
+            'tournament', 'bracket'
         ).get(id=match_id)
     
     def get_tournament_matches(self, tournament_id: int, round_no: Optional[int] = None) -> List[Any]:
         """Get matches for tournament"""
         queryset = self.Match.objects.filter(
             tournament_id=tournament_id
-        ).select_related('team_a', 'team_b', 'user_a', 'user_b')
+        ).select_related('tournament', 'bracket')
         
         if round_no is not None:
             queryset = queryset.filter(round_no=round_no)

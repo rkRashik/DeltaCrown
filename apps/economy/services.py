@@ -260,13 +260,19 @@ def award_placements(tournament) -> List[DeltaCrownTransaction]:
         if policy.top4 > 0 and getattr(final, "round_no", None):
             semis = (
                 Match.objects.filter(tournament=tournament, round_no=final.round_no - 1, position__in=[1, 2])
-                .select_related("team_a", "team_b", "winner_team")
+                .select_related("tournament")
                 .all()
             )
             for m in semis:
-                if not (m.team_a_id and m.team_b_id and m.winner_team_id):
+                if not (m.participant1_id and m.participant2_id and m.winner_id):
                     continue
-                loser_team = m.team_b if m.winner_team_id == m.team_a_id else m.team_a
+                loser_id = m.participant2_id if m.winner_id == m.participant1_id else m.participant1_id
+                # Look up Team object for captain_profile()
+                from apps.teams.models import Team
+                try:
+                    loser_team = Team.objects.get(pk=loser_id)
+                except Team.DoesNotExist:
+                    continue
                 cp = captain_profile(loser_team)
                 if cp:
                     awards.append(
