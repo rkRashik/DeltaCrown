@@ -135,7 +135,9 @@ class Command(BaseCommand):
         @bot.event
         async def on_ready():
             nonlocal channel_map
-            channel_map = build_channel_map()
+            # Wrap the synchronous ORM map builder in a thread
+            channel_map = await asyncio.to_thread(build_channel_map)
+
             guild_count = len(bot.guilds)
             logger.info(
                 "Discord bot logged in as %s -- %d guilds, %d channels tracked",
@@ -150,15 +152,18 @@ class Command(BaseCommand):
                 )
             )
 
-            try:
-                from django.core.cache import cache
+            def _update_team_status():
+                try:
+                    from django.core.cache import cache
+                    for g in bot.guilds:
+                        cache.set(f"discord_bot_online:{g.id}", True, timeout=120)
+                    connected = {str(g.id) for g in bot.guilds}
+                    Team.objects.filter(discord_guild_id__in=connected).update(discord_bot_active=True)
+                except Exception as e:
+                    logger.error(f"Error updating team status: {e}")
 
-                for g in bot.guilds:
-                    cache.set(f"discord_bot_online:{g.id}", True, timeout=120)
-                connected = {str(g.id) for g in bot.guilds}
-                Team.objects.filter(discord_guild_id__in=connected).update(discord_bot_active=True)
-            except Exception:
-                pass
+            # Wrap the synchronous ORM status updater in a thread
+            await asyncio.to_thread(_update_team_status)
 
             # Sync slash commands -- guild-scoped is instant; global takes up to 1 hr
             try:
