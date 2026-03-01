@@ -2,6 +2,16 @@
 <!doctype html>
 <html lang="en" data-theme="system" class="h-full">
   <head>
+    <!-- Google Analytics (production only) -->
+    {% if not debug %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B3V6T6X4FV"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-B3V6T6X4FV');
+    </script>
+    {% endif %}
     <!-- Preconnect for Google auth fonts/icons -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <meta name="theme-color" content="#0b1220">
