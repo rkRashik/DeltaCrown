@@ -4,7 +4,7 @@ from .views import (
     DCLoginView, DCLogoutView, SignUpView, profile_view,
     VerifyEmailView, ResendOTPView,
     GoogleLoginStart, GoogleCallback,
-    DiscordLinkStart, DiscordCallback,
+    DiscordLinkStart, DiscordCallback, DiscordUnlink,
     SafePasswordResetView,
 )
 from .deletion_api import (
@@ -59,6 +59,7 @@ urlpatterns = [
     # Discord OAuth2 Account Linking
     path("discord/link", DiscordLinkStart.as_view(), name="discord_link"),
     path("discord/callback/", DiscordCallback.as_view(), name="discord_callback"),
+    path("discord/unlink/", DiscordUnlink.as_view(), name="discord_unlink"),
     
     # Account Deletion API
     path("me/settings/account-deletion/schedule/", schedule_deletion_view, name="schedule_deletion"),

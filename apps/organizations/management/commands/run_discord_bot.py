@@ -177,6 +177,34 @@ class Command(BaseCommand):
             except Exception as exc:
                 logger.warning("Failed to sync slash commands: %s", exc)
 
+        # -- Member Join Auto-Sync --------------------------------------------
+        @bot.event
+        async def on_member_join(member: discord.Member):
+            """Auto-assign @Linked role if the joining member already linked on the website."""
+            def _check_and_get_role():
+                from apps.user_profile.models_main import SocialLink
+                from django.conf import settings as django_settings
+
+                is_linked = SocialLink.objects.filter(
+                    platform="discord",
+                    url=f"https://discord.com/users/{member.id}"
+                ).exists()
+
+                if is_linked:
+                    return getattr(django_settings, "DISCORD_LINKED_ROLE_ID", None)
+                return None
+
+            role_id_str = await asyncio.to_thread(_check_and_get_role)
+
+            if role_id_str:
+                role = member.guild.get_role(int(role_id_str))
+                if role:
+                    try:
+                        await member.add_roles(role)
+                        logger.info("Auto-assigned Linked role to returning user %s", member.display_name)
+                    except Exception as e:
+                        logger.warning("Failed to auto-assign role to %s: %s", member.display_name, e)
+
         # -- on_message (chat & announcement sync) ----------------------------
         @bot.event
         async def on_message(message: discord.Message):

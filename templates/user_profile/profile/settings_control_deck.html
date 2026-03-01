@@ -932,17 +932,48 @@
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="z-label">
-                                        <i class="fa-brands fa-discord text-indigo-400"></i> Discord Username
+                                        <i class="fa-brands fa-discord text-indigo-400"></i> Discord Account
                                     </label>
-                                    <input type="text" name="discord_username" class="z-input" value="{{ discord_link.handle|default:'' }}" placeholder="username#1234 or just username" oninput="markUnsaved()">
-                                    <p class="text-xs text-gray-500 mt-1">Your Discord username (others can add you as a friend)</p>
+
+                                    {% if discord_link and discord_link.is_verified %}
+                                    <!-- ── LINKED STATE: readonly fields + Unlink button ── -->
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
+                                            <i class="fa-solid fa-circle-check text-[10px]"></i> Linked
+                                        </span>
+                                        <span class="text-sm text-gray-300 font-medium">{{ discord_link.handle }}</span>
+                                    </div>
+                                    <input type="text" name="discord_username" class="z-input opacity-60 cursor-not-allowed" value="{{ discord_link.handle|default:'' }}" readonly>
+                                    <p class="text-xs text-gray-500 mt-1">Connected via Discord OAuth — this field is read-only</p>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="z-label">
                                         <i class="fa-solid fa-link text-indigo-400"></i> Discord Link
                                     </label>
-                                    <input type="url" name="discord_link" class="z-input" value="{{ discord_link.url|default:'' }}" placeholder="https://discord.gg/invite or https://discord.com/users/123456789" oninput="markUnsaved()">
-                                    <p class="text-xs text-gray-500 mt-1">Your Discord profile link, server invite, or friend link (shown on your public profile)</p>
+                                    <input type="url" name="discord_link" class="z-input opacity-60 cursor-not-allowed" value="{{ discord_link.url|default:'' }}" readonly>
+                                    <p class="text-xs text-gray-500 mt-1 flex items-center justify-between">
+                                        <span>Your verified Discord profile link</span>
+                                        <button type="button" onclick="unlinkDiscord()" class="text-red-400 hover:text-red-300 transition-colors text-xs font-semibold flex items-center gap-1">
+                                            <i class="fa-solid fa-link-slash text-[10px]"></i> Unlink Discord
+                                        </button>
+                                    </p>
+                                </div>
+
+                                    {% else %}
+                                    <!-- ── NOT LINKED: Connect button ── -->
+                                    <div class="flex flex-col items-center gap-4 py-6 px-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+                                        <div class="text-center">
+                                            <p class="text-gray-300 text-sm font-medium mb-1">Connect your Discord account for the full experience</p>
+                                            <p class="text-gray-500 text-xs">Get the @Linked role, slash commands, and seamless team chat sync</p>
+                                        </div>
+                                        <a href="{% url 'account:discord_link' %}" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-sm tracking-wide transition-all duration-200 shadow-lg shadow-[#5865F2]/25 hover:shadow-[#5865F2]/40 hover:scale-[1.02]">
+                                            <i class="fa-brands fa-discord text-lg"></i> Connect Discord
+                                        </a>
+                                        <p class="text-gray-600 text-[11px]">Or use <code class="text-indigo-400">/link</code> in the DeltaCrown Discord server</p>
+                                    </div>
+                                    <!-- Hidden inputs so form submission doesn't clear existing data -->
+                                    <input type="hidden" name="discord_username" value="{{ discord_link.handle|default:'' }}">
+                                    <input type="hidden" name="discord_link" value="{{ discord_link.url|default:'' }}">
                                 </div>
                             </div>
                         </div>
@@ -2922,6 +2953,29 @@
             // Restore button
             button.disabled = false;
             button.innerHTML = originalHTML;
+        }
+    }
+
+    // ========== DISCORD UNLINK ==========
+    async function unlinkDiscord() {
+        if (!confirm('Unlink your Discord account? This will remove your @Linked role in the DeltaCrown server.')) return;
+        try {
+            const resp = await fetch('{% url "account:discord_unlink" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showToast('Discord account unlinked', 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast(data.message || 'Unlink failed', 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
         }
     }
 

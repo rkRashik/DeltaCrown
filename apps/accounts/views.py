@@ -9,9 +9,10 @@ from django.core.cache import cache
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -558,3 +559,37 @@ class DiscordCallback(View):
         )
         return redirect(reverse("user_profile:settings"))
 
+
+class DiscordUnlink(LoginRequiredMixin, View):
+    """Unlink a user's Discord account.
+
+    Deletes the verified SocialLink(platform='discord') and queues a Celery
+    task to strip the @Linked role from the DeltaCrown guild.
+
+    URL: /account/discord/unlink/
+    """
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        from apps.user_profile.models import SocialLink
+
+        try:
+            link = SocialLink.objects.get(user=request.user, platform="discord")
+        except SocialLink.DoesNotExist:
+            return JsonResponse({"success": False, "message": "No Discord account linked."})
+
+        # Extract discord_id from the stored URL (https://discord.com/users/<id>)
+        discord_id = ""
+        if link.url and "/users/" in link.url:
+            discord_id = link.url.rsplit("/", 1)[-1]
+
+        link.delete()
+
+        # Queue role-strip task (fire-and-forget)
+        if discord_id:
+            try:
+                from apps.organizations.tasks.discord_sync import strip_discord_linked_role
+                strip_discord_linked_role.delay(discord_id=discord_id)
+            except Exception as exc:
+                logger.warning("Could not queue strip_discord_linked_role: %s", exc)
+
+        return JsonResponse({"success": True, "message": "Discord account unlinked."})

@@ -551,3 +551,37 @@ def send_match_result_to_discord(self, match_id: int):
     except requests.RequestException as exc:
         logger.warning('Discord match result request failed: %s', exc)
         raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def strip_discord_linked_role(self, discord_id: str):
+    """Remove the @Linked role from a user who unlinked their account.
+
+    Called by DiscordUnlink view.  Uses the bot token to remove the
+    DISCORD_LINKED_ROLE_ID role from the given Discord user in the guild.
+    """
+    from django.conf import settings as django_settings
+
+    guild_id = getattr(django_settings, 'DISCORD_GUILD_ID', '')
+    linked_role_id = getattr(django_settings, 'DISCORD_LINKED_ROLE_ID', '')
+
+    if not guild_id or not linked_role_id:
+        logger.info('strip_discord_linked_role skipped: guild/role ID not configured.')
+        return
+
+    url = (
+        f'https://discord.com/api/v10/guilds/{guild_id}'
+        f'/members/{discord_id}/roles/{linked_role_id}'
+    )
+    try:
+        resp = requests.delete(url, headers=_bot_headers(), timeout=8)
+        if resp.status_code in (200, 204):
+            logger.info('Stripped @Linked role from Discord user %s', discord_id)
+        else:
+            logger.warning(
+                'Failed to strip @Linked role from %s (HTTP %s): %s',
+                discord_id, resp.status_code, resp.text[:200],
+            )
+    except requests.RequestException as exc:
+        logger.warning('Discord role strip request failed: %s', exc)
+        raise self.retry(exc=exc)
