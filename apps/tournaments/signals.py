@@ -276,6 +276,15 @@ def handle_match_state_change(sender, instance, created, **kwargs):
         #         email_template=email_template if EMAIL_ENABLED else None,
         #         email_ctx={'match': instance, 'tournament': tournament} if EMAIL_ENABLED else None
         #     )
+        
+        # ── Discord match-result webhook on COMPLETED ──
+        if new_state == Match.COMPLETED:
+            try:
+                from apps.organizations.tasks.discord_sync import send_match_result_to_discord
+                send_match_result_to_discord.delay(instance.pk)
+                logger.info(f"Queued Discord match result for match {instance.pk}")
+            except Exception as e:
+                logger.error(f"Failed to queue Discord match result: {e}")
 
 
 @receiver(pre_save, sender=Match)
@@ -300,14 +309,15 @@ def track_match_state_change(sender, instance, **kwargs):
 # ===========================
 
 @receiver(post_save, sender=Tournament)
-def handle_tournament_completed(sender, instance, created, **kwargs):
+def handle_tournament_status_change(sender, instance, created, **kwargs):
     """
-    Notify all participants when tournament is completed.
+    Handle tournament status transitions.
     
     Events:
-    - tournament_completed: Status changes to COMPLETED
+    - tournament_published: Status changes to PUBLISHED → Discord announcement
+    - tournament_completed: Status changes to COMPLETED → participant notifications
     
-    Recipients: All confirmed registrations
+    Recipients: All confirmed registrations (for completed)
     
     Feature Flags:
     - NOTIFICATIONS_EMAIL_ENABLED: Send email notifications
@@ -328,7 +338,20 @@ def handle_tournament_completed(sender, instance, created, **kwargs):
     if old_status == new_status:
         return
     
-    # Only notify on COMPLETED transition
+    # ── Discord announcement on PUBLISHED ──
+    if new_status == Tournament.PUBLISHED:
+        logger.info(
+            f"Tournament published: tournament_id={instance.id}, name='{instance.name}'"
+        )
+        try:
+            from apps.organizations.tasks.discord_sync import send_tournament_announcement_to_discord
+            send_tournament_announcement_to_discord.delay(instance.pk)
+            logger.info(f"Queued Discord announcement for tournament {instance.pk}")
+        except Exception as e:
+            logger.error(f"Failed to queue Discord tournament announcement: {e}")
+        return
+    
+    # Only notify on COMPLETED transition below
     if new_status != Tournament.COMPLETED:
         return
     
