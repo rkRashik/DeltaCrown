@@ -245,7 +245,10 @@ except ImportError:
     _HAS_UNFOLD = False
 
 INSTALLED_APPS = [
-    # Monitoring (must be FIRST for middleware timing)
+    # ASGI server (must be FIRST to override runserver with Daphne)
+    "daphne",
+
+    # Monitoring (must be early for middleware timing)
     "django_prometheus",  # Prometheus metrics (Phase 3 Prep)
     
     # Admin theme (must be BEFORE django.contrib.admin)

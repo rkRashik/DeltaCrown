@@ -5,12 +5,15 @@ These views serve the standalone draw ceremony pages:
 1. GroupDrawDirectorView — Organizer-only draw control panel
 2. GroupDrawPublicView — Public spectator view for live draw broadcast
 """
+import json
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 
-from apps.tournaments.models import Tournament
+from apps.tournaments.models import Tournament, Registration
+from apps.tournaments.models.group import Group
 
 
 class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
@@ -36,6 +39,54 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
         ctx["tournament"] = tournament
         ctx["tournament_id"] = tournament.id
         ctx["ws_url"] = f"/ws/tournament/{tournament.id}/group-draw/"
+
+        # ── Pre-load groups for empty-state grid ──
+        groups = Group.objects.filter(
+            tournament=tournament, is_deleted=False,
+        ).order_by("display_order", "name")
+        groups_data = []
+        for g in groups:
+            letter = g.name.split()[-1] if " " in g.name else g.name
+            groups_data.append({
+                "name": letter,
+                "max_participants": g.max_participants,
+            })
+        ctx["groups_json"] = json.dumps(groups_data)
+
+        # ── Pre-load confirmed participants for queue ──
+        regs = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.CONFIRMED,
+            is_deleted=False,
+        ).select_related("user")
+        participants = []
+        for reg in regs:
+            name = ""
+            uid = None
+            if reg.user:
+                name = reg.user.username
+                uid = reg.user.id
+            elif reg.team_id:
+                try:
+                    from apps.organizations.models import Team
+                    team = Team.objects.get(id=reg.team_id)
+                    name = team.name
+                except Exception:
+                    name = f"Team #{reg.team_id}"
+                uid = reg.team_id
+            else:
+                name = f"Registration #{reg.registration_number}"
+                uid = reg.id
+            participants.append({
+                "registration_id": reg.id,
+                "user_id": uid,
+                "name": name,
+                "display_name": name,
+            })
+        ctx["participants_json"] = json.dumps(participants)
+        ctx["participant_count"] = len(participants)
+        ctx["group_count"] = len(groups_data)
+
         return ctx
 
 
