@@ -332,14 +332,20 @@ class GroupStageService:
     ) -> List[GroupStanding]:
         """
         Calculate current standings for a group.
-        
+
+        .. deprecated::
+            Prefer ``calculate_group_standings(stage_id)`` (Epic 3.2) which uses
+            the correct ``state`` field, filters matches by ``lobby_info__group_id``,
+            and is driven by GameRulesEngine.  This method is retained for
+            backwards-compat with any callers that predate Epic 3.2.
+
         Aggregates match results and applies game-specific scoring.
         Handles tiebreakers and determines advancement.
-        
+
         Args:
             group_id: Group ID
             game_slug: Game slug for game-specific logic
-        
+
         Returns:
             List of GroupStanding objects (ordered by rank)
         """
@@ -349,16 +355,20 @@ class GroupStageService:
             is_deleted=False
         ))
         
-        # Get all completed matches for this group
+        # Get all completed matches for this group.
+        # NOTE: Match uses `state` (not `status`) and stores participant IDs as
+        # plain integers in `participant1_id` / `participant2_id`.
+        # Group matches are identified by lobby_info__group_id (set during generation).
+        # DEPRECATED: prefer calculate_group_standings(stage_id) for Epic 3.2+ paths.
+        user_ids = [s.user_id for s in standings if s.user_id]
+        team_ids = [s.team_id for s in standings if s.team_id]
         matches = Match.objects.filter(
             tournament=group.tournament,
-            status='completed',
-            is_deleted=False
+            state=Match.COMPLETED,
+            is_deleted=False,
         ).filter(
-            Q(participant1_user__in=[s.user for s in standings if s.user]) |
-            Q(participant1_team__in=[s.team for s in standings if s.team]) |
-            Q(participant2_user__in=[s.user for s in standings if s.user]) |
-            Q(participant2_team__in=[s.team for s in standings if s.team])
+            Q(participant1_id__in=user_ids + team_ids) |
+            Q(participant2_id__in=user_ids + team_ids)
         )
         
         # Reset all standings
@@ -412,13 +422,14 @@ class GroupStageService:
         group: Group
     ):
         """Update standings based on match result."""
-        # Find standings for both participants
-        standing1 = next((s for s in standings if 
-                         (s.user == match.participant1_user) or 
-                         (s.team == match.participant1_team)), None)
-        standing2 = next((s for s in standings if 
-                         (s.user == match.participant2_user) or 
-                         (s.team == match.participant2_team)), None)
+        # Match.participant1_id / participant2_id are plain integers that can be
+        # either a user PK or a team PK depending on the tournament type.
+        # Match.winner_id is likewise a plain integer (or None for draw).
+        def _pid(standing: GroupStanding) -> int | None:
+            return standing.user_id if standing.user_id else standing.team_id
+
+        standing1 = next((s for s in standings if _pid(s) == match.participant1_id), None)
+        standing2 = next((s for s in standings if _pid(s) == match.participant2_id), None)
         
         if not standing1 or not standing2:
             return  # Match not in this group
@@ -428,12 +439,13 @@ class GroupStageService:
         standing2.matches_played += 1
         
         # Determine winner and update points
-        if match.winner_participant == 1:
+        # Match.winner_id is a plain integer (participant1_id, participant2_id, or None=draw).
+        if match.winner_id == match.participant1_id:
             standing1.matches_won += 1
             standing2.matches_lost += 1
             standing1.points += Decimal(str(group.points_for_win))
             standing2.points += Decimal(str(group.points_for_loss))
-        elif match.winner_participant == 2:
+        elif match.winner_id == match.participant2_id:
             standing2.matches_won += 1
             standing1.matches_lost += 1
             standing2.points += Decimal(str(group.points_for_win))
@@ -845,22 +857,31 @@ class GroupStageService:
     
     @staticmethod
     @transaction.atomic
-    def generate_group_matches(stage_id: int) -> int:
+    def generate_group_matches(stage_id: int, rounds: int = 1) -> int:
         """
         Generate round-robin matches for all groups in a stage (Epic 3.2).
-        
-        Each pair of participants in a group plays exactly once.
-        
+
         Args:
             stage_id: GroupStage ID
-        
+            rounds: Number of round-robin cycles (default 1).
+                    Use ``rounds=2`` for double round-robin (home + away).
+                    Each additional round re-generates all pairings with
+                    participant order swapped to represent the reverse fixture.
+
         Returns:
             Total number of matches created
-        
-        TODO (Epic 3.5): Integrate with BracketEngineService for round-robin generation.
+
+        Example:
+            # Single round-robin (4 players → 6 matches per group)
+            count = GroupStageService.generate_group_matches(stage.id)
+            # Double round-robin (4 players → 12 matches per group)
+            count = GroupStageService.generate_group_matches(stage.id, rounds=2)
         """
         from apps.tournaments.models import GroupStage
-        
+
+        if rounds < 1:
+            raise ValidationError("rounds must be at least 1")
+
         stage = GroupStage.objects.select_related('tournament').get(id=stage_id)
         # Get groups for this specific GroupStage (created after the GroupStage itself)
         groups = Group.objects.filter(
@@ -868,32 +889,44 @@ class GroupStageService:
             created_at__gte=stage.created_at
         ).prefetch_related('standings')
         total_matches = 0
-        
+
         for group in groups:
             participants = list(group.standings.filter(is_deleted=False))
-            
+
             if len(participants) < 2:
                 continue
-            
+
             # Generate all unique pairings (round-robin)
-            pairings = []
+            base_pairings = []
             for i in range(len(participants)):
                 for j in range(i + 1, len(participants)):
-                    pairings.append((participants[i], participants[j]))
-            
-            # Create Match instances
-            for idx, (p1, p2) in enumerate(pairings, start=1):
-                Match.objects.create(
-                    tournament=stage.tournament,
-                    participant1_id=p1.team_id if p1.team_id else p1.user_id,
-                    participant2_id=p2.team_id if p2.team_id else p2.user_id,
-                    round_number=1,
-                    match_number=idx,
-                    state=Match.SCHEDULED,
-                    lobby_info={"group_id": group.id, "group_name": group.name},
-                )
-                total_matches += 1
-        
+                    base_pairings.append((participants[i], participants[j]))
+
+            match_counter = 0
+            for rnd in range(1, rounds + 1):
+                for p1, p2 in base_pairings:
+                    match_counter += 1
+                    # In even rounds, swap home/away to represent the reverse fixture
+                    if rnd % 2 == 0:
+                        home, away = p2, p1
+                    else:
+                        home, away = p1, p2
+
+                    Match.objects.create(
+                        tournament=stage.tournament,
+                        participant1_id=home.team_id if home.team_id else home.user_id,
+                        participant2_id=away.team_id if away.team_id else away.user_id,
+                        round_number=rnd,
+                        match_number=match_counter,
+                        state=Match.SCHEDULED,
+                        lobby_info={
+                            "group_id": group.id,
+                            "group_name": group.name,
+                            "rr_round": rnd,
+                        },
+                    )
+                    total_matches += 1
+
         return total_matches
     
     @staticmethod
@@ -939,11 +972,11 @@ class GroupStageService:
         # Get tiebreaker rules from tournament config if available
         try:
             tournament_config = GameService.get_tournament_config_by_slug(game_slug)
-            if tournament_config and tournament_config.config.get('tiebreaker_rules'):
-                tiebreaker_rules = tournament_config.config['tiebreaker_rules']
+            if tournament_config and getattr(tournament_config, 'default_tiebreakers', None):
+                tiebreaker_rules = tournament_config.default_tiebreakers
             else:
                 tiebreaker_rules = stage.config.get('tiebreaker_rules', ['points', 'wins', 'goal_difference', 'goals_for'])
-        except ValueError:
+        except (ValueError, AttributeError):
             # Game or config not found, use defaults
             tiebreaker_rules = stage.config.get('tiebreaker_rules', ['points', 'wins', 'goal_difference', 'goals_for'])
         

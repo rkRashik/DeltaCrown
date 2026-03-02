@@ -201,7 +201,11 @@ class TOCBracketsService:
             return {"groups": []}
         try:
             standings = GroupStageService.calculate_group_standings(stage.id)
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"calculate_group_standings failed for stage {stage.id}: {e}"
+            )
             standings = {}
         return {"groups": standings}
 

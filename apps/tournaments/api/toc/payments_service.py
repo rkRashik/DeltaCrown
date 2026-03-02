@@ -53,7 +53,7 @@ class TOCPaymentsService:
         status_filter: Optional[str] = None,
         method_filter: Optional[str] = None,
         search: Optional[str] = None,
-        ordering: str = "-created_at",
+        ordering: str = "-submitted_at",
     ) -> Dict[str, Any]:
         """
         Return paginated, filtered payment list.
@@ -301,14 +301,14 @@ class TOCPaymentsService:
         payments = Payment.objects.filter(
             registration__tournament=tournament,
             registration__is_deleted=False,
-        ).select_related("registration__user").order_by("-created_at")
+        ).select_related("registration__user").order_by("-submitted_at")
 
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow([
             "Payment ID", "Registration #", "Participant", "Amount",
             "Method", "Transaction ID", "Status", "Verified By",
-            "Verified At", "Created At",
+            "Verified At", "Submitted At",
         ])
 
         for p in payments:
@@ -323,7 +323,7 @@ class TOCPaymentsService:
                 p.status,
                 p.verified_by.username if p.verified_by else "",
                 p.verified_at.isoformat() if p.verified_at else "",
-                p.created_at.isoformat() if p.created_at else "",
+                p.submitted_at.isoformat() if p.submitted_at else "",
             ])
 
         return output.getvalue()
@@ -625,7 +625,7 @@ class TOCPaymentsService:
             "reject_reason": getattr(payment, "reject_reason", "") or "",
             "waived": getattr(payment, "waived", False),
             "waive_reason": getattr(payment, "waive_reason", "") or "",
-            "created_at": payment.created_at.isoformat() if payment.created_at else None,
+            "submitted_at": payment.submitted_at.isoformat() if payment.submitted_at else None,
         }
 
     @classmethod
