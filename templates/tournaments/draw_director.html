@@ -4,6 +4,9 @@
 {% block title %}Draw Director — {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block draw_head %}
+<!-- SortableJS — Premium Drag-and-Drop Physics -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
 <style>
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
      DRAW DIRECTOR — The Command Center
@@ -39,21 +42,33 @@
     font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
     letter-spacing: 0.15em; text-transform: uppercase;
     padding: 3px 10px; border-radius: 6px;
+    transition: all 0.3s;
   }
   .dd-badge-waiting { background: rgba(255,200,50,0.1); color: var(--dc-gold); border: 1px solid rgba(255,200,50,0.2); }
   .dd-badge-live { background: rgba(255,50,50,0.1); color: var(--dc-danger); border: 1px solid rgba(255,50,50,0.3); animation: livePulse 1.5s infinite; }
   .dd-badge-complete { background: rgba(0,255,170,0.1); color: var(--dc-accent); border: 1px solid rgba(0,255,170,0.2); }
+  .dd-badge-offline {
+    background: rgba(255,50,50,0.15); color: #ff6666;
+    border: 1px solid rgba(255,50,50,0.4);
+    animation: offlinePulse 2s infinite;
+  }
   @keyframes livePulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(255,50,50,0.3); }
     50% { box-shadow: 0 0 12px 4px rgba(255,50,50,0.15); }
   }
+  @keyframes offlinePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,50,50,0.3); }
+    50% { box-shadow: 0 0 16px 6px rgba(255,50,50,0.2); }
+  }
 
   /* ── WS Indicator ── */
-  .ws-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .ws-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.3); }
+  .ws-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
   .ws-dot.connected { background: var(--dc-accent); box-shadow: 0 0 6px rgba(var(--dc-accent-rgb),0.6); }
-  .ws-dot.disconnected { background: var(--dc-danger); }
+  .ws-dot.disconnected { background: var(--dc-danger); box-shadow: 0 0 8px rgba(var(--dc-danger-rgb),0.5); }
   .ws-dot.connecting { background: var(--dc-gold); animation: blink 1s infinite; }
   @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .ws-label-offline { color: var(--dc-danger); font-weight: 600; }
 
   /* ── Progress Bar ── */
   .dd-progress { height: 3px; background: rgba(255,255,255,0.03); }
@@ -90,6 +105,7 @@
   .dd-queue-list {
     flex: 1; overflow-y: auto; padding: 8px;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;
+    min-height: 100px;
   }
   .dd-queue-empty {
     text-align: center; color: rgba(255,255,255,0.2);
@@ -103,7 +119,8 @@
     border: 1px solid transparent;
     background: rgba(255,255,255,0.02);
     font-size: 12px; color: rgba(255,255,255,0.7);
-    transition: all 0.25s; cursor: default;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
     margin-bottom: 4px;
     user-select: none;
   }
@@ -126,19 +143,40 @@
   .dd-queue-item.manual-mode:hover {
     background: rgba(var(--dc-accent-rgb),0.06);
     border-color: rgba(var(--dc-accent-rgb),0.15);
+    transform: translateX(2px);
   }
   .dd-queue-item.selected {
     background: rgba(var(--dc-accent-rgb),0.12) !important;
     border-color: var(--dc-accent) !important;
     color: #fff;
   }
-  .dd-queue-item.dragging { opacity: 0.3; }
   .dd-queue-item.drawn-out {
     animation: queuePop 0.5s forwards;
   }
   @keyframes queuePop {
     0% { transform: translateX(0); opacity: 1; }
     100% { transform: translateX(40px); opacity: 0; max-height: 0; padding: 0; margin: 0; border-width: 0; overflow: hidden; }
+  }
+
+  /* SortableJS ghost & chosen states */
+  .dd-queue-item.sortable-ghost {
+    opacity: 0.15;
+    background: rgba(var(--dc-accent-rgb),0.04);
+    border: 1px dashed rgba(var(--dc-accent-rgb),0.2);
+  }
+  .dd-queue-item.sortable-chosen {
+    background: rgba(var(--dc-accent-rgb),0.1) !important;
+    border-color: rgba(var(--dc-accent-rgb),0.3) !important;
+    box-shadow: 0 4px 20px rgba(var(--dc-accent-rgb),0.12);
+    transform: scale(1.02);
+    z-index: 999;
+  }
+  .dd-queue-item.sortable-drag {
+    background: rgba(var(--dc-accent-rgb),0.12) !important;
+    border-color: var(--dc-accent) !important;
+    box-shadow: 0 8px 32px rgba(var(--dc-accent-rgb),0.2), 0 0 0 2px rgba(var(--dc-accent-rgb),0.15);
+    border-radius: 10px;
+    opacity: 1 !important;
   }
 
   /* ── Sidebar Stats ── */
@@ -171,8 +209,10 @@
     border: 1px solid rgba(77,166,255,0.12);
     border-radius: 14px; padding: 20px 24px;
     display: flex; gap: 24px; align-items: flex-start;
+    transition: opacity 0.4s, max-height 0.5s;
+    overflow: hidden;
   }
-  .dd-instructions.hidden { display: none; }
+  .dd-instructions.hidden { opacity: 0; max-height: 0; padding: 0; margin: 0; border-width: 0; }
   .dd-instruct-step {
     flex: 1; display: flex; gap: 10px; align-items: flex-start;
   }
@@ -304,7 +344,7 @@
   .dd-btn-abort:hover { color: var(--dc-danger); }
 
   /* ══════════════════════════════════════════════
-     GROUP GRID — Drop Targets
+     GROUP GRID — SortableJS Drop Targets
   ══════════════════════════════════════════════ */
   .dd-group-grid {
     display: grid;
@@ -318,22 +358,44 @@
     background: linear-gradient(135deg, rgba(15,15,25,0.95), rgba(20,20,35,0.85));
     border: 1px solid var(--dc-border);
     border-radius: 12px; padding: 14px;
-    transition: border-color 0.4s, box-shadow 0.4s, transform 0.3s;
+    transition: border-color 0.4s, box-shadow 0.4s, transform 0.3s, background 0.4s;
   }
-  .dd-group-card.drop-target {
-    border-color: rgba(var(--dc-accent-rgb),0.15);
+  /* Dashed border when manual mode is active */
+  .dd-group-card.drop-ready {
+    border-color: rgba(var(--dc-accent-rgb),0.12);
     border-style: dashed;
   }
+  /* Green glow when player is hovering over valid drop zone */
   .dd-group-card.drag-hover {
     border-color: rgba(var(--dc-accent-rgb),0.6) !important;
     border-style: solid !important;
     box-shadow: 0 0 30px rgba(var(--dc-accent-rgb),0.15), inset 0 0 30px rgba(var(--dc-accent-rgb),0.03);
     transform: scale(1.02);
-    background: linear-gradient(135deg, rgba(0,255,170,0.04), rgba(20,20,35,0.85));
+    background: linear-gradient(135deg, rgba(0,255,170,0.04), rgba(20,20,35,0.85)) !important;
   }
   .dd-group-card.drag-hover .dd-group-letter {
     text-shadow: 0 0 12px rgba(var(--dc-accent-rgb),0.5);
   }
+  /* Red glow when group is full — rejection feedback */
+  .dd-group-card.drag-reject {
+    border-color: rgba(var(--dc-danger-rgb),0.6) !important;
+    border-style: solid !important;
+    box-shadow: 0 0 24px rgba(var(--dc-danger-rgb),0.2) !important;
+    background: linear-gradient(135deg, rgba(255,68,68,0.04), rgba(20,20,35,0.85)) !important;
+    animation: rejectShake 0.5s ease-out;
+  }
+  .dd-group-card.drag-reject .dd-group-letter {
+    color: var(--dc-danger) !important;
+    text-shadow: 0 0 12px rgba(var(--dc-danger-rgb),0.5);
+  }
+  @keyframes rejectShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  /* Pulse when a player lands in this card */
   .dd-group-card.receiving {
     border-color: rgba(var(--dc-accent-rgb),0.5);
     box-shadow: 0 0 30px rgba(var(--dc-accent-rgb),0.15);
@@ -346,7 +408,7 @@
     font-family: 'Rajdhani', sans-serif; font-weight: 700;
     font-size: 14px; letter-spacing: 0.15em;
     text-transform: uppercase; color: var(--dc-accent);
-    transition: text-shadow 0.3s;
+    transition: all 0.3s;
   }
   .dd-group-count {
     font-size: 10px; font-family: 'Space Grotesk', monospace;
@@ -354,6 +416,7 @@
   }
 
   /* ── Slots ── */
+  .dd-slots-container { min-height: 40px; }
   .dd-slot {
     min-height: 38px; display: flex; align-items: center; gap: 8px;
     padding: 0 10px;
@@ -384,12 +447,17 @@
     50% { transform: scale(1.03); }
     100% { transform: scale(1); opacity: 1; }
   }
-  /* Drop hover for individual slot */
-  .dd-slot.slot-drag-hover {
-    border-color: rgba(var(--dc-accent-rgb),0.5);
-    border-style: solid;
-    background: rgba(var(--dc-accent-rgb),0.06);
-    box-shadow: inset 0 0 12px rgba(var(--dc-accent-rgb),0.06);
+  /* Ghost placeholder inside group slot during SortableJS drag */
+  .dd-slot.sortable-ghost {
+    border-color: rgba(var(--dc-accent-rgb),0.4) !important;
+    border-style: solid !important;
+    background: rgba(var(--dc-accent-rgb),0.06) !important;
+    box-shadow: inset 0 0 16px rgba(var(--dc-accent-rgb),0.06);
+  }
+  .dd-slot.sortable-ghost .slot-name {
+    color: var(--dc-accent) !important;
+    opacity: 0.6;
+    font-style: italic;
   }
 
   /* ── Complete Banner ── */
@@ -521,14 +589,22 @@
     color: rgba(255,255,255,0.3); margin-top: 2px;
   }
 
-  /* ── Error Toast ── */
+  /* ── Error / Info Toast ── */
   .dd-toast {
     position: fixed; top: 60px; right: 20px; z-index: 9999;
-    background: rgba(var(--dc-danger-rgb),0.1);
-    border: 1px solid rgba(var(--dc-danger-rgb),0.3);
-    color: var(--dc-danger); padding: 12px 20px;
-    border-radius: 10px; font-size: 13px;
+    padding: 12px 20px; border-radius: 10px; font-size: 13px;
     animation: toastIn 0.3s, toastOut 0.3s 4.7s forwards;
+    max-width: 400px;
+  }
+  .dd-toast-error {
+    background: rgba(var(--dc-danger-rgb),0.12);
+    border: 1px solid rgba(var(--dc-danger-rgb),0.35);
+    color: var(--dc-danger);
+  }
+  .dd-toast-warn {
+    background: rgba(var(--dc-gold-rgb),0.12);
+    border: 1px solid rgba(var(--dc-gold-rgb),0.35);
+    color: var(--dc-gold);
   }
   @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
@@ -553,7 +629,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:14px">
       <span id="dd-badge" class="dd-badge dd-badge-waiting">WAITING</span>
-      <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.3)">
+      <span class="ws-indicator">
         <span id="ws-dot" class="ws-dot connecting"></span>
         <span id="ws-label">Connecting…</span>
       </span>
@@ -575,7 +651,7 @@
         <span id="queue-badge" class="dd-queue-badge">{{ participant_count }}</span>
       </div>
       <div id="queue-list" class="dd-queue-list">
-        {# Pre-loaded from Django context — JS will re-render once WS snapshot arrives #}
+        {# Pre-loaded from Django context — JS renders on DOMContentLoaded #}
       </div>
       <div class="dd-sidebar-stats">
         <div>
@@ -698,52 +774,69 @@
   const PARTICIPANTS_DATA = {{ participants_json|safe }};
 
   let ws = null;
+  let wsConnected = false;
   let session = null;
   let drawInProgress = false;
   let drawMode = 'random';
   let selectedPlayer = null;
+  let queueSortable = null;
+  let groupSortables = [];
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
 
   // ══════════════════════════════════════════════
   // Pre-Render: Empty State
   // ══════════════════════════════════════════════
 
   function preRender() {
-    // Render empty group grid from server data
     if (GROUPS_DATA.length > 0) {
       renderGroupGrid(
         GROUPS_DATA.map(g => g.name),
         GROUPS_DATA[0].max_participants || 4
       );
     }
-    // Render pre-loaded queue
     if (PARTICIPANTS_DATA.length > 0) {
       renderQueue(PARTICIPANTS_DATA);
     }
-    // Pre-fill counters
     const total = PARTICIPANTS_DATA.length;
     updateCounters(0, total, total);
   }
 
   // ══════════════════════════════════════════════
-  // WebSocket
+  // WebSocket — Connection & Error Handling
   // ══════════════════════════════════════════════
 
   function connect() {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = proto + '//' + location.host + WS_PATH;
     setWsStatus('connecting');
     ws = new WebSocket(url);
 
     ws.onopen = () => {
+      wsConnected = true;
+      reconnectAttempts = 0;
       setWsStatus('connected');
+      syncButtonStates();
       console.log('[DrawDirector] WebSocket connected');
     };
+
     ws.onclose = (e) => {
+      wsConnected = false;
       setWsStatus('disconnected');
-      console.log('[DrawDirector] Disconnected (code=' + e.code + ') — reconnecting in 3s');
-      setTimeout(connect, 3000);
+      syncButtonStates();
+      console.log('[DrawDirector] Disconnected (code=' + e.code + ')');
+      // Exponential backoff: 1s, 2s, 4s, 8s, max 15s
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
+      reconnectAttempts++;
+      showToast('WebSocket disconnected. Reconnecting in ' + Math.round(delay / 1000) + 's…', 'warn');
+      reconnectTimer = setTimeout(connect, delay);
     };
-    ws.onerror = (e) => console.error('[DrawDirector] WS error:', e);
+
+    ws.onerror = (e) => {
+      console.error('[DrawDirector] WS error:', e);
+    };
+
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)); }
       catch (err) { console.error('[DrawDirector] Parse error:', err); }
@@ -751,16 +844,49 @@
   }
 
   function send(payload) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(payload));
+    if (!wsConnected || !ws || ws.readyState !== WebSocket.OPEN) {
+      showToast('Cannot execute action. WebSocket disconnected.', 'error');
+      return false;
     }
+    ws.send(JSON.stringify(payload));
+    return true;
   }
 
   function setWsStatus(status) {
     const dot = document.getElementById('ws-dot');
     const label = document.getElementById('ws-label');
     dot.className = 'ws-dot ' + status;
-    label.textContent = status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting…' : 'Disconnected';
+    if (status === 'connected') {
+      label.textContent = 'Connected';
+      label.className = '';
+    } else if (status === 'connecting') {
+      label.textContent = 'Connecting…';
+      label.className = '';
+    } else {
+      label.textContent = 'OFFLINE — Reconnecting…';
+      label.className = 'ws-label-offline';
+    }
+  }
+
+  /** Enable/disable action buttons based on WS connection state */
+  function syncButtonStates() {
+    const btns = [
+      document.getElementById('btn-init'),
+      document.getElementById('btn-draw'),
+      document.getElementById('btn-finalize'),
+    ];
+    btns.forEach(btn => {
+      if (!btn) return;
+      if (!wsConnected) {
+        btn.dataset.wsBlocked = 'true';
+        btn.disabled = true;
+      } else {
+        delete btn.dataset.wsBlocked;
+        // Re-evaluate original enabled state
+        if (btn.id === 'btn-init') btn.disabled = false;
+        // btn-draw and btn-finalize keep their draw-state driven disabled
+      }
+    });
   }
 
   // ══════════════════════════════════════════════
@@ -776,7 +902,7 @@
       case 'player_override':      onPlayerOverride(msg); break;
       case 'draw_complete':        onDrawComplete(msg); break;
       case 'draw_aborted':         onDrawAborted(msg); break;
-      case 'error':                showError(msg.message); break;
+      case 'error':                showToast(msg.message, 'error'); break;
     }
   }
 
@@ -805,7 +931,6 @@
       setDrawStatus('live');
       showLiveControls(true);
     }
-    // Hide instructions once session is active
     document.getElementById('dd-instructions').classList.add('hidden');
   }
 
@@ -822,7 +947,6 @@
     setDrawStatus('live');
     showLiveControls(true);
     updateDrawButton(true);
-    // Hide instructions
     document.getElementById('dd-instructions').classList.add('hidden');
   }
 
@@ -839,7 +963,6 @@
       session.remaining = msg.remaining;
     }
 
-    // Build name pool for spinner reel
     const queueEls = document.querySelectorAll('#queue-list .dd-queue-item');
     const poolNames = [];
     queueEls.forEach(el => {
@@ -851,7 +974,7 @@
     const isManual = drawMode === 'manual' || msg.manual;
 
     function applyResult() {
-      const card = document.querySelector('[data-group="' + group + '"]');
+      const card = document.querySelector('.dd-group-card[data-group="' + group + '"]');
       if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 2000); }
       fillSlot(group, slot, p, true);
       removeFromQueue(p.user_id || p.registration_id);
@@ -892,7 +1015,6 @@
     session = null;
     showLiveControls(false);
     document.getElementById('btn-init').style.display = 'inline-flex';
-    // Restore pre-loaded state
     preRender();
     document.getElementById('dd-instructions').classList.remove('hidden');
     updateTheaterLast(null);
@@ -903,6 +1025,10 @@
   // ══════════════════════════════════════════════
 
   function renderGroupGrid(groups, groupSize) {
+    // Destroy any existing SortableJS instances for groups
+    groupSortables.forEach(s => s.destroy());
+    groupSortables = [];
+
     const grid = document.getElementById('group-grid');
     grid.innerHTML = '';
     groups.forEach(g => {
@@ -923,15 +1049,15 @@
           '<span class="dd-group-letter">Group ' + g + '</span>' +
           '<span class="dd-group-count" data-group-count="' + g + '">0/' + groupSize + '</span>' +
         '</div>' +
-        '<div>' + slots + '</div>';
+        '<div class="dd-slots-container" data-group-slots="' + g + '">' + slots + '</div>';
       grid.appendChild(card);
     });
-    setupGroupDropTargets();
+    initGroupSortables();
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   function fillSlot(groupName, slotNum, player, animate) {
-    const slot = document.querySelector('[data-group="' + groupName + '"][data-slot="' + slotNum + '"]');
+    const slot = document.querySelector('.dd-slot[data-group="' + groupName + '"][data-slot="' + slotNum + '"]');
     if (!slot) return;
     const nameEl = slot.querySelector('.slot-name');
     nameEl.textContent = player.display_name || player.name || '???';
@@ -942,8 +1068,9 @@
     }
     const counter = document.querySelector('[data-group-count="' + groupName + '"]');
     if (counter) {
-      const filled = document.querySelectorAll('[data-group="' + groupName + '"].dd-slot.filled').length;
-      counter.textContent = filled + '/' + (session ? session.group_size : (GROUPS_DATA[0] ? GROUPS_DATA[0].max_participants : 4));
+      const filled = document.querySelectorAll('.dd-slot[data-group="' + groupName + '"].filled').length;
+      const size = session ? session.group_size : (GROUPS_DATA[0] ? GROUPS_DATA[0].max_participants : 4);
+      counter.textContent = filled + '/' + size;
     }
   }
 
@@ -959,6 +1086,9 @@
   // ══════════════════════════════════════════════
 
   function renderQueue(participants) {
+    // Destroy existing SortableJS instance for queue
+    if (queueSortable) { queueSortable.destroy(); queueSortable = null; }
+
     const list = document.getElementById('queue-list');
     if (!participants || participants.length === 0) {
       list.innerHTML = '<div class="dd-queue-empty">Queue empty</div>';
@@ -969,8 +1099,7 @@
     list.innerHTML = participants.map((p, i) => {
       return '<div class="dd-queue-item' + (isManual ? ' manual-mode' : '') + '"' +
         ' data-queue-id="' + (p.user_id || p.registration_id) + '"' +
-        " data-player='" + JSON.stringify(p).replace(/'/g, '&#39;') + "'" +
-        (isManual ? ' draggable="true"' : '') + '>' +
+        " data-player='" + JSON.stringify(p).replace(/'/g, '&#39;') + "'" + '>' +
         '<i data-lucide="grip-vertical" class="grip" style="width:12px;height:12px;flex-shrink:0"></i>' +
         '<span class="qnum">' + (i + 1) + '</span>' +
         '<span class="qname">' + (p.display_name || p.name) + '</span>' +
@@ -979,8 +1108,12 @@
     document.getElementById('queue-badge').textContent = participants.length;
 
     if (isManual) {
-      attachQueueDragHandlers();
+      initQueueSortable();
       attachQueueClickHandlers();
+      // Mark group cards as valid drop zones
+      document.querySelectorAll('.dd-group-card').forEach(c => c.classList.add('drop-ready'));
+    } else {
+      document.querySelectorAll('.dd-group-card').forEach(c => c.classList.remove('drop-ready'));
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
@@ -997,128 +1130,122 @@
   }
 
   // ══════════════════════════════════════════════
-  // UI Updates
+  // SortableJS — Premium Drag-and-Drop
   // ══════════════════════════════════════════════
 
-  function updateCounters(drawn, total, remaining) {
-    document.getElementById('stat-drawn').textContent = drawn;
-    document.getElementById('stat-total').textContent = total;
-    document.getElementById('stat-remaining').textContent = remaining;
-    document.getElementById('theater-drawn').textContent = drawn;
-    document.getElementById('theater-total').textContent = total;
-  }
+  function initQueueSortable() {
+    const list = document.getElementById('queue-list');
+    if (!list || typeof Sortable === 'undefined') return;
 
-  function updateProgress(drawn, total) {
-    const pct = total > 0 ? (drawn / total * 100) : 0;
-    document.getElementById('dd-progress-fill').style.width = pct + '%';
-  }
+    queueSortable = new Sortable(list, {
+      group: {
+        name: 'draw-queue',
+        pull: 'clone',    // Clone so the original stays until WS confirms
+        put: false,        // Can't drop back into queue
+      },
+      sort: false,         // Queue order is fixed by server
+      animation: 250,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      forceFallback: true, // Use JS fallback for better cross-browser visuals
+      fallbackClass: 'sortable-drag',
+      fallbackOnBody: true,
+      fallbackTolerance: 3,
 
-  function updateTheaterLast(name, group) {
-    const el = document.getElementById('theater-last');
-    if (!name) {
-      el.textContent = 'Awaiting first draw\u2026';
-      el.classList.remove('active');
-    } else {
-      el.textContent = name + (group ? ' \u2192 Group ' + group : '');
-      el.classList.add('active');
-    }
-  }
-
-  function setDrawStatus(status) {
-    const badge = document.getElementById('dd-badge');
-    badge.className = 'dd-badge';
-    if (status === 'waiting') { badge.classList.add('dd-badge-waiting'); badge.textContent = 'WAITING'; }
-    else if (status === 'live') { badge.classList.add('dd-badge-live'); badge.textContent = '\u25cf LIVE DRAW'; }
-    else if (status === 'complete') { badge.classList.add('dd-badge-complete'); badge.textContent = 'COMPLETE'; }
-  }
-
-  function showLiveControls(show) {
-    document.getElementById('btn-init').style.display = show ? 'none' : 'inline-flex';
-    document.getElementById('btn-draw').style.display = (show && drawMode === 'random') ? 'inline-flex' : 'none';
-    document.getElementById('btn-finalize').style.display = show ? 'inline-flex' : 'none';
-    document.getElementById('btn-abort').style.display = show ? 'inline-flex' : 'none';
-    document.getElementById('mode-toggle').style.display = show ? 'inline-flex' : 'none';
-    document.getElementById('manual-hint').style.display = (show && drawMode === 'manual') ? 'block' : 'none';
-  }
-
-  function updateDrawButton(enabled) {
-    document.getElementById('btn-draw').disabled = !enabled;
-  }
-
-  function showCompleteBanner(hash, totalMatches) {
-    document.getElementById('complete-banner').style.display = 'block';
-    if (hash) document.getElementById('draw-hash').textContent = 'Seed Hash: ' + hash;
-    document.getElementById('btn-draw').style.display = 'none';
-    document.getElementById('btn-finalize').style.display = 'none';
-    document.getElementById('btn-abort').style.display = 'none';
-    document.getElementById('mode-toggle').style.display = 'none';
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  }
-
-  function showError(msg) {
-    const toast = document.createElement('div');
-    toast.className = 'dd-toast';
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 5000);
-  }
-
-  // ══════════════════════════════════════════════
-  // Drag & Drop
-  // ══════════════════════════════════════════════
-
-  function attachQueueDragHandlers() {
-    document.querySelectorAll('#queue-list .dd-queue-item').forEach(el => {
-      el.addEventListener('dragstart', function(e) {
-        e.dataTransfer.setData('application/json', el.dataset.player);
-        e.dataTransfer.effectAllowed = 'move';
-        el.classList.add('dragging');
-        // Highlight all group cards as valid drop targets
-        document.querySelectorAll('.dd-group-card').forEach(c => c.classList.add('drop-target'));
-      });
-      el.addEventListener('dragend', function() {
-        el.classList.remove('dragging');
+      onStart(evt) {
+        // Highlight all group cards as valid targets
+        document.querySelectorAll('.dd-group-card').forEach(c => c.classList.add('drop-ready'));
+      },
+      onEnd(evt) {
+        // Clean up highlights
         document.querySelectorAll('.dd-group-card').forEach(c => {
-          c.classList.remove('drop-target', 'drag-hover');
+          c.classList.remove('drop-ready', 'drag-hover', 'drag-reject');
         });
-        // Clear any slot highlights
-        document.querySelectorAll('.dd-slot.slot-drag-hover').forEach(s => s.classList.remove('slot-drag-hover'));
-      });
+        // Remove any cloned item that SortableJS creates in the queue
+        const cloned = list.querySelectorAll('.dd-queue-item:not([data-queue-id])');
+        cloned.forEach(el => el.remove());
+      },
     });
   }
 
-  function setupGroupDropTargets() {
-    document.querySelectorAll('.dd-group-card').forEach(card => {
-      card.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        card.classList.add('drag-hover');
-        // Highlight the first empty slot in this group
-        const emptySlot = card.querySelector('.dd-slot:not(.filled)');
-        card.querySelectorAll('.dd-slot.slot-drag-hover').forEach(s => s.classList.remove('slot-drag-hover'));
-        if (emptySlot) emptySlot.classList.add('slot-drag-hover');
-      });
-      card.addEventListener('dragleave', function(e) {
-        // Only remove if actually leaving the card (not entering a child)
-        if (!card.contains(e.relatedTarget)) {
-          card.classList.remove('drag-hover');
-          card.querySelectorAll('.dd-slot.slot-drag-hover').forEach(s => s.classList.remove('slot-drag-hover'));
-        }
-      });
-      card.addEventListener('drop', function(e) {
-        e.preventDefault();
-        card.classList.remove('drag-hover');
-        card.querySelectorAll('.dd-slot.slot-drag-hover').forEach(s => s.classList.remove('slot-drag-hover'));
-        try {
-          const player = JSON.parse(e.dataTransfer.getData('application/json'));
-          const groupName = card.dataset.group;
-          if (player && groupName) {
-            DrawDirector.manualAssign(player.user_id || player.registration_id, groupName);
+  function initGroupSortables() {
+    groupSortables.forEach(s => s.destroy());
+    groupSortables = [];
+
+    if (typeof Sortable === 'undefined') return;
+
+    document.querySelectorAll('.dd-slots-container').forEach(container => {
+      const groupName = container.dataset.groupSlots;
+      const card = container.closest('.dd-group-card');
+
+      const sortable = new Sortable(container, {
+        group: {
+          name: 'draw-queue',
+          put: true,       // Accept from queue
+          pull: false,     // Can't drag out of group
+        },
+        sort: false,
+        animation: 250,
+        ghostClass: 'sortable-ghost',
+
+        onMove(evt) {
+          // Check if group is full — reject with red glow
+          const groupSize = session ? session.group_size : (GROUPS_DATA[0] ? GROUPS_DATA[0].max_participants : 4);
+          const filledCount = container.querySelectorAll('.dd-slot.filled').length;
+          if (filledCount >= groupSize) {
+            card.classList.add('drag-reject');
+            card.classList.remove('drag-hover');
+            setTimeout(() => card.classList.remove('drag-reject'), 600);
+            return false; // Reject the drop
           }
-        } catch (err) {
-          console.error('[DrawDirector] Drop error:', err);
+          card.classList.add('drag-hover');
+          card.classList.remove('drag-reject');
+          return true;
+        },
+
+        onAdd(evt) {
+          // A queue item was dropped into this group
+          const draggedEl = evt.item;
+          card.classList.remove('drag-hover', 'drag-reject');
+
+          try {
+            const player = JSON.parse(draggedEl.dataset.player);
+            if (player) {
+              DrawDirector.manualAssign(player.user_id || player.registration_id, groupName);
+            }
+          } catch (err) {
+            console.error('[DrawDirector] Drop parse error:', err);
+          }
+
+          // Remove the cloned element — the WS will handle the actual slot fill
+          draggedEl.remove();
+        },
+
+        onRemove() {
+          card.classList.remove('drag-hover', 'drag-reject');
+        },
+      });
+
+      // Card-level hover detection for visual feedback
+      container.addEventListener('dragover', () => {
+        const groupSize = session ? session.group_size : (GROUPS_DATA[0] ? GROUPS_DATA[0].max_participants : 4);
+        const filledCount = container.querySelectorAll('.dd-slot.filled').length;
+        if (filledCount >= groupSize) {
+          card.classList.add('drag-reject');
+          card.classList.remove('drag-hover');
+        } else {
+          card.classList.add('drag-hover');
+          card.classList.remove('drag-reject');
         }
       });
+      container.addEventListener('dragleave', (e) => {
+        if (!card.contains(e.relatedTarget)) {
+          card.classList.remove('drag-hover', 'drag-reject');
+        }
+      });
+
+      groupSortables.push(sortable);
     });
   }
 
@@ -1180,6 +1307,77 @@
     document.querySelectorAll('.dd-queue-item.selected').forEach(s => s.classList.remove('selected'));
     selectedPlayer = null;
   };
+
+  // ══════════════════════════════════════════════
+  // UI Updates
+  // ══════════════════════════════════════════════
+
+  function updateCounters(drawn, total, remaining) {
+    document.getElementById('stat-drawn').textContent = drawn;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-remaining').textContent = remaining;
+    document.getElementById('theater-drawn').textContent = drawn;
+    document.getElementById('theater-total').textContent = total;
+  }
+
+  function updateProgress(drawn, total) {
+    const pct = total > 0 ? (drawn / total * 100) : 0;
+    document.getElementById('dd-progress-fill').style.width = pct + '%';
+  }
+
+  function updateTheaterLast(name, group) {
+    const el = document.getElementById('theater-last');
+    if (!name) {
+      el.textContent = 'Awaiting first draw\u2026';
+      el.classList.remove('active');
+    } else {
+      el.textContent = name + (group ? ' \u2192 Group ' + group : '');
+      el.classList.add('active');
+    }
+  }
+
+  function setDrawStatus(status) {
+    const badge = document.getElementById('dd-badge');
+    badge.className = 'dd-badge';
+    if (status === 'waiting') { badge.classList.add('dd-badge-waiting'); badge.textContent = 'WAITING'; }
+    else if (status === 'live') { badge.classList.add('dd-badge-live'); badge.textContent = '\u25cf LIVE DRAW'; }
+    else if (status === 'complete') { badge.classList.add('dd-badge-complete'); badge.textContent = 'COMPLETE'; }
+  }
+
+  function showLiveControls(show) {
+    document.getElementById('btn-init').style.display = show ? 'none' : 'inline-flex';
+    document.getElementById('btn-draw').style.display = (show && drawMode === 'random') ? 'inline-flex' : 'none';
+    document.getElementById('btn-finalize').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('btn-abort').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('mode-toggle').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('manual-hint').style.display = (show && drawMode === 'manual') ? 'block' : 'none';
+    syncButtonStates();
+  }
+
+  function updateDrawButton(enabled) {
+    const btn = document.getElementById('btn-draw');
+    if (btn.dataset.wsBlocked) return; // Don't override WS block
+    btn.disabled = !enabled;
+  }
+
+  function showCompleteBanner(hash, totalMatches) {
+    document.getElementById('complete-banner').style.display = 'block';
+    if (hash) document.getElementById('draw-hash').textContent = 'Seed Hash: ' + hash;
+    document.getElementById('btn-draw').style.display = 'none';
+    document.getElementById('btn-finalize').style.display = 'none';
+    document.getElementById('btn-abort').style.display = 'none';
+    document.getElementById('mode-toggle').style.display = 'none';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function showToast(msg, type) {
+    type = type || 'error';
+    const toast = document.createElement('div');
+    toast.className = 'dd-toast dd-toast-' + type;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+  }
 
   // ══════════════════════════════════════════════
   // Lottery Spinner (CS:GO case-unboxing)
@@ -1261,13 +1459,16 @@
 
   window.DrawDirector = {
     initDraw() {
-      send({ action: 'init_draw' });
+      if (!send({ action: 'init_draw' })) return;
     },
     drawNext() {
       if (drawInProgress) return;
       drawInProgress = true;
       document.getElementById('btn-draw').disabled = true;
-      send({ action: 'draw_next' });
+      if (!send({ action: 'draw_next' })) {
+        drawInProgress = false;
+        return;
+      }
       setTimeout(() => { drawInProgress = false; document.getElementById('btn-draw').disabled = false; }, 5000);
     },
     finalize() {
@@ -1287,7 +1488,6 @@
       const isManual = mode === 'manual';
       document.getElementById('btn-draw').style.display = (session && !isManual) ? 'inline-flex' : 'none';
       document.getElementById('manual-hint').style.display = (session && isManual) ? 'block' : 'none';
-      // Re-render queue with drag handles if manual
       const participants = session && session.queue ? session.queue : PARTICIPANTS_DATA;
       if (participants) renderQueue(participants);
       if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1295,7 +1495,10 @@
     manualAssign(playerUserId, targetGroup) {
       if (drawInProgress) return;
       drawInProgress = true;
-      send({ action: 'manual_assign', player_user_id: playerUserId, target_group: targetGroup });
+      if (!send({ action: 'manual_assign', player_user_id: playerUserId, target_group: targetGroup })) {
+        drawInProgress = false;
+        return;
+      }
       setTimeout(() => { drawInProgress = false; }, 5000);
     },
   };

@@ -193,6 +193,11 @@
     background: rgba(var(--dc-gold-rgb),0.05);
     font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.15em; color: var(--dc-gold);
+    animation: pillPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pillPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--dc-gold-rgb),0.15); }
+    50% { box-shadow: 0 0 18px 4px rgba(var(--dc-gold-rgb),0.12), 0 0 6px 1px rgba(var(--dc-gold-rgb),0.08); }
   }
   .spec-status-pill .dot {
     width: 6px; height: 6px; border-radius: 50%;
@@ -460,8 +465,21 @@
   }
   @keyframes lotteryFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
 
-  /* ── Hide utility ── */
+  /* ── Crossfade transitions ── */
   .hidden { display: none !important; }
+  .spec-waiting, .spec-live, .spec-complete-screen {
+    transition: opacity 0.6s ease-in-out;
+  }
+  .spec-waiting.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .spec-live.fade-in {
+    opacity: 1;
+  }
+  .spec-complete-screen.fade-in {
+    opacity: 1;
+  }
 </style>
 {% endblock %}
 
@@ -834,9 +852,37 @@
   // ══════════════════════════════════════════════
 
   function showLiveContent() {
-    document.getElementById('waiting-screen').classList.add('hidden');
-    document.getElementById('complete-screen').classList.add('hidden');
-    document.getElementById('live-content').classList.remove('hidden');
+    const waiting = document.getElementById('waiting-screen');
+    const complete = document.getElementById('complete-screen');
+    const live = document.getElementById('live-content');
+
+    // If waiting screen is visible, do a smooth crossfade
+    if (waiting && !waiting.classList.contains('hidden')) {
+      // Prepare live content: make visible but transparent
+      live.classList.remove('hidden');
+      live.style.opacity = '0';
+
+      // Fade out waiting screen
+      waiting.classList.add('fade-out');
+
+      // After a brief pause, fade in live content
+      requestAnimationFrame(() => {
+        live.classList.add('fade-in');
+        live.style.opacity = '';
+      });
+
+      // After transition completes, fully hide waiting
+      setTimeout(() => {
+        waiting.classList.add('hidden');
+        waiting.classList.remove('fade-out');
+      }, 650);
+    } else {
+      // Instant switch (reconnect / snapshot)
+      if (waiting) waiting.classList.add('hidden');
+      live.classList.remove('hidden');
+    }
+
+    if (complete) complete.classList.add('hidden');
   }
 
   function updateCounters(drawn, total, remaining) {
