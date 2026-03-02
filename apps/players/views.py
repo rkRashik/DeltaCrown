@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 
 
@@ -25,7 +26,11 @@ def player_detail(request, username: str):
     results = []
     if Match and profile:
         try:
-            results = list(Match.objects.filter(user_a=profile).order_by("-created_at")[:10])
+            results = list(
+                Match.objects.filter(
+                    Q(participant1_id=user.pk) | Q(participant2_id=user.pk)
+                ).select_related("tournament").order_by("-completed_at")[:10]
+            )
         except Exception:
             results = []
 
