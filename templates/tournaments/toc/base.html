@@ -832,109 +832,110 @@
             {# Brackets tab — Sprint 5 #}
             <div id="view-brackets" data-tab-content="brackets" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon — Git Branch #}
+                {# Ghost icon — Git Branch #}
                 <i data-lucide="git-branch" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# Page title + actions #}
-                <div class="flex items-end justify-between mb-2 relative">
-                    <div class="relative">
-                        <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
-                        <h2 class="font-display font-black text-2xl text-white tracking-tight">Brackets & Draws</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Bracket Generation · Seeding · Groups · Pipelines</p>
-                    </div>
-                    {# S5-F3: Generate / Reset / Publish buttons #}
-                    <div class="flex items-center gap-2">
-                        <button onclick="TOC.brackets.generate()" id="btn-bracket-generate" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
-                            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Generate
-                        </button>
-                        <button onclick="TOC.brackets.resetBracket()" id="btn-bracket-reset" class="px-4 py-2 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-1.5">
-                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
-                        </button>
-                        <button onclick="TOC.brackets.publish()" id="btn-bracket-publish" class="px-4 py-2 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-1.5">
-                            <i data-lucide="send" class="w-3.5 h-3.5"></i> Publish
-                        </button>
-                    </div>
+                {# ── Page title ── #}
+                <div class="relative">
+                    <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
+                    <h2 class="font-display font-black text-2xl text-white tracking-tight">Competition</h2>
+                    <p class="text-xs text-dc-text mt-1 font-mono">Group Stage · Brackets · Qualifier Pipelines</p>
                 </div>
 
-                {# Bracket info bar #}
-                <div id="bracket-info-bar" class="glass-box rounded-xl p-4 flex items-center gap-6 text-xs hidden">
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Format:</span> <span id="bracket-format" class="text-dc-textBright font-bold uppercase">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Rounds:</span> <span id="bracket-rounds" class="text-dc-textBright font-mono font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Matches:</span> <span id="bracket-matches" class="text-dc-textBright font-mono font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Seeding:</span> <span id="bracket-seeding" class="text-dc-textBright font-bold">—</span></div>
-                    <div class="flex items-center gap-2"><span class="text-dc-text">Status:</span> <span id="bracket-status" class="font-bold">—</span></div>
+                {# ── Sub-Navigation Pills ── #}
+                <div id="brackets-subnav" class="flex items-center gap-2 border-b border-dc-border/30 pb-4">
+                    <button data-subtab="groups" onclick="TOC.brackets.switchSubTab('groups')"
+                        class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                               border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Group Stage
+                    </button>
+                    <button data-subtab="bracket" onclick="TOC.brackets.switchSubTab('bracket')"
+                        class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                               border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Playoff Bracket
+                    </button>
+                    <button data-subtab="pipelines" onclick="TOC.brackets.switchSubTab('pipelines')"
+                        class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                               border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
+                        <i data-lucide="git-merge" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Qualifier Pipelines
+                    </button>
                 </div>
 
-                {# S5-F1: Bracket visualizer #}
-                <div id="bracket-visualizer" class="glass-box rounded-xl overflow-hidden">
-                    <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50">
-                        <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Bracket Tree</h3>
-                    </div>
-                    <div id="bracket-tree" class="p-6 overflow-x-auto min-h-[300px]">
-                        <div class="flex items-center justify-center h-60 text-dc-text text-sm">
-                            <div class="text-center">
-                                <i data-lucide="git-branch" class="w-12 h-12 text-dc-text/20 mx-auto mb-3"></i>
-                                <p>No bracket generated yet</p>
-                                <p class="text-[10px] mt-1 text-dc-text/60">Click "Generate" to create the bracket</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {# S5-F2: Seeding editor #}
-                <div id="seeding-editor" class="glass-box rounded-xl overflow-hidden hidden">
-                    <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
+                {# ══ GROUP STAGE Sub-View ══ #}
+                <div id="sub-groups" class="brackets-subview hidden">
+                    {# Action bar #}
+                    <div class="flex items-center justify-between mb-6">
+                        <div id="groups-stage-meta" class="text-[10px] font-mono text-dc-text uppercase tracking-widest"></div>
                         <div class="flex items-center gap-2">
-                            <i data-lucide="list-ordered" class="w-4 h-4 text-dc-warning"></i>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Seeding Order</h3>
-                        </div>
-                        <button onclick="TOC.brackets.saveSeedOrder()" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold rounded-lg hover:bg-theme hover:text-dc-bg transition-all">Save Order</button>
-                    </div>
-                    <div id="seed-list" class="p-4 space-y-1 max-h-[400px] overflow-y-auto"></div>
-                </div>
-
-                {# Bottom row: Groups + Pipelines #}
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                    {# S5-F4: Group stage view #}
-                    <div class="glass-box rounded-xl flex flex-col">
-                        <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="layout-grid" class="w-4 h-4 text-dc-info"></i>
-                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Group Stage</h3>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="TOC.brackets.openGroupConfig()" class="px-2 py-1 text-[10px] text-dc-text hover:text-white transition-colors border border-dc-border rounded">Configure</button>
-                                <button onclick="TOC.brackets.drawGroups()" class="px-2 py-1 text-[10px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Draw</button>
-                            </div>
-                        </div>
-                        <div id="groups-panel" class="p-4 flex-1 overflow-y-auto max-h-[400px]">
-                            <div class="flex items-center justify-center h-32 text-dc-text text-sm">No group stage configured</div>
-                        </div>
-                    </div>
-
-                    {# Pipeline panel #}
-                    <div class="glass-box rounded-xl flex flex-col">
-                        <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50 shrink-0">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="git-merge" class="w-4 h-4 text-purple-400"></i>
-                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Qualifier Pipelines</h3>
-                            </div>
-                            <button onclick="TOC.brackets.openCreatePipeline()" class="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold rounded-lg hover:bg-purple-500/20 transition-colors">
-                                <i data-lucide="plus" class="w-3 h-3 inline-block mr-1"></i> New
+                            <button onclick="TOC.brackets.openGroupConfig()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i>Configure
+                            </button>
+                            <button onclick="TOC.brackets.drawGroups()" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
+                                <i data-lucide="shuffle" class="w-3 h-3 inline mr-1"></i>Draw
+                            </button>
+                            <button onclick="TOC.brackets.recalcStandings()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Recalculate
                             </button>
                         </div>
-                        <div id="pipelines-panel" class="p-4 space-y-3 flex-1 overflow-y-auto max-h-[400px]">
-                            <div class="flex items-center justify-center h-32 text-dc-text text-sm">No pipelines configured</div>
+                    </div>
+                    {# Content area — populated by JS (hero state OR masonry grid) #}
+                    <div id="groups-content"></div>
+                </div>
+
+                {# ══ PLAYOFF BRACKET Sub-View ══ #}
+                <div id="sub-bracket" class="brackets-subview hidden">
+                    {# Action bar #}
+                    <div class="flex items-center justify-between mb-6">
+                        <div id="bracket-info-bar" class="flex items-center gap-5 text-xs text-dc-text hidden">
+                            <span>Format: <strong id="bracket-format" class="text-dc-textBright uppercase">—</strong></span>
+                            <span>Rounds: <strong id="bracket-rounds" class="text-dc-textBright font-mono">—</strong></span>
+                            <span>Matches: <strong id="bracket-matches" class="text-dc-textBright font-mono">—</strong></span>
+                            <span>Seeding: <strong id="bracket-seeding" class="text-dc-textBright">—</strong></span>
+                            <span>Status: <strong id="bracket-status" class="font-bold">—</strong></span>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="TOC.brackets.generate()" id="btn-bracket-generate"
+                                class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Generate
+                            </button>
+                            <button onclick="TOC.brackets.resetBracket()" id="btn-bracket-reset"
+                                class="px-4 py-2 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-1.5">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                            </button>
+                            <button onclick="TOC.brackets.publish()" id="btn-bracket-publish"
+                                class="px-4 py-2 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-1.5">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i> Publish
+                            </button>
+                        </div>
+                    </div>
+                    {# Bracket content — populated by JS (empty state OR bracket tree) #}
+                    <div id="bracket-content"></div>
+                    {# Seeding editor — shown when bracket is draft #}
+                    <div id="seeding-editor" class="glass-box rounded-xl overflow-hidden hidden mt-6">
+                        <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="list-ordered" class="w-4 h-4 text-dc-warning"></i>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Seeding Order</h3>
+                            </div>
+                            <button onclick="TOC.brackets.saveSeedOrder()" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold rounded-lg hover:bg-theme hover:text-dc-bg transition-all">Save Order</button>
+                        </div>
+                        <div id="seed-list" class="p-4 space-y-1 max-h-[400px] overflow-y-auto"></div>
                     </div>
                 </div>
 
-                {# S6-KO: Knockout Bracket Scaffold — populated by JS when group stage is active #}
-                <div id="knockout-scaffold" class="glass-box rounded-xl overflow-hidden hidden">
-                    {# Content rendered dynamically by toc-brackets.js renderKnockoutScaffold() #}
+                {# ══ QUALIFIER PIPELINES Sub-View ══ #}
+                <div id="sub-pipelines" class="brackets-subview hidden">
+                    {# Action bar #}
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Qualifier Pipelines</div>
+                        <button onclick="TOC.brackets.openCreatePipeline()" class="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Pipeline
+                        </button>
+                    </div>
+                    {# Pipeline list — populated by JS #}
+                    <div id="pipelines-content" class="space-y-3"></div>
                 </div>
+
             </div>
 
             {# Matches tab — Sprint 6 #}
@@ -1666,6 +1667,7 @@
             csrfToken: '{{ csrf_token }}',
             apiBase: '/api/toc/{{ tournament.slug }}',
             status: '{{ status }}',
+            tournamentFormat: '{{ tournament.format }}',
             gameSlug: '{{ game_slug }}',
             isOrganizer: {{ is_organizer|yesno:"true,false" }},
             gameColors: {
