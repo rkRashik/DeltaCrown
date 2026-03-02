@@ -1,0 +1,669 @@
+{% extends "tournaments/base.html" %}
+{% load static %}
+
+{% block title %}Draw Director — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_css %}
+<style>
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     DRAW DIRECTOR — Organizer Control Panel
+     Esports broadcast-grade group draw ceremony
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+  .draw-director { min-height: 100vh; background: #0a0a0f; }
+
+  /* ── Group Grid ── */
+  .group-card {
+    background: linear-gradient(135deg, rgba(15,15,25,0.95), rgba(20,20,35,0.85));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .group-card.receiving {
+    border-color: rgba(0,255,170,0.5);
+    box-shadow: 0 0 30px rgba(0,255,170,0.15);
+  }
+  .group-header {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .group-slot {
+    min-height: 44px;
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed rgba(255,255,255,0.06);
+    border-radius: 8px;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .group-slot.filled {
+    background: rgba(0,255,170,0.05);
+    border-color: rgba(0,255,170,0.2);
+    border-style: solid;
+  }
+  .group-slot.just-drawn {
+    animation: slotReveal 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-color: rgba(0,255,170,0.6);
+    box-shadow: 0 0 20px rgba(0,255,170,0.2), inset 0 0 20px rgba(0,255,170,0.05);
+  }
+  @keyframes slotReveal {
+    0% { transform: scale(0.8); opacity: 0; background: rgba(0,255,170,0.3); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; background: rgba(0,255,170,0.05); }
+  }
+
+  /* ── Draw Button ── */
+  .draw-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, #00ffaa, #00cc88);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 48px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  .draw-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(0,255,170,0.4);
+  }
+  .draw-btn:active:not(:disabled) { transform: translateY(0); }
+  .draw-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+  }
+  .draw-btn .pulse-ring {
+    position: absolute; inset: -4px;
+    border: 2px solid rgba(0,255,170,0.4);
+    border-radius: 18px;
+    animation: pulseRing 2s infinite;
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 0; }
+  }
+
+  /* ── Queue Panel ── */
+  .queue-player {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    transition: all 0.4s;
+  }
+  .queue-player.drawing {
+    animation: queuePop 0.6s forwards;
+  }
+  @keyframes queuePop {
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(60px); opacity: 0; height: 0; padding: 0; margin: 0; border: 0; }
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    background: linear-gradient(135deg, rgba(15,15,25,0.98), rgba(10,10,20,0.95));
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+  }
+  .status-badge {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 6px;
+  }
+  .status-waiting { background: rgba(255,200,50,0.1); color: #ffc832; border: 1px solid rgba(255,200,50,0.2); }
+  .status-live { background: rgba(255,50,50,0.1); color: #ff4444; border: 1px solid rgba(255,50,50,0.3); animation: livePulse 1.5s infinite; }
+  .status-complete { background: rgba(0,255,170,0.1); color: #00ffaa; border: 1px solid rgba(0,255,170,0.2); }
+
+  @keyframes livePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,50,50,0.3); }
+    50% { box-shadow: 0 0 12px 4px rgba(255,50,50,0.15); }
+  }
+
+  /* ── Progress Bar ── */
+  .draw-progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .draw-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ffaa, #00cc88);
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* ── Finalize Button ── */
+  .finalize-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, rgba(0,150,255,0.15), rgba(0,100,255,0.1));
+    color: #4da6ff;
+    border: 1px solid rgba(0,150,255,0.3);
+    border-radius: 12px;
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .finalize-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(0,150,255,0.25), rgba(0,100,255,0.2));
+    box-shadow: 0 4px 24px rgba(0,150,255,0.2);
+  }
+  .finalize-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Connection indicator ── */
+  .ws-indicator { width: 8px; height: 8px; border-radius: 50%; }
+  .ws-connected { background: #00ffaa; box-shadow: 0 0 8px rgba(0,255,170,0.5); }
+  .ws-disconnected { background: #ff4444; box-shadow: 0 0 8px rgba(255,50,50,0.5); }
+  .ws-connecting { background: #ffc832; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+{% endblock %}
+
+{% block tournament_content %}
+<div class="draw-director">
+
+  {# ━━━ Status Bar ━━━ #}
+  <div class="status-bar sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-white transition">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5 inline mr-1"></i> {{ tournament.name }}
+      </a>
+      <div class="h-4 w-px bg-white/10"></div>
+      <h1 class="font-display font-black text-white text-lg tracking-tight">
+        <i data-lucide="dice-5" class="w-5 h-5 inline mr-1.5 text-[#00ffaa]"></i>
+        Draw Director
+      </h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="draw-status-badge" class="status-badge status-waiting">WAITING</div>
+      <div class="flex items-center gap-2 text-xs text-gray-500">
+        <div id="ws-dot" class="ws-indicator ws-connecting"></div>
+        <span id="ws-label">Connecting…</span>
+      </div>
+    </div>
+  </div>
+
+  {# ━━━ Progress Bar ━━━ #}
+  <div class="draw-progress-track">
+    <div id="draw-progress" class="draw-progress-fill" style="width: 0%"></div>
+  </div>
+
+  <div class="max-w-[1600px] mx-auto px-6 py-8">
+
+    {# ━━━ Counter Strip ━━━ #}
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-6">
+        <div class="text-center">
+          <div id="drawn-count" class="font-display font-black text-4xl text-white">0</div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Drawn</div>
+        </div>
+        <div class="text-gray-600 text-2xl font-light">/</div>
+        <div class="text-center">
+          <div id="total-count" class="font-display font-black text-4xl text-gray-400">0</div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Total</div>
+        </div>
+        <div class="h-10 w-px bg-white/10 mx-2"></div>
+        <div class="text-center">
+          <div id="remaining-count" class="font-display font-black text-4xl text-[#ffc832]">0</div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Remaining</div>
+        </div>
+      </div>
+      <div id="last-drawn-name" class="text-right">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Last Drawn</div>
+        <div class="font-display font-bold text-xl text-white/30">—</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
+
+      {# ━━━━━━ LEFT: Group Grid ━━━━━━ #}
+      <div>
+        <div id="group-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {# Groups A-H rendered by JS #}
+        </div>
+
+        {# ━━━ Action Buttons ━━━ #}
+        <div class="flex items-center justify-center gap-6 mt-10">
+          <button id="btn-init-draw" onclick="DrawDirector.initDraw()" class="draw-btn" style="display:block">
+            <span class="pulse-ring"></span>
+            <i data-lucide="shuffle" class="w-6 h-6 inline mr-2"></i> Initialize Draw
+          </button>
+          <button id="btn-draw-next" onclick="DrawDirector.drawNext()" class="draw-btn" style="display:none" disabled>
+            <span class="pulse-ring"></span>
+            <i data-lucide="dice-5" class="w-6 h-6 inline mr-2"></i> Draw Next Player
+          </button>
+          <button id="btn-finalize" onclick="DrawDirector.finalize()" class="finalize-btn" style="display:none" disabled>
+            <i data-lucide="check-circle" class="w-5 h-5 inline mr-2"></i> Finalize & Generate Matches
+          </button>
+          <button id="btn-abort" onclick="DrawDirector.abort()" class="text-xs text-gray-600 hover:text-red-400 transition ml-4" style="display:none">
+            <i data-lucide="x-circle" class="w-4 h-4 inline mr-1"></i> Abort Draw
+          </button>
+        </div>
+      </div>
+
+      {# ━━━━━━ RIGHT: Queue Panel ━━━━━━ #}
+      <div class="glass-box rounded-xl overflow-hidden max-h-[calc(100vh-200px)]">
+        <div class="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div class="flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-[#00ffaa]"></i>
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest font-display">Queue</h3>
+          </div>
+          <span id="queue-badge" class="text-[10px] font-mono font-bold text-[#ffc832] bg-[#ffc832]/10 px-2 py-0.5 rounded">0</span>
+        </div>
+        <div id="queue-list" class="p-3 space-y-1.5 overflow-y-auto max-h-[60vh]">
+          <div class="text-center text-gray-600 text-xs py-8">Click "Initialize Draw" to load participants</div>
+        </div>
+      </div>
+    </div>
+
+    {# ━━━ Completion Banner ━━━ #}
+    <div id="draw-complete-banner" class="hidden mt-10 text-center">
+      <div class="inline-block bg-[#00ffaa]/5 border border-[#00ffaa]/20 rounded-2xl px-12 py-8">
+        <i data-lucide="trophy" class="w-12 h-12 text-[#00ffaa] mx-auto mb-3"></i>
+        <h2 class="font-display font-black text-2xl text-white mb-2">Draw Complete!</h2>
+        <p class="text-gray-400 text-sm mb-1">All players have been assigned to their groups.</p>
+        <p id="draw-hash" class="text-[10px] font-mono text-gray-600 mt-3">Hash: —</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block tournament_js %}
+<script>
+(function() {
+  'use strict';
+
+  const TOURNAMENT_ID = {{ tournament_id }};
+  const WS_PATH = '{{ ws_url }}';
+
+  let ws = null;
+  let session = null;
+  let drawInProgress = false;
+
+  // ══════════════════════════════════════════════
+  // WebSocket
+  // ══════════════════════════════════════════════
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = proto + '//' + location.host + WS_PATH;
+    setWsStatus('connecting');
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      setWsStatus('connected');
+      console.log('[DrawDirector] WebSocket connected');
+    };
+    ws.onclose = () => {
+      setWsStatus('disconnected');
+      console.log('[DrawDirector] WebSocket disconnected, reconnecting in 3s...');
+      setTimeout(connect, 3000);
+    };
+    ws.onerror = (e) => console.error('[DrawDirector] WS error:', e);
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        handleMessage(msg);
+      } catch (err) {
+        console.error('[DrawDirector] Parse error:', err);
+      }
+    };
+  }
+
+  function send(payload) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
+    }
+  }
+
+  function setWsStatus(status) {
+    const dot = document.getElementById('ws-dot');
+    const label = document.getElementById('ws-label');
+    dot.className = 'ws-indicator ws-' + status;
+    label.textContent = status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting…' : 'Disconnected';
+  }
+
+  // ══════════════════════════════════════════════
+  // Message Handler
+  // ══════════════════════════════════════════════
+
+  function handleMessage(msg) {
+    console.log('[DrawDirector] ←', msg.type, msg);
+
+    switch (msg.type) {
+      case 'draw_session_snapshot':
+        onSessionSnapshot(msg.session);
+        break;
+      case 'draw_session_open':
+        onSessionOpen(msg);
+        break;
+      case 'player_drawn':
+        onPlayerDrawn(msg);
+        break;
+      case 'player_override':
+        onPlayerOverride(msg);
+        break;
+      case 'draw_complete':
+        onDrawComplete(msg);
+        break;
+      case 'draw_aborted':
+        onDrawAborted(msg);
+        break;
+      case 'error':
+        showError(msg.message);
+        break;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // Event Handlers
+  // ══════════════════════════════════════════════
+
+  function onSessionSnapshot(s) {
+    session = s;
+    renderGroupGrid(s.groups, s.group_size);
+    // Populate existing assignments
+    for (const [groupName, players] of Object.entries(s.assignments || {})) {
+      players.forEach((p, i) => fillSlot(groupName, i + 1, p, false));
+    }
+    updateCounters(s.drawn_count, s.total, s.remaining);
+    if (s.finalized) {
+      setDrawStatus('complete');
+      showCompleteBanner();
+    } else if (s.drawn_count > 0) {
+      setDrawStatus('live');
+      showDrawControls(true);
+      updateDrawButton(s.remaining > 0);
+    } else {
+      setDrawStatus('live');
+      showDrawControls(true);
+    }
+  }
+
+  function onSessionOpen(msg) {
+    session = {
+      groups: msg.groups,
+      group_size: msg.group_size,
+      assignments: {},
+      drawn_count: 0,
+      total: msg.total,
+      remaining: msg.total,
+    };
+    msg.groups.forEach(g => session.assignments[g] = []);
+    renderGroupGrid(msg.groups, msg.group_size);
+    updateCounters(0, msg.total, msg.total);
+    setDrawStatus('live');
+    showDrawControls(true);
+    updateDrawButton(true);
+  }
+
+  function onPlayerDrawn(msg) {
+    const p = msg.player;
+    const group = msg.assigned_group;
+    const slot = msg.group_slot || msg.group_count;
+
+    // Update session
+    if (session) {
+      if (!session.assignments[group]) session.assignments[group] = [];
+      session.assignments[group].push(p);
+      session.drawn_count = msg.drawn_count;
+      session.remaining = msg.remaining;
+    }
+
+    // Animate: highlight receiving group
+    const card = document.querySelector(`[data-group="${group}"]`);
+    if (card) {
+      card.classList.add('receiving');
+      setTimeout(() => card.classList.remove('receiving'), 2000);
+    }
+
+    // Fill the slot with animation
+    fillSlot(group, slot, p, true);
+
+    // Remove from queue
+    removeFromQueue(p.user_id || p.registration_id);
+
+    // Update counters
+    updateCounters(msg.drawn_count, msg.total, msg.remaining);
+    updateLastDrawn(p.display_name || p.name);
+    updateProgress(msg.drawn_count, msg.total);
+
+    // Update button states
+    const allDrawn = msg.remaining === 0;
+    updateDrawButton(!allDrawn);
+    if (allDrawn) {
+      document.getElementById('btn-finalize').disabled = false;
+    }
+
+    drawInProgress = false;
+  }
+
+  function onPlayerOverride(msg) {
+    // Full re-render of groups from session state would be needed
+    if (session) {
+      // Re-render all slots
+      for (const g of session.groups) {
+        clearGroupSlots(g);
+        (session.assignments[g] || []).forEach((p, i) => fillSlot(g, i + 1, p, false));
+      }
+    }
+  }
+
+  function onDrawComplete(msg) {
+    setDrawStatus('complete');
+    showCompleteBanner(msg.seed_hash, msg.total_matches);
+    showDrawControls(false);
+  }
+
+  function onDrawAborted(msg) {
+    setDrawStatus('waiting');
+    session = null;
+    document.getElementById('group-grid').innerHTML = '';
+    showDrawControls(false);
+    document.getElementById('btn-init-draw').style.display = 'block';
+    document.getElementById('queue-list').innerHTML = '<div class="text-center text-gray-600 text-xs py-8">Draw aborted. Click "Initialize Draw" to start over.</div>';
+  }
+
+  // ══════════════════════════════════════════════
+  // Rendering
+  // ══════════════════════════════════════════════
+
+  function renderGroupGrid(groups, groupSize) {
+    const grid = document.getElementById('group-grid');
+    grid.innerHTML = '';
+    groups.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'group-card p-4';
+      card.setAttribute('data-group', g);
+
+      let slots = '';
+      for (let i = 1; i <= groupSize; i++) {
+        slots += `<div class="group-slot flex items-center px-3 text-sm" data-group="${g}" data-slot="${i}">
+          <span class="text-gray-600 font-mono text-xs mr-2">${i}.</span>
+          <span class="slot-name text-gray-600 text-xs">—</span>
+        </div>`;
+      }
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <span class="group-header text-[#00ffaa]">Group ${g}</span>
+          <span class="text-[10px] font-mono text-gray-600" data-group-count="${g}">0/${groupSize}</span>
+        </div>
+        <div class="space-y-2">${slots}</div>
+      `;
+      grid.appendChild(card);
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function fillSlot(groupName, slotNum, player, animate) {
+    const slot = document.querySelector(`[data-group="${groupName}"][data-slot="${slotNum}"]`);
+    if (!slot) return;
+    const nameEl = slot.querySelector('.slot-name');
+    nameEl.textContent = player.display_name || player.name || '???';
+    nameEl.classList.remove('text-gray-600');
+    nameEl.classList.add('text-white', 'font-semibold');
+    slot.classList.add('filled');
+    if (animate) {
+      slot.classList.add('just-drawn');
+      setTimeout(() => slot.classList.remove('just-drawn'), 2000);
+    }
+
+    // Update group counter
+    const counter = document.querySelector(`[data-group-count="${groupName}"]`);
+    if (counter) {
+      const filled = document.querySelectorAll(`[data-group="${groupName}"].group-slot.filled`).length;
+      counter.textContent = `${filled}/${session ? session.group_size : 4}`;
+    }
+  }
+
+  function clearGroupSlots(groupName) {
+    document.querySelectorAll(`.group-slot[data-group="${groupName}"]`).forEach(slot => {
+      const nameEl = slot.querySelector('.slot-name');
+      nameEl.textContent = '—';
+      nameEl.className = 'slot-name text-gray-600 text-xs';
+      slot.classList.remove('filled', 'just-drawn');
+    });
+  }
+
+  function renderQueue(participants) {
+    const list = document.getElementById('queue-list');
+    if (!participants || participants.length === 0) {
+      list.innerHTML = '<div class="text-center text-gray-600 text-xs py-8">Queue empty</div>';
+      return;
+    }
+    list.innerHTML = participants.map((p, i) => `
+      <div class="queue-player flex items-center gap-2" data-queue-id="${p.user_id || p.registration_id}">
+        <span class="text-gray-600 font-mono text-[10px] w-5">${i + 1}</span>
+        <span class="text-white/70 text-xs font-medium truncate">${p.display_name || p.name}</span>
+      </div>
+    `).join('');
+    document.getElementById('queue-badge').textContent = participants.length;
+  }
+
+  function removeFromQueue(id) {
+    const el = document.querySelector(`[data-queue-id="${id}"]`);
+    if (el) {
+      el.classList.add('drawing');
+      setTimeout(() => el.remove(), 600);
+    }
+    // Update badge
+    const badge = document.getElementById('queue-badge');
+    const current = parseInt(badge.textContent) || 0;
+    badge.textContent = Math.max(0, current - 1);
+  }
+
+  // ══════════════════════════════════════════════
+  // UI Updates
+  // ══════════════════════════════════════════════
+
+  function updateCounters(drawn, total, remaining) {
+    document.getElementById('drawn-count').textContent = drawn;
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('remaining-count').textContent = remaining;
+  }
+
+  function updateProgress(drawn, total) {
+    const pct = total > 0 ? (drawn / total * 100) : 0;
+    document.getElementById('draw-progress').style.width = pct + '%';
+  }
+
+  function updateLastDrawn(name) {
+    const el = document.getElementById('last-drawn-name');
+    el.innerHTML = `
+      <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Last Drawn</div>
+      <div class="font-display font-bold text-xl text-[#00ffaa]">${name}</div>
+    `;
+  }
+
+  function setDrawStatus(status) {
+    const badge = document.getElementById('draw-status-badge');
+    badge.className = 'status-badge';
+    if (status === 'waiting') { badge.classList.add('status-waiting'); badge.textContent = 'WAITING'; }
+    else if (status === 'live') { badge.classList.add('status-live'); badge.textContent = '● LIVE DRAW'; }
+    else if (status === 'complete') { badge.classList.add('status-complete'); badge.textContent = 'COMPLETE'; }
+  }
+
+  function showDrawControls(show) {
+    document.getElementById('btn-init-draw').style.display = show ? 'none' : 'block';
+    document.getElementById('btn-draw-next').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('btn-finalize').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('btn-abort').style.display = show ? 'inline-flex' : 'none';
+  }
+
+  function updateDrawButton(enabled) {
+    document.getElementById('btn-draw-next').disabled = !enabled;
+  }
+
+  function showCompleteBanner(hash, totalMatches) {
+    document.getElementById('draw-complete-banner').classList.remove('hidden');
+    if (hash) {
+      document.getElementById('draw-hash').textContent = 'Seed Hash: ' + hash;
+    }
+    document.getElementById('btn-draw-next').style.display = 'none';
+    document.getElementById('btn-finalize').style.display = 'none';
+    document.getElementById('btn-abort').style.display = 'none';
+  }
+
+  function showError(msg) {
+    // Simple toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-20 right-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm z-[9999] animate-pulse';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+  }
+
+  // ══════════════════════════════════════════════
+  // Public API (called from buttons)
+  // ══════════════════════════════════════════════
+
+  window.DrawDirector = {
+    initDraw() {
+      send({ action: 'init_draw' });
+    },
+    drawNext() {
+      if (drawInProgress) return;
+      drawInProgress = true;
+      document.getElementById('btn-draw-next').disabled = true;
+      send({ action: 'draw_next' });
+      // Re-enable after timeout if no response
+      setTimeout(() => { drawInProgress = false; document.getElementById('btn-draw-next').disabled = false; }, 5000);
+    },
+    finalize() {
+      if (!confirm('Finalize the draw? This will commit all group assignments and generate matches. This cannot be undone.')) return;
+      send({ action: 'finalize_draw' });
+    },
+    abort() {
+      if (!confirm('Abort the draw? All assignments will be discarded.')) return;
+      send({ action: 'abort_draw' });
+    },
+  };
+
+  // ══════════════════════════════════════════════
+  // Init
+  // ══════════════════════════════════════════════
+
+  connect();
+})();
+</script>
+{% endblock %}

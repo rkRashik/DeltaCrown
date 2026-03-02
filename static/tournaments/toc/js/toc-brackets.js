@@ -369,49 +369,112 @@
     if (!container) return;
 
     if (!data.exists || !data.groups?.length) {
-      container.innerHTML = '<div class="flex items-center justify-center h-32 text-dc-text text-sm">No group stage configured</div>';
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-32 text-dc-text text-sm gap-3">
+          <p>No group stage configured</p>
+          <button onclick="TOC.brackets.openGroupConfig()" class="px-3 py-1.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold rounded-lg hover:bg-theme/20 transition-colors">
+            <i data-lucide="layout-grid" class="w-3 h-3 inline mr-1"></i> Configure Groups
+          </button>
+        </div>`;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
-    container.innerHTML = `
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">${data.groups.length} Groups · ${data.stage?.format || 'Round Robin'}</span>
-        <button onclick="TOC.brackets.recalcStandings()" class="px-2 py-1 text-[10px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Recalculate</button>
-      </div>
-    ` + data.groups.map(g => `
-      <div class="bg-dc-bg border border-dc-border rounded-xl p-3 mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <h4 class="text-xs font-bold text-white">${g.name}</h4>
-          <span class="text-[9px] font-mono text-dc-text">${g.standings?.length || 0} teams${g.is_finalized ? ' · <span class="text-dc-success">Finalized</span>' : ''}</span>
+    // Check if groups are drawn (any group has standings)
+    const hasStandings = data.groups.some(g => g.standings?.length > 0);
+    const allFinalized = data.groups.every(g => g.is_finalized);
+
+    // Header bar with actions
+    let headerHtml = `
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">${data.groups.length} Groups · ${data.stage?.format || 'Round Robin'}</span>
+          ${data.stage?.state ? `<span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${data.stage.state === 'active' ? 'border-dc-success/30 text-dc-success bg-dc-success/5' : data.stage.state === 'completed' ? 'border-dc-info/30 text-dc-info bg-dc-info/5' : 'border-dc-warning/30 text-dc-warning bg-dc-warning/5'}">${data.stage.state?.toUpperCase()}</span>` : ''}
         </div>
-        ${g.standings?.length ? `
-          <table class="w-full text-[10px]">
-            <thead><tr class="text-dc-text border-b border-dc-border/50">
-              <th class="text-left py-1 px-1">#</th>
-              <th class="text-left py-1 px-1">Team</th>
-              <th class="text-center py-1 px-1">P</th>
-              <th class="text-center py-1 px-1">W</th>
-              <th class="text-center py-1 px-1">D</th>
-              <th class="text-center py-1 px-1">L</th>
-              <th class="text-center py-1 px-1">GD</th>
-              <th class="text-center py-1 px-1">Pts</th>
-            </tr></thead>
-            <tbody>${g.standings.map(s => `
-              <tr class="border-b border-dc-border/30 ${s.is_advancing ? 'bg-dc-success/5' : ''} ${s.is_eliminated ? 'opacity-50' : ''}">
-                <td class="py-1 px-1 font-mono font-bold text-dc-text">${s.rank || '—'}</td>
-                <td class="py-1 px-1 text-dc-textBright font-semibold truncate max-w-[120px]">${s.team_name || s.user_id || '—'}</td>
-                <td class="py-1 px-1 text-center text-dc-text font-mono">${s.matches_played || 0}</td>
-                <td class="py-1 px-1 text-center text-dc-success font-mono">${s.wins}</td>
-                <td class="py-1 px-1 text-center text-dc-text font-mono">${s.draws}</td>
-                <td class="py-1 px-1 text-center text-dc-danger font-mono">${s.losses}</td>
-                <td class="py-1 px-1 text-center font-mono ${(s.goal_difference || 0) > 0 ? 'text-dc-success' : (s.goal_difference || 0) < 0 ? 'text-dc-danger' : 'text-dc-text'}">${(s.goal_difference || 0) > 0 ? '+' : ''}${s.goal_difference || 0}</td>
-                <td class="py-1 px-1 text-center text-white font-mono font-bold">${s.points}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        ` : '<p class="text-dc-text/60 text-[10px]">No standings yet</p>'}
-      </div>
-    `).join('');
+        <div class="flex items-center gap-2">
+          <button onclick="TOC.brackets.recalcStandings()" class="px-2 py-1 text-[10px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Recalculate</button>
+        </div>
+      </div>`;
+
+    // Live Draw Director button (when groups configured but not yet drawn)
+    if (!hasStandings) {
+      headerHtml += `
+        <div class="mb-4 bg-theme/5 border border-theme/15 rounded-xl p-5 text-center">
+          <i data-lucide="dice-5" class="w-8 h-8 text-theme mx-auto mb-2 opacity-60"></i>
+          <h4 class="text-sm font-bold text-white mb-1">Groups Ready for Draw</h4>
+          <p class="text-[10px] text-dc-text mb-3">${data.groups.length} groups configured — launch the Live Draw Director to begin the ceremony</p>
+          <div class="flex items-center justify-center gap-3">
+            <a href="/tournaments/${slug}/draw/director/" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">
+              <i data-lucide="radio" class="w-3.5 h-3.5"></i> Start Live Draw
+            </a>
+            <a href="/tournaments/${slug}/draw/live/" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-borderLight transition-colors">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i> Spectator Link
+            </a>
+          </div>
+        </div>`;
+    }
+
+    // Render groups as enhanced cards
+    const groupsHtml = data.groups.map(g => {
+      const advanceCount = g.advancement_count || data.stage?.advancement_count_per_group || 2;
+      const standings = g.standings || [];
+
+      return `
+        <div class="bg-dc-bg border border-dc-border rounded-xl overflow-hidden mb-3">
+          <div class="flex items-center justify-between px-3 py-2 bg-dc-panel/30 border-b border-dc-border/50">
+            <div class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full ${g.is_finalized ? 'bg-dc-success' : 'bg-dc-warning'}"></div>
+              <h4 class="text-xs font-bold text-white tracking-wide">${g.name}</h4>
+            </div>
+            <span class="text-[9px] font-mono text-dc-text">${standings.length} players${g.is_finalized ? ' · <span class="text-dc-success font-bold">Final</span>' : ''}</span>
+          </div>
+          ${standings.length ? `
+            <table class="w-full text-[10px]">
+              <thead><tr class="text-dc-text border-b border-dc-border/30 bg-dc-panel/20">
+                <th class="text-left py-1.5 px-2 w-8">#</th>
+                <th class="text-left py-1.5 px-2">Player</th>
+                <th class="text-center py-1.5 px-1 w-7">P</th>
+                <th class="text-center py-1.5 px-1 w-7">W</th>
+                <th class="text-center py-1.5 px-1 w-7">D</th>
+                <th class="text-center py-1.5 px-1 w-7">L</th>
+                <th class="text-center py-1.5 px-1 w-8">GD</th>
+                <th class="text-center py-1.5 px-1 w-8 font-black">Pts</th>
+              </tr></thead>
+              <tbody>${standings.map((s, idx) => {
+                const inAdvZone = idx < advanceCount && !s.is_eliminated;
+                const isEliminated = s.is_eliminated;
+                return `
+                  <tr class="border-b border-dc-border/20 hover:bg-white/[0.02] transition-colors ${inAdvZone ? 'bg-dc-success/[0.04]' : ''} ${isEliminated ? 'opacity-40' : ''}">
+                    <td class="py-1.5 px-2">
+                      <div class="flex items-center gap-1">
+                        ${inAdvZone ? '<div class="w-0.5 h-4 bg-dc-success rounded-full"></div>' : '<div class="w-0.5 h-4 bg-transparent"></div>'}
+                        <span class="font-mono font-bold ${inAdvZone ? 'text-dc-success' : 'text-dc-text'}">${s.rank || idx + 1}</span>
+                      </div>
+                    </td>
+                    <td class="py-1.5 px-2 text-dc-textBright font-semibold truncate max-w-[120px]">${s.team_name || s.player_name || s.user_id || '—'}</td>
+                    <td class="py-1.5 px-1 text-center text-dc-text font-mono">${s.matches_played || 0}</td>
+                    <td class="py-1.5 px-1 text-center text-dc-success font-mono font-semibold">${s.wins ?? s.matches_won ?? 0}</td>
+                    <td class="py-1.5 px-1 text-center text-dc-text font-mono">${s.draws ?? s.matches_drawn ?? 0}</td>
+                    <td class="py-1.5 px-1 text-center text-dc-danger font-mono">${s.losses ?? s.matches_lost ?? 0}</td>
+                    <td class="py-1.5 px-1 text-center font-mono ${(s.goal_difference || 0) > 0 ? 'text-dc-success' : (s.goal_difference || 0) < 0 ? 'text-dc-danger' : 'text-dc-text'}">${(s.goal_difference || 0) > 0 ? '+' : ''}${s.goal_difference || 0}</td>
+                    <td class="py-1.5 px-1 text-center font-mono font-black ${inAdvZone ? 'text-dc-success' : 'text-white'}">${s.points ?? 0}</td>
+                  </tr>`;
+              }).join('')}
+              </tbody>
+            </table>
+            ${advanceCount > 0 ? `
+              <div class="px-3 py-1.5 bg-dc-success/[0.03] border-t border-dc-success/10">
+                <span class="text-[9px] text-dc-success/70 font-mono"><i data-lucide="arrow-up-right" class="w-2.5 h-2.5 inline mr-0.5"></i> Top ${advanceCount} advance to Playoffs</span>
+              </div>` : ''}
+          ` : '<div class="p-3 text-dc-text/40 text-[10px] text-center">No standings yet</div>'}
+        </div>`;
+    }).join('');
+
+    container.innerHTML = headerHtml + groupsHtml;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Also render knockout bracket scaffold
+    renderKnockoutScaffold(data);
   }
 
   async function recalcStandings() {
@@ -481,6 +544,111 @@
     } catch (e) {
       toast(e.message || 'Draw failed', 'error');
     }
+  }
+
+  /* ─── Knockout Bracket Scaffold ──────────────────────────── */
+  function renderKnockoutScaffold(groupData) {
+    // Only render scaffold if bracket doesn't exist yet and groups are present
+    if (!groupData?.exists || !groupData?.groups?.length) return;
+    if (bracketData?.exists) return; // Bracket already generated — existing tree handles it
+
+    const scaffoldContainer = $('#knockout-scaffold');
+    if (!scaffoldContainer) return;
+
+    const hasStandings = groupData.groups.some(g => g.standings?.length > 0);
+    const allGroupsFinalized = groupData.groups.every(g => g.is_finalized);
+    const groupCount = groupData.groups.length;
+    const advancePerGroup = groupData.stage?.advancement_count_per_group || 2;
+    const totalAdvancing = groupCount * advancePerGroup;
+
+    // Build seeding preview (e.g., A1 vs B2, C1 vs D2...)
+    const seedPairs = buildGroupToKnockoutSeeding(groupData.groups, advancePerGroup);
+
+    scaffoldContainer.classList.remove('hidden');
+    scaffoldContainer.innerHTML = `
+      <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-4 h-4 text-dc-warning"></i>
+          <h3 class="text-sm font-bold text-white uppercase tracking-widest">Playoff Bracket</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[9px] font-mono text-dc-text">${totalAdvancing} players → Single Elimination</span>
+        </div>
+      </div>
+
+      <div class="p-6">
+        ${!hasStandings ? `
+          <div class="text-center py-8">
+            <i data-lucide="git-branch" class="w-12 h-12 text-dc-text/10 mx-auto mb-3"></i>
+            <p class="text-dc-text text-sm mb-1">Playoff Bracket Pending</p>
+            <p class="text-[10px] text-dc-text/50">Complete the group draw first, then group matches</p>
+          </div>
+        ` : !allGroupsFinalized ? `
+          <div class="text-center py-6">
+            <div class="inline-block bg-dc-warning/5 border border-dc-warning/15 rounded-xl px-8 py-6">
+              <i data-lucide="clock" class="w-8 h-8 text-dc-warning/50 mx-auto mb-2"></i>
+              <p class="text-white font-bold text-sm mb-1">Group Stage In Progress</p>
+              <p class="text-[10px] text-dc-text mb-4">Playoff bracket will be generated once all group matches are completed.</p>
+              <div class="grid grid-cols-2 gap-2 text-[10px] mb-4">
+                ${seedPairs.map(pair => `
+                  <div class="bg-dc-bg border border-dc-border rounded-lg px-3 py-2 flex items-center justify-between">
+                    <span class="text-dc-textBright font-semibold">${pair.p1Label}</span>
+                    <span class="text-dc-text/40 text-[9px] mx-1">vs</span>
+                    <span class="text-dc-textBright font-semibold">${pair.p2Label}</span>
+                  </div>
+                `).join('')}
+              </div>
+              <p class="text-[9px] text-dc-text/40 font-mono">Seeding: Group winners vs runners-up (cross-matched)</p>
+            </div>
+          </div>
+        ` : `
+          <div class="text-center py-6">
+            <div class="inline-block bg-dc-success/5 border border-dc-success/15 rounded-xl px-8 py-6">
+              <i data-lucide="zap" class="w-8 h-8 text-dc-success/60 mx-auto mb-2"></i>
+              <p class="text-white font-bold text-sm mb-1">Group Stage Complete</p>
+              <p class="text-[10px] text-dc-text mb-4">All groups finalized. Generate the playoff bracket from group standings.</p>
+              <button onclick="TOC.brackets.generatePlayoffs()" class="px-6 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">
+                <i data-lucide="trophy" class="w-3.5 h-3.5 inline mr-1.5"></i> Generate Playoffs
+              </button>
+            </div>
+          </div>
+        `}
+      </div>`;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function buildGroupToKnockoutSeeding(groups, advancePerGroup) {
+    // Cross-match seeding: A1 vs B2, B1 vs A2, C1 vs D2, D1 vs C2, etc.
+    const pairs = [];
+    for (let i = 0; i < groups.length; i += 2) {
+      const gA = groups[i];
+      const gB = groups[i + 1];
+      if (!gB) break;
+      const aLetter = (gA.name || '').replace('Group ', '');
+      const bLetter = (gB.name || '').replace('Group ', '');
+      pairs.push({ p1Label: `${aLetter}1`, p2Label: `${bLetter}2` });
+      if (advancePerGroup >= 2) {
+        pairs.push({ p1Label: `${bLetter}1`, p2Label: `${aLetter}2` });
+      }
+    }
+    return pairs;
+  }
+
+  async function generatePlayoffs() {
+    if (!confirm('Generate playoff bracket from group standings? This will create a single elimination bracket with seeding from group results.')) return;
+    try {
+      toast('Generating playoff bracket...', 'info');
+      await API.post('brackets/generate/', { seeding_method: 'group_standings' });
+      toast('Playoff bracket generated!', 'success');
+      refresh();
+    } catch (e) {
+      toast(e.message || 'Failed to generate playoffs', 'error');
+    }
+  }
+
+  function startLiveDraw() {
+    window.open(`/tournaments/${slug}/draw/director/`, '_blank');
   }
 
   /* ─── Pipelines ──────────────────────────────────────────── */
@@ -649,7 +817,8 @@
   window.TOC.brackets = {
     init, refresh, generate, resetBracket, publish,
     saveSeedOrder, refreshGroups, recalcStandings, openGroupConfig, confirmGroupConfig,
-    drawGroups, refreshPipelines, openCreatePipeline, confirmCreatePipeline,
+    drawGroups, generatePlayoffs, startLiveDraw,
+    refreshPipelines, openCreatePipeline, confirmCreatePipeline,
     deletePipeline, closeOverlay, onMatchCardClick,
   };
 

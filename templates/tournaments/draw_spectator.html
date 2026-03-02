@@ -1,0 +1,733 @@
+{% extends "tournaments/base.html" %}
+{% load static %}
+
+{% block title %}Live Draw — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_css %}
+<style>
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     LIVE DRAW SPECTATOR — Broadcast-Quality Group Draw
+     High-stakes esports broadcast tool
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+  :root {
+    --draw-accent: #00ffaa;
+    --draw-accent-dim: rgba(0,255,170,0.15);
+    --draw-gold: #ffc832;
+    --draw-bg: #040408;
+    --draw-surface: #0a0a12;
+    --draw-card: #0f0f1a;
+    --draw-border: rgba(255,255,255,0.05);
+  }
+
+  body { background: var(--draw-bg) !important; overflow-x: hidden; }
+  .spectator-draw { min-height: 100vh; position: relative; }
+
+  /* ── Cinematic background ── */
+  .draw-bg-glow {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .draw-bg-glow::before {
+    content: ''; position: absolute; width: 600px; height: 600px;
+    top: -200px; left: 50%; transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(0,255,170,0.08) 0%, transparent 70%);
+    animation: glowFloat 8s ease-in-out infinite;
+  }
+  .draw-bg-glow::after {
+    content: ''; position: absolute; width: 400px; height: 400px;
+    bottom: -100px; right: -100px;
+    background: radial-gradient(circle, rgba(0,100,255,0.05) 0%, transparent 70%);
+    animation: glowFloat 12s ease-in-out infinite reverse;
+  }
+  @keyframes glowFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(30px); }
+  }
+
+  /* ── Header ── */
+  .draw-header {
+    background: linear-gradient(180deg, rgba(10,10,18,0.98), rgba(4,4,8,0));
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--draw-border);
+  }
+  .tournament-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+  .live-badge {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: rgba(255,40,40,0.12);
+    color: #ff4444;
+    border: 1px solid rgba(255,40,40,0.3);
+    padding: 3px 10px;
+    border-radius: 6px;
+    animation: livePulse 1.5s infinite;
+  }
+  @keyframes livePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,40,40,0.25); }
+    50% { box-shadow: 0 0 15px 5px rgba(255,40,40,0.1); }
+  }
+  .waiting-badge {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: rgba(255,200,50,0.1); color: #ffc832;
+    border: 1px solid rgba(255,200,50,0.2);
+    padding: 3px 10px; border-radius: 6px;
+  }
+  .complete-badge {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: rgba(0,255,170,0.1); color: var(--draw-accent);
+    border: 1px solid rgba(0,255,170,0.2);
+    padding: 3px 10px; border-radius: 6px;
+  }
+
+  /* ── Progress ── */
+  .spec-progress-track {
+    height: 3px; background: rgba(255,255,255,0.03);
+    position: relative; overflow: hidden;
+  }
+  .spec-progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--draw-accent), #00cc88);
+    transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 10px rgba(0,255,170,0.5);
+  }
+
+  /* ── Counters ── */
+  .draw-counter {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  /* ══════════════════════════════════════════════
+     GROUP GRID — The Main Stage
+  ══════════════════════════════════════════════ */
+
+  .spec-group-card {
+    background: linear-gradient(135deg, var(--draw-card), rgba(12,12,22,0.9));
+    border: 1px solid var(--draw-border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .spec-group-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--draw-accent), transparent);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .spec-group-card.receiving::before { opacity: 1; }
+  .spec-group-card.receiving {
+    border-color: rgba(0,255,170,0.3);
+    box-shadow: 0 0 40px rgba(0,255,170,0.1), inset 0 0 40px rgba(0,255,170,0.02);
+  }
+  .spec-group-letter {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--draw-accent);
+    opacity: 0.8;
+  }
+
+  /* ── Player Slots ── */
+  .spec-slot {
+    min-height: 48px;
+    background: rgba(255,255,255,0.015);
+    border: 1px dashed rgba(255,255,255,0.04);
+    border-radius: 10px;
+    display: flex; align-items: center; padding: 0 14px;
+    transition: all 0.5s;
+    position: relative;
+    overflow: hidden;
+  }
+  .spec-slot.filled {
+    background: rgba(0,255,170,0.03);
+    border-color: rgba(0,255,170,0.12);
+    border-style: solid;
+  }
+
+  /* ── Card Flip Animation ── */
+  .spec-slot .card-inner {
+    width: 100%;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+    perspective: 600px;
+  }
+  .spec-slot.revealing .card-inner {
+    animation: cardFlipReveal 1.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes cardFlipReveal {
+    0% { transform: rotateY(0deg); }
+    40% { transform: rotateY(90deg); }
+    41% { transform: rotateY(90deg); }
+    100% { transform: rotateY(0deg); }
+  }
+
+  /* ── Glow reveal effect ── */
+  .spec-slot.revealing::before {
+    content: ''; position: absolute; inset: -2px;
+    background: linear-gradient(135deg, rgba(0,255,170,0.4), transparent, rgba(0,255,170,0.2));
+    border-radius: 12px;
+    animation: slotGlow 2s forwards;
+    z-index: 0;
+  }
+  @keyframes slotGlow {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Name reveal ── */
+  .spec-slot .player-name {
+    z-index: 1;
+    font-family: 'Space Grotesk', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.4s 0.8s;
+  }
+  .spec-slot.revealed .player-name {
+    opacity: 1;
+    transform: translateY(0);
+    color: white;
+  }
+
+  /* ── Slot number ── */
+  .spec-slot .slot-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.15);
+    width: 20px; flex-shrink: 0;
+  }
+  .spec-slot.filled .slot-num { color: rgba(0,255,170,0.4); }
+
+  /* ── Suspense shimmer on pending slot ── */
+  .spec-slot.suspense {
+    animation: suspenseShimmer 2s ease-in-out;
+  }
+  @keyframes suspenseShimmer {
+    0% { border-color: rgba(255,200,50,0.1); box-shadow: none; }
+    30% { border-color: rgba(255,200,50,0.4); box-shadow: 0 0 20px rgba(255,200,50,0.15); }
+    70% { border-color: rgba(0,255,170,0.4); box-shadow: 0 0 30px rgba(0,255,170,0.2); }
+    100% { border-color: rgba(0,255,170,0.15); box-shadow: none; }
+  }
+
+  /* ══════════════════════════════════════════════
+     LAST DRAWN — Spotlight Card
+  ══════════════════════════════════════════════ */
+
+  .spotlight-card {
+    background: linear-gradient(135deg, rgba(0,255,170,0.05), rgba(0,100,255,0.03));
+    border: 1px solid rgba(0,255,170,0.1);
+    border-radius: 16px;
+    padding: 24px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .spotlight-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at center, rgba(0,255,170,0.08), transparent 60%);
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .spotlight-card.active::before { opacity: 1; }
+  .spotlight-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    font-size: 2.5rem;
+    color: white;
+    letter-spacing: 0.02em;
+    animation: spotlightIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes spotlightIn {
+    0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .spotlight-group {
+    font-family: 'Space Grotesk', monospace;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--draw-accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ── Waiting state ── */
+  .waiting-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 60vh;
+  }
+  .waiting-icon {
+    width: 80px; height: 80px;
+    color: rgba(255,255,255,0.08);
+    animation: waitBob 3s ease-in-out infinite;
+  }
+  @keyframes waitBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* ── Draw Complete celebrations ── */
+  .complete-screen {
+    text-align: center; padding: 60px 20px;
+  }
+  .complete-trophy {
+    width: 80px; height: 80px; color: var(--draw-gold);
+    animation: trophyBounce 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin: 0 auto 20px;
+  }
+  @keyframes trophyBounce {
+    0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+    60% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  /* ── Connection indicator ── */
+  .ws-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .ws-dot.connected { background: var(--draw-accent); box-shadow: 0 0 6px rgba(0,255,170,0.5); }
+  .ws-dot.disconnected { background: #ff4444; }
+  .ws-dot.connecting { background: #ffc832; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .spec-group-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .spotlight-name { font-size: 1.8rem; }
+  }
+</style>
+{% endblock %}
+
+{% block tournament_content %}
+<div class="spectator-draw">
+  <div class="draw-bg-glow"></div>
+
+  {# ━━━ Header ━━━ #}
+  <div class="draw-header sticky top-0 z-50 px-6 py-3">
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-gray-600 hover:text-white transition">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+          <h1 class="tournament-name text-white text-xl">{{ tournament.name }}</h1>
+          <p class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Group Draw Ceremony</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="draw-badge" class="waiting-badge">WAITING FOR DRAW</span>
+        <div class="flex items-center gap-1.5 text-[10px] text-gray-600">
+          <span id="ws-status-dot" class="ws-dot connecting"></span>
+          <span id="ws-status-text">Connecting</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ━━━ Progress ━━━ #}
+  <div class="spec-progress-track">
+    <div id="spec-progress" class="spec-progress-fill" style="width:0%"></div>
+  </div>
+
+  <div class="max-w-[1400px] mx-auto px-6 py-8 relative z-10">
+
+    {# ━━━ Waiting Screen ━━━ #}
+    <div id="waiting-screen" class="waiting-screen">
+      <i data-lucide="dice-5" class="waiting-icon"></i>
+      <h2 class="font-display font-black text-2xl text-white/20 mt-6">Waiting for Draw</h2>
+      <p class="text-gray-600 text-sm mt-2">The organizer will begin the group draw shortly…</p>
+      <div class="mt-4 flex items-center gap-2">
+        <div class="w-1.5 h-1.5 rounded-full bg-[#ffc832] animate-pulse"></div>
+        <span class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Standing by</span>
+      </div>
+    </div>
+
+    {# ━━━ Live Draw Content (hidden until draw starts) ━━━ #}
+    <div id="live-content" class="hidden">
+
+      {# Counter Strip #}
+      <div class="flex items-center justify-center gap-8 mb-8">
+        <div class="text-center">
+          <div id="spec-drawn" class="draw-counter text-5xl text-white">0</div>
+          <div class="text-[9px] text-gray-600 uppercase tracking-[0.2em] mt-1">Drawn</div>
+        </div>
+        <div class="text-gray-700 text-3xl font-light">/</div>
+        <div class="text-center">
+          <div id="spec-total" class="draw-counter text-5xl text-gray-500">0</div>
+          <div class="text-[9px] text-gray-600 uppercase tracking-[0.2em] mt-1">Total</div>
+        </div>
+      </div>
+
+      {# Spotlight — Last Drawn Player #}
+      <div id="spotlight" class="spotlight-card mb-10 hidden">
+        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2 font-mono">
+          <i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i> Drawn
+        </div>
+        <div id="spotlight-name" class="spotlight-name">—</div>
+        <div id="spotlight-group" class="spotlight-group">→ Group —</div>
+      </div>
+
+      {# Group Grid #}
+      <div id="spec-group-grid" class="spec-group-grid grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+        {# Rendered by JS #}
+      </div>
+
+      {# Remaining counter #}
+      <div class="text-center">
+        <span class="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
+          <span id="spec-remaining" class="text-[#ffc832] font-bold">0</span> players remaining
+        </span>
+      </div>
+    </div>
+
+    {# ━━━ Complete Screen (hidden) ━━━ #}
+    <div id="complete-screen" class="complete-screen hidden">
+      <i data-lucide="trophy" class="complete-trophy"></i>
+      <h2 class="font-display font-black text-3xl text-white mb-2">Draw Complete!</h2>
+      <p class="text-gray-400 text-sm mb-4">All teams have been drawn into their groups.</p>
+      <p id="spec-hash" class="text-[10px] font-mono text-gray-700"></p>
+      <div id="final-groups" class="mt-10">
+        {# Final group grid re-rendered here #}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block tournament_js %}
+<script>
+(function() {
+  'use strict';
+
+  const TOURNAMENT_ID = {{ tournament_id }};
+  const WS_PATH = '{{ ws_url }}';
+
+  let ws = null;
+  let session = null;
+
+  // ══════════════════════════════════════════════
+  // WebSocket
+  // ══════════════════════════════════════════════
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host + WS_PATH);
+    setWsStatus('connecting');
+
+    ws.onopen = () => {
+      setWsStatus('connected');
+      console.log('[DrawSpectator] Connected');
+    };
+    ws.onclose = () => {
+      setWsStatus('disconnected');
+      setTimeout(connect, 3000);
+    };
+    ws.onerror = (e) => console.error('[DrawSpectator] Error:', e);
+    ws.onmessage = (e) => {
+      try { handleMessage(JSON.parse(e.data)); }
+      catch (err) { console.error('[DrawSpectator] Parse error:', err); }
+    };
+  }
+
+  function setWsStatus(s) {
+    const dot = document.getElementById('ws-status-dot');
+    const txt = document.getElementById('ws-status-text');
+    dot.className = 'ws-dot ' + s;
+    txt.textContent = s === 'connected' ? 'Live' : s === 'connecting' ? 'Connecting' : 'Reconnecting';
+  }
+
+  // ══════════════════════════════════════════════
+  // Message Handler
+  // ══════════════════════════════════════════════
+
+  function handleMessage(msg) {
+    console.log('[DrawSpectator] ←', msg.type, msg);
+    switch (msg.type) {
+      case 'draw_session_snapshot': onSnapshot(msg.session); break;
+      case 'draw_session_open': onSessionOpen(msg); break;
+      case 'player_drawn': onPlayerDrawn(msg); break;
+      case 'player_override': onPlayerOverride(msg); break;
+      case 'draw_complete': onDrawComplete(msg); break;
+      case 'draw_aborted': onDrawAborted(msg); break;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // Event Handlers
+  // ══════════════════════════════════════════════
+
+  function onSnapshot(s) {
+    session = s;
+    showLiveContent();
+    renderGroupGrid(s.groups, s.group_size);
+
+    // Populate existing assignments (no animation on reconnect)
+    for (const [gName, players] of Object.entries(s.assignments || {})) {
+      players.forEach((p, i) => fillSlotInstant(gName, i + 1, p));
+    }
+    updateCounters(s.drawn_count, s.total, s.total - s.drawn_count);
+
+    if (s.finalized) {
+      setBadge('complete');
+      showCompleteScreen(null, null);
+    } else if (s.drawn_count > 0) {
+      setBadge('live');
+    }
+  }
+
+  function onSessionOpen(msg) {
+    session = {
+      groups: msg.groups, group_size: msg.group_size,
+      assignments: {}, drawn_count: 0, total: msg.total,
+    };
+    msg.groups.forEach(g => session.assignments[g] = []);
+
+    showLiveContent();
+    renderGroupGrid(msg.groups, msg.group_size);
+    updateCounters(0, msg.total, msg.total);
+    setBadge('live');
+  }
+
+  function onPlayerDrawn(msg) {
+    const player = msg.player;
+    const group = msg.assigned_group;
+    const slot = msg.group_slot || msg.group_count;
+
+    // Update local state
+    if (session) {
+      if (!session.assignments[group]) session.assignments[group] = [];
+      session.assignments[group].push(player);
+      session.drawn_count = msg.drawn_count;
+    }
+
+    updateCounters(msg.drawn_count, msg.total, msg.remaining);
+    updateProgress(msg.drawn_count, msg.total);
+
+    // ── THE SUSPENSEFUL REVEAL ──
+    // 1. Show spotlight with name
+    showSpotlight(player.display_name || player.name, group);
+
+    // 2. Highlight the receiving group card
+    const card = document.querySelector(`[data-spec-group="${group}"]`);
+    if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 3000); }
+
+    // 3. The slot gets a suspense shimmer, then card flip reveal
+    const slotEl = document.querySelector(`[data-spec-group="${group}"][data-spec-slot="${slot}"]`);
+    if (slotEl) {
+      // Phase 1: Suspense shimmer (0-1.5s)
+      slotEl.classList.add('suspense');
+
+      // Phase 2: Card flip reveal (1.5s)
+      setTimeout(() => {
+        slotEl.classList.remove('suspense');
+        slotEl.classList.add('revealing', 'filled');
+        const nameEl = slotEl.querySelector('.player-name');
+        if (nameEl) nameEl.textContent = player.display_name || player.name;
+      }, 1500);
+
+      // Phase 3: Settle revealed state (3s)
+      setTimeout(() => {
+        slotEl.classList.remove('revealing');
+        slotEl.classList.add('revealed');
+      }, 3000);
+    }
+  }
+
+  function onPlayerOverride(msg) {
+    // Re-render from session state
+    if (session) {
+      for (const g of session.groups) {
+        clearSlots(g);
+        (session.assignments[g] || []).forEach((p, i) => fillSlotInstant(g, i + 1, p));
+      }
+    }
+  }
+
+  function onDrawComplete(msg) {
+    setBadge('complete');
+    showCompleteScreen(msg.seed_hash, msg.total_matches);
+  }
+
+  function onDrawAborted() {
+    session = null;
+    setBadge('waiting');
+    document.getElementById('live-content').classList.add('hidden');
+    document.getElementById('complete-screen').classList.add('hidden');
+    document.getElementById('waiting-screen').classList.remove('hidden');
+  }
+
+  // ══════════════════════════════════════════════
+  // Rendering
+  // ══════════════════════════════════════════════
+
+  function renderGroupGrid(groups, groupSize) {
+    const grid = document.getElementById('spec-group-grid');
+    grid.innerHTML = '';
+    groups.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'spec-group-card';
+      card.setAttribute('data-spec-group', g);
+
+      let slots = '';
+      for (let i = 1; i <= groupSize; i++) {
+        slots += `<div class="spec-slot" data-spec-group="${g}" data-spec-slot="${i}">
+          <span class="slot-num">${i}</span>
+          <div class="card-inner flex-1">
+            <span class="player-name text-gray-600 text-xs">—</span>
+          </div>
+        </div>`;
+      }
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+          <span class="spec-group-letter">Group ${g}</span>
+          <span class="text-[10px] font-mono text-gray-700" data-spec-count="${g}">0/${groupSize}</span>
+        </div>
+        <div class="space-y-2.5">${slots}</div>
+      `;
+      grid.appendChild(card);
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function fillSlotInstant(gName, slotNum, player) {
+    const slot = document.querySelector(`[data-spec-group="${gName}"][data-spec-slot="${slotNum}"]`);
+    if (!slot) return;
+    slot.classList.add('filled', 'revealed');
+    const nameEl = slot.querySelector('.player-name');
+    if (nameEl) { nameEl.textContent = player.display_name || player.name || '?'; }
+    updateGroupCounter(gName);
+  }
+
+  function clearSlots(gName) {
+    document.querySelectorAll(`.spec-slot[data-spec-group="${gName}"]`).forEach(s => {
+      s.className = 'spec-slot';
+      s.removeAttribute('style');
+      const n = s.querySelector('.player-name');
+      if (n) { n.textContent = '—'; n.className = 'player-name text-gray-600 text-xs'; }
+    });
+  }
+
+  function updateGroupCounter(gName) {
+    const counter = document.querySelector(`[data-spec-count="${gName}"]`);
+    if (!counter) return;
+    const filled = document.querySelectorAll(`[data-spec-group="${gName}"].spec-slot.filled`).length;
+    counter.textContent = `${filled}/${session ? session.group_size : 4}`;
+  }
+
+  // ══════════════════════════════════════════════
+  // UI Updates
+  // ══════════════════════════════════════════════
+
+  function showLiveContent() {
+    document.getElementById('waiting-screen').classList.add('hidden');
+    document.getElementById('complete-screen').classList.add('hidden');
+    document.getElementById('live-content').classList.remove('hidden');
+  }
+
+  function updateCounters(drawn, total, remaining) {
+    document.getElementById('spec-drawn').textContent = drawn;
+    document.getElementById('spec-total').textContent = total;
+    document.getElementById('spec-remaining').textContent = remaining;
+  }
+
+  function updateProgress(drawn, total) {
+    const pct = total > 0 ? (drawn / total * 100) : 0;
+    document.getElementById('spec-progress').style.width = pct + '%';
+  }
+
+  function setBadge(status) {
+    const badge = document.getElementById('draw-badge');
+    if (status === 'live') {
+      badge.className = 'live-badge';
+      badge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 animate-pulse"></span> LIVE DRAW';
+    } else if (status === 'complete') {
+      badge.className = 'complete-badge';
+      badge.textContent = 'DRAW COMPLETE';
+    } else {
+      badge.className = 'waiting-badge';
+      badge.textContent = 'WAITING FOR DRAW';
+    }
+  }
+
+  function showSpotlight(name, group) {
+    const el = document.getElementById('spotlight');
+    el.classList.remove('hidden');
+    el.classList.add('active');
+
+    // Re-trigger animation by cloning
+    const nameEl = document.getElementById('spotlight-name');
+    const groupEl = document.getElementById('spotlight-group');
+
+    nameEl.style.animation = 'none';
+    nameEl.offsetHeight; // Force reflow
+    nameEl.style.animation = '';
+    nameEl.textContent = name;
+
+    groupEl.textContent = '→ Group ' + group;
+
+    setTimeout(() => el.classList.remove('active'), 3000);
+  }
+
+  function showCompleteScreen(hash, totalMatches) {
+    document.getElementById('live-content').classList.add('hidden');
+    const screen = document.getElementById('complete-screen');
+    screen.classList.remove('hidden');
+
+    if (hash) {
+      document.getElementById('spec-hash').textContent = 'Verification: ' + hash;
+    }
+
+    // Re-render final groups in the complete screen
+    if (session && session.assignments) {
+      const container = document.getElementById('final-groups');
+      container.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-2 md:grid-cols-4 gap-4';
+      session.groups.forEach(g => {
+        const players = session.assignments[g] || [];
+        const card = document.createElement('div');
+        card.className = 'spec-group-card';
+        card.innerHTML = `
+          <div class="spec-group-letter mb-3">Group ${g}</div>
+          <div class="space-y-2">
+            ${players.map((p, i) => `
+              <div class="spec-slot filled revealed">
+                <span class="slot-num">${i + 1}</span>
+                <div class="card-inner flex-1">
+                  <span class="player-name text-white font-semibold text-xs">${p.display_name || p.name || '?'}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      container.appendChild(grid);
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // Init
+  // ══════════════════════════════════════════════
+
+  connect();
+})();
+</script>
+{% endblock %}

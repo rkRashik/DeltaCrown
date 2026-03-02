@@ -26,6 +26,7 @@ from django.urls import path
 from . import consumers
 from .match_consumer import MatchConsumer
 from apps.tournaments.consumers.live_draw_consumer import LiveDrawConsumer
+from apps.tournaments.consumers.group_draw_consumer import GroupDrawConsumer
 
 # WebSocket URL patterns
 websocket_urlpatterns = [
@@ -40,4 +41,8 @@ websocket_urlpatterns = [
     # Live Draw room - real-time seed reveals (P4-T07)
     # URL: ws://domain/ws/tournament/<tournament_id>/draw/
     path('ws/tournament/<int:tournament_id>/draw/', LiveDrawConsumer.as_asgi()),
+
+    # Group Draw room - interactive group draw ceremony
+    # URL: ws://domain/ws/tournament/<tournament_id>/group-draw/
+    path('ws/tournament/<int:tournament_id>/group-draw/', GroupDrawConsumer.as_asgi()),
 ]
