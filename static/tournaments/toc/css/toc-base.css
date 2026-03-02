@@ -1,0 +1,89 @@
+/*
+ * TOC Base Styles — Compiled by Tailwind CLI
+ *
+ * These were previously in <style type="text/tailwindcss"> in base.html
+ * (requiring the CDN). Now compiled via: npm run build-css
+ *
+ * Sprint 5 — Production Asset Cleanup
+ */
+
+@layer base {
+  body {
+    @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[14px] antialiased;
+  }
+}
+
+@layer components {
+  .toc-grid-bg {
+    @apply absolute inset-0 z-0 opacity-[0.03] pointer-events-none;
+    background-image:
+      linear-gradient(to right, #ffffff 1px, transparent 1px),
+      linear-gradient(to bottom, #ffffff 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .glass-box {
+    @apply bg-dc-surface border border-dc-border relative overflow-hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .glass-box-elevated {
+    @apply bg-dc-panel border border-dc-borderLight;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .ghost-icon {
+    @apply absolute text-white opacity-[0.02] pointer-events-none z-0 -rotate-12;
+  }
+
+  .data-grid {
+    @apply w-full border-collapse;
+    border-spacing: 0;
+  }
+
+  .data-grid th {
+    @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-3
+           font-display text-[0.7rem] font-extrabold uppercase tracking-widest
+           text-dc-text text-left backdrop-blur-md;
+  }
+
+  .data-grid td {
+    @apply px-4 py-3.5 border-b border-dc-border bg-dc-surface text-sm transition-colors
+           relative z-10;
+  }
+
+  .data-grid tbody tr:hover td {
+    @apply bg-dc-panel;
+  }
+
+  .data-grid tbody tr.selected td {
+    background-color: var(--color-primary-surface);
+  }
+
+  .toc-input {
+    @apply bg-dc-bg border border-dc-border text-white text-[0.8rem] rounded-lg
+           transition-all focus:outline-none;
+  }
+  .toc-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary-muted);
+  }
+
+  .toc-checkbox {
+    @apply appearance-none w-[1.1rem] h-[1.1rem] border border-dc-borderLight rounded
+           bg-dc-bg cursor-pointer relative transition-all;
+  }
+  .toc-checkbox:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+  .toc-checkbox:checked::after {
+    content: '';
+    @apply absolute left-[4px] top-[1px] w-[5px] h-[10px] border-solid border-black
+           border-0 border-r-2 border-b-2 rotate-45;
+  }
+
+  .hidden-view {
+    display: none !important;
+  }
+}

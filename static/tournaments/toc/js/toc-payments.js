@@ -1,7 +1,9 @@
 /**
- * TOC Payments Module — Sprint 4
- * Financial Operations: Payment verification, revenue analytics,
- * prize distribution, bounty management, KYC & refund workflows.
+ * TOC Payments Module — Sprint 5
+ * Rapid Verification Factory: inline proof thumbnails, smart search
+ * autofocus, post-verify auto-hide + auto-advance, custom reject modal,
+ * silent optimistic updates. Financial ops: revenue analytics, prize
+ * distribution, bounty management, KYC & refund workflows.
  */
 ;(function () {
   'use strict';
@@ -15,6 +17,7 @@
   const pageSize = 20;
   let selectedIds = new Set();
   let _searchTimer = null;
+  let currentRows = [];   // live local copy for optimistic ops
 
   /* ─── helpers ─────────────────────────────────────────────── */
   const $ = (sel) => document.querySelector(sel);
@@ -105,6 +108,7 @@
       if (search) qs.set('search', search);
 
       const data = await API.get(`payments/?${qs}`);
+      currentRows = data.results || [];
       renderPayments(data);
     } catch (e) {
       console.error('[payments] list fetch error', e);
@@ -116,6 +120,7 @@
     if (!tbody) return;
 
     const rows = data.results || [];
+    currentRows = rows;
     if (!rows.length) {
       tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-16 text-center text-dc-text text-sm">No payments found</td></tr>`;
       renderPagination(data);
@@ -125,8 +130,24 @@
     tbody.innerHTML = rows.map(p => {
       const isCheckable = ['pending', 'submitted'].includes(p.status);
       const checked = selectedIds.has(p.id) ? 'checked' : '';
+
+      // Inline proof thumbnail — visible directly in row, click to zoom
+      const proofCell = p.proof_url
+        ? (p.proof_url.toLowerCase().endsWith('.pdf')
+            ? `<a href="${p.proof_url}" target="_blank" title="Open PDF proof"
+                  class="inline-flex items-center gap-1 text-[10px] text-theme hover:text-white transition-colors">
+                 <i data-lucide="file-text" class="w-3 h-3"></i>
+                 <span>PDF</span>
+               </a>`
+            : `<img src="${p.proof_url}" alt="Proof"
+                    onclick="TOC.payments.viewProof('${p.proof_url}')"
+                    class="w-10 h-10 object-cover rounded-lg border border-dc-border cursor-zoom-in
+                           hover:border-theme/60 hover:scale-110 transition-all"
+                    title="Click to zoom" />`)
+        : `<span class="text-[10px] text-dc-text/40">—</span>`;
+
       return `
-        <tr class="border-b border-dc-border/50 hover:bg-white/[0.015] transition-colors group" data-id="${p.id}">
+        <tr class="border-b border-dc-border/50 hover:bg-white/[0.015] transition-colors group" data-pay-id="${p.id}">
           <td class="px-3 py-3">
             ${isCheckable ? `<input type="checkbox" class="toc-checkbox pay-row-cb" data-id="${p.id}" ${checked} onclick="TOC.payments.toggleRow('${p.id}', this)">` : ''}
           </td>
@@ -142,12 +163,7 @@
             <span class="text-[10px] font-mono text-dc-text">${p.transaction_id || '—'}</span>
           </td>
           <td class="px-3 py-3">${badge(p.status)}</td>
-          <td class="px-3 py-3 text-center">
-            ${p.proof_url
-              ? `<button onclick="TOC.payments.viewProof('${p.proof_url}')" class="inline-flex items-center gap-1 text-[10px] text-theme hover:text-white transition-colors"><i data-lucide="eye" class="w-3 h-3"></i></button>`
-              : `<span class="text-[10px] text-dc-text/40">—</span>`
-            }
-          </td>
+          <td class="px-3 py-3 text-center">${proofCell}</td>
           <td class="px-3 py-3 text-[10px] text-dc-text font-mono">${fmtDate(p.submitted_at)}</td>
           <td class="px-3 py-3 text-right">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -228,40 +244,156 @@
     }
   }
 
-  /* ─── Payment actions (S4-F3) ──────────────────────────────── */
+  /* ─── Custom Reject Reason Modal ──────────────────────────── */
+
+  /**
+   * Reject reason prompt — custom modal replacing native prompt().
+   * Returns reason string or null if cancelled.
+   */
+  function promptRejectReason() {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm';
+      overlay.innerHTML = `
+        <div class="bg-dc-bg border border-dc-border rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+          <div class="h-1 w-full bg-dc-danger"></div>
+          <div class="p-6 space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center">
+                <i data-lucide="x-octagon" class="w-5 h-5 text-dc-danger"></i>
+              </div>
+              <div>
+                <h3 class="text-white font-bold text-sm">Reject Payment</h3>
+                <p class="text-dc-text text-[11px]">Provide a reason (optional)</p>
+              </div>
+            </div>
+            <textarea id="_pay-reject-reason"
+              class="w-full bg-dc-panel border border-dc-border rounded-xl px-4 py-3 text-white text-sm
+                     focus:outline-none focus:border-dc-danger/50 focus:ring-1 focus:ring-dc-danger/20
+                     resize-none placeholder:text-dc-text/40"
+              rows="3" placeholder="e.g. Wrong transaction ID, Amount mismatch…"></textarea>
+            <div class="flex gap-3 pt-1">
+              <button id="_pay-reject-cancel"
+                class="flex-1 py-2.5 rounded-xl border border-dc-border text-dc-text text-xs font-bold
+                       uppercase tracking-widest hover:border-dc-borderLight hover:text-white transition-colors">
+                Cancel
+              </button>
+              <button id="_pay-reject-confirm"
+                class="flex-1 py-2.5 rounded-xl bg-dc-danger/10 border border-dc-danger/30 text-dc-danger
+                       text-xs font-bold uppercase tracking-widest hover:bg-dc-danger/20 transition-colors">
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      const textarea = overlay.querySelector('#_pay-reject-reason');
+      textarea.focus();
+
+      const close = (val) => { overlay.remove(); resolve(val); };
+
+      overlay.querySelector('#_pay-reject-cancel').addEventListener('click', () => close(null));
+      overlay.querySelector('#_pay-reject-confirm').addEventListener('click', () => close(textarea.value.trim()));
+      overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close(null);
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) close(textarea.value.trim());
+      });
+    });
+  }
+
+  /* ─── Get next pending row id after the given one ─────────── */
+  function _nextPendingId(afterId) {
+    const pending = currentRows.filter(p => ['pending', 'submitted'].includes(p.status));
+    const idx = pending.findIndex(p => String(p.id) === String(afterId));
+    if (idx !== -1 && idx + 1 < pending.length) return pending[idx + 1].id;
+    if (pending.length > 0 && String(pending[0].id) !== String(afterId)) return pending[0].id;
+    return null;
+  }
+
+  /* ─── Optimistic row removal ───────────────────────────────── */
+  function _spliceRow(id) {
+    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
+    if (tr) {
+      tr.style.transition = 'opacity 0.2s, transform 0.2s';
+      tr.style.opacity = '0';
+      tr.style.transform = 'translateX(20px)';
+      setTimeout(() => tr.remove(), 200);
+    }
+    currentRows = currentRows.filter(p => String(p.id) !== String(id));
+    selectedIds.delete(id);
+    selectedIds.delete(String(id));
+  }
+
+  /* ─── Payment actions (S4-F3 / S5 overhaul) ──────────────── */
   async function verify(id) {
+    // Dim row while in-flight
+    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
+    if (tr) tr.style.opacity = '0.4';
+
     try {
       await API.post(`payments/${id}/verify/`);
-      toast('Payment verified', 'success');
-      selectedIds.delete(id);
-      refresh();
+      toast('Payment verified ✓', 'success');
+
+      // Optimistic: remove from current view if filtering for pending/submitted
+      const statusFilter = $('#pay-filter-status')?.value || '';
+      const isFilteringPending = !statusFilter || statusFilter === 'submitted' || statusFilter === 'pending';
+
+      if (isFilteringPending) {
+        // Advance focus to next pending before removing current
+        const nextId = _nextPendingId(id);
+        if (nextId) {
+          const nextTr = document.querySelector(`tr[data-pay-id="${nextId}"]`);
+          if (nextTr) nextTr.classList.add('ring-1', 'ring-theme/40', 'bg-theme/5');
+        }
+        _spliceRow(id);
+      } else {
+        // Just update the badge in-place — do a full refresh
+        if (tr) tr.style.opacity = '1';
+        refresh();
+      }
       refreshRevenue();
     } catch (e) {
+      if (tr) tr.style.opacity = '1';
       toast(e.message || 'Verify failed', 'error');
     }
   }
 
   async function reject(id) {
-    const reason = prompt('Rejection reason:');
-    if (!reason) return;
+    const reason = await promptRejectReason();
+    if (reason === null) return;  // cancelled
+
+    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
+    if (tr) tr.style.opacity = '0.4';
+
     try {
       await API.post(`payments/${id}/reject/`, { reason });
       toast('Payment rejected', 'info');
-      selectedIds.delete(id);
-      refresh();
+
+      const nextId = _nextPendingId(id);
+      if (nextId) {
+        const nextTr = document.querySelector(`tr[data-pay-id="${nextId}"]`);
+        if (nextTr) nextTr.classList.add('ring-1', 'ring-theme/40', 'bg-theme/5');
+      }
+      _spliceRow(id);
       refreshRevenue();
     } catch (e) {
+      if (tr) tr.style.opacity = '1';
       toast(e.message || 'Reject failed', 'error');
     }
   }
 
   async function bulkVerify() {
     if (!selectedIds.size) return;
+    const ids = Array.from(selectedIds);
     try {
-      await API.post('payments/bulk-verify/', { payment_ids: Array.from(selectedIds) });
-      toast(`${selectedIds.size} payments verified`, 'success');
+      await API.post('payments/bulk-verify/', { payment_ids: ids });
+      toast(`${ids.length} payments verified`, 'success');
+      // Optimistic: remove all verified rows
+      ids.forEach(id => _spliceRow(id));
       selectedIds.clear();
-      refresh();
+      updateBulkBar();
       refreshRevenue();
     } catch (e) {
       toast(e.message || 'Bulk verify failed', 'error');
@@ -574,6 +706,12 @@
     refresh();
     refreshPrizePool();
     refreshBounties();
+
+    // Autofocus search for rapid keyboard-driven verification
+    const searchInput = $('#pay-filter-search');
+    if (searchInput) {
+      setTimeout(() => searchInput.focus(), 80);
+    }
   }
 
   /* ─── export ───────────────────────────────────────────────── */

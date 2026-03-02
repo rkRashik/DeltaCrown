@@ -63,15 +63,9 @@
     try {
       const data = await TOC.fetch(`${API}/overview/`);
       render(data);
-      // Hide stale data banner on success
-      const staleBanner = $('#toc-stale-banner');
-      if (staleBanner) staleBanner.classList.add('hidden');
     } catch (e) {
-      console.error('[TOC:overview] Load failed:', e);
+      console.error('[TOC:overview] Load failed — retrying in 30s:', e);
       renderError();
-      // Show stale data banner on failure
-      const staleBanner = $('#toc-stale-banner');
-      if (staleBanner) staleBanner.classList.remove('hidden');
     }
   }
 
@@ -515,14 +509,7 @@
     load();
     startAutoRefresh();
 
-    // Bind stale banner dismiss button
-    const staleDismiss = $('#toc-stale-dismiss');
-    if (staleDismiss) {
-      staleDismiss.addEventListener('click', () => {
-        const banner = $('#toc-stale-banner');
-        if (banner) banner.classList.add('hidden');
-      });
-    }
+    // Silent polling — errors are logged only, no visible banner
   }
 
 })();

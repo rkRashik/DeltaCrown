@@ -28,7 +28,6 @@ from apps.tournaments.api.toc.serializers import (
     BulkActionResultSerializer,
     ParticipantDetailSerializer,
     ParticipantListSerializer,
-    ParticipantRowSerializer,
     RejectInputSerializer,
 )
 
@@ -91,7 +90,7 @@ class ApproveView(TOCBaseView):
             return Response({
                 'ok': True,
                 'message': 'Registration approved.',
-                'participant': ParticipantRowSerializer(row).data,
+                'participant': row,
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -120,7 +119,7 @@ class RejectView(TOCBaseView):
             return Response({
                 'ok': True,
                 'message': 'Registration rejected.',
-                'participant': ParticipantRowSerializer(row).data,
+                'participant': row,
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -150,7 +149,7 @@ class DisqualifyView(TOCBaseView):
             return Response({
                 'ok': True,
                 'message': 'Participant disqualified.',
-                'participant': ParticipantRowSerializer(row).data,
+                'participant': row,
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -176,7 +175,7 @@ class VerifyPaymentView(TOCBaseView):
             return Response({
                 'ok': True,
                 'message': 'Payment verified.',
-                'participant': ParticipantRowSerializer(row).data,
+                'participant': row,
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -202,7 +201,7 @@ class ToggleCheckinView(TOCBaseView):
             return Response({
                 'ok': True,
                 'message': 'Check-in toggled.',
-                'participant': ParticipantRowSerializer(row).data,
+                'participant': row,
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)

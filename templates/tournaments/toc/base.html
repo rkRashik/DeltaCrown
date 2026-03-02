@@ -12,6 +12,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    {#
+    ── SPRINT 5: TAILWIND CDN → COMPILED CSS MIGRATION ───────────────────────
+    The CDN below is TEMPORARY. To remove it:
+      1.  npm install          (in project root)
+      2.  npm run build-css    (compiles static/src/input.css → static/dist/tailwind.css)
+      3.  Delete the two CDN <script> lines + the <script>tailwind.config={}</script> block
+      4.  Delete the <style type="text/tailwindcss"> block (replaced by toc-base.css)
+      5.  Uncomment the <link> to dist/tailwind.css below
+
+    Config: tailwind.config.js (now includes dc.* + theme.* TOC tokens)
+    Compiled base: static/tournaments/toc/css/toc-base.css → static/src/input.css
+    ────────────────────────────────────────────────────────────────────────── #}
+
+    {# Compiled stylesheet — activates after `npm run build-css` #}
+    {# <link rel="stylesheet" href="{% static 'dist/tailwind.css' %}"> #}
+
+    {# CDN: remove once npm run build-css has been run #}
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
 
@@ -261,18 +279,6 @@
             </div>
             <button class="text-[10px] font-bold text-white bg-dc-danger/20 border border-dc-danger/30 px-3 py-1 rounded hover:bg-dc-danger transition-colors" onclick="TOC.overview && TOC.overview.executeUnfreeze()">
                 Unfreeze
-            </button>
-        </div>
-
-        {# ── Stale data warning banner (shown when auto-refresh fails) ── #}
-        <div id="toc-stale-banner" class="hidden bg-dc-warning/10 border-b border-dc-warning/30 px-6 py-2 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-3">
-                <i data-lucide="wifi-off" class="w-4 h-4 text-dc-warning animate-pulse"></i>
-                <span class="text-xs font-bold text-dc-warning uppercase tracking-widest">Data May Be Stale</span>
-                <span class="text-[10px] text-dc-text">Last refresh failed. Retrying automatically…</span>
-            </div>
-            <button id="toc-stale-dismiss" class="text-[10px] font-bold text-dc-warning border border-dc-warning/30 px-3 py-1 rounded hover:bg-dc-warning/20 transition-colors">
-                Dismiss
             </button>
         </div>
 

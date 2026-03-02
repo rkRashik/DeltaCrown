@@ -33,15 +33,41 @@ module.exports = {
         'dc-card-hover': '#181818', // Card hover state
         'dc-border': 'rgba(255, 255, 255, 0.08)', // Subtle border
         'val-red': '#ff4655',       // Game-specific accent (Valorant)
+        // ── TOC Operations Center design system ──
+        dc: {
+          bg:          '#050507',
+          surface:     '#0B0B0F',
+          panel:       '#121218',
+          border:      '#22222E',
+          borderLight: '#333344',
+          text:        '#8F8F9D',
+          textBright:  '#E2E2E8',
+          danger:      '#FF2A55',
+          dangerBg:    'rgba(255,42,85,0.10)',
+          warning:     '#FFB800',
+          warningBg:   'rgba(255,184,0,0.10)',
+          success:     '#00FF66',
+          successBg:   'rgba(0,255,102,0.10)',
+          info:        '#3B82F6',
+          infoBg:      'rgba(59,130,246,0.10)',
+        },
+        // CSS-variable based theming (game accents via [data-game] on body)
+        theme: {
+          DEFAULT: 'var(--color-primary)',
+          muted:   'var(--color-primary-muted)',
+          surface: 'var(--color-primary-surface)',
+          border:  'var(--color-primary-border)',
+          dark:    'var(--color-primary-dark)',
+        },
       },
       fontFamily: {
-        'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'display': ['Space Grotesk', 'sans-serif'],
-        'gaming': ['Rajdhani', 'sans-serif'],
-        'corp': ['"Outfit"', 'sans-serif'],
-        'tech': ['"Rajdhani"', 'sans-serif'],
-        'mono': ['"Space Mono"', 'monospace'],
-        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'sans':    ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'display': ['Outfit', 'Space Grotesk', 'sans-serif'],
+        'gaming':  ['Rajdhani', 'sans-serif'],
+        'corp':    ['"Outfit"', 'sans-serif'],
+        'tech':    ['"Rajdhani"', 'sans-serif'],
+        'mono':    ['JetBrains Mono', '"Space Mono"', 'monospace'],
+        body:      ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

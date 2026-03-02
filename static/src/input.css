@@ -7,6 +7,9 @@
 @import '../siteui/css/footer.css';
 @import '../siteui/css/auth.css';
 
+/* TOC Operations Center compiled base styles */
+@import '../tournaments/toc/css/toc-base.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
