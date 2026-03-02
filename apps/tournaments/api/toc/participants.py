@@ -250,3 +250,15 @@ class ExportCSVView(TOCBaseView):
         filename = f"{self.tournament.slug}_participants.csv"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class SystemChecksView(TOCBaseView):
+    """
+    GET /api/toc/<slug>/participants/system-checks/
+    Run automated verification checks across all registrations.
+    Returns per-registration flags + summary.
+    """
+
+    def get(self, request, slug):
+        data = TOCParticipantService.get_system_checks(self.tournament)
+        return Response(data)

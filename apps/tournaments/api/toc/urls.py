@@ -44,6 +44,7 @@ urlpatterns = [
     path('<slug:slug>/participants/', participants.ParticipantListView.as_view(), name='participants'),
     path('<slug:slug>/participants/bulk-action/', participants.BulkActionView.as_view(), name='participants-bulk-action'),
     path('<slug:slug>/participants/export/', participants.ExportCSVView.as_view(), name='participants-export'),
+    path('<slug:slug>/participants/system-checks/', participants.SystemChecksView.as_view(), name='participants-system-checks'),
     path('<slug:slug>/participants/<int:pk>/', participants.ParticipantDetailView.as_view(), name='participant-detail'),
     path('<slug:slug>/participants/<int:pk>/approve/', participants.ApproveView.as_view(), name='participant-approve'),
     path('<slug:slug>/participants/<int:pk>/reject/', participants.RejectView.as_view(), name='participant-reject'),

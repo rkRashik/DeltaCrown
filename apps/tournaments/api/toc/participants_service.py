@@ -26,6 +26,7 @@ from apps.tournaments.models.payment_verification import PaymentVerification
 from apps.tournaments.models.tournament import Tournament
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.checkin_service import CheckinService
+from apps.tournaments.services.registration_verification import RegistrationVerificationService
 
 logger = logging.getLogger(__name__)
 
@@ -342,12 +343,34 @@ class TOCParticipantService:
             'total_requested': len(registration_ids),
         }
 
+    # ── System Verification Checks ────────────────────────────────────
+
+    @classmethod
+    def get_system_checks(cls, tournament: Tournament) -> Dict[str, Any]:
+        """
+        Run RegistrationVerificationService and return per-registration flags.
+
+        Returns: {flags: [...], summary: {...}, per_registration: {reg_id: [flags]}}
+        """
+        try:
+            result = RegistrationVerificationService.verify_tournament(tournament)
+            return result
+        except Exception as e:
+            logger.error("System checks failed for tournament %s: %s", tournament.id, e)
+            return {
+                'flags': [],
+                'summary': {'critical': 0, 'warning': 0, 'info': 0, 'clean': 0, 'total_registrations': 0},
+                'per_registration': {},
+            }
+
     @classmethod
     def export_csv(cls, tournament: Tournament) -> str:
         """
         Export all participants as CSV string.
 
         Returns CSV text ready to be served as a file download.
+        Includes registration form answers, payment transaction IDs,
+        and phone/WhatsApp for LAN desk-check-ins.
         """
         qs = Registration.objects.filter(
             tournament=tournament,
@@ -356,27 +379,68 @@ class TOCParticipantService:
             'payment_verification',
         ).order_by('slot_number', 'registered_at')
 
+        # Collect all unique registration_data keys across all rows
+        reg_data_keys: list[str] = []
+        all_regs = list(qs)
+        seen_keys: set[str] = set()
+        for reg in all_regs:
+            for k in (reg.registration_data or {}).keys():
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    reg_data_keys.append(k)
+
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # Header row
+        # Header row — base fields + payment details + all registration form fields
         writer.writerow([
             'Reg #', 'Participant', 'Username', 'Team ID',
-            'Status', 'Payment', 'Checked In', 'Seed',
+            'Status', 'Payment Status', 'Payment Method', 'Transaction ID',
+            'Sender Phone', 'Amount (BDT)', 'Checked In', 'Seed',
             'Slot', 'Waitlist Pos', 'Guest Team',
             'Registered At', 'Game ID',
-        ])
+        ] + [k.replace('_', ' ').title() for k in reg_data_keys])
 
-        for reg in qs:
+        for reg in all_regs:
             payment_status = cls._payment_status_label(reg)
             game_id = (reg.registration_data or {}).get('game_id', '')
-            writer.writerow([
+            reg_data = reg.registration_data or {}
+
+            # Get payment details
+            txn_id = ''
+            sender_phone = ''
+            pay_method = ''
+            pay_amount = ''
+            try:
+                pv = reg.payment_verification
+                if pv:
+                    txn_id = pv.transaction_id or ''
+                    sender_phone = pv.payer_account_number or ''
+                    pay_method = pv.method or ''
+                    pay_amount = str(pv.amount_bdt) if pv.amount_bdt else ''
+            except Exception:
+                pass
+            # Fallback to Payment model
+            if not txn_id:
+                pay = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+                if pay:
+                    txn_id = pay.transaction_id or ''
+                    sender_phone = getattr(pay, 'payer_account_number', '') or ''
+                    pay_method = pay.payment_method or ''
+                    pay_amount = str(pay.amount_bdt) if getattr(pay, 'amount_bdt', None) else str(pay.amount or '')
+
+            # Base fields
+            row = [
                 reg.registration_number or '',
                 cls._participant_name(reg),
                 reg.user.username if reg.user else '',
                 reg.team_id or '',
                 reg.get_status_display(),
                 payment_status,
+                pay_method,
+                txn_id,
+                sender_phone,
+                pay_amount,
                 'Yes' if reg.checked_in else 'No',
                 reg.seed or '',
                 reg.slot_number or '',
@@ -384,7 +448,14 @@ class TOCParticipantService:
                 'Yes' if reg.is_guest_team else 'No',
                 reg.registered_at.strftime('%Y-%m-%d %H:%M') if reg.registered_at else '',
                 game_id,
-            ])
+            ]
+            # Append all registration form answer values
+            for k in reg_data_keys:
+                val = reg_data.get(k, '')
+                if isinstance(val, (dict, list)):
+                    val = str(val)
+                row.append(val)
+            writer.writerow(row)
 
         return output.getvalue()
 
@@ -409,6 +480,9 @@ class TOCParticipantService:
         game_id = (reg.registration_data or {}).get('game_id', '')
         team_name = cls._participant_name(reg)
 
+        # Quick-review payment data (for inline expand)
+        qr_payment = cls._get_quick_review_payment(reg)
+
         return {
             'id': reg.id,
             'registration_number': reg.registration_number or '',
@@ -425,6 +499,50 @@ class TOCParticipantService:
             'is_guest_team': reg.is_guest_team,
             'game_id': game_id,
             'registered_at': reg.registered_at.isoformat() if reg.registered_at else None,
+            'quick_payment': qr_payment,
+        }
+
+    @classmethod
+    def _get_quick_review_payment(cls, reg: Registration) -> Optional[Dict[str, Any]]:
+        """Lightweight payment data for inline quick-review panel."""
+        # Try PaymentVerification first
+        try:
+            pv = reg.payment_verification
+            if pv:
+                proof_url = None
+                if pv.proof_image:
+                    try:
+                        proof_url = pv.proof_image.url
+                    except (ValueError, AttributeError):
+                        pass
+                return {
+                    'transaction_id': pv.transaction_id or '',
+                    'payer_account_number': pv.payer_account_number or '',
+                    'amount_bdt': str(pv.amount_bdt) if pv.amount_bdt else None,
+                    'method': pv.method or '',
+                    'proof_url': proof_url,
+                }
+        except Exception:
+            pass
+
+        # Fallback: Payment model
+        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        if not payment:
+            return None
+
+        proof_url = None
+        try:
+            if payment.payment_proof and hasattr(payment.payment_proof, 'url'):
+                proof_url = payment.payment_proof.url
+        except (ValueError, AttributeError):
+            pass
+
+        return {
+            'transaction_id': payment.transaction_id or '',
+            'payer_account_number': getattr(payment, 'payer_account_number', '') or '',
+            'amount_bdt': str(payment.amount_bdt) if getattr(payment, 'amount_bdt', None) else str(payment.amount or ''),
+            'method': payment.payment_method or '',
+            'proof_url': proof_url,
         }
 
     @classmethod
