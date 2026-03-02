@@ -303,10 +303,10 @@ class JWTAuthMiddleware:
                 await self._send_auth_error_and_close(send, error_code, error_message)
                 return
         else:
-            logger.warning("WebSocket connection attempted without token parameter")
+            # No token provided — allow anonymous read-only passthrough.
+            # The spectator view and public draw pages connect without JWT.
+            # Write actions are gated by _is_organizer() inside consumers.
             scope['user'] = AnonymousUser()
-            await self._send_auth_error_and_close(send, 4003, "Missing JWT token")
-            return
         
         return await self.app(scope, receive, send)
     

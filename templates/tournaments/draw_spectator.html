@@ -1,42 +1,32 @@
-{% extends "tournaments/base.html" %}
+{% extends "tournaments/base_draw.html" %}
 {% load static %}
 
 {% block title %}Live Draw — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-{% block tournament_css %}
+{% block draw_head %}
 <style>
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     LIVE DRAW SPECTATOR — Broadcast-Quality Group Draw
-     High-stakes esports broadcast tool
+     LIVE DRAW SPECTATOR — Broadcast Overlay
+     Edge-to-edge cinematic group draw ceremony
+     No navbar — full-screen immersive experience
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-  :root {
-    --draw-accent: #00ffaa;
-    --draw-accent-dim: rgba(0,255,170,0.15);
-    --draw-gold: #ffc832;
-    --draw-bg: #040408;
-    --draw-surface: #0a0a12;
-    --draw-card: #0f0f1a;
-    --draw-border: rgba(255,255,255,0.05);
-  }
+  body { background: #040408 !important; overflow-x: hidden; }
 
-  body { background: var(--draw-bg) !important; overflow-x: hidden; }
-  .spectator-draw { min-height: 100vh; position: relative; }
-
-  /* ── Cinematic background ── */
-  .draw-bg-glow {
+  /* ── Cinematic Background ── */
+  .spec-bg {
     position: fixed; inset: 0; pointer-events: none; z-index: 0;
   }
-  .draw-bg-glow::before {
+  .spec-bg::before {
     content: ''; position: absolute; width: 600px; height: 600px;
     top: -200px; left: 50%; transform: translateX(-50%);
-    background: radial-gradient(circle, rgba(0,255,170,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--dc-accent-rgb),0.06) 0%, transparent 70%);
     animation: glowFloat 8s ease-in-out infinite;
   }
-  .draw-bg-glow::after {
+  .spec-bg::after {
     content: ''; position: absolute; width: 400px; height: 400px;
     bottom: -100px; right: -100px;
-    background: radial-gradient(circle, rgba(0,100,255,0.05) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(77,166,255,0.04) 0%, transparent 70%);
     animation: glowFloat 12s ease-in-out infinite reverse;
   }
   @keyframes glowFloat {
@@ -44,504 +34,471 @@
     50% { transform: translateX(-50%) translateY(30px); }
   }
 
-  /* ── Header ── */
-  .draw-header {
-    background: linear-gradient(180deg, rgba(10,10,18,0.98), rgba(4,4,8,0));
+  /* ── Header Strip ── */
+  .spec-header {
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(180deg, rgba(4,4,8,0.96), rgba(4,4,8,0));
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--draw-border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  .tournament-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+  .spec-header-left { display: flex; align-items: center; gap: 12px; }
+  .spec-header a { color: rgba(255,255,255,0.2); text-decoration: none; transition: color 0.2s; }
+  .spec-header a:hover { color: #fff; }
+  .spec-tourney-name {
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 18px; color: #fff; letter-spacing: 0.04em;
   }
-  .live-badge {
-    font-family: 'Space Grotesk', monospace;
-    font-size: 0.65rem;
-    font-weight: 700;
+  .spec-tourney-sub {
+    font-family: 'Space Grotesk', monospace; font-size: 9px;
+    color: rgba(255,255,255,0.2); text-transform: uppercase;
     letter-spacing: 0.2em;
-    text-transform: uppercase;
-    background: rgba(255,40,40,0.12);
-    color: #ff4444;
-    border: 1px solid rgba(255,40,40,0.3);
-    padding: 3px 10px;
-    border-radius: 6px;
+  }
+  .spec-header-right { display: flex; align-items: center; gap: 12px; }
+
+  /* ── Badges ── */
+  .spec-badge {
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 6px;
+  }
+  .spec-badge-waiting { background: rgba(var(--dc-gold-rgb),0.08); color: var(--dc-gold); border: 1px solid rgba(var(--dc-gold-rgb),0.2); }
+  .spec-badge-live {
+    background: rgba(var(--dc-danger-rgb),0.1); color: var(--dc-danger);
+    border: 1px solid rgba(var(--dc-danger-rgb),0.3);
     animation: livePulse 1.5s infinite;
   }
+  .spec-badge-complete { background: rgba(var(--dc-accent-rgb),0.08); color: var(--dc-accent); border: 1px solid rgba(var(--dc-accent-rgb),0.2); }
   @keyframes livePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,40,40,0.25); }
-    50% { box-shadow: 0 0 15px 5px rgba(255,40,40,0.1); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--dc-danger-rgb),0.25); }
+    50% { box-shadow: 0 0 12px 4px rgba(var(--dc-danger-rgb),0.1); }
   }
-  .waiting-badge {
-    font-family: 'Space Grotesk', monospace;
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em;
-    text-transform: uppercase;
-    background: rgba(255,200,50,0.1); color: #ffc832;
-    border: 1px solid rgba(255,200,50,0.2);
-    padding: 3px 10px; border-radius: 6px;
-  }
-  .complete-badge {
-    font-family: 'Space Grotesk', monospace;
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em;
-    text-transform: uppercase;
-    background: rgba(0,255,170,0.1); color: var(--draw-accent);
-    border: 1px solid rgba(0,255,170,0.2);
-    padding: 3px 10px; border-radius: 6px;
-  }
+
+  /* ── WS Dot ── */
+  .ws-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .ws-dot.connected { background: var(--dc-accent); box-shadow: 0 0 6px rgba(var(--dc-accent-rgb),0.5); }
+  .ws-dot.disconnected { background: var(--dc-danger); }
+  .ws-dot.connecting { background: var(--dc-gold); animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
 
   /* ── Progress ── */
-  .spec-progress-track {
-    height: 3px; background: rgba(255,255,255,0.03);
-    position: relative; overflow: hidden;
-  }
+  .spec-progress { height: 2px; background: rgba(255,255,255,0.02); }
   .spec-progress-fill {
-    height: 100%; background: linear-gradient(90deg, var(--draw-accent), #00cc88);
+    height: 100%; background: linear-gradient(90deg, var(--dc-accent), #00cc88);
     transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 0 10px rgba(0,255,170,0.5);
+    box-shadow: 0 0 8px rgba(var(--dc-accent-rgb),0.4);
   }
 
-  /* ── Counters ── */
-  .draw-counter {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 800;
-    line-height: 1;
+  /* ══════════════════════════════════════════════
+     WAITING SCREEN — Broadcast Starting Soon
+  ══════════════════════════════════════════════ */
+  .spec-waiting {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 70vh; position: relative;
+  }
+
+  /* Floating particles */
+  .spec-particles {
+    position: absolute; inset: 0; overflow: hidden;
+    pointer-events: none; z-index: 0;
+  }
+  .spec-particles span {
+    position: absolute; width: 2px; height: 2px;
+    background: rgba(var(--dc-accent-rgb),0.3); border-radius: 50%;
+    animation: particleDrift 12s linear infinite;
+  }
+  .spec-particles span:nth-child(2n) { background: rgba(var(--dc-gold-rgb),0.2); animation-duration: 16s; }
+  .spec-particles span:nth-child(3n) { background: rgba(100,150,255,0.2); animation-duration: 20s; width: 3px; height: 3px; }
+  @keyframes particleDrift {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; } 90% { opacity: 1; }
+    100% { transform: translateY(-20vh) translateX(40px); opacity: 0; }
+  }
+
+  /* Brand card */
+  .spec-brand-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 24px; padding: 48px 40px 40px;
+    text-align: center; max-width: 520px;
+    position: relative; overflow: hidden; z-index: 1;
+  }
+  .spec-brand-card::before {
+    content: ''; position: absolute; inset: -1px;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg, rgba(var(--dc-accent-rgb),0.15) 30deg,
+      transparent 80deg, rgba(var(--dc-gold-rgb),0.1) 170deg,
+      transparent 220deg, rgba(100,150,255,0.1) 300deg,
+      transparent 360deg
+    );
+    border-radius: 24px;
+    animation: waitGlow 8s linear infinite; z-index: -1; filter: blur(1px);
+  }
+  @keyframes waitGlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .spec-brand-card::after {
+    content: ''; position: absolute; inset: 1px;
+    background: linear-gradient(135deg, #0d1117, #161b22);
+    border-radius: 23px; z-index: -1;
+  }
+
+  /* Pulse rings */
+  .spec-pulse-rings {
+    position: relative; display: flex; align-items: center; justify-content: center;
+    width: 120px; height: 120px; margin: 0 auto 24px;
+  }
+  .spec-pulse-rings::before, .spec-pulse-rings::after {
+    content: ''; position: absolute;
+    border: 1px solid rgba(var(--dc-accent-rgb),0.08); border-radius: 50%;
+    animation: ringPulse 4s ease-out infinite;
+  }
+  .spec-pulse-rings::before { width: 100%; height: 100%; }
+  .spec-pulse-rings::after { width: 100%; height: 100%; animation-delay: 2s; }
+  @keyframes ringPulse {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  .spec-pulse-rings .icon {
+    width: 70px; height: 70px; color: rgba(255,255,255,0.06);
+    position: relative; z-index: 1;
+    animation: iconBob 3s ease-in-out infinite;
+  }
+  @keyframes iconBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .spec-brand-title {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 22px; color: #fff;
+    margin: 0 0 4px;
+  }
+  .spec-brand-sub {
+    font-family: 'Space Grotesk', monospace; font-size: 10px;
+    color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.2em;
+    margin-bottom: 24px;
+  }
+  .spec-brand-msg {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 17px; color: rgba(255,255,255,0.15); margin-bottom: 8px;
+  }
+  .spec-brand-desc {
+    font-size: 13px; color: rgba(255,255,255,0.2); line-height: 1.6;
+    max-width: 380px; margin: 0 auto 24px;
+  }
+  .spec-status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; border-radius: 999px;
+    border: 1px solid rgba(var(--dc-gold-rgb),0.2);
+    background: rgba(var(--dc-gold-rgb),0.05);
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--dc-gold);
+  }
+  .spec-status-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--dc-gold); animation: blink 1.5s infinite;
+  }
+  .spec-format-bar {
+    margin-top: 24px; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 14px; font-size: 10px; color: rgba(255,255,255,0.15);
+  }
+  .spec-format-bar span { display: flex; align-items: center; gap: 5px; }
+  .spec-format-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.06); }
+
+  /* ══════════════════════════════════════════════
+     LIVE CONTENT
+  ══════════════════════════════════════════════ */
+  .spec-live { position: relative; z-index: 1; }
+
+  /* Counters */
+  .spec-counters {
+    display: flex; align-items: baseline; justify-content: center; gap: 10px;
+    margin-bottom: 28px;
+  }
+  .spec-counter-num {
+    font-family: 'Rajdhani', sans-serif; font-weight: 900;
+    font-size: 52px; line-height: 1; color: #fff;
+  }
+  .spec-counter-num.dim { color: rgba(255,255,255,0.12); }
+  .spec-counter-sep { font-size: 32px; color: rgba(255,255,255,0.06); font-weight: 300; }
+  .spec-counter-label {
+    font-family: 'Space Grotesk', monospace; font-size: 9px;
+    color: rgba(255,255,255,0.15); text-transform: uppercase; letter-spacing: 0.2em;
+    text-align: center; margin-top: 4px;
+  }
+
+  /* Spotlight */
+  .spec-spotlight {
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.04), rgba(77,166,255,0.02));
+    border: 1px solid rgba(var(--dc-accent-rgb),0.08);
+    border-radius: 16px; padding: 24px 32px; text-align: center;
+    max-width: 600px; margin: 0 auto 32px;
+    position: relative; overflow: hidden;
+  }
+  .spec-spotlight::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at center, rgba(var(--dc-accent-rgb),0.06), transparent 60%);
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .spec-spotlight.active::before { opacity: 1; }
+  .spec-spotlight-label {
+    font-family: 'Space Grotesk', monospace; font-size: 10px;
+    color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+  .spec-spotlight-name {
+    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 40px;
+    color: #fff; letter-spacing: 0.02em;
+    animation: spotIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes spotIn {
+    0% { transform: scale(0.5) translateY(16px); opacity: 0; }
+    60% { transform: scale(1.1); } 100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .spec-spotlight-group {
+    font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 14px;
+    color: var(--dc-accent); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px;
   }
 
   /* ══════════════════════════════════════════════
      GROUP GRID — The Main Stage
   ══════════════════════════════════════════════ */
+  .spec-group-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  @media (max-width: 900px) { .spec-group-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .spec-group-grid { grid-template-columns: 1fr; } }
 
   .spec-group-card {
-    background: linear-gradient(135deg, var(--draw-card), rgba(12,12,22,0.9));
-    border: 1px solid var(--draw-border);
-    border-radius: 14px;
-    padding: 20px;
+    background: linear-gradient(135deg, rgba(12,12,22,0.95), rgba(16,16,28,0.85));
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 14px; padding: 18px;
     transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
   }
   .spec-group-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--draw-accent), transparent);
+    background: linear-gradient(90deg, transparent, var(--dc-accent), transparent);
     opacity: 0; transition: opacity 0.4s;
   }
   .spec-group-card.receiving::before { opacity: 1; }
   .spec-group-card.receiving {
-    border-color: rgba(0,255,170,0.3);
-    box-shadow: 0 0 40px rgba(0,255,170,0.1), inset 0 0 40px rgba(0,255,170,0.02);
+    border-color: rgba(var(--dc-accent-rgb),0.3);
+    box-shadow: 0 0 40px rgba(var(--dc-accent-rgb),0.08);
   }
   .spec-group-letter {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 800;
-    font-size: 1.3rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--draw-accent);
-    opacity: 0.8;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 15px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--dc-accent); opacity: 0.7;
+  }
+  .spec-group-count {
+    font-size: 10px; font-family: 'Space Grotesk', monospace;
+    color: rgba(255,255,255,0.15);
+  }
+  .spec-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
   }
 
-  /* ── Player Slots ── */
+  /* ── Slots ── */
   .spec-slot {
-    min-height: 48px;
-    background: rgba(255,255,255,0.015);
-    border: 1px dashed rgba(255,255,255,0.04);
-    border-radius: 10px;
-    display: flex; align-items: center; padding: 0 14px;
-    transition: all 0.5s;
-    position: relative;
-    overflow: hidden;
+    min-height: 44px; display: flex; align-items: center; gap: 10px;
+    padding: 0 14px;
+    background: rgba(255,255,255,0.012);
+    border: 1px dashed rgba(255,255,255,0.035);
+    border-radius: 9px; margin-bottom: 6px;
+    transition: all 0.5s; position: relative; overflow: hidden;
   }
-  .spec-slot.filled {
-    background: rgba(0,255,170,0.03);
-    border-color: rgba(0,255,170,0.12);
-    border-style: solid;
+  .spec-slot .slot-num {
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 12px;
+    color: rgba(255,255,255,0.1); width: 18px; flex-shrink: 0;
   }
-
-  /* ── Card Flip Animation ── */
-  .spec-slot .card-inner {
-    width: 100%;
-    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-style: preserve-3d;
-    perspective: 600px;
-  }
-  .spec-slot.revealing .card-inner {
-    animation: cardFlipReveal 1.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  }
-  @keyframes cardFlipReveal {
-    0% { transform: rotateY(0deg); }
-    40% { transform: rotateY(90deg); }
-    41% { transform: rotateY(90deg); }
-    100% { transform: rotateY(0deg); }
-  }
-
-  /* ── Glow reveal effect ── */
-  .spec-slot.revealing::before {
-    content: ''; position: absolute; inset: -2px;
-    background: linear-gradient(135deg, rgba(0,255,170,0.4), transparent, rgba(0,255,170,0.2));
-    border-radius: 12px;
-    animation: slotGlow 2s forwards;
-    z-index: 0;
-  }
-  @keyframes slotGlow {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  /* ── Name reveal ── */
   .spec-slot .player-name {
-    z-index: 1;
-    font-family: 'Space Grotesk', monospace;
-    font-weight: 600;
-    font-size: 0.85rem;
-    opacity: 0;
-    transform: translateY(4px);
+    font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 13px;
+    color: rgba(255,255,255,0.1); flex: 1;
+    opacity: 0; transform: translateY(4px);
     transition: all 0.4s 0.8s;
   }
-  .spec-slot.revealed .player-name {
-    opacity: 1;
-    transform: translateY(0);
-    color: white;
+  .spec-slot.filled {
+    background: rgba(var(--dc-accent-rgb),0.025);
+    border-color: rgba(var(--dc-accent-rgb),0.1);
+    border-style: solid;
+  }
+  .spec-slot.filled .slot-num { color: rgba(var(--dc-accent-rgb),0.3); }
+  .spec-slot.revealed .player-name { opacity: 1; transform: translateY(0); color: #fff; }
+
+  /* Card flip reveal */
+  .spec-slot.revealing::before {
+    content: ''; position: absolute; inset: -2px;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.3), transparent, rgba(var(--dc-accent-rgb),0.15));
+    border-radius: 11px; z-index: 0;
+    animation: slotGlow 2s forwards;
+  }
+  @keyframes slotGlow {
+    0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
   }
 
-  /* ── Slot number ── */
-  .spec-slot .slot-num {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.15);
-    width: 20px; flex-shrink: 0;
-  }
-  .spec-slot.filled .slot-num { color: rgba(0,255,170,0.4); }
-
-  /* ── Suspense shimmer on pending slot ── */
+  /* Suspense shimmer */
   .spec-slot.suspense {
     animation: suspenseShimmer 2s ease-in-out;
   }
   @keyframes suspenseShimmer {
-    0% { border-color: rgba(255,200,50,0.1); box-shadow: none; }
-    30% { border-color: rgba(255,200,50,0.4); box-shadow: 0 0 20px rgba(255,200,50,0.15); }
-    70% { border-color: rgba(0,255,170,0.4); box-shadow: 0 0 30px rgba(0,255,170,0.2); }
-    100% { border-color: rgba(0,255,170,0.15); box-shadow: none; }
+    0% { border-color: rgba(var(--dc-gold-rgb),0.1); box-shadow: none; }
+    30% { border-color: rgba(var(--dc-gold-rgb),0.35); box-shadow: 0 0 18px rgba(var(--dc-gold-rgb),0.12); }
+    70% { border-color: rgba(var(--dc-accent-rgb),0.35); box-shadow: 0 0 24px rgba(var(--dc-accent-rgb),0.15); }
+    100% { border-color: rgba(var(--dc-accent-rgb),0.1); box-shadow: none; }
   }
+
+  /* ── Remaining Counter ── */
+  .spec-remaining {
+    text-align: center; font-family: 'Space Grotesk', monospace;
+    font-size: 10px; color: rgba(255,255,255,0.15);
+    text-transform: uppercase; letter-spacing: 0.15em;
+  }
+  .spec-remaining strong { color: var(--dc-gold); font-weight: 700; }
 
   /* ══════════════════════════════════════════════
-     LAST DRAWN — Spotlight Card
+     COMPLETE SCREEN
   ══════════════════════════════════════════════ */
-
-  .spotlight-card {
-    background: linear-gradient(135deg, rgba(0,255,170,0.05), rgba(0,100,255,0.03));
-    border: 1px solid rgba(0,255,170,0.1);
-    border-radius: 16px;
-    padding: 24px 32px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .spotlight-card::before {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at center, rgba(0,255,170,0.08), transparent 60%);
-    opacity: 0; transition: opacity 0.5s;
-  }
-  .spotlight-card.active::before { opacity: 1; }
-  .spotlight-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 800;
-    font-size: 2.5rem;
-    color: white;
-    letter-spacing: 0.02em;
-    animation: spotlightIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  @keyframes spotlightIn {
-    0% { transform: scale(0.5) translateY(20px); opacity: 0; }
-    60% { transform: scale(1.1); }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
-  }
-  .spotlight-group {
-    font-family: 'Space Grotesk', monospace;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--draw-accent);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-top: 6px;
-  }
-
-  /* ── Waiting state ── */
-  .waiting-screen {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    min-height: 60vh;
-    position: relative;
-  }
-  .waiting-icon {
-    width: 80px; height: 80px;
-    color: rgba(255,255,255,0.08);
-    animation: waitBob 3s ease-in-out infinite;
-  }
-  @keyframes waitBob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  /* Waiting: branding card */
-  .waiting-brand-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 24px;
-    padding: 48px 40px 40px;
-    text-align: center;
-    max-width: 520px;
-    position: relative;
-    overflow: hidden;
-  }
-  .waiting-brand-card::before {
-    content: ''; position: absolute; inset: -1px;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0deg, rgba(0,255,170,0.15) 30deg,
-      transparent 80deg, rgba(255,200,50,0.1) 170deg,
-      transparent 220deg, rgba(0,100,255,0.1) 300deg,
-      transparent 360deg
-    );
-    border-radius: 24px;
-    animation: waitGlow 8s linear infinite;
-    z-index: -1;
-    filter: blur(1px);
-  }
-  @keyframes waitGlow {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  .waiting-brand-card::after {
-    content: ''; position: absolute; inset: 1px;
-    background: linear-gradient(135deg, #0d1117, #161b22);
-    border-radius: 23px;
-    z-index: -1;
-  }
-
-  /* Floating particles */
-  .waiting-particles {
-    position: absolute; inset: 0; overflow: hidden;
-    pointer-events: none; z-index: 0;
-  }
-  .waiting-particles span {
-    position: absolute;
-    width: 2px; height: 2px;
-    background: rgba(0,255,170,0.3);
-    border-radius: 50%;
-    animation: particleDrift 12s linear infinite;
-  }
-  .waiting-particles span:nth-child(2n) { background: rgba(255,200,50,0.2); animation-duration: 16s; }
-  .waiting-particles span:nth-child(3n) { background: rgba(100,150,255,0.2); animation-duration: 20s; width: 3px; height: 3px; }
-  @keyframes particleDrift {
-    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-20vh) translateX(40px); opacity: 0; }
-  }
-
-  /* Pulse rings behind icon */
-  .waiting-pulse-rings {
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
-    width: 120px; height: 120px;
-  }
-  .waiting-pulse-rings::before,
-  .waiting-pulse-rings::after {
-    content: ''; position: absolute;
-    border: 1px solid rgba(0,255,170,0.08);
-    border-radius: 50%;
-    animation: waitPulse 4s ease-out infinite;
-  }
-  .waiting-pulse-rings::before { width: 100%; height: 100%; animation-delay: 0s; }
-  .waiting-pulse-rings::after { width: 100%; height: 100%; animation-delay: 2s; }
-  @keyframes waitPulse {
-    0% { transform: scale(0.8); opacity: 1; }
-    100% { transform: scale(2.5); opacity: 0; }
-  }
-
-  /* Status badge */
-  .waiting-status-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 16px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,200,50,0.2);
-    background: rgba(255,200,50,0.05);
-    font-family: 'Space Grotesk', monospace;
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #ffc832;
-  }
-  .waiting-status-pill .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #ffc832;
-    animation: blink 1.5s infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  /* ── Draw Complete celebrations ── */
-  .complete-screen {
-    text-align: center; padding: 60px 20px;
-  }
-  .complete-trophy {
-    width: 80px; height: 80px; color: var(--draw-gold);
+  .spec-complete { text-align: center; padding: 60px 20px; }
+  .spec-complete-trophy {
+    width: 72px; height: 72px; color: var(--dc-gold);
+    margin: 0 auto 16px; display: block;
     animation: trophyBounce 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    margin: 0 auto 20px;
   }
   @keyframes trophyBounce {
     0% { transform: scale(0) rotate(-20deg); opacity: 0; }
     60% { transform: scale(1.2) rotate(5deg); }
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
-
-  /* ── Connection indicator ── */
-  .ws-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .ws-dot.connected { background: var(--draw-accent); box-shadow: 0 0 6px rgba(0,255,170,0.5); }
-  .ws-dot.disconnected { background: #ff4444; }
-  .ws-dot.connecting { background: #ffc832; animation: blink 1s infinite; }
-  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
-
-  /* ── Responsive ── */
-  @media (max-width: 768px) {
-    .spec-group-grid { grid-template-columns: repeat(2, 1fr) !important; }
-    .spotlight-name { font-size: 1.8rem; }
+  .spec-complete h2 {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
+    font-size: 28px; color: #fff; margin: 0 0 8px;
+  }
+  .spec-complete p { color: rgba(255,255,255,0.35); font-size: 14px; margin: 0 0 16px; }
+  .spec-complete .hash {
+    font-family: 'Space Grotesk', monospace; font-size: 10px;
+    color: rgba(255,255,255,0.1);
   }
 
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     LOTTERY SPINNER — CS:GO Case Unboxing Style (Spectator)
+     LOTTERY SPINNER — CS:GO Case Unboxing Style
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
   .lottery-overlay {
-    position: fixed; inset: 0; z-index: 99999;
-    background: rgba(5,5,10,0.92);
-    backdrop-filter: blur(24px);
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(3,3,6,0.93);
+    backdrop-filter: blur(28px);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0; transition: opacity 0.35s;
   }
   .lottery-overlay.active { opacity: 1; }
   .lottery-label {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 800; font-size: 0.7rem;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px;
     letter-spacing: 0.3em; text-transform: uppercase;
-    color: rgba(255,200,50,0.7); margin-bottom: 24px;
+    color: rgba(var(--dc-gold-rgb),0.6); margin-bottom: 28px;
   }
   .lottery-viewport {
-    width: 720px; max-width: 90vw; height: 90px;
-    overflow: hidden; position: relative;
-    border-radius: 14px;
-    border: 2px solid rgba(255,255,255,0.08);
-    background: rgba(10,10,20,0.95);
+    width: 780px; max-width: 92vw; height: 96px;
+    overflow: hidden; position: relative; border-radius: 16px;
+    border: 2px solid rgba(255,255,255,0.06);
+    background: rgba(8,8,16,0.95);
   }
-  .lottery-viewport::before,
-  .lottery-viewport::after {
-    content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2;
-    pointer-events: none;
+  .lottery-viewport::before, .lottery-viewport::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 140px; z-index: 2; pointer-events: none;
   }
-  .lottery-viewport::before {
-    left: 0;
-    background: linear-gradient(90deg, rgba(10,10,20,0.95), transparent);
-  }
-  .lottery-viewport::after {
-    right: 0;
-    background: linear-gradient(-90deg, rgba(10,10,20,0.95), transparent);
-  }
+  .lottery-viewport::before { left: 0; background: linear-gradient(90deg, rgba(8,8,16,0.95), transparent); }
+  .lottery-viewport::after { right: 0; background: linear-gradient(-90deg, rgba(8,8,16,0.95), transparent); }
   .lottery-needle {
     position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
     width: 3px; height: calc(100% + 4px); z-index: 3;
-    background: linear-gradient(180deg, #ffc832, #ff8800);
-    box-shadow: 0 0 20px rgba(255,200,50,0.6), 0 0 40px rgba(255,200,50,0.2);
+    background: linear-gradient(180deg, var(--dc-gold), #ff8800);
+    box-shadow: 0 0 24px rgba(var(--dc-gold-rgb),0.7), 0 0 48px rgba(var(--dc-gold-rgb),0.2);
     border-radius: 2px;
   }
   .lottery-needle::before {
-    content: '▼'; position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
-    font-size: 14px; color: #ffc832; text-shadow: 0 0 10px rgba(255,200,50,0.8);
+    content: '▼'; position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+    font-size: 16px; color: var(--dc-gold); text-shadow: 0 0 12px rgba(var(--dc-gold-rgb),0.9);
   }
   .lottery-strip {
     display: flex; position: absolute; top: 0; left: 0; height: 100%;
     will-change: transform;
   }
   .lottery-item {
-    flex-shrink: 0; width: 180px; height: 90px;
+    flex-shrink: 0; width: 180px; height: 96px;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Rajdhani', sans-serif; font-weight: 700;
-    font-size: 1.1rem; color: rgba(255,255,255,0.5);
-    border-right: 1px solid rgba(255,255,255,0.04);
-    transition: color 0.15s;
+    font-size: 16px; color: rgba(255,255,255,0.45);
+    border-right: 1px solid rgba(255,255,255,0.03);
   }
   .lottery-item.winner {
-    color: #00ffaa; font-size: 1.4rem; font-weight: 800;
-    text-shadow: 0 0 20px rgba(0,255,170,0.6);
+    color: var(--dc-accent); font-size: 22px; font-weight: 800;
+    text-shadow: 0 0 24px rgba(var(--dc-accent-rgb),0.7);
   }
   .lottery-result {
-    margin-top: 32px; text-align: center;
+    margin-top: 36px; text-align: center;
     opacity: 0; transition: opacity 0.4s 0.2s;
   }
   .lottery-result.show { opacity: 1; }
   .lottery-result-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 900; font-size: 2.5rem;
-    color: #00ffaa; letter-spacing: 0.04em;
-    text-shadow: 0 0 30px rgba(0,255,170,0.4);
+    font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 48px;
+    color: var(--dc-accent); letter-spacing: 0.04em;
+    text-shadow: 0 0 40px rgba(var(--dc-accent-rgb),0.5);
   }
   .lottery-result-group {
-    font-family: 'Space Grotesk', monospace;
-    font-weight: 600; font-size: 0.9rem;
-    color: #ffc832; letter-spacing: 0.15em;
-    text-transform: uppercase; margin-top: 6px;
+    font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 15px;
+    color: var(--dc-gold); letter-spacing: 0.15em;
+    text-transform: uppercase; margin-top: 8px;
   }
   .lottery-flash {
     position: absolute; inset: 0; z-index: 4;
-    background: radial-gradient(circle at center, rgba(0,255,170,0.25), transparent 60%);
-    opacity: 0; pointer-events: none;
-    animation: lotteryFlash 0.8s ease-out;
+    background: radial-gradient(circle at center, rgba(var(--dc-accent-rgb),0.3), transparent 60%);
+    opacity: 0; pointer-events: none; animation: lotteryFlash 0.8s ease-out;
   }
-  @keyframes lotteryFlash {
-    0% { opacity: 1; } 100% { opacity: 0; }
-  }
+  @keyframes lotteryFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ── Hide utility ── */
+  .hidden { display: none !important; }
 </style>
 {% endblock %}
 
-{% block tournament_content %}
-<div class="spectator-draw">
-  <div class="draw-bg-glow"></div>
+{% block draw_body %}
+<div class="spec-draw">
+  <div class="spec-bg"></div>
 
-  {# ━━━ Header ━━━ #}
-  <div class="draw-header sticky top-0 z-50 px-6 py-3">
-    <div class="max-w-[1400px] mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-gray-600 hover:text-white transition">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        </a>
-        <div>
-          <h1 class="tournament-name text-white text-xl">{{ tournament.name }}</h1>
-          <p class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Group Draw Ceremony</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-4">
-        <span id="draw-badge" class="waiting-badge">WAITING FOR DRAW</span>
-        <div class="flex items-center gap-1.5 text-[10px] text-gray-600">
-          <span id="ws-status-dot" class="ws-dot connecting"></span>
-          <span id="ws-status-text">Connecting</span>
-        </div>
+  {# ━━━ Header Strip (minimal, no navbar) ━━━ #}
+  <header class="spec-header">
+    <div class="spec-header-left">
+      <a href="{% url 'tournaments:detail' tournament.slug %}">
+        <i data-lucide="arrow-left" style="width:15px;height:15px"></i>
+      </a>
+      <div>
+        <div class="spec-tourney-name">{{ tournament.name }}</div>
+        <div class="spec-tourney-sub">Group Draw Ceremony</div>
       </div>
     </div>
-  </div>
+    <div class="spec-header-right">
+      <span id="spec-badge" class="spec-badge spec-badge-waiting">WAITING FOR DRAW</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.15)">
+        <span id="ws-dot" class="ws-dot connecting"></span>
+        <span id="ws-label">Connecting</span>
+      </span>
+    </div>
+  </header>
 
   {# ━━━ Progress ━━━ #}
-  <div class="spec-progress-track">
-    <div id="spec-progress" class="spec-progress-fill" style="width:0%"></div>
+  <div class="spec-progress">
+    <div id="spec-progress-fill" class="spec-progress-fill" style="width:0%"></div>
   </div>
 
-  <div class="max-w-[1400px] mx-auto px-6 py-8 relative z-10">
+  <div style="max-width:1400px;margin:0 auto;padding:24px 28px;position:relative;z-index:1">
 
     {# ━━━ Waiting Screen ━━━ #}
-    <div id="waiting-screen" class="waiting-screen">
-      {# Floating particles #}
-      <div class="waiting-particles">
+    <div id="waiting-screen" class="spec-waiting">
+      <div class="spec-particles">
         <span style="left:10%;animation-delay:0s"></span>
         <span style="left:25%;animation-delay:2s"></span>
         <span style="left:40%;animation-delay:4s"></span>
@@ -554,101 +511,84 @@
         <span style="left:35%;animation-delay:9s"></span>
       </div>
 
-      <div class="waiting-brand-card">
-        {# Pulse rings behind icon #}
-        <div class="waiting-pulse-rings mx-auto mb-6">
-          <i data-lucide="dice-5" class="waiting-icon" style="position:relative;z-index:1"></i>
+      <div class="spec-brand-card">
+        <div class="spec-pulse-rings">
+          <i data-lucide="dice-5" class="icon"></i>
         </div>
-
-        {# Tournament branding #}
-        <h2 class="font-display font-black text-2xl text-white mb-1">{{ tournament.name }}</h2>
-        <p class="text-xs text-dc-text/50 font-mono uppercase tracking-widest mb-6">
-          Group Stage &middot; Live Draw
-        </p>
-
-        {# Main message #}
-        <div class="text-lg font-display font-bold text-white/25 mb-3">
-          Broadcast starting soon&hellip;
-        </div>
-        <p class="text-sm text-dc-text/40 max-w-sm mx-auto leading-relaxed mb-6">
+        <h2 class="spec-brand-title">{{ tournament.name }}</h2>
+        <div class="spec-brand-sub">Group Stage &middot; Live Draw</div>
+        <div class="spec-brand-msg">Broadcast starting soon&hellip;</div>
+        <p class="spec-brand-desc">
           The organizer will begin the live group draw momentarily.
-          Players will be drawn one by one into their groups with a cinematic reveal.
+          Players will be drawn one by one with a cinematic reveal.
         </p>
-
-        {# Status indicator #}
-        <div class="waiting-status-pill mx-auto">
-          <span class="dot"></span>
-          Standing by
+        <div class="spec-status-pill">
+          <span class="dot"></span> Standing by
         </div>
-
-        {# Format info #}
-        <div class="mt-6 pt-5 border-t border-white/[0.04] flex flex-wrap items-center justify-center gap-4 text-[10px] text-dc-text/30">
-          <span class="flex items-center gap-1.5">
-            <i data-lucide="layout-grid" class="w-3 h-3"></i>
+        <div class="spec-format-bar">
+          <span>
+            <i data-lucide="layout-grid" style="width:11px;height:11px"></i>
             {{ tournament.groups.count }} Groups
           </span>
-          <span class="w-px h-3 bg-white/[0.06]"></span>
-          <span class="flex items-center gap-1.5">
-            <i data-lucide="users" class="w-3 h-3"></i>
+          <span class="spec-format-sep"></span>
+          <span>
+            <i data-lucide="users" style="width:11px;height:11px"></i>
             {{ tournament.registrations.count }} Players
           </span>
-          <span class="w-px h-3 bg-white/[0.06]"></span>
-          <span class="flex items-center gap-1.5">
-            <i data-lucide="shield-check" class="w-3 h-3"></i>
+          <span class="spec-format-sep"></span>
+          <span>
+            <i data-lucide="shield-check" style="width:11px;height:11px"></i>
             SHA-256 Verified
           </span>
         </div>
       </div>
     </div>
 
-    {# ━━━ Live Draw Content (hidden until draw starts) ━━━ #}
-    <div id="live-content" class="hidden">
+    {# ━━━ Live Draw Content ━━━ #}
+    <div id="live-content" class="spec-live hidden">
 
-      {# Counter Strip #}
-      <div class="flex items-center justify-center gap-8 mb-8">
-        <div class="text-center">
-          <div id="spec-drawn" class="draw-counter text-5xl text-white">0</div>
-          <div class="text-[9px] text-gray-600 uppercase tracking-[0.2em] mt-1">Drawn</div>
+      {# Counters #}
+      <div class="spec-counters">
+        <div style="text-align:center">
+          <div class="spec-counter-num" id="spec-drawn">0</div>
+          <div class="spec-counter-label">Drawn</div>
         </div>
-        <div class="text-gray-700 text-3xl font-light">/</div>
-        <div class="text-center">
-          <div id="spec-total" class="draw-counter text-5xl text-gray-500">0</div>
-          <div class="text-[9px] text-gray-600 uppercase tracking-[0.2em] mt-1">Total</div>
+        <div class="spec-counter-sep">/</div>
+        <div style="text-align:center">
+          <div class="spec-counter-num dim" id="spec-total">0</div>
+          <div class="spec-counter-label">Total</div>
         </div>
       </div>
 
-      {# Spotlight — Last Drawn Player #}
-      <div id="spotlight" class="spotlight-card mb-10 hidden">
-        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2 font-mono">
-          <i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i> Drawn
+      {# Spotlight — Last Drawn #}
+      <div id="spotlight" class="spec-spotlight hidden">
+        <div class="spec-spotlight-label">
+          <i data-lucide="sparkles" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Drawn
         </div>
-        <div id="spotlight-name" class="spotlight-name">—</div>
-        <div id="spotlight-group" class="spotlight-group">→ Group —</div>
+        <div id="spotlight-name" class="spec-spotlight-name">—</div>
+        <div id="spotlight-group" class="spec-spotlight-group">→ Group —</div>
       </div>
 
       {# Group Grid #}
-      <div id="spec-group-grid" class="spec-group-grid grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+      <div id="spec-group-grid" class="spec-group-grid">
         {# Rendered by JS #}
       </div>
 
-      {# Remaining counter #}
-      <div class="text-center">
-        <span class="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
-          <span id="spec-remaining" class="text-[#ffc832] font-bold">0</span> players remaining
-        </span>
+      {# Remaining #}
+      <div class="spec-remaining">
+        <strong id="spec-remaining">0</strong> players remaining
       </div>
     </div>
 
-    {# ━━━ Complete Screen (hidden) ━━━ #}
-    <div id="complete-screen" class="complete-screen hidden">
-      <i data-lucide="trophy" class="complete-trophy"></i>
-      <h2 class="font-display font-black text-3xl text-white mb-2">Draw Complete!</h2>
-      <p class="text-gray-400 text-sm mb-4">All teams have been drawn into their groups.</p>
-      <p id="spec-hash" class="text-[10px] font-mono text-gray-700"></p>
-      <div id="final-groups" class="mt-10">
-        {# Final group grid re-rendered here #}
-      </div>
+    {# ━━━ Complete Screen ━━━ #}
+    <div id="complete-screen" class="spec-complete hidden">
+      <i data-lucide="trophy" class="spec-complete-trophy"></i>
+      <h2>Draw Complete!</h2>
+      <p>All teams have been drawn into their groups.</p>
+      <div class="hash" id="spec-hash"></div>
+      <div id="final-groups" style="margin-top:40px"></div>
     </div>
+
   </div>
 
   {# ━━━ Lottery Spinner Overlay ━━━ #}
@@ -666,7 +606,7 @@
 </div>
 {% endblock %}
 
-{% block tournament_js %}
+{% block draw_js %}
 <script>
 (function() {
   'use strict';
@@ -676,7 +616,7 @@
 
   let ws = null;
   let session = null;
-  let participantPool = [];  // Track all participant names for lottery reel
+  let participantPool = [];
 
   // ══════════════════════════════════════════════
   // WebSocket
@@ -687,41 +627,35 @@
     ws = new WebSocket(proto + '//' + location.host + WS_PATH);
     setWsStatus('connecting');
 
-    ws.onopen = () => {
-      setWsStatus('connected');
-      console.log('[DrawSpectator] Connected');
-    };
-    ws.onclose = () => {
-      setWsStatus('disconnected');
-      setTimeout(connect, 3000);
-    };
-    ws.onerror = (e) => console.error('[DrawSpectator] Error:', e);
+    ws.onopen = () => { setWsStatus('connected'); console.log('[Spectator] Connected'); };
+    ws.onclose = () => { setWsStatus('disconnected'); setTimeout(connect, 3000); };
+    ws.onerror = (e) => console.error('[Spectator] Error:', e);
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)); }
-      catch (err) { console.error('[DrawSpectator] Parse error:', err); }
+      catch (err) { console.error('[Spectator] Parse:', err); }
     };
   }
 
   function setWsStatus(s) {
-    const dot = document.getElementById('ws-status-dot');
-    const txt = document.getElementById('ws-status-text');
+    const dot = document.getElementById('ws-dot');
+    const txt = document.getElementById('ws-label');
     dot.className = 'ws-dot ' + s;
     txt.textContent = s === 'connected' ? 'Live' : s === 'connecting' ? 'Connecting' : 'Reconnecting';
   }
 
   // ══════════════════════════════════════════════
-  // Message Handler
+  // Messages
   // ══════════════════════════════════════════════
 
   function handleMessage(msg) {
-    console.log('[DrawSpectator] ←', msg.type, msg);
+    console.log('[Spectator] ←', msg.type, msg);
     switch (msg.type) {
       case 'draw_session_snapshot': onSnapshot(msg.session); break;
-      case 'draw_session_open': onSessionOpen(msg); break;
-      case 'player_drawn': onPlayerDrawn(msg); break;
-      case 'player_override': onPlayerOverride(msg); break;
-      case 'draw_complete': onDrawComplete(msg); break;
-      case 'draw_aborted': onDrawAborted(msg); break;
+      case 'draw_session_open':    onSessionOpen(msg); break;
+      case 'player_drawn':         onPlayerDrawn(msg); break;
+      case 'player_override':      onPlayerOverride(msg); break;
+      case 'draw_complete':        onDrawComplete(msg); break;
+      case 'draw_aborted':         onDrawAborted(msg); break;
     }
   }
 
@@ -731,36 +665,29 @@
 
   function onSnapshot(s) {
     session = s;
-    // Build participant pool from all assigned names
     participantPool = [];
     for (const players of Object.values(s.assignments || {})) {
       players.forEach(p => {
-        const name = p.display_name || p.name;
-        if (name && !participantPool.includes(name)) participantPool.push(name);
+        const n = p.display_name || p.name;
+        if (n && !participantPool.includes(n)) participantPool.push(n);
       });
     }
     if (s.queue) {
       s.queue.forEach(p => {
-        const name = p.display_name || p.name;
-        if (name && !participantPool.includes(name)) participantPool.push(name);
+        const n = p.display_name || p.name;
+        if (n && !participantPool.includes(n)) participantPool.push(n);
       });
     }
 
     showLiveContent();
     renderGroupGrid(s.groups, s.group_size);
-
-    // Populate existing assignments (no animation on reconnect)
     for (const [gName, players] of Object.entries(s.assignments || {})) {
       players.forEach((p, i) => fillSlotInstant(gName, i + 1, p));
     }
     updateCounters(s.drawn_count, s.total, s.total - s.drawn_count);
 
-    if (s.finalized) {
-      setBadge('complete');
-      showCompleteScreen(null, null);
-    } else if (s.drawn_count > 0) {
-      setBadge('live');
-    }
+    if (s.finalized) { setBadge('complete'); showCompleteScreen(null); }
+    else if (s.drawn_count > 0) { setBadge('live'); }
   }
 
   function onSessionOpen(msg) {
@@ -769,15 +696,13 @@
       assignments: {}, drawn_count: 0, total: msg.total,
     };
     msg.groups.forEach(g => session.assignments[g] = []);
-    // Build participant pool from queue if provided
     participantPool = [];
     if (msg.queue) {
       msg.queue.forEach(p => {
-        const name = p.display_name || p.name;
-        if (name && !participantPool.includes(name)) participantPool.push(name);
+        const n = p.display_name || p.name;
+        if (n && !participantPool.includes(n)) participantPool.push(n);
       });
     }
-
     showLiveContent();
     renderGroupGrid(msg.groups, msg.group_size);
     updateCounters(0, msg.total, msg.total);
@@ -790,30 +715,24 @@
     const slot = msg.group_slot || msg.group_count;
     const winnerName = player.display_name || player.name || '???';
 
-    // Update local state
     if (session) {
       if (!session.assignments[group]) session.assignments[group] = [];
       session.assignments[group].push(player);
       session.drawn_count = msg.drawn_count;
     }
-
-    // Ensure winner is in participant pool
     if (!participantPool.includes(winnerName)) participantPool.push(winnerName);
 
     updateCounters(msg.drawn_count, msg.total, msg.remaining);
     updateProgress(msg.drawn_count, msg.total);
 
-    // ── LOTTERY SPINNER → SUSPENSEFUL REVEAL ──
+    // ── Lottery Spinner → Suspenseful Reveal ──
     showLotterySpinner(participantPool, winnerName, group, function() {
-      // Show spotlight with name
       showSpotlight(winnerName, group);
 
-      // Highlight the receiving group card
-      const card = document.querySelector(`[data-spec-group="${group}"]`);
+      const card = document.querySelector('[data-spec-group="' + group + '"]');
       if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 3000); }
 
-      // The slot gets a suspense shimmer, then card flip reveal
-      const slotEl = document.querySelector(`[data-spec-group="${group}"][data-spec-slot="${slot}"]`);
+      const slotEl = document.querySelector('[data-spec-group="' + group + '"][data-spec-slot="' + slot + '"]');
       if (slotEl) {
         slotEl.classList.add('suspense');
         setTimeout(() => {
@@ -825,28 +744,26 @@
         setTimeout(() => {
           slotEl.classList.remove('revealing');
           slotEl.classList.add('revealed');
+          updateGroupCounter(group);
         }, 1500);
       }
 
-      // Remove drawn player from pool for next spin
       const idx = participantPool.indexOf(winnerName);
       if (idx > -1) participantPool.splice(idx, 1);
     });
   }
 
   function onPlayerOverride(msg) {
-    // Re-render from session state
-    if (session) {
-      for (const g of session.groups) {
-        clearSlots(g);
-        (session.assignments[g] || []).forEach((p, i) => fillSlotInstant(g, i + 1, p));
-      }
+    if (!session) return;
+    for (const g of session.groups) {
+      clearSlots(g);
+      (session.assignments[g] || []).forEach((p, i) => fillSlotInstant(g, i + 1, p));
     }
   }
 
   function onDrawComplete(msg) {
     setBadge('complete');
-    showCompleteScreen(msg.seed_hash, msg.total_matches);
+    showCompleteScreen(msg.seed_hash);
   }
 
   function onDrawAborted() {
@@ -871,49 +788,45 @@
 
       let slots = '';
       for (let i = 1; i <= groupSize; i++) {
-        slots += `<div class="spec-slot" data-spec-group="${g}" data-spec-slot="${i}">
-          <span class="slot-num">${i}</span>
-          <div class="card-inner flex-1">
-            <span class="player-name text-gray-600 text-xs">—</span>
-          </div>
-        </div>`;
+        slots += '<div class="spec-slot" data-spec-group="' + g + '" data-spec-slot="' + i + '">' +
+          '<span class="slot-num">' + i + '</span>' +
+          '<div style="flex:1"><span class="player-name">—</span></div>' +
+        '</div>';
       }
 
-      card.innerHTML = `
-        <div class="flex items-center justify-between mb-4">
-          <span class="spec-group-letter">Group ${g}</span>
-          <span class="text-[10px] font-mono text-gray-700" data-spec-count="${g}">0/${groupSize}</span>
-        </div>
-        <div class="space-y-2.5">${slots}</div>
-      `;
+      card.innerHTML =
+        '<div class="spec-group-header">' +
+          '<span class="spec-group-letter">Group ' + g + '</span>' +
+          '<span class="spec-group-count" data-spec-count="' + g + '">0/' + groupSize + '</span>' +
+        '</div>' +
+        '<div>' + slots + '</div>';
       grid.appendChild(card);
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   function fillSlotInstant(gName, slotNum, player) {
-    const slot = document.querySelector(`[data-spec-group="${gName}"][data-spec-slot="${slotNum}"]`);
+    const slot = document.querySelector('[data-spec-group="' + gName + '"][data-spec-slot="' + slotNum + '"]');
     if (!slot) return;
     slot.classList.add('filled', 'revealed');
     const nameEl = slot.querySelector('.player-name');
-    if (nameEl) { nameEl.textContent = player.display_name || player.name || '?'; }
+    if (nameEl) nameEl.textContent = player.display_name || player.name || '?';
     updateGroupCounter(gName);
   }
 
   function clearSlots(gName) {
-    document.querySelectorAll(`.spec-slot[data-spec-group="${gName}"]`).forEach(s => {
+    document.querySelectorAll('.spec-slot[data-spec-group="' + gName + '"]').forEach(s => {
       s.className = 'spec-slot';
-      s.removeAttribute('style');
       const n = s.querySelector('.player-name');
-      if (n) { n.textContent = '—'; n.className = 'player-name text-gray-600 text-xs'; }
+      if (n) { n.textContent = '—'; }
     });
   }
 
   function updateGroupCounter(gName) {
-    const counter = document.querySelector(`[data-spec-count="${gName}"]`);
+    const counter = document.querySelector('[data-spec-count="' + gName + '"]');
     if (!counter) return;
-    const filled = document.querySelectorAll(`[data-spec-group="${gName}"].spec-slot.filled`).length;
-    counter.textContent = `${filled}/${session ? session.group_size : 4}`;
+    const filled = document.querySelectorAll('[data-spec-group="' + gName + '"].spec-slot.filled').length;
+    counter.textContent = filled + '/' + (session ? session.group_size : 4);
   }
 
   // ══════════════════════════════════════════════
@@ -934,19 +847,20 @@
 
   function updateProgress(drawn, total) {
     const pct = total > 0 ? (drawn / total * 100) : 0;
-    document.getElementById('spec-progress').style.width = pct + '%';
+    document.getElementById('spec-progress-fill').style.width = pct + '%';
   }
 
   function setBadge(status) {
-    const badge = document.getElementById('draw-badge');
+    const badge = document.getElementById('spec-badge');
+    badge.className = 'spec-badge';
     if (status === 'live') {
-      badge.className = 'live-badge';
-      badge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 animate-pulse"></span> LIVE DRAW';
+      badge.classList.add('spec-badge-live');
+      badge.innerHTML = '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#ff4444;margin-right:6px;animation:blink 1s infinite"></span> LIVE DRAW';
     } else if (status === 'complete') {
-      badge.className = 'complete-badge';
+      badge.classList.add('spec-badge-complete');
       badge.textContent = 'DRAW COMPLETE';
     } else {
-      badge.className = 'waiting-badge';
+      badge.classList.add('spec-badge-waiting');
       badge.textContent = 'WAITING FOR DRAW';
     }
   }
@@ -956,60 +870,49 @@
     el.classList.remove('hidden');
     el.classList.add('active');
 
-    // Re-trigger animation by cloning
     const nameEl = document.getElementById('spotlight-name');
     const groupEl = document.getElementById('spotlight-group');
-
     nameEl.style.animation = 'none';
-    nameEl.offsetHeight; // Force reflow
+    nameEl.offsetHeight;
     nameEl.style.animation = '';
     nameEl.textContent = name;
-
     groupEl.textContent = '→ Group ' + group;
 
     setTimeout(() => el.classList.remove('active'), 3000);
   }
 
-  function showCompleteScreen(hash, totalMatches) {
+  function showCompleteScreen(hash) {
     document.getElementById('live-content').classList.add('hidden');
     const screen = document.getElementById('complete-screen');
     screen.classList.remove('hidden');
+    if (hash) document.getElementById('spec-hash').textContent = 'Verification: ' + hash;
 
-    if (hash) {
-      document.getElementById('spec-hash').textContent = 'Verification: ' + hash;
-    }
-
-    // Re-render final groups in the complete screen
     if (session && session.assignments) {
       const container = document.getElementById('final-groups');
       container.innerHTML = '';
       const grid = document.createElement('div');
-      grid.className = 'grid grid-cols-2 md:grid-cols-4 gap-4';
+      grid.className = 'spec-group-grid';
       session.groups.forEach(g => {
         const players = session.assignments[g] || [];
         const card = document.createElement('div');
         card.className = 'spec-group-card';
-        card.innerHTML = `
-          <div class="spec-group-letter mb-3">Group ${g}</div>
-          <div class="space-y-2">
-            ${players.map((p, i) => `
-              <div class="spec-slot filled revealed">
-                <span class="slot-num">${i + 1}</span>
-                <div class="card-inner flex-1">
-                  <span class="player-name text-white font-semibold text-xs">${p.display_name || p.name || '?'}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
+        card.innerHTML =
+          '<div class="spec-group-header"><span class="spec-group-letter">Group ' + g + '</span></div>' +
+          '<div>' + players.map((p, i) =>
+            '<div class="spec-slot filled revealed">' +
+              '<span class="slot-num">' + (i + 1) + '</span>' +
+              '<div style="flex:1"><span class="player-name" style="opacity:1;transform:none;color:#fff">' + (p.display_name || p.name || '?') + '</span></div>' +
+            '</div>'
+          ).join('') + '</div>';
         grid.appendChild(card);
       });
       container.appendChild(grid);
     }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ══════════════════════════════════════════════
-  // Lottery Spinner (CS:GO case-unboxing style)
+  // Lottery Spinner (CS:GO case-unboxing)
   // ══════════════════════════════════════════════
 
   function showLotterySpinner(poolNames, winnerName, groupLetter, onComplete) {
@@ -1019,18 +922,14 @@
     const nameEl = document.getElementById('lottery-result-name');
     const groupEl = document.getElementById('lottery-result-group');
 
-    if (!overlay || poolNames.length < 2) {
-      // Skip animation if pool too small
-      onComplete();
-      return;
-    }
+    if (!overlay || poolNames.length < 2) { onComplete(); return; }
 
-    // Build the reel: ~60 items, randomly shuffled, winner at target position
     const ITEM_W = 180;
     const REEL_LEN = 60;
     const WINNER_POS = REEL_LEN - 8;
     const reelNames = [];
     const others = poolNames.filter(n => n !== winnerName);
+
     for (let i = 0; i < REEL_LEN; i++) {
       if (i === WINNER_POS) {
         reelNames.push(winnerName);
@@ -1042,34 +941,29 @@
       }
     }
 
-    // Render strip items
     strip.innerHTML = reelNames.map((name, i) =>
-      `<div class="lottery-item${i === WINNER_POS ? ' winner' : ''}">${name}</div>`
+      '<div class="lottery-item' + (i === WINNER_POS ? ' winner' : '') + '">' + name + '</div>'
     ).join('');
 
-    // Calculate scroll offset to center winner under needle
-    const viewportW = overlay.querySelector('.lottery-viewport').offsetWidth || 720;
+    const viewportW = overlay.querySelector('.lottery-viewport').offsetWidth || 780;
     const targetOffset = (WINNER_POS * ITEM_W) + (ITEM_W / 2) - (viewportW / 2);
     const jitter = (Math.random() - 0.5) * (ITEM_W * 0.3);
 
-    // Reset state
     strip.style.transition = 'none';
     strip.style.transform = 'translateX(0)';
     resultEl.classList.remove('show');
     nameEl.textContent = '';
     groupEl.textContent = '';
 
-    // Show overlay
     overlay.style.display = 'flex';
     requestAnimationFrame(() => {
       overlay.classList.add('active');
       setTimeout(() => {
-        strip.style.transition = `transform 3.2s cubic-bezier(0.15, 0.0, 0.08, 1.0)`;
-        strip.style.transform = `translateX(-${targetOffset + jitter}px)`;
+        strip.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.0, 0.08, 1.0)';
+        strip.style.transform = 'translateX(-' + (targetOffset + jitter) + 'px)';
       }, 100);
     });
 
-    // After spin completes, show result + flash
     setTimeout(() => {
       const flash = document.createElement('div');
       flash.className = 'lottery-flash';
@@ -1087,8 +981,8 @@
           strip.innerHTML = '';
           onComplete();
         }, 350);
-      }, 1200);
-    }, 3400);
+      }, 1400);
+    }, 3700);
   }
 
   // ══════════════════════════════════════════════
