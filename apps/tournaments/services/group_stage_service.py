@@ -115,7 +115,10 @@ class GroupStageService:
                 'random'
             ]
         
-        # Delete existing groups if any
+        # Delete existing groups and their standings
+        GroupStanding.objects.filter(
+            group__tournament=tournament, is_deleted=False
+        ).update(is_deleted=True)
         Group.objects.filter(tournament=tournament).update(is_deleted=True)
         
         # Create groups
@@ -208,6 +211,11 @@ class GroupStageService:
                 registrations, groups, draw_seed
             )
         
+        # Clean up any existing (stale) standings from prior draws
+        GroupStanding.objects.filter(
+            group__in=groups, is_deleted=False
+        ).update(is_deleted=True)
+
         # Create GroupStanding entries
         standings = []
         for registration, group in assignments:

@@ -21,7 +21,7 @@ Supports 9 games:
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q, CheckConstraint, F
+from django.db.models import Q, CheckConstraint, UniqueConstraint, F
 from django.contrib.postgres.fields import JSONField
 from decimal import Decimal
 
@@ -361,6 +361,16 @@ class GroupStanding(TimestampedModel):
                 check=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
                       (Q(user__isnull=True) & Q(team_id__isnull=False)),
                 name='group_standing_user_or_team_xor'
+            ),
+            UniqueConstraint(
+                fields=['group', 'user'],
+                condition=Q(is_deleted=False, user__isnull=False),
+                name='unique_active_group_user_standing',
+            ),
+            UniqueConstraint(
+                fields=['group', 'team_id'],
+                condition=Q(is_deleted=False, team_id__isnull=False),
+                name='unique_active_group_team_standing',
             ),
         ]
     

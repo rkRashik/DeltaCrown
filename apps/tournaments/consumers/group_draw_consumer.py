@@ -417,7 +417,8 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         """Get configured groups for this tournament."""
         from apps.tournaments.models.group import Group
         groups = Group.objects.filter(
-            tournament_id=self.tournament_id
+            tournament_id=self.tournament_id,
+            is_deleted=False,
         ).order_by("display_order", "name")
 
         return [
@@ -442,7 +443,9 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         # Build group lookup: letter → Group object
         group_objs = {
             (g.name.split()[-1] if " " in g.name else g.name): g
-            for g in Group.objects.filter(tournament_id=self.tournament_id)
+            for g in Group.objects.filter(
+                tournament_id=self.tournament_id, is_deleted=False
+            )
         }
 
         total_assigned = 0
@@ -453,23 +456,42 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                 continue
             for player in players:
                 user_id = player.get("user_id")
-                # Check if standing already exists
-                exists = GroupStanding.objects.filter(
-                    group=group, user_id=user_id
-                ).exists()
-                if exists:
-                    continue
+                reg_id = player.get("registration_id")
 
-                GroupStanding.objects.create(
-                    group=group,
-                    user_id=user_id,
-                    rank=0,
-                    matches_played=0,
-                    matches_won=0,
-                    matches_drawn=0,
-                    matches_lost=0,
-                    points=0,
-                )
+                # Determine if this is a team or solo entry
+                if is_team:
+                    # For teams, user_id holds the team_id from _get_participants
+                    exists = GroupStanding.objects.filter(
+                        group=group, team_id=user_id, is_deleted=False
+                    ).exists()
+                    if exists:
+                        continue
+                    GroupStanding.objects.create(
+                        group=group,
+                        team_id=user_id,
+                        rank=0,
+                        matches_played=0,
+                        matches_won=0,
+                        matches_drawn=0,
+                        matches_lost=0,
+                        points=0,
+                    )
+                else:
+                    exists = GroupStanding.objects.filter(
+                        group=group, user_id=user_id, is_deleted=False
+                    ).exists()
+                    if exists:
+                        continue
+                    GroupStanding.objects.create(
+                        group=group,
+                        user_id=user_id,
+                        rank=0,
+                        matches_played=0,
+                        matches_won=0,
+                        matches_drawn=0,
+                        matches_lost=0,
+                        points=0,
+                    )
                 total_assigned += 1
 
         # Try to generate matches via the service

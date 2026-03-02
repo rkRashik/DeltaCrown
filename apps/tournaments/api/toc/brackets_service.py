@@ -115,12 +115,14 @@ class TOCBracketsService:
         if not stage:
             return {"exists": False, "stage": None, "groups": []}
 
-        groups = Group.objects.filter(tournament=tournament).order_by(
-            "display_order"
-        )
+        groups = Group.objects.filter(
+            tournament=tournament, is_deleted=False
+        ).order_by("display_order")
         result_groups = []
         for g in groups:
-            standings = GroupStanding.objects.filter(group=g).order_by("rank")
+            standings = GroupStanding.objects.filter(
+                group=g, is_deleted=False
+            ).order_by("rank")
             result_groups.append({
                 "id": str(g.id),
                 "name": g.name,
@@ -143,6 +145,7 @@ class TOCBracketsService:
                 "format": stage.format,
                 "state": stage.state,
                 "advancement_count_per_group": stage.advancement_count_per_group,
+                "draw_audit": (stage.config or {}).get("draw_audit"),
             },
             "groups": result_groups,
         }

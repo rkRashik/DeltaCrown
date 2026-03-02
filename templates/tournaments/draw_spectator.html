@@ -311,6 +311,98 @@
     .spec-group-grid { grid-template-columns: repeat(2, 1fr) !important; }
     .spotlight-name { font-size: 1.8rem; }
   }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     LOTTERY SPINNER — CS:GO Case Unboxing Style (Spectator)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .lottery-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5,5,10,0.92);
+    backdrop-filter: blur(24px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .lottery-overlay.active { opacity: 1; }
+  .lottery-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800; font-size: 0.7rem;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(255,200,50,0.7); margin-bottom: 24px;
+  }
+  .lottery-viewport {
+    width: 720px; max-width: 90vw; height: 90px;
+    overflow: hidden; position: relative;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,20,0.95);
+  }
+  .lottery-viewport::before,
+  .lottery-viewport::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2;
+    pointer-events: none;
+  }
+  .lottery-viewport::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(10,10,20,0.95), transparent);
+  }
+  .lottery-viewport::after {
+    right: 0;
+    background: linear-gradient(-90deg, rgba(10,10,20,0.95), transparent);
+  }
+  .lottery-needle {
+    position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: calc(100% + 4px); z-index: 3;
+    background: linear-gradient(180deg, #ffc832, #ff8800);
+    box-shadow: 0 0 20px rgba(255,200,50,0.6), 0 0 40px rgba(255,200,50,0.2);
+    border-radius: 2px;
+  }
+  .lottery-needle::before {
+    content: '▼'; position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; color: #ffc832; text-shadow: 0 0 10px rgba(255,200,50,0.8);
+  }
+  .lottery-strip {
+    display: flex; position: absolute; top: 0; left: 0; height: 100%;
+    will-change: transform;
+  }
+  .lottery-item {
+    flex-shrink: 0; width: 180px; height: 90px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 1.1rem; color: rgba(255,255,255,0.5);
+    border-right: 1px solid rgba(255,255,255,0.04);
+    transition: color 0.15s;
+  }
+  .lottery-item.winner {
+    color: #00ffaa; font-size: 1.4rem; font-weight: 800;
+    text-shadow: 0 0 20px rgba(0,255,170,0.6);
+  }
+  .lottery-result {
+    margin-top: 32px; text-align: center;
+    opacity: 0; transition: opacity 0.4s 0.2s;
+  }
+  .lottery-result.show { opacity: 1; }
+  .lottery-result-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 900; font-size: 2.5rem;
+    color: #00ffaa; letter-spacing: 0.04em;
+    text-shadow: 0 0 30px rgba(0,255,170,0.4);
+  }
+  .lottery-result-group {
+    font-family: 'Space Grotesk', monospace;
+    font-weight: 600; font-size: 0.9rem;
+    color: #ffc832; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-top: 6px;
+  }
+  .lottery-flash {
+    position: absolute; inset: 0; z-index: 4;
+    background: radial-gradient(circle at center, rgba(0,255,170,0.25), transparent 60%);
+    opacity: 0; pointer-events: none;
+    animation: lotteryFlash 0.8s ease-out;
+  }
+  @keyframes lotteryFlash {
+    0% { opacity: 1; } 100% { opacity: 0; }
+  }
 </style>
 {% endblock %}
 
@@ -407,6 +499,19 @@
       </div>
     </div>
   </div>
+
+  {# ━━━ Lottery Spinner Overlay ━━━ #}
+  <div id="lottery-overlay" class="lottery-overlay" style="display:none">
+    <div class="lottery-label">Drawing…</div>
+    <div class="lottery-viewport">
+      <div class="lottery-needle"></div>
+      <div id="lottery-strip" class="lottery-strip"></div>
+    </div>
+    <div id="lottery-result" class="lottery-result">
+      <div id="lottery-result-name" class="lottery-result-name"></div>
+      <div id="lottery-result-group" class="lottery-result-group"></div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -420,6 +525,7 @@
 
   let ws = null;
   let session = null;
+  let participantPool = [];  // Track all participant names for lottery reel
 
   // ══════════════════════════════════════════════
   // WebSocket
@@ -474,6 +580,21 @@
 
   function onSnapshot(s) {
     session = s;
+    // Build participant pool from all assigned names
+    participantPool = [];
+    for (const players of Object.values(s.assignments || {})) {
+      players.forEach(p => {
+        const name = p.display_name || p.name;
+        if (name && !participantPool.includes(name)) participantPool.push(name);
+      });
+    }
+    if (s.queue) {
+      s.queue.forEach(p => {
+        const name = p.display_name || p.name;
+        if (name && !participantPool.includes(name)) participantPool.push(name);
+      });
+    }
+
     showLiveContent();
     renderGroupGrid(s.groups, s.group_size);
 
@@ -497,6 +618,14 @@
       assignments: {}, drawn_count: 0, total: msg.total,
     };
     msg.groups.forEach(g => session.assignments[g] = []);
+    // Build participant pool from queue if provided
+    participantPool = [];
+    if (msg.queue) {
+      msg.queue.forEach(p => {
+        const name = p.display_name || p.name;
+        if (name && !participantPool.includes(name)) participantPool.push(name);
+      });
+    }
 
     showLiveContent();
     renderGroupGrid(msg.groups, msg.group_size);
@@ -508,6 +637,7 @@
     const player = msg.player;
     const group = msg.assigned_group;
     const slot = msg.group_slot || msg.group_count;
+    const winnerName = player.display_name || player.name || '???';
 
     // Update local state
     if (session) {
@@ -516,37 +646,41 @@
       session.drawn_count = msg.drawn_count;
     }
 
+    // Ensure winner is in participant pool
+    if (!participantPool.includes(winnerName)) participantPool.push(winnerName);
+
     updateCounters(msg.drawn_count, msg.total, msg.remaining);
     updateProgress(msg.drawn_count, msg.total);
 
-    // ── THE SUSPENSEFUL REVEAL ──
-    // 1. Show spotlight with name
-    showSpotlight(player.display_name || player.name, group);
+    // ── LOTTERY SPINNER → SUSPENSEFUL REVEAL ──
+    showLotterySpinner(participantPool, winnerName, group, function() {
+      // Show spotlight with name
+      showSpotlight(winnerName, group);
 
-    // 2. Highlight the receiving group card
-    const card = document.querySelector(`[data-spec-group="${group}"]`);
-    if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 3000); }
+      // Highlight the receiving group card
+      const card = document.querySelector(`[data-spec-group="${group}"]`);
+      if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 3000); }
 
-    // 3. The slot gets a suspense shimmer, then card flip reveal
-    const slotEl = document.querySelector(`[data-spec-group="${group}"][data-spec-slot="${slot}"]`);
-    if (slotEl) {
-      // Phase 1: Suspense shimmer (0-1.5s)
-      slotEl.classList.add('suspense');
+      // The slot gets a suspense shimmer, then card flip reveal
+      const slotEl = document.querySelector(`[data-spec-group="${group}"][data-spec-slot="${slot}"]`);
+      if (slotEl) {
+        slotEl.classList.add('suspense');
+        setTimeout(() => {
+          slotEl.classList.remove('suspense');
+          slotEl.classList.add('revealing', 'filled');
+          const nameEl = slotEl.querySelector('.player-name');
+          if (nameEl) nameEl.textContent = winnerName;
+        }, 500);
+        setTimeout(() => {
+          slotEl.classList.remove('revealing');
+          slotEl.classList.add('revealed');
+        }, 1500);
+      }
 
-      // Phase 2: Card flip reveal (1.5s)
-      setTimeout(() => {
-        slotEl.classList.remove('suspense');
-        slotEl.classList.add('revealing', 'filled');
-        const nameEl = slotEl.querySelector('.player-name');
-        if (nameEl) nameEl.textContent = player.display_name || player.name;
-      }, 1500);
-
-      // Phase 3: Settle revealed state (3s)
-      setTimeout(() => {
-        slotEl.classList.remove('revealing');
-        slotEl.classList.add('revealed');
-      }, 3000);
-    }
+      // Remove drawn player from pool for next spin
+      const idx = participantPool.indexOf(winnerName);
+      if (idx > -1) participantPool.splice(idx, 1);
+    });
   }
 
   function onPlayerOverride(msg) {
@@ -721,6 +855,89 @@
       });
       container.appendChild(grid);
     }
+  }
+
+  // ══════════════════════════════════════════════
+  // Lottery Spinner (CS:GO case-unboxing style)
+  // ══════════════════════════════════════════════
+
+  function showLotterySpinner(poolNames, winnerName, groupLetter, onComplete) {
+    const overlay = document.getElementById('lottery-overlay');
+    const strip = document.getElementById('lottery-strip');
+    const resultEl = document.getElementById('lottery-result');
+    const nameEl = document.getElementById('lottery-result-name');
+    const groupEl = document.getElementById('lottery-result-group');
+
+    if (!overlay || poolNames.length < 2) {
+      // Skip animation if pool too small
+      onComplete();
+      return;
+    }
+
+    // Build the reel: ~60 items, randomly shuffled, winner at target position
+    const ITEM_W = 180;
+    const REEL_LEN = 60;
+    const WINNER_POS = REEL_LEN - 8;
+    const reelNames = [];
+    const others = poolNames.filter(n => n !== winnerName);
+    for (let i = 0; i < REEL_LEN; i++) {
+      if (i === WINNER_POS) {
+        reelNames.push(winnerName);
+      } else {
+        reelNames.push(others.length > 0
+          ? others[Math.floor(Math.random() * others.length)]
+          : poolNames[Math.floor(Math.random() * poolNames.length)]
+        );
+      }
+    }
+
+    // Render strip items
+    strip.innerHTML = reelNames.map((name, i) =>
+      `<div class="lottery-item${i === WINNER_POS ? ' winner' : ''}">${name}</div>`
+    ).join('');
+
+    // Calculate scroll offset to center winner under needle
+    const viewportW = overlay.querySelector('.lottery-viewport').offsetWidth || 720;
+    const targetOffset = (WINNER_POS * ITEM_W) + (ITEM_W / 2) - (viewportW / 2);
+    const jitter = (Math.random() - 0.5) * (ITEM_W * 0.3);
+
+    // Reset state
+    strip.style.transition = 'none';
+    strip.style.transform = 'translateX(0)';
+    resultEl.classList.remove('show');
+    nameEl.textContent = '';
+    groupEl.textContent = '';
+
+    // Show overlay
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      overlay.classList.add('active');
+      setTimeout(() => {
+        strip.style.transition = `transform 3.2s cubic-bezier(0.15, 0.0, 0.08, 1.0)`;
+        strip.style.transform = `translateX(-${targetOffset + jitter}px)`;
+      }, 100);
+    });
+
+    // After spin completes, show result + flash
+    setTimeout(() => {
+      const flash = document.createElement('div');
+      flash.className = 'lottery-flash';
+      overlay.querySelector('.lottery-viewport').appendChild(flash);
+      setTimeout(() => flash.remove(), 800);
+
+      nameEl.textContent = winnerName;
+      groupEl.textContent = '→ Group ' + groupLetter;
+      resultEl.classList.add('show');
+
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          strip.innerHTML = '';
+          onComplete();
+        }, 350);
+      }, 1200);
+    }, 3400);
   }
 
   // ══════════════════════════════════════════════

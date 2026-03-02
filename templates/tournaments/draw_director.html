@@ -153,6 +153,98 @@
     font-weight: 700;
     font-size: 1rem;
     letter-spacing: 0.1em;
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     LOTTERY SPINNER — CS:GO Case Unboxing Style
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .lottery-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5,5,10,0.92);
+    backdrop-filter: blur(24px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .lottery-overlay.active { opacity: 1; }
+  .lottery-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800; font-size: 0.7rem;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(255,200,50,0.7); margin-bottom: 24px;
+  }
+  .lottery-viewport {
+    width: 720px; max-width: 90vw; height: 90px;
+    overflow: hidden; position: relative;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,20,0.95);
+  }
+  .lottery-viewport::before,
+  .lottery-viewport::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2;
+    pointer-events: none;
+  }
+  .lottery-viewport::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(10,10,20,0.95), transparent);
+  }
+  .lottery-viewport::after {
+    right: 0;
+    background: linear-gradient(-90deg, rgba(10,10,20,0.95), transparent);
+  }
+  .lottery-needle {
+    position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: calc(100% + 4px); z-index: 3;
+    background: linear-gradient(180deg, #ffc832, #ff8800);
+    box-shadow: 0 0 20px rgba(255,200,50,0.6), 0 0 40px rgba(255,200,50,0.2);
+    border-radius: 2px;
+  }
+  .lottery-needle::before {
+    content: '▼'; position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; color: #ffc832; text-shadow: 0 0 10px rgba(255,200,50,0.8);
+  }
+  .lottery-strip {
+    display: flex; position: absolute; top: 0; left: 0; height: 100%;
+    will-change: transform;
+  }
+  .lottery-item {
+    flex-shrink: 0; width: 180px; height: 90px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 1.1rem; color: rgba(255,255,255,0.5);
+    border-right: 1px solid rgba(255,255,255,0.04);
+    transition: color 0.15s;
+  }
+  .lottery-item.winner {
+    color: #00ffaa; font-size: 1.4rem; font-weight: 800;
+    text-shadow: 0 0 20px rgba(0,255,170,0.6);
+  }
+  .lottery-result {
+    margin-top: 32px; text-align: center;
+    opacity: 0; transition: opacity 0.4s 0.2s;
+  }
+  .lottery-result.show { opacity: 1; }
+  .lottery-result-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 900; font-size: 2.5rem;
+    color: #00ffaa; letter-spacing: 0.04em;
+    text-shadow: 0 0 30px rgba(0,255,170,0.4);
+  }
+  .lottery-result-group {
+    font-family: 'Space Grotesk', monospace;
+    font-weight: 600; font-size: 0.9rem;
+    color: #ffc832; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-top: 6px;
+  }
+  .lottery-flash {
+    position: absolute; inset: 0; z-index: 4;
+    background: radial-gradient(circle at center, rgba(0,255,170,0.25), transparent 60%);
+    opacity: 0; pointer-events: none;
+    animation: lotteryFlash 0.8s ease-out;
+  }
+  @keyframes lotteryFlash {
+    0% { opacity: 1; } 100% { opacity: 0; }
+  }
     text-transform: uppercase;
     background: linear-gradient(135deg, rgba(0,150,255,0.15), rgba(0,100,255,0.1));
     color: #4da6ff;
@@ -282,6 +374,19 @@
         <p class="text-gray-400 text-sm mb-1">All players have been assigned to their groups.</p>
         <p id="draw-hash" class="text-[10px] font-mono text-gray-600 mt-3">Hash: —</p>
       </div>
+    </div>
+  </div>
+
+  {# ━━━ Lottery Spinner Overlay ━━━ #}
+  <div id="lottery-overlay" class="lottery-overlay" style="display:none">
+    <div class="lottery-label">Drawing…</div>
+    <div class="lottery-viewport">
+      <div class="lottery-needle"></div>
+      <div id="lottery-strip" class="lottery-strip"></div>
+    </div>
+    <div id="lottery-result" class="lottery-result">
+      <div id="lottery-result-name" class="lottery-result-name"></div>
+      <div id="lottery-result-group" class="lottery-result-group"></div>
     </div>
   </div>
 </div>
@@ -429,32 +534,46 @@
       session.remaining = msg.remaining;
     }
 
-    // Animate: highlight receiving group
-    const card = document.querySelector(`[data-group="${group}"]`);
-    if (card) {
-      card.classList.add('receiving');
-      setTimeout(() => card.classList.remove('receiving'), 2000);
-    }
+    // Build remaining pool for the spinner reel
+    const queueEls = document.querySelectorAll('#queue-list .queue-player');
+    const poolNames = [];
+    queueEls.forEach(el => {
+      const name = el.querySelector('.truncate');
+      if (name) poolNames.push(name.textContent.trim());
+    });
+    // Always include the winner in the pool
+    const winnerName = p.display_name || p.name || '???';
+    if (!poolNames.includes(winnerName)) poolNames.push(winnerName);
 
-    // Fill the slot with animation
-    fillSlot(group, slot, p, true);
+    // Launch lottery spinner, then proceed with slot fill
+    showLotterySpinner(poolNames, winnerName, group, function() {
+      // Animate: highlight receiving group
+      const card = document.querySelector(`[data-group="${group}"]`);
+      if (card) {
+        card.classList.add('receiving');
+        setTimeout(() => card.classList.remove('receiving'), 2000);
+      }
 
-    // Remove from queue
-    removeFromQueue(p.user_id || p.registration_id);
+      // Fill the slot with animation
+      fillSlot(group, slot, p, true);
 
-    // Update counters
-    updateCounters(msg.drawn_count, msg.total, msg.remaining);
-    updateLastDrawn(p.display_name || p.name);
-    updateProgress(msg.drawn_count, msg.total);
+      // Remove from queue
+      removeFromQueue(p.user_id || p.registration_id);
 
-    // Update button states
-    const allDrawn = msg.remaining === 0;
-    updateDrawButton(!allDrawn);
-    if (allDrawn) {
-      document.getElementById('btn-finalize').disabled = false;
-    }
+      // Update counters
+      updateCounters(msg.drawn_count, msg.total, msg.remaining);
+      updateLastDrawn(winnerName);
+      updateProgress(msg.drawn_count, msg.total);
 
-    drawInProgress = false;
+      // Update button states
+      const allDrawn = msg.remaining === 0;
+      updateDrawButton(!allDrawn);
+      if (allDrawn) {
+        document.getElementById('btn-finalize').disabled = false;
+      }
+
+      drawInProgress = false;
+    });
   }
 
   function onPlayerOverride(msg) {
@@ -631,6 +750,95 @@
     toast.textContent = msg;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 5000);
+  }
+
+  // ══════════════════════════════════════════════
+  // Lottery Spinner (CS:GO case-unboxing style)
+  // ══════════════════════════════════════════════
+
+  function showLotterySpinner(poolNames, winnerName, groupLetter, onComplete) {
+    const overlay = document.getElementById('lottery-overlay');
+    const strip = document.getElementById('lottery-strip');
+    const resultEl = document.getElementById('lottery-result');
+    const nameEl = document.getElementById('lottery-result-name');
+    const groupEl = document.getElementById('lottery-result-group');
+
+    if (!overlay || poolNames.length < 2) {
+      // Skip animation if pool too small
+      onComplete();
+      return;
+    }
+
+    // Build the reel: ~60 items, randomly shuffled, with the winner inserted at a target position
+    const ITEM_W = 180;
+    const REEL_LEN = 60;
+    const WINNER_POS = REEL_LEN - 8; // Winner lands near end
+    const reelNames = [];
+    const others = poolNames.filter(n => n !== winnerName);
+    for (let i = 0; i < REEL_LEN; i++) {
+      if (i === WINNER_POS) {
+        reelNames.push(winnerName);
+      } else {
+        // Pick randomly from entire pool (including winner for variety)
+        reelNames.push(others.length > 0
+          ? others[Math.floor(Math.random() * others.length)]
+          : poolNames[Math.floor(Math.random() * poolNames.length)]
+        );
+      }
+    }
+
+    // Render strip items
+    strip.innerHTML = reelNames.map((name, i) =>
+      `<div class="lottery-item${i === WINNER_POS ? ' winner' : ''}">${name}</div>`
+    ).join('');
+
+    // Calculate the scroll offset to center the winner under the needle
+    const viewportW = overlay.querySelector('.lottery-viewport').offsetWidth || 720;
+    const targetOffset = (WINNER_POS * ITEM_W) + (ITEM_W / 2) - (viewportW / 2);
+    // Add slight randomness so it doesn't always land dead center
+    const jitter = (Math.random() - 0.5) * (ITEM_W * 0.3);
+
+    // Reset state
+    strip.style.transition = 'none';
+    strip.style.transform = 'translateX(0)';
+    resultEl.classList.remove('show');
+    nameEl.textContent = '';
+    groupEl.textContent = '';
+
+    // Show overlay
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      overlay.classList.add('active');
+      // Start spin after brief moment
+      setTimeout(() => {
+        strip.style.transition = `transform 3.2s cubic-bezier(0.15, 0.0, 0.08, 1.0)`;
+        strip.style.transform = `translateX(-${targetOffset + jitter}px)`;
+      }, 100);
+    });
+
+    // After spin completes, show result + flash
+    setTimeout(() => {
+      // Flash effect
+      const flash = document.createElement('div');
+      flash.className = 'lottery-flash';
+      overlay.querySelector('.lottery-viewport').appendChild(flash);
+      setTimeout(() => flash.remove(), 800);
+
+      // Show result text
+      nameEl.textContent = winnerName;
+      groupEl.textContent = '→ Group ' + groupLetter;
+      resultEl.classList.add('show');
+
+      // Auto-dismiss after showing result
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          strip.innerHTML = '';
+          onComplete();
+        }, 350);
+      }, 1200);
+    }, 3400);
   }
 
   // ══════════════════════════════════════════════

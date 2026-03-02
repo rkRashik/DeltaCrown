@@ -180,7 +180,31 @@
         + '<button onclick="TOC.brackets.switchSubTab(\'bracket\')" class="px-5 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Playoff Bracket &rarr;</button></div>';
     }
 
-    container.innerHTML = '<div class="' + colClass + '">' + cardsHtml + '</div>' + extra;
+    // Draw Audit Hash display (post-draw verification)
+    var auditHtml = '';
+    var drawAudit = data.stage && data.stage.draw_audit;
+    if (drawAudit && drawAudit.seed_hash) {
+      var hashDisplay = drawAudit.seed_hash.length > 20
+        ? drawAudit.seed_hash.substring(0, 12) + '…' + drawAudit.seed_hash.slice(-8)
+        : drawAudit.seed_hash;
+      auditHtml = '<div class="mt-6 px-5 py-4 glass-box rounded-xl border border-dc-border/30 flex items-center justify-between">'
+        + '<div class="flex items-center gap-3">'
+        + '<i data-lucide="shield-check" class="w-4 h-4 text-dc-text/40 flex-shrink-0"></i>'
+        + '<div>'
+        + '<span class="text-[9px] text-dc-text/50 uppercase tracking-widest font-mono">Draw Verification Hash</span>'
+        + '<div class="font-mono text-[11px] text-dc-text/80 mt-0.5 select-all cursor-text" title="' + drawAudit.seed_hash + '">' + hashDisplay + '</div>'
+        + '</div></div>'
+        + '<div class="relative group">'
+        + '<i data-lucide="info" class="w-3.5 h-3.5 text-dc-text/30 cursor-help"></i>'
+        + '<div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-dc-bg border border-dc-border rounded-lg text-[10px] text-dc-text/70 leading-relaxed'
+        + ' opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 shadow-xl">'
+        + 'This cryptographic hash proves the draw was mathematically random and untampered. '
+        + 'The SHA-256 seed was generated at draw time and cannot be reverse-engineered.'
+        + (drawAudit.drawn_at ? '<div class="mt-1.5 text-dc-text/40 font-mono">Drawn: ' + new Date(drawAudit.drawn_at).toLocaleString() + '</div>' : '')
+        + '</div></div></div>';
+    }
+
+    container.innerHTML = '<div class="' + colClass + '">' + cardsHtml + '</div>' + auditHtml + extra;
     iconsRefresh();
   }
 
