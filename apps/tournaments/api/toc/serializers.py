@@ -135,7 +135,7 @@ class ParticipantPaymentSerializer(serializers.Serializer):
     verified_by = serializers.CharField(allow_null=True)
     verified_at = serializers.CharField(allow_null=True)
     reject_reason = serializers.CharField(allow_blank=True)
-    created_at = serializers.CharField(allow_null=True)
+    submitted_at = serializers.CharField(allow_null=True)
 
 
 class ParticipantDetailSerializer(serializers.Serializer):
@@ -280,7 +280,7 @@ class PaymentRowSerializer(serializers.Serializer):
     reject_reason = serializers.CharField(allow_blank=True)
     waived = serializers.BooleanField()
     waive_reason = serializers.CharField(allow_blank=True)
-    created_at = serializers.CharField(allow_null=True)
+    submitted_at = serializers.CharField(allow_null=True)
 
 
 class PaymentListSerializer(serializers.Serializer):

@@ -373,29 +373,38 @@
       return;
     }
 
-    container.innerHTML = data.groups.map(g => `
+    container.innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">${data.groups.length} Groups · ${data.stage?.format || 'Round Robin'}</span>
+        <button onclick="TOC.brackets.recalcStandings()" class="px-2 py-1 text-[10px] text-theme hover:text-white transition-colors border border-theme/20 rounded">Recalculate</button>
+      </div>
+    ` + data.groups.map(g => `
       <div class="bg-dc-bg border border-dc-border rounded-xl p-3 mb-3">
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-xs font-bold text-white">${g.name}</h4>
-          <span class="text-[9px] font-mono text-dc-text">${g.standings?.length || 0} teams</span>
+          <span class="text-[9px] font-mono text-dc-text">${g.standings?.length || 0} teams${g.is_finalized ? ' · <span class="text-dc-success">Finalized</span>' : ''}</span>
         </div>
         ${g.standings?.length ? `
           <table class="w-full text-[10px]">
             <thead><tr class="text-dc-text border-b border-dc-border/50">
               <th class="text-left py-1 px-1">#</th>
               <th class="text-left py-1 px-1">Team</th>
+              <th class="text-center py-1 px-1">P</th>
               <th class="text-center py-1 px-1">W</th>
               <th class="text-center py-1 px-1">D</th>
               <th class="text-center py-1 px-1">L</th>
+              <th class="text-center py-1 px-1">GD</th>
               <th class="text-center py-1 px-1">Pts</th>
             </tr></thead>
             <tbody>${g.standings.map(s => `
               <tr class="border-b border-dc-border/30 ${s.is_advancing ? 'bg-dc-success/5' : ''} ${s.is_eliminated ? 'opacity-50' : ''}">
                 <td class="py-1 px-1 font-mono font-bold text-dc-text">${s.rank || '—'}</td>
-                <td class="py-1 px-1 text-dc-textBright font-semibold">${s.team_name || s.user_id || '—'}</td>
+                <td class="py-1 px-1 text-dc-textBright font-semibold truncate max-w-[120px]">${s.team_name || s.user_id || '—'}</td>
+                <td class="py-1 px-1 text-center text-dc-text font-mono">${s.matches_played || 0}</td>
                 <td class="py-1 px-1 text-center text-dc-success font-mono">${s.wins}</td>
                 <td class="py-1 px-1 text-center text-dc-text font-mono">${s.draws}</td>
                 <td class="py-1 px-1 text-center text-dc-danger font-mono">${s.losses}</td>
+                <td class="py-1 px-1 text-center font-mono ${(s.goal_difference || 0) > 0 ? 'text-dc-success' : (s.goal_difference || 0) < 0 ? 'text-dc-danger' : 'text-dc-text'}">${(s.goal_difference || 0) > 0 ? '+' : ''}${s.goal_difference || 0}</td>
                 <td class="py-1 px-1 text-center text-white font-mono font-bold">${s.points}</td>
               </tr>`).join('')}
             </tbody>
@@ -403,6 +412,18 @@
         ` : '<p class="text-dc-text/60 text-[10px]">No standings yet</p>'}
       </div>
     `).join('');
+  }
+
+  async function recalcStandings() {
+    try {
+      toast('Recalculating standings...', 'info');
+      await API.get('groups/standings/');
+      await refreshGroups();
+      toast('Standings updated', 'success');
+    } catch (e) {
+      console.error('[brackets] recalc error', e);
+      toast('Failed to recalculate standings', 'error');
+    }
   }
 
   function openGroupConfig() {
@@ -627,7 +648,7 @@
   window.TOC = window.TOC || {};
   window.TOC.brackets = {
     init, refresh, generate, resetBracket, publish,
-    saveSeedOrder, refreshGroups, openGroupConfig, confirmGroupConfig,
+    saveSeedOrder, refreshGroups, recalcStandings, openGroupConfig, confirmGroupConfig,
     drawGroups, refreshPipelines, openCreatePipeline, confirmCreatePipeline,
     deletePipeline, closeOverlay, onMatchCardClick,
   };

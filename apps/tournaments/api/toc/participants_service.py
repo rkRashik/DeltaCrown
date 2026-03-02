@@ -260,7 +260,7 @@ class TOCParticipantService:
         """Manually verify a payment."""
         reg = cls._get_registration(tournament, registration_id)
         # RegistrationService.verify_payment expects a Payment ID, not Registration ID
-        payment = Payment.objects.filter(registration=reg).order_by('-created_at').first()
+        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
         if not payment:
             raise ValidationError("No payment found for this registration.")
         RegistrationService.verify_payment(
@@ -455,26 +455,60 @@ class TOCParticipantService:
 
     @classmethod
     def _get_payment_info(cls, reg: Registration) -> Optional[Dict[str, Any]]:
-        """Full payment detail for the drawer."""
+        """Full payment detail for the drawer.
+
+        Tries PaymentVerification first, falls back to Payment model.
+        """
         try:
             pv = reg.payment_verification
         except Exception:
             pv = None
 
-        if not pv:
+        if pv:
+            proof_url = None
+            if pv.proof_image:
+                try:
+                    proof_url = pv.proof_image.url
+                except (ValueError, AttributeError):
+                    pass
+            return {
+                'status': pv.status,
+                'status_display': pv.get_status_display(),
+                'method': pv.method,
+                'amount_bdt': str(pv.amount_bdt) if pv.amount_bdt else None,
+                'transaction_id': pv.transaction_id or '',
+                'payer_account_number': pv.payer_account_number or '',
+                'reference_number': pv.reference_number or '',
+                'proof_image': proof_url,
+                'verified_by': pv.verified_by.username if pv.verified_by_id else None,
+                'verified_at': pv.verified_at.isoformat() if pv.verified_at else None,
+                'reject_reason': pv.reject_reason or '',
+                'created_at': pv.created_at.isoformat() if pv.created_at else None,
+            }
+
+        # Fallback: use Payment model directly
+        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        if not payment:
             return None
 
+        proof_url = None
+        try:
+            if payment.payment_proof and hasattr(payment.payment_proof, 'url'):
+                proof_url = payment.payment_proof.url
+        except (ValueError, AttributeError):
+            pass
+
         return {
-            'status': pv.status,
-            'status_display': pv.get_status_display(),
-            'method': pv.method,
-            'amount_bdt': str(pv.amount_bdt) if pv.amount_bdt else None,
-            'transaction_id': pv.transaction_id or '',
-            'payer_account_number': pv.payer_account_number or '',
-            'reference_number': pv.reference_number or '',
-            'proof_image': pv.proof_image.url if pv.proof_image else None,
-            'verified_by': pv.verified_by.username if pv.verified_by_id else None,
-            'verified_at': pv.verified_at.isoformat() if pv.verified_at else None,
-            'reject_reason': pv.reject_reason or '',
-            'created_at': pv.created_at.isoformat() if pv.created_at else None,
+            'status': payment.status,
+            'status_display': payment.get_status_display() if hasattr(payment, 'get_status_display') else payment.status,
+            'method': payment.payment_method or '',
+            'amount_bdt': str(payment.amount_bdt) if getattr(payment, 'amount_bdt', None) else str(payment.amount or ''),
+            'transaction_id': payment.transaction_id or '',
+            'payer_account_number': getattr(payment, 'payer_account_number', '') or '',
+            'reference_number': getattr(payment, 'reference_number', '') or '',
+            'proof_image': proof_url,
+            'verified_by': payment.verified_by.username if payment.verified_by else None,
+            'verified_at': payment.verified_at.isoformat() if payment.verified_at else None,
+            'reject_reason': getattr(payment, 'reject_reason', '') or '',
+            'submitted_at': payment.submitted_at.isoformat() if payment.submitted_at else None,
         }

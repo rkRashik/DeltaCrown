@@ -416,9 +416,17 @@
               ${d.payment.method ? `<div class="flex justify-between"><span class="text-dc-text">Method</span><span class="text-dc-textBright">${esc(d.payment.method)}</span></div>` : ''}
               ${d.payment.amount_bdt ? `<div class="flex justify-between"><span class="text-dc-text">Amount</span><span class="text-dc-textBright font-mono">৳${esc(d.payment.amount_bdt)}</span></div>` : ''}
               ${d.payment.transaction_id ? `<div class="flex justify-between"><span class="text-dc-text">Transaction</span><span class="text-dc-textBright font-mono text-[10px]">${esc(d.payment.transaction_id)}</span></div>` : ''}
+              ${d.payment.payer_account_number ? `<div class="flex justify-between"><span class="text-dc-text">Sender Phone</span><span class="text-dc-textBright font-mono text-[10px]">${esc(d.payment.payer_account_number)}</span></div>` : ''}
+              ${d.payment.reference_number ? `<div class="flex justify-between"><span class="text-dc-text">Reference</span><span class="text-dc-textBright font-mono text-[10px]">${esc(d.payment.reference_number)}</span></div>` : ''}
               ${d.payment.verified_by ? `<div class="flex justify-between"><span class="text-dc-text">Verified By</span><span class="text-dc-textBright">${esc(d.payment.verified_by)}</span></div>` : ''}
               ${d.payment.reject_reason ? `<div class="flex justify-between"><span class="text-dc-text">Reject Reason</span><span class="text-dc-danger">${esc(d.payment.reject_reason)}</span></div>` : ''}
-              ${d.payment.proof_image ? `<a href="${d.payment.proof_image}" target="_blank" class="text-theme text-[10px] underline">View Payment Proof →</a>` : ''}
+              ${d.payment.proof_image ? `
+                <div class="mt-2 pt-2 border-t border-dc-border/30">
+                  <p class="text-[9px] text-dc-text uppercase tracking-widest mb-2">Payment Proof</p>
+                  <img src="${d.payment.proof_image}" alt="Payment proof"
+                       onclick="TOC.payments && TOC.payments.viewProof ? TOC.payments.viewProof('${d.payment.proof_image}') : window.open('${d.payment.proof_image}', '_blank')"
+                       class="w-full max-h-48 object-contain rounded-lg border border-dc-border cursor-zoom-in hover:opacity-80 transition-opacity" />
+                </div>` : ''}
             </div>
           </div>`;
       }
@@ -442,7 +450,7 @@
 
       const html = `
         <div class="space-y-5">
-          {# Header #}
+          <!-- Header -->
           <div class="flex items-center gap-3 mb-4">
             <div class="w-12 h-12 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
               <span class="text-lg font-bold text-theme">${(d.participant_name || '?')[0].toUpperCase()}</span>
@@ -453,7 +461,7 @@
             </div>
           </div>
 
-          {# Status + Meta #}
+          <!-- Status + Meta -->
           <div class="bg-dc-panel border border-dc-border rounded-lg p-3 space-y-2 text-xs">
             <div class="flex justify-between"><span class="text-dc-text">Status</span>
               <span class="inline-flex px-2 py-0.5 ${sc.bg} border ${sc.border} ${sc.text} text-[9px] font-bold uppercase tracking-widest rounded-md">${esc(sc.label)}</span>
@@ -472,20 +480,21 @@
           ${paymentHtml}
           ${lineupHtml}
 
-          {# Registration Data (expandable) #}
+          <!-- Registration Form Answers -->
           ${Object.keys(d.registration_data || {}).length > 0 ? `
           <div class="mt-5">
-            <details class="group">
-              <summary class="text-[9px] font-bold text-dc-text uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
-                Registration Data ▸
-              </summary>
-              <div class="mt-2 bg-dc-panel border border-dc-border rounded-lg p-3">
-                <pre class="text-[10px] text-dc-text font-mono whitespace-pre-wrap break-all">${esc(JSON.stringify(d.registration_data, null, 2))}</pre>
-              </div>
-            </details>
+            <h4 class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3">Registration Form Answers</h4>
+            <div class="bg-dc-panel border border-dc-border rounded-lg p-3 space-y-2 text-xs">
+              ${Object.entries(d.registration_data).map(([k, v]) => `
+                <div class="flex justify-between gap-3">
+                  <span class="text-dc-text shrink-0">${esc(k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</span>
+                  <span class="text-dc-textBright text-right font-mono text-[10px] break-all">${esc(String(v))}</span>
+                </div>
+              `).join('')}
+            </div>
           </div>` : ''}
 
-          {# Timestamps #}
+          <!-- Timestamps -->
           <div class="mt-5 pt-4 border-t border-dc-border/50 text-[10px] text-dc-text/50 space-y-1">
             <p>Created: ${formatDate(d.created_at)}</p>
             <p>Updated: ${formatDate(d.updated_at)}</p>

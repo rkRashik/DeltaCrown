@@ -36,7 +36,7 @@ class PaymentListView(TOCBaseView):
         status_filter = request.query_params.get("status")
         method_filter = request.query_params.get("method")
         search = request.query_params.get("search")
-        ordering = request.query_params.get("ordering", "-created_at")
+        ordering = request.query_params.get("ordering", "-submitted_at")
 
         result = TOCPaymentsService.get_payment_list(
             self.tournament,

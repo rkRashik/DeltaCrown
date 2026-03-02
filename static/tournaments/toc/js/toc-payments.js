@@ -136,7 +136,7 @@
           </td>
           <td class="px-3 py-3 text-right font-mono text-dc-textBright font-bold">${money(p.amount, p.currency)}</td>
           <td class="px-3 py-3">
-            <span class="text-[10px] font-bold uppercase text-dc-text">${(p.payment_method || '—').replace('_', ' ')}</span>
+            <span class="text-[10px] font-bold uppercase text-dc-text">${(p.method || '—').replace('_', ' ')}</span>
           </td>
           <td class="px-3 py-3">
             <span class="text-[10px] font-mono text-dc-text">${p.transaction_id || '—'}</span>
@@ -148,7 +148,7 @@
               : `<span class="text-[10px] text-dc-text/40">—</span>`
             }
           </td>
-          <td class="px-3 py-3 text-[10px] text-dc-text font-mono">${fmtDate(p.submitted_at || p.created_at)}</td>
+          <td class="px-3 py-3 text-[10px] text-dc-text font-mono">${fmtDate(p.submitted_at)}</td>
           <td class="px-3 py-3 text-right">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               ${p.status === 'submitted' || p.status === 'pending' ? `
@@ -173,8 +173,8 @@
     const controls = $('#pay-pagination-controls');
     if (!info || !controls) return;
 
-    const total = data.count || 0;
-    const pages = Math.ceil(total / pageSize) || 1;
+    const total = data.total || 0;
+    const pages = data.pages || Math.ceil(total / pageSize) || 1;
     const start = (currentPage - 1) * pageSize + 1;
     const end = Math.min(currentPage * pageSize, total);
 

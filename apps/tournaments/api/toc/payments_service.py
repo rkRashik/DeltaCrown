@@ -77,6 +77,7 @@ class TOCPaymentsService:
             qs = qs.filter(
                 Q(registration__user__username__icontains=search)
                 | Q(transaction_id__icontains=search)
+                | Q(payer_account_number__icontains=search)
                 | Q(registration__registration_number__icontains=search)
             )
 
