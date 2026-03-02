@@ -1,89 +1,96 @@
 /*
- * TOC Base Styles — Compiled by Tailwind CLI
+ * TOC Base Styles — Sprint 5
+ * Extracted from inline <style type="text/tailwindcss"> in base.html.
+ * Compiled by Tailwind CLI during build.
  *
- * These were previously in <style type="text/tailwindcss"> in base.html
- * (requiring the CDN). Now compiled via: npm run build-css
- *
- * Sprint 5 — Production Asset Cleanup
+ * This file contains @apply directives for reusable TOC components.
+ * Must be processed by Tailwind (included in input.css via @import).
  */
 
-@layer base {
-  body {
-    @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[14px] antialiased;
-  }
+/* ── Body layout (TOC SPA shell) ── */
+body.toc-shell {
+  @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[14px] antialiased;
 }
 
-@layer components {
-  .toc-grid-bg {
-    @apply absolute inset-0 z-0 opacity-[0.03] pointer-events-none;
-    background-image:
-      linear-gradient(to right, #ffffff 1px, transparent 1px),
-      linear-gradient(to bottom, #ffffff 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
+/* ── Grid background pattern ── */
+.toc-grid-bg {
+  @apply absolute inset-0 z-0 pointer-events-none;
+  opacity: 0.03;
+  background-image:
+    linear-gradient(to right, #ffffff 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff 1px, transparent 1px);
+  background-size: 40px 40px;
+}
 
-  .glass-box {
-    @apply bg-dc-surface border border-dc-border relative overflow-hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
+/* ── Glass morphism boxes ── */
+.glass-box {
+  @apply bg-dc-surface border border-dc-border relative overflow-hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
 
-  .glass-box-elevated {
-    @apply bg-dc-panel border border-dc-borderLight;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  }
+.glass-box-elevated {
+  @apply bg-dc-panel border border-dc-borderLight;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
 
-  .ghost-icon {
-    @apply absolute text-white opacity-[0.02] pointer-events-none z-0 -rotate-12;
-  }
+/* ── Ghost icon (decorative background icon) ── */
+.ghost-icon {
+  @apply absolute text-white pointer-events-none z-0 -rotate-12;
+  opacity: 0.02;
+}
 
-  .data-grid {
-    @apply w-full border-collapse;
-    border-spacing: 0;
-  }
+/* ── Data grid (table) ── */
+.data-grid {
+  @apply w-full border-collapse border-spacing-0;
+}
 
-  .data-grid th {
-    @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-3
-           font-display text-[0.7rem] font-extrabold uppercase tracking-widest
-           text-dc-text text-left backdrop-blur-md;
-  }
+.data-grid th {
+  @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-3 text-left;
+  @apply font-display text-[0.7rem] font-extrabold uppercase tracking-widest text-dc-text;
+  backdrop-filter: blur(12px);
+}
 
-  .data-grid td {
-    @apply px-4 py-3.5 border-b border-dc-border bg-dc-surface text-sm transition-colors
-           relative z-10;
-  }
+.data-grid td {
+  @apply px-4 py-3.5 border-b border-dc-border bg-dc-surface text-sm transition-colors relative z-10;
+}
 
-  .data-grid tbody tr:hover td {
-    @apply bg-dc-panel;
-  }
+.data-grid tbody tr:hover td {
+  @apply bg-dc-panel;
+}
 
-  .data-grid tbody tr.selected td {
-    background-color: var(--color-primary-surface);
-  }
+.data-grid tbody tr.selected td {
+  @apply bg-theme-surface;
+}
 
-  .toc-input {
-    @apply bg-dc-bg border border-dc-border text-white text-[0.8rem] rounded-lg
-           transition-all focus:outline-none;
-  }
-  .toc-input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 1px var(--color-primary-muted);
-  }
+/* ── Form elements ── */
+.toc-input {
+  @apply bg-dc-bg border border-dc-border text-white text-[0.8rem] rounded-lg transition-all;
+  @apply focus:outline-none focus:border-theme;
+  box-shadow: 0 0 0 0 transparent;
+}
+.toc-input:focus {
+  box-shadow: 0 0 0 1px var(--color-primary-muted);
+}
 
-  .toc-checkbox {
-    @apply appearance-none w-[1.1rem] h-[1.1rem] border border-dc-borderLight rounded
-           bg-dc-bg cursor-pointer relative transition-all;
-  }
-  .toc-checkbox:checked {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-  }
-  .toc-checkbox:checked::after {
-    content: '';
-    @apply absolute left-[4px] top-[1px] w-[5px] h-[10px] border-solid border-black
-           border-0 border-r-2 border-b-2 rotate-45;
-  }
+.toc-checkbox {
+  @apply appearance-none w-[1.1rem] h-[1.1rem] border border-dc-borderLight rounded bg-dc-bg cursor-pointer relative transition-all;
+}
+.toc-checkbox:checked {
+  @apply bg-theme border-theme;
+}
+.toc-checkbox:checked::after {
+  content: '';
+  @apply absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 
-  .hidden-view {
-    display: none !important;
-  }
+/* ── Hidden view (tab switching) ── */
+.hidden-view {
+  display: none !important;
 }

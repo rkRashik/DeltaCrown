@@ -64,7 +64,7 @@
       const data = await TOC.fetch(`${API}/overview/`);
       render(data);
     } catch (e) {
-      console.error('[TOC:overview] Load failed — retrying in 30s:', e);
+      console.error('[TOC:overview] Load failed:', e);
       renderError();
     }
   }
@@ -508,8 +508,6 @@
   function _init() {
     load();
     startAutoRefresh();
-
-    // Silent polling — errors are logged only, no visible banner
   }
 
 })();

@@ -22,52 +22,49 @@ module.exports = {
           success: '#10B981',
           danger: '#EF4444',
         },
-        // DeltaCrown tournament design system (from demo mockups)
-        'dc-cyan': '#06b6d4',       // Primary brand / CTA
-        'dc-purple': '#8b5cf6',     // Secondary / pre-register
-        'dc-gold': '#facc15',       // Accents / prizes
-        'dc-dark': '#050505',       // Page background
-        'dc-bg': '#030303',         // Detail page background
-        'dc-surface': '#0d0d0d',    // Elevated surface
-        'dc-card': '#111111',       // Card background — visible contrast against dc-bg
-        'dc-card-hover': '#181818', // Card hover state
-        'dc-border': 'rgba(255, 255, 255, 0.08)', // Subtle border
-        'val-red': '#ff4655',       // Game-specific accent (Valorant)
-        // ── TOC Operations Center design system ──
-        dc: {
-          bg:          '#050507',
-          surface:     '#0B0B0F',
-          panel:       '#121218',
-          border:      '#22222E',
-          borderLight: '#333344',
-          text:        '#8F8F9D',
-          textBright:  '#E2E2E8',
-          danger:      '#FF2A55',
-          dangerBg:    'rgba(255,42,85,0.10)',
-          warning:     '#FFB800',
-          warningBg:   'rgba(255,184,0,0.10)',
-          success:     '#00FF66',
-          successBg:   'rgba(0,255,102,0.10)',
-          info:        '#3B82F6',
-          infoBg:      'rgba(59,130,246,0.10)',
-        },
-        // CSS-variable based theming (game accents via [data-game] on body)
+        // Game-specific accent (CSS variable-based, set by data-game)
         theme: {
           DEFAULT: 'var(--color-primary)',
-          muted:   'var(--color-primary-muted)',
+          muted: 'var(--color-primary-muted)',
           surface: 'var(--color-primary-surface)',
-          border:  'var(--color-primary-border)',
-          dark:    'var(--color-primary-dark)',
+          border: 'var(--color-primary-border)',
+          dark: 'var(--color-primary-dark)',
         },
+        // DeltaCrown unified design system (TOC + site pages)
+        dc: {
+          bg: '#050507',
+          surface: '#0B0B0F',
+          panel: '#121218',
+          border: '#22222E',
+          borderLight: '#333344',
+          text: '#8F8F9D',
+          textBright: '#E2E2E8',
+          danger: '#FF2A55',
+          dangerBg: 'rgba(255, 42, 85, 0.1)',
+          warning: '#FFB800',
+          warningBg: 'rgba(255, 184, 0, 0.1)',
+          success: '#00FF66',
+          successBg: 'rgba(0, 255, 102, 0.1)',
+          info: '#3B82F6',
+          infoBg: 'rgba(59, 130, 246, 0.1)',
+          // Legacy site-only tokens (kept for backward compat)
+          cyan: '#06b6d4',
+          purple: '#8b5cf6',
+          gold: '#facc15',
+          dark: '#050505',
+          card: '#111111',
+          'card-hover': '#181818',
+        },
+        'val-red': '#ff4655',
       },
       fontFamily: {
-        'sans':    ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         'display': ['Outfit', 'Space Grotesk', 'sans-serif'],
-        'gaming':  ['Rajdhani', 'sans-serif'],
-        'corp':    ['"Outfit"', 'sans-serif'],
-        'tech':    ['"Rajdhani"', 'sans-serif'],
-        'mono':    ['JetBrains Mono', '"Space Mono"', 'monospace'],
-        body:      ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'gaming': ['Rajdhani', 'sans-serif'],
+        'corp': ['"Outfit"', 'sans-serif'],
+        'tech': ['"Rajdhani"', 'sans-serif'],
+        'mono': ['"JetBrains Mono"', '"Space Mono"', 'monospace'],
+        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

@@ -1,9 +1,15 @@
 /**
- * TOC Payments Module — Sprint 5
- * Rapid Verification Factory: inline proof thumbnails, smart search
- * autofocus, post-verify auto-hide + auto-advance, custom reject modal,
- * silent optimistic updates. Financial ops: revenue analytics, prize
- * distribution, bounty management, KYC & refund workflows.
+ * TOC Payments Module — Sprint 5 "Rapid Verification Factory"
+ * Financial Operations: Payment verification, revenue analytics,
+ * prize distribution, bounty management, KYC & refund workflows.
+ *
+ * Sprint 5 changes:
+ *  - Local currentRows state for O(1) optimistic splice
+ *  - Inline proof thumbnails for submitted/pending rows
+ *  - Post-verify auto-hide with slide-out animation
+ *  - Auto-advance highlighting to next pending row
+ *  - Custom reject modal (replaces native prompt())
+ *  - Search auto-focus on tab activation
  */
 ;(function () {
   'use strict';
@@ -17,7 +23,8 @@
   const pageSize = 20;
   let selectedIds = new Set();
   let _searchTimer = null;
-  let currentRows = [];   // live local copy for optimistic ops
+  let currentRows = [];           // S5: local shallow copy for optimistic ops
+  let _lastPaginationData = null; // S5: cache for re-rendering pagination
 
   /* ─── helpers ─────────────────────────────────────────────── */
   const $ = (sel) => document.querySelector(sel);
@@ -58,6 +65,84 @@
     if (window.TOC?.toast) window.TOC.toast(msg, type);
   }
 
+  /* ─── S5: Inline proof thumbnail helper ────────────────────── */
+  function proofThumb(url) {
+    if (!url) return `<span class="text-[10px] text-dc-text/40">—</span>`;
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      return `<button onclick="TOC.payments.viewProof('${url}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-dc-info/10 border border-dc-info/20 text-dc-info hover:bg-dc-info/20 transition-colors" title="View PDF proof">
+        <i data-lucide="file-text" class="w-3 h-3"></i><span class="text-[9px] font-bold">PDF</span>
+      </button>`;
+    }
+    return `<button onclick="TOC.payments.viewProof('${url}')" class="group/proof relative" title="Click to enlarge">
+      <img src="${url}" alt="Proof" class="w-10 h-10 object-cover rounded border border-dc-border group-hover/proof:border-theme transition-colors" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'text-[10px] text-dc-text/40\\'>err</span>'">
+    </button>`;
+  }
+
+  /* ─── S5: Custom reject modal ──────────────────────────────── */
+  function promptRejectReason() {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 z-[120] flex items-center justify-center';
+      overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-dismiss></div>
+        <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
+          <div class="h-1 w-full bg-dc-danger"></div>
+          <div class="p-6">
+            <h3 class="font-display font-black text-lg text-white mb-1">Reject Payment</h3>
+            <p class="text-xs text-dc-text mb-4">Provide a reason for rejection. The participant will be notified.</p>
+            <textarea id="reject-reason-input" rows="3" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-dc-danger focus:ring-1 focus:ring-dc-danger/40 outline-none resize-none placeholder-dc-text/50" placeholder="e.g. Blurry screenshot, wrong amount, duplicate submission…" autofocus></textarea>
+            <div class="flex items-center justify-end gap-2 mt-4">
+              <button data-dismiss class="px-4 py-2 text-xs font-bold text-dc-text hover:text-white transition-colors">Cancel</button>
+              <button id="reject-confirm-btn" class="px-4 py-2 bg-dc-danger/20 text-dc-danger border border-dc-danger/30 text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/30 transition-colors">Reject</button>
+            </div>
+          </div>
+        </div>`;
+
+      function cleanup(value) { overlay.remove(); resolve(value); }
+
+      overlay.querySelectorAll('[data-dismiss]').forEach(el =>
+        el.addEventListener('click', () => cleanup(null))
+      );
+      overlay.querySelector('#reject-confirm-btn').addEventListener('click', () => {
+        const val = overlay.querySelector('#reject-reason-input').value.trim();
+        cleanup(val || null);
+      });
+      // Enter submits, Escape cancels
+      overlay.querySelector('#reject-reason-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') cleanup(null);
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const val = overlay.querySelector('#reject-reason-input').value.trim();
+          cleanup(val || null);
+        }
+      });
+
+      document.body.appendChild(overlay);
+      // Auto-focus the textarea after append
+      requestAnimationFrame(() => overlay.querySelector('#reject-reason-input')?.focus());
+    });
+  }
+
+  /* ─── S5: Auto-advance — highlight next pending row ────────── */
+  function highlightNextPending(removedId) {
+    // Clear any existing highlights
+    $$('.pay-row-highlight').forEach(el => el.classList.remove('pay-row-highlight', 'ring-2', 'ring-theme/50'));
+
+    const next = currentRows.find(r =>
+      String(r.id) !== String(removedId) && (r.status === 'pending' || r.status === 'submitted')
+    );
+    if (!next) return;
+
+    const row = $(`#payments-tbody tr[data-id="${next.id}"]`);
+    if (row) {
+      row.classList.add('pay-row-highlight', 'ring-2', 'ring-theme/50');
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Auto-clear highlight after 3s
+      setTimeout(() => row.classList.remove('pay-row-highlight', 'ring-2', 'ring-theme/50'), 3000);
+    }
+  }
+
   /* ─── Revenue summary cards (S4-F4) ──────────────────────── */
   async function refreshRevenue() {
     try {
@@ -95,7 +180,7 @@
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  /* ─── Payment list (S4-F1 / S4-F3) ──────────────────────── */
+  /* ─── Payment list (S4-F1 / S4-F3 + S5 optimistic state) ──── */
   async function refresh() {
     const status = $('#pay-filter-status')?.value || '';
     const method = $('#pay-filter-method')?.value || '';
@@ -108,7 +193,8 @@
       if (search) qs.set('search', search);
 
       const data = await API.get(`payments/?${qs}`);
-      currentRows = data.results || [];
+      currentRows = data.results || [];       // S5: cache locally
+      _lastPaginationData = data;              // S5: cache pagination
       renderPayments(data);
     } catch (e) {
       console.error('[payments] list fetch error', e);
@@ -120,7 +206,6 @@
     if (!tbody) return;
 
     const rows = data.results || [];
-    currentRows = rows;
     if (!rows.length) {
       tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-16 text-center text-dc-text text-sm">No payments found</td></tr>`;
       renderPagination(data);
@@ -130,24 +215,8 @@
     tbody.innerHTML = rows.map(p => {
       const isCheckable = ['pending', 'submitted'].includes(p.status);
       const checked = selectedIds.has(p.id) ? 'checked' : '';
-
-      // Inline proof thumbnail — visible directly in row, click to zoom
-      const proofCell = p.proof_url
-        ? (p.proof_url.toLowerCase().endsWith('.pdf')
-            ? `<a href="${p.proof_url}" target="_blank" title="Open PDF proof"
-                  class="inline-flex items-center gap-1 text-[10px] text-theme hover:text-white transition-colors">
-                 <i data-lucide="file-text" class="w-3 h-3"></i>
-                 <span>PDF</span>
-               </a>`
-            : `<img src="${p.proof_url}" alt="Proof"
-                    onclick="TOC.payments.viewProof('${p.proof_url}')"
-                    class="w-10 h-10 object-cover rounded-lg border border-dc-border cursor-zoom-in
-                           hover:border-theme/60 hover:scale-110 transition-all"
-                    title="Click to zoom" />`)
-        : `<span class="text-[10px] text-dc-text/40">—</span>`;
-
       return `
-        <tr class="border-b border-dc-border/50 hover:bg-white/[0.015] transition-colors group" data-pay-id="${p.id}">
+        <tr class="border-b border-dc-border/50 hover:bg-white/[0.015] transition-all group" data-id="${p.id}" data-status="${p.status}">
           <td class="px-3 py-3">
             ${isCheckable ? `<input type="checkbox" class="toc-checkbox pay-row-cb" data-id="${p.id}" ${checked} onclick="TOC.payments.toggleRow('${p.id}', this)">` : ''}
           </td>
@@ -163,7 +232,7 @@
             <span class="text-[10px] font-mono text-dc-text">${p.transaction_id || '—'}</span>
           </td>
           <td class="px-3 py-3">${badge(p.status)}</td>
-          <td class="px-3 py-3 text-center">${proofCell}</td>
+          <td class="px-3 py-3 text-center">${proofThumb(p.proof_url)}</td>
           <td class="px-3 py-3 text-[10px] text-dc-text font-mono">${fmtDate(p.submitted_at)}</td>
           <td class="px-3 py-3 text-right">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -244,143 +313,80 @@
     }
   }
 
-  /* ─── Custom Reject Reason Modal ──────────────────────────── */
+  /* ─── Payment actions (S4-F3 + S5 optimistic ops) ───────────── */
 
-  /**
-   * Reject reason prompt — custom modal replacing native prompt().
-   * Returns reason string or null if cancelled.
-   */
-  function promptRejectReason() {
-    return new Promise((resolve) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm';
-      overlay.innerHTML = `
-        <div class="bg-dc-bg border border-dc-border rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-          <div class="h-1 w-full bg-dc-danger"></div>
-          <div class="p-6 space-y-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center">
-                <i data-lucide="x-octagon" class="w-5 h-5 text-dc-danger"></i>
-              </div>
-              <div>
-                <h3 class="text-white font-bold text-sm">Reject Payment</h3>
-                <p class="text-dc-text text-[11px]">Provide a reason (optional)</p>
-              </div>
-            </div>
-            <textarea id="_pay-reject-reason"
-              class="w-full bg-dc-panel border border-dc-border rounded-xl px-4 py-3 text-white text-sm
-                     focus:outline-none focus:border-dc-danger/50 focus:ring-1 focus:ring-dc-danger/20
-                     resize-none placeholder:text-dc-text/40"
-              rows="3" placeholder="e.g. Wrong transaction ID, Amount mismatch…"></textarea>
-            <div class="flex gap-3 pt-1">
-              <button id="_pay-reject-cancel"
-                class="flex-1 py-2.5 rounded-xl border border-dc-border text-dc-text text-xs font-bold
-                       uppercase tracking-widest hover:border-dc-borderLight hover:text-white transition-colors">
-                Cancel
-              </button>
-              <button id="_pay-reject-confirm"
-                class="flex-1 py-2.5 rounded-xl bg-dc-danger/10 border border-dc-danger/30 text-dc-danger
-                       text-xs font-bold uppercase tracking-widest hover:bg-dc-danger/20 transition-colors">
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-
-      const textarea = overlay.querySelector('#_pay-reject-reason');
-      textarea.focus();
-
-      const close = (val) => { overlay.remove(); resolve(val); };
-
-      overlay.querySelector('#_pay-reject-cancel').addEventListener('click', () => close(null));
-      overlay.querySelector('#_pay-reject-confirm').addEventListener('click', () => close(textarea.value.trim()));
-      overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close(null);
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) close(textarea.value.trim());
-      });
-    });
-  }
-
-  /* ─── Get next pending row id after the given one ─────────── */
-  function _nextPendingId(afterId) {
-    const pending = currentRows.filter(p => ['pending', 'submitted'].includes(p.status));
-    const idx = pending.findIndex(p => String(p.id) === String(afterId));
-    if (idx !== -1 && idx + 1 < pending.length) return pending[idx + 1].id;
-    if (pending.length > 0 && String(pending[0].id) !== String(afterId)) return pending[0].id;
-    return null;
-  }
-
-  /* ─── Optimistic row removal ───────────────────────────────── */
-  function _spliceRow(id) {
-    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
-    if (tr) {
-      tr.style.transition = 'opacity 0.2s, transform 0.2s';
-      tr.style.opacity = '0';
-      tr.style.transform = 'translateX(20px)';
-      setTimeout(() => tr.remove(), 200);
-    }
-    currentRows = currentRows.filter(p => String(p.id) !== String(id));
-    selectedIds.delete(id);
-    selectedIds.delete(String(id));
-  }
-
-  /* ─── Payment actions (S4-F3 / S5 overhaul) ──────────────── */
+  /** S5: Optimistic splice-out with slide animation + auto-advance */
   async function verify(id) {
-    // Dim row while in-flight
-    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
-    if (tr) tr.style.opacity = '0.4';
+    // Optimistic: slide row out immediately
+    const row = $(`#payments-tbody tr[data-id="${id}"]`);
+    if (row) {
+      row.style.transition = 'opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(40px)';
+      row.style.maxHeight = row.offsetHeight + 'px';
+      row.style.overflow = 'hidden';
+      setTimeout(() => { row.style.maxHeight = '0'; row.style.padding = '0'; }, 150);
+    }
 
     try {
       await API.post(`payments/${id}/verify/`);
-      toast('Payment verified ✓', 'success');
-
-      // Optimistic: remove from current view if filtering for pending/submitted
-      const statusFilter = $('#pay-filter-status')?.value || '';
-      const isFilteringPending = !statusFilter || statusFilter === 'submitted' || statusFilter === 'pending';
-
-      if (isFilteringPending) {
-        // Advance focus to next pending before removing current
-        const nextId = _nextPendingId(id);
-        if (nextId) {
-          const nextTr = document.querySelector(`tr[data-pay-id="${nextId}"]`);
-          if (nextTr) nextTr.classList.add('ring-1', 'ring-theme/40', 'bg-theme/5');
-        }
-        _spliceRow(id);
-      } else {
-        // Just update the badge in-place — do a full refresh
-        if (tr) tr.style.opacity = '1';
-        refresh();
-      }
+      toast('Payment verified', 'success');
+      // Splice from local state
+      selectedIds.delete(id);
+      currentRows = currentRows.filter(r => String(r.id) !== String(id));
+      // Remove DOM row after animation
+      setTimeout(() => { if (row) row.remove(); }, 350);
+      // Auto-advance to next pending
+      highlightNextPending(id);
       refreshRevenue();
     } catch (e) {
-      if (tr) tr.style.opacity = '1';
       toast(e.message || 'Verify failed', 'error');
+      // Rollback: restore row visibility
+      if (row) {
+        row.style.transition = 'opacity 0.15s ease, transform 0.15s ease, max-height 0.15s ease';
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+        row.style.maxHeight = '';
+        row.style.overflow = '';
+        row.style.padding = '';
+      }
     }
   }
 
+  /** S5: Custom reject modal (replaces native prompt) */
   async function reject(id) {
     const reason = await promptRejectReason();
-    if (reason === null) return;  // cancelled
+    if (!reason) return;
 
-    const tr = document.querySelector(`tr[data-pay-id="${id}"]`);
-    if (tr) tr.style.opacity = '0.4';
+    // Optimistic: fade row out
+    const row = $(`#payments-tbody tr[data-id="${id}"]`);
+    if (row) {
+      row.style.transition = 'opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(-40px)';
+      row.style.maxHeight = row.offsetHeight + 'px';
+      row.style.overflow = 'hidden';
+      setTimeout(() => { row.style.maxHeight = '0'; row.style.padding = '0'; }, 150);
+    }
 
     try {
       await API.post(`payments/${id}/reject/`, { reason });
       toast('Payment rejected', 'info');
-
-      const nextId = _nextPendingId(id);
-      if (nextId) {
-        const nextTr = document.querySelector(`tr[data-pay-id="${nextId}"]`);
-        if (nextTr) nextTr.classList.add('ring-1', 'ring-theme/40', 'bg-theme/5');
-      }
-      _spliceRow(id);
+      selectedIds.delete(id);
+      currentRows = currentRows.filter(r => String(r.id) !== String(id));
+      setTimeout(() => { if (row) row.remove(); }, 350);
+      highlightNextPending(id);
       refreshRevenue();
     } catch (e) {
-      if (tr) tr.style.opacity = '1';
       toast(e.message || 'Reject failed', 'error');
+      if (row) {
+        row.style.transition = 'opacity 0.15s ease';
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+        row.style.maxHeight = '';
+        row.style.overflow = '';
+        row.style.padding = '';
+      }
     }
   }
 
@@ -391,7 +397,15 @@
       await API.post('payments/bulk-verify/', { payment_ids: ids });
       toast(`${ids.length} payments verified`, 'success');
       // Optimistic: remove all verified rows
-      ids.forEach(id => _spliceRow(id));
+      ids.forEach(id => {
+        const row = $(`#payments-tbody tr[data-id="${id}"]`);
+        if (row) {
+          row.style.transition = 'opacity 0.2s ease';
+          row.style.opacity = '0';
+          setTimeout(() => row.remove(), 250);
+        }
+      });
+      currentRows = currentRows.filter(r => !ids.includes(String(r.id)) && !ids.includes(r.id));
       selectedIds.clear();
       updateBulkBar();
       refreshRevenue();
@@ -706,12 +720,11 @@
     refresh();
     refreshPrizePool();
     refreshBounties();
-
-    // Autofocus search for rapid keyboard-driven verification
-    const searchInput = $('#pay-filter-search');
-    if (searchInput) {
-      setTimeout(() => searchInput.focus(), 80);
-    }
+    // S5: Auto-focus search field for rapid keyboard-driven workflow
+    setTimeout(() => {
+      const searchInput = $('#pay-filter-search');
+      if (searchInput) searchInput.focus();
+    }, 80);
   }
 
   /* ─── export ───────────────────────────────────────────────── */
@@ -736,6 +749,7 @@
     confirmCreateBounty,
     openAssignBounty,
     deleteBounty,
+    highlightNextPending,
     _searchDebounce,
   };
 
