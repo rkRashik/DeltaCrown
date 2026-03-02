@@ -1322,41 +1322,77 @@
                         </span>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
                     </summary>
-                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4" id="settings-format">
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Format</label>
-                            <select data-field="format" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                                <option value="single_elimination">Single Elimination</option>
-                                <option value="double_elimination">Double Elimination</option>
-                                <option value="round_robin">Round Robin</option>
-                                <option value="swiss">Swiss</option>
-                                <option value="custom">Custom</option>
-                            </select>
+                    <div class="px-5 pb-5 space-y-5" id="settings-format">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Format</label>
+                                <select data-field="format" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="single_elimination">Single Elimination</option>
+                                    <option value="double_elimination">Double Elimination</option>
+                                    <option value="round_robin">Round Robin</option>
+                                    <option value="swiss">Swiss</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Max Participants</label>
+                                <input data-field="max_participants" type="number" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Platform</label>
+                                <select data-field="platform" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="pc">PC</option>
+                                    <option value="mobile">Mobile</option>
+                                    <option value="ps5">PS5</option>
+                                    <option value="xbox">Xbox</option>
+                                    <option value="switch">Switch</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Max Participants</label>
-                            <input data-field="max_participants" type="number" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+
+                        {# ── Scheduling ── #}
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-dc-text pt-2">Scheduling</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Registration Opens</label>
+                                <input data-field="registration_start" type="datetime-local" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Registration Closes</label>
+                                <input data-field="registration_end" type="datetime-local" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Tournament Starts</label>
+                                <input data-field="tournament_start" type="datetime-local" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Tournament Ends</label>
+                                <input data-field="tournament_end" type="datetime-local" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Platform</label>
-                            <select data-field="platform" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                                <option value="pc">PC</option>
-                                <option value="mobile">Mobile</option>
-                                <option value="ps5">PS5</option>
-                                <option value="xbox">Xbox</option>
-                                <option value="switch">Switch</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-3 md:col-span-3">
+
+                        {# ── Registration Rules & Check-In ── #}
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-dc-text pt-2">Registration &amp; Check-In</p>
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
                                 <input data-field="has_entry_fee" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Entry Fee
                             </label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                                <input data-field="enable_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Check-In
+                                <input data-field="enable_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" id="toggle-check-in"> Check-In
                             </label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
                                 <input data-field="enable_certificates" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Certificates
                             </label>
+                        </div>
+                        <div id="check-in-window" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Check-In Opens (minutes before start)</label>
+                                <input data-field="checkin_open_minutes" type="number" value="60" min="5" max="1440" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Check-In Deadline (minutes before start)</label>
+                                <input data-field="checkin_close_minutes" type="number" value="10" min="0" max="1440" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
                         </div>
                     </div>
                 </details>
@@ -1393,29 +1429,51 @@
                         </span>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
                     </summary>
-                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 gap-4" id="settings-game-config">
+                    <div class="px-5 pb-5 space-y-5" id="settings-game-config">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Default Match Format</label>
+                                <select data-field="default_match_format" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="bo1">Best of 1</option>
+                                    <option value="bo3">Best of 3</option>
+                                    <option value="bo5">Best of 5</option>
+                                    <option value="bo7">Best of 7</option>
+                                    <option value="rr">Round Robin</option>
+                                    <option value="ffa">Free for All</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                    <input data-field="enable_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" id="toggle-veto"> Enable Map Veto
+                                </label>
+                                <select data-field="veto_type" id="veto-type-select" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="standard">Standard Ban/Pick</option>
+                                    <option value="blind_pick">Blind Pick</option>
+                                    <option value="captain_draft">Captain Draft</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {# ── Veto Sequence Builder ── #}
+                        <div id="veto-builder-section" class="hidden space-y-3 rounded-lg border border-dc-border bg-dc-surface/40 p-4">
+                            <div class="flex items-center justify-between">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-dc-text">Veto Sequence Steps</p>
+                                <div class="flex gap-2">
+                                    <button onclick="TOC.settings.addVetoStep('ban')" class="px-2 py-1 border border-dc-danger/40 text-dc-danger text-[10px] font-bold rounded hover:bg-dc-danger/10 transition-colors">+ Ban</button>
+                                    <button onclick="TOC.settings.addVetoStep('pick')" class="px-2 py-1 border border-dc-success/40 text-dc-success text-[10px] font-bold rounded hover:bg-dc-success/10 transition-colors">+ Pick</button>
+                                    <button onclick="TOC.settings.addVetoStep('decider')" class="px-2 py-1 border border-dc-info/40 text-dc-info text-[10px] font-bold rounded hover:bg-dc-info/10 transition-colors">+ Decider</button>
+                                </div>
+                            </div>
+                            <div id="veto-steps-list" class="space-y-1.5 min-h-[40px]">
+                                <p class="text-xs text-dc-text italic text-center py-3">No steps defined. Add ban/pick steps above.</p>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-dc-text">
+                                <i data-lucide="info" class="w-3.5 h-3.5 shrink-0"></i>
+                                <span>Sequence is saved as part of Game Config. Each match will use this template for veto sessions.</span>
+                            </div>
+                        </div>
+
                         <div>
-                            <label class="block text-xs text-dc-text mb-1">Default Match Format</label>
-                            <select data-field="default_match_format" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                                <option value="bo1">Best of 1</option>
-                                <option value="bo3">Best of 3</option>
-                                <option value="bo5">Best of 5</option>
-                                <option value="bo7">Best of 7</option>
-                                <option value="rr">Round Robin</option>
-                                <option value="ffa">Free for All</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                                <input data-field="enable_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Map Veto
-                            </label>
-                            <select data-field="veto_type" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                                <option value="standard">Standard Ban/Pick</option>
-                                <option value="blind_pick">Blind Pick</option>
-                                <option value="captain_draft">Captain Draft</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
                             <button onclick="TOC.settings.saveGameConfig()" class="px-4 py-2 rounded-lg border border-theme/30 text-theme text-sm hover:bg-theme/10 transition-colors">
                                 Save Game Config
                             </button>
@@ -1554,6 +1612,71 @@
                         </div>
                         <div id="staff-grid" class="space-y-2">
                             <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                        </div>
+                    </div>
+                </details>
+
+                {# ─── Section: Social & Media Links ─── #}
+                <details class="glass-box rounded-xl group" id="settings-social-section">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="share-2" class="w-4 h-4 text-theme"></i> Social &amp; Media Links
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 gap-4" id="settings-social">
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Contact Email</label>
+                            <input data-field="contact_email" type="email" placeholder="organizer@example.com" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Discord Server URL</label>
+                            <input data-field="social_discord" type="url" placeholder="https://discord.gg/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Twitter / X</label>
+                            <input data-field="social_twitter" type="text" placeholder="@handle or URL" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Twitch Stream URL</label>
+                            <input data-field="social_twitch" type="url" placeholder="https://twitch.tv/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">YouTube Stream URL</label>
+                            <input data-field="social_youtube" type="url" placeholder="https://youtube.com/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                    </div>
+                </details>
+
+                {# ─── Section: Waitlist & Check-In Overrides ─── #}
+                <details class="glass-box rounded-xl group" id="settings-waitlist-section">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="list-checks" class="w-4 h-4 text-dc-warning"></i> Waitlist &amp; Check-In Overrides
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 space-y-4" id="settings-waitlist">
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input data-field="auto_forfeit_no_shows" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-forfeit no-shows
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input data-field="waitlist_auto_promote" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-promote from waitlist
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input data-field="require_terms_acceptance" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require terms acceptance
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">No-Show Timeout (minutes)</label>
+                                <input data-field="no_show_timeout_minutes" type="number" value="15" min="1" max="120" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Max Waitlist Size</label>
+                                <input data-field="max_waitlist_size" type="number" min="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            </div>
                         </div>
                     </div>
                 </details>

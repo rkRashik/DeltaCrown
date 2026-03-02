@@ -98,6 +98,16 @@ class TOCSettingsService:
                 "contact_email": getattr(t, "contact_email", ""),
                 "social_discord": getattr(t, "social_discord", ""),
                 "social_twitter": getattr(t, "social_twitter", ""),
+                "social_twitch": getattr(t, "social_twitch", ""),
+                "social_youtube": getattr(t, "social_youtube", ""),
+            },
+            "waitlist": {
+                "auto_forfeit_no_shows": getattr(t, "auto_forfeit_no_shows", False),
+                "waitlist_auto_promote": getattr(t, "waitlist_auto_promote", False),
+                "no_show_timeout_minutes": getattr(t, "no_show_timeout_minutes", 10),
+                "max_waitlist_size": getattr(t, "max_waitlist_size", 0),
+                "checkin_open_minutes": getattr(t, "checkin_open_minutes", 30),
+                "checkin_close_minutes": getattr(t, "checkin_close_minutes", 0),
             },
         }
 
@@ -112,9 +122,13 @@ class TOCSettingsService:
             "enable_check_in", "enable_dynamic_seeding", "enable_live_updates",
             "enable_certificates", "require_terms_acceptance",
             "contact_email", "social_discord", "social_twitter",
+            "social_twitch", "social_youtube",
             "registration_start", "registration_end",
             "tournament_start", "tournament_end",
             "is_official", "is_featured",
+            "auto_forfeit_no_shows", "waitlist_auto_promote",
+            "no_show_timeout_minutes", "max_waitlist_size",
+            "checkin_open_minutes", "checkin_close_minutes",
         }
         changed: list[str] = []
         for key, value in data.items():
@@ -135,25 +149,33 @@ class TOCSettingsService:
             cfg = tournament.game_match_config
         except GameMatchConfig.DoesNotExist:
             return None
+        ms = cfg.match_settings or {}
         return {
             "id": str(cfg.id),
             "game_id": cfg.game_id,
             "default_match_format": cfg.default_match_format,
             "scoring_rules": cfg.scoring_rules,
-            "match_settings": cfg.match_settings,
+            "match_settings": ms,
             "enable_veto": cfg.enable_veto,
             "veto_type": cfg.veto_type,
+            "veto_sequence": ms.get("veto_sequence", []),
         }
 
     @staticmethod
     def save_game_config(tournament: Tournament, data: dict) -> dict:
+        match_settings = data.get("match_settings", {})
+        if not isinstance(match_settings, dict):
+            match_settings = {}
+        # Merge veto_sequence into match_settings if provided separately
+        if "veto_sequence" in data:
+            match_settings["veto_sequence"] = data["veto_sequence"]
         cfg, created = GameMatchConfig.objects.update_or_create(
             tournament=tournament,
             defaults={
                 "game_id": data.get("game_id"),
                 "default_match_format": data.get("default_match_format", "bo1"),
                 "scoring_rules": data.get("scoring_rules", {}),
-                "match_settings": data.get("match_settings", {}),
+                "match_settings": match_settings,
                 "enable_veto": data.get("enable_veto", False),
                 "veto_type": data.get("veto_type", "standard"),
             },

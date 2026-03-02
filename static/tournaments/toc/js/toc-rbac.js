@@ -85,7 +85,7 @@
                 </div>
                 <button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign</button>
             </div>
-        ');
+        `);
 
         // Wire up live search with debounce
         let debounce = null;

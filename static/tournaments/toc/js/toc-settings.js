@@ -20,17 +20,43 @@
     let rulebookVersions = [];
     let brScoring = null;
 
+    let vetoSequence = [];
+
     /* ------------------------------------------------------------------ */
-    /*  Settings (Basic / Format / Prizes)                                 */
+    /*  Settings (Basic / Format / Prizes / Dates / Social / Waitlist)     */
     /* ------------------------------------------------------------------ */
 
     async function loadSettings() {
         try {
             settingsCache = await API.get('settings/');
             populateSection('settings-basic', settingsCache.basic || {});
-            populateSection('settings-format', { ...(settingsCache.format || {}), ...(settingsCache.registration_rules || {}), ...(settingsCache.features || {}) });
+            populateSection('settings-format', {
+                ...(settingsCache.format || {}),
+                ...(settingsCache.registration_rules || {}),
+                ...(settingsCache.features || {}),
+            });
+            // Dates — ISO → datetime-local (strip trailing Z / tz offset)
+            const dates = settingsCache.dates || {};
+            Object.keys(dates).forEach(k => {
+                if (dates[k]) dates[k] = dates[k].substring(0, 16);
+            });
+            populateSection('settings-format', dates);
             populateSection('settings-prizes', settingsCache.prizes || {});
+            populateSection('settings-social', settingsCache.social || {});
+            populateSection('settings-waitlist', settingsCache.waitlist || {});
+
+            syncCheckInVisibility();
         } catch (e) { console.warn('Settings load error', e); }
+    }
+
+    /** Show/hide check-in window fields based on enable_check_in toggle */
+    function syncCheckInVisibility() {
+        const cb = document.getElementById('toggle-check-in');
+        const panel = document.getElementById('check-in-window');
+        if (!cb || !panel) return;
+        function toggle() { panel.classList.toggle('hidden', !cb.checked); }
+        toggle();
+        cb.addEventListener('change', toggle);
     }
 
     function populateSection(containerId, data) {
@@ -69,6 +95,8 @@
             ...gatherSection('settings-basic'),
             ...gatherSection('settings-format'),
             ...gatherSection('settings-prizes'),
+            ...gatherSection('settings-social'),
+            ...gatherSection('settings-waitlist'),
         };
         try {
             await API.put('settings/', payload);
@@ -86,27 +114,75 @@
         try {
             gameConfigCache = await API.get('settings/game-config/');
             populateSection('settings-game-config', gameConfigCache || {});
+            vetoSequence = (gameConfigCache?.veto_sequence) || [];
             syncVetoVisibility();
+            renderVetoSteps();
         } catch (e) { console.warn('Game config load error', e); }
     }
 
-    /** Show/hide veto_type based on enable_veto checkbox state. */
+    /** Show/hide veto_type + builder based on enable_veto checkbox state. */
     function syncVetoVisibility() {
         const container = document.getElementById('settings-game-config');
         if (!container) return;
-        const vetoCheckbox = container.querySelector('[data-field="enable_veto"]');
-        const vetoTypeSelect = container.querySelector('[data-field="veto_type"]');
-        if (!vetoCheckbox || !vetoTypeSelect) return;
+        const vetoCheckbox = document.getElementById('toggle-veto');
+        const vetoTypeSelect = document.getElementById('veto-type-select');
+        const builderSection = document.getElementById('veto-builder-section');
+        if (!vetoCheckbox) return;
 
         function toggle() {
-            vetoTypeSelect.style.display = vetoCheckbox.checked ? '' : 'none';
+            const on = vetoCheckbox.checked;
+            if (vetoTypeSelect) vetoTypeSelect.style.display = on ? '' : 'none';
+            if (builderSection) builderSection.classList.toggle('hidden', !on);
         }
         toggle();
         vetoCheckbox.addEventListener('change', toggle);
     }
 
+    /* ---- Veto Sequence Builder ---- */
+
+    function addVetoStep(action) {
+        vetoSequence.push({ action, team: 'A' });
+        renderVetoSteps();
+    }
+
+    function removeVetoStep(idx) {
+        vetoSequence.splice(idx, 1);
+        renderVetoSteps();
+    }
+
+    function changeVetoTeam(idx, team) {
+        vetoSequence[idx].team = team;
+    }
+
+    function renderVetoSteps() {
+        const list = document.getElementById('veto-steps-list');
+        if (!list) return;
+        if (!vetoSequence.length) {
+            list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-3">No steps defined. Add ban/pick steps above.</p>';
+            return;
+        }
+        const colors = { ban: 'dc-danger', pick: 'dc-success', decider: 'dc-info' };
+        list.innerHTML = vetoSequence.map((s, i) => {
+            const c = colors[s.action] || 'dc-text';
+            return `
+            <div class="flex items-center gap-2 p-2 rounded-lg border border-dc-border bg-dc-surface/50">
+                <span class="w-5 text-center text-[10px] font-mono text-dc-text">${i + 1}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-${c}/10 text-${c}">${s.action}</span>
+                <select onchange="TOC.settings.changeVetoTeam(${i}, this.value)" class="bg-dc-bg border border-dc-border rounded px-2 py-0.5 text-xs text-dc-textBright">
+                    <option value="A"${s.team === 'A' ? ' selected' : ''}>Team A</option>
+                    <option value="B"${s.team === 'B' ? ' selected' : ''}>Team B</option>
+                    ${s.action === 'decider' ? '<option value="auto"' + (s.team === 'auto' ? ' selected' : '') + '>Auto</option>' : ''}
+                </select>
+                <span class="flex-1"></span>
+                <button onclick="TOC.settings.removeVetoStep(${i})" class="p-1 text-dc-text hover:text-dc-danger transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
+            </div>`;
+        }).join('');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
     async function saveGameConfig() {
         const payload = gatherSection('settings-game-config');
+        payload.veto_sequence = vetoSequence;
         try {
             await API.put('settings/game-config/', payload);
             window.TOC?.toast?.('Game config saved', 'success');
@@ -332,11 +408,25 @@
                 </div>
                 <div>
                     <label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>
-                    <textarea id="new-rb-content" rows="8" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50"></textarea>
+                    <textarea id="new-rb-content" rows="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50" placeholder="# Tournament Rules&#10;&#10;## 1. General&#10;..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-dc-text mb-1">Change Type</label>
+                        <select id="new-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="minor">Minor (formatting, typo)</option>
+                            <option value="material">Material (rule change)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="new-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs text-dc-text mb-1">Changelog</label>
-                    <input id="new-rb-changelog" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                    <input id="new-rb-changelog" type="text" placeholder="Describe what changed..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                 </div>
                 <button onclick="TOC.settings.confirmCreateRulebook()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Create Version</button>
             </div>
@@ -352,9 +442,12 @@
                 version,
                 content: document.getElementById('new-rb-content')?.value || '',
                 changelog: document.getElementById('new-rb-changelog')?.value?.trim() || '',
+                change_type: document.getElementById('new-rb-change-type')?.value || 'minor',
+                require_reconsent: document.getElementById('new-rb-reconsent')?.checked || false,
             });
             closeOverlay();
             loadRulebook();
+            window.TOC?.toast?.('Rulebook version created', 'success');
         } catch (e) { window.TOC?.toast?.('Create failed', 'error'); }
     }
 
@@ -374,8 +467,22 @@
             <div class="space-y-4">
                 <h3 class="font-display font-bold text-white text-lg">Edit Rulebook v${v.version}</h3>
                 <div>
-                    <label class="block text-xs text-dc-text mb-1">Content</label>
-                    <textarea id="edit-rb-content" rows="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">${v.content || ''}</textarea>
+                    <label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>
+                    <textarea id="edit-rb-content" rows="12" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">${v.content || ''}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-dc-text mb-1">Change Type</label>
+                        <select id="edit-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="minor">Minor (formatting, typo)</option>
+                            <option value="material">Material (rule change)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="edit-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs text-dc-text mb-1">Changelog</label>
@@ -392,9 +499,12 @@
             await API.put(`settings/rulebook/${versionId}/`, {
                 content: document.getElementById('edit-rb-content')?.value || '',
                 changelog: document.getElementById('edit-rb-changelog')?.value?.trim() || '',
+                change_type: document.getElementById('edit-rb-change-type')?.value || 'minor',
+                require_reconsent: document.getElementById('edit-rb-reconsent')?.checked || false,
             });
             closeOverlay();
             loadRulebook();
+            window.TOC?.toast?.('Rulebook updated', 'success');
         } catch (e) { window.TOC?.toast?.('Update failed', 'error'); }
     }
 
@@ -488,6 +598,9 @@
         editRulebook,
         confirmEditRulebook,
         saveBRScoring,
+        addVetoStep,
+        removeVetoStep,
+        changeVetoTeam,
     };
 
     // Auto-init when navigating to Settings tab
