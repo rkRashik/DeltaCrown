@@ -127,6 +127,8 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/forfeit/', matches.MatchForfeitView.as_view(), name='match-forfeit'),
     path('<slug:slug>/matches/<int:pk>/add-note/', matches.MatchNoteView.as_view(), name='match-add-note'),
     path('<slug:slug>/matches/<int:pk>/media/', matches.MatchMediaView.as_view(), name='match-media'),
+    path('<slug:slug>/matches/<int:pk>/detail/', matches.MatchDetailView.as_view(), name='match-detail'),
+    path('<slug:slug>/matches/<int:pk>/verify/', matches.MatchVerifyView.as_view(), name='match-verify'),
 
     # ── Disputes (S7-B1 through S7-B7) ──
     path('<slug:slug>/disputes/', disputes.DisputeListView.as_view(), name='disputes'),

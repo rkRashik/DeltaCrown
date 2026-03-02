@@ -1,5 +1,5 @@
 """
-TOC API Views — Sprint 6: Match Operations.
+TOC API Views — Sprint 6: Match Operations + Sprint 9: Verification.
 
 S6-B1  GET  matches/
 S6-B2  POST matches/<id>/score/
@@ -11,6 +11,8 @@ S6-B7  POST matches/<id>/reschedule/
 S6-B8  POST matches/<id>/forfeit/
 S6-B9  POST matches/<id>/add-note/
 S6-B10 GET  matches/<id>/media/  + POST matches/<id>/media/
+S9-B1  GET  matches/<id>/detail/
+S9-B2  POST matches/<id>/verify/
 """
 
 from rest_framework import status
@@ -143,3 +145,45 @@ class MatchMediaView(TOCBaseView):
             user_id=request.user.id,
         )
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+# ── Sprint 9: Match Verification Split-Screen ────────────────
+
+
+class MatchDetailView(TOCBaseView):
+    """S9-B1: Composite match detail (submissions, media, disputes, notes)."""
+
+    def get(self, request, slug, pk):
+        try:
+            data = TOCMatchesService.get_match_detail(pk, self.tournament)
+            return Response(data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+
+class MatchVerifyView(TOCBaseView):
+    """S9-B2: Verification action (confirm / dispute / note)."""
+
+    def post(self, request, slug, pk):
+        action = request.data.get('action')
+        if action not in ('confirm', 'dispute', 'note'):
+            return Response(
+                {'error': 'action must be confirm, dispute, or note'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            data = TOCMatchesService.verify_match(
+                match_id=pk,
+                tournament=self.tournament,
+                action=action,
+                user_id=request.user.id,
+                p1_score=request.data.get('participant1_score'),
+                p2_score=request.data.get('participant2_score'),
+                notes=request.data.get('notes', ''),
+                reason_code=request.data.get('reason_code', 'other'),
+            )
+            return Response(data)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

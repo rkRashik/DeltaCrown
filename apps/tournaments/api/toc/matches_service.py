@@ -1,10 +1,11 @@
 """
-TOC Matches Service — Sprint 6.
+TOC Matches Service — Sprint 6 + Sprint 9 (Match Verification).
 
 Wraps MatchService, handles match listing, scoring, Match Medic
-(pause/resume), reschedule requests, forfeits, notes, media, and stations.
+(pause/resume), reschedule requests, forfeits, notes, media, stations,
+and Sprint 9 match verification split-screen API.
 
-PRD: §6.1–§6.10
+PRD: §6.1–§6.10, §9.1 (Match Verification Split-Screen)
 """
 
 from __future__ import annotations
@@ -23,6 +24,11 @@ from apps.tournaments.models.match_operations import (
     MatchServerSelection,
     RescheduleRequest,
 )
+from apps.tournaments.models.result_submission import (
+    MatchResultSubmission,
+    ResultVerificationLog,
+)
+from apps.tournaments.models.dispute import DisputeRecord
 from apps.tournaments.models.tournament import Tournament
 from apps.tournaments.services.match_service import MatchService
 
@@ -297,6 +303,298 @@ class TOCMatchesService:
             'name': station.name,
             'assigned_match_id': match.id,
             'status': station.status,
+        }
+
+    # ── S9-B1: Match detail (composite) ─────────────────────
+
+    @classmethod
+    def get_match_detail(
+        cls,
+        match_id: int,
+        tournament: Tournament,
+    ) -> Dict[str, Any]:
+        """Return enriched match data with submissions, media, disputes, notes."""
+        match = Match.objects.get(pk=match_id, tournament=tournament)
+
+        # Submissions (both captains)
+        submissions = list(
+            MatchResultSubmission.objects.filter(match=match)
+            .select_related('submitted_by_user')
+            .order_by('submitted_at')
+        )
+
+        # Serialize submissions
+        subs_data = []
+        for s in submissions:
+            subs_data.append({
+                'id': s.id,
+                'submitted_by_user_id': s.submitted_by_user_id,
+                'submitted_by_name': (
+                    getattr(s.submitted_by_user, 'username', '')
+                    or str(s.submitted_by_user_id)
+                ),
+                'submitted_by_team_id': s.submitted_by_team_id,
+                'raw_result_payload': s.raw_result_payload or {},
+                'proof_screenshot_url': s.proof_screenshot_url or '',
+                'status': s.status,
+                'submitted_at': s.submitted_at.isoformat() if s.submitted_at else None,
+                'submitter_notes': s.submitter_notes,
+                'organizer_notes': s.organizer_notes,
+            })
+
+        # Media
+        media_qs = MatchMedia.objects.filter(match=match).order_by('-created_at')
+        media_data = [
+            {
+                'id': str(m.id),
+                'media_type': m.media_type,
+                'url': m.url or (m.file.url if m.file else ''),
+                'description': m.description,
+                'is_evidence': m.is_evidence,
+                'created_at': m.created_at.isoformat(),
+            }
+            for m in media_qs
+        ]
+
+        # Disputes (via submissions)
+        sub_ids = [s.id for s in submissions]
+        disputes = []
+        if sub_ids:
+            dispute_qs = DisputeRecord.objects.filter(
+                submission_id__in=sub_ids
+            ).select_related('opened_by_user').order_by('-opened_at')
+            for d in dispute_qs:
+                disputes.append({
+                    'id': d.id,
+                    'status': d.status,
+                    'reason_code': d.reason_code,
+                    'description': d.description,
+                    'resolution_notes': d.resolution_notes,
+                    'opened_by_name': (
+                        getattr(d.opened_by_user, 'username', '')
+                        if d.opened_by_user else ''
+                    ),
+                    'opened_at': d.opened_at.isoformat() if d.opened_at else None,
+                    'resolved_at': d.resolved_at.isoformat() if d.resolved_at else None,
+                })
+
+        # Notes from lobby_info
+        notes = match.lobby_info.get('notes', [])
+
+        # ── Verification status (smart mismatch detection) ──
+        verification_status = cls._compute_verification_status(match, submissions)
+
+        return {
+            'match': cls._serialize_match(match),
+            'submissions': subs_data,
+            'media': media_data,
+            'disputes': disputes,
+            'notes': notes,
+            'verification_status': verification_status,
+        }
+
+    @classmethod
+    def _compute_verification_status(
+        cls,
+        match: Match,
+        submissions: List[MatchResultSubmission],
+    ) -> Dict[str, Any]:
+        """
+        Smart Mismatch Detection.
+
+        Returns:
+          {
+            'code': 'match' | 'mismatch' | 'pending' | 'finalized',
+            'label': str,
+            'detail': str,
+          }
+        """
+        if match.state in ('completed', 'forfeit'):
+            return {
+                'code': 'finalized',
+                'label': 'Finalized',
+                'detail': f'Final score: {match.participant1_score}–{match.participant2_score}',
+            }
+
+        active = [s for s in submissions if s.status not in ('rejected',)]
+        if len(active) == 0:
+            return {
+                'code': 'pending',
+                'label': 'Pending',
+                'detail': 'No submissions received yet.',
+            }
+        if len(active) == 1:
+            s = active[0]
+            p = s.raw_result_payload or {}
+            return {
+                'code': 'pending',
+                'label': 'Pending',
+                'detail': (
+                    f'Only 1 submission received '
+                    f'({p.get("score_p1", "?")}–{p.get("score_p2", "?")}).'
+                    f' Waiting for opponent.'
+                ),
+            }
+
+        # Two or more active submissions — compare
+        s1, s2 = active[0], active[1]
+        p1 = s1.raw_result_payload or {}
+        p2 = s2.raw_result_payload or {}
+        s1_p1 = p1.get('score_p1')
+        s1_p2 = p1.get('score_p2')
+        s2_p1 = p2.get('score_p1')
+        s2_p2 = p2.get('score_p2')
+
+        if s1_p1 == s2_p1 and s1_p2 == s2_p2:
+            return {
+                'code': 'match',
+                'label': 'Match',
+                'detail': f'Both submissions agree: {s1_p1}–{s1_p2}. Auto-confirm available.',
+            }
+        else:
+            return {
+                'code': 'mismatch',
+                'label': 'Mismatch',
+                'detail': (
+                    f'Captain A reported {s1_p1}–{s1_p2}, '
+                    f'Captain B reported {s2_p1}–{s2_p2}.'
+                ),
+            }
+
+    # ── S9-B2: Verify / Confirm / Dispute ────────────────────
+
+    @classmethod
+    @transaction.atomic
+    def verify_match(
+        cls,
+        match_id: int,
+        tournament: Tournament,
+        *,
+        action: str,
+        user_id: int,
+        p1_score: Optional[int] = None,
+        p2_score: Optional[int] = None,
+        notes: str = '',
+        reason_code: str = 'other',
+    ) -> Dict[str, Any]:
+        """
+        Sprint 9 verification action.
+
+        action:
+            'confirm'  — Finalize match with the given scores.
+            'dispute'  — Open a DisputeRecord, set match state to disputed.
+            'note'     — Add an admin note (no state change).
+        """
+        match = Match.objects.select_for_update().get(
+            pk=match_id, tournament=tournament,
+        )
+        submissions = list(
+            MatchResultSubmission.objects.filter(match=match)
+            .order_by('submitted_at')
+        )
+
+        if action == 'confirm':
+            return cls._action_confirm(match, submissions, user_id, p1_score, p2_score, notes)
+        elif action == 'dispute':
+            return cls._action_dispute(match, submissions, user_id, notes, reason_code)
+        elif action == 'note':
+            return cls._action_add_note(match, user_id, notes)
+        else:
+            raise ValueError(f'Unknown verify action: {action}')
+
+    @classmethod
+    def _action_confirm(cls, match, submissions, user_id, p1_score, p2_score, notes):
+        """Confirm & finalize the match result."""
+        if p1_score is None or p2_score is None:
+            raise ValueError('Scores are required for confirm action.')
+
+        match.participant1_score = p1_score
+        match.participant2_score = p2_score
+        if p1_score > p2_score:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+        elif p2_score > p1_score:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+        else:
+            match.winner_id = None
+            match.loser_id = None
+        match.state = Match.COMPLETED
+        match.completed_at = timezone.now()
+        match.save()
+
+        # Mark submissions finalized
+        for s in submissions:
+            if s.status not in ('rejected', 'finalized'):
+                s.status = MatchResultSubmission.STATUS_FINALIZED
+                s.finalized_at = timezone.now()
+                s.organizer_notes = notes or s.organizer_notes
+                s.save(update_fields=['status', 'finalized_at', 'organizer_notes'])
+
+        # Audit log
+        for s in submissions:
+            ResultVerificationLog.objects.create(
+                submission=s,
+                step=ResultVerificationLog.STEP_FINALIZATION,
+                status=ResultVerificationLog.STATUS_SUCCESS,
+                details={
+                    'final_score': f'{p1_score}–{p2_score}',
+                    'notes': notes,
+                },
+                performed_by_id=user_id,
+            )
+
+        return {
+            'status': 'confirmed',
+            'match': cls._serialize_match(match),
+        }
+
+    @classmethod
+    def _action_dispute(cls, match, submissions, user_id, notes, reason_code):
+        """Open a dispute against the latest submission."""
+        match.state = Match.DISPUTED if hasattr(Match, 'DISPUTED') else 'disputed'
+        match.save(update_fields=['state'])
+
+        target_sub = submissions[-1] if submissions else None
+        dispute = None
+        if target_sub:
+            dispute = DisputeRecord.objects.create(
+                submission=target_sub,
+                opened_by_user_id=user_id,
+                status=DisputeRecord.OPEN,
+                reason_code=reason_code,
+                description=notes or 'Opened by organizer during verification review.',
+            )
+            # Audit
+            ResultVerificationLog.objects.create(
+                submission=target_sub,
+                step=ResultVerificationLog.STEP_DISPUTE_ESCALATED,
+                status=ResultVerificationLog.STATUS_SUCCESS,
+                details={'reason_code': reason_code, 'notes': notes},
+                performed_by_id=user_id,
+            )
+
+        return {
+            'status': 'disputed',
+            'match': cls._serialize_match(match),
+            'dispute_id': dispute.id if dispute else None,
+        }
+
+    @classmethod
+    def _action_add_note(cls, match, user_id, notes):
+        """Add an admin note to lobby_info."""
+        note_list = match.lobby_info.get('notes', [])
+        note_list.append({
+            'text': notes,
+            'user_id': user_id,
+            'created_at': timezone.now().isoformat(),
+        })
+        match.lobby_info['notes'] = note_list
+        match.save(update_fields=['lobby_info'])
+        return {
+            'status': 'noted',
+            'match': cls._serialize_match(match),
+            'notes': note_list,
         }
 
     # ── Private serializer ───────────────────────────────────
