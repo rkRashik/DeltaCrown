@@ -394,7 +394,7 @@
     if (!selectedIds.size) return;
     const ids = Array.from(selectedIds);
     try {
-      await API.post('payments/bulk-verify/', { payment_ids: ids });
+      await API.post('payments/bulk-verify/', { ids: ids });
       toast(`${ids.length} payments verified`, 'success');
       // Optimistic: remove all verified rows
       ids.forEach(id => {
@@ -714,6 +714,261 @@
     _searchTimer = setTimeout(() => { currentPage = 1; refresh(); }, 350);
   }
 
+  /* ─── Smart Quick Verify ──────────────────────────────────── */
+  let _qvTimer = null;
+  let _qvCurrentPayment = null;
+
+  function _qvDebounce() {
+    clearTimeout(_qvTimer);
+    _qvTimer = setTimeout(() => qvSearch(), 400);
+  }
+
+  async function qvSearch() {
+    const input = $('#qv-input');
+    const resultBox = $('#qv-result');
+    const query = (input?.value || '').trim();
+
+    if (!query || query.length < 3) {
+      if (resultBox) { resultBox.classList.add('hidden'); resultBox.innerHTML = ''; }
+      _qvCurrentPayment = null;
+      return;
+    }
+
+    try {
+      // Use the existing payments API with search — it already supports txn_id and phone lookup
+      const qs = new URLSearchParams({ search: query, page_size: 5 });
+      const data = await API.get(`payments/?${qs}`);
+      const matches = (data.results || []).filter(p =>
+        p.status === 'pending' || p.status === 'submitted'
+      );
+
+      if (!resultBox) return;
+      resultBox.classList.remove('hidden');
+
+      if (!matches.length) {
+        _qvCurrentPayment = null;
+        resultBox.innerHTML = `
+          <div class="bg-dc-bg border border-dc-border rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center shrink-0">
+              <i data-lucide="search-x" class="w-5 h-5 text-dc-danger"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-dc-textBright">No pending payment found</p>
+              <p class="text-[10px] text-dc-text mt-0.5">No unverified payment matches "<span class="text-dc-textBright font-mono">${query}</span>". Check the ID or number and try again.</p>
+            </div>
+          </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+      }
+
+      // If only one match, auto-select it
+      if (matches.length === 1) {
+        _qvCurrentPayment = matches[0];
+        renderQvCard(matches[0], resultBox);
+      } else {
+        // Multiple matches — show a picker
+        _qvCurrentPayment = null;
+        resultBox.innerHTML = `
+          <div class="bg-dc-bg border border-dc-border rounded-xl overflow-hidden">
+            <div class="px-4 py-2 border-b border-dc-border/50 bg-dc-panel/30">
+              <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">${matches.length} pending matches found — select one</p>
+            </div>
+            <div class="divide-y divide-dc-border/30 max-h-[200px] overflow-y-auto">
+              ${matches.map(p => `
+                <button onclick="TOC.payments._qvSelect(${p.id})" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold text-dc-textBright truncate">${p.participant_name || 'Unknown'}</p>
+                    <p class="text-[10px] text-dc-text font-mono">${p.transaction_id || '—'} · ${(p.method || '—').replace('_', ' ')}</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    ${money(p.amount, p.currency)}
+                    <div class="mt-0.5">${badge(p.status)}</div>
+                  </div>
+                </button>
+              `).join('')}
+            </div>
+          </div>`;
+      }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+      console.error('[payments] quick verify search error', e);
+      toast('Lookup failed', 'error');
+    }
+  }
+
+  function _qvSelect(paymentId) {
+    // Find from last search results by re-fetching (we don't cache multi-match)
+    // Instead just call the single API with that id's search
+    const match = currentRows.find(r => r.id === paymentId || String(r.id) === String(paymentId));
+    if (match) {
+      _qvCurrentPayment = match;
+      const resultBox = $('#qv-result');
+      if (resultBox) renderQvCard(match, resultBox);
+      return;
+    }
+    // Fallback: search again by ID
+    API.get(`payments/?search=${paymentId}&page_size=1`).then(data => {
+      const p = (data.results || [])[0];
+      if (p) {
+        _qvCurrentPayment = p;
+        const resultBox = $('#qv-result');
+        if (resultBox) renderQvCard(p, resultBox);
+      }
+    });
+  }
+
+  function renderQvCard(p, container) {
+    const proofHtml = p.proof_url
+      ? (p.proof_url.toLowerCase().endsWith('.pdf')
+          ? `<div class="w-full bg-dc-bg rounded-xl border border-dc-border p-4 flex flex-col items-center gap-2">
+               <i data-lucide="file-text" class="w-8 h-8 text-dc-info"></i>
+               <a href="${p.proof_url}" target="_blank" class="text-xs text-dc-info underline">View PDF Proof</a>
+             </div>`
+          : `<div class="relative group/qvproof">
+               <img src="${p.proof_url}" alt="Payment proof" class="w-full max-h-[280px] object-contain rounded-xl border border-dc-border bg-dc-bg cursor-pointer"
+                    onclick="TOC.payments.viewProof('${p.proof_url}')" loading="lazy"
+                    onerror="this.parentElement.innerHTML='<p class=\\'text-[10px] text-dc-text/40 text-center py-4\\'>Failed to load proof image</p>'">
+               <div class="absolute top-2 right-2 opacity-0 group-hover/qvproof:opacity-100 transition-opacity">
+                 <button onclick="TOC.payments.viewProof('${p.proof_url}')" class="w-7 h-7 rounded-lg bg-black/60 backdrop-blur text-white flex items-center justify-center hover:bg-black/80 transition-colors" title="Enlarge">
+                   <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                 </button>
+               </div>
+             </div>`)
+      : `<div class="w-full bg-dc-bg rounded-xl border border-dc-border p-6 flex flex-col items-center gap-2">
+           <i data-lucide="image-off" class="w-8 h-8 text-dc-text/20"></i>
+           <p class="text-[10px] text-dc-text/50">No proof submitted</p>
+         </div>`;
+
+    container.innerHTML = `
+      <div class="bg-dc-bg border border-dc-border rounded-xl overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+          <div class="p-5 space-y-4 border-r border-dc-border/50">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-bold text-white">${p.participant_name || 'Unknown'}</p>
+                <p class="text-[10px] text-dc-text font-mono mt-0.5">${p.username || ''}</p>
+              </div>
+              ${badge(p.status)}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-dc-panel/50 border border-dc-border/50 rounded-lg p-2.5">
+                <p class="text-[8px] font-bold text-dc-text uppercase tracking-widest">Amount</p>
+                <p class="font-mono font-bold text-base text-white mt-0.5">৳${Number(p.amount || 0).toLocaleString()}</p>
+              </div>
+              <div class="bg-dc-panel/50 border border-dc-border/50 rounded-lg p-2.5">
+                <p class="text-[8px] font-bold text-dc-text uppercase tracking-widest">Method</p>
+                <p class="text-xs font-bold text-dc-textBright mt-0.5 uppercase">${(p.method || '—').replace('_', ' ')}</p>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between py-1.5 border-b border-dc-border/30">
+                <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">TXN ID</span>
+                <span class="text-xs font-mono text-dc-textBright">${p.transaction_id || '—'}</span>
+              </div>
+              <div class="flex items-center justify-between py-1.5 border-b border-dc-border/30">
+                <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Reg #</span>
+                <span class="text-xs font-mono text-dc-textBright">${p.registration_number || '—'}</span>
+              </div>
+              <div class="flex items-center justify-between py-1.5 border-b border-dc-border/30">
+                <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Submitted</span>
+                <span class="text-xs font-mono text-dc-text">${fmtDate(p.submitted_at)}</span>
+              </div>
+              ${p.payer_account_number ? `
+              <div class="flex items-center justify-between py-1.5 border-b border-dc-border/30">
+                <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Sender #</span>
+                <span class="text-xs font-mono text-dc-textBright">${p.payer_account_number}</span>
+              </div>` : ''}
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+              <button onclick="TOC.payments.qvVerify()" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Verify
+              </button>
+              <button onclick="TOC.payments.qvReject()" class="flex-1 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="x-circle" class="w-4 h-4"></i> Reject
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 flex flex-col">
+            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3">Payment Proof</p>
+            ${proofHtml}
+          </div>
+        </div>
+      </div>`;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  /** Quick Verify — verify the currently selected payment */
+  async function qvVerify() {
+    if (!_qvCurrentPayment) { toast('No payment selected', 'error'); return; }
+    const id = _qvCurrentPayment.id;
+
+    try {
+      await API.post(`payments/${id}/verify/`);
+      toast(`Payment #${_qvCurrentPayment.registration_number || id} verified`, 'success');
+
+      // Reset quick verify panel
+      _qvCurrentPayment = null;
+      const input = $('#qv-input');
+      const resultBox = $('#qv-result');
+      if (input) { input.value = ''; input.focus(); }
+      if (resultBox) { resultBox.classList.add('hidden'); resultBox.innerHTML = ''; }
+
+      // Splice from table if visible
+      currentRows = currentRows.filter(r => String(r.id) !== String(id));
+      const row = $(`#payments-tbody tr[data-id="${id}"]`);
+      if (row) {
+        row.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(40px)';
+        setTimeout(() => row.remove(), 300);
+      }
+
+      refreshRevenue();
+    } catch (e) {
+      toast(e.message || 'Verify failed', 'error');
+    }
+  }
+
+  /** Quick Verify — reject the currently selected payment */
+  async function qvReject() {
+    if (!_qvCurrentPayment) { toast('No payment selected', 'error'); return; }
+    const id = _qvCurrentPayment.id;
+    const reason = await promptRejectReason();
+    if (!reason) return;
+
+    try {
+      await API.post(`payments/${id}/reject/`, { reason });
+      toast(`Payment #${_qvCurrentPayment.registration_number || id} rejected`, 'info');
+
+      // Reset quick verify panel
+      _qvCurrentPayment = null;
+      const input = $('#qv-input');
+      const resultBox = $('#qv-result');
+      if (input) { input.value = ''; input.focus(); }
+      if (resultBox) { resultBox.classList.add('hidden'); resultBox.innerHTML = ''; }
+
+      // Splice from table if visible
+      currentRows = currentRows.filter(r => String(r.id) !== String(id));
+      const row = $(`#payments-tbody tr[data-id="${id}"]`);
+      if (row) {
+        row.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(-40px)';
+        setTimeout(() => row.remove(), 300);
+      }
+
+      refreshRevenue();
+    } catch (e) {
+      toast(e.message || 'Reject failed', 'error');
+    }
+  }
+
   /* ─── Init ─────────────────────────────────────────────────── */
   function init() {
     refreshRevenue();
@@ -751,6 +1006,12 @@
     deleteBounty,
     highlightNextPending,
     _searchDebounce,
+    // Smart Quick Verify
+    qvSearch,
+    qvVerify,
+    qvReject,
+    _qvDebounce,
+    _qvSelect,
   };
 
   /* Auto-init when payments tab is activated */

@@ -627,6 +627,7 @@ class TOCPaymentsService:
             "waived": getattr(payment, "waived", False),
             "waive_reason": getattr(payment, "waive_reason", "") or "",
             "submitted_at": payment.submitted_at.isoformat() if payment.submitted_at else None,
+            "payer_account_number": getattr(payment, "payer_account_number", "") or "",
         }
 
     @classmethod

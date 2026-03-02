@@ -77,6 +77,11 @@
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
+
+        // Dispatch tab-changed event so tab modules can self-initialize
+        document.dispatchEvent(new CustomEvent('toc:tab-changed', {
+            detail: { tab: tabId },
+        }));
     }
 
     function onHashChange() {
@@ -134,6 +139,9 @@
                 err.response = res;
                 throw err;
             }
+
+            // Mark data as fresh so toc-polish stale warning resets
+            if (window.TOC?.polish?.markFresh) window.TOC.polish.markFresh();
 
             const ct = res.headers.get('content-type') || '';
             return ct.includes('application/json') ? res.json() : res.text();

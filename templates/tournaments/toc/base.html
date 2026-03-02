@@ -652,6 +652,35 @@
                 {# ── S4-F1: Payments grid ── #}
                 <div class="glass-box rounded-xl overflow-hidden">
 
+                    {# ── Smart Quick Verify Panel ── #}
+                    <div id="quick-verify-panel" class="border-b border-dc-borderLight">
+                        <div class="p-4 flex items-center gap-3 bg-dc-panel/50 border-b border-dc-border/50">
+                            <div class="w-8 h-8 rounded-lg bg-theme/10 border border-theme/20 flex items-center justify-center">
+                                <i data-lucide="scan-search" class="w-4 h-4 text-theme"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white uppercase tracking-widest">Quick Verify</h4>
+                                <p class="text-[9px] text-dc-text mt-0.5">Paste a transaction ID or sender number to instantly find & verify a payment</p>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="relative flex-1 max-w-md">
+                                    <i data-lucide="hash" class="w-3.5 h-3.5 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                                    <input id="qv-input" type="text" placeholder="Transaction ID or sender phone number…"
+                                           class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg pl-9 pr-3 py-2.5 text-dc-textBright w-full placeholder:text-dc-text/40 focus:border-theme focus:ring-1 focus:ring-theme/30 outline-none"
+                                           onkeyup="TOC.payments._qvDebounce()">
+                                </div>
+                                <button onclick="TOC.payments.qvSearch()" class="px-4 py-2.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
+                                    <i data-lucide="search" class="w-3.5 h-3.5"></i> Lookup
+                                </button>
+                            </div>
+
+                            {# Quick Verify result card (hidden by default) #}
+                            <div id="qv-result" class="hidden mt-4"></div>
+                        </div>
+                    </div>
+
                     {# Filter bar #}
                     <div class="p-4 border-b border-dc-borderLight flex flex-wrap items-center gap-3 bg-dc-panel/50">
                         <div class="flex items-center gap-2">
