@@ -118,8 +118,13 @@ class TOCPaymentsService:
         )
 
         RegistrationService.verify_payment(
-            registration_id=payment.registration_id,
+            payment_id=payment.id,
             verified_by=verified_by,
+        )
+
+        # Sync PaymentVerification status so participants tab reflects change
+        cls._sync_payment_verification(
+            payment.registration, "verified", verified_by=verified_by
         )
 
         payment.refresh_from_db()
@@ -145,9 +150,14 @@ class TOCPaymentsService:
         )
 
         RegistrationService.reject_payment(
-            registration_id=payment.registration_id,
+            payment_id=payment.id,
             rejected_by=rejected_by,
             reason=reason,
+        )
+
+        # Sync PaymentVerification status so participants tab reflects change
+        cls._sync_payment_verification(
+            payment.registration, "rejected", rejected_by=rejected_by
         )
 
         payment.refresh_from_db()
@@ -173,9 +183,14 @@ class TOCPaymentsService:
         )
 
         RegistrationService.refund_payment(
-            registration_id=payment.registration_id,
+            payment_id=payment.id,
             refunded_by=refunded_by,
             reason=reason,
+        )
+
+        # Sync PaymentVerification status so participants tab reflects change
+        cls._sync_payment_verification(
+            payment.registration, "refunded"
         )
 
         payment.refresh_from_db()
@@ -584,6 +599,45 @@ class TOCPaymentsService:
             raise ValidationError(f"Invalid KYC action: {action}")
 
         return cls._serialize_kyc(kyc)
+
+    # ──────────────────────────────────────────────────────────────
+    # Private helpers
+    # ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _sync_payment_verification(
+        cls,
+        registration: Registration,
+        new_status: str,
+        *,
+        verified_by=None,
+        rejected_by=None,
+    ) -> None:
+        """Keep PaymentVerification.status in sync with Payment actions.
+
+        The PaymentVerification model is what the participants tab reads from
+        via ``_payment_status_label()``.  Without this sync, verifying a
+        payment through the Payments tab would leave the Participants tab
+        still showing "Pending".
+        """
+        try:
+            pv = registration.payment_verification
+        except Exception:
+            return  # No PV record — nothing to sync
+
+        update_fields = ["status"]
+        pv.status = new_status
+
+        if new_status == "verified" and verified_by:
+            pv.verified_by = verified_by
+            pv.verified_at = timezone.now()
+            update_fields += ["verified_by", "verified_at"]
+        elif new_status == "rejected" and rejected_by:
+            pv.rejected_by = rejected_by
+            pv.rejected_at = timezone.now()
+            update_fields += ["rejected_by", "rejected_at"]
+
+        pv.save(update_fields=update_fields)
 
     # ──────────────────────────────────────────────────────────────
     # Private serializers

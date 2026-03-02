@@ -269,6 +269,10 @@ class TOCParticipantService:
             verified_by=actor,
             admin_notes='Verified via TOC',
         )
+
+        # Sync PaymentVerification status so participants tab reflects change
+        cls._sync_payment_verification(reg, "verified", actor)
+
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)
 
@@ -570,6 +574,25 @@ class TOCParticipantService:
             return pv.get_status_display() if pv else 'None'
         except Exception:
             return 'None'
+
+    @classmethod
+    def _sync_payment_verification(cls, reg: Registration, new_status: str, actor=None) -> None:
+        """Keep PaymentVerification.status in sync after a Payment action."""
+        try:
+            pv = reg.payment_verification
+        except Exception:
+            return
+        update_fields = ["status"]
+        pv.status = new_status
+        if new_status == "verified" and actor:
+            pv.verified_by = actor
+            pv.verified_at = timezone.now()
+            update_fields += ["verified_by", "verified_at"]
+        elif new_status == "rejected" and actor:
+            pv.rejected_by = actor
+            pv.rejected_at = timezone.now()
+            update_fields += ["rejected_by", "rejected_at"]
+        pv.save(update_fields=update_fields)
 
     @classmethod
     def _get_payment_info(cls, reg: Registration) -> Optional[Dict[str, Any]]:
