@@ -630,7 +630,10 @@
   'use strict';
 
   const TOURNAMENT_ID = {{ tournament_id }};
-  const WS_PATH = '{{ ws_url }}';
+
+  // ── Dynamic WebSocket URL — works on any host/port, local & production ──
+  const WS_SCHEME = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const WS_URL = WS_SCHEME + window.location.host + '/ws/tournament/' + TOURNAMENT_ID + '/group-draw/';
 
   let ws = null;
   let session = null;
@@ -641,8 +644,8 @@
   // ══════════════════════════════════════════════
 
   function connect() {
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(proto + '//' + location.host + WS_PATH);
+    console.log('[Spectator] Connecting to', WS_URL);
+    ws = new WebSocket(WS_URL);
     setWsStatus('connecting');
 
     ws.onopen = () => { setWsStatus('connected'); console.log('[Spectator] Connected'); };

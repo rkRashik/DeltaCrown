@@ -846,25 +846,30 @@ ASGI_APPLICATION = 'deltacrown.asgi.application'
 # -----------------------------------------------------------------------------
 # Django Channels Configuration (Phase 2: Real-Time Features)
 # -----------------------------------------------------------------------------
-CHANNEL_LAYERS = {
-    'default': {
-        # Use Redis for production/development with Redis running
-        # Falls back to InMemory for testing or when Redis unavailable
-        'BACKEND': os.getenv(
-            'CHANNEL_LAYERS_BACKEND',
-            'channels_redis.core.RedisChannelLayer' if not DEBUG or os.getenv('USE_REDIS_CHANNELS') else 'channels.layers.InMemoryChannelLayer'
-        ),
-        'CONFIG': {
-            "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379/0')] if os.getenv('REDIS_URL') else [(
-                os.getenv('CHANNEL_LAYERS_HOST', 'localhost'),
-                int(os.getenv('CHANNEL_LAYERS_PORT', 6379))
-            )],
-            # Connection pool settings
-            "capacity": 1500,  # Maximum messages in queue
-            "expiry": 10,      # Message expiry in seconds
-        } if not DEBUG or os.getenv('USE_REDIS_CHANNELS') else {}
+# Production (DEBUG=False): Redis via REDIS_URL env var (Upstash/Render)
+# Development (DEBUG=True) : InMemoryChannelLayer (no Redis needed locally)
+# Override dev → Redis:     set USE_REDIS_CHANNELS=1 in .env
+# -----------------------------------------------------------------------------
+_USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
+_REDIS_CHANNEL_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+if _USE_REDIS_CHANNELS:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [_REDIS_CHANNEL_URL],
+                'capacity': 1500,
+                'expiry': 10,
+            },
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
 
 # -----------------------------------------------------------------------------
 # WebSocket Rate Limiting Configuration (Module 2.5)

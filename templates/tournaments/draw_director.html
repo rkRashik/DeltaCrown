@@ -767,7 +767,10 @@
   'use strict';
 
   const TOURNAMENT_ID = {{ tournament_id }};
-  const WS_PATH = '{{ ws_url }}';
+
+  // ── Dynamic WebSocket URL — works on any host/port, local & production ──
+  const WS_SCHEME = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const WS_URL = WS_SCHEME + window.location.host + '/ws/tournament/' + TOURNAMENT_ID + '/group-draw/';
 
   // ── Pre-loaded from Django context (server-rendered) ──
   const GROUPS_DATA = {{ groups_json|safe }};
@@ -808,10 +811,9 @@
 
   function connect() {
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = proto + '//' + location.host + WS_PATH;
     setWsStatus('connecting');
-    ws = new WebSocket(url);
+    console.log('[DrawDirector] Connecting to', WS_URL);
+    ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
       wsConnected = true;
