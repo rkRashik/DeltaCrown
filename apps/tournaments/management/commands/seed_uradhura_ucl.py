@@ -22,6 +22,7 @@ Usage:
     python manage.py seed_uradhura_ucl
     python manage.py seed_uradhura_ucl --purge
     python manage.py seed_uradhura_ucl --purge --with-results
+    python manage.py seed_uradhura_ucl --purge --pre-draw
     python manage.py seed_uradhura_ucl --game cs2
     python manage.py seed_uradhura_ucl --dry-run
 """
@@ -147,6 +148,14 @@ class Command(BaseCommand):
             help="After generating matches, inject random match results and recalculate standings.",
         )
         parser.add_argument(
+            "--pre-draw",
+            action="store_true",
+            default=False,
+            help="Stop BEFORE group assignment (step 9). Leaves 32 confirmed "
+                 "participants in the pending queue and 8 groups empty — "
+                 "ready for the Live Draw Director.",
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
             default=False,
@@ -163,10 +172,11 @@ class Command(BaseCommand):
         if hasattr(sys.stderr, 'reconfigure'):
             sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-        purge       = options["purge"]
-        game_slug   = options["game"]
+        purge        = options["purge"]
+        game_slug    = options["game"]
         with_results = options["with_results"]
-        dry_run     = options["dry_run"]
+        pre_draw     = options["pre_draw"]
+        dry_run      = options["dry_run"]
 
         self.stdout.write(_header("UraDhura UCL Seeder"))
 
@@ -178,7 +188,7 @@ class Command(BaseCommand):
             self._purge_existing()
 
         if dry_run:
-            self._print_plan(game_slug, with_results)
+            self._print_plan(game_slug, with_results, pre_draw)
             return
 
         # --- run inside a single atomic block --------------------------------
@@ -193,13 +203,24 @@ class Command(BaseCommand):
                 regs        = self._register_players(tournament, players)
                 payments    = self._submit_payments(regs, tournament)
                 self._verify_payments(payments, organizer)
-                groups      = self._assign_to_groups(stage, players)
-                match_count = self._generate_matches(stage)
 
-                if with_results:
-                    self._inject_results(tournament, stage)
+                if pre_draw:
+                    # ── STOP before group assignment ──
+                    # Leave 32 confirmed participants in the pending queue
+                    # and 8 groups completely empty for Live Draw testing.
+                    groups = list(
+                        Group.objects.filter(tournament=stage.tournament)
+                        .order_by("display_order")
+                    )
+                    self._print_pre_draw_summary(tournament, stage, groups)
+                else:
+                    groups      = self._assign_to_groups(stage, players)
+                    match_count = self._generate_matches(stage)
 
-                self._print_summary(tournament, stage, groups, match_count, with_results)
+                    if with_results:
+                        self._inject_results(tournament, stage)
+
+                    self._print_summary(tournament, stage, groups, match_count, with_results)
 
         except Exception as exc:
             raise CommandError(f"Seeder failed: {exc}") from exc
@@ -580,6 +601,48 @@ class Command(BaseCommand):
 
     # ── summary output ────────────────────────────────────────────────────────
 
+    def _print_pre_draw_summary(self, tournament, stage, groups):
+        """Summary when --pre-draw stops BEFORE group assignment."""
+        verified = Payment.objects.filter(
+            registration__tournament=tournament, status=Payment.VERIFIED
+        ).count()
+        submitted = Payment.objects.filter(
+            registration__tournament=tournament, status=Payment.SUBMITTED
+        ).count()
+        confirmed_regs = Registration.objects.filter(
+            tournament=tournament, status=Registration.CONFIRMED
+        ).count()
+        assigned = sum(
+            g.standings.filter(is_deleted=False).count() for g in groups
+        )
+
+        self.stdout.write(_header("Pre-Draw Seed Complete"))
+        self.stdout.write(f"  Tournament : {tournament.name}")
+        self.stdout.write(f"  ID         : {tournament.id}")
+        self.stdout.write(f"  Slug       : {tournament.slug}")
+        self.stdout.write(f"  Format     : {tournament.format}")
+        self.stdout.write(f"  Status     : {tournament.status}")
+        self.stdout.write(f"  Game       : {tournament.game.name}")
+        self.stdout.write(f"  Entry fee  : {ENTRY_FEE} {ENTRY_FEE_CURRENCY} (bKash)")
+        self.stdout.write(f"  GroupStage : id={stage.id} (double round-robin)")
+        self.stdout.write(f"  Groups     : {len(groups)} ({GROUP_SIZE} slots each)")
+        self.stdout.write(f"  Assigned   : {assigned} (should be 0)")
+        self.stdout.write(f"  Matches    : 0 (not generated yet)")
+        self.stdout.write(f"  Payments   : {verified} verified, {submitted} pending verification")
+        self.stdout.write(f"  Confirmed  : {confirmed_regs} / 32 registrations")
+        self.stdout.write("")
+        self.stdout.write(self.style.SUCCESS(
+            "  [OK] Pre-draw seed complete. Groups are EMPTY.\n"
+        ))
+        self.stdout.write(
+            "  Ready for Live Draw:\n"
+            "    \u2022 Director  : /tournaments/{slug}/draw/director/\n"
+            "    \u2022 Spectator : /tournaments/{slug}/draw/live/\n"
+            "    \u2022 Click \u2018Start Live Draw\u2019 to begin the WebSocket ceremony.\n"
+            "    \u2022 All 32 confirmed players will appear in the pending queue.\n"
+            .format(slug=tournament.slug)
+        )
+
     def _print_summary(self, tournament, stage, groups, match_count, with_results):
         verified = Payment.objects.filter(
             registration__tournament=tournament, status=Payment.VERIFIED
@@ -623,7 +686,7 @@ class Command(BaseCommand):
             .format(slug=tournament.slug)
         )
 
-    def _print_plan(self, game_slug: str, with_results: bool):
+    def _print_plan(self, game_slug: str, with_results: bool, pre_draw: bool = False):
         pairings = GROUP_SIZE * (GROUP_SIZE - 1) // 2
         self.stdout.write(_header("Dry-Run Plan"))
         self.stdout.write(f"  Game slug       : {game_slug}")
@@ -637,6 +700,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Total advancers : {NUM_GROUPS * ADVANCEMENT_PER_GROUP}")
         self.stdout.write(f"  Expected matches: {NUM_GROUPS * pairings * RR_ROUNDS} (double RR)")
         self.stdout.write(f"  Payment plan    : 27 auto-verified, {UNVERIFIED_COUNT} left as SUBMITTED")
+        self.stdout.write(f"  Pre-draw mode   : {pre_draw}")
         self.stdout.write(f"  With results    : {with_results}")
         self.stdout.write("")
         self.stdout.write("  Steps that WOULD run:")
@@ -649,14 +713,19 @@ class Command(BaseCommand):
             "6.  RegistrationService.register_participant() × 32",
             "7.  RegistrationService.submit_payment(bkash, BKASH_TXN_xxx) × 32",
             f"8.  RegistrationService.verify_payment() × 27  (leave {UNVERIFIED_COUNT} SUBMITTED)",
-            "9.  GroupStageService.assign_participant() × 32",
-            "10. GroupStageService.generate_group_matches(rounds=2) → 96 matches",
         ]
-        if with_results:
+        if pre_draw:
+            steps.append("──  STOP (--pre-draw): groups left empty for Live Draw")
+        else:
             steps += [
-                "11. Inject random match scores (Match.state → COMPLETED)",
-                "12. GroupStageService.calculate_group_standings(stage_id)",
+                "9.  GroupStageService.assign_participant() × 32",
+                "10. GroupStageService.generate_group_matches(rounds=2) → 96 matches",
             ]
+            if with_results:
+                steps += [
+                    "11. Inject random match scores (Match.state → COMPLETED)",
+                    "12. GroupStageService.calculate_group_standings(stage_id)",
+                ]
         for s in steps:
             self.stdout.write(f"    {s}")
         self.stdout.write("")

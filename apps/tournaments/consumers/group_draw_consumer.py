@@ -71,6 +71,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         handlers = {
             "init_draw": self._handle_init_draw,
             "draw_next": self._handle_draw_next,
+            "manual_assign": self._handle_manual_assign,
             "assign_override": self._handle_assign_override,
             "finalize_draw": self._handle_finalize_draw,
             "abort_draw": self._handle_abort_draw,
@@ -196,6 +197,75 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "drawn_count": session["drawn_count"],
             "remaining": len(session["queue"]),
             "total": session["total"],
+        })
+
+    async def _handle_manual_assign(self, content):
+        """Pick a specific player from the queue and assign to a chosen group.
+
+        Sent by the Director in Manual Pick mode. Unlike ``draw_next`` which
+        pops from the front of the queue and round-robins, this lets the
+        organizer choose *who* goes *where*.  The broadcast event is the same
+        ``player_drawn`` so Director and Spectator UIs behave uniformly.
+        """
+        session = await self._get_session()
+        if not session:
+            await self.send_json({"type": "error", "message": "No active draw session."})
+            return
+
+        player_user_id = content.get("player_user_id")
+        target_group = content.get("target_group")
+
+        if not player_user_id or not target_group:
+            await self.send_json({
+                "type": "error",
+                "message": "manual_assign requires player_user_id and target_group.",
+            })
+            return
+
+        if target_group not in session["groups"]:
+            await self.send_json({"type": "error", "message": f"Invalid group: {target_group}"})
+            return
+
+        if len(session["assignments"].get(target_group, [])) >= session["group_size"]:
+            await self.send_json({"type": "error", "message": f"{target_group} is already full."})
+            return
+
+        # Find and remove the player from the queue
+        found_idx = None
+        for i, p in enumerate(session["queue"]):
+            if p.get("user_id") == player_user_id:
+                found_idx = i
+                break
+
+        if found_idx is None:
+            await self.send_json({"type": "error", "message": "Player not found in queue."})
+            return
+
+        player = session["queue"].pop(found_idx)
+        session["assignments"][target_group].append(player)
+        session["drawn_count"] += 1
+
+        # Recompute next_group_index (find first non-full group)
+        session["next_group_index"] = 0
+        for i, g in enumerate(session["groups"]):
+            if len(session["assignments"][g]) < session["group_size"]:
+                session["next_group_index"] = i
+                break
+            session["next_group_index"] = i + 1
+
+        await self._save_session(session)
+
+        # Broadcast player_drawn (same event as draw_next for uniform UI)
+        await self.channel_layer.group_send(self.group_name, {
+            "type": "group_draw.player_drawn",
+            "player": player,
+            "assigned_group": target_group,
+            "group_slot": len(session["assignments"][target_group]),
+            "group_count": len(session["assignments"][target_group]),
+            "drawn_count": session["drawn_count"],
+            "remaining": len(session["queue"]),
+            "total": session["total"],
+            "manual": True,
         })
 
     async def _handle_assign_override(self, content):

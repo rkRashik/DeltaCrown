@@ -43,7 +43,7 @@ def notify_registration_confirmed(event):
         Notification = apps.get_model("notifications", "Notification")
         
         registration = Registration.objects.select_related(
-            'tournament', 'user', 'team', 'team__captain'
+            'tournament', 'user'
         ).get(id=registration_id)
         
         recipients = []

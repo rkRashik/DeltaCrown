@@ -148,7 +148,9 @@
         + '<a href="/tournaments/' + slug + '/draw/director/" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-theme/20">'
         + '<i data-lucide="radio" class="w-4 h-4"></i> Start Live Draw Director</a>'
         + '<a href="/tournaments/' + slug + '/draw/live/" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-xl hover:border-dc-borderLight transition-colors">'
-        + '<i data-lucide="eye" class="w-4 h-4"></i> Spectator Link</a></div></div>'
+        + '<i data-lucide="eye" class="w-4 h-4"></i> Spectator Link</a></div>'
+        + '<button onclick="TOC.brackets.showDrawGuide()" class="mt-4 text-[10px] text-dc-text/50 hover:text-white transition cursor-pointer flex items-center justify-center gap-1">'
+        + '<i data-lucide="help-circle" class="w-3 h-3"></i> How does the Live Draw work?</button></div>'
         + (data.groups.length > 0 ? '<div class="border-t border-dc-border/30 px-8 py-5">'
         + '<p class="text-[10px] font-mono text-dc-text/50 uppercase tracking-widest mb-3">Group Pool Overview</p>'
         + '<div class="flex flex-wrap gap-2">' + poolChips + '</div></div>' : '')
@@ -158,6 +160,10 @@
     }
 
     // POST-DRAW: Masonry grid
+
+    // Format Info Panel
+    var formatInfoHtml = buildFormatInfoPanel(data);
+
     var cols = data.groups.length <= 4 ? 2 : data.groups.length <= 6 ? 3 : 4;
     var colClass = 'grid grid-cols-1 md:grid-cols-2'
       + (cols >= 3 ? ' lg:grid-cols-3' : '')
@@ -204,7 +210,7 @@
         + '</div></div></div>';
     }
 
-    container.innerHTML = '<div class="' + colClass + '">' + cardsHtml + '</div>' + auditHtml + extra;
+    container.innerHTML = formatInfoHtml + '<div class="' + colClass + '">' + cardsHtml + '</div>' + auditHtml + extra;
     iconsRefresh();
   }
 
@@ -815,6 +821,101 @@
   }
 
   /* ================================================================
+   *  FORMAT INFO PANEL
+   * ================================================================ */
+  function buildFormatInfoPanel(data) {
+    if (!data || !data.stage) return '';
+    var stage = data.stage;
+    var format = stage.format || 'round_robin';
+    var formatLabel = format === 'double_round_robin' ? 'Double Round-Robin'
+      : format === 'round_robin' ? 'Round-Robin' : format.replace(/_/g, ' ');
+    var advPerGroup = stage.advancement_count_per_group || 2;
+    var config = stage.config || {};
+    var pointsSys = config.points_system || {};
+    var tiebreakers = config.tiebreaker_rules || ['head_to_head', 'goal_difference', 'goals_for'];
+    var tiebreakerLabels = {
+      head_to_head: 'Head-to-Head', goal_difference: 'Goal Difference',
+      goals_for: 'Goals For', goals_against: 'Goals Against',
+      wins: 'Wins', fair_play: 'Fair Play', drawing_of_lots: 'Drawing of Lots',
+    };
+    var tbStr = tiebreakers.map(function(t) { return tiebreakerLabels[t] || t.replace(/_/g, ' '); }).join(' \u2192 ');
+
+    var items = [
+      { icon: 'layout-grid', label: 'Format', value: formatLabel },
+      { icon: 'trophy', label: 'Advancing', value: 'Top ' + advPerGroup + ' per group' },
+    ];
+    if (tiebreakers.length > 0) {
+      items.push({ icon: 'scale', label: 'Tiebreakers', value: 'Points \u2192 ' + tbStr });
+    }
+    if (pointsSys.win != null) {
+      items.push({ icon: 'hash', label: 'Points', value: 'W=' + (pointsSys.win || 3)
+        + '  D=' + (pointsSys.draw != null ? pointsSys.draw : 1)
+        + '  L=' + (pointsSys.loss != null ? pointsSys.loss : 0) });
+    }
+
+    var chips = items.map(function(it) {
+      return '<div class="flex items-center gap-2 px-3 py-2 bg-dc-bg/50 border border-dc-border/30 rounded-lg">'
+        + '<i data-lucide="' + it.icon + '" class="w-3 h-3 text-dc-text/40 flex-shrink-0"></i>'
+        + '<span class="text-[10px] text-dc-text/60 font-bold uppercase tracking-widest">' + it.label + '</span>'
+        + '<span class="text-[11px] text-white/80 font-medium">' + it.value + '</span></div>';
+    }).join('');
+
+    return '<div class="mb-5 p-4 glass-box rounded-xl border border-dc-border/30 bg-gradient-to-r from-dc-panel/20 to-transparent">'
+      + '<div class="flex flex-wrap gap-2">' + chips + '</div></div>';
+  }
+
+  /* ================================================================
+   *  DRAW GUIDE MODAL
+   * ================================================================ */
+  function showDrawGuide() {
+    var html = '<div class="p-6 space-y-5 max-w-lg">'
+      + '<div class="flex items-center gap-3 mb-2">'
+      + '<div class="w-10 h-10 rounded-xl bg-theme/10 border border-theme/20 flex items-center justify-center">'
+      + '<i data-lucide="help-circle" class="w-5 h-5 text-theme/70"></i></div>'
+      + '<h3 class="font-display font-black text-lg text-white">How does the Live Draw work?</h3></div>'
+
+      + '<div class="space-y-3 text-sm text-dc-text leading-relaxed">'
+
+      + '<div class="flex gap-3">'
+      + '<div class="w-6 h-6 rounded-full bg-theme/10 border border-theme/20 flex items-center justify-center flex-shrink-0 mt-0.5">'
+      + '<span class="text-theme text-[10px] font-black">1</span></div>'
+      + '<div><span class="text-white font-semibold">Real-Time WebSocket Broadcast</span>'
+      + '<p class="text-dc-text/70 text-xs mt-1">The draw is broadcast live to all connected spectators via WebSocket. '
+      + 'Every draw action is instantly visible to everyone watching.</p></div></div>'
+
+      + '<div class="flex gap-3">'
+      + '<div class="w-6 h-6 rounded-full bg-theme/10 border border-theme/20 flex items-center justify-center flex-shrink-0 mt-0.5">'
+      + '<span class="text-theme text-[10px] font-black">2</span></div>'
+      + '<div><span class="text-white font-semibold">CS:GO Lottery Spinner</span>'
+      + '<p class="text-dc-text/70 text-xs mt-1">Each player is drawn with a cinematic CS:GO-style spinning reel animation. '
+      + 'The spinner scrolls through all remaining players before landing on the selected one.</p></div></div>'
+
+      + '<div class="flex gap-3">'
+      + '<div class="w-6 h-6 rounded-full bg-theme/10 border border-theme/20 flex items-center justify-center flex-shrink-0 mt-0.5">'
+      + '<span class="text-theme text-[10px] font-black">3</span></div>'
+      + '<div><span class="text-white font-semibold">Spectator Link</span>'
+      + '<p class="text-dc-text/70 text-xs mt-1">Share the spectator URL with players and fans. '
+      + 'They\'ll see a polished waiting screen until the director starts the draw, then watch live.</p></div></div>'
+
+      + '<div class="flex gap-3">'
+      + '<div class="w-6 h-6 rounded-full bg-theme/10 border border-theme/20 flex items-center justify-center flex-shrink-0 mt-0.5">'
+      + '<span class="text-theme text-[10px] font-black">4</span></div>'
+      + '<div><span class="text-white font-semibold">Cryptographic Audit Hash</span>'
+      + '<p class="text-dc-text/70 text-xs mt-1">When finalized, a SHA-256 hash of all group assignments is computed and stored. '
+      + 'This creates an immutable, tamper-evident record proving the draw results were not altered.</p></div></div>'
+
+      + '<div class="flex gap-3">'
+      + '<div class="w-6 h-6 rounded-full bg-theme/10 border border-theme/20 flex items-center justify-center flex-shrink-0 mt-0.5">'
+      + '<span class="text-theme text-[10px] font-black">5</span></div>'
+      + '<div><span class="text-white font-semibold">Manual Pick Mode</span>'
+      + '<p class="text-dc-text/70 text-xs mt-1">Directors can switch to Manual Pick mode to hand-select which player goes into which group, '
+      + 'bypassing the spinner for seeded or invited players.</p></div></div>'
+
+      + '</div></div>';
+    showOverlay('draw-guide', html);
+  }
+
+  /* ================================================================
    *  INIT
    * ================================================================ */
   function init() {
@@ -830,6 +931,7 @@
     generatePlayoffs: generatePlayoffs, startLiveDraw: startLiveDraw, switchSubTab: switchSubTab,
     refreshPipelines: refreshPipelines, openCreatePipeline: openCreatePipeline, confirmCreatePipeline: confirmCreatePipeline,
     deletePipeline: deletePipeline, closeOverlay: closeOverlay, onMatchCardClick: onMatchCardClick,
+    showDrawGuide: showDrawGuide,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

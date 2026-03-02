@@ -273,6 +273,7 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     min-height: 60vh;
+    position: relative;
   }
   .waiting-icon {
     width: 80px; height: 80px;
@@ -283,6 +284,104 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
   }
+
+  /* Waiting: branding card */
+  .waiting-brand-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 24px;
+    padding: 48px 40px 40px;
+    text-align: center;
+    max-width: 520px;
+    position: relative;
+    overflow: hidden;
+  }
+  .waiting-brand-card::before {
+    content: ''; position: absolute; inset: -1px;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg, rgba(0,255,170,0.15) 30deg,
+      transparent 80deg, rgba(255,200,50,0.1) 170deg,
+      transparent 220deg, rgba(0,100,255,0.1) 300deg,
+      transparent 360deg
+    );
+    border-radius: 24px;
+    animation: waitGlow 8s linear infinite;
+    z-index: -1;
+    filter: blur(1px);
+  }
+  @keyframes waitGlow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .waiting-brand-card::after {
+    content: ''; position: absolute; inset: 1px;
+    background: linear-gradient(135deg, #0d1117, #161b22);
+    border-radius: 23px;
+    z-index: -1;
+  }
+
+  /* Floating particles */
+  .waiting-particles {
+    position: absolute; inset: 0; overflow: hidden;
+    pointer-events: none; z-index: 0;
+  }
+  .waiting-particles span {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(0,255,170,0.3);
+    border-radius: 50%;
+    animation: particleDrift 12s linear infinite;
+  }
+  .waiting-particles span:nth-child(2n) { background: rgba(255,200,50,0.2); animation-duration: 16s; }
+  .waiting-particles span:nth-child(3n) { background: rgba(100,150,255,0.2); animation-duration: 20s; width: 3px; height: 3px; }
+  @keyframes particleDrift {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-20vh) translateX(40px); opacity: 0; }
+  }
+
+  /* Pulse rings behind icon */
+  .waiting-pulse-rings {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    width: 120px; height: 120px;
+  }
+  .waiting-pulse-rings::before,
+  .waiting-pulse-rings::after {
+    content: ''; position: absolute;
+    border: 1px solid rgba(0,255,170,0.08);
+    border-radius: 50%;
+    animation: waitPulse 4s ease-out infinite;
+  }
+  .waiting-pulse-rings::before { width: 100%; height: 100%; animation-delay: 0s; }
+  .waiting-pulse-rings::after { width: 100%; height: 100%; animation-delay: 2s; }
+  @keyframes waitPulse {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* Status badge */
+  .waiting-status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,200,50,0.2);
+    background: rgba(255,200,50,0.05);
+    font-family: 'Space Grotesk', monospace;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #ffc832;
+  }
+  .waiting-status-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #ffc832;
+    animation: blink 1.5s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   /* ── Draw Complete celebrations ── */
   .complete-screen {
@@ -441,12 +540,64 @@
 
     {# ━━━ Waiting Screen ━━━ #}
     <div id="waiting-screen" class="waiting-screen">
-      <i data-lucide="dice-5" class="waiting-icon"></i>
-      <h2 class="font-display font-black text-2xl text-white/20 mt-6">Waiting for Draw</h2>
-      <p class="text-gray-600 text-sm mt-2">The organizer will begin the group draw shortly…</p>
-      <div class="mt-4 flex items-center gap-2">
-        <div class="w-1.5 h-1.5 rounded-full bg-[#ffc832] animate-pulse"></div>
-        <span class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Standing by</span>
+      {# Floating particles #}
+      <div class="waiting-particles">
+        <span style="left:10%;animation-delay:0s"></span>
+        <span style="left:25%;animation-delay:2s"></span>
+        <span style="left:40%;animation-delay:4s"></span>
+        <span style="left:55%;animation-delay:1s"></span>
+        <span style="left:70%;animation-delay:6s"></span>
+        <span style="left:85%;animation-delay:3s"></span>
+        <span style="left:15%;animation-delay:8s"></span>
+        <span style="left:60%;animation-delay:5s"></span>
+        <span style="left:90%;animation-delay:7s"></span>
+        <span style="left:35%;animation-delay:9s"></span>
+      </div>
+
+      <div class="waiting-brand-card">
+        {# Pulse rings behind icon #}
+        <div class="waiting-pulse-rings mx-auto mb-6">
+          <i data-lucide="dice-5" class="waiting-icon" style="position:relative;z-index:1"></i>
+        </div>
+
+        {# Tournament branding #}
+        <h2 class="font-display font-black text-2xl text-white mb-1">{{ tournament.name }}</h2>
+        <p class="text-xs text-dc-text/50 font-mono uppercase tracking-widest mb-6">
+          Group Stage &middot; Live Draw
+        </p>
+
+        {# Main message #}
+        <div class="text-lg font-display font-bold text-white/25 mb-3">
+          Broadcast starting soon&hellip;
+        </div>
+        <p class="text-sm text-dc-text/40 max-w-sm mx-auto leading-relaxed mb-6">
+          The organizer will begin the live group draw momentarily.
+          Players will be drawn one by one into their groups with a cinematic reveal.
+        </p>
+
+        {# Status indicator #}
+        <div class="waiting-status-pill mx-auto">
+          <span class="dot"></span>
+          Standing by
+        </div>
+
+        {# Format info #}
+        <div class="mt-6 pt-5 border-t border-white/[0.04] flex flex-wrap items-center justify-center gap-4 text-[10px] text-dc-text/30">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="layout-grid" class="w-3 h-3"></i>
+            {{ tournament.groups.count }} Groups
+          </span>
+          <span class="w-px h-3 bg-white/[0.06]"></span>
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="users" class="w-3 h-3"></i>
+            {{ tournament.registrations.count }} Players
+          </span>
+          <span class="w-px h-3 bg-white/[0.06]"></span>
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-3 h-3"></i>
+            SHA-256 Verified
+          </span>
+        </div>
       </div>
     </div>
 

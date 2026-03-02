@@ -266,6 +266,109 @@
   .ws-disconnected { background: #ff4444; box-shadow: 0 0 8px rgba(255,50,50,0.5); }
   .ws-connecting { background: #ffc832; animation: blink 1s infinite; }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ── Mode Toggle (Random Spin / Manual Pick) ── */
+  .mode-toggle {
+    display: inline-flex;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .mode-btn {
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    transition: all 0.25s;
+    border: none;
+    background: transparent;
+  }
+  .mode-btn.active {
+    background: rgba(0,255,170,0.12);
+    color: #00ffaa;
+    box-shadow: 0 0 12px rgba(0,255,170,0.08);
+  }
+  .mode-btn:hover:not(.active) { color: rgba(255,255,255,0.7); }
+
+  /* ── Clickable queue items in Manual mode ── */
+  .queue-player.pickable {
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 8px;
+    transition: all 0.2s;
+  }
+  .queue-player.pickable:hover {
+    background: rgba(0,255,170,0.06);
+    border-color: rgba(0,255,170,0.2);
+  }
+  .queue-player.pickable.selected {
+    background: rgba(0,255,170,0.12);
+    border-color: #00ffaa;
+  }
+
+  /* ── Group Selector Popup ── */
+  .group-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .group-picker.show { opacity: 1; }
+  .group-picker-card {
+    background: linear-gradient(135deg, #1a1f2e, #0d1117);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 420px;
+    width: 90vw;
+  }
+  .group-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .group-pick-btn {
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .group-pick-btn:hover:not(:disabled) {
+    background: rgba(0,255,170,0.12);
+    border-color: #00ffaa;
+    box-shadow: 0 0 16px rgba(0,255,170,0.15);
+  }
+  .group-pick-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+  .group-pick-btn .pick-count {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
 </style>
 {% endblock %}
 
@@ -332,22 +435,35 @@
           {# Groups A-H rendered by JS #}
         </div>
 
-        {# ━━━ Action Buttons ━━━ #}
-        <div class="flex items-center justify-center gap-6 mt-10">
-          <button id="btn-init-draw" onclick="DrawDirector.initDraw()" class="draw-btn" style="display:block">
-            <span class="pulse-ring"></span>
-            <i data-lucide="shuffle" class="w-6 h-6 inline mr-2"></i> Initialize Draw
-          </button>
-          <button id="btn-draw-next" onclick="DrawDirector.drawNext()" class="draw-btn" style="display:none" disabled>
-            <span class="pulse-ring"></span>
-            <i data-lucide="dice-5" class="w-6 h-6 inline mr-2"></i> Draw Next Player
-          </button>
-          <button id="btn-finalize" onclick="DrawDirector.finalize()" class="finalize-btn" style="display:none" disabled>
-            <i data-lucide="check-circle" class="w-5 h-5 inline mr-2"></i> Finalize & Generate Matches
-          </button>
-          <button id="btn-abort" onclick="DrawDirector.abort()" class="text-xs text-gray-600 hover:text-red-400 transition ml-4" style="display:none">
-            <i data-lucide="x-circle" class="w-4 h-4 inline mr-1"></i> Abort Draw
-          </button>
+        {# ━━━ Mode Toggle + Action Buttons ━━━ #}
+        <div class="flex flex-col items-center gap-4 mt-10">
+          <div id="mode-toggle" class="mode-toggle" style="display:none">
+            <button class="mode-btn active" data-mode="random" onclick="DrawDirector.setMode('random')">
+              <i data-lucide="dice-5" class="w-3.5 h-3.5 inline mr-1"></i> Random Spin
+            </button>
+            <button class="mode-btn" data-mode="manual" onclick="DrawDirector.setMode('manual')">
+              <i data-lucide="mouse-pointer-click" class="w-3.5 h-3.5 inline mr-1"></i> Manual Pick
+            </button>
+          </div>
+          <div class="flex items-center justify-center gap-6">
+            <button id="btn-init-draw" onclick="DrawDirector.initDraw()" class="draw-btn" style="display:block">
+              <span class="pulse-ring"></span>
+              <i data-lucide="shuffle" class="w-6 h-6 inline mr-2"></i> Initialize Draw
+            </button>
+            <button id="btn-draw-next" onclick="DrawDirector.drawNext()" class="draw-btn" style="display:none" disabled>
+              <span class="pulse-ring"></span>
+              <i data-lucide="dice-5" class="w-6 h-6 inline mr-2"></i> Draw Next Player
+            </button>
+            <button id="btn-finalize" onclick="DrawDirector.finalize()" class="finalize-btn" style="display:none" disabled>
+              <i data-lucide="check-circle" class="w-5 h-5 inline mr-2"></i> Finalize & Generate Matches
+            </button>
+            <button id="btn-abort" onclick="DrawDirector.abort()" class="text-xs text-gray-600 hover:text-red-400 transition ml-4" style="display:none">
+              <i data-lucide="x-circle" class="w-4 h-4 inline mr-1"></i> Abort Draw
+            </button>
+          </div>
+          <div id="manual-hint" class="text-xs text-gray-500 italic" style="display:none">
+            Click a player in the queue, then choose a group.
+          </div>
         </div>
       </div>
 
@@ -403,6 +519,8 @@
   let ws = null;
   let session = null;
   let drawInProgress = false;
+  let drawMode = 'random';       // 'random' | 'manual'
+  let selectedPlayer = null;     // { user_id, display_name, ... } when a queue item is clicked
 
   // ══════════════════════════════════════════════
   // WebSocket
@@ -545,8 +663,10 @@
     const winnerName = p.display_name || p.name || '???';
     if (!poolNames.includes(winnerName)) poolNames.push(winnerName);
 
-    // Launch lottery spinner, then proceed with slot fill
-    showLotterySpinner(poolNames, winnerName, group, function() {
+    // In manual mode OR if msg.manual flag, skip the lottery spinner
+    const isManual = drawMode === 'manual' || msg.manual;
+
+    function applyDrawResult() {
       // Animate: highlight receiving group
       const card = document.querySelector(`[data-group="${group}"]`);
       if (card) {
@@ -573,7 +693,16 @@
       }
 
       drawInProgress = false;
-    });
+      selectedPlayer = null;
+    }
+
+    if (isManual) {
+      // Instant slot fill, no spinner
+      applyDrawResult();
+    } else {
+      // Launch lottery spinner, then proceed with slot fill
+      showLotterySpinner(poolNames, winnerName, group, applyDrawResult);
+    }
   }
 
   function onPlayerOverride(msg) {
@@ -671,12 +800,19 @@
       return;
     }
     list.innerHTML = participants.map((p, i) => `
-      <div class="queue-player flex items-center gap-2" data-queue-id="${p.user_id || p.registration_id}">
+      <div class="queue-player flex items-center gap-2 ${drawMode === 'manual' ? 'pickable' : ''}"
+           data-queue-id="${p.user_id || p.registration_id}"
+           data-player-json='${JSON.stringify(p).replace(/'/g, "&#39;")}'>
         <span class="text-gray-600 font-mono text-[10px] w-5">${i + 1}</span>
         <span class="text-white/70 text-xs font-medium truncate">${p.display_name || p.name}</span>
       </div>
     `).join('');
     document.getElementById('queue-badge').textContent = participants.length;
+
+    // Attach click handlers for manual mode
+    if (drawMode === 'manual') {
+      attachQueueClickHandlers();
+    }
   }
 
   function removeFromQueue(id) {
@@ -724,9 +860,11 @@
 
   function showDrawControls(show) {
     document.getElementById('btn-init-draw').style.display = show ? 'none' : 'block';
-    document.getElementById('btn-draw-next').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('btn-draw-next').style.display = (show && drawMode === 'random') ? 'inline-flex' : 'none';
     document.getElementById('btn-finalize').style.display = show ? 'inline-flex' : 'none';
     document.getElementById('btn-abort').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('mode-toggle').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('manual-hint').style.display = (show && drawMode === 'manual') ? 'block' : 'none';
   }
 
   function updateDrawButton(enabled) {
@@ -865,6 +1003,93 @@
       if (!confirm('Abort the draw? All assignments will be discarded.')) return;
       send({ action: 'abort_draw' });
     },
+    setMode(mode) {
+      drawMode = mode;
+      selectedPlayer = null;
+      // Update toggle buttons
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      // Show/hide relevant controls
+      const isManual = mode === 'manual';
+      document.getElementById('btn-draw-next').style.display = isManual ? 'none' : 'inline-flex';
+      document.getElementById('manual-hint').style.display = isManual ? 'block' : 'none';
+      // Re-render queue with or without pickable class
+      if (session && session.queue) renderQueue(session.queue);
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
+    manualAssign(playerUserId, targetGroup) {
+      if (drawInProgress) return;
+      drawInProgress = true;
+      send({ action: 'manual_assign', player_user_id: playerUserId, target_group: targetGroup });
+      setTimeout(() => { drawInProgress = false; }, 5000);
+    },
+  };
+
+  // ══════════════════════════════════════════════
+  // Manual Pick: Queue click handlers + group picker
+  // ══════════════════════════════════════════════
+
+  function attachQueueClickHandlers() {
+    document.querySelectorAll('#queue-list .queue-player.pickable').forEach(el => {
+      el.addEventListener('click', () => {
+        // Deselect previous
+        document.querySelectorAll('.queue-player.selected').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+        try {
+          selectedPlayer = JSON.parse(el.dataset.playerJson);
+        } catch (_) { return; }
+        showGroupPicker(selectedPlayer);
+      });
+    });
+  }
+
+  function showGroupPicker(player) {
+    // Remove existing picker if any
+    document.getElementById('group-picker-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'group-picker-overlay';
+    overlay.className = 'group-picker';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeGroupPicker(); });
+
+    const groups = session ? session.groups : [];
+    const groupSize = session ? session.group_size : 4;
+    const assignments = session ? session.assignments : {};
+
+    const btns = groups.map(g => {
+      const count = (assignments[g] || []).length;
+      const full = count >= groupSize;
+      return `<button class="group-pick-btn" ${full ? 'disabled' : ''}
+                      onclick="DrawDirector.manualAssign(${player.user_id}, '${g}'); closeGroupPicker();">
+        Group ${g}
+        <span class="pick-count">${count}/${groupSize}</span>
+      </button>`;
+    }).join('');
+
+    overlay.innerHTML = `
+      <div class="group-picker-card">
+        <div class="text-xs text-gray-500 uppercase tracking-widest mb-1">Assigning</div>
+        <div class="text-white font-display font-bold text-lg">${player.display_name || player.name}</div>
+        <div class="text-xs text-gray-500 mt-1 mb-4">Select a group:</div>
+        <div class="group-picker-grid">${btns}</div>
+        <button onclick="closeGroupPicker()" class="mt-4 text-xs text-gray-500 hover:text-white transition w-full text-center">
+          Cancel
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+  }
+
+  window.closeGroupPicker = function() {
+    const overlay = document.getElementById('group-picker-overlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 300);
+    }
+    document.querySelectorAll('.queue-player.selected').forEach(s => s.classList.remove('selected'));
+    selectedPlayer = null;
   };
 
   // ══════════════════════════════════════════════
