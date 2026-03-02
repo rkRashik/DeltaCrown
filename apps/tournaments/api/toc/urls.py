@@ -196,6 +196,7 @@ urlpatterns = [
     path('<slug:slug>/staff/', rbac.StaffListView.as_view(), name='staff'),
     path('<slug:slug>/staff/<int:pk>/', rbac.StaffDetailView.as_view(), name='staff-detail'),
     path('<slug:slug>/roles/', rbac.RoleListView.as_view(), name='roles'),
+    path('<slug:slug>/users/search/', rbac.UserSearchView.as_view(), name='user-search'),
 
     # ── Permissions (S10-B2) ──
     path('<slug:slug>/permissions/', rbac.PermissionsView.as_view(), name='permissions'),

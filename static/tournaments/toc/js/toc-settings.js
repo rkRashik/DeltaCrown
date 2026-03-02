@@ -86,7 +86,23 @@
         try {
             gameConfigCache = await API.get('settings/game-config/');
             populateSection('settings-game-config', gameConfigCache || {});
+            syncVetoVisibility();
         } catch (e) { console.warn('Game config load error', e); }
+    }
+
+    /** Show/hide veto_type based on enable_veto checkbox state. */
+    function syncVetoVisibility() {
+        const container = document.getElementById('settings-game-config');
+        if (!container) return;
+        const vetoCheckbox = container.querySelector('[data-field="enable_veto"]');
+        const vetoTypeSelect = container.querySelector('[data-field="veto_type"]');
+        if (!vetoCheckbox || !vetoTypeSelect) return;
+
+        function toggle() {
+            vetoTypeSelect.style.display = vetoCheckbox.checked ? '' : 'none';
+        }
+        toggle();
+        vetoCheckbox.addEventListener('change', toggle);
     }
 
     async function saveGameConfig() {
@@ -473,4 +489,9 @@
         confirmEditRulebook,
         saveBRScoring,
     };
+
+    // Auto-init when navigating to Settings tab
+    document.addEventListener('toc:tab-changed', function (e) {
+        if (e.detail?.tab === 'settings') init();
+    });
 })();

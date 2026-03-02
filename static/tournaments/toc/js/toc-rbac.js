@@ -71,8 +71,11 @@
         showOverlay('Assign Staff Member', `
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-dc-text mb-1">User ID</label>
-                    <input id="staff-user-id" type="number" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Enter user ID">
+                    <label class="block text-xs text-dc-text mb-1">Search User (username or email)</label>
+                    <input id="staff-user-search" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Type username or email\u2026" autocomplete="off">
+                    <div id="staff-user-results" class="mt-1 max-h-40 overflow-y-auto hidden border border-dc-border rounded-lg bg-dc-surface"></div>
+                    <input id="staff-user-id" type="hidden">
+                    <div id="staff-user-selected" class="mt-1 text-xs text-dc-success hidden"></div>
                 </div>
                 <div>
                     <label class="block text-xs text-dc-text mb-1">Role</label>
@@ -82,7 +85,53 @@
                 </div>
                 <button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign</button>
             </div>
-        `);
+        ');
+
+        // Wire up live search with debounce
+        let debounce = null;
+        const input = document.getElementById('staff-user-search');
+        if (input) {
+            input.addEventListener('input', function () {
+                clearTimeout(debounce);
+                debounce = setTimeout(() => _searchUsers(input.value.trim()), 300);
+            });
+        }
+    }
+
+    async function _searchUsers (q) {
+        const resultsEl = document.getElementById('staff-user-results');
+        if (!resultsEl) return;
+        if (q.length < 2) { resultsEl.classList.add('hidden'); return; }
+
+        try {
+            const users = await api(`users/search/?q=${encodeURIComponent(q)}`);
+            if (!users.length) {
+                resultsEl.innerHTML = '<div class="p-2 text-xs text-dc-text italic">No users found</div>';
+            } else {
+                resultsEl.innerHTML = users.map(u => `
+                    <button type="button" onclick="TOC.rbac.selectUser(${u.id}, '${esc(u.username).replace(/'/g, "\\'")}', '${esc(u.email).replace(/'/g, "\\'")}')"
+                        class="w-full text-left px-3 py-2 text-sm text-dc-textBright hover:bg-theme/10 flex items-center gap-2 border-b border-dc-border last:border-0">
+                        <span class="font-bold">${esc(u.username)}</span>
+                        <span class="text-xs text-dc-text">${esc(u.email)}</span>
+                    </button>
+                `).join('');
+            }
+            resultsEl.classList.remove('hidden');
+        } catch (e) {
+            resultsEl.innerHTML = '<div class="p-2 text-xs text-dc-danger">Search failed</div>';
+            resultsEl.classList.remove('hidden');
+        }
+    }
+
+    function selectUser (id, username, email) {
+        document.getElementById('staff-user-id').value = id;
+        document.getElementById('staff-user-search').value = username;
+        const selectedEl = document.getElementById('staff-user-selected');
+        if (selectedEl) {
+            selectedEl.textContent = `\u2714 ${username} (${email}) \u2014 ID ${id}`;
+            selectedEl.classList.remove('hidden');
+        }
+        document.getElementById('staff-user-results')?.classList.add('hidden');
     }
 
     async function confirmAssignStaff () {
@@ -295,6 +344,7 @@
         loadStaff,
         openAssignStaff,
         confirmAssignStaff,
+        selectUser,
         removeStaff,
         loadPermissions,
         applyPermissionGating,
@@ -308,5 +358,10 @@
         showOverlay,
         closeOverlay,
     };
+
+    // Auto-init when navigating to Settings tab (staff section lives there)
+    document.addEventListener('toc:tab-changed', function (e) {
+        if (e.detail?.tab === 'settings') init();
+    });
 
 })();

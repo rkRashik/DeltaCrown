@@ -441,7 +441,23 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         try:
             from apps.tournaments.models import Tournament
             tournament = Tournament.objects.get(id=self.tournament_id)
-            return tournament.organizer_id == self.user.id or self.user.is_staff
+
+            # Direct owner, platform superuser, or staff — always allowed
+            if (
+                tournament.organizer_id == self.user.id
+                or self.user.is_superuser
+                or self.user.is_staff
+            ):
+                return True
+
+            # Staff with manage_brackets capability via TournamentStaffAssignment
+            from apps.tournaments.models.staffing import TournamentStaffAssignment
+            return TournamentStaffAssignment.objects.filter(
+                tournament=tournament,
+                user=self.user,
+                is_active=True,
+                role__capabilities__has_key="manage_brackets",
+            ).exists()
         except Exception:
             return False
 

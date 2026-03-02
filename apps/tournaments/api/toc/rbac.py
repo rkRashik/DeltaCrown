@@ -5,6 +5,7 @@ S10-B1  Staff role management
 S10-B2  Permission checker
 S10-B3  DeltaCoin balance
 S10-B4  DeltaCoin transactions
+S10-B5  User search (for staff assignment)
 """
 
 from rest_framework import status
@@ -48,6 +49,39 @@ class RoleListView(TOCBaseView):
     def get(self, request, slug):
         svc = TOCRBACService(self.tournament)
         return Response(svc.list_roles())
+
+
+# ------------------------------------------------------------------
+# S10-B5  User search (for assign-staff modal)
+# ------------------------------------------------------------------
+class UserSearchView(TOCBaseView):
+    """GET ?q=<query> — search users by username or email."""
+
+    def get(self, request, slug):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Q
+
+        User = get_user_model()
+        q = request.query_params.get("q", "").strip()
+        if len(q) < 2:
+            return Response([])
+
+        users = (
+            User.objects.filter(
+                Q(username__icontains=q) | Q(email__icontains=q)
+            )
+            .exclude(is_active=False)
+            .order_by("username")[:15]
+        )
+        return Response([
+            {
+                "id": u.pk,
+                "username": u.username,
+                "email": u.email,
+                "display_name": getattr(u, "display_name", u.username),
+            }
+            for u in users
+        ])
 
 
 # ------------------------------------------------------------------
