@@ -446,17 +446,17 @@ class Command(BaseCommand):
 
                     qs = Tournament.objects.filter(
                         status__in=["published", "registration_open"],
-                        start_date__gte=timezone.now(),
-                    ).order_by("start_date")
+                        tournament_start__gte=timezone.now(),
+                    ).order_by("tournament_start")
                     if game:
-                        qs = qs.filter(game__icontains=game)
+                        qs = qs.filter(game__name__icontains=game)
                     results = []
                     for t in qs[:8]:
                         results.append(
                             {
                                 "name": t.name,
                                 "game": str(getattr(t, "game", "TBD")),
-                                "start": t.start_date.strftime("%b %d, %Y") if t.start_date else "TBD",
+                                "start": t.tournament_start.strftime("%b %d, %Y") if t.tournament_start else "TBD",
                                 "status": t.get_status_display() if hasattr(t, "get_status_display") else t.status,
                                 "slug": getattr(t, "slug", ""),
                             }

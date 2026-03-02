@@ -19,10 +19,10 @@ class TournamentsConfig(AppConfig):
         
         # MILESTONE F: Import notification signals (auto-registered via @receiver)
         try:
-            from . import signals as _signals  # noqa: F401
+            import apps.tournaments.signals  # noqa: F401 — connects all @receiver handlers
         except Exception as e:
             import logging
-            logging.error(f"Failed to import notification signals: {e}")
+            logging.exception(f"Failed to import notification signals: {e}")
         
         # Apply runtime monkeypatches to guarantee tests' expectations
         try:
