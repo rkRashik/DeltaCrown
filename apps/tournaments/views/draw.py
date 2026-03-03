@@ -81,19 +81,31 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
             tournament=tournament,
             status=Registration.CONFIRMED,
             is_deleted=False,
-        ).select_related("user")
+        ).select_related("user", "user__profile")
         participants = []
         for reg in regs:
             name = ""
             uid = None
+            avatar_url = ""
             if reg.user:
                 name = reg.user.username
                 uid = reg.user.id
+                try:
+                    profile = getattr(reg.user, 'profile', None)
+                    if profile:
+                        avatar_url = profile.get_avatar_url() or ""
+                except Exception:
+                    pass
             elif reg.team_id:
                 try:
                     from apps.organizations.models import Team
                     team = Team.objects.get(id=reg.team_id)
                     name = team.name
+                    logo = team.get_effective_logo_url()
+                    if hasattr(logo, 'url'):
+                        avatar_url = logo.url
+                    elif isinstance(logo, str):
+                        avatar_url = logo
                 except Exception:
                     name = f"Team #{reg.team_id}"
                 uid = reg.team_id
@@ -105,6 +117,7 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
                 "user_id": uid,
                 "name": name,
                 "display_name": name,
+                "avatar_url": avatar_url,
             })
         ctx["participants_json"] = json.dumps(participants)
         ctx["participant_count"] = len(participants)

@@ -236,9 +236,15 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         }
         await self._save_session(session)
 
-        # Build queue names for spectator roulette pool
-        queue_names = [
-            {"name": p.get("name", ""), "display_name": p.get("display_name", p.get("name", ""))}
+        # Build queue data for spectator roulette pool and director queue
+        queue_data = [
+            {
+                "user_id": p.get("user_id"),
+                "registration_id": p.get("registration_id"),
+                "name": p.get("name", ""),
+                "display_name": p.get("display_name", p.get("name", "")),
+                "avatar_url": p.get("avatar_url", ""),
+            }
             for p in queue
         ]
 
@@ -252,7 +258,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "fill_strategy": fill_strategy,
             "pot_config": pot_config,
             "started_at": session["started_at"],
-            "queue": queue_names,
+            "queue": queue_data,
         })
 
     async def _handle_draw_next(self, content):
@@ -624,17 +630,16 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         else:
             # round_robin: Slot 1 in all groups, then Slot 2, etc.
             idx = session.get("next_group_index", 0)
-            if idx >= len(groups):
-                return None
-            target = groups[idx]
-            if len(assignments.get(target, [])) >= group_size:
-                # Find next non-full group
-                for i in range(len(groups)):
-                    g = groups[i]
-                    if len(assignments.get(g, [])) < group_size:
-                        return g
-                return None
-            return target
+            if idx < len(groups):
+                target = groups[idx]
+                if len(assignments.get(target, [])) < group_size:
+                    return target
+            # Fallback: scan ALL groups for any non-full slot
+            # (handles wrap-around edge case where idx overflowed)
+            for g in groups:
+                if len(assignments.get(g, [])) < group_size:
+                    return g
+            return None
 
     def _advance_group_index(self, session, fill_strategy):
         """Move the group pointer after an assignment."""
@@ -642,17 +647,20 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             return  # sequential just fills first non-full
         # round_robin: advance to next group, wrap if needed
         groups = session["groups"]
+        assignments = session["assignments"]
         idx = session.get("next_group_index", 0) + 1
         if idx >= len(groups):
             # Check if we need to wrap (next round of slots)
-            all_have_same = True
-            target_count = len(session["assignments"].get(groups[0], []))
-            for g in groups:
-                if len(session["assignments"].get(g, [])) < target_count:
-                    all_have_same = False
-                    break
-            if all_have_same:
-                idx = 0  # start new round
+            counts = [len(assignments.get(g, [])) for g in groups]
+            if len(set(counts)) <= 1:
+                idx = 0  # start new round — all groups equal
+            else:
+                # Partial round: find first group with the minimum count
+                min_count = min(counts)
+                for i, g in enumerate(groups):
+                    if len(assignments.get(g, [])) == min_count:
+                        idx = i
+                        break
         session["next_group_index"] = idx
 
     def _recompute_group_index(self, session, fill_strategy):
@@ -698,9 +706,15 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
 
     def _sanitize_session(self, session):
         """Return a safe copy of session for client consumption."""
-        # Include queue names so spectator can build roulette pool
-        queue_names = [
-            {"name": p.get("name", ""), "display_name": p.get("display_name", p.get("name", ""))}
+        # Include full queue data so spectator/director can build UI
+        queue_data = [
+            {
+                "user_id": p.get("user_id"),
+                "registration_id": p.get("registration_id"),
+                "name": p.get("name", ""),
+                "display_name": p.get("display_name", p.get("name", "")),
+                "avatar_url": p.get("avatar_url", ""),
+            }
             for p in session.get("queue", [])
         ]
         return {
@@ -716,7 +730,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "fill_strategy": session.get("fill_strategy", "round_robin"),
             "pot_config": session.get("pot_config"),
             "can_undo": len(session.get("draw_log", [])) > 0,
-            "queue": queue_names,
+            "queue": queue_data,
         }
 
     # ------------------------------------------------------------------ #
@@ -784,20 +798,32 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             tournament_id=self.tournament_id,
             status=Registration.CONFIRMED,
             is_deleted=False,
-        ).select_related("user")
+        ).select_related("user", "user__profile")
 
         participants = []
         for reg in registrations:
             name = ""
             user_id = None
+            avatar_url = ""
             if reg.user:
                 name = reg.user.username
                 user_id = reg.user.id
+                try:
+                    profile = getattr(reg.user, 'profile', None)
+                    if profile:
+                        avatar_url = profile.get_avatar_url() or ""
+                except Exception:
+                    pass
             elif reg.team_id:
                 try:
                     from apps.organizations.models import Team
                     team = Team.objects.get(id=reg.team_id)
                     name = team.name
+                    logo = team.get_effective_logo_url()
+                    if hasattr(logo, 'url'):
+                        avatar_url = logo.url
+                    elif isinstance(logo, str):
+                        avatar_url = logo
                 except Exception:
                     name = f"Team #{reg.team_id}"
                 user_id = reg.team_id
@@ -810,6 +836,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                 "user_id": user_id,
                 "name": name,
                 "display_name": name,
+                "avatar_url": avatar_url,
             })
         return participants
 

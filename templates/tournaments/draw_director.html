@@ -133,6 +133,19 @@
     font-size: 10px; color: rgba(255,255,255,0.2);
     width: 18px; flex-shrink: 0; text-align: right;
   }
+  .dd-queue-item .qavatar {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+  }
+  .dd-queue-item .qavatar-placeholder {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.12), rgba(77,166,255,0.08));
+    border: 1px solid rgba(var(--dc-accent-rgb),0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px;
+    color: rgba(var(--dc-accent-rgb),0.6); text-transform: uppercase;
+  }
   .dd-queue-item .qname { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Manual mode: draggable + clickable */
@@ -429,6 +442,17 @@
     font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 11px;
     color: rgba(255,255,255,0.12); width: 16px; flex-shrink: 0;
   }
+  .dd-slot .slot-avatar {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; border: 1px solid rgba(var(--dc-accent-rgb),0.2);
+    display: none;
+  }
+  .dd-slot.filled .slot-avatar { display: block; }
+  .dd-slot .slot-avatar-ph {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.06);
+  }
+  .dd-slot.filled .slot-avatar-ph { display: none; }
   .dd-slot .slot-name { font-size: 12px; color: rgba(255,255,255,0.15); flex: 1; }
   .dd-slot.filled {
     background: rgba(var(--dc-accent-rgb),0.04);
@@ -610,7 +634,7 @@
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
 
   /* ══════════════════════════════════════════════
-     PRE-DRAW CONFIGURATION MODAL
+     PRE-DRAW CONFIGURATION MODAL — Premium Wizard
   ══════════════════════════════════════════════ */
   .dd-config-overlay {
     position: fixed; inset: 0; z-index: 8000;
@@ -622,21 +646,76 @@
   .dd-config-card {
     background: linear-gradient(135deg, #0e1219, #141820);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px; padding: 32px 36px; width: 680px; max-width: 94vw;
-    max-height: 88vh; overflow-y: auto; position: relative;
+    border-radius: 20px; padding: 32px 36px; width: 880px; max-width: 96vw;
+    max-height: 90vh; overflow-y: auto; position: relative;
   }
   .dd-config-title {
     font-family: 'Space Grotesk', sans-serif; font-weight: 800;
-    font-size: 18px; color: #fff; margin: 0 0 4px;
+    font-size: 20px; color: #fff; margin: 0 0 4px;
   }
   .dd-config-sub {
     font-size: 11px; color: rgba(255,255,255,0.2);
     text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 24px;
   }
+
+  /* ── Smart Presets — Prominent Cards ── */
+  .dd-presets-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .dd-preset-card {
+    padding: 16px 18px; border-radius: 14px; cursor: pointer;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.25s; position: relative; overflow: hidden;
+  }
+  .dd-preset-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(var(--dc-accent-rgb),0.06), transparent 60%);
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .dd-preset-card:hover { border-color: rgba(var(--dc-accent-rgb),0.2); }
+  .dd-preset-card:hover::before { opacity: 1; }
+  .dd-preset-card.active {
+    border-color: rgba(var(--dc-accent-rgb),0.5);
+    background: rgba(var(--dc-accent-rgb),0.06);
+    box-shadow: 0 0 24px rgba(var(--dc-accent-rgb),0.1);
+  }
+  .dd-preset-card.active::before { opacity: 1; }
+  .dd-preset-card .preset-emoji {
+    font-size: 22px; margin-bottom: 6px; display: block;
+  }
+  .dd-preset-card .preset-label {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 13px; color: #fff; margin-bottom: 4px;
+  }
+  .dd-preset-card .preset-desc {
+    font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.4;
+  }
+  .dd-preset-card .preset-badge {
+    position: absolute; top: 10px; right: 12px;
+    font-family: 'Space Grotesk', monospace; font-size: 9px; font-weight: 700;
+    color: var(--dc-accent); text-transform: uppercase; letter-spacing: 0.1em;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .dd-preset-card.active .preset-badge { opacity: 1; }
+
+  /* ── Two-Column Grid ── */
+  .dd-config-columns {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) { .dd-config-columns { grid-template-columns: 1fr; } }
+
   .dd-config-section {
-    margin-bottom: 20px; padding: 16px 18px;
-    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 12px;
+    margin-bottom: 16px; padding: 16px 18px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 14px;
+    transition: border-color 0.2s;
+  }
+  .dd-config-section:focus-within {
+    border-color: rgba(var(--dc-accent-rgb),0.15);
   }
   .dd-config-section h4 {
     font-family: 'Space Grotesk', monospace; font-weight: 700;
@@ -760,7 +839,7 @@
   .dd-arch-summary .warn { color: var(--dc-gold); }
   .dd-arch-summary .err { color: var(--dc-danger); }
 
-  /* ── Smart Presets ── */
+  /* ── Smart Presets (small fallback, cards above are primary) ── */
   .dd-presets-row {
     display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
   }
@@ -958,99 +1037,107 @@
     </main>
   </div>
 
-  {# ━━━ Pre-Draw Configuration Modal ━━━ #}
+  {# ━━━ Pre-Draw Configuration Modal — Setup Wizard ━━━ #}
   <div id="config-overlay" class="dd-config-overlay">
     <div class="dd-config-card">
       <div class="dd-config-title">
         <i data-lucide="settings-2" style="width:18px;height:18px;display:inline;vertical-align:middle;margin-right:6px;color:var(--dc-accent)"></i>
-        Draw Configuration
+        Draw Setup Wizard
       </div>
-      <div class="dd-config-sub">Configure how the group draw will behave</div>
+      <div class="dd-config-sub">Configure tournament format, rules and draw behaviour</div>
 
-      {# ── Group Architecture ── #}
-      <div class="dd-config-section">
-        <h4><i data-lucide="layout-grid" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Group Architecture</h4>
-        <div id="presets-row" class="dd-presets-row">
-          <span style="font-size:10px;color:rgba(255,255,255,0.12)">Loading presets…</span>
-        </div>
-        <div class="dd-arch-grid">
-          <div class="dd-arch-field">
-            <label>Total Groups</label>
-            <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
+      {# ── Smart Presets — Prominent Cards ── #}
+      <div id="presets-grid" class="dd-presets-grid">
+        <div style="grid-column:1/-1;font-size:10px;color:rgba(255,255,255,0.12);text-align:center;padding:12px 0">Loading smart presets…</div>
+      </div>
+
+      {# ── Two‑Column Layout ── #}
+      <div class="dd-config-columns">
+
+        {# ═══ LEFT: Group Architecture ═══ #}
+        <div>
+          <div class="dd-config-section">
+            <h4><i data-lucide="layout-grid" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Group Architecture</h4>
+            <div class="dd-arch-grid">
+              <div class="dd-arch-field">
+                <label>Total Groups</label>
+                <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
+              </div>
+              <div class="dd-arch-field">
+                <label>Players per Group</label>
+                <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
+              </div>
+              <div class="dd-arch-field">
+                <label>Advance</label>
+                <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
+              </div>
+            </div>
+            <div id="arch-summary" class="dd-arch-summary"></div>
           </div>
-          <div class="dd-arch-field">
-            <label>Players per Group</label>
-            <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
-          </div>
-          <div class="dd-arch-field">
-            <label>Advance to Playoffs</label>
-            <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
-          </div>
-        </div>
-        <div id="arch-summary" class="dd-arch-summary"></div>
-      </div>
 
-      {# ── Fill Strategy ── #}
-      <div class="dd-config-section">
-        <h4><i data-lucide="layers" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Fill Strategy</h4>
-        <div class="dd-config-toggle-group">
-          <div class="dd-config-toggle active" data-strategy="round_robin" onclick="DrawDirector.setStrategy(this)">
-            Round-Robin
-            <small>Slot 1 in all groups, then Slot 2, etc. (max suspense)</small>
-          </div>
-          <div class="dd-config-toggle" data-strategy="sequential" onclick="DrawDirector.setStrategy(this)">
-            Sequential
-            <small>Fill Group A fully, then Group B, etc.</small>
+          {# ── Pot Seeding ── #}
+          <div class="dd-config-section">
+            <h4><i data-lucide="trophy" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Pot Seeding</h4>
+            <label class="dd-config-check">
+              <input type="checkbox" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
+              Enable — one team from each Pot per Group
+            </label>
+            <div id="pot-builder" class="dd-pot-builder" style="display:none"></div>
           </div>
         </div>
-      </div>
 
-      {# ── Commentary Delay ── #}
-      <div class="dd-config-section">
-        <h4><i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Commentary Delay</h4>
-        <div class="dd-delay-group">
-          <button class="dd-delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">Off</button>
-          <button class="dd-delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
-          <button class="dd-delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
-          <button class="dd-delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
-          <span style="font-size:10px;color:rgba(255,255,255,0.15);margin-left:6px">Cooldown between draws so casters can react</span>
+        {# ═══ RIGHT: Draw Rules ═══ #}
+        <div>
+          {# ── Fill Strategy ── #}
+          <div class="dd-config-section">
+            <h4><i data-lucide="layers" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Fill Strategy</h4>
+            <div class="dd-config-toggle-group">
+              <div class="dd-config-toggle active" data-strategy="round_robin" onclick="DrawDirector.setStrategy(this)">
+                Round-Robin
+                <small>Slot 1 in all groups, then Slot 2, etc.</small>
+              </div>
+              <div class="dd-config-toggle" data-strategy="sequential" onclick="DrawDirector.setStrategy(this)">
+                Sequential
+                <small>Fill Group A fully, then Group B, etc.</small>
+              </div>
+            </div>
+          </div>
+
+          {# ── Commentary Delay ── #}
+          <div class="dd-config-section">
+            <h4><i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Commentary Delay</h4>
+            <div class="dd-delay-group">
+              <button class="dd-delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">Off</button>
+              <button class="dd-delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
+              <button class="dd-delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
+              <button class="dd-delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
+            </div>
+          </div>
+
+          {# ── Region Constraint ── #}
+          <div class="dd-config-section">
+            <h4><i data-lucide="globe" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Game-Aware Constraints</h4>
+            <label class="dd-config-check">
+              <input type="checkbox" id="cfg-region-clash">
+              Prevent Region Clashes
+            </label>
+            <div style="font-size:10px;color:rgba(255,255,255,0.1);margin-top:4px;padding-left:25px">
+              Best-effort: skips if mathematically impossible
+            </div>
+          </div>
+
+          {# ── Tiebreaker Visibility ── #}
+          <div class="dd-config-section" style="background:none;border:1px dashed rgba(255,255,255,0.04);padding:12px 16px">
+            <h4 style="font-size:10px;margin-bottom:6px">
+              <i data-lucide="scale" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:4px"></i>
+              Active Tiebreakers
+            </h4>
+            <div id="tiebreaker-pills" class="dd-tiebreaker-summary"></div>
+            <a class="dd-tb-edit" href="{% url 'toc:hub' tournament.slug %}" target="_blank" style="display:inline-block;margin-top:6px">
+              Edit in Settings →
+            </a>
+          </div>
         </div>
-      </div>
-
-      {# ── Pot Seeding ── #}
-      <div class="dd-config-section">
-        <h4><i data-lucide="trophy" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Pot Seeding (Skill Balancing)</h4>
-        <label class="dd-config-check">
-          <input type="checkbox" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
-          Enable Pot Seeding — one team from each Pot goes into each Group
-        </label>
-        <div id="pot-builder" class="dd-pot-builder" style="display:none">
-          {# Pot rows built by JS from PARTICIPANTS_DATA #}
-        </div>
-      </div>
-
-      {# ── Region Constraint ── #}
-      <div class="dd-config-section">
-        <h4><i data-lucide="globe" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Game-Aware Constraints</h4>
-        <label class="dd-config-check">
-          <input type="checkbox" id="cfg-region-clash">
-          Prevent Region Clashes — avoid two teams from the same region in one group
-        </label>
-        <div style="font-size:10px;color:rgba(255,255,255,0.12);margin-top:4px;padding-left:25px">
-          Best-effort: skips constraint if mathematically impossible
-        </div>
-      </div>
-
-      {# ── Tiebreaker Visibility ── #}
-      <div class="dd-config-section" style="background:none;border:1px dashed rgba(255,255,255,0.04);padding:12px 16px">
-        <h4 style="font-size:10px;margin-bottom:6px">
-          <i data-lucide="scale" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:4px"></i>
-          Active Tiebreakers
-        </h4>
-        <div id="tiebreaker-pills" class="dd-tiebreaker-summary"></div>
-        <a class="dd-tb-edit" href="{% url 'toc:hub' tournament.slug %}" target="_blank" style="display:inline-block;margin-top:6px">
-          Edit in Settings →
-        </a>
       </div>
 
       {# ── Actions ── #}
@@ -1307,7 +1394,10 @@
       session.remaining = msg.remaining;
     }
 
-    const queueEls = document.querySelectorAll('#queue-list .dd-queue-item');
+    // Remove from queue IMMEDIATELY — don't wait for spinner
+    removeFromQueue(p.user_id || p.registration_id);
+
+    const queueEls = document.querySelectorAll('#queue-list .dd-queue-item:not(.drawn-out)');
     const poolNames = [];
     queueEls.forEach(el => {
       const name = el.querySelector('.qname');
@@ -1321,7 +1411,6 @@
       const card = document.querySelector('.dd-group-card[data-group="' + group + '"]');
       if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 2000); }
       fillSlot(group, slot, p, true);
-      removeFromQueue(p.user_id || p.registration_id);
       updateCounters(msg.drawn_count, msg.total, msg.remaining);
       updateProgress(msg.drawn_count, msg.total);
       updateTheaterLast(winnerName, group);
@@ -1409,12 +1498,20 @@
       clearGroupSlots(group);
       arr.forEach(function(pl, idx) { fillSlot(group, idx + 1, pl, false); });
     }
-    // Add player back to queue at top
+    // Add player back to queue at top with avatar
     var list = document.getElementById('queue-list');
-    var html = '<div class="dd-queue-item" data-queue-id="' + (p.user_id || p.registration_id) + '"' +
+    var avatarHtml = '';
+    if (p.avatar_url) {
+      avatarHtml = '<img class="qavatar" src="' + p.avatar_url + '" alt="">';
+    } else {
+      var initials = (p.display_name || p.name || '?').charAt(0);
+      avatarHtml = '<span class="qavatar-placeholder">' + initials + '</span>';
+    }
+    var html = '<div class="dd-queue-item" data-queue-id="' + String(p.user_id || p.registration_id) + '"' +
       " data-player='" + JSON.stringify(p).replace(/'/g, '&#39;') + "'>" +
       '<i data-lucide="grip-vertical" class="grip" style="width:12px;height:12px;flex-shrink:0"></i>' +
       '<span class="qnum">↩</span>' +
+      avatarHtml +
       '<span class="qname">' + (p.display_name || p.name) + '</span></div>';
     list.insertAdjacentHTML('afterbegin', html);
     document.getElementById('queue-badge').textContent = msg.remaining;
@@ -1467,6 +1564,8 @@
       for (let i = 1; i <= groupSize; i++) {
         slots += '<div class="dd-slot" data-group="' + g + '" data-slot="' + i + '">' +
           '<span class="slot-num">' + i + '.</span>' +
+          '<span class="slot-avatar-ph"></span>' +
+          '<img class="slot-avatar" src="" alt="">' +
           '<span class="slot-name">\u2014</span>' +
         '</div>';
       }
@@ -1488,6 +1587,13 @@
     if (!slot) return;
     const nameEl = slot.querySelector('.slot-name');
     nameEl.textContent = player.display_name || player.name || '???';
+    // Avatar
+    var avatarUrl = player.avatar_url || '';
+    var avatarEl = slot.querySelector('.slot-avatar');
+    if (avatarEl && avatarUrl) {
+      avatarEl.src = avatarUrl;
+      avatarEl.style.display = 'block';
+    }
     slot.classList.add('filled');
     if (animate) {
       slot.classList.add('just-drawn');
@@ -1524,11 +1630,19 @@
     }
     const isManual = drawMode === 'manual';
     list.innerHTML = participants.map((p, i) => {
+      var avatarHtml = '';
+      if (p.avatar_url) {
+        avatarHtml = '<img class="qavatar" src="' + p.avatar_url + '" alt="">';
+      } else {
+        var initials = (p.display_name || p.name || '?').charAt(0);
+        avatarHtml = '<span class="qavatar-placeholder">' + initials + '</span>';
+      }
       return '<div class="dd-queue-item' + (isManual ? ' manual-mode' : '') + '"' +
-        ' data-queue-id="' + (p.user_id || p.registration_id) + '"' +
+        ' data-queue-id="' + String(p.user_id || p.registration_id) + '"' +
         " data-player='" + JSON.stringify(p).replace(/'/g, '&#39;') + "'" + '>' +
         '<i data-lucide="grip-vertical" class="grip" style="width:12px;height:12px;flex-shrink:0"></i>' +
         '<span class="qnum">' + (i + 1) + '</span>' +
+        avatarHtml +
         '<span class="qname">' + (p.display_name || p.name) + '</span>' +
       '</div>';
     }).join('');
@@ -1546,14 +1660,18 @@
   }
 
   function removeFromQueue(id) {
-    const el = document.querySelector('[data-queue-id="' + id + '"]');
+    // Coerce to string for reliable attribute matching
+    var sid = String(id);
+    var el = document.querySelector('[data-queue-id="' + sid + '"]');
     if (el) {
       el.classList.add('drawn-out');
-      setTimeout(() => el.remove(), 500);
+      setTimeout(function() { el.remove(); }, 500);
     }
-    const badge = document.getElementById('queue-badge');
-    const cur = parseInt(badge.textContent) || 0;
-    badge.textContent = Math.max(0, cur - 1);
+    // Update badge – count remaining visible items
+    setTimeout(function() {
+      var remaining = document.querySelectorAll('#queue-list .dd-queue-item:not(.drawn-out)').length;
+      document.getElementById('queue-badge').textContent = remaining;
+    }, 20);
   }
 
   // ══════════════════════════════════════════════
@@ -2084,29 +2202,36 @@
       el.innerHTML = html;
     },
     loadPresets() {
-      var row = document.getElementById('presets-row');
-      if (!row) return;
+      var grid = document.getElementById('presets-grid');
+      if (!grid) return;
       var url = '{% url "tournaments:smart_group_presets" tournament.slug %}';
       fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.presets || data.presets.length === 0) {
-            row.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.12)">No presets (need ≥ 4 confirmed players)</span>';
+            grid.innerHTML = '<div style="grid-column:1/-1;font-size:10px;color:rgba(255,255,255,0.12);text-align:center;padding:12px 0">No presets available (need ≥ 4 confirmed players)</div>';
             return;
           }
-          row.innerHTML = '';
-          data.presets.forEach(function(p) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'dd-preset-btn';
-            btn.innerHTML = '✨ ' + p.label;
-            btn.title = p.description;
-            btn.onclick = function() { DrawDirector.applyPreset(p); };
-            row.appendChild(btn);
+          var emojis = ['🏆', '⚡', '🎯', '🌟'];
+          grid.innerHTML = '';
+          data.presets.forEach(function(p, idx) {
+            var card = document.createElement('div');
+            card.className = 'dd-preset-card';
+            card.innerHTML =
+              '<span class="preset-badge">✓ Applied</span>' +
+              '<span class="preset-emoji">' + emojis[idx % emojis.length] + '</span>' +
+              '<div class="preset-label">' + p.label + '</div>' +
+              '<div class="preset-desc">' + p.description + '</div>';
+            card.onclick = function() {
+              document.querySelectorAll('.dd-preset-card').forEach(function(c) { c.classList.remove('active'); });
+              card.classList.add('active');
+              DrawDirector.applyPreset(p);
+            };
+            grid.appendChild(card);
           });
         })
         .catch(function() {
-          row.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.12)">Could not load presets</span>';
+          grid.innerHTML = '<div style="grid-column:1/-1;font-size:10px;color:rgba(255,255,255,0.12);text-align:center;padding:12px 0">Could not load presets</div>';
         });
     },
     applyPreset(preset) {
@@ -2114,10 +2239,6 @@
       document.getElementById('cfg-group-size').value = preset.group_size;
       document.getElementById('cfg-adv-count').value = preset.advancement_count;
       DrawDirector.onArchChange();
-      // Flash the applied preset button
-      document.querySelectorAll('.dd-preset-btn').forEach(function(b) {
-        b.style.borderColor = b.textContent.includes(preset.label) ? 'var(--dc-accent)' : '';
-      });
     },
     renderTiebreakers() {
       var container = document.getElementById('tiebreaker-pills');

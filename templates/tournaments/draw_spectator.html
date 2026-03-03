@@ -556,6 +556,106 @@
   .spec-complete-screen.fade-in {
     opacity: 1;
   }
+
+  /* ══════════════════════════════════════════════
+     PENDING STRIP — Scrolling Queue Marquee
+  ══════════════════════════════════════════════ */
+  .spec-pending-strip {
+    position: relative; overflow: hidden;
+    height: 52px; margin-bottom: 20px;
+    background: linear-gradient(90deg, rgba(4,4,8,0.98), rgba(255,255,255,0.01) 8%, rgba(255,255,255,0.01) 92%, rgba(4,4,8,0.98));
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .spec-pending-strip .strip-label {
+    position: absolute; left: 0; top: 0; bottom: 0; z-index: 2;
+    display: flex; align-items: center; padding: 0 14px;
+    background: linear-gradient(90deg, rgba(4,4,8,0.98), transparent);
+    font-family: 'Space Grotesk', monospace; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em;
+    color: rgba(var(--dc-gold-rgb),0.5);
+  }
+  .spec-pending-track {
+    display: flex; align-items: center; gap: 16px;
+    height: 100%; padding-left: 90px;
+    animation: pendingScroll 30s linear infinite;
+  }
+  @keyframes pendingScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .spec-pending-item {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0; padding: 6px 14px 6px 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .spec-pending-item.drawn { opacity: 0; transform: scale(0.8); pointer-events: none; }
+  .spec-pending-item .p-avatar {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .spec-pending-item .p-avatar-ph {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.12), rgba(77,166,255,0.08));
+    border: 1px solid rgba(var(--dc-accent-rgb),0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px;
+    color: rgba(var(--dc-accent-rgb),0.5); text-transform: uppercase;
+  }
+  .spec-pending-item .p-name {
+    font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 600;
+    color: rgba(255,255,255,0.35); white-space: nowrap;
+  }
+
+  /* ══════════════════════════════════════════════
+     CASTER TICKER — Automated Commentary
+  ══════════════════════════════════════════════ */
+  .spec-ticker {
+    text-align: center; padding: 12px 20px; margin-top: 20px;
+    min-height: 40px;
+  }
+  .spec-ticker-text {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 14px; color: rgba(255,255,255,0.3);
+    transition: opacity 0.4s, transform 0.4s;
+    display: inline-block;
+  }
+  .spec-ticker-text.update {
+    animation: tickerPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes tickerPop {
+    0% { transform: translateY(8px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ══════════════════════════════════════════════
+     AVATARS IN SLOTS & REVEAL
+  ══════════════════════════════════════════════ */
+  .spec-slot .slot-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; border: 1.5px solid rgba(var(--dc-accent-rgb),0.25);
+    display: none;
+  }
+  .spec-slot.filled .slot-avatar { display: block; }
+  .spec-slot .slot-avatar-ph {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.04);
+  }
+  .spec-slot.filled .slot-avatar-ph { display: none; }
+  .lottery-avatar {
+    width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
+    border: 3px solid var(--dc-accent);
+    box-shadow: 0 0 40px rgba(var(--dc-accent-rgb),0.3);
+    margin-bottom: 16px;
+    animation: avatarReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes avatarReveal {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
 </style>
 {% endblock %}
 
@@ -645,6 +745,12 @@
     {# ━━━ Live Draw Content ━━━ #}
     <div id="live-content" class="spec-live hidden">
 
+      {# ── Pending Strip — scrolling queue marquee ── #}
+      <div id="pending-strip" class="spec-pending-strip" style="display:none">
+        <span class="strip-label">Pending</span>
+        <div id="pending-track" class="spec-pending-track"></div>
+      </div>
+
       {# Counters #}
       <div class="spec-counters">
         <div style="text-align:center">
@@ -675,6 +781,11 @@
       {# Remaining #}
       <div class="spec-remaining">
         <strong id="spec-remaining">0</strong> players remaining
+      </div>
+
+      {# ── Caster Ticker — automated commentary ── #}
+      <div id="caster-ticker" class="spec-ticker">
+        <span id="ticker-text" class="spec-ticker-text">Awaiting draw initiation…</span>
       </div>
     </div>
 
@@ -730,6 +841,7 @@
   let ws = null;
   let session = null;
   let participantPool = [];
+  let pendingPlayers = [];   // Full queue data for pending strip
 
   // ══════════════════════════════════════════════
   // WebSocket
@@ -782,6 +894,7 @@
   function onSnapshot(s) {
     session = s;
     participantPool = [];
+    pendingPlayers = [];
     for (const players of Object.values(s.assignments || {})) {
       players.forEach(p => {
         const n = p.display_name || p.name;
@@ -792,6 +905,7 @@
       s.queue.forEach(p => {
         const n = p.display_name || p.name;
         if (n && !participantPool.includes(n)) participantPool.push(n);
+        pendingPlayers.push(p);
       });
     }
 
@@ -801,12 +915,18 @@
       players.forEach((p, i) => fillSlotInstant(gName, i + 1, p));
     }
     updateCounters(s.drawn_count, s.total, s.total - s.drawn_count);
+    renderPendingStrip();
 
     // Update viewer badge from initial count
     if (s.viewer_count != null) onViewerCount({ count: s.viewer_count });
 
     if (s.finalized) { setBadge('complete'); showCompleteScreen(null); }
-    else if (s.drawn_count > 0) { setBadge('live'); }
+    else if (s.drawn_count > 0) {
+      setBadge('live');
+      setTickerText(s.drawn_count + ' of ' + s.total + ' drawn — draw in progress…');
+    } else {
+      setTickerText('Draw is live — awaiting first pick…');
+    }
   }
 
   function onSessionOpen(msg) {
@@ -816,16 +936,20 @@
     };
     msg.groups.forEach(g => session.assignments[g] = []);
     participantPool = [];
+    pendingPlayers = [];
     if (msg.queue) {
       msg.queue.forEach(p => {
         const n = p.display_name || p.name;
         if (n && !participantPool.includes(n)) participantPool.push(n);
+        pendingPlayers.push(p);
       });
     }
     showLiveContent();
     renderGroupGrid(msg.groups, msg.group_size);
     updateCounters(0, msg.total, msg.total);
+    renderPendingStrip();
     setBadge('live');
+    setTickerText('Draw is live — ' + msg.total + ' participants ready!');
   }
 
   function onPlayerDrawn(msg) {
@@ -833,6 +957,8 @@
     const group = msg.assigned_group;
     const slot = msg.group_slot || msg.group_count;
     const winnerName = player.display_name || player.name || '???';
+    const avatarUrl = player.avatar_url || '';
+    const potLabel = player.pot ? 'Pot ' + player.pot : '';
 
     if (session) {
       if (!session.assignments[group]) session.assignments[group] = [];
@@ -841,12 +967,18 @@
     }
     if (!participantPool.includes(winnerName)) participantPool.push(winnerName);
 
+    // Caster ticker: spin phase
+    setTickerText('Drawing next participant' + (potLabel ? ' from ' + potLabel : '') + '…');
+
     updateCounters(msg.drawn_count, msg.total, msg.remaining);
     updateProgress(msg.drawn_count, msg.total);
 
     // ── Lottery Spinner → Suspenseful Reveal ──
-    showLotterySpinner(participantPool, winnerName, group, function() {
+    showLotterySpinner(participantPool, winnerName, group, avatarUrl, function() {
       showSpotlight(winnerName, group);
+
+      // Caster ticker: reveal
+      setTickerText(winnerName + ' is slotted into Group ' + group + '!');
 
       // Dim non-receiving groups for focus
       const drawArea = document.querySelector('.spec-draw');
@@ -864,6 +996,9 @@
           slotEl.classList.add('filled', 'snap-reveal');
           const nameEl = slotEl.querySelector('.player-name');
           if (nameEl) nameEl.textContent = winnerName;
+          // Slot avatar
+          var slotAv = slotEl.querySelector('.slot-avatar');
+          if (slotAv && avatarUrl) { slotAv.src = avatarUrl; slotAv.style.display = 'block'; }
           if (player.pot) addPotBadge(slotEl, player.pot);
         }, 600);
         setTimeout(() => {
@@ -879,6 +1014,9 @@
 
       const idx = participantPool.indexOf(winnerName);
       if (idx > -1) participantPool.splice(idx, 1);
+
+      // Remove from pending strip
+      removePendingPlayer(player.user_id || player.registration_id);
     });
   }
 
@@ -915,16 +1053,27 @@
         session.assignments[group].push(player);
       }
       fillSlotInstant(group, slot, player);
+      // Remove from pending strip
+      removePendingPlayer(player.user_id || player.registration_id);
     });
     if (session) session.drawn_count = msg.drawn_count || (session.drawn_count + results.length);
     updateCounters(msg.drawn_count || session.drawn_count, msg.total || session.total, msg.remaining || 0);
     updateProgress(msg.drawn_count || session.drawn_count, msg.total || session.total);
+
+    // Caster ticker
+    const remaining = msg.remaining || 0;
+    if (remaining === 0) {
+      setTickerText('All participants have been drawn!');
+    } else {
+      setTickerText(results.length + ' participants placed via fast-forward — ' + remaining + ' remaining');
+    }
   }
 
   /* ── Draw Undone (Undo Last) ── */
   function onDrawUndone(msg) {
     const group = msg.group;
-    const playerName = msg.player_name || (msg.player && (msg.player.display_name || msg.player.name));
+    const player = msg.player || {};
+    const playerName = msg.player_name || player.display_name || player.name;
     if (session && session.assignments[group]) {
       session.assignments[group] = session.assignments[group].filter(
         p => (p.display_name || p.name) !== playerName
@@ -939,6 +1088,19 @@
     updateProgress(msg.drawn_count, msg.total);
     // Re-add to participant pool
     if (playerName && !participantPool.includes(playerName)) participantPool.push(playerName);
+
+    // Re-add to pending strip
+    const pId = player.user_id || player.registration_id;
+    if (pId) {
+      pendingPlayers.push({
+        user_id: player.user_id,
+        registration_id: player.registration_id,
+        display_name: playerName,
+        avatar_url: player.avatar_url || ''
+      });
+      renderPendingStrip();
+    }
+    setTickerText(playerName + ' returned to the pool — draw undone');
   }
 
   /* ── Live Viewer Count ── */
@@ -966,6 +1128,8 @@
       for (let i = 1; i <= groupSize; i++) {
         slots += '<div class="spec-slot" data-spec-group="' + g + '" data-spec-slot="' + i + '">' +
           '<span class="slot-num">' + i + '</span>' +
+          '<span class="slot-avatar-ph"></span>' +
+          '<img class="slot-avatar" src="" alt="">' +
           '<div style="flex:1"><span class="player-name">—</span></div>' +
         '</div>';
       }
@@ -987,6 +1151,10 @@
     slot.classList.add('filled', 'revealed');
     const nameEl = slot.querySelector('.player-name');
     if (nameEl) nameEl.textContent = player.display_name || player.name || '?';
+    // Slot avatar
+    const avatarUrl = player.avatar_url || '';
+    const slotAv = slot.querySelector('.slot-avatar');
+    if (slotAv && avatarUrl) { slotAv.src = avatarUrl; slotAv.style.display = 'block'; }
     if (player.pot) addPotBadge(slot, player.pot);
     updateGroupCounter(gName);
   }
@@ -1130,9 +1298,14 @@
           '<div class="spec-group-header"><span class="spec-group-letter">Group ' + g + '</span></div>' +
           '<div>' + players.map((p, i) => {
             const potHtml = p.pot ? '<span class="pot-badge pot-' + p.pot + '">P' + p.pot + '</span>' : '';
+            const avUrl = p.avatar_url || '';
+            const avHtml = avUrl
+              ? '<img class="slot-avatar" src="' + avUrl + '" alt="" style="display:block">'
+              : '<span class="slot-avatar-ph"></span>';
             return '<div class="spec-slot filled revealed">' +
               '<span class="slot-num">' + (i + 1) + '</span>' +
               potHtml +
+              avHtml +
               '<div style="flex:1"><span class="player-name" style="opacity:1;transform:none;color:#fff">' + (p.display_name || p.name || '?') + '</span></div>' +
             '</div>';
           }).join('') + '</div>';
@@ -1147,7 +1320,7 @@
   // Lottery Spinner (CS:GO case-unboxing)
   // ══════════════════════════════════════════════
 
-  function showLotterySpinner(poolNames, winnerName, groupLetter, onComplete) {
+  function showLotterySpinner(poolNames, winnerName, groupLetter, avatarUrl, onComplete) {
     const overlay = document.getElementById('lottery-overlay');
     const strip = document.getElementById('lottery-strip');
     const resultEl = document.getElementById('lottery-result');
@@ -1187,6 +1360,10 @@
     nameEl.textContent = '';
     groupEl.textContent = '';
 
+    // Remove any previous lottery avatar
+    const oldAvatar = resultEl.querySelector('.lottery-avatar');
+    if (oldAvatar) oldAvatar.remove();
+
     overlay.style.display = 'flex';
     requestAnimationFrame(() => {
       overlay.classList.add('active');
@@ -1202,6 +1379,15 @@
       overlay.querySelector('.lottery-viewport').appendChild(flash);
       setTimeout(() => flash.remove(), 800);
 
+      // Insert large avatar in reveal
+      if (avatarUrl) {
+        const avImg = document.createElement('img');
+        avImg.className = 'lottery-avatar';
+        avImg.src = avatarUrl;
+        avImg.alt = winnerName;
+        resultEl.insertBefore(avImg, nameEl);
+      }
+
       nameEl.textContent = winnerName;
       groupEl.textContent = '→ Group ' + groupLetter;
       resultEl.classList.add('show');
@@ -1215,6 +1401,73 @@
         }, 350);
       }, 1400);
     }, 3700);
+  }
+
+  // ══════════════════════════════════════════════
+  // Pending Strip & Caster Ticker helpers
+  // ══════════════════════════════════════════════
+
+  function renderPendingStrip() {
+    const track = document.getElementById('pending-track');
+    const strip = document.getElementById('pending-strip');
+    if (!track || !strip) return;
+
+    if (pendingPlayers.length === 0) {
+      strip.style.display = 'none';
+      track.innerHTML = '';
+      return;
+    }
+
+    strip.style.display = '';
+    // Build items from pendingPlayers
+    const itemsHtml = pendingPlayers.map(function(p) {
+      const pId = String(p.user_id || p.registration_id || '');
+      const name = p.display_name || p.name || '?';
+      const avatarUrl = p.avatar_url || '';
+      let avatar = '';
+      if (avatarUrl) {
+        avatar = '<img src="' + avatarUrl + '" alt="" style="width:22px;height:22px;border-radius:50%;margin-right:6px;">';
+      } else {
+        const initial = name.charAt(0).toUpperCase();
+        avatar = '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#6366f1),#a855f7);color:#fff;font-size:11px;font-weight:600;margin-right:6px;">' + initial + '</span>';
+      }
+      return '<span class="spec-pending-item" data-pending-id="' + pId + '">' + avatar + name + '</span>';
+    }).join('');
+
+    // Duplicate content for seamless CSS marquee scroll
+    track.innerHTML = itemsHtml + itemsHtml;
+
+    // Adjust animation duration based on item count (more items = slower scroll)
+    const duration = Math.max(20, pendingPlayers.length * 3);
+    track.style.animationDuration = duration + 's';
+  }
+
+  function setTickerText(text) {
+    const el = document.getElementById('ticker-text');
+    if (!el) return;
+    el.textContent = text;
+    // Re-trigger pop animation
+    el.classList.remove('update');
+    void el.offsetWidth; // Force reflow
+    el.classList.add('update');
+  }
+
+  function removePendingPlayer(playerId) {
+    if (!playerId) return;
+    const idStr = String(playerId);
+
+    // Remove from data array
+    pendingPlayers = pendingPlayers.filter(function(p) {
+      return String(p.user_id || p.registration_id || '') !== idStr;
+    });
+
+    // Mark DOM items as drawn (fade out via CSS transition)
+    document.querySelectorAll('.spec-pending-item[data-pending-id="' + idStr + '"]').forEach(function(el) {
+      el.classList.add('drawn');
+    });
+
+    // Re-render strip after a short delay to allow transition
+    setTimeout(function() { renderPendingStrip(); }, 500);
   }
 
   // ══════════════════════════════════════════════
