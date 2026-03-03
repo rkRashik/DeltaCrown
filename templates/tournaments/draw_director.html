@@ -608,6 +608,132 @@
   }
   @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ══════════════════════════════════════════════
+     PRE-DRAW CONFIGURATION MODAL
+  ══════════════════════════════════════════════ */
+  .dd-config-overlay {
+    position: fixed; inset: 0; z-index: 8000;
+    background: rgba(3,3,6,0.88); backdrop-filter: blur(24px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .dd-config-overlay.show { opacity: 1; }
+  .dd-config-card {
+    background: linear-gradient(135deg, #0e1219, #141820);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 32px 36px; width: 680px; max-width: 94vw;
+    max-height: 88vh; overflow-y: auto; position: relative;
+  }
+  .dd-config-title {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
+    font-size: 18px; color: #fff; margin: 0 0 4px;
+  }
+  .dd-config-sub {
+    font-size: 11px; color: rgba(255,255,255,0.2);
+    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 24px;
+  }
+  .dd-config-section {
+    margin-bottom: 20px; padding: 16px 18px;
+    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+  }
+  .dd-config-section h4 {
+    font-family: 'Space Grotesk', monospace; font-weight: 700;
+    font-size: 11px; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.15em; margin: 0 0 12px;
+  }
+  .dd-config-toggle-group { display: flex; gap: 8px; margin-bottom: 8px; }
+  .dd-config-toggle {
+    flex: 1; padding: 10px 14px; border-radius: 10px; cursor: pointer;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.3); font-size: 12px; font-weight: 600;
+    transition: all 0.2s; text-align: center;
+  }
+  .dd-config-toggle.active {
+    background: rgba(var(--dc-accent-rgb),0.08);
+    border-color: rgba(var(--dc-accent-rgb),0.3);
+    color: var(--dc-accent);
+  }
+  .dd-config-toggle:hover:not(.active) {
+    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5);
+  }
+  .dd-config-toggle small {
+    display: block; font-size: 10px; color: rgba(255,255,255,0.15);
+    font-weight: 400; margin-top: 3px;
+  }
+  .dd-config-toggle.active small { color: rgba(var(--dc-accent-rgb),0.5); }
+  .dd-config-check {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    font-size: 12px; color: rgba(255,255,255,0.35); cursor: pointer;
+  }
+  .dd-config-check input[type="checkbox"] {
+    accent-color: var(--dc-accent); width: 15px; height: 15px;
+  }
+
+  /* ── Pot Builder ── */
+  .dd-pot-builder { margin-top: 14px; }
+  .dd-pot-row {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+  }
+  .dd-pot-label {
+    min-width: 56px; padding: 6px 0; font-family: 'Space Grotesk', monospace;
+    font-weight: 700; font-size: 11px; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0;
+  }
+  .dd-pot-label .pot-color {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 4px; vertical-align: middle;
+  }
+  .dd-pot-pool {
+    flex: 1; min-height: 36px; padding: 4px 6px;
+    background: rgba(255,255,255,0.015); border: 1px dashed rgba(255,255,255,0.06);
+    border-radius: 8px; display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .dd-pot-pool.drag-over { border-color: var(--dc-accent); background: rgba(var(--dc-accent-rgb),0.03); }
+  .dd-pot-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;
+    cursor: grab; user-select: none; white-space: nowrap;
+    background: rgba(var(--dc-accent-rgb),0.06); border: 1px solid rgba(var(--dc-accent-rgb),0.12);
+    color: rgba(255,255,255,0.5); transition: all 0.15s;
+  }
+  .dd-pot-chip:hover { background: rgba(var(--dc-accent-rgb),0.12); color: #fff; }
+  .dd-pot-chip.dragging { opacity: 0.4; }
+
+  /* ── Delay Setting ── */
+  .dd-delay-group {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .dd-delay-btn {
+    padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.3);
+    transition: all 0.2s;
+  }
+  .dd-delay-btn.active {
+    background: rgba(var(--dc-accent-rgb),0.08);
+    border-color: rgba(var(--dc-accent-rgb),0.3); color: var(--dc-accent);
+  }
+
+  /* ── Config Actions ── */
+  .dd-config-actions {
+    display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;
+  }
+  .dd-config-actions button {
+    padding: 10px 24px; border-radius: 10px; font-size: 12px;
+    font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .dd-config-cancel {
+    background: none; border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.3);
+  }
+  .dd-config-cancel:hover { color: rgba(255,255,255,0.6); }
+  .dd-config-start {
+    background: var(--dc-accent); border: none; color: #000;
+    font-weight: 800; letter-spacing: 0.05em;
+  }
+  .dd-config-start:hover { filter: brightness(1.1); }
 </style>
 {% endblock %}
 
@@ -711,7 +837,7 @@
           </button>
         </div>
 
-        <button id="btn-init" class="dd-btn-primary" onclick="DrawDirector.initDraw()">
+        <button id="btn-init" class="dd-btn-primary" onclick="DrawDirector.openConfig()">
           <span class="pulse-ring"></span>
           <i data-lucide="shuffle" style="width:18px;height:18px"></i> Initialize Draw
         </button>
@@ -719,12 +845,28 @@
           <span class="pulse-ring"></span>
           <i data-lucide="dice-5" style="width:18px;height:18px"></i> Draw Next Player
         </button>
+
+        {# ── Advanced Director Controls ── #}
+        <button id="btn-draw-all" class="dd-btn-secondary" style="display:none" onclick="DrawDirector.drawAll()">
+          <i data-lucide="fast-forward" style="width:14px;height:14px"></i> Draw All Remaining
+        </button>
+        <button id="btn-undo" class="dd-btn-secondary" style="display:none" disabled onclick="DrawDirector.undoLast()">
+          <i data-lucide="undo-2" style="width:14px;height:14px"></i> Undo Last
+        </button>
+
         <button id="btn-finalize" class="dd-btn-secondary" style="display:none" disabled onclick="DrawDirector.finalize()">
           <i data-lucide="check-circle" style="width:16px;height:16px"></i> Finalize &amp; Generate Matches
         </button>
         <button id="btn-abort" class="dd-btn-abort" style="display:none" onclick="DrawDirector.abort()">
           <i data-lucide="x-circle" style="width:14px;height:14px"></i> Abort
         </button>
+
+        {# ── Commentary Delay Timer ── #}
+        <div id="delay-indicator" style="display:none;font-size:10px;color:rgba(255,255,255,0.2);font-family:'Space Grotesk',monospace;text-transform:uppercase;letter-spacing:0.15em">
+          <i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:3px"></i>
+          Delay: <span id="delay-value">Off</span>
+        </div>
+
         <div id="manual-hint" class="dd-hint" style="display:none">
           Drag a player to a group — or click a player, then choose a group.
         </div>
@@ -743,6 +885,77 @@
         <div class="hash" id="draw-hash">Hash: —</div>
       </div>
     </main>
+  </div>
+
+  {# ━━━ Pre-Draw Configuration Modal ━━━ #}
+  <div id="config-overlay" class="dd-config-overlay">
+    <div class="dd-config-card">
+      <div class="dd-config-title">
+        <i data-lucide="settings-2" style="width:18px;height:18px;display:inline;vertical-align:middle;margin-right:6px;color:var(--dc-accent)"></i>
+        Draw Configuration
+      </div>
+      <div class="dd-config-sub">Configure how the group draw will behave</div>
+
+      {# ── Fill Strategy ── #}
+      <div class="dd-config-section">
+        <h4><i data-lucide="layers" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Fill Strategy</h4>
+        <div class="dd-config-toggle-group">
+          <div class="dd-config-toggle active" data-strategy="round_robin" onclick="DrawDirector.setStrategy(this)">
+            Round-Robin
+            <small>Slot 1 in all groups, then Slot 2, etc. (max suspense)</small>
+          </div>
+          <div class="dd-config-toggle" data-strategy="sequential" onclick="DrawDirector.setStrategy(this)">
+            Sequential
+            <small>Fill Group A fully, then Group B, etc.</small>
+          </div>
+        </div>
+      </div>
+
+      {# ── Commentary Delay ── #}
+      <div class="dd-config-section">
+        <h4><i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Commentary Delay</h4>
+        <div class="dd-delay-group">
+          <button class="dd-delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">Off</button>
+          <button class="dd-delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
+          <button class="dd-delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
+          <button class="dd-delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
+          <span style="font-size:10px;color:rgba(255,255,255,0.15);margin-left:6px">Cooldown between draws so casters can react</span>
+        </div>
+      </div>
+
+      {# ── Pot Seeding ── #}
+      <div class="dd-config-section">
+        <h4><i data-lucide="trophy" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Pot Seeding (Skill Balancing)</h4>
+        <label class="dd-config-check">
+          <input type="checkbox" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
+          Enable Pot Seeding — one team from each Pot goes into each Group
+        </label>
+        <div id="pot-builder" class="dd-pot-builder" style="display:none">
+          {# Pot rows built by JS from PARTICIPANTS_DATA #}
+        </div>
+      </div>
+
+      {# ── Region Constraint ── #}
+      <div class="dd-config-section">
+        <h4><i data-lucide="globe" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Game-Aware Constraints</h4>
+        <label class="dd-config-check">
+          <input type="checkbox" id="cfg-region-clash">
+          Prevent Region Clashes — avoid two teams from the same region in one group
+        </label>
+        <div style="font-size:10px;color:rgba(255,255,255,0.12);margin-top:4px;padding-left:25px">
+          Best-effort: skips constraint if mathematically impossible
+        </div>
+      </div>
+
+      {# ── Actions ── #}
+      <div class="dd-config-actions">
+        <button class="dd-config-cancel" onclick="DrawDirector.closeConfig()">Cancel</button>
+        <button class="dd-config-start" onclick="DrawDirector.confirmInit()">
+          <i data-lucide="play" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px"></i>
+          Start Draw
+        </button>
+      </div>
+    </div>
   </div>
 
   {# ━━━ Lottery Spinner Overlay ━━━ #}
@@ -790,6 +1003,15 @@
   let groupSortables = [];
   let reconnectTimer = null;
   let reconnectAttempts = 0;
+
+  // ── Configuration state ──
+  let cfgStrategy = 'round_robin';
+  let cfgDelay = 0;            // seconds between draws (0=off, -1=manual)
+  let cfgUsePots = false;
+  let cfgPots = {};            // { 1: [user_id, ...], 2: [...] }
+  let cfgRegionClash = false;
+  let delayTimer = null;
+  const POT_COLORS = ['#00b894','#6c5ce7','#e17055','#00cec9','#fdcb6e','#e84393','#0984e3','#d63031'];
 
   // ══════════════════════════════════════════════
   // Pre-Render: Empty State
@@ -908,7 +1130,10 @@
       case 'player_override':      onPlayerOverride(msg); break;
       case 'draw_complete':        onDrawComplete(msg); break;
       case 'draw_aborted':         onDrawAborted(msg); break;
-      case 'error':                showToast(msg.message, 'error'); break;
+      case 'bulk_drawn':           onBulkDrawn(msg); break;
+      case 'draw_undone':          onDrawUndone(msg); break;
+      case 'viewer_count':         onViewerCount(msg); break;
+      case 'error':                showToast(msg.message, 'error'); drawInProgress = false; break;
     }
   }
 
@@ -925,6 +1150,10 @@
     updateCounters(s.drawn_count, s.total, s.remaining);
     updateProgress(s.drawn_count, s.total);
     if (s.queue) renderQueue(s.queue);
+
+    // Undo button state
+    var undoBtn = document.getElementById('btn-undo');
+    if (undoBtn) undoBtn.disabled = !s.can_undo;
 
     if (s.finalized) {
       setDrawStatus('complete');
@@ -1024,6 +1253,89 @@
     preRender();
     document.getElementById('dd-instructions').classList.remove('hidden');
     updateTheaterLast(null);
+  }
+
+  function onBulkDrawn(msg) {
+    // Fast-forward: apply all results at once, no spinner
+    if (!msg.results) return;
+    msg.results.forEach(function(r) {
+      var p = r.player;
+      var group = r.assigned_group;
+      var slot = r.group_slot;
+      if (session) {
+        if (!session.assignments[group]) session.assignments[group] = [];
+        session.assignments[group].push(p);
+      }
+      fillSlot(group, slot, p, true);
+      removeFromQueue(p.user_id || p.registration_id);
+    });
+    if (session) {
+      session.drawn_count = msg.drawn_count;
+      session.remaining = msg.remaining;
+    }
+    updateCounters(msg.drawn_count, msg.total, msg.remaining);
+    updateProgress(msg.drawn_count, msg.total);
+    updateDrawButton(msg.remaining > 0);
+    if (msg.remaining === 0) {
+      document.getElementById('btn-finalize').disabled = false;
+    }
+    var undoBtn = document.getElementById('btn-undo');
+    if (undoBtn) undoBtn.disabled = false;
+    showToast('Drew ' + msg.results.length + ' players at once.', 'warn');
+    drawInProgress = false;
+  }
+
+  function onDrawUndone(msg) {
+    var p = msg.player;
+    var group = msg.from_group;
+    if (session) {
+      // Remove from assignments
+      var arr = session.assignments[group] || [];
+      for (var i = arr.length - 1; i >= 0; i--) {
+        if (arr[i].user_id === p.user_id) { arr.splice(i, 1); break; }
+      }
+      session.drawn_count = msg.drawn_count;
+      session.remaining = msg.remaining;
+      // Re-render the affected group
+      clearGroupSlots(group);
+      arr.forEach(function(pl, idx) { fillSlot(group, idx + 1, pl, false); });
+    }
+    // Add player back to queue at top
+    var list = document.getElementById('queue-list');
+    var html = '<div class="dd-queue-item" data-queue-id="' + (p.user_id || p.registration_id) + '"' +
+      " data-player='" + JSON.stringify(p).replace(/'/g, '&#39;') + "'>" +
+      '<i data-lucide="grip-vertical" class="grip" style="width:12px;height:12px;flex-shrink:0"></i>' +
+      '<span class="qnum">↩</span>' +
+      '<span class="qname">' + (p.display_name || p.name) + '</span></div>';
+    list.insertAdjacentHTML('afterbegin', html);
+    document.getElementById('queue-badge').textContent = msg.remaining;
+    updateCounters(msg.drawn_count, msg.total, msg.remaining);
+    updateProgress(msg.drawn_count, msg.total);
+    updateDrawButton(true);
+    document.getElementById('btn-finalize').disabled = true;
+    showToast('Undid: ' + (p.display_name || p.name) + ' returned to queue.', 'warn');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function onViewerCount(msg) {
+    var el = document.getElementById('viewer-count');
+    if (!el) {
+      // Create viewer badge in status bar
+      var bar = document.querySelector('.dd-status-bar > div:last-child');
+      if (bar) {
+        var badge = document.createElement('span');
+        badge.id = 'viewer-count';
+        badge.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.25);display:flex;align-items:center;gap:4px';
+        badge.innerHTML = '<i data-lucide="eye" style="width:11px;height:11px"></i> <span></span>';
+        bar.insertBefore(badge, bar.firstChild);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        el = badge;
+      }
+    }
+    if (el) {
+      var numEl = el.querySelector('span:last-child') || el;
+      numEl.textContent = (msg.count || 0) + ' viewer' + ((msg.count || 0) !== 1 ? 's' : '');
+    }
   }
 
   // ══════════════════════════════════════════════
@@ -1353,10 +1665,13 @@
   function showLiveControls(show) {
     document.getElementById('btn-init').style.display = show ? 'none' : 'inline-flex';
     document.getElementById('btn-draw').style.display = (show && drawMode === 'random') ? 'inline-flex' : 'none';
+    document.getElementById('btn-draw-all').style.display = show ? 'inline-flex' : 'none';
+    document.getElementById('btn-undo').style.display = show ? 'inline-flex' : 'none';
     document.getElementById('btn-finalize').style.display = show ? 'inline-flex' : 'none';
     document.getElementById('btn-abort').style.display = show ? 'inline-flex' : 'none';
     document.getElementById('mode-toggle').style.display = show ? 'inline-flex' : 'none';
     document.getElementById('manual-hint').style.display = (show && drawMode === 'manual') ? 'block' : 'none';
+    document.getElementById('delay-indicator').style.display = (show && cfgDelay !== 0) ? 'inline-flex' : 'none';
     syncButtonStates();
   }
 
@@ -1370,9 +1685,12 @@
     document.getElementById('complete-banner').style.display = 'block';
     if (hash) document.getElementById('draw-hash').textContent = 'Seed Hash: ' + hash;
     document.getElementById('btn-draw').style.display = 'none';
+    document.getElementById('btn-draw-all').style.display = 'none';
+    document.getElementById('btn-undo').style.display = 'none';
     document.getElementById('btn-finalize').style.display = 'none';
     document.getElementById('btn-abort').style.display = 'none';
     document.getElementById('mode-toggle').style.display = 'none';
+    document.getElementById('delay-indicator').style.display = 'none';
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -1464,18 +1782,104 @@
   // ══════════════════════════════════════════════
 
   window.DrawDirector = {
+    // ── Config Modal ──
+    openConfig() {
+      var overlay = document.getElementById('config-overlay');
+      overlay.style.display = 'flex';
+      requestAnimationFrame(function() { overlay.classList.add('show'); });
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
+    closeConfig() {
+      var overlay = document.getElementById('config-overlay');
+      overlay.classList.remove('show');
+      setTimeout(function() { overlay.style.display = 'none'; }, 300);
+    },
+    setStrategy(el) {
+      cfgStrategy = el.dataset.strategy;
+      document.querySelectorAll('.dd-config-toggle[data-strategy]').forEach(function(t) {
+        t.classList.toggle('active', t.dataset.strategy === cfgStrategy);
+      });
+    },
+    setDelay(el) {
+      cfgDelay = parseInt(el.dataset.delay);
+      document.querySelectorAll('.dd-delay-btn').forEach(function(b) {
+        b.classList.toggle('active', parseInt(b.dataset.delay) === cfgDelay);
+      });
+      var delayVal = document.getElementById('delay-value');
+      if (delayVal) delayVal.textContent = cfgDelay === 0 ? 'Off' : cfgDelay === -1 ? 'Manual' : cfgDelay + 's';
+    },
+    togglePots(enabled) {
+      cfgUsePots = enabled;
+      var builder = document.getElementById('pot-builder');
+      if (enabled) {
+        builder.style.display = 'block';
+        buildPotUI();
+      } else {
+        builder.style.display = 'none';
+        cfgPots = {};
+      }
+    },
+    confirmInit() {
+      // Build pot_config payload if pots are enabled
+      var potPayload = null;
+      if (cfgUsePots && Object.keys(cfgPots).length > 0) {
+        potPayload = [];
+        for (var potNum in cfgPots) {
+          if (cfgPots[potNum].length > 0) {
+            potPayload.push({ pot: parseInt(potNum), user_ids: cfgPots[potNum] });
+          }
+        }
+        if (potPayload.length === 0) potPayload = null;
+      }
+      cfgRegionClash = document.getElementById('cfg-region-clash').checked;
+
+      DrawDirector.closeConfig();
+      send({
+        action: 'init_draw',
+        fill_strategy: cfgStrategy,
+        pot_config: potPayload,
+        prevent_region_clash: cfgRegionClash,
+      });
+    },
+
+    // ── Original Actions ──
     initDraw() {
-      if (!send({ action: 'init_draw' })) return;
+      DrawDirector.openConfig();
     },
     drawNext() {
       if (drawInProgress) return;
+      // Commentary delay enforcement
+      if (cfgDelay > 0) {
+        if (delayTimer) return; // still in cooldown
+        drawInProgress = true;
+        document.getElementById('btn-draw').disabled = true;
+        send({ action: 'draw_next' });
+        delayTimer = setTimeout(function() {
+          delayTimer = null;
+          drawInProgress = false;
+          var btn = document.getElementById('btn-draw');
+          if (btn && !btn.dataset.wsBlocked) btn.disabled = false;
+        }, cfgDelay * 1000);
+        return;
+      }
       drawInProgress = true;
       document.getElementById('btn-draw').disabled = true;
       if (!send({ action: 'draw_next' })) {
         drawInProgress = false;
         return;
       }
-      setTimeout(() => { drawInProgress = false; document.getElementById('btn-draw').disabled = false; }, 5000);
+      setTimeout(function() { drawInProgress = false; var b = document.getElementById('btn-draw'); if (b && !b.dataset.wsBlocked) b.disabled = false; }, 5000);
+    },
+    drawAll() {
+      if (!confirm('Draw all remaining players at once? This skips the ceremony animation.')) return;
+      if (drawInProgress) return;
+      drawInProgress = true;
+      send({ action: 'draw_all' });
+    },
+    undoLast() {
+      send({ action: 'undo_last' });
+      var undoBtn = document.getElementById('btn-undo');
+      if (undoBtn) undoBtn.disabled = true; // re-enabled by next draw or snapshot
     },
     finalize() {
       if (!confirm('Finalize the draw? This commits all group assignments and generates matches. This cannot be undone.')) return;
@@ -1488,13 +1892,13 @@
     setMode(mode) {
       drawMode = mode;
       selectedPlayer = null;
-      document.querySelectorAll('.dd-mode-btn').forEach(btn => {
+      document.querySelectorAll('.dd-mode-btn').forEach(function(btn) {
         btn.classList.toggle('active', btn.dataset.mode === mode);
       });
-      const isManual = mode === 'manual';
+      var isManual = mode === 'manual';
       document.getElementById('btn-draw').style.display = (session && !isManual) ? 'inline-flex' : 'none';
       document.getElementById('manual-hint').style.display = (session && isManual) ? 'block' : 'none';
-      const participants = session && session.queue ? session.queue : PARTICIPANTS_DATA;
+      var participants = session && session.queue ? session.queue : PARTICIPANTS_DATA;
       if (participants) renderQueue(participants);
       if (typeof lucide !== 'undefined') lucide.createIcons();
     },
@@ -1505,9 +1909,90 @@
         drawInProgress = false;
         return;
       }
-      setTimeout(() => { drawInProgress = false; }, 5000);
+      setTimeout(function() { drawInProgress = false; }, 5000);
     },
   };
+
+  // ══════════════════════════════════════════════
+  // Pot Seeding UI Builder
+  // ══════════════════════════════════════════════
+
+  function buildPotUI() {
+    var builder = document.getElementById('pot-builder');
+    var numGroups = GROUPS_DATA.length || 4;
+    var numPots = Math.min(numGroups, Math.ceil(PARTICIPANTS_DATA.length / numGroups));
+
+    // Initialize pot containers
+    cfgPots = {};
+    for (var i = 1; i <= numPots; i++) cfgPots[i] = [];
+
+    var html = '';
+    // Unassigned pool
+    html += '<div class="dd-pot-row"><div class="dd-pot-label">Unassigned</div>';
+    html += '<div class="dd-pot-pool" data-pot="0">';
+    PARTICIPANTS_DATA.forEach(function(p) {
+      html += '<div class="dd-pot-chip" draggable="true" data-uid="' + (p.user_id || p.registration_id) + '">' +
+        (p.display_name || p.name) + '</div>';
+    });
+    html += '</div></div>';
+
+    // Pot rows
+    for (var pot = 1; pot <= numPots; pot++) {
+      var color = POT_COLORS[(pot - 1) % POT_COLORS.length];
+      html += '<div class="dd-pot-row">';
+      html += '<div class="dd-pot-label"><span class="pot-color" style="background:' + color + '"></span> Pot ' + pot + '</div>';
+      html += '<div class="dd-pot-pool" data-pot="' + pot + '" style="border-color:' + color + '33"></div>';
+      html += '</div>';
+    }
+
+    html += '<div style="font-size:10px;color:rgba(255,255,255,0.12);margin-top:6px">' +
+      'Drag teams into pots. Each group will receive exactly one team from each pot.</div>';
+
+    builder.innerHTML = html;
+    initPotDragDrop();
+  }
+
+  function initPotDragDrop() {
+    var chips = document.querySelectorAll('.dd-pot-chip');
+    var pools = document.querySelectorAll('.dd-pot-pool');
+
+    chips.forEach(function(chip) {
+      chip.addEventListener('dragstart', function(e) {
+        chip.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', chip.dataset.uid);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      chip.addEventListener('dragend', function() { chip.classList.remove('dragging'); });
+    });
+
+    pools.forEach(function(pool) {
+      pool.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        pool.classList.add('drag-over');
+      });
+      pool.addEventListener('dragleave', function() { pool.classList.remove('drag-over'); });
+      pool.addEventListener('drop', function(e) {
+        e.preventDefault();
+        pool.classList.remove('drag-over');
+        var uid = e.dataTransfer.getData('text/plain');
+        var chip = document.querySelector('.dd-pot-chip[data-uid="' + uid + '"]');
+        if (chip) {
+          // Remove from old pot tracking
+          var oldPot = parseInt(chip.parentElement.dataset.pot);
+          if (oldPot > 0 && cfgPots[oldPot]) {
+            cfgPots[oldPot] = cfgPots[oldPot].filter(function(id) { return id !== parseInt(uid); });
+          }
+          // Add to new pot
+          var newPot = parseInt(pool.dataset.pot);
+          if (newPot > 0) {
+            if (!cfgPots[newPot]) cfgPots[newPot] = [];
+            cfgPots[newPot].push(parseInt(uid));
+          }
+          pool.appendChild(chip);
+        }
+      });
+    });
+  }
 
   // ══════════════════════════════════════════════
   // Init

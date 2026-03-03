@@ -389,6 +389,82 @@
     color: rgba(255,255,255,0.1);
   }
 
+  /* ── Viewer Count Badge ── */
+  .spec-viewer-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 6px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 600;
+    color: rgba(255,255,255,0.25); letter-spacing: 0.08em;
+  }
+
+  /* ── Pot Tier Badges on Slots ── */
+  .spec-slot .pot-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; border-radius: 4px;
+    font-family: 'Space Grotesk', monospace; font-size: 9px; font-weight: 800;
+    letter-spacing: 0.05em; flex-shrink: 0;
+  }
+  .spec-slot .pot-badge.pot-1 { background: rgba(0,184,148,0.15); color: #00b894; border: 1px solid rgba(0,184,148,0.3); }
+  .spec-slot .pot-badge.pot-2 { background: rgba(108,92,231,0.15); color: #6c5ce7; border: 1px solid rgba(108,92,231,0.3); }
+  .spec-slot .pot-badge.pot-3 { background: rgba(225,112,85,0.15); color: #e17055; border: 1px solid rgba(225,112,85,0.3); }
+  .spec-slot .pot-badge.pot-4 { background: rgba(0,206,201,0.15); color: #00cec9; border: 1px solid rgba(0,206,201,0.3); }
+
+  /* ── Enhanced Suspense Glow ── */
+  .spec-slot.suspense-glow {
+    animation: suspenseGlow 2s ease-in-out;
+    position: relative; z-index: 2;
+  }
+  @keyframes suspenseGlow {
+    0% { box-shadow: none; border-color: rgba(var(--dc-gold-rgb),0.1); }
+    15% { box-shadow: 0 0 20px rgba(var(--dc-gold-rgb),0.2), inset 0 0 20px rgba(var(--dc-gold-rgb),0.05); border-color: rgba(var(--dc-gold-rgb),0.4); }
+    50% { box-shadow: 0 0 40px rgba(var(--dc-accent-rgb),0.25), inset 0 0 30px rgba(var(--dc-accent-rgb),0.06); border-color: rgba(var(--dc-accent-rgb),0.5); }
+    85% { box-shadow: 0 0 20px rgba(var(--dc-accent-rgb),0.15); border-color: rgba(var(--dc-accent-rgb),0.3); }
+    100% { box-shadow: none; border-color: rgba(var(--dc-accent-rgb),0.1); }
+  }
+
+  /* ── Background Dim During Draw ── */
+  .spec-draw.dimmed > .spec-bg::before { opacity: 0.3; }
+  .spec-draw.dimmed .spec-group-card:not(.receiving) { opacity: 0.4; transition: opacity 0.5s; }
+  .spec-draw.dimmed .spec-group-card.receiving { opacity: 1; transition: opacity 0.3s; }
+  .spec-draw.dimmed .spec-counters, .spec-draw.dimmed .spec-remaining { opacity: 0.3; }
+
+  /* ── Snap-In Reveal Animation ── */
+  @keyframes snapIn {
+    0% { transform: scale(1.3) translateY(-8px); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .spec-slot.snap-reveal .player-name {
+    animation: snapIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* ── Cryptographic Trust Footer ── */
+  .spec-trust-footer {
+    margin-top: 48px; padding: 28px 32px;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.03), rgba(77,166,255,0.015));
+    border: 1px solid rgba(var(--dc-accent-rgb),0.08);
+    border-radius: 16px; text-align: center;
+    max-width: 640px; margin-left: auto; margin-right: auto;
+  }
+  .spec-trust-icon { margin-bottom: 10px; }
+  .spec-trust-label {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
+    font-size: 14px; color: var(--dc-accent); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .spec-trust-hash {
+    font-family: 'Space Grotesk', monospace; font-size: 11px;
+    color: rgba(255,255,255,0.4); word-break: break-all;
+    padding: 10px 16px; border-radius: 8px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 12px; letter-spacing: 0.04em;
+  }
+  .spec-trust-explain {
+    font-size: 11px; color: rgba(255,255,255,0.12); line-height: 1.5;
+    max-width: 480px; margin: 0 auto;
+  }
+
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
      LOTTERY SPINNER — CS:GO Case Unboxing Style
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -499,6 +575,10 @@
       </div>
     </div>
     <div class="spec-header-right">
+      <span id="viewer-badge" class="spec-viewer-badge" style="display:none">
+        <i data-lucide="eye" style="width:11px;height:11px"></i>
+        <span id="viewer-num">0</span>
+      </span>
       <span id="spec-badge" class="spec-badge spec-badge-waiting">WAITING FOR DRAW</span>
       <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.15)">
         <span id="ws-dot" class="ws-dot connecting"></span>
@@ -603,8 +683,20 @@
       <i data-lucide="trophy" class="spec-complete-trophy"></i>
       <h2>Draw Complete!</h2>
       <p>All teams have been drawn into their groups.</p>
-      <div class="hash" id="spec-hash"></div>
       <div id="final-groups" style="margin-top:40px"></div>
+
+      {# ── Cryptographic Trust Footer ── #}
+      <div id="trust-footer" class="spec-trust-footer" style="display:none">
+        <div class="spec-trust-icon">
+          <i data-lucide="shield-check" style="width:20px;height:20px;color:var(--dc-accent)"></i>
+        </div>
+        <div class="spec-trust-label">Provably Fair Draw</div>
+        <div class="spec-trust-hash" id="spec-hash-full"></div>
+        <div class="spec-trust-explain">
+          This SHA-256 hash proves the draw order was determined by a cryptographic seed.
+          The hash can be independently verified to confirm no manipulation occurred.
+        </div>
+      </div>
     </div>
 
   </div>
@@ -677,6 +769,9 @@
       case 'player_override':      onPlayerOverride(msg); break;
       case 'draw_complete':        onDrawComplete(msg); break;
       case 'draw_aborted':         onDrawAborted(msg); break;
+      case 'bulk_drawn':           onBulkDrawn(msg); break;
+      case 'draw_undone':          onDrawUndone(msg); break;
+      case 'viewer_count':         onViewerCount(msg); break;
     }
   }
 
@@ -706,6 +801,9 @@
       players.forEach((p, i) => fillSlotInstant(gName, i + 1, p));
     }
     updateCounters(s.drawn_count, s.total, s.total - s.drawn_count);
+
+    // Update viewer badge from initial count
+    if (s.viewer_count != null) onViewerCount({ count: s.viewer_count });
 
     if (s.finalized) { setBadge('complete'); showCompleteScreen(null); }
     else if (s.drawn_count > 0) { setBadge('live'); }
@@ -750,23 +848,36 @@
     showLotterySpinner(participantPool, winnerName, group, function() {
       showSpotlight(winnerName, group);
 
+      // Dim non-receiving groups for focus
+      const drawArea = document.querySelector('.spec-draw');
+      if (drawArea) drawArea.classList.add('dimmed');
+
       const card = document.querySelector('[data-spec-group="' + group + '"]');
-      if (card) { card.classList.add('receiving'); setTimeout(() => card.classList.remove('receiving'), 3000); }
+      if (card) { card.classList.add('receiving'); }
 
       const slotEl = document.querySelector('[data-spec-group="' + group + '"][data-spec-slot="' + slot + '"]');
       if (slotEl) {
-        slotEl.classList.add('suspense');
+        // Add glow effect then reveal
+        slotEl.classList.add('suspense', 'suspense-glow');
         setTimeout(() => {
-          slotEl.classList.remove('suspense');
-          slotEl.classList.add('revealing', 'filled');
+          slotEl.classList.remove('suspense', 'suspense-glow');
+          slotEl.classList.add('revealing', 'filled', 'snap-reveal');
           const nameEl = slotEl.querySelector('.player-name');
           if (nameEl) nameEl.textContent = winnerName;
-        }, 500);
+          // Add pot badge if available
+          if (player.pot) addPotBadge(slotEl, player.pot);
+        }, 2000);
         setTimeout(() => {
-          slotEl.classList.remove('revealing');
+          slotEl.classList.remove('revealing', 'snap-reveal');
           slotEl.classList.add('revealed');
           updateGroupCounter(group);
-        }, 1500);
+          // Remove dim after reveal
+          if (drawArea) drawArea.classList.remove('dimmed');
+          if (card) card.classList.remove('receiving');
+        }, 3000);
+      } else {
+        // Fallback: remove dim if slot not found
+        setTimeout(() => { if (drawArea) drawArea.classList.remove('dimmed'); }, 3000);
       }
 
       const idx = participantPool.indexOf(winnerName);
@@ -793,6 +904,53 @@
     document.getElementById('live-content').classList.add('hidden');
     document.getElementById('complete-screen').classList.add('hidden');
     document.getElementById('waiting-screen').classList.remove('hidden');
+  }
+
+  /* ── Bulk Drawn (Draw All) ── */
+  function onBulkDrawn(msg) {
+    const results = msg.results || [];
+    results.forEach(r => {
+      const player = r.player;
+      const group = r.group;
+      const slot = r.slot;
+      if (session) {
+        if (!session.assignments[group]) session.assignments[group] = [];
+        session.assignments[group].push(player);
+      }
+      fillSlotInstant(group, slot, player);
+    });
+    if (session) session.drawn_count = msg.drawn_count || (session.drawn_count + results.length);
+    updateCounters(msg.drawn_count || session.drawn_count, msg.total || session.total, msg.remaining || 0);
+    updateProgress(msg.drawn_count || session.drawn_count, msg.total || session.total);
+  }
+
+  /* ── Draw Undone (Undo Last) ── */
+  function onDrawUndone(msg) {
+    const group = msg.group;
+    const playerName = msg.player_name || (msg.player && (msg.player.display_name || msg.player.name));
+    if (session && session.assignments[group]) {
+      session.assignments[group] = session.assignments[group].filter(
+        p => (p.display_name || p.name) !== playerName
+      );
+      session.drawn_count = Math.max(0, (session.drawn_count || 0) - 1);
+      // Re-render the group slots
+      clearSlots(group);
+      (session.assignments[group] || []).forEach((p, i) => fillSlotInstant(group, i + 1, p));
+      updateGroupCounter(group);
+    }
+    updateCounters(msg.drawn_count, msg.total, msg.remaining);
+    updateProgress(msg.drawn_count, msg.total);
+    // Re-add to participant pool
+    if (playerName && !participantPool.includes(playerName)) participantPool.push(playerName);
+  }
+
+  /* ── Live Viewer Count ── */
+  function onViewerCount(msg) {
+    const num = msg.count || 0;
+    const numEl = document.getElementById('viewer-num');
+    if (numEl) numEl.textContent = num;
+    const badge = document.getElementById('viewer-badge');
+    if (badge) badge.style.display = num > 0 ? 'inline-flex' : 'none';
   }
 
   // ══════════════════════════════════════════════
@@ -832,7 +990,22 @@
     slot.classList.add('filled', 'revealed');
     const nameEl = slot.querySelector('.player-name');
     if (nameEl) nameEl.textContent = player.display_name || player.name || '?';
+    if (player.pot) addPotBadge(slot, player.pot);
     updateGroupCounter(gName);
+  }
+
+  function addPotBadge(slotEl, potNum) {
+    if (!slotEl || slotEl.querySelector('.pot-badge')) return;
+    const badge = document.createElement('span');
+    badge.className = 'pot-badge pot-' + potNum;
+    badge.textContent = 'P' + potNum;
+    // Insert after slot-num
+    const slotNumEl = slotEl.querySelector('.slot-num');
+    if (slotNumEl && slotNumEl.nextSibling) {
+      slotEl.insertBefore(badge, slotNumEl.nextSibling);
+    } else {
+      slotEl.insertBefore(badge, slotEl.querySelector('.player-name')?.parentElement || slotEl.firstChild);
+    }
   }
 
   function clearSlots(gName) {
@@ -934,7 +1107,18 @@
     document.getElementById('live-content').classList.add('hidden');
     const screen = document.getElementById('complete-screen');
     screen.classList.remove('hidden');
-    if (hash) document.getElementById('spec-hash').textContent = 'Verification: ' + hash;
+
+    // Populate trust footer
+    const trustFooter = document.getElementById('trust-footer');
+    const hashFull = document.getElementById('spec-hash-full');
+    const hashLegacy = document.getElementById('spec-hash');
+    if (hash) {
+      if (hashFull) hashFull.textContent = hash;
+      if (hashLegacy) hashLegacy.textContent = 'Verification: ' + hash;
+      if (trustFooter) trustFooter.style.display = '';
+    } else {
+      if (trustFooter) trustFooter.style.display = 'none';
+    }
 
     if (session && session.assignments) {
       const container = document.getElementById('final-groups');
@@ -947,12 +1131,14 @@
         card.className = 'spec-group-card';
         card.innerHTML =
           '<div class="spec-group-header"><span class="spec-group-letter">Group ' + g + '</span></div>' +
-          '<div>' + players.map((p, i) =>
-            '<div class="spec-slot filled revealed">' +
+          '<div>' + players.map((p, i) => {
+            const potHtml = p.pot ? '<span class="pot-badge pot-' + p.pot + '">P' + p.pot + '</span>' : '';
+            return '<div class="spec-slot filled revealed">' +
               '<span class="slot-num">' + (i + 1) + '</span>' +
+              potHtml +
               '<div style="flex:1"><span class="player-name" style="opacity:1;transform:none;color:#fff">' + (p.display_name || p.name || '?') + '</span></div>' +
-            '</div>'
-          ).join('') + '</div>';
+            '</div>';
+          }).join('') + '</div>';
         grid.appendChild(card);
       });
       container.appendChild(grid);

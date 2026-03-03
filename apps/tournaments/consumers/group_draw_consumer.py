@@ -10,6 +10,8 @@ Channel group: live_group_draw_{tournament_id}
 Actions (organizer only):
     init_draw       — Initialize draw session with participant queue
     draw_next       — Draw next player from queue, assign to group
+    draw_all        — Auto-draw all remaining players at once
+    undo_last       — Pull last drawn player back into queue
     assign_override — Move last-drawn player to a different group
     finalize_draw   — Commit assignments to DB, generate matches
     abort_draw      — Discard session without committing
@@ -18,6 +20,8 @@ Broadcast events:
     draw_session_open    — Session created, groups & total announced
     draw_session_snapshot— Full session state on reconnect
     player_drawn         — Single player drawn and assigned to group
+    draw_undone          — Last drawn player returned to queue
+    viewer_count         — Number of active WebSocket viewers
     draw_complete        — All players drawn & committed to DB
     draw_aborted         — Session discarded by organizer
 """
@@ -51,6 +55,10 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
+        # Track viewer count
+        await self._incr_viewers(1)
+        await self._broadcast_viewer_count()
+
         # Send current session snapshot (if draw is in progress)
         session = await self._get_session()
         if session:
@@ -61,6 +69,8 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self._incr_viewers(-1)
+        await self._broadcast_viewer_count()
 
     # ------------------------------------------------------------------ #
     # Action router
@@ -71,6 +81,8 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         handlers = {
             "init_draw": self._handle_init_draw,
             "draw_next": self._handle_draw_next,
+            "draw_all": self._handle_draw_all,
+            "undo_last": self._handle_undo_last,
             "manual_assign": self._handle_manual_assign,
             "assign_override": self._handle_assign_override,
             "finalize_draw": self._handle_finalize_draw,
@@ -93,7 +105,13 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
     # ------------------------------------------------------------------ #
 
     async def _handle_init_draw(self, content):
-        """Initialize a draw session. Builds participant queue and group grid."""
+        """Initialize a draw session. Builds participant queue and group grid.
+
+        Accepts optional configuration:
+            pot_config: list of {"pot": int, "user_ids": [int, ...]}
+            fill_strategy: "round_robin" (default) | "sequential"
+            prevent_region_clash: bool (default False)
+        """
         # Prevent double-init
         existing = await self._get_session()
         if existing and not existing.get("finalized"):
@@ -124,8 +142,50 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         group_names = [g["name"] for g in groups_info]
         group_size = max(g["max_participants"] for g in groups_info) if groups_info else 4
 
-        # Shuffle queue randomly
-        random.shuffle(participants)
+        # ── Parse draw configuration ──
+        pot_config = content.get("pot_config")          # [{pot:1, user_ids:[...]}, ...]
+        fill_strategy = content.get("fill_strategy", "round_robin")  # "round_robin" | "sequential"
+        prevent_region_clash = content.get("prevent_region_clash", False)
+
+        # ── Build queue ──
+        if pot_config:
+            # Pot-ordered queue: shuffle within each pot, then interleave
+            # so draw_next with round-robin fill guarantees 1 per pot per group
+            pot_lookup = {}  # user_id → pot number
+            for pot_def in pot_config:
+                pot_num = pot_def.get("pot", 0)
+                for uid in pot_def.get("user_ids", []):
+                    pot_lookup[uid] = pot_num
+
+            # Tag participants with pot info
+            for p in participants:
+                p["pot"] = pot_lookup.get(p["user_id"], 0)
+
+            # Group by pot, shuffle within each pot
+            pots = {}
+            unassigned = []
+            for p in participants:
+                pot_num = p.get("pot", 0)
+                if pot_num > 0:
+                    pots.setdefault(pot_num, []).append(p)
+                else:
+                    unassigned.append(p)
+
+            for pot_players in pots.values():
+                random.shuffle(pot_players)
+            random.shuffle(unassigned)
+
+            # Interleave: Pot 1 first, then Pot 2, etc.
+            # This ensures round-robin fill places one from each pot per group
+            queue = []
+            sorted_pots = sorted(pots.keys())
+            for pot_num in sorted_pots:
+                queue.extend(pots[pot_num])
+            queue.extend(unassigned)
+        else:
+            # Pure random
+            random.shuffle(participants)
+            queue = participants
 
         session = {
             "tournament_id": self.tournament_id,
@@ -133,11 +193,15 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "groups": group_names,
             "groups_info": groups_info,
             "group_size": group_size,
-            "queue": participants,
+            "queue": queue,
             "assignments": {g: [] for g in group_names},
+            "draw_log": [],           # ordered list of (player, group) for undo
             "next_group_index": 0,
             "drawn_count": 0,
-            "total": len(participants),
+            "total": len(queue),
+            "fill_strategy": fill_strategy,
+            "pot_config": pot_config,
+            "prevent_region_clash": prevent_region_clash,
             "started_at": timezone.now().isoformat(),
             "finalized": False,
         }
@@ -147,14 +211,21 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(self.group_name, {
             "type": "group_draw.session_open",
             "tournament_id": self.tournament_id,
-            "total": len(participants),
+            "total": len(queue),
             "groups": group_names,
             "group_size": group_size,
+            "fill_strategy": fill_strategy,
+            "pot_config": pot_config,
             "started_at": session["started_at"],
         })
 
     async def _handle_draw_next(self, content):
-        """Pop next player from queue and assign to current group."""
+        """Pop next player from queue and assign to current group.
+
+        Supports fill strategies:
+        - round_robin: Slot 1 in all groups, then Slot 2, etc.
+        - sequential: Fill Group A completely, then Group B, etc.
+        """
         session = await self._get_session()
         if not session:
             await self.send_json({"type": "error", "message": "No active draw session."})
@@ -169,20 +240,24 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         # Pop next player
         player = session["queue"].pop(0)
 
-        # Determine target group (round-robin fill across groups)
-        group_idx = session["next_group_index"]
-        if group_idx >= len(session["groups"]):
+        # Determine target group based on fill strategy
+        fill_strategy = session.get("fill_strategy", "round_robin")
+        target_group = self._pick_target_group(session, fill_strategy)
+
+        if target_group is None:
             await self.send_json({"type": "error", "message": "All groups are full."})
-            session["queue"].insert(0, player)  # Put player back
+            session["queue"].insert(0, player)
             await self._save_session(session)
             return
 
-        target_group = session["groups"][group_idx]
         session["assignments"][target_group].append(player)
 
-        # Advance group pointer if current group is full
-        if len(session["assignments"][target_group]) >= session["group_size"]:
-            session["next_group_index"] += 1
+        # Record in draw log for undo
+        draw_log = session.setdefault("draw_log", [])
+        draw_log.append({"player": player, "group": target_group})
+
+        # Advance group pointer
+        self._advance_group_index(session, fill_strategy)
 
         session["drawn_count"] += 1
         await self._save_session(session)
@@ -194,6 +269,90 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "assigned_group": target_group,
             "group_slot": len(session["assignments"][target_group]),
             "group_count": len(session["assignments"][target_group]),
+            "drawn_count": session["drawn_count"],
+            "remaining": len(session["queue"]),
+            "total": session["total"],
+        })
+
+    async def _handle_draw_all(self, content):
+        """Auto-draw all remaining players at once (fast-forward)."""
+        session = await self._get_session()
+        if not session:
+            await self.send_json({"type": "error", "message": "No active draw session."})
+            return
+        if not session["queue"]:
+            await self.send_json({"type": "error", "message": "Queue already empty."})
+            return
+
+        fill_strategy = session.get("fill_strategy", "round_robin")
+        results = []
+
+        while session["queue"]:
+            player = session["queue"].pop(0)
+            target_group = self._pick_target_group(session, fill_strategy)
+            if target_group is None:
+                session["queue"].insert(0, player)
+                break
+            session["assignments"][target_group].append(player)
+            draw_log = session.setdefault("draw_log", [])
+            draw_log.append({"player": player, "group": target_group})
+            self._advance_group_index(session, fill_strategy)
+            session["drawn_count"] += 1
+            results.append({
+                "player": player,
+                "assigned_group": target_group,
+                "group_slot": len(session["assignments"][target_group]),
+            })
+
+        await self._save_session(session)
+
+        # Broadcast bulk draw result
+        await self.channel_layer.group_send(self.group_name, {
+            "type": "group_draw.bulk_drawn",
+            "results": results,
+            "drawn_count": session["drawn_count"],
+            "remaining": len(session["queue"]),
+            "total": session["total"],
+        })
+
+    async def _handle_undo_last(self, content):
+        """Pull the last drawn player back into the front of the queue."""
+        session = await self._get_session()
+        if not session:
+            await self.send_json({"type": "error", "message": "No active draw session."})
+            return
+
+        draw_log = session.get("draw_log", [])
+        if not draw_log:
+            await self.send_json({"type": "error", "message": "Nothing to undo."})
+            return
+
+        last_entry = draw_log.pop()
+        player = last_entry["player"]
+        group = last_entry["group"]
+
+        # Remove player from group assignments
+        group_players = session["assignments"].get(group, [])
+        for i in range(len(group_players) - 1, -1, -1):
+            if group_players[i].get("user_id") == player.get("user_id"):
+                group_players.pop(i)
+                break
+
+        # Put player back at front of queue
+        session["queue"].insert(0, player)
+        session["drawn_count"] = max(0, session["drawn_count"] - 1)
+
+        # Recompute group index
+        fill_strategy = session.get("fill_strategy", "round_robin")
+        self._recompute_group_index(session, fill_strategy)
+
+        await self._save_session(session)
+
+        # Broadcast undo event
+        await self.channel_layer.group_send(self.group_name, {
+            "type": "group_draw.draw_undone",
+            "player": player,
+            "from_group": group,
             "drawn_count": session["drawn_count"],
             "remaining": len(session["queue"]),
             "total": session["total"],
@@ -244,6 +403,10 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         player = session["queue"].pop(found_idx)
         session["assignments"][target_group].append(player)
         session["drawn_count"] += 1
+
+        # Record in draw log for undo
+        draw_log = session.setdefault("draw_log", [])
+        draw_log.append({"player": player, "group": target_group})
 
         # Recompute next_group_index (find first non-full group)
         session["next_group_index"] = 0
@@ -397,6 +560,87 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
     async def group_draw_draw_aborted(self, event):
         await self.send_json({**event, "type": "draw_aborted"})
 
+    async def group_draw_bulk_drawn(self, event):
+        await self.send_json({**event, "type": "bulk_drawn"})
+
+    async def group_draw_draw_undone(self, event):
+        await self.send_json({**event, "type": "draw_undone"})
+
+    async def group_draw_viewer_count(self, event):
+        await self.send_json({**event, "type": "viewer_count"})
+
+    # ------------------------------------------------------------------ #
+    # Fill strategy helpers
+    # ------------------------------------------------------------------ #
+
+    def _pick_target_group(self, session, fill_strategy):
+        """Return the next group name to receive a player, or None if all full."""
+        groups = session["groups"]
+        assignments = session["assignments"]
+        group_size = session["group_size"]
+
+        if fill_strategy == "sequential":
+            # Fill Group A completely, then Group B, etc.
+            for g in groups:
+                if len(assignments.get(g, [])) < group_size:
+                    return g
+            return None
+        else:
+            # round_robin: Slot 1 in all groups, then Slot 2, etc.
+            idx = session.get("next_group_index", 0)
+            if idx >= len(groups):
+                return None
+            target = groups[idx]
+            if len(assignments.get(target, [])) >= group_size:
+                # Find next non-full group
+                for i in range(len(groups)):
+                    g = groups[i]
+                    if len(assignments.get(g, [])) < group_size:
+                        return g
+                return None
+            return target
+
+    def _advance_group_index(self, session, fill_strategy):
+        """Move the group pointer after an assignment."""
+        if fill_strategy == "sequential":
+            return  # sequential just fills first non-full
+        # round_robin: advance to next group, wrap if needed
+        groups = session["groups"]
+        idx = session.get("next_group_index", 0) + 1
+        if idx >= len(groups):
+            # Check if we need to wrap (next round of slots)
+            all_have_same = True
+            target_count = len(session["assignments"].get(groups[0], []))
+            for g in groups:
+                if len(session["assignments"].get(g, [])) < target_count:
+                    all_have_same = False
+                    break
+            if all_have_same:
+                idx = 0  # start new round
+        session["next_group_index"] = idx
+
+    def _recompute_group_index(self, session, fill_strategy):
+        """Recompute next_group_index after an undo or manual op."""
+        groups = session["groups"]
+        assignments = session["assignments"]
+        group_size = session["group_size"]
+
+        if fill_strategy == "sequential":
+            session["next_group_index"] = 0
+            for i, g in enumerate(groups):
+                if len(assignments.get(g, [])) < group_size:
+                    session["next_group_index"] = i
+                    return
+            session["next_group_index"] = len(groups)
+        else:
+            # Round-robin: find the group with fewest players that should go next
+            min_count = min(len(assignments.get(g, [])) for g in groups) if groups else 0
+            for i, g in enumerate(groups):
+                if len(assignments.get(g, [])) == min_count:
+                    session["next_group_index"] = i
+                    return
+            session["next_group_index"] = 0
+
     # ------------------------------------------------------------------ #
     # Redis session helpers
     # ------------------------------------------------------------------ #
@@ -428,7 +672,36 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "total": session.get("total", 0),
             "started_at": session.get("started_at"),
             "finalized": session.get("finalized", False),
+            "fill_strategy": session.get("fill_strategy", "round_robin"),
+            "pot_config": session.get("pot_config"),
+            "can_undo": len(session.get("draw_log", [])) > 0,
         }
+
+    # ------------------------------------------------------------------ #
+    # Viewer count helpers
+    # ------------------------------------------------------------------ #
+
+    async def _incr_viewers(self, delta):
+        """Increment or decrement the viewer count for this draw."""
+        key = f"draw_viewers:{self.tournament_id}"
+        try:
+            current = await database_sync_to_async(cache.get)(key) or 0
+            new_count = max(0, current + delta)
+            await database_sync_to_async(cache.set)(key, new_count, DRAW_SESSION_TTL)
+        except Exception:
+            pass
+
+    async def _broadcast_viewer_count(self):
+        """Send current viewer count to all connected clients."""
+        key = f"draw_viewers:{self.tournament_id}"
+        try:
+            count = await database_sync_to_async(cache.get)(key) or 0
+            await self.channel_layer.group_send(self.group_name, {
+                "type": "group_draw.viewer_count",
+                "count": count,
+            })
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ #
     # Database helpers
