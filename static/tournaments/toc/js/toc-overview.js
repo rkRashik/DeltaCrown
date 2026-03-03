@@ -2,10 +2,16 @@
  * TOC — Overview Tab (Command Center) JavaScript.
  *
  * Sprint 1: S1-F1 through S1-F9
+ * Sprint 25: Action Queue, Tournament Progress, Quick Stats, Activity Log
+ *
  * Loads from /api/toc/<slug>/overview/ and renders:
  *   - Lifecycle pipeline visualizer (S1-F2)
- *   - 4-column stat cards (S1-F1 + S1-F6)
+ *   - Vital stat hero cards by ID (S1-F1 + S1-F6, refactored S25)
+ *   - Quick stats strip from /stats/ (S25)
  *   - Alerts panel (S1-F4)
+ *   - Action Queue (S25, derived from actionable alerts)
+ *   - Tournament Progress timeline (S25, derived from lifecycle)
+ *   - Activity Log from /audit-log/ (S25)
  *   - Upcoming events timeline (S1-F7)
  *   - Transition modal (S1-F3)
  *   - Freeze / Unfreeze (S1-F5)
@@ -74,7 +80,12 @@
     renderStats(data.stats);
     renderAlerts(data.alerts);
     renderEvents(data.events);
+    renderActionQueue(data.alerts);
+    renderProgress(data.lifecycle);
     updateGlobalStatus(data);
+    // Async side-channels (non-blocking)
+    loadQuickStats();
+    loadActivityLog();
   }
 
   function renderError() {
@@ -144,32 +155,30 @@
   //  S1-F1 + S1-F6: Stat Cards
   // ═══════════════════════════════════════════════════════════════
 
+  // ── Stat ID mapping (overview API key → HTML element ID prefix) ──
+  const STAT_MAP = {
+    registrations: { val: 'stat-participants', meta: 'stat-participants-meta' },
+    payments:      { val: 'stat-revenue',      meta: 'stat-revenue-meta' },
+    matches:       { val: 'stat-active-matches', meta: 'stat-active-meta' },
+    disputes:      { val: 'stat-open-disputes', meta: 'stat-disputes-meta' },
+  };
+
   function renderStats(stats) {
-    const container = $('#overview-stats');
-    if (!container) return;
-
-    container.innerHTML = stats.map(s => {
-      const icon = STAT_ICONS[s.key] || 'bar-chart-3';
-      const c = STAT_COLORS[s.color] || STAT_COLORS.theme;
-      const isDanger = s.color === 'danger';
-
-      return `
-        <div class="glass-box rounded-xl p-5 group ${c.hoverBorder} transition-colors ${isDanger ? 'border-dc-danger/30 bg-gradient-to-br from-dc-dangerBg to-transparent' : ''}">
-          <i data-lucide="${icon}" class="ghost-icon w-24 h-24 -right-4 -bottom-4 group-hover:opacity-10 transition-all"></i>
-          <div class="flex justify-between items-start mb-4 relative z-10">
-            <span class="text-[10px] font-bold ${isDanger ? 'text-dc-danger' : 'text-dc-text'} uppercase tracking-widest">${_esc(s.label)}</span>
-            <div class="p-1.5 ${c.iconBg} rounded-md border ${c.iconBorder}">
-              <i data-lucide="${icon}" class="w-3.5 h-3.5 ${c.iconText}"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline gap-2 relative z-10">
-            <span class="font-display font-black text-4xl ${isDanger && s.value > 0 ? 'text-dc-danger drop-shadow-[0_0_10px_rgba(255,42,85,0.8)]' : 'text-white'}">${s.value}</span>
-            ${s.detail ? `<span class="text-xs text-dc-text font-mono">${_esc(s.detail)}</span>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-
-    _reinitIcons();
+    if (!stats) return;
+    stats.forEach(function (s) {
+      const mapping = STAT_MAP[s.key];
+      if (!mapping) return;
+      const valEl = $('#' + mapping.val);
+      const metaEl = $('#' + mapping.meta);
+      if (valEl) {
+        valEl.textContent = typeof s.value === 'number' ? s.value.toLocaleString() : s.value;
+        // Danger pulse for disputes > 0
+        if (s.key === 'disputes' && s.value > 0) {
+          valEl.classList.add('text-dc-danger', 'drop-shadow-[0_0_10px_rgba(255,42,85,0.8)]');
+        }
+      }
+      if (metaEl && s.detail) metaEl.textContent = s.detail;
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -260,6 +269,199 @@
     }).join('');
 
     _reinitIcons();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 25: Action Queue (derived from alerts)
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderActionQueue(alerts) {
+    const container = $('#action-queue');
+    const countBadge = $('#action-queue-count');
+    if (!container) return;
+
+    // Filter to actionable alerts (those with a link_tab)
+    const actionable = (alerts || []).filter(function (a) { return !!a.link_tab; });
+
+    if (countBadge) {
+      countBadge.textContent = actionable.length;
+      countBadge.classList.toggle('hidden', actionable.length === 0);
+    }
+
+    if (actionable.length === 0) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-32 text-center">
+          <i data-lucide="inbox" class="w-8 h-8 text-dc-success mb-3 opacity-60"></i>
+          <p class="text-sm font-bold text-white">No pending actions</p>
+          <p class="text-xs text-dc-text mt-1">All clear — nothing needs attention.</p>
+        </div>`;
+      _reinitIcons();
+      return;
+    }
+
+    container.innerHTML = actionable.map(function (a) {
+      var sev = SEVERITY[a.severity] || SEVERITY.info;
+      return `
+        <button class="w-full flex items-center gap-3 p-3 rounded-lg ${sev.bg} border ${sev.border} hover:brightness-110 transition-all text-left group"
+                onclick="TOC.navigate('${a.link_tab}')">
+          <div class="w-7 h-7 rounded-full ${sev.bg} border ${sev.border} flex items-center justify-center shrink-0">
+            <i data-lucide="${sev.icon}" class="w-3.5 h-3.5 ${sev.text}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">${_esc(a.title)}</p>
+            <p class="text-[10px] text-dc-text mt-0.5 truncate">${_esc(a.description)}</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-dc-text group-hover:text-white transition-colors shrink-0"></i>
+        </button>`;
+    }).join('');
+
+    _reinitIcons();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 25: Tournament Progress (derived from lifecycle)
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderProgress(lifecycle) {
+    const container = $('#tournament-progress');
+    if (!container) return;
+
+    var stages = (lifecycle && lifecycle.stages) || [];
+    if (stages.length === 0) {
+      container.innerHTML = '<p class="text-xs text-dc-text text-center py-6">No lifecycle data.</p>';
+      return;
+    }
+
+    var progressPct = lifecycle.progress_pct || 0;
+
+    container.innerHTML = `
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Overall Progress</span>
+          <span class="text-xs font-mono font-bold text-theme">${progressPct}%</span>
+        </div>
+        <div class="h-2 bg-dc-bg rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-theme to-dc-info rounded-full transition-all duration-700" style="width:${progressPct}%"></div>
+        </div>
+      </div>
+      <div class="space-y-2">
+        ${stages.map(function (s) {
+          var isDone = s.status === 'done';
+          var isActive = s.status === 'active';
+          var isCancelled = s.status === 'cancelled';
+          var iconName = isDone ? 'check-circle-2' : isActive ? 'circle-dot' : isCancelled ? 'x-circle' : 'circle';
+          var iconColor = isDone ? 'text-dc-success' : isActive ? 'text-theme' : isCancelled ? 'text-dc-danger' : 'text-dc-text/40';
+          var textColor = isDone ? 'text-dc-success' : isActive ? 'text-white font-bold' : isCancelled ? 'text-dc-danger line-through' : 'text-dc-text';
+          return `
+            <div class="flex items-center gap-2.5 ${isActive ? 'bg-theme-surface/30 -mx-2 px-2 py-1.5 rounded-lg border border-theme-border/30' : ''}">
+              <i data-lucide="${iconName}" class="w-4 h-4 ${iconColor} shrink-0 ${isActive ? 'animate-pulse' : ''}"></i>
+              <span class="text-xs ${textColor}">${_esc(s.name)}</span>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    _reinitIcons();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 25: Quick Stats (from /stats/ endpoint)
+  // ═══════════════════════════════════════════════════════════════
+
+  async function loadQuickStats() {
+    try {
+      var data = await TOC.fetch(API + '/stats/');
+      var m = data.matches || {};
+      var p = data.participants || {};
+
+      _setText('#stat-completion', m.completion_pct != null ? m.completion_pct + '%' : '—');
+      _setText('#stat-avg-duration', m.avg_duration_minutes != null ? m.avg_duration_minutes + 'm' : '—');
+      _setText('#stat-dq-rate', p.dq_rate_pct != null ? p.dq_rate_pct + '%' : '—');
+      _setText('#stat-checked-in', p.checked_in != null ? p.checked_in : '—');
+      _setText('#stat-in-progress', m.in_progress != null ? m.in_progress : '—');
+
+      // Forfeits: count forfeit-status matches if available
+      var forfeits = m.forfeits != null ? m.forfeits : 0;
+      _setText('#stat-forfeits', forfeits);
+    } catch (e) {
+      console.warn('[TOC:overview] Quick stats fetch failed:', e);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 25: Activity Log (from /audit-log/ endpoint)
+  // ═══════════════════════════════════════════════════════════════
+
+  async function loadActivityLog() {
+    try {
+      var entries = await TOC.fetch(API + '/audit-log/?limit=25');
+      renderActivityLog(entries);
+    } catch (e) {
+      console.warn('[TOC:overview] Activity log fetch failed:', e);
+    }
+  }
+
+  function renderActivityLog(entries) {
+    var container = $('#activity-log');
+    var countBadge = $('#activity-log-count');
+    if (!container) return;
+
+    var items = Array.isArray(entries) ? entries : [];
+
+    if (countBadge) {
+      countBadge.textContent = items.length;
+      countBadge.classList.toggle('hidden', items.length === 0);
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-32 text-center">
+          <i data-lucide="scroll-text" class="w-8 h-8 text-dc-text mb-3 opacity-40"></i>
+          <p class="text-sm text-dc-text">No activity recorded yet.</p>
+        </div>`;
+      _reinitIcons();
+      return;
+    }
+
+    container.innerHTML = items.map(function (e) {
+      var dt = new Date(e.created_at);
+      var timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      var dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      var detail = e.detail || {};
+      var desc = detail.description || e.action || 'Action';
+      var tab = detail.tab || '';
+      var user = e.username || 'system';
+
+      return `
+        <div class="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors group">
+          <div class="w-7 h-7 rounded-full bg-dc-surface border border-dc-border flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="${_activityIcon(e.action)}" class="w-3.5 h-3.5 text-dc-text"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs text-white">${_esc(desc)}</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[10px] text-dc-text font-mono">${_esc(user)}</span>
+              ${tab ? `<span class="text-[9px] text-dc-text bg-dc-bg px-1.5 py-0.5 rounded">${_esc(tab)}</span>` : ''}
+            </div>
+          </div>
+          <span class="text-[10px] text-dc-text font-mono whitespace-nowrap shrink-0">${dateStr} ${timeStr}</span>
+        </div>`;
+    }).join('');
+
+    _reinitIcons();
+  }
+
+  function _activityIcon(action) {
+    if (!action) return 'activity';
+    var a = action.toLowerCase();
+    if (a.includes('score') || a.includes('result')) return 'target';
+    if (a.includes('dispute')) return 'shield-alert';
+    if (a.includes('transition') || a.includes('lifecycle')) return 'arrow-right-circle';
+    if (a.includes('freeze')) return 'snowflake';
+    if (a.includes('match')) return 'swords';
+    if (a.includes('approve') || a.includes('verify')) return 'check-circle-2';
+    if (a.includes('reject') || a.includes('disqualify')) return 'x-circle';
+    if (a.includes('payment')) return 'wallet';
+    return 'activity';
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -466,6 +668,7 @@
 
   function _esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function _attr(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+  function _setText(sel, val) { var el = $(sel); if (el) el.textContent = val; }
 
   function _relativeTime(date) {
     const now = new Date();
@@ -496,6 +699,9 @@
     executeFreeze,
     executeUnfreeze,
     dismissAlert,
+    refreshActionQueue: function () { load(); },
+    refreshActivityLog: loadActivityLog,
+    refreshQuickStats: loadQuickStats,
   };
 
   // Auto-init when DOM ready

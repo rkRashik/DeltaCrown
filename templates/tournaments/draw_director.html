@@ -484,21 +484,86 @@
     font-style: italic;
   }
 
-  /* ── Complete Banner ── */
+  /* ── Complete Resolution Card ── */
   .dd-complete {
-    text-align: center; padding: 32px;
-    background: rgba(var(--dc-accent-rgb),0.03);
-    border: 1px solid rgba(var(--dc-accent-rgb),0.12);
-    border-radius: 16px;
+    text-align: center; padding: 40px 32px;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.04), rgba(var(--dc-accent-rgb),0.01));
+    border: 1px solid rgba(var(--dc-accent-rgb),0.15);
+    border-radius: 20px; position: relative; overflow: hidden;
+  }
+  .dd-complete::before {
+    content: ''; position: absolute; inset: -2px; border-radius: 22px;
+    background: conic-gradient(from 0deg, rgba(var(--dc-accent-rgb),0.2), transparent 30%, rgba(var(--dc-gold-rgb),0.1) 50%, transparent 70%, rgba(var(--dc-accent-rgb),0.2));
+    animation: wizardBorderSpin 8s linear infinite; z-index: -2;
+  }
+  .dd-complete::after {
+    content: ''; position: absolute; inset: 2px; border-radius: 18px;
+    background: linear-gradient(135deg, rgba(8,10,20,0.97), rgba(5,6,14,0.99));
+    z-index: -1;
+  }
+  .dd-complete-trophy {
+    width: 56px; height: 56px; color: var(--dc-gold);
+    margin: 0 auto 12px; display: block;
+    animation: trophyBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes trophyBounce {
+    0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(3deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
   .dd-complete h2 {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
-    font-size: 24px; color: #fff; margin: 12px 0 6px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 28px; color: #fff; margin: 0 0 6px;
+    letter-spacing: 0.02em;
   }
-  .dd-complete p { color: rgba(255,255,255,0.4); font-size: 13px; margin: 0; }
+  .dd-complete .dd-complete-sub {
+    color: rgba(255,255,255,0.4); font-size: 13px; margin: 0 0 20px;
+  }
+  .dd-complete-stats {
+    display: flex; justify-content: center; gap: 24px; margin: 20px 0;
+    padding: 16px 0; border-top: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .dd-complete-stat {
+    text-align: center;
+  }
+  .dd-complete-stat .stat-val {
+    font-family: 'Space Grotesk', monospace; font-size: 28px;
+    font-weight: 800; color: var(--dc-accent); display: block;
+  }
+  .dd-complete-stat .stat-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.25); font-weight: 700;
+  }
   .dd-complete .hash {
     font-family: 'Space Grotesk', monospace; font-size: 10px;
-    color: rgba(255,255,255,0.15); margin-top: 16px;
+    color: rgba(255,255,255,0.12); margin-top: 4px;
+  }
+  .dd-complete-actions {
+    display: flex; gap: 12px; justify-content: center; margin-top: 24px;
+  }
+  .dd-complete-actions .btn-goto {
+    padding: 12px 32px; border-radius: 12px; font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 800; letter-spacing: 0.05em;
+    cursor: pointer; transition: all 0.25s;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .dd-complete-actions .btn-goto-primary {
+    background: linear-gradient(135deg, var(--dc-accent), rgba(var(--dc-accent-rgb),0.8));
+    border: none; color: #000;
+    box-shadow: 0 4px 24px rgba(var(--dc-accent-rgb),0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .dd-complete-actions .btn-goto-primary:hover {
+    filter: brightness(1.1); transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(var(--dc-accent-rgb),0.4);
+  }
+  .dd-complete-actions .btn-goto-secondary {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5); backdrop-filter: blur(4px);
+  }
+  .dd-complete-actions .btn-goto-secondary:hover {
+    color: #fff; border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
   }
 
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1197,12 +1262,36 @@
         {# Groups pre-rendered by JS on load from GROUPS_DATA #}
       </div>
 
-      {# ── Complete Banner ── #}
+      {# ── Complete Resolution Card ── #}
       <div id="complete-banner" class="dd-complete" style="display:none">
-        <i data-lucide="trophy" style="width:40px;height:40px;color:var(--dc-accent);margin:0 auto 4px;display:block"></i>
+        <i data-lucide="trophy" class="dd-complete-trophy"></i>
         <h2>Draw Complete!</h2>
-        <p>All players have been assigned to their groups.</p>
-        <div class="hash" id="draw-hash">Hash: —</div>
+        <p class="dd-complete-sub">All players have been assigned to their groups.</p>
+        <div class="dd-complete-stats">
+          <div class="dd-complete-stat">
+            <span class="stat-val" id="comp-groups">0</span>
+            <span class="stat-label">Groups</span>
+          </div>
+          <div class="dd-complete-stat">
+            <span class="stat-val" id="comp-players">0</span>
+            <span class="stat-label">Players Drawn</span>
+          </div>
+          <div class="dd-complete-stat">
+            <span class="stat-val" id="comp-matches">0</span>
+            <span class="stat-label">Matches Generated</span>
+          </div>
+        </div>
+        <div class="hash" id="draw-hash">Seed Hash: —</div>
+        <div class="dd-complete-actions">
+          <a id="btn-goto-matches" class="btn-goto btn-goto-primary" href="{% url 'toc:hub' tournament.slug %}#matches">
+            <i data-lucide="swords" style="width:16px;height:16px"></i>
+            Go to Match Operations
+          </a>
+          <a class="btn-goto btn-goto-secondary" href="{% url 'tournaments:detail' tournament.slug %}">
+            <i data-lucide="eye" style="width:14px;height:14px"></i>
+            View Public Page
+          </a>
+        </div>
       </div>
     </main>
   </div>
@@ -2150,8 +2239,18 @@
   }
 
   function showCompleteBanner(hash, totalMatches) {
-    document.getElementById('complete-banner').style.display = 'block';
+    var banner = document.getElementById('complete-banner');
+    banner.style.display = 'block';
     if (hash) document.getElementById('draw-hash').textContent = 'Seed Hash: ' + hash;
+
+    // Populate stats
+    if (session) {
+      document.getElementById('comp-groups').textContent = session.groups ? session.groups.length : 0;
+      document.getElementById('comp-players').textContent = session.drawn_count || session.total || 0;
+    }
+    document.getElementById('comp-matches').textContent = totalMatches || 0;
+
+    // Hide draw controls
     document.getElementById('btn-draw').style.display = 'none';
     document.getElementById('btn-draw-all').style.display = 'none';
     document.getElementById('btn-undo').style.display = 'none';
@@ -2159,6 +2258,25 @@
     document.getElementById('btn-abort').style.display = 'none';
     document.getElementById('mode-toggle').style.display = 'none';
     document.getElementById('delay-indicator').style.display = 'none';
+
+    // Animate stat counters
+    banner.querySelectorAll('.dd-complete-stat .stat-val').forEach(function(el) {
+      var target = parseInt(el.textContent) || 0;
+      if (target === 0) return;
+      el.textContent = '0';
+      var start = 0;
+      var duration = 800;
+      var startTime = null;
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        var progress = Math.min((ts - startTime) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    });
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 

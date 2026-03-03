@@ -445,13 +445,21 @@
   .spec-remaining strong { color: var(--dc-gold); font-weight: 700; }
 
   /* ══════════════════════════════════════════════
-     COMPLETE SCREEN
+     COMPLETE SCREEN — Cinematic Conclusion
   ══════════════════════════════════════════════ */
-  .spec-complete { text-align: center; padding: 30px 20px; }
+  .spec-complete {
+    text-align: center; padding: 30px 20px;
+    animation: completeFadeIn 1s ease-out;
+  }
+  @keyframes completeFadeIn {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
   .spec-complete-trophy {
     width: 72px; height: 72px; color: var(--dc-gold);
     margin: 0 auto 16px; display: block;
     animation: trophyBounce 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 0 24px rgba(var(--dc-gold-rgb),0.4));
   }
   @keyframes trophyBounce {
     0% { transform: scale(0) rotate(-20deg); opacity: 0; }
@@ -459,13 +467,40 @@
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
   .spec-complete h2 {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
-    font-size: 28px; color: #fff; margin: 0 0 8px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 32px; color: #fff; margin: 0 0 4px;
+    letter-spacing: 0.04em;
   }
-  .spec-complete p { color: rgba(255,255,255,0.35); font-size: 14px; margin: 0 0 16px; }
+  .spec-complete .spec-complete-sub {
+    color: rgba(255,255,255,0.3); font-size: 13px; margin: 0 0 20px;
+  }
+  .spec-complete-stats {
+    display: flex; justify-content: center; gap: 28px; margin: 20px auto;
+    padding: 14px 24px; border-radius: 12px; max-width: 380px;
+    background: rgba(var(--dc-accent-rgb),0.03);
+    border: 1px solid rgba(var(--dc-accent-rgb),0.08);
+    animation: completeFadeIn 1.2s ease-out;
+  }
+  .spec-complete-stat { text-align: center; }
+  .spec-complete-stat .stat-val {
+    font-family: 'Space Grotesk', monospace; font-size: 24px; font-weight: 800;
+    color: var(--dc-accent); display: block;
+  }
+  .spec-complete-stat .stat-label {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.2); font-weight: 700;
+  }
   .spec-complete .hash {
     font-family: 'Space Grotesk', monospace; font-size: 10px;
     color: rgba(255,255,255,0.1);
+  }
+  /* Staggered group card reveal */
+  .spec-complete .spec-group-card {
+    opacity: 0; transform: translateY(10px) scale(0.97);
+    animation: groupReveal 0.5s ease-out forwards;
+  }
+  @keyframes groupReveal {
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
   /* ── Viewer Count Badge ── */
@@ -871,12 +906,28 @@
       </div>
     </div>
 
-    {# ━━━ Complete Screen ━━━ #}
+    {# ━━━ Complete Screen — Cinematic Conclusion ━━━ #}
     <div id="complete-screen" class="spec-complete hidden">
       <i data-lucide="trophy" class="spec-complete-trophy"></i>
-      <h2>Draw Complete!</h2>
-      <p>All teams have been drawn into their groups.</p>
-      <div id="final-groups" style="margin-top:40px"></div>
+      <h2>Groups Finalized</h2>
+      <p class="spec-complete-sub">The draw is complete. All participants have been assigned.</p>
+
+      <div class="spec-complete-stats">
+        <div class="spec-complete-stat">
+          <span class="stat-val" id="spec-comp-groups">0</span>
+          <span class="stat-label">Groups</span>
+        </div>
+        <div class="spec-complete-stat">
+          <span class="stat-val" id="spec-comp-players">0</span>
+          <span class="stat-label">Drawn</span>
+        </div>
+        <div class="spec-complete-stat">
+          <span class="stat-val" id="spec-comp-matches">0</span>
+          <span class="stat-label">Matches</span>
+        </div>
+      </div>
+
+      <div id="final-groups" style="margin-top:32px"></div>
 
       {# ── Cryptographic Trust Footer ── #}
       <div id="trust-footer" class="spec-trust-footer" style="display:none">
@@ -1232,7 +1283,7 @@
 
   function onDrawComplete(msg) {
     setBadge('complete');
-    showCompleteScreen(msg.seed_hash);
+    showCompleteScreen(msg.seed_hash, msg.total_matches);
   }
 
   function onDrawAborted() {
@@ -1485,10 +1536,34 @@
     setTimeout(() => el.classList.remove('active'), 3000);
   }
 
-  function showCompleteScreen(hash) {
+  function showCompleteScreen(hash, totalMatches) {
     document.getElementById('live-content').classList.add('hidden');
     const screen = document.getElementById('complete-screen');
     screen.classList.remove('hidden');
+
+    // Populate stats
+    if (session) {
+      document.getElementById('spec-comp-groups').textContent = session.groups ? session.groups.length : 0;
+      document.getElementById('spec-comp-players').textContent = session.drawn_count || session.total || 0;
+    }
+    document.getElementById('spec-comp-matches').textContent = totalMatches || 0;
+
+    // Animate stat counters
+    screen.querySelectorAll('.spec-complete-stat .stat-val').forEach(function(el) {
+      var target = parseInt(el.textContent) || 0;
+      if (target === 0) return;
+      el.textContent = '0';
+      var duration = 900;
+      var startTime = null;
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        var progress = Math.min((ts - startTime) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    });
 
     // Populate trust footer
     const trustFooter = document.getElementById('trust-footer');
@@ -1507,10 +1582,11 @@
       container.innerHTML = '';
       const grid = document.createElement('div');
       grid.className = 'spec-group-grid';
-      session.groups.forEach(g => {
+      session.groups.forEach((g, gIdx) => {
         const players = session.assignments[g] || [];
         const card = document.createElement('div');
         card.className = 'spec-group-card';
+        card.style.animationDelay = (gIdx * 120) + 'ms';
         card.innerHTML =
           '<div class="spec-group-header"><span class="spec-group-letter">Group ' + g + '</span></div>' +
           '<div>' + players.map((p, i) => {
