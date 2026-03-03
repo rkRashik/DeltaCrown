@@ -166,6 +166,13 @@ urlpatterns = [
     # ── BR Scoring (S8-B7) ──
     path('<slug:slug>/settings/br-scoring/', settings.BRScoringView.as_view(), name='settings-br-scoring'),
 
+    # ── Payment Methods (S10G) ──
+    path('<slug:slug>/settings/payment-methods/', settings.PaymentMethodListView.as_view(), name='settings-payment-methods'),
+    path('<slug:slug>/settings/payment-methods/<int:pk>/', settings.PaymentMethodDeleteView.as_view(), name='settings-payment-method-delete'),
+
+    # ── File Upload (S10G) ──
+    path('<slug:slug>/settings/upload/', settings.SettingsFileUploadView.as_view(), name='settings-upload'),
+
     # ── Announcements (S8-B7 comms) ──
     path('<slug:slug>/announcements/', announcements.AnnouncementListView.as_view(), name='announcements'),
     path('<slug:slug>/announcements/<int:pk>/', announcements.AnnouncementDetailView.as_view(), name='announcement-detail'),

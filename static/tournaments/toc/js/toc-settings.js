@@ -1,581 +1,722 @@
 /**
- * TOC Settings Module — Sprint 8
- *
- * Manages collapsible settings sections, game config, map pool
- * editor, server regions, rulebook versioning, and BR scoring.
+ * TOC Sprint 10G — Settings & Configuration (1:1 Database Parity)
+ * =================================================================
+ * Full game-aware tournament settings with dynamic section visibility.
+ * Sections: Basic, Media, Format, Schedule, Venue, Fees, Payment Methods,
+ *           Prizes, Rules, Features, Social, Game Config, Map Pool,
+ *           Regions, Rulebook, BR Scoring, Certs, Waitlist, SEO.
  */
-(function () {
+;(function () {
     'use strict';
 
-    const API = window.TOC?.api;
-    if (!API) return;
-
-    /* ------------------------------------------------------------------ */
-    /*  State                                                              */
-    /* ------------------------------------------------------------------ */
-    let settingsCache = null;
-    let gameConfigCache = null;
-    let mapPool = [];
-    let regions = [];
-    let rulebookVersions = [];
-    let brScoring = null;
-
-    let vetoSequence = [];
-
-    /* ------------------------------------------------------------------ */
-    /*  Settings (Basic / Format / Prizes / Dates / Social / Waitlist)     */
-    /* ------------------------------------------------------------------ */
-
-    async function loadSettings() {
-        try {
-            settingsCache = await API.get('settings/');
-            populateSection('settings-basic', settingsCache.basic || {});
-            populateSection('settings-format', {
-                ...(settingsCache.format || {}),
-                ...(settingsCache.registration_rules || {}),
-                ...(settingsCache.features || {}),
-            });
-            // Dates — ISO → datetime-local (strip trailing Z / tz offset)
-            const dates = settingsCache.dates || {};
-            Object.keys(dates).forEach(k => {
-                if (dates[k]) dates[k] = dates[k].substring(0, 16);
-            });
-            populateSection('settings-format', dates);
-            populateSection('settings-prizes', settingsCache.prizes || {});
-            populateSection('settings-social', settingsCache.social || {});
-            populateSection('settings-waitlist', settingsCache.waitlist || {});
-
-            syncCheckInVisibility();
-        } catch (e) { console.warn('Settings load error', e); }
-    }
-
-    /** Show/hide check-in window fields based on enable_check_in toggle */
-    function syncCheckInVisibility() {
-        const cb = document.getElementById('toggle-check-in');
-        const panel = document.getElementById('check-in-window');
-        if (!cb || !panel) return;
-        function toggle() { panel.classList.toggle('hidden', !cb.checked); }
-        toggle();
-        cb.addEventListener('change', toggle);
-    }
-
-    function populateSection(containerId, data) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.querySelectorAll('[data-field]').forEach(el => {
-            const key = el.dataset.field;
-            if (!(key in data)) return;
-            if (el.type === 'checkbox') {
-                el.checked = !!data[key];
-            } else {
-                el.value = data[key] ?? '';
-            }
-        });
-    }
-
-    function gatherSection(containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return {};
+    const NS = (window.TOC = window.TOC || {});
+    const API = (ep, opts) => NS.api(ep, opts);
+    const CFG = () => window.TOC_CONFIG || {};
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+    const showOverlay = (...a) => NS.rbac?.showOverlay?.(...a) || console.warn('showOverlay unavailable');
+    const closeOverlay = () => NS.rbac?.closeOverlay?.();
+    const toast = (m, t) => NS.toast?.(m, t);
+    const setVal = (container, field, value) => {
+        const el = container?.querySelector('[data-field="' + field + '"]');
+        if (!el) return;
+        if (el.type === 'checkbox') el.checked = !!value;
+        else if (el.tagName === 'TEXTAREA') el.value = value || '';
+        else el.value = value ?? '';
+    };
+    const getVal = (container, field) => {
+        const el = container?.querySelector('[data-field="' + field + '"]');
+        if (!el) return undefined;
+        if (el.type === 'checkbox') return el.checked;
+        if (el.type === 'number') return el.value === '' ? null : Number(el.value);
+        return el.value;
+    };
+    const gatherFields = (containerId) => {
+        const c = document.getElementById(containerId);
+        if (!c) return {};
         const data = {};
-        container.querySelectorAll('[data-field]').forEach(el => {
-            const key = el.dataset.field;
-            if (el.type === 'checkbox') {
-                data[key] = el.checked;
-            } else if (el.type === 'number') {
-                data[key] = el.value ? Number(el.value) : null;
-            } else {
-                data[key] = el.value;
-            }
+        c.querySelectorAll('[data-field]').forEach(el => {
+            const k = el.getAttribute('data-field');
+            if (el.type === 'checkbox') data[k] = el.checked;
+            else if (el.type === 'number') data[k] = el.value === '' ? null : Number(el.value);
+            else data[k] = el.value;
         });
         return data;
-    }
+    };
 
-    async function saveAll() {
-        const payload = {
-            ...gatherSection('settings-basic'),
-            ...gatherSection('settings-format'),
-            ...gatherSection('settings-prizes'),
-            ...gatherSection('settings-social'),
-            ...gatherSection('settings-waitlist'),
-        };
+    /* State */
+    let vetoSequence = [];
+    let rulebookVersions = [];
+    let paymentMethods = [];
+
+    /* ==================================================================
+     * LOAD SETTINGS — populates all Tournament-model sections
+     * ================================================================== */
+    async function loadSettings () {
         try {
-            await API.put('settings/', payload);
-            window.TOC?.toast?.('Settings saved', 'success');
+            const s = await API('settings/');
+            // Basic
+            const basic = document.getElementById('settings-basic');
+            if (basic && s.basic) {
+                setVal(basic, 'name', s.basic.name);
+                setVal(basic, 'status', s.basic.status);
+                setVal(basic, 'description', s.basic.description);
+                setVal(basic, 'is_official', s.basic.is_official);
+                setVal(basic, 'is_featured', s.basic.is_featured);
+            }
+            // Media
+            const media = document.getElementById('settings-media');
+            if (media && s.media) {
+                setVal(media, 'promo_video_url', s.media.promo_video_url);
+                setVal(media, 'stream_twitch_url', s.media.stream_twitch_url);
+                setVal(media, 'stream_youtube_url', s.media.stream_youtube_url);
+                if (s.media.banner_image) {
+                    const bStat = document.getElementById('banner-status');
+                    if (bStat) bStat.textContent = s.media.banner_image.split('/').pop();
+                }
+                if (s.media.thumbnail_image) {
+                    const tStat = document.getElementById('thumbnail-status');
+                    if (tStat) tStat.textContent = s.media.thumbnail_image.split('/').pop();
+                }
+            }
+            // Format
+            const fmt = document.getElementById('settings-format');
+            if (fmt && s.format) {
+                setVal(fmt, 'format', s.format.format);
+                setVal(fmt, 'participation_type', s.format.participation_type);
+                setVal(fmt, 'platform', s.format.platform);
+                setVal(fmt, 'mode', s.format.mode);
+                setVal(fmt, 'max_participants', s.format.max_participants);
+                setVal(fmt, 'min_participants', s.format.min_participants);
+                setVal(fmt, 'max_guest_teams', s.format.max_guest_teams);
+                setVal(fmt, 'allow_display_name_override', s.format.allow_display_name_override);
+                // Sync the mode select trigger
+                const modeSel = document.getElementById('setting-mode');
+                if (modeSel) modeSel.value = s.format.mode || 'online';
+            }
+            // Dates
+            const dates = document.getElementById('settings-dates');
+            if (dates && s.dates) {
+                ['registration_start', 'registration_end', 'tournament_start', 'tournament_end'].forEach(f => {
+                    if (s.dates[f]) setVal(dates, f, s.dates[f].substring(0, 16));
+                });
+            }
+            // Venue
+            const venue = document.getElementById('settings-venue');
+            if (venue && s.venue) {
+                setVal(venue, 'venue_name', s.venue.venue_name);
+                setVal(venue, 'venue_city', s.venue.venue_city);
+                setVal(venue, 'venue_address', s.venue.venue_address);
+                setVal(venue, 'venue_map_url', s.venue.venue_map_url);
+            }
+            // Fees
+            const fees = document.getElementById('settings-fees');
+            if (fees && s.fees) {
+                setVal(fees, 'has_entry_fee', s.fees.has_entry_fee);
+                setVal(fees, 'entry_fee_amount', s.fees.entry_fee_amount);
+                setVal(fees, 'entry_fee_currency', s.fees.entry_fee_currency);
+                setVal(fees, 'entry_fee_deltacoin', s.fees.entry_fee_deltacoin);
+                setVal(fees, 'payment_deadline_hours', s.fees.payment_deadline_hours);
+                setVal(fees, 'refund_policy', s.fees.refund_policy);
+                setVal(fees, 'refund_policy_text', s.fees.refund_policy_text);
+                setVal(fees, 'enable_fee_waiver', s.fees.enable_fee_waiver);
+                setVal(fees, 'fee_waiver_top_n_teams', s.fees.fee_waiver_top_n_teams);
+            }
+            // Prizes
+            const prizes = document.getElementById('settings-prizes');
+            if (prizes && s.prizes) {
+                setVal(prizes, 'prize_pool', s.prizes.prize_pool);
+                setVal(prizes, 'prize_currency', s.prizes.prize_currency);
+                setVal(prizes, 'prize_deltacoin', s.prizes.prize_deltacoin);
+            }
+            // Rules
+            const rules = document.getElementById('settings-rules');
+            if (rules && s.rules) {
+                setVal(rules, 'rules_text', s.rules.rules_text);
+                setVal(rules, 'terms_and_conditions', s.rules.terms_and_conditions);
+                setVal(rules, 'require_terms_acceptance', s.rules.require_terms_acceptance);
+                if (s.rules.rules_pdf) {
+                    const rs = document.getElementById('rules-pdf-status');
+                    if (rs) rs.textContent = s.rules.rules_pdf.split('/').pop();
+                }
+                if (s.rules.terms_pdf) {
+                    const ts = document.getElementById('terms-pdf-status');
+                    if (ts) ts.textContent = s.rules.terms_pdf.split('/').pop();
+                }
+            }
+            // Features
+            const feat = document.getElementById('settings-features');
+            if (feat && s.features) {
+                setVal(feat, 'enable_check_in', s.features.enable_check_in);
+                setVal(feat, 'enable_dynamic_seeding', s.features.enable_dynamic_seeding);
+                setVal(feat, 'enable_live_updates', s.features.enable_live_updates);
+                setVal(feat, 'enable_certificates', s.features.enable_certificates);
+                setVal(feat, 'enable_challenges', s.features.enable_challenges);
+                setVal(feat, 'enable_fan_voting', s.features.enable_fan_voting);
+                setVal(feat, 'check_in_minutes_before', s.features.check_in_minutes_before);
+                setVal(feat, 'check_in_closes_minutes_before', s.features.check_in_closes_minutes_before);
+            }
+            // Social
+            const social = document.getElementById('settings-social');
+            if (social && s.social) {
+                setVal(social, 'contact_email', s.social.contact_email);
+                setVal(social, 'social_discord', s.social.social_discord);
+                setVal(social, 'social_twitter', s.social.social_twitter);
+                setVal(social, 'social_instagram', s.social.social_instagram);
+                setVal(social, 'social_youtube', s.social.social_youtube);
+                setVal(social, 'social_website', s.social.social_website);
+            }
+            // Waitlist
+            const wait = document.getElementById('settings-waitlist');
+            if (wait && s.waitlist) {
+                setVal(wait, 'auto_forfeit_no_shows', s.waitlist.auto_forfeit_no_shows);
+                setVal(wait, 'waitlist_auto_promote', s.waitlist.waitlist_auto_promote);
+                setVal(wait, 'no_show_timeout_minutes', s.waitlist.no_show_timeout_minutes);
+                setVal(wait, 'max_waitlist_size', s.waitlist.max_waitlist_size);
+            }
+            // SEO
+            const seo = document.getElementById('settings-seo');
+            if (seo && s.seo) {
+                setVal(seo, 'meta_description', s.seo.meta_description);
+                const kw = s.seo.meta_keywords;
+                setVal(seo, 'meta_keywords', Array.isArray(kw) ? kw.join(', ') : kw || '');
+            }
+            // Sync conditional sections
+            syncModeVisibility();
+            syncCheckInVisibility();
+            syncFeeVisibility();
         } catch (e) {
-            window.TOC?.toast?.('Save failed', 'error');
+            console.warn('[TOC.settings] loadSettings failed', e);
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Game Match Config                                                  */
-    /* ------------------------------------------------------------------ */
-
-    async function loadGameConfig() {
+    /* ==================================================================
+     * SAVE ALL — gathers all Tournament-model fields and PUTs them
+     * ================================================================== */
+    async function saveAll () {
         try {
-            gameConfigCache = await API.get('settings/game-config/');
-            populateSection('settings-game-config', gameConfigCache || {});
-            vetoSequence = (gameConfigCache?.veto_sequence) || [];
-            syncVetoVisibility();
-            renderVetoSteps();
-        } catch (e) { console.warn('Game config load error', e); }
-    }
-
-    /** Show/hide veto_type + builder based on enable_veto checkbox state. */
-    function syncVetoVisibility() {
-        const container = document.getElementById('settings-game-config');
-        if (!container) return;
-        const vetoCheckbox = document.getElementById('toggle-veto');
-        const vetoTypeSelect = document.getElementById('veto-type-select');
-        const builderSection = document.getElementById('veto-builder-section');
-        if (!vetoCheckbox) return;
-
-        function toggle() {
-            const on = vetoCheckbox.checked;
-            if (vetoTypeSelect) vetoTypeSelect.style.display = on ? '' : 'none';
-            if (builderSection) builderSection.classList.toggle('hidden', !on);
+            const payload = Object.assign({},
+                gatherFields('settings-basic'),
+                gatherFields('settings-media'),
+                gatherFields('settings-format'),
+                gatherFields('settings-dates'),
+                gatherFields('settings-venue'),
+                gatherFields('settings-fees'),
+                gatherFields('settings-prizes'),
+                gatherFields('settings-rules'),
+                gatherFields('settings-features'),
+                gatherFields('settings-social'),
+                gatherFields('settings-waitlist'),
+                gatherFields('settings-seo'),
+            );
+            // Convert meta_keywords string to array
+            if (typeof payload.meta_keywords === 'string') {
+                payload.meta_keywords = payload.meta_keywords.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
+            toast('Settings saved', 'success');
+        } catch (e) {
+            toast('Save failed: ' + (e.message || e), 'error');
         }
-        toggle();
-        vetoCheckbox.addEventListener('change', toggle);
     }
 
-    /* ---- Veto Sequence Builder ---- */
+    /* ==================================================================
+     * CONDITIONAL SECTION VISIBILITY
+     * ================================================================== */
+    function syncModeVisibility () {
+        const mode = document.getElementById('setting-mode')?.value || 'online';
+        const venueSection = document.getElementById('settings-venue-section');
+        if (venueSection) venueSection.classList.toggle('hidden', mode === 'online');
+    }
 
-    function addVetoStep(action) {
-        vetoSequence.push({ action, team: 'A' });
+    function syncCheckInVisibility () {
+        const on = document.getElementById('toggle-check-in')?.checked || false;
+        const win = document.getElementById('check-in-window');
+        if (win) win.classList.toggle('hidden', !on);
+    }
+
+    function syncFeeVisibility () {
+        const on = document.getElementById('toggle-entry-fee')?.checked || false;
+        const det = document.getElementById('fee-details');
+        if (det) det.classList.toggle('hidden', !on);
+    }
+
+    /* ==================================================================
+     * GAME-AWARE VISIBILITY
+     * ================================================================== */
+    function applyGameAwareVisibility () {
+        const cat = CFG().gameCategory || 'OTHER';
+        const gt  = CFG().gameType || 'TEAM_VS_TEAM';
+
+        const isBR = (cat === 'BR' || gt === 'BATTLE_ROYALE' || gt === 'FREE_FOR_ALL');
+        // Sports/Fighting/CCG games typically don't have map pools
+        const noMaps = ['SPORTS', 'FIGHTING', 'CCG'].includes(cat) || gt === '1V1';
+
+        // BR Scoring: only for BR games
+        const brSection = document.getElementById('settings-br-section');
+        if (brSection) brSection.classList.toggle('hidden', !isBR);
+
+        // Map Pool: hide for games without maps
+        const mapSection = document.getElementById('settings-mappool-section');
+        if (mapSection) mapSection.classList.toggle('hidden', noMaps);
+    }
+
+    /* ==================================================================
+     * GAME CONFIG (GameMatchConfig model)
+     * ================================================================== */
+    async function loadGameConfig () {
+        try {
+            const gc = await API('settings/game-config/');
+            if (!gc) return;
+            const c = document.getElementById('settings-game-config');
+            if (c) {
+                setVal(c, 'default_match_format', gc.default_match_format);
+                setVal(c, 'enable_veto', gc.enable_veto);
+                setVal(c, 'veto_type', gc.veto_type);
+            }
+            vetoSequence = gc.veto_sequence || [];
+            renderVetoSteps();
+            syncVetoVisibility();
+        } catch (e) { console.warn('[TOC.settings] loadGameConfig failed', e); }
+    }
+
+    function syncVetoVisibility () {
+        const on = document.getElementById('toggle-veto')?.checked || false;
+        const sel = document.getElementById('veto-type-select');
+        const builder = document.getElementById('veto-builder-section');
+        if (sel) sel.classList.toggle('hidden', !on);
+        if (builder) builder.classList.toggle('hidden', !on);
+    }
+
+    async function saveGameConfig () {
+        try {
+            const c = document.getElementById('settings-game-config');
+            const payload = {
+                default_match_format: getVal(c, 'default_match_format'),
+                enable_veto: getVal(c, 'enable_veto'),
+                veto_type: getVal(c, 'veto_type'),
+                veto_sequence: vetoSequence,
+            };
+            await API('settings/game-config/', { method: 'PUT', body: JSON.stringify(payload) });
+            toast('Game config saved', 'success');
+        } catch (e) { toast('Game config save failed', 'error'); }
+    }
+
+    /* ── Veto Builder ── */
+    function addVetoStep (action) {
+        vetoSequence.push({ action: action, team: 'higher_seed' });
         renderVetoSteps();
     }
 
-    function removeVetoStep(idx) {
+    function removeVetoStep (idx) {
         vetoSequence.splice(idx, 1);
         renderVetoSteps();
     }
 
-    function changeVetoTeam(idx, team) {
-        vetoSequence[idx].team = team;
+    function changeVetoTeam (idx, team) {
+        if (vetoSequence[idx]) vetoSequence[idx].team = team;
     }
 
-    function renderVetoSteps() {
+    function renderVetoSteps () {
         const list = document.getElementById('veto-steps-list');
         if (!list) return;
         if (!vetoSequence.length) {
-            list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-3">No steps defined. Add ban/pick steps above.</p>';
+            list.innerHTML = '<p class="text-xs text-dc-text italic">No steps defined. Add bans/picks above.</p>';
             return;
         }
-        const colors = { ban: 'dc-danger', pick: 'dc-success', decider: 'dc-info' };
         list.innerHTML = vetoSequence.map((s, i) => {
-            const c = colors[s.action] || 'dc-text';
-            return `
-            <div class="flex items-center gap-2 p-2 rounded-lg border border-dc-border bg-dc-surface/50">
-                <span class="w-5 text-center text-[10px] font-mono text-dc-text">${i + 1}</span>
-                <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-${c}/10 text-${c}">${s.action}</span>
-                <select onchange="TOC.settings.changeVetoTeam(${i}, this.value)" class="bg-dc-bg border border-dc-border rounded px-2 py-0.5 text-xs text-dc-textBright">
-                    <option value="A"${s.team === 'A' ? ' selected' : ''}>Team A</option>
-                    <option value="B"${s.team === 'B' ? ' selected' : ''}>Team B</option>
-                    ${s.action === 'decider' ? '<option value="auto"' + (s.team === 'auto' ? ' selected' : '') + '>Auto</option>' : ''}
-                </select>
-                <span class="flex-1"></span>
-                <button onclick="TOC.settings.removeVetoStep(${i})" class="p-1 text-dc-text hover:text-dc-danger transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
-            </div>`;
+            var badge = s.action === 'ban' ? 'bg-dc-danger/20 text-dc-danger' : s.action === 'pick' ? 'bg-dc-success/20 text-dc-success' : 'bg-dc-warning/20 text-dc-warning';
+            return '<div class="flex items-center gap-2 py-1.5 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                + '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ' + badge + '">' + esc(s.action) + '</span>'
+                + '<select onchange="TOC.settings.changeVetoTeam(' + i + ', this.value)" class="flex-1 bg-dc-surface border border-dc-border rounded px-2 py-1 text-xs text-dc-textBright">'
+                + '<option value="higher_seed"' + (s.team === 'higher_seed' ? ' selected' : '') + '>Higher Seed</option>'
+                + '<option value="lower_seed"' + (s.team === 'lower_seed' ? ' selected' : '') + '>Lower Seed</option>'
+                + '</select>'
+                + '<button onclick="TOC.settings.removeVetoStep(' + i + ')" class="p-1 text-dc-danger hover:bg-dc-danger/10 rounded" title="Remove">&times;</button>'
+                + '</div>';
         }).join('');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
-    async function saveGameConfig() {
-        const payload = gatherSection('settings-game-config');
-        payload.veto_sequence = vetoSequence;
+    /* ==================================================================
+     * MAP POOL
+     * ================================================================== */
+    async function loadMapPool () {
         try {
-            await API.put('settings/game-config/', payload);
-            window.TOC?.toast?.('Game config saved', 'success');
-        } catch (e) {
-            window.TOC?.toast?.('Save failed', 'error');
-        }
+            const maps = await API('settings/map-pool/');
+            const list = document.getElementById('map-pool-list');
+            if (!list) return;
+            if (!maps || !maps.length) {
+                list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No maps configured.</p>';
+                return;
+            }
+            list.innerHTML = maps.map(m =>
+                '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                + '<div class="flex items-center gap-2">'
+                + '<span class="w-2 h-2 rounded-full ' + (m.is_active ? 'bg-dc-success' : 'bg-dc-text/30') + '"></span>'
+                + '<span class="text-sm text-white font-medium">' + esc(m.map_name) + '</span>'
+                + (m.map_code ? '<span class="text-[10px] text-dc-text font-mono">' + esc(m.map_code) + '</span>' : '')
+                + '</div>'
+                + '<div class="flex items-center gap-1">'
+                + '<button onclick="TOC.settings.toggleMap(\'' + m.id + '\', ' + !m.is_active + ')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">' + (m.is_active ? 'Disable' : 'Enable') + '</button>'
+                + '<button onclick="TOC.settings.deleteMap(\'' + m.id + '\')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                + '</div></div>'
+            ).join('');
+        } catch (e) { console.warn('[TOC.settings] loadMapPool failed', e); }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Map Pool                                                           */
-    /* ------------------------------------------------------------------ */
-
-    async function loadMapPool() {
-        try {
-            mapPool = await API.get('settings/map-pool/');
-            renderMapPool();
-        } catch (e) { console.warn('Map pool load error', e); }
+    function openAddMap () {
+        showOverlay('Add Map', '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Map Name</label>'
+            + '<input id="new-map-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<div><label class="block text-xs text-dc-text mb-1">Map Code</label>'
+            + '<input id="new-map-code" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<button onclick="TOC.settings.confirmAddMap()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Map</button>'
+            + '</div>');
     }
 
-    function renderMapPool() {
-        const container = document.getElementById('map-pool-list');
-        if (!container) return;
-        if (!mapPool.length) {
-            container.innerHTML = '<div class="py-6 text-center text-dc-text text-xs">No maps in pool. Add some!</div>';
-            return;
-        }
-        container.innerHTML = mapPool.map((m, i) => `
-            <div class="flex items-center gap-3 p-3 rounded-lg border border-dc-border bg-dc-surface/50 group" data-map-id="${m.id}">
-                <span class="text-dc-text text-xs font-mono w-6 text-center">${i + 1}</span>
-                ${m.image ? `<img src="${m.image}" class="w-10 h-10 rounded object-cover" alt="${m.map_name}">` : '<div class="w-10 h-10 rounded bg-dc-panel flex items-center justify-center"><i data-lucide="map-pin" class="w-4 h-4 text-dc-text"></i></div>'}
-                <div class="flex-1 min-w-0">
-                    <div class="text-sm font-bold text-white truncate">${m.map_name}</div>
-                    ${m.map_code ? `<div class="text-xs text-dc-text font-mono">${m.map_code}</div>` : ''}
-                </div>
-                <span class="px-2 py-0.5 text-xs rounded-full ${m.is_active ? 'bg-dc-success/10 text-dc-success' : 'bg-dc-text/10 text-dc-text'}">${m.is_active ? 'Active' : 'Inactive'}</span>
-                <button onclick="TOC.settings.toggleMap('${m.id}', ${!m.is_active})" class="text-dc-text hover:text-dc-textBright text-xs">${m.is_active ? 'Disable' : 'Enable'}</button>
-                <button onclick="TOC.settings.deleteMap('${m.id}')" class="text-dc-text hover:text-dc-danger text-xs">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-        `).join('');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function openAddMap() {
-        const html = `
-            <div class="space-y-4">
-                <h3 class="font-display font-bold text-white text-lg">Add Map</h3>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Map Name *</label>
-                    <input id="new-map-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Map Code</label>
-                    <input id="new-map-code" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Image URL</label>
-                    <input id="new-map-image" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <button onclick="TOC.settings.confirmAddMap()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Map</button>
-            </div>
-        `;
-        showOverlay(html);
-    }
-
-    async function confirmAddMap() {
-        const name = document.getElementById('new-map-name')?.value?.trim();
+    async function confirmAddMap () {
+        var name = document.getElementById('new-map-name')?.value?.trim();
         if (!name) return;
+        await API('settings/map-pool/', { method: 'POST', body: JSON.stringify({ map_name: name, map_code: document.getElementById('new-map-code')?.value?.trim() || '' }) });
+        closeOverlay(); loadMapPool(); toast('Map added', 'success');
+    }
+
+    async function toggleMap (id, active) {
+        await API('settings/map-pool/' + id + '/', { method: 'PATCH', body: JSON.stringify({ is_active: active }) });
+        loadMapPool();
+    }
+
+    async function deleteMap (id) {
+        if (!confirm('Delete this map?')) return;
+        await API('settings/map-pool/' + id + '/', { method: 'DELETE' });
+        loadMapPool(); toast('Map deleted', 'success');
+    }
+
+    /* ==================================================================
+     * SERVER REGIONS
+     * ================================================================== */
+    async function loadRegions () {
         try {
-            await API.post('settings/map-pool/', {
-                map_name: name,
-                map_code: document.getElementById('new-map-code')?.value?.trim() || '',
-                image: document.getElementById('new-map-image')?.value?.trim() || '',
-            });
-            closeOverlay();
-            loadMapPool();
-        } catch (e) {
-            window.TOC?.toast?.('Add map failed', 'error');
-        }
+            const regions = await API('settings/regions/');
+            const list = document.getElementById('region-list');
+            if (!list) return;
+            if (!regions || !regions.length) {
+                list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No regions configured.</p>';
+                return;
+            }
+            list.innerHTML = regions.map(r =>
+                '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                + '<div><span class="text-sm text-white font-medium">' + esc(r.name) + '</span>'
+                + ' <span class="text-[10px] text-dc-text font-mono">' + esc(r.code) + '</span></div>'
+                + '<button onclick="TOC.settings.deleteRegion(\'' + r.id + '\')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                + '</div>'
+            ).join('');
+        } catch (e) { console.warn('[TOC.settings] loadRegions failed', e); }
     }
 
-    async function toggleMap(mapId, active) {
-        try {
-            await API.put(`settings/map-pool/${mapId}/`, { is_active: active });
-            loadMapPool();
-        } catch (e) { window.TOC?.toast?.('Toggle failed', 'error'); }
+    function openAddRegion () {
+        showOverlay('Add Region', '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Region Name</label>'
+            + '<input id="new-region-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<div><label class="block text-xs text-dc-text mb-1">Region Code</label>'
+            + '<input id="new-region-code" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<button onclick="TOC.settings.confirmAddRegion()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Region</button>'
+            + '</div>');
     }
 
-    async function deleteMap(mapId) {
-        if (!confirm('Remove this map from the pool?')) return;
-        try {
-            await API.delete(`settings/map-pool/${mapId}/`);
-            loadMapPool();
-        } catch (e) { window.TOC?.toast?.('Delete failed', 'error'); }
-    }
-
-    /* ------------------------------------------------------------------ */
-    /*  Server Regions                                                     */
-    /* ------------------------------------------------------------------ */
-
-    async function loadRegions() {
-        try {
-            regions = await API.get('settings/regions/');
-            renderRegions();
-        } catch (e) { console.warn('Regions load error', e); }
-    }
-
-    function renderRegions() {
-        const container = document.getElementById('region-list');
-        if (!container) return;
-        if (!regions.length) {
-            container.innerHTML = '<div class="py-6 text-center text-dc-text text-xs">No server regions configured.</div>';
-            return;
-        }
-        container.innerHTML = regions.map(r => `
-            <div class="flex items-center gap-3 p-3 rounded-lg border border-dc-border bg-dc-surface/50">
-                <i data-lucide="globe" class="w-4 h-4 text-theme"></i>
-                <div class="flex-1 min-w-0">
-                    <div class="text-sm font-bold text-white">${r.name}</div>
-                    <div class="text-xs text-dc-text font-mono">${r.code}</div>
-                </div>
-                <span class="px-2 py-0.5 text-xs rounded-full ${r.is_active ? 'bg-dc-success/10 text-dc-success' : 'bg-dc-text/10 text-dc-text'}">${r.is_active ? 'Active' : 'Inactive'}</span>
-                <button onclick="TOC.settings.deleteRegion('${r.id}')" class="text-dc-text hover:text-dc-danger text-xs">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-        `).join('');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function openAddRegion() {
-        const html = `
-            <div class="space-y-4">
-                <h3 class="font-display font-bold text-white text-lg">Add Server Region</h3>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Region Name *</label>
-                    <input id="new-region-name" type="text" placeholder="US East" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Region Code *</label>
-                    <input id="new-region-code" type="text" placeholder="us-east" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Ping Endpoint</label>
-                    <input id="new-region-ping" type="text" placeholder="https://..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <button onclick="TOC.settings.confirmAddRegion()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Region</button>
-            </div>
-        `;
-        showOverlay(html);
-    }
-
-    async function confirmAddRegion() {
-        const name = document.getElementById('new-region-name')?.value?.trim();
-        const code = document.getElementById('new-region-code')?.value?.trim();
+    async function confirmAddRegion () {
+        var name = document.getElementById('new-region-name')?.value?.trim();
+        var code = document.getElementById('new-region-code')?.value?.trim();
         if (!name || !code) return;
+        await API('settings/regions/', { method: 'POST', body: JSON.stringify({ name: name, code: code }) });
+        closeOverlay(); loadRegions(); toast('Region added', 'success');
+    }
+
+    async function deleteRegion (id) {
+        if (!confirm('Delete this region?')) return;
+        await API('settings/regions/' + id + '/', { method: 'DELETE' });
+        loadRegions(); toast('Region deleted', 'success');
+    }
+
+    /* ==================================================================
+     * RULEBOOK VERSIONS
+     * ================================================================== */
+    async function loadRulebook () {
         try {
-            await API.post('settings/regions/', {
-                name,
-                code,
-                ping_endpoint: document.getElementById('new-region-ping')?.value?.trim() || '',
-            });
-            closeOverlay();
-            loadRegions();
-        } catch (e) { window.TOC?.toast?.('Add region failed', 'error'); }
+            const versions = await API('settings/rulebook/');
+            rulebookVersions = versions || [];
+            const list = document.getElementById('rulebook-list');
+            if (!list) return;
+            if (!rulebookVersions.length) {
+                list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No rulebook versions yet.</p>';
+                return;
+            }
+            list.innerHTML = rulebookVersions.map(v =>
+                '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                + '<div class="flex items-center gap-2">'
+                + '<span class="text-sm text-white font-bold">v' + esc(v.version) + '</span>'
+                + (v.is_active ? '<span class="text-[10px] bg-dc-success/20 text-dc-success px-2 py-0.5 rounded-full">Active</span>' : '')
+                + (v.changelog ? '<span class="text-xs text-dc-text truncate max-w-[200px]">' + esc(v.changelog) + '</span>' : '')
+                + '</div>'
+                + '<div class="flex items-center gap-1">'
+                + '<button onclick="TOC.settings.editRulebook(\'' + v.id + '\')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
+                + (!v.is_active ? '<button onclick="TOC.settings.publishRulebook(\'' + v.id + '\')" class="px-2 py-1 text-[10px] border border-dc-success/30 text-dc-success rounded hover:bg-dc-success/10 transition-colors">Publish</button>' : '')
+                + '</div></div>'
+            ).join('');
+        } catch (e) { console.warn('[TOC.settings] loadRulebook failed', e); }
     }
 
-    async function deleteRegion(regionId) {
-        if (!confirm('Remove this server region?')) return;
-        try {
-            await API.delete(`settings/regions/${regionId}/`);
-            loadRegions();
-        } catch (e) { window.TOC?.toast?.('Delete failed', 'error'); }
+    function openCreateRulebook () {
+        showOverlay('New Rulebook Version', '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Version (e.g. 1.0, 2.0)</label>'
+            + '<input id="new-rb-version" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<div><label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>'
+            + '<textarea id="new-rb-content" rows="8" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50"></textarea></div>'
+            + '<div class="grid grid-cols-2 gap-3">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Change Type</label>'
+            + '<select id="new-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
+            + '<option value="minor">Minor (formatting, typo)</option><option value="material">Material (rule change)</option></select></div>'
+            + '<div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="new-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent</label></div></div>'
+            + '<div><label class="block text-xs text-dc-text mb-1">Changelog</label>'
+            + '<input id="new-rb-changelog" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<button onclick="TOC.settings.confirmCreateRulebook()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Create Version</button>'
+            + '</div>');
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Rulebook Versions                                                  */
-    /* ------------------------------------------------------------------ */
-
-    async function loadRulebook() {
-        try {
-            rulebookVersions = await API.get('settings/rulebook/');
-            renderRulebook();
-        } catch (e) { console.warn('Rulebook load error', e); }
-    }
-
-    function renderRulebook() {
-        const container = document.getElementById('rulebook-list');
-        if (!container) return;
-        if (!rulebookVersions.length) {
-            container.innerHTML = '<div class="py-6 text-center text-dc-text text-xs">No rulebook versions yet.</div>';
-            return;
-        }
-        container.innerHTML = rulebookVersions.map(v => `
-            <div class="p-4 rounded-lg border ${v.is_active ? 'border-dc-success/40 bg-dc-success/5' : 'border-dc-border bg-dc-surface/50'} space-y-2">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-bold text-white">v${v.version}</span>
-                        ${v.is_active ? '<span class="px-2 py-0.5 text-xs rounded-full bg-dc-success/10 text-dc-success">Published</span>' : '<span class="px-2 py-0.5 text-xs rounded-full bg-dc-text/10 text-dc-text">Draft</span>'}
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${!v.is_active ? `<button onclick="TOC.settings.publishRulebook('${v.id}')" class="px-3 py-1 rounded text-xs border border-dc-success/30 text-dc-success hover:bg-dc-success/10">Publish</button>` : ''}
-                        <button onclick="TOC.settings.editRulebook('${v.id}')" class="text-dc-text hover:text-dc-textBright text-xs">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                </div>
-                ${v.changelog ? `<div class="text-xs text-dc-text">${v.changelog}</div>` : ''}
-                <div class="text-xs text-dc-text/60">${v.created_at ? new Date(v.created_at).toLocaleDateString() : ''}</div>
-            </div>
-        `).join('');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function openCreateRulebook() {
-        const html = `
-            <div class="space-y-4">
-                <h3 class="font-display font-bold text-white text-lg">New Rulebook Version</h3>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Version *</label>
-                    <input id="new-rb-version" type="text" placeholder="1.0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>
-                    <textarea id="new-rb-content" rows="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50" placeholder="# Tournament Rules&#10;&#10;## 1. General&#10;..."></textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-dc-text mb-1">Change Type</label>
-                        <select id="new-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                            <option value="minor">Minor (formatting, typo)</option>
-                            <option value="material">Material (rule change)</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end pb-1">
-                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                            <input id="new-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent
-                        </label>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Changelog</label>
-                    <input id="new-rb-changelog" type="text" placeholder="Describe what changed..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <button onclick="TOC.settings.confirmCreateRulebook()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Create Version</button>
-            </div>
-        `;
-        showOverlay(html);
-    }
-
-    async function confirmCreateRulebook() {
-        const version = document.getElementById('new-rb-version')?.value?.trim();
-        if (!version) return;
-        try {
-            await API.post('settings/rulebook/', {
-                version,
-                content: document.getElementById('new-rb-content')?.value || '',
-                changelog: document.getElementById('new-rb-changelog')?.value?.trim() || '',
-                change_type: document.getElementById('new-rb-change-type')?.value || 'minor',
-                require_reconsent: document.getElementById('new-rb-reconsent')?.checked || false,
-            });
-            closeOverlay();
-            loadRulebook();
-            window.TOC?.toast?.('Rulebook version created', 'success');
-        } catch (e) { window.TOC?.toast?.('Create failed', 'error'); }
-    }
-
-    async function publishRulebook(versionId) {
-        if (!confirm('Publish this rulebook version? It will become the active version.')) return;
-        try {
-            await API.post(`settings/rulebook/${versionId}/publish/`);
-            loadRulebook();
-            window.TOC?.toast?.('Rulebook published', 'success');
-        } catch (e) { window.TOC?.toast?.('Publish failed', 'error'); }
-    }
-
-    function editRulebook(versionId) {
-        const v = rulebookVersions.find(r => String(r.id) === String(versionId));
+    async function confirmCreateRulebook () {
+        var v = document.getElementById('new-rb-version')?.value?.trim();
         if (!v) return;
-        const html = `
-            <div class="space-y-4">
-                <h3 class="font-display font-bold text-white text-lg">Edit Rulebook v${v.version}</h3>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>
-                    <textarea id="edit-rb-content" rows="12" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">${v.content || ''}</textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-dc-text mb-1">Change Type</label>
-                        <select id="edit-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                            <option value="minor">Minor (formatting, typo)</option>
-                            <option value="material">Material (rule change)</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end pb-1">
-                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                            <input id="edit-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent
-                        </label>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Changelog</label>
-                    <input id="edit-rb-changelog" type="text" value="${v.changelog || ''}" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                </div>
-                <button onclick="TOC.settings.confirmEditRulebook('${versionId}')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>
-            </div>
-        `;
-        showOverlay(html);
+        await API('settings/rulebook/', { method: 'POST', body: JSON.stringify({
+            version: v,
+            content: document.getElementById('new-rb-content')?.value || '',
+            changelog: document.getElementById('new-rb-changelog')?.value?.trim() || '',
+            change_type: document.getElementById('new-rb-change-type')?.value || 'minor',
+            require_reconsent: document.getElementById('new-rb-reconsent')?.checked || false,
+        }) });
+        closeOverlay(); loadRulebook(); toast('Rulebook created', 'success');
     }
 
-    async function confirmEditRulebook(versionId) {
+    function editRulebook (versionId) {
+        var v = rulebookVersions.find(function (r) { return String(r.id) === String(versionId); });
+        if (!v) return;
+        showOverlay('Edit Rulebook v' + esc(v.version), '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Content (Markdown/HTML)</label>'
+            + '<textarea id="edit-rb-content" rows="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">' + esc(v.content || '') + '</textarea></div>'
+            + '<div class="grid grid-cols-2 gap-3">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Change Type</label>'
+            + '<select id="edit-rb-change-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
+            + '<option value="minor">Minor</option><option value="material">Material</option></select></div>'
+            + '<div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="edit-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent</label></div></div>'
+            + '<div><label class="block text-xs text-dc-text mb-1">Changelog</label>'
+            + '<input id="edit-rb-changelog" type="text" value="' + esc(v.changelog || '') + '" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+            + '<button onclick="TOC.settings.confirmEditRulebook(\'' + versionId + '\')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
+            + '</div>');
+    }
+
+    async function confirmEditRulebook (versionId) {
         try {
-            await API.put(`settings/rulebook/${versionId}/`, {
+            await API('settings/rulebook/' + versionId + '/', { method: 'PUT', body: JSON.stringify({
                 content: document.getElementById('edit-rb-content')?.value || '',
                 changelog: document.getElementById('edit-rb-changelog')?.value?.trim() || '',
                 change_type: document.getElementById('edit-rb-change-type')?.value || 'minor',
                 require_reconsent: document.getElementById('edit-rb-reconsent')?.checked || false,
-            });
-            closeOverlay();
-            loadRulebook();
-            window.TOC?.toast?.('Rulebook updated', 'success');
-        } catch (e) { window.TOC?.toast?.('Update failed', 'error'); }
+            }) });
+            closeOverlay(); loadRulebook(); toast('Rulebook updated', 'success');
+        } catch (e) { toast('Update failed', 'error'); }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  BR Scoring                                                         */
-    /* ------------------------------------------------------------------ */
-
-    async function loadBRScoring() {
-        try {
-            brScoring = await API.get('settings/br-scoring/');
-            if (brScoring && Object.keys(brScoring).length) {
-                const container = document.getElementById('settings-br-scoring');
-                if (!container) return;
-                const kpEl = container.querySelector('[data-field="kill_points"]');
-                const ppEl = container.querySelector('[data-field="placement_points"]');
-                if (kpEl) kpEl.value = brScoring.kill_points || 1;
-                if (ppEl) ppEl.value = JSON.stringify(brScoring.placement_points || {}, null, 2);
-            }
-        } catch (e) { console.warn('BR scoring load error', e); }
+    async function publishRulebook (versionId) {
+        if (!confirm('Publish this version? This will deactivate other versions.')) return;
+        await API('settings/rulebook/' + versionId + '/publish/', { method: 'POST' });
+        loadRulebook(); toast('Rulebook published', 'success');
     }
 
-    async function saveBRScoring() {
-        const container = document.getElementById('settings-br-scoring');
-        if (!container) return;
-        const kp = container.querySelector('[data-field="kill_points"]')?.value || 1;
-        const ppRaw = container.querySelector('[data-field="placement_points"]')?.value || '{}';
-        let pp;
-        try { pp = JSON.parse(ppRaw); } catch { window.TOC?.toast?.('Invalid JSON for placement points', 'error'); return; }
+    /* ==================================================================
+     * BR SCORING
+     * ================================================================== */
+    async function loadBRScoring () {
         try {
-            await API.put('settings/br-scoring/', {
-                kill_points: Number(kp),
+            const br = await API('settings/br-scoring/');
+            if (!br) return;
+            const c = document.getElementById('settings-br-scoring');
+            if (!c) return;
+            setVal(c, 'kill_points', br.kill_points);
+            var pp = br.placement_points;
+            setVal(c, 'placement_points', typeof pp === 'object' ? JSON.stringify(pp, null, 2) : pp || '');
+        } catch (e) { /* no BR scoring configured — ok */ }
+    }
+
+    async function saveBRScoring () {
+        try {
+            var c = document.getElementById('settings-br-scoring');
+            var ppRaw = getVal(c, 'placement_points');
+            var pp = {};
+            try { pp = JSON.parse(ppRaw); } catch (e) { toast('Invalid JSON in placement points', 'error'); return; }
+            await API('settings/br-scoring/', { method: 'PUT', body: JSON.stringify({
+                kill_points: getVal(c, 'kill_points'),
                 placement_points: pp,
-            });
-            window.TOC?.toast?.('BR scoring saved', 'success');
-        } catch (e) { window.TOC?.toast?.('Save failed', 'error'); }
+            }) });
+            toast('BR Scoring saved', 'success');
+        } catch (e) { toast('BR Scoring save failed', 'error'); }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Overlay helper                                                     */
-    /* ------------------------------------------------------------------ */
+    /* ==================================================================
+     * PAYMENT METHODS (TournamentPaymentMethod CRUD)
+     * ================================================================== */
+    async function loadPaymentMethods () {
+        try {
+            const methods = await API('settings/payment-methods/');
+            paymentMethods = methods || [];
+            var list = document.getElementById('payment-methods-list');
+            if (!list) return;
+            if (!paymentMethods.length) {
+                list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No payment methods configured.</p>';
+                return;
+            }
+            list.innerHTML = paymentMethods.map(function (m) {
+                var label = m.method.charAt(0).toUpperCase() + m.method.slice(1);
+                var acct = m.account_number || m.bank_name || '';
+                return '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                    + '<div class="flex items-center gap-2">'
+                    + '<span class="w-2 h-2 rounded-full ' + (m.is_enabled ? 'bg-dc-success' : 'bg-dc-text/30') + '"></span>'
+                    + '<span class="text-sm text-white font-medium">' + esc(label) + '</span>'
+                    + (acct ? '<span class="text-xs text-dc-text">' + esc(acct) + '</span>' : '')
+                    + '</div>'
+                    + '<div class="flex items-center gap-1">'
+                    + '<button onclick="TOC.settings.editPaymentMethod(' + m.id + ')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
+                    + '<button onclick="TOC.settings.deletePaymentMethod(' + m.id + ')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                    + '</div></div>';
+            }).join('');
+        } catch (e) { console.warn('[TOC.settings] loadPaymentMethods failed', e); }
+    }
 
-    function showOverlay(html) {
-        let overlay = document.getElementById('settings-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'settings-overlay';
-            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm';
-            overlay.addEventListener('click', e => { if (e.target === overlay) closeOverlay(); });
-            document.body.appendChild(overlay);
+    function openAddPaymentMethod () {
+        showOverlay('Add Payment Method', '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Provider</label>'
+            + '<select id="pm-method" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" onchange="TOC.settings.syncPaymentMethodFields()">'
+            + '<option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>'
+            + '<option value="bank_transfer">Bank Transfer</option><option value="deltacoin">DeltaCoin</option></select></div>'
+            + '<div id="pm-fields"></div>'
+            + '<button onclick="TOC.settings.confirmAddPaymentMethod()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
+            + '</div>');
+        syncPaymentMethodFields();
+    }
+
+    function syncPaymentMethodFields () {
+        var method = document.getElementById('pm-method')?.value || 'bkash';
+        var container = document.getElementById('pm-fields');
+        if (!container) return;
+        var html = '';
+        if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
+            var prefix = method;
+            html = '<div class="space-y-3">'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Number</label>'
+                + '<input id="pm-account-number" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="01XXXXXXXXX"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Name</label>'
+                + '<input id="pm-account-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Type</label>'
+                + '<select id="pm-account-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
+                + '<option value="personal">Personal</option><option value="merchant">Merchant</option><option value="agent">Agent</option></select></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Instructions</label>'
+                + '<textarea id="pm-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>'
+                + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-ref-required" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme"> Reference Required</label>'
+                + '</div>';
+        } else if (method === 'bank_transfer') {
+            html = '<div class="space-y-3">'
+                + '<div><label class="block text-xs text-dc-text mb-1">Bank Name</label><input id="pm-bank-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Branch</label><input id="pm-bank-branch" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Number</label><input id="pm-bank-acct" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Name</label><input id="pm-bank-acct-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Routing Number</label><input id="pm-bank-routing" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Instructions</label><textarea id="pm-bank-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>'
+                + '</div>';
+        } else {
+            html = '<div><label class="block text-xs text-dc-text mb-1">Instructions</label>'
+                + '<textarea id="pm-dc-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>';
         }
-        overlay.innerHTML = `<div class="glass-box rounded-2xl p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">${html}</div>`;
-        overlay.classList.remove('hidden');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        container.innerHTML = html;
     }
 
-    function closeOverlay() {
-        const overlay = document.getElementById('settings-overlay');
-        if (overlay) overlay.classList.add('hidden');
+    async function confirmAddPaymentMethod () {
+        var method = document.getElementById('pm-method')?.value;
+        if (!method) return;
+        var payload = { method: method };
+        if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
+            payload[method + '_account_number'] = document.getElementById('pm-account-number')?.value || '';
+            payload[method + '_account_name'] = document.getElementById('pm-account-name')?.value || '';
+            payload[method + '_account_type'] = document.getElementById('pm-account-type')?.value || 'personal';
+            payload[method + '_instructions'] = document.getElementById('pm-instructions')?.value || '';
+            payload[method + '_reference_required'] = document.getElementById('pm-ref-required')?.checked ?? true;
+        } else if (method === 'bank_transfer') {
+            payload.bank_name = document.getElementById('pm-bank-name')?.value || '';
+            payload.bank_branch = document.getElementById('pm-bank-branch')?.value || '';
+            payload.bank_account_number = document.getElementById('pm-bank-acct')?.value || '';
+            payload.bank_account_name = document.getElementById('pm-bank-acct-name')?.value || '';
+            payload.bank_routing_number = document.getElementById('pm-bank-routing')?.value || '';
+            payload.bank_instructions = document.getElementById('pm-bank-instructions')?.value || '';
+        } else {
+            payload.deltacoin_instructions = document.getElementById('pm-dc-instructions')?.value || '';
+        }
+        try {
+            await API('settings/payment-methods/', { method: 'POST', body: JSON.stringify(payload) });
+            closeOverlay(); loadPaymentMethods(); toast('Payment method added', 'success');
+        } catch (e) { toast('Failed to add payment method', 'error'); }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Init                                                               */
-    /* ------------------------------------------------------------------ */
+    function editPaymentMethod (id) {
+        // Re-load the specific method — for simplicity, ask user to delete and re-add
+        toast('To edit, delete and re-add the payment method', 'info');
+    }
 
-    function init() {
+    async function deletePaymentMethod (id) {
+        if (!confirm('Delete this payment method?')) return;
+        try {
+            await API('settings/payment-methods/' + id + '/', { method: 'DELETE' });
+            loadPaymentMethods(); toast('Payment method deleted', 'success');
+        } catch (e) { toast('Delete failed', 'error'); }
+    }
+
+    /* ==================================================================
+     * FILE UPLOAD (banner, thumbnail, rules_pdf, terms_pdf)
+     * ================================================================== */
+    async function uploadFile (fieldName, inputEl) {
+        if (!inputEl.files || !inputEl.files[0]) return;
+        var file = inputEl.files[0];
+        var formData = new FormData();
+        formData.append('field', fieldName);
+        formData.append('file', file);
+        try {
+            var resp = await fetch(CFG().apiBase + '/settings/upload/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CFG().csrfToken },
+                body: formData,
+            });
+            if (!resp.ok) throw new Error('Upload failed');
+            var data = await resp.json();
+            // Update status label
+            var statusMap = {
+                'banner_image': 'banner-status',
+                'thumbnail_image': 'thumbnail-status',
+                'rules_pdf': 'rules-pdf-status',
+                'terms_pdf': 'terms-pdf-status',
+            };
+            var statusEl = document.getElementById(statusMap[fieldName]);
+            if (statusEl) statusEl.textContent = file.name;
+            toast(fieldName.replace(/_/g, ' ') + ' uploaded', 'success');
+        } catch (e) { toast('Upload failed: ' + e.message, 'error'); }
+    }
+
+    /* ==================================================================
+     * INIT
+     * ================================================================== */
+    function init () {
         loadSettings();
         loadGameConfig();
         loadMapPool();
         loadRegions();
         loadRulebook();
         loadBRScoring();
+        loadPaymentMethods();
+        applyGameAwareVisibility();
     }
 
     // Public API
@@ -584,6 +725,13 @@
         init,
         saveAll,
         saveGameConfig,
+        syncModeVisibility,
+        syncCheckInVisibility,
+        syncFeeVisibility,
+        syncVetoVisibility,
+        addVetoStep,
+        removeVetoStep,
+        changeVetoTeam,
         loadMapPool,
         openAddMap,
         confirmAddMap,
@@ -598,9 +746,12 @@
         editRulebook,
         confirmEditRulebook,
         saveBRScoring,
-        addVetoStep,
-        removeVetoStep,
-        changeVetoTeam,
+        openAddPaymentMethod,
+        syncPaymentMethodFields,
+        confirmAddPaymentMethod,
+        editPaymentMethod,
+        deletePaymentMethod,
+        uploadFile,
     };
 
     // Auto-init when navigating to Settings tab

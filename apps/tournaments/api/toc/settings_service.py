@@ -1,8 +1,16 @@
 """
-TOC Sprint 8 — Settings & Configuration Service
+TOC Sprint 10G — Settings & Configuration Service (1:1 Database Parity)
 
 Provides organizer-level operations for:
   - Tournament basic settings (name, dates, capacity, prizes, etc.)
+  - Media & uploads (banner, thumbnail, rules_pdf, terms_pdf)
+  - Venue settings (conditional on tournament mode)
+  - Entry fees & refund policy
+  - Payment method CRUD (TournamentPaymentMethod)
+  - Rules & Terms
+  - Feature toggles (check-in, seeding, live updates, certificates, challenges, fan voting)
+  - Social & contact links
+  - SEO & metadata
   - Game match configuration (format, scoring rules)
   - Map pool management (CRUD, reorder)
   - Veto session management
@@ -29,6 +37,7 @@ from apps.tournaments.models.game_config import (
     RulebookVersion,
     ServerRegion,
 )
+from apps.tournaments.models.payment_config import TournamentPaymentMethod
 
 logger = logging.getLogger("toc.settings")
 
@@ -42,7 +51,7 @@ class TOCSettingsService:
 
     @staticmethod
     def get_settings(tournament: Tournament) -> dict:
-        """Return editable tournament fields grouped by section."""
+        """Return editable tournament fields grouped by section (1:1 model parity)."""
         t = tournament
         return {
             "basic": {
@@ -50,16 +59,25 @@ class TOCSettingsService:
                 "slug": t.slug,
                 "description": t.description or "",
                 "status": t.status,
-                "is_official": t.is_official,
+                "is_official": getattr(t, "is_official", False),
                 "is_featured": getattr(t, "is_featured", False),
+            },
+            "media": {
+                "banner_image": t.banner_image.url if getattr(t, "banner_image", None) and t.banner_image else "",
+                "thumbnail_image": t.thumbnail_image.url if getattr(t, "thumbnail_image", None) and t.thumbnail_image else "",
+                "promo_video_url": getattr(t, "promo_video_url", "") or "",
+                "stream_twitch_url": getattr(t, "stream_twitch_url", "") or "",
+                "stream_youtube_url": getattr(t, "stream_youtube_url", "") or "",
             },
             "format": {
                 "format": t.format,
                 "participation_type": getattr(t, "participation_type", ""),
                 "platform": getattr(t, "platform", ""),
-                "mode": getattr(t, "mode", ""),
+                "mode": getattr(t, "mode", "online"),
                 "max_participants": t.max_participants,
                 "min_participants": getattr(t, "min_participants", 0),
+                "max_guest_teams": getattr(t, "max_guest_teams", 0),
+                "allow_display_name_override": getattr(t, "allow_display_name_override", False),
             },
             "dates": {
                 "registration_start": (
@@ -75,60 +93,104 @@ class TOCSettingsService:
                     t.tournament_end.isoformat() if t.tournament_end else None
                 ),
             },
+            "venue": {
+                "venue_name": getattr(t, "venue_name", "") or "",
+                "venue_city": getattr(t, "venue_city", "") or "",
+                "venue_address": getattr(t, "venue_address", "") or "",
+                "venue_map_url": getattr(t, "venue_map_url", "") or "",
+            },
+            "fees": {
+                "has_entry_fee": getattr(t, "has_entry_fee", False),
+                "entry_fee_amount": str(getattr(t, "entry_fee_amount", 0)),
+                "entry_fee_currency": getattr(t, "entry_fee_currency", "BDT"),
+                "entry_fee_deltacoin": str(getattr(t, "entry_fee_deltacoin", 0)),
+                "payment_deadline_hours": getattr(t, "payment_deadline_hours", 24),
+                "refund_policy": getattr(t, "refund_policy", ""),
+                "refund_policy_text": getattr(t, "refund_policy_text", "") or "",
+                "enable_fee_waiver": getattr(t, "enable_fee_waiver", False),
+                "fee_waiver_top_n_teams": getattr(t, "fee_waiver_top_n_teams", 0),
+            },
             "prizes": {
                 "prize_pool": str(t.prize_pool) if t.prize_pool else "0",
                 "prize_currency": getattr(t, "prize_currency", "USD"),
                 "prize_deltacoin": str(getattr(t, "prize_deltacoin", 0)),
                 "prize_distribution": getattr(t, "prize_distribution", {}),
             },
-            "registration_rules": {
-                "has_entry_fee": getattr(t, "has_entry_fee", False),
-                "entry_fee_amount": str(getattr(t, "entry_fee_amount", 0)),
-                "payment_methods": getattr(t, "payment_methods", []),
-                "refund_policy": getattr(t, "refund_policy", ""),
+            "rules": {
+                "rules_text": getattr(t, "rules_text", "") or "",
+                "terms_and_conditions": getattr(t, "terms_and_conditions", "") or "",
+                "require_terms_acceptance": getattr(t, "require_terms_acceptance", False),
+                "rules_pdf": t.rules_pdf.url if getattr(t, "rules_pdf", None) and t.rules_pdf else "",
+                "terms_pdf": t.terms_pdf.url if getattr(t, "terms_pdf", None) and t.terms_pdf else "",
             },
             "features": {
                 "enable_check_in": getattr(t, "enable_check_in", False),
+                "check_in_minutes_before": getattr(t, "check_in_minutes_before", 30),
+                "check_in_closes_minutes_before": getattr(t, "check_in_closes_minutes_before", 0),
                 "enable_dynamic_seeding": getattr(t, "enable_dynamic_seeding", False),
                 "enable_live_updates": getattr(t, "enable_live_updates", False),
                 "enable_certificates": getattr(t, "enable_certificates", False),
-                "require_terms_acceptance": getattr(t, "require_terms_acceptance", False),
+                "enable_challenges": getattr(t, "enable_challenges", False),
+                "enable_fan_voting": getattr(t, "enable_fan_voting", False),
             },
             "social": {
                 "contact_email": getattr(t, "contact_email", ""),
                 "social_discord": getattr(t, "social_discord", ""),
                 "social_twitter": getattr(t, "social_twitter", ""),
-                "social_twitch": getattr(t, "social_twitch", ""),
+                "social_instagram": getattr(t, "social_instagram", ""),
                 "social_youtube": getattr(t, "social_youtube", ""),
+                "social_website": getattr(t, "social_website", ""),
             },
             "waitlist": {
                 "auto_forfeit_no_shows": getattr(t, "auto_forfeit_no_shows", False),
                 "waitlist_auto_promote": getattr(t, "waitlist_auto_promote", False),
                 "no_show_timeout_minutes": getattr(t, "no_show_timeout_minutes", 10),
                 "max_waitlist_size": getattr(t, "max_waitlist_size", 0),
-                "checkin_open_minutes": getattr(t, "checkin_open_minutes", 30),
-                "checkin_close_minutes": getattr(t, "checkin_close_minutes", 0),
+            },
+            "seo": {
+                "meta_description": getattr(t, "meta_description", "") or "",
+                "meta_keywords": getattr(t, "meta_keywords", []) or [],
             },
         }
 
     @staticmethod
     def update_settings(tournament: Tournament, data: dict) -> dict:
-        """Flat-merge provided fields into the Tournament model."""
+        """Flat-merge provided fields into the Tournament model (1:1 parity)."""
         updatable = {
-            "name", "description", "format", "participation_type", "platform",
-            "mode", "max_participants", "min_participants", "prize_pool",
-            "prize_currency", "prize_deltacoin", "prize_distribution",
-            "has_entry_fee", "entry_fee_amount", "payment_methods", "refund_policy",
-            "enable_check_in", "enable_dynamic_seeding", "enable_live_updates",
-            "enable_certificates", "require_terms_acceptance",
-            "contact_email", "social_discord", "social_twitter",
-            "social_twitch", "social_youtube",
+            # Basic
+            "name", "description", "is_official", "is_featured",
+            # Format
+            "format", "participation_type", "platform", "mode",
+            "max_participants", "min_participants",
+            "max_guest_teams", "allow_display_name_override",
+            # Dates
             "registration_start", "registration_end",
             "tournament_start", "tournament_end",
-            "is_official", "is_featured",
+            # Venue
+            "venue_name", "venue_city", "venue_address", "venue_map_url",
+            # Fees
+            "has_entry_fee", "entry_fee_amount", "entry_fee_currency",
+            "entry_fee_deltacoin", "payment_deadline_hours",
+            "refund_policy", "refund_policy_text",
+            "enable_fee_waiver", "fee_waiver_top_n_teams",
+            # Prizes
+            "prize_pool", "prize_currency", "prize_deltacoin", "prize_distribution",
+            # Rules
+            "rules_text", "terms_and_conditions", "require_terms_acceptance",
+            # Features
+            "enable_check_in", "check_in_minutes_before", "check_in_closes_minutes_before",
+            "enable_dynamic_seeding", "enable_live_updates", "enable_certificates",
+            "enable_challenges", "enable_fan_voting",
+            # Media (text URLs only; file uploads via separate endpoint)
+            "promo_video_url", "stream_twitch_url", "stream_youtube_url",
+            # Social
+            "contact_email", "social_discord", "social_twitter",
+            "social_instagram", "social_youtube", "social_website",
+            # Waitlist
             "auto_forfeit_no_shows", "waitlist_auto_promote",
             "no_show_timeout_minutes", "max_waitlist_size",
-            "checkin_open_minutes", "checkin_close_minutes",
+            # SEO
+            "meta_description", "meta_keywords",
         }
         changed: list[str] = []
         for key, value in data.items():
@@ -406,3 +468,110 @@ class TOCSettingsService:
             },
         )
         return {"id": str(matrix.id), "created": created}
+
+    # ------------------------------------------------------------------
+    # Payment Methods (TournamentPaymentMethod CRUD)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_payment_methods(tournament: Tournament) -> list[dict]:
+        """Return all payment methods for the tournament."""
+        methods = TournamentPaymentMethod.objects.filter(
+            tournament=tournament
+        ).order_by("display_order", "method")
+        result = []
+        for m in methods:
+            entry = {
+                "id": m.id,
+                "method": m.method,
+                "is_enabled": m.is_enabled,
+                "display_order": m.display_order,
+                "account_number": m.get_account_number(),
+                "instructions": m.get_instructions(),
+            }
+            # Add provider-specific fields
+            if m.method in ("bkash", "nagad", "rocket"):
+                prefix = m.method
+                entry.update({
+                    f"{prefix}_account_number": getattr(m, f"{prefix}_account_number", ""),
+                    f"{prefix}_account_name": getattr(m, f"{prefix}_account_name", ""),
+                    f"{prefix}_account_type": getattr(m, f"{prefix}_account_type", "personal"),
+                    f"{prefix}_instructions": getattr(m, f"{prefix}_instructions", ""),
+                    f"{prefix}_reference_required": getattr(m, f"{prefix}_reference_required", True),
+                })
+            elif m.method == "bank_transfer":
+                entry.update({
+                    "bank_name": m.bank_name,
+                    "bank_branch": m.bank_branch,
+                    "bank_account_number": m.bank_account_number,
+                    "bank_account_name": m.bank_account_name,
+                    "bank_routing_number": m.bank_routing_number,
+                    "bank_instructions": m.bank_instructions,
+                })
+            elif m.method == "deltacoin":
+                entry["deltacoin_instructions"] = m.deltacoin_instructions
+            result.append(entry)
+        return result
+
+    @staticmethod
+    def add_payment_method(tournament: Tournament, data: dict) -> dict:
+        """Create a new payment method for the tournament."""
+        method = data.get("method", "deltacoin")
+        # Get next display order
+        highest = (
+            TournamentPaymentMethod.objects.filter(tournament=tournament)
+            .order_by("-display_order")
+            .values_list("display_order", flat=True)
+            .first()
+        ) or 0
+        kwargs = {
+            "tournament": tournament,
+            "method": method,
+            "is_enabled": data.get("is_enabled", True),
+            "display_order": highest + 1,
+        }
+        # Provider-specific fields
+        if method in ("bkash", "nagad", "rocket"):
+            for suffix in ("account_number", "account_name", "account_type", "instructions", "reference_required"):
+                key = f"{method}_{suffix}"
+                if key in data:
+                    kwargs[key] = data[key]
+        elif method == "bank_transfer":
+            for field in ("bank_name", "bank_branch", "bank_account_number",
+                          "bank_account_name", "bank_routing_number", "bank_instructions"):
+                if field in data:
+                    kwargs[field] = data[field]
+        elif method == "deltacoin":
+            if "deltacoin_instructions" in data:
+                kwargs["deltacoin_instructions"] = data["deltacoin_instructions"]
+
+        pm = TournamentPaymentMethod.objects.create(**kwargs)
+        return {"id": pm.id, "method": pm.method}
+
+    @staticmethod
+    def delete_payment_method(payment_method_id: int) -> dict:
+        """Delete a payment method."""
+        TournamentPaymentMethod.objects.filter(pk=payment_method_id).delete()
+        return {"deleted": True}
+
+    # ------------------------------------------------------------------
+    # File Upload (banner_image, thumbnail_image, rules_pdf, terms_pdf)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def upload_file(tournament: Tournament, field_name: str, uploaded_file) -> dict:
+        """Save an uploaded file to the specified ImageField/FileField on the tournament."""
+        allowed_fields = {"banner_image", "thumbnail_image", "rules_pdf", "terms_pdf"}
+        if field_name not in allowed_fields:
+            return {"error": f"Field '{field_name}' is not an allowed upload target."}
+        if not hasattr(tournament, field_name):
+            return {"error": f"Tournament model has no field '{field_name}'."}
+
+        file_field = getattr(tournament, field_name)
+        file_field.save(uploaded_file.name, uploaded_file, save=True)
+
+        return {
+            "field": field_name,
+            "url": getattr(tournament, field_name).url,
+            "filename": uploaded_file.name,
+        }

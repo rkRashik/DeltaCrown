@@ -64,36 +64,38 @@
     }
 
     function openAssignStaff () {
-        const roleOpts = state.roles.map(r =>
-            `<option value="${r.id}">${esc(r.name)}</option>`
-        ).join('');
+        var roleOpts = '';
+        for (var i = 0; i < state.roles.length; i++) {
+            var r = state.roles[i];
+            roleOpts += '<option value="' + r.id + '">' + esc(r.name) + '</option>';
+        }
 
-        showOverlay('Assign Staff Member', `
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Search User (username or email)</label>
-                    <input id="staff-user-search" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Type username or email\u2026" autocomplete="off">
-                    <div id="staff-user-results" class="mt-1 max-h-40 overflow-y-auto hidden border border-dc-border rounded-lg bg-dc-surface"></div>
-                    <input id="staff-user-id" type="hidden">
-                    <div id="staff-user-selected" class="mt-1 text-xs text-dc-success hidden"></div>
-                </div>
-                <div>
-                    <label class="block text-xs text-dc-text mb-1">Role</label>
-                    <select id="staff-role" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
-                        ${roleOpts}
-                    </select>
-                </div>
-                <button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign</button>
-            </div>
-        `);
+        var body = '<div class="space-y-4">'
+            + '<div>'
+            + '<label class="block text-xs text-dc-text mb-1">Search User (username or email)</label>'
+            + '<input id="staff-user-search" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Type username or email\u2026" autocomplete="off">'
+            + '<div id="staff-user-results" class="mt-1 max-h-40 overflow-y-auto hidden border border-dc-border rounded-lg bg-dc-surface"></div>'
+            + '<input id="staff-user-id" type="hidden">'
+            + '<div id="staff-user-selected" class="mt-1 text-xs text-dc-success hidden"></div>'
+            + '</div>'
+            + '<div>'
+            + '<label class="block text-xs text-dc-text mb-1">Role</label>'
+            + '<select id="staff-role" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
+            + roleOpts
+            + '</select>'
+            + '</div>'
+            + '<button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign</button>'
+            + '</div>';
+
+        showOverlay('Assign Staff Member', body);
 
         // Wire up live search with debounce
-        let debounce = null;
-        const input = document.getElementById('staff-user-search');
+        var debounce = null;
+        var input = document.getElementById('staff-user-search');
         if (input) {
             input.addEventListener('input', function () {
                 clearTimeout(debounce);
-                debounce = setTimeout(() => _searchUsers(input.value.trim()), 300);
+                debounce = setTimeout(function () { _searchUsers(input.value.trim()); }, 300);
             });
         }
     }

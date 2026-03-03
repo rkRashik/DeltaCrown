@@ -1,10 +1,10 @@
 """
-TOC API Views — Sprint 8: Settings & Configuration.
+TOC API Views — Sprint 10G: Settings & Configuration (1:1 Database Parity).
 
 S8-B1 GET/PUT  settings/               — Tournament settings CRUD
 S8-B2 GET/PUT  settings/game-config/   — Game match config
 S8-B3 GET/POST settings/map-pool/      — Map pool list / add
-S8-B3 PUT/DEL  settings/map-pool/<id>/ — Map update / delete
+S8-B3 PUT/PATCH/DEL settings/map-pool/<id>/ — Map update / delete
 S8-B3 POST     settings/map-pool/reorder/ — Reorder maps
 S8-B4 GET/POST settings/veto/<match_id>/ — Veto session read/create
 S8-B4 POST     settings/veto/<match_id>/advance/ — Advance veto step
@@ -14,9 +14,14 @@ S8-B6 GET/POST settings/rulebook/      — Rulebook version list / create
 S8-B6 PUT      settings/rulebook/<id>/ — Update version
 S8-B6 POST     settings/rulebook/<id>/publish/ — Publish version
 S8-B7 GET/PUT  settings/br-scoring/    — BR scoring matrix
+S10G  GET/POST settings/payment-methods/ — Payment method list / add
+S10G  DELETE   settings/payment-methods/<id>/ — Delete payment method
+S10G  POST     settings/upload/        — File upload (banner, thumbnail, pdfs)
 """
 
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
@@ -72,9 +77,13 @@ class MapPoolListView(TOCBaseView):
 
 
 class MapPoolDetailView(TOCBaseView):
-    """PUT to update map / DELETE to remove."""
+    """PUT/PATCH to update map / DELETE to remove."""
 
     def put(self, request, slug, pk):
+        result = TOCSettingsService.update_map(str(pk), request.data)
+        return Response(result)
+
+    def patch(self, request, slug, pk):
         result = TOCSettingsService.update_map(str(pk), request.data)
         return Response(result)
 
@@ -189,4 +198,50 @@ class BRScoringView(TOCBaseView):
 
     def put(self, request, slug):
         result = TOCSettingsService.save_br_scoring(self.tournament, request.data)
+        return Response(result)
+
+
+# ------------------------------------------------------------------
+# S10G: Payment Methods (TournamentPaymentMethod CRUD)
+# ------------------------------------------------------------------
+
+class PaymentMethodListView(TOCBaseView):
+    """GET all payment methods / POST to add a new one."""
+
+    def get(self, request, slug):
+        data = TOCSettingsService.get_payment_methods(self.tournament)
+        return Response(data)
+
+    def post(self, request, slug):
+        result = TOCSettingsService.add_payment_method(self.tournament, request.data)
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+class PaymentMethodDeleteView(TOCBaseView):
+    """DELETE a payment method."""
+
+    def delete(self, request, slug, pk):
+        result = TOCSettingsService.delete_payment_method(int(pk))
+        return Response(result)
+
+
+# ------------------------------------------------------------------
+# S10G: File Upload (banner, thumbnail, rules_pdf, terms_pdf)
+# ------------------------------------------------------------------
+
+class SettingsFileUploadView(TOCBaseView):
+    """POST multipart file upload for tournament image/file fields."""
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, slug):
+        field_name = request.data.get("field")
+        uploaded_file = request.FILES.get("file")
+        if not field_name or not uploaded_file:
+            return Response(
+                {"error": "Both 'field' and 'file' are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        result = TOCSettingsService.upload_file(self.tournament, field_name, uploaded_file)
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
