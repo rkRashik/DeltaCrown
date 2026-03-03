@@ -1,8 +1,8 @@
 /**
- * TOC Sprint 10 — RBAC & Economy Integration
+ * TOC Sprint 10H — RBAC & Economy Integration
  * =============================================
- * S10-F1  Staff management section in Settings
- * S10-F2  Permission-gated UI
+ * S10-F1  Staff management section in Settings (Radio Card assign modal)
+ * S10-F2  Permission-gated UI (tab-level + element-level capability RBAC)
  * S10-F3  DeltaCoin balance display in Payments tab
  * S10-F4  Wallet transaction history in participant drawer
  */
@@ -63,11 +63,33 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function _renderCapBadges (caps) {
+        if (!caps || typeof caps !== 'object') return '';
+        var keys = Object.keys(caps).filter(function (k) { return caps[k] && k !== 'full_access'; });
+        if (!keys.length) return '';
+        return '<div class="flex flex-wrap gap-1 mt-1.5">' +
+            keys.map(function (k) {
+                var label = k.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+                return '<span class="text-[9px] font-bold uppercase tracking-wider bg-theme/10 text-theme/80 px-1.5 py-0.5 rounded">' + esc(label) + '</span>';
+            }).join('') + '</div>';
+    }
+
     function openAssignStaff () {
-        var roleOpts = '';
+        var roleCards = '';
         for (var i = 0; i < state.roles.length; i++) {
             var r = state.roles[i];
-            roleOpts += '<option value="' + r.id + '">' + esc(r.name) + '</option>';
+            var isFirst = i === 0;
+            roleCards += '<label class="staff-role-card group flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all '
+                + (isFirst ? 'border-theme bg-theme/5' : 'border-dc-border hover:border-theme/40 bg-dc-surface/50')
+                + '" data-role-card="' + r.id + '">'
+                + '<input type="radio" name="staff-role-radio" value="' + r.id + '"' + (isFirst ? ' checked' : '')
+                + ' class="mt-0.5 accent-[var(--theme-color,#f59e0b)]" onchange="TOC.rbac._onRoleCardChange(this)">'
+                + '<div class="flex-1 min-w-0">'
+                + '<p class="text-sm font-bold text-white leading-tight">' + esc(r.name) + '</p>'
+                + '<p class="text-[11px] text-dc-text mt-0.5 leading-snug">' + esc(r.description || '') + '</p>'
+                + _renderCapBadges(r.capabilities)
+                + '</div>'
+                + '</label>';
         }
 
         var body = '<div class="space-y-4">'
@@ -79,12 +101,12 @@
             + '<div id="staff-user-selected" class="mt-1 text-xs text-dc-success hidden"></div>'
             + '</div>'
             + '<div>'
-            + '<label class="block text-xs text-dc-text mb-1">Role</label>'
-            + '<select id="staff-role" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
-            + roleOpts
-            + '</select>'
+            + '<label class="block text-xs font-bold uppercase tracking-widest text-dc-text mb-2">Select Role</label>'
+            + '<div id="staff-role-cards" class="space-y-2 max-h-60 overflow-y-auto pr-1">'
+            + (roleCards || '<p class="text-xs text-dc-text italic text-center py-4">No roles available. Seed roles first.</p>')
             + '</div>'
-            + '<button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign</button>'
+            + '</div>'
+            + '<button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign Staff Member</button>'
             + '</div>';
 
         showOverlay('Assign Staff Member', body);
@@ -97,6 +119,18 @@
                 clearTimeout(debounce);
                 debounce = setTimeout(function () { _searchUsers(input.value.trim()); }, 300);
             });
+        }
+    }
+
+    function _onRoleCardChange (radio) {
+        document.querySelectorAll('.staff-role-card').forEach(function (card) {
+            card.classList.remove('border-theme', 'bg-theme/5');
+            card.classList.add('border-dc-border', 'bg-dc-surface/50');
+        });
+        var card = radio.closest('.staff-role-card');
+        if (card) {
+            card.classList.remove('border-dc-border', 'bg-dc-surface/50');
+            card.classList.add('border-theme', 'bg-theme/5');
         }
     }
 
@@ -138,7 +172,8 @@
 
     async function confirmAssignStaff () {
         const userId = document.getElementById('staff-user-id')?.value;
-        const roleId = document.getElementById('staff-role')?.value;
+        const checkedRadio = document.querySelector('input[name="staff-role-radio"]:checked');
+        const roleId = checkedRadio ? checkedRadio.value : null;
         if (!userId || !roleId) return;
 
         await api('staff/', {
@@ -162,23 +197,39 @@
         try {
             state.permissions = await api('permissions/');
             applyPermissionGating();
+            enforceCapabilityRBAC();
         } catch (e) {
             console.warn('[TOC.rbac] loadPermissions failed', e);
         }
     }
 
+    /** Resolve the user's capability set from the injected window variable + API response */
+    function _getCaps () {
+        // Prefer the server-injected capabilities; fall back to API response
+        var caps = window.TOC_USER_CAPABILITIES || [];
+        if (state.permissions && state.permissions.capabilities && state.permissions.capabilities.length) {
+            caps = state.permissions.capabilities;
+        }
+        return caps;
+    }
+
+    function _hasCap (cap) {
+        var caps = _getCaps();
+        return caps.indexOf('full_access') !== -1 || caps.indexOf(cap) !== -1;
+    }
+
     function applyPermissionGating () {
-        const p = state.permissions;
+        var p = state.permissions;
         if (!p) return;
 
-        // If full access, do nothing
-        if (p.tabs === '*' || p.is_organizer) return;
+        // If full access or organizer — leave everything visible
+        if (p.tabs === '*' || p.is_organizer || _hasCap('full_access')) return;
 
-        const allowed = new Set(p.tabs || []);
+        var allowed = new Set(Array.isArray(p.tabs) ? p.tabs : []);
 
         // Hide tab buttons for unauthorized tabs
-        document.querySelectorAll('[data-tab]').forEach(btn => {
-            const tab = btn.getAttribute('data-tab');
+        document.querySelectorAll('[data-tab]').forEach(function (btn) {
+            var tab = btn.getAttribute('data-tab');
             if (tab && !allowed.has(tab)) {
                 btn.style.opacity = '0.3';
                 btn.style.pointerEvents = 'none';
@@ -187,11 +238,75 @@
         });
 
         // Hide views for unauthorized tabs
-        document.querySelectorAll('[data-tab-content]').forEach(view => {
-            const tab = view.getAttribute('data-tab-content');
+        document.querySelectorAll('[data-tab-content]').forEach(function (view) {
+            var tab = view.getAttribute('data-tab-content');
             if (tab && !allowed.has(tab)) {
                 view.classList.add('hidden');
             }
+        });
+    }
+
+    /**
+     * S10-F2b – Element-level capability enforcement.
+     * Disables / hides individual interactive elements based on current user capabilities.
+     * MUST be called on page init AND on every tab switch.
+     */
+    function enforceCapabilityRBAC () {
+        if (_hasCap('full_access')) return;   // full_access → no restrictions
+
+        // ── Settings tab inputs ──────────────────────
+        if (!_hasCap('edit_settings')) {
+            _disableAll('[data-tab-content="settings"] input, [data-tab-content="settings"] select, [data-tab-content="settings"] textarea');
+            _hideAll('[data-tab-content="settings"] button[type="submit"], [data-cap-require="edit_settings"]');
+        }
+
+        // ── Payment approve / reject buttons ─────────
+        if (!_hasCap('approve_payments')) {
+            _hideAll('[data-cap-require="approve_payments"], .btn-verify-payment, .btn-reject-payment');
+        }
+
+        // ── Bracket / match management ───────────────
+        if (!_hasCap('manage_brackets')) {
+            _disableAll('[data-cap-require="manage_brackets"]');
+            _hideAll('.btn-generate-bracket, .btn-reset-bracket, .btn-advance-round');
+        }
+
+        // ── Registrations ────────────────────────────
+        if (!_hasCap('manage_registrations')) {
+            _hideAll('[data-cap-require="manage_registrations"], .btn-approve-reg, .btn-reject-reg');
+        }
+
+        // ── Announcements ────────────────────────────
+        if (!_hasCap('make_announcements')) {
+            _hideAll('[data-cap-require="make_announcements"]');
+            _disableAll('[data-tab-content="announcements"] textarea, [data-tab-content="announcements"] button[type="submit"]');
+        }
+
+        // ── Disputes ─────────────────────────────────
+        if (!_hasCap('resolve_disputes')) {
+            _disableAll('[data-cap-require="resolve_disputes"]');
+        }
+
+        // ── Generic data-cap-require fallback ────────
+        document.querySelectorAll('[data-cap-require]').forEach(function (el) {
+            var req = el.getAttribute('data-cap-require');
+            if (req && !_hasCap(req)) {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    function _disableAll (selector) {
+        document.querySelectorAll(selector).forEach(function (el) {
+            el.disabled = true;
+            el.classList.add('opacity-40', 'pointer-events-none');
+            el.title = 'Insufficient permissions';
+        });
+    }
+
+    function _hideAll (selector) {
+        document.querySelectorAll(selector).forEach(function (el) {
+            el.style.display = 'none';
         });
     }
 
@@ -350,6 +465,8 @@
         removeStaff,
         loadPermissions,
         applyPermissionGating,
+        enforceCapabilityRBAC,
+        _onRoleCardChange,
         loadEconomyPoolBalance,
         loadUserTransactions,
         renderTransactionHistory,
@@ -364,6 +481,8 @@
     // Auto-init when navigating to Settings tab (staff section lives there)
     document.addEventListener('toc:tab-changed', function (e) {
         if (e.detail?.tab === 'settings') init();
+        // Re-enforce RBAC on every tab switch
+        enforceCapabilityRBAC();
     });
 
 })();

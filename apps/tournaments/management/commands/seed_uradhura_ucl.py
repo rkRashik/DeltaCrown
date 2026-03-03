@@ -57,7 +57,9 @@ User = get_user_model()
 TOURNAMENT_NAME = "UraDhura Champions League S1"
 TOURNAMENT_SLUG_PREFIX = "uradhura-ucl-s1"
 PLAYER_PASSWORD = "UCL_seed_2025!"
-ORGANIZER_USERNAME = "ucl_organizer_seed"
+# Prefer the real user 'rkrashik' as organizer; fall back to seed account
+PREFERRED_ORGANIZER = "rkrashik"
+FALLBACK_ORGANIZER = "ucl_organizer_seed"
 NUM_GROUPS = 8
 GROUP_SIZE = 4          # 4 players × 8 groups = 32
 ADVANCEMENT_PER_GROUP = 2
@@ -194,6 +196,7 @@ class Command(BaseCommand):
         # --- run inside a single atomic block --------------------------------
         try:
             with transaction.atomic():
+                self._seed_staff_roles()
                 organizer   = self._get_or_create_organizer()
                 game        = self._get_or_create_game(game_slug)
                 tournament  = self._create_tournament(organizer, game)
@@ -227,6 +230,100 @@ class Command(BaseCommand):
 
     # ── step implementations ──────────────────────────────────────────────────
 
+    def _seed_staff_roles(self):
+        """Seed industry-standard esports staff roles into StaffRole table."""
+        from apps.tournaments.models.staffing import StaffRole
+
+        ROLES = [
+            {
+                "code": "head_admin",
+                "name": "Head Admin",
+                "description": "Full access to all TOC tabs and destructive actions.",
+                "capabilities": {
+                    "full_access": True,
+                    "edit_settings": True,
+                    "manage_registrations": True,
+                    "approve_payments": True,
+                    "manage_brackets": True,
+                    "resolve_disputes": True,
+                    "make_announcements": True,
+                    "view_all": True,
+                },
+                "is_referee_role": False,
+            },
+            {
+                "code": "registration_manager",
+                "name": "Registration Manager",
+                "description": "Can approve/reject players and verify payments.",
+                "capabilities": {
+                    "manage_registrations": True,
+                    "approve_payments": True,
+                    "view_all": True,
+                },
+                "is_referee_role": False,
+            },
+            {
+                "code": "match_referee",
+                "name": "Match Referee",
+                "description": "Can generate brackets, submit scores, and resolve disputes.",
+                "capabilities": {
+                    "manage_brackets": True,
+                    "resolve_disputes": True,
+                    "can_referee_matches": True,
+                    "view_all": True,
+                },
+                "is_referee_role": True,
+            },
+            {
+                "code": "scorekeeper",
+                "name": "Scorekeeper",
+                "description": "Can only submit match results.",
+                "capabilities": {
+                    "manage_brackets": True,
+                    "view_all": True,
+                },
+                "is_referee_role": False,
+            },
+            {
+                "code": "media_comms",
+                "name": "Media & Comms",
+                "description": "Can post announcements and manage social/media content.",
+                "capabilities": {
+                    "make_announcements": True,
+                    "view_all": True,
+                },
+                "is_referee_role": False,
+            },
+            {
+                "code": "observer",
+                "name": "Observer",
+                "description": "Read-only access to the TOC.",
+                "capabilities": {
+                    "view_all": True,
+                },
+                "is_referee_role": False,
+            },
+        ]
+
+        created_count = 0
+        for role_def in ROLES:
+            obj, created = StaffRole.objects.update_or_create(
+                code=role_def["code"],
+                defaults={
+                    "name": role_def["name"],
+                    "description": role_def["description"],
+                    "capabilities": role_def["capabilities"],
+                    "is_referee_role": role_def["is_referee_role"],
+                },
+            )
+            if created:
+                created_count += 1
+
+        self.stdout.write(_ok(
+            f"Staff roles: {created_count} created, "
+            f"{len(ROLES) - created_count} updated."
+        ))
+
     def _purge_existing(self):
         """Delete any tournament whose slug starts with TOURNAMENT_SLUG_PREFIX."""
         qs = Tournament.objects.filter(slug__startswith=TOURNAMENT_SLUG_PREFIX)
@@ -238,19 +335,26 @@ class Command(BaseCommand):
             self.stdout.write(_warn("No existing UCL tournaments found to purge."))
 
     def _get_or_create_organizer(self) -> User:
+        # Prefer the real user if they exist in the database
+        preferred = User.objects.filter(username=PREFERRED_ORGANIZER).first()
+        if preferred:
+            self.stdout.write(_ok(f"Using preferred organizer: {PREFERRED_ORGANIZER}"))
+            return preferred
+
+        # Fall back to creating a seed account
         user, created = User.objects.get_or_create(
-            username=ORGANIZER_USERNAME,
+            username=FALLBACK_ORGANIZER,
             defaults={
-                "email": f"{ORGANIZER_USERNAME}@seed.deltacrown.dev",
+                "email": f"{FALLBACK_ORGANIZER}@seed.deltacrown.dev",
                 "is_staff": False,
             },
         )
         if created:
             user.set_password(PLAYER_PASSWORD)
             user.save()
-            self.stdout.write(_ok(f"Created organizer: {ORGANIZER_USERNAME}"))
+            self.stdout.write(_ok(f"Created organizer: {FALLBACK_ORGANIZER}"))
         else:
-            self.stdout.write(_ok(f"Reused organizer: {ORGANIZER_USERNAME}"))
+            self.stdout.write(_ok(f"Reused organizer: {FALLBACK_ORGANIZER}"))
         return user
 
     def _get_or_create_game(self, slug: str) -> Game:

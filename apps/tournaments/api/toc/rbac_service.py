@@ -69,31 +69,43 @@ class TOCRBACService:
         from apps.tournaments.models import StaffRole
 
         return list(
-            StaffRole.objects.all().order_by("name").values("id", "name", "description")
+            StaffRole.objects.all().order_by("name").values(
+                "id", "name", "code", "description", "capabilities",
+                "is_referee_role",
+            )
         )
 
     # ------------------------------------------------------------------
-    # S10-B2  Permission checker
+    # S10-B2  Permission checker (capability-based)
     # ------------------------------------------------------------------
-    ROLE_TAB_MAP = {
-        "organizer": "*",
-        "admin": "*",
-        "head_referee": ["overview", "matches", "disputes", "participants"],
-        "referee": ["matches", "disputes"],
-        "stage_manager": ["brackets", "schedule", "matches"],
-        "registration_officer": ["participants", "overview"],
-        "finance_officer": ["payments", "overview"],
-        "broadcaster": ["matches", "schedule"],
-        "moderator": ["participants", "disputes", "announcements"],
+
+    # Maps capability flags -> which TOC tabs they unlock
+    CAPABILITY_TAB_MAP = {
+        "full_access": "*",
+        "edit_settings": ["settings"],
+        "manage_registrations": ["overview", "participants"],
+        "approve_payments": ["overview", "payments"],
+        "manage_brackets": ["overview", "brackets", "matches", "schedule"],
+        "resolve_disputes": ["disputes"],
+        "make_announcements": ["announcements"],
+        "view_all": ["overview"],
     }
 
     def get_user_permissions(self, user):
-        """Return tabs and actions this user can access."""
+        """Return tabs, capabilities, and actions this user can access."""
+        # Superuser / staff / organizer = full access
         if user.is_superuser or user.is_staff:
-            return {"tabs": "*", "is_organizer": True}
-
+            return {
+                "tabs": "*",
+                "capabilities": ["full_access"],
+                "is_organizer": True,
+            }
         if self.tournament.organizer_id == user.id:
-            return {"tabs": "*", "is_organizer": True}
+            return {
+                "tabs": "*",
+                "capabilities": ["full_access"],
+                "is_organizer": True,
+            }
 
         from apps.tournaments.models import TournamentStaffAssignment
 
@@ -102,17 +114,41 @@ class TOCRBACService:
         ).select_related("role")
 
         if not assignments.exists():
-            return {"tabs": [], "is_organizer": False}
+            return {"tabs": [], "capabilities": ["view_all"], "is_organizer": False}
 
-        tabs = set()
+        # Merge capabilities from all assigned roles
+        merged_caps = set()
         for a in assignments:
-            role_key = getattr(a.role, "name", "").lower().replace(" ", "_")
-            allowed = self.ROLE_TAB_MAP.get(role_key, [])
+            caps = getattr(a.role, "capabilities", {}) or {}
+            for cap_name, enabled in caps.items():
+                if enabled:
+                    merged_caps.add(cap_name)
+
+        # Full access shortcut
+        if "full_access" in merged_caps:
+            return {
+                "tabs": "*",
+                "capabilities": sorted(merged_caps),
+                "is_organizer": False,
+            }
+
+        # Resolve tabs from capabilities
+        tabs = set()
+        for cap in merged_caps:
+            allowed = self.CAPABILITY_TAB_MAP.get(cap, [])
             if allowed == "*":
-                return {"tabs": "*", "is_organizer": False}
+                return {
+                    "tabs": "*",
+                    "capabilities": sorted(merged_caps),
+                    "is_organizer": False,
+                }
             tabs.update(allowed)
 
-        return {"tabs": sorted(tabs), "is_organizer": False}
+        return {
+            "tabs": sorted(tabs),
+            "capabilities": sorted(merged_caps),
+            "is_organizer": False,
+        }
 
     # ------------------------------------------------------------------
     # S10-B3  DeltaCoin balance

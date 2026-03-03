@@ -47,13 +47,16 @@ class TOCView(LoginRequiredMixin, TemplateView):
             raise Http404(f'Tournament not found: {slug}')
 
     def check_permission(self, tournament, user):
-        """Verify user has organizer-level access."""
+        """Verify user has organizer-level or staff-level access."""
         if user.is_superuser or user.is_staff:
             return True
         if tournament.organizer_id == user.id:
             return True
-        # Future: check StaffRole assignments (Sprint 10)
-        return False
+        # Check StaffRole assignments (Sprint 10G RBAC)
+        from apps.tournaments.models.staffing import TournamentStaffAssignment
+        return TournamentStaffAssignment.objects.filter(
+            tournament=tournament, user=user, is_active=True,
+        ).exists()
 
     def get(self, request, *args, **kwargs):
         tournament = self.get_tournament()
@@ -82,6 +85,24 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['status'] = t.status
         ctx['is_organizer'] = (t.organizer_id == self.request.user.id)
         ctx['is_frozen'] = bool((t.config or {}).get('frozen'))
+        ctx['is_official'] = getattr(t, 'is_official', False)
+
+        # Inject user capabilities for frontend RBAC enforcement
+        user = self.request.user
+        if user.is_superuser or user.is_staff or t.organizer_id == user.id:
+            ctx['user_capabilities'] = ['full_access']
+        else:
+            from apps.tournaments.models.staffing import TournamentStaffAssignment
+            assignments = TournamentStaffAssignment.objects.filter(
+                tournament=t, user=user, is_active=True,
+            ).select_related('role')
+            caps = set()
+            for a in assignments:
+                role_caps = getattr(a.role, 'capabilities', {}) or {}
+                for cap_name, enabled in role_caps.items():
+                    if enabled:
+                        caps.add(cap_name)
+            ctx['user_capabilities'] = sorted(caps) if caps else ['view_all']
 
         # Tab definitions for sidebar rendering
         ctx['toc_tabs'] = [

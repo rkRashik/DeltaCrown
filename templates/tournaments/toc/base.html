@@ -141,7 +141,13 @@
                 <div class="overflow-hidden min-w-0 flex-1">
                     <p class="text-sm font-bold text-white truncate leading-tight">{{ tournament.name }}</p>
                     <div class="flex items-center gap-1.5 mt-1">
+                        {% if is_official %}
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold bg-dc-gold/20 text-dc-gold px-1.5 py-0.5 rounded" title="DeltaCrown Official">
+                            <i data-lucide="badge-check" class="w-3 h-3"></i> Official
+                        </span>
+                        {% else %}
                         <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow shrink-0"></span>
+                        {% endif %}
                         <p class="text-[10px] text-dc-text font-mono truncate">{{ game.short_code|default:game.slug|upper }} &middot; {{ tournament.slug }}</p>
                     </div>
                 </div>
@@ -186,8 +192,8 @@
                     <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-dc-bg rounded-full flex items-center justify-center"><div class="w-2 h-2 bg-dc-success rounded-full"></div></div>
                 </div>
                 <div class="overflow-hidden sidebar-label">
-                    <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
-                    <p class="text-[10px] text-dc-text font-mono truncate">{% if is_organizer %}Organizer{% else %}Staff{% endif %}</p>
+                    <p class="text-sm font-bold text-white truncate">{% if is_official %}<span class="inline-flex items-center gap-1 text-dc-gold"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i> DeltaCrown Official</span>{% else %}{{ request.user.username }}{% endif %}</p>
+                    <p class="text-[10px] text-dc-text font-mono truncate">{% if is_organizer %}Organizer{% else %}Staff{% endif %}{% if is_official %} &middot; Official Event{% endif %}</p>
                 </div>
             </div>
             <button id="sidebar-collapse-btn" class="text-dc-text hover:text-white p-1" title="Collapse sidebar">
@@ -1983,6 +1989,7 @@
             gameType: '{{ game_type }}',
             tournamentMode: '{{ tournament_mode }}',
             isOrganizer: {{ is_organizer|yesno:"true,false" }},
+            isOfficial: {{ is_official|yesno:"true,false" }},
             gameColors: {
                 primary: '{{ game_colors.primary }}',
                 secondary: '{{ game_colors.secondary }}',
@@ -1990,6 +1997,7 @@
                 primaryRgb: '{{ game_colors.primary_rgb }}',
             },
         };
+        window.TOC_USER_CAPABILITIES = [{% for cap in user_capabilities %}'{{ cap }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
     </script>
     <script src="{% static 'tournaments/toc/js/toc-core.js' %}"></script>
     <script src="{% static 'tournaments/toc/js/toc-polish.js' %}"></script>
