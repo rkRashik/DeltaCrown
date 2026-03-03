@@ -65,13 +65,13 @@
                             ${importantBadge}
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <button onclick="TOC.announcements.togglePin(${a.id}, ${!a.is_pinned})" title="${a.is_pinned ? 'Unpin' : 'Pin'}" class="text-dc-text hover:text-dc-warning">
+                            <button onclick="TOC.announcements.togglePin(${a.id}, ${!a.is_pinned})" title="${a.is_pinned ? 'Unpin' : 'Pin'}" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-warning">
                                 <i data-lucide="${a.is_pinned ? 'pin-off' : 'pin'}" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="TOC.announcements.editAnnouncement(${a.id})" class="text-dc-text hover:text-dc-textBright">
+                            <button onclick="TOC.announcements.editAnnouncement(${a.id})" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-textBright">
                                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="TOC.announcements.deleteAnnouncement(${a.id})" class="text-dc-text hover:text-dc-danger">
+                            <button onclick="TOC.announcements.deleteAnnouncement(${a.id})" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-danger">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>

@@ -237,11 +237,11 @@
           <td class="px-3 py-3 text-right">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               ${p.status === 'submitted' || p.status === 'pending' ? `
-                <button onclick="TOC.payments.verify('${p.id}')" title="Verify" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="check" class="w-3 h-3"></i></button>
-                <button onclick="TOC.payments.reject('${p.id}')" title="Reject" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
+                <button onclick="TOC.payments.verify('${p.id}')" title="Verify" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="check" class="w-3 h-3"></i></button>
+                <button onclick="TOC.payments.reject('${p.id}')" title="Reject" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
               ` : ''}
               ${p.status === 'verified' ? `
-                <button onclick="TOC.payments.openRefund('${p.id}', '${(p.participant_name||'').replace(/'/g,'')}', '${p.amount}')" title="Refund" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
+                <button onclick="TOC.payments.openRefund('${p.id}', '${(p.participant_name||'').replace(/'/g,'')}', '${p.amount}')" title="Refund" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
               ` : ''}
             </div>
           </td>
@@ -884,10 +884,10 @@
             </div>
 
             <div class="flex items-center gap-2 pt-2">
-              <button onclick="TOC.payments.qvVerify()" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center justify-center gap-2">
+              <button onclick="TOC.payments.qvVerify()" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="check-circle" class="w-4 h-4"></i> Verify
               </button>
-              <button onclick="TOC.payments.qvReject()" class="flex-1 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center justify-center gap-2">
+              <button onclick="TOC.payments.qvReject()" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="x-circle" class="w-4 h-4"></i> Reject
               </button>
             </div>

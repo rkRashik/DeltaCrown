@@ -44,7 +44,26 @@
             return;
         }
 
-        grid.innerHTML = state.staff.map(s => `
+        grid.innerHTML = state.staff.map(s => {
+            const isOwner = !!s.is_owner;
+
+            if (isOwner) {
+                return `
+                <div class="glass-box rounded-lg p-3 flex items-center justify-between border border-dc-gold/30 bg-dc-gold/5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-dc-gold/20 border border-dc-gold/40 flex items-center justify-center">
+                            <i data-lucide="crown" class="w-4 h-4 text-dc-gold"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-bold text-white">${esc(s.display_name || s.username)}</span>
+                            <span class="text-[10px] font-bold uppercase bg-dc-gold/20 text-dc-gold px-2 py-0.5 rounded ml-2">OWNER (All Permissions)</span>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-dc-text/50 px-2 py-1">PERMANENT</span>
+                </div>`;
+            }
+
+            return `
             <div class="glass-box rounded-lg p-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-dc-info/10 border border-dc-info/30 flex items-center justify-center">
@@ -58,8 +77,8 @@
                 <button onclick="TOC.rbac.removeStaff(${s.id})" class="p-1.5 text-dc-text hover:text-dc-danger rounded hover:bg-dc-danger/10 transition-colors" title="Remove">
                     <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
                 </button>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
@@ -250,50 +269,50 @@
      * S10-F2b – Element-level capability enforcement.
      * Disables / hides individual interactive elements based on current user capabilities.
      * MUST be called on page init AND on every tab switch.
+     *
+     * Two enforcement layers:
+     *   1. data-cap-require="<cap>" on any element → hidden if user lacks that cap
+     *   2. Broad selectors for Settings inputs/buttons (disable when no edit_settings)
+     *
+     * A MutationObserver re-gates dynamic content automatically.
      */
     function enforceCapabilityRBAC () {
         if (_hasCap('full_access')) return;   // full_access → no restrictions
 
-        // ── Settings tab inputs ──────────────────────
-        if (!_hasCap('edit_settings')) {
-            _disableAll('[data-tab-content="settings"] input, [data-tab-content="settings"] select, [data-tab-content="settings"] textarea');
-            _hideAll('[data-tab-content="settings"] button[type="submit"], [data-cap-require="edit_settings"]');
-        }
-
-        // ── Payment approve / reject buttons ─────────
-        if (!_hasCap('approve_payments')) {
-            _hideAll('[data-cap-require="approve_payments"], .btn-verify-payment, .btn-reject-payment');
-        }
-
-        // ── Bracket / match management ───────────────
-        if (!_hasCap('manage_brackets')) {
-            _disableAll('[data-cap-require="manage_brackets"]');
-            _hideAll('.btn-generate-bracket, .btn-reset-bracket, .btn-advance-round');
-        }
-
-        // ── Registrations ────────────────────────────
-        if (!_hasCap('manage_registrations')) {
-            _hideAll('[data-cap-require="manage_registrations"], .btn-approve-reg, .btn-reject-reg');
-        }
-
-        // ── Announcements ────────────────────────────
-        if (!_hasCap('make_announcements')) {
-            _hideAll('[data-cap-require="make_announcements"]');
-            _disableAll('[data-tab-content="announcements"] textarea, [data-tab-content="announcements"] button[type="submit"]');
-        }
-
-        // ── Disputes ─────────────────────────────────
-        if (!_hasCap('resolve_disputes')) {
-            _disableAll('[data-cap-require="resolve_disputes"]');
-        }
-
-        // ── Generic data-cap-require fallback ────────
+        // ── 1. Universal data-cap-require scan ────────
+        // This is the primary mechanism.  Every button/element that needs gating
+        // should have data-cap-require="<capability>" in either the template HTML
+        // or the JS that generates it.
         document.querySelectorAll('[data-cap-require]').forEach(function (el) {
             var req = el.getAttribute('data-cap-require');
             if (req && !_hasCap(req)) {
-                el.style.display = 'none';
+                _gateElement(el);
             }
         });
+
+        // ── 2. Settings tab form-wide disable ────────
+        // Even though save buttons have data-cap-require, the form inputs
+        // themselves (>50 fields) are covered with a broad selector.
+        if (!_hasCap('edit_settings')) {
+            _disableAll('[data-tab-content="settings"] input, [data-tab-content="settings"] select, [data-tab-content="settings"] textarea');
+            // All buttons inside settings that are NOT the sidebar tab button
+            _disableAll('[data-tab-content="settings"] button:not([data-tab])');
+        }
+    }
+
+    /** Gate a single element — hides buttons, disables inputs */
+    function _gateElement (el) {
+        var tag = el.tagName;
+        if (tag === 'BUTTON' || tag === 'A') {
+            el.style.display = 'none';
+        } else if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+            el.disabled = true;
+            el.classList.add('opacity-40', 'pointer-events-none');
+            el.title = 'Insufficient permissions';
+        } else {
+            // Generic container — hide entirely
+            el.style.display = 'none';
+        }
     }
 
     function _disableAll (selector) {
@@ -308,6 +327,43 @@
         document.querySelectorAll(selector).forEach(function (el) {
             el.style.display = 'none';
         });
+    }
+
+    /* ────────────────────────────────────────────
+     * MutationObserver — re-gate dynamic content
+     * ────────────────────────────────────────────
+     * Buttons injected after the initial enforceCapabilityRBAC() call
+     * (e.g., table rows rendered by toc-payments.js, toc-participants.js)
+     * will be missed.  This observer catches them automatically.
+     */
+    var _rbacObserver = null;
+    function _startRBACObserver () {
+        if (_rbacObserver || _hasCap('full_access')) return;
+        var viewport = document.getElementById('toc-viewport');
+        if (!viewport) return;
+
+        _rbacObserver = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var added = mutations[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    var node = added[j];
+                    if (node.nodeType !== 1) continue;                          // element only
+                    // Check the node itself
+                    if (node.hasAttribute && node.hasAttribute('data-cap-require')) {
+                        var req = node.getAttribute('data-cap-require');
+                        if (req && !_hasCap(req)) _gateElement(node);
+                    }
+                    // Check descendants
+                    if (node.querySelectorAll) {
+                        node.querySelectorAll('[data-cap-require]').forEach(function (el) {
+                            var r = el.getAttribute('data-cap-require');
+                            if (r && !_hasCap(r)) _gateElement(el);
+                        });
+                    }
+                }
+            }
+        });
+        _rbacObserver.observe(viewport, { childList: true, subtree: true });
     }
 
     /* ────────────────────────────────────────────
@@ -453,6 +509,7 @@
         loadPermissions();
         loadStaff();
         loadEconomyPoolBalance();
+        _startRBACObserver();
     }
 
     /* ── Public API ── */

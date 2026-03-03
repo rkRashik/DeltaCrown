@@ -769,8 +769,12 @@
   const TOURNAMENT_ID = {{ tournament_id }};
 
   // ── Dynamic WebSocket URL — works on any host/port, local & production ──
+  // The native WebSocket API does not support custom headers (Authorization).
+  // JWTAuthMiddleware reads the ?token= query param to authenticate the user.
   const WS_SCHEME = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-  const WS_URL = WS_SCHEME + window.location.host + '/ws/tournament/' + TOURNAMENT_ID + '/group-draw/';
+  const _WS_AUTH_TOKEN = '{{ ws_auth_token|default:"" }}';
+  const WS_URL = WS_SCHEME + window.location.host + '/ws/tournament/' + TOURNAMENT_ID + '/group-draw/'
+      + (_WS_AUTH_TOKEN ? '?token=' + encodeURIComponent(_WS_AUTH_TOKEN) : '');
 
   // ── Pre-loaded from Django context (server-rendered) ──
   const GROUPS_DATA = {{ groups_json|safe }};

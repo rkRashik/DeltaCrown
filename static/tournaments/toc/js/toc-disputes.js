@@ -193,12 +193,12 @@
           <div class="border-t border-dc-border pt-4 space-y-3">
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Actions</p>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="TOC.disputes.openResolveForm(${d.id})" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
-              <button onclick="TOC.disputes.escalate(${d.id})" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
+              <button onclick="TOC.disputes.openResolveForm(${d.id})" data-cap-require="resolve_disputes" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
+              <button onclick="TOC.disputes.escalate(${d.id})" data-cap-require="resolve_disputes" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
             </div>
             <div class="flex gap-2">
               <input id="assign-staff-id" type="number" placeholder="Staff User ID" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">
-              <button onclick="TOC.disputes.assign(${d.id})" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
+              <button onclick="TOC.disputes.assign(${d.id})" data-cap-require="resolve_disputes" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
             </div>
           </div>` : ''}
         </div>`;
@@ -226,7 +226,7 @@
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Resolution Notes</label>
           <textarea id="resolve-notes" rows="3" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Explain your ruling..."></textarea>
         </div>
-        <button onclick="TOC.disputes.confirmResolve(${id})" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
+        <button onclick="TOC.disputes.confirmResolve(${id})" data-cap-require="resolve_disputes" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
       </div>`;
     showOverlay('resolve-overlay', html);
   }

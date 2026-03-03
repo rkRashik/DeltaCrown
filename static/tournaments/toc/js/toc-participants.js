@@ -272,11 +272,11 @@
                  </div>`}
           </div>
           <div class="flex flex-col gap-2 flex-shrink-0 pt-2">
-            <button onclick="TOC.participants.rowAction('verify', ${row.id})"
+            <button onclick="TOC.participants.rowAction('verify', ${row.id})" data-cap-require="approve_payments"
                     class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5">
               <i data-lucide="check-circle" class="w-3 h-3"></i> Verify
             </button>
-            <button onclick="TOC.participants.rowAction('reject', ${row.id})"
+            <button onclick="TOC.participants.rowAction('reject', ${row.id})" data-cap-require="manage_registrations"
                     class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-1.5">
               <i data-lucide="x-circle" class="w-3 h-3"></i> Reject
             </button>
@@ -297,8 +297,12 @@
     if (action === 'dq' && !showDQ) return '';
     if (action === 'verify' && !showVerify) return '';
 
+    // Map actions to capabilities for RBAC gating
+    var capMap = { approve: 'manage_registrations', reject: 'manage_registrations', dq: 'manage_registrations', verify: 'approve_payments' };
+    var capAttr = capMap[action] ? ' data-cap-require="' + capMap[action] + '"' : '';
+
     return `<button onclick="TOC.participants.rowAction('${action}', ${row.id})"
-              title="${title}"
+              title="${title}"${capAttr}
               class="w-7 h-7 rounded-lg border border-${color}/20 bg-${color}/5 hover:bg-${color}/15 flex items-center justify-center transition-colors">
               <i data-lucide="${icon}" class="w-3 h-3 text-${color}"></i>
             </button>`;

@@ -104,10 +104,10 @@
           <td class="py-3 px-4 text-center">
             <div class="flex items-center justify-center gap-1">
               ${renderMedicButtons(m)}
-              <button onclick="TOC.matches.openScoreDrawer(${m.id})" title="Score" class="w-6 h-6 rounded bg-dc-panel border border-dc-border flex items-center justify-center hover:bg-white/5">
+              <button onclick="TOC.matches.openScoreDrawer(${m.id})" title="Score" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-dc-panel border border-dc-border flex items-center justify-center hover:bg-white/5">
                 <i data-lucide="edit-3" class="w-3 h-3 text-dc-text"></i>
               </button>
-              <button onclick="TOC.matches.openVerifyScreen(${m.id})" title="Verify" class="w-6 h-6 rounded bg-theme/10 border border-theme/30 flex items-center justify-center hover:bg-theme/20">
+              <button onclick="TOC.matches.openVerifyScreen(${m.id})" title="Verify" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-theme/10 border border-theme/30 flex items-center justify-center hover:bg-theme/20">
                 <i data-lucide="shield-check" class="w-3 h-3 text-theme"></i>
               </button>
               <button onclick="TOC.matches.openDetailDrawer(${m.id})" title="Details" class="w-6 h-6 rounded bg-dc-panel border border-dc-border flex items-center justify-center hover:bg-white/5">
@@ -125,16 +125,16 @@
   function renderMedicButtons(m) {
     const btns = [];
     if (['scheduled','check_in','ready'].includes(m.state)) {
-      btns.push(`<button onclick="TOC.matches.markLive(${m.id})" title="Start" class="w-6 h-6 rounded bg-dc-success/20 border border-dc-success/30 flex items-center justify-center hover:bg-dc-success/30"><i data-lucide="play" class="w-3 h-3 text-dc-success"></i></button>`);
+      btns.push(`<button onclick="TOC.matches.markLive(${m.id})" title="Start" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-dc-success/20 border border-dc-success/30 flex items-center justify-center hover:bg-dc-success/30"><i data-lucide="play" class="w-3 h-3 text-dc-success"></i></button>`);
     }
     if (m.state === 'live' && !m.is_paused) {
-      btns.push(`<button onclick="TOC.matches.pause(${m.id})" title="Pause" class="w-6 h-6 rounded bg-dc-warning/20 border border-dc-warning/30 flex items-center justify-center hover:bg-dc-warning/30"><i data-lucide="pause" class="w-3 h-3 text-dc-warning"></i></button>`);
+      btns.push(`<button onclick="TOC.matches.pause(${m.id})" title="Pause" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-dc-warning/20 border border-dc-warning/30 flex items-center justify-center hover:bg-dc-warning/30"><i data-lucide="pause" class="w-3 h-3 text-dc-warning"></i></button>`);
     }
     if (m.state === 'live' && m.is_paused) {
-      btns.push(`<button onclick="TOC.matches.resume(${m.id})" title="Resume" class="w-6 h-6 rounded bg-dc-success/20 border border-dc-success/30 flex items-center justify-center hover:bg-dc-success/30"><i data-lucide="play" class="w-3 h-3 text-dc-success"></i></button>`);
+      btns.push(`<button onclick="TOC.matches.resume(${m.id})" title="Resume" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-dc-success/20 border border-dc-success/30 flex items-center justify-center hover:bg-dc-success/30"><i data-lucide="play" class="w-3 h-3 text-dc-success"></i></button>`);
     }
     if (m.state === 'live') {
-      btns.push(`<button onclick="TOC.matches.forceComplete(${m.id})" title="Force Complete" class="w-6 h-6 rounded bg-dc-danger/20 border border-dc-danger/30 flex items-center justify-center hover:bg-dc-danger/30"><i data-lucide="square" class="w-3 h-3 text-dc-danger"></i></button>`);
+      btns.push(`<button onclick="TOC.matches.forceComplete(${m.id})" title="Force Complete" data-cap-require="manage_brackets" class="w-6 h-6 rounded bg-dc-danger/20 border border-dc-danger/30 flex items-center justify-center hover:bg-dc-danger/30"><i data-lucide="square" class="w-3 h-3 text-dc-danger"></i></button>`);
     }
     return btns.join('');
   }

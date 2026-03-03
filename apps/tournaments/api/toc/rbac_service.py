@@ -28,11 +28,25 @@ class TOCRBACService:
     def list_staff(self):
         from apps.tournaments.models import TournamentStaffAssignment
 
+        # ── Organizer (permanent owner row) ──────────────────────────
+        organizer = self.tournament.organizer
+        owner_entry = {
+            "id": None,                # not a TournamentStaffAssignment – can't be deleted
+            "user_id": organizer.id,
+            "username": organizer.username,
+            "display_name": getattr(organizer, "display_name", organizer.username),
+            "role_id": None,
+            "role_name": "OWNER",
+            "is_owner": True,
+            "assigned_at": None,
+        }
+
+        # ── Assigned staff ───────────────────────────────────────────
         qs = TournamentStaffAssignment.objects.filter(
             tournament=self.tournament
         ).select_related("user", "role").order_by("role__name", "user__username")
 
-        return [
+        staff = [owner_entry] + [
             {
                 "id": s.pk,
                 "user_id": s.user_id,
@@ -40,10 +54,12 @@ class TOCRBACService:
                 "display_name": getattr(s.user, "display_name", getattr(s.user, "username", "")),
                 "role_id": s.role_id,
                 "role_name": getattr(s.role, "name", ""),
+                "is_owner": False,
                 "assigned_at": str(s.assigned_at) if hasattr(s, "assigned_at") else None,
             }
             for s in qs
         ]
+        return staff
 
     def assign_staff(self, user_id, role_id):
         from apps.tournaments.models import TournamentStaffAssignment

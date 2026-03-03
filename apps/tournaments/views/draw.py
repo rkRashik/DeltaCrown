@@ -6,6 +6,7 @@ These views serve the standalone draw ceremony pages:
 2. GroupDrawPublicView — Public spectator view for live draw broadcast
 """
 import json
+import logging
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -14,6 +15,25 @@ from django.views.generic import TemplateView
 
 from apps.tournaments.models import Tournament, Registration
 from apps.tournaments.models.group import Group
+
+logger = logging.getLogger(__name__)
+
+
+def _mint_ws_token(user):
+    """
+    Generate a short-lived JWT access token for WebSocket auth.
+
+    The browser's native WebSocket API does not support custom headers
+    (Authorization: Bearer), so the token is appended as a ?token= query
+    parameter.  The JWTAuthMiddleware in the ASGI layer parses it.
+    """
+    try:
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = AccessToken.for_user(user)
+        return str(token)
+    except Exception:
+        logger.warning("Could not mint WS JWT for user %s", user, exc_info=True)
+        return ""
 
 
 class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
@@ -39,6 +59,7 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
         ctx["tournament"] = tournament
         ctx["tournament_id"] = tournament.id
         ctx["ws_url"] = f"/ws/tournament/{tournament.id}/group-draw/"
+        ctx["ws_auth_token"] = _mint_ws_token(user)
 
         # ── Pre-load groups for empty-state grid ──
         groups = Group.objects.filter(
