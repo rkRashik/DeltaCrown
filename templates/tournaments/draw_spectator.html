@@ -857,27 +857,24 @@
 
       const slotEl = document.querySelector('[data-spec-group="' + group + '"][data-spec-slot="' + slot + '"]');
       if (slotEl) {
-        // Add glow effect then reveal
-        slotEl.classList.add('suspense', 'suspense-glow');
+        // Brief glow pulse then snap the name into the slot
+        slotEl.classList.add('suspense-glow');
         setTimeout(() => {
-          slotEl.classList.remove('suspense', 'suspense-glow');
-          slotEl.classList.add('revealing', 'filled', 'snap-reveal');
+          slotEl.classList.remove('suspense-glow');
+          slotEl.classList.add('filled', 'snap-reveal');
           const nameEl = slotEl.querySelector('.player-name');
           if (nameEl) nameEl.textContent = winnerName;
-          // Add pot badge if available
           if (player.pot) addPotBadge(slotEl, player.pot);
-        }, 2000);
+        }, 600);
         setTimeout(() => {
-          slotEl.classList.remove('revealing', 'snap-reveal');
+          slotEl.classList.remove('snap-reveal');
           slotEl.classList.add('revealed');
           updateGroupCounter(group);
-          // Remove dim after reveal
           if (drawArea) drawArea.classList.remove('dimmed');
           if (card) card.classList.remove('receiving');
-        }, 3000);
+        }, 1400);
       } else {
-        // Fallback: remove dim if slot not found
-        setTimeout(() => { if (drawArea) drawArea.classList.remove('dimmed'); }, 3000);
+        setTimeout(() => { if (drawArea) drawArea.classList.remove('dimmed'); }, 1400);
       }
 
       const idx = participantPool.indexOf(winnerName);

@@ -615,7 +615,7 @@
   .dd-config-overlay {
     position: fixed; inset: 0; z-index: 8000;
     background: rgba(3,3,6,0.88); backdrop-filter: blur(24px);
-    display: flex; align-items: center; justify-content: center;
+    display: none; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.3s;
   }
   .dd-config-overlay.show { opacity: 1; }
@@ -866,6 +866,15 @@
           <i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:3px"></i>
           Delay: <span id="delay-value">Off</span>
         </div>
+        <span id="cooldown-badge" style="display:none;font-size:10px;font-weight:700;font-family:'Space Grotesk',monospace;color:var(--dc-gold);letter-spacing:0.08em">
+          <svg id="cooldown-ring" width="22" height="22" style="vertical-align:middle;margin-right:3px">
+            <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+            <circle id="cooldown-ring-fg" cx="11" cy="11" r="9" fill="none" stroke="var(--dc-gold)" stroke-width="2"
+              stroke-dasharray="56.55" stroke-dashoffset="0" stroke-linecap="round"
+              style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 0.25s linear"/>
+          </svg>
+          <span id="cooldown-text">0s</span>
+        </span>
 
         <div id="manual-hint" class="dd-hint" style="display:none">
           Drag a player to a group — or click a player, then choose a group.
@@ -1778,6 +1787,43 @@
   }
 
   // ══════════════════════════════════════════════
+  // Cooldown Timer (syncs with spectator roulette)
+  // ══════════════════════════════════════════════
+
+  function startCooldown(ms) {
+    var badge = document.getElementById('cooldown-badge');
+    var ringFg = document.getElementById('cooldown-ring-fg');
+    var textEl = document.getElementById('cooldown-text');
+    var circumference = 56.55; // 2*π*9
+    if (badge) badge.style.display = 'inline-flex';
+
+    var remaining = ms;
+    var total = ms;
+    // Tick every 250ms for smooth ring animation
+    function tick() {
+      remaining -= 250;
+      if (remaining <= 0) {
+        // Cooldown complete
+        delayTimer = null;
+        drawInProgress = false;
+        if (badge) badge.style.display = 'none';
+        if (ringFg) ringFg.style.strokeDashoffset = '0';
+        var btn = document.getElementById('btn-draw');
+        if (btn && !btn.dataset.wsBlocked) btn.disabled = false;
+        return;
+      }
+      var progress = 1 - (remaining / total);
+      if (ringFg) ringFg.style.strokeDashoffset = (circumference * progress).toFixed(2);
+      if (textEl) textEl.textContent = Math.ceil(remaining / 1000) + 's';
+      delayTimer = setTimeout(tick, 250);
+    }
+    // Initial state
+    if (ringFg) ringFg.style.strokeDashoffset = '0';
+    if (textEl) textEl.textContent = Math.ceil(ms / 1000) + 's';
+    delayTimer = setTimeout(tick, 250);
+  }
+
+  // ══════════════════════════════════════════════
   // Public API
   // ══════════════════════════════════════════════
 
@@ -1848,27 +1894,15 @@
     },
     drawNext() {
       if (drawInProgress) return;
-      // Commentary delay enforcement
-      if (cfgDelay > 0) {
-        if (delayTimer) return; // still in cooldown
-        drawInProgress = true;
-        document.getElementById('btn-draw').disabled = true;
-        send({ action: 'draw_next' });
-        delayTimer = setTimeout(function() {
-          delayTimer = null;
-          drawInProgress = false;
-          var btn = document.getElementById('btn-draw');
-          if (btn && !btn.dataset.wsBlocked) btn.disabled = false;
-        }, cfgDelay * 1000);
-        return;
-      }
+      if (delayTimer) return; // still in cooldown
       drawInProgress = true;
-      document.getElementById('btn-draw').disabled = true;
-      if (!send({ action: 'draw_next' })) {
-        drawInProgress = false;
-        return;
-      }
-      setTimeout(function() { drawInProgress = false; var b = document.getElementById('btn-draw'); if (b && !b.dataset.wsBlocked) b.disabled = false; }, 5000);
+      var btn = document.getElementById('btn-draw');
+      if (btn) btn.disabled = true;
+      if (!send({ action: 'draw_next' })) { drawInProgress = false; return; }
+
+      // Minimum 4s cooldown (spectator spinner is ~5.5s), or commentary delay if longer
+      var cooldownMs = Math.max(4000, (cfgDelay > 0 ? cfgDelay * 1000 : 0));
+      startCooldown(cooldownMs);
     },
     drawAll() {
       if (!confirm('Draw all remaining players at once? This skips the ceremony animation.')) return;
