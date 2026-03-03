@@ -634,108 +634,160 @@
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
 
   /* ══════════════════════════════════════════════
-     PRE-DRAW CONFIGURATION MODAL — Premium Wizard
+     PRE-DRAW CONFIGURATION MODAL — Bento Box Wizard
+     Glassmorphism + gradient borders + premium UX
   ══════════════════════════════════════════════ */
   .dd-config-overlay {
     position: fixed; inset: 0; z-index: 8000;
-    background: rgba(3,3,6,0.88); backdrop-filter: blur(24px);
+    background: rgba(2,2,6,0.92); backdrop-filter: blur(32px);
     display: none; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0; transition: opacity 0.35s;
   }
   .dd-config-overlay.show { opacity: 1; }
   .dd-config-card {
-    background: linear-gradient(135deg, #0e1219, #141820);
+    background: linear-gradient(135deg, rgba(14,18,28,0.95), rgba(10,12,20,0.98));
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px; padding: 32px 36px; width: 880px; max-width: 96vw;
+    border-radius: 24px; padding: 28px 32px; width: 920px; max-width: 96vw;
     max-height: 90vh; overflow-y: auto; position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(var(--dc-accent-rgb),0.03);
   }
+  /* Animated gradient border */
+  .dd-config-card::before {
+    content: ''; position: absolute; inset: -1px; border-radius: 25px; z-index: -1;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg, rgba(var(--dc-accent-rgb),0.2) 45deg,
+      transparent 90deg, rgba(var(--dc-gold-rgb),0.1) 180deg,
+      transparent 270deg, rgba(100,150,255,0.15) 320deg, transparent 360deg
+    );
+    animation: wizardBorderSpin 12s linear infinite;
+  }
+  .dd-config-card::after {
+    content: ''; position: absolute; inset: 1px; border-radius: 23px;
+    background: linear-gradient(135deg, rgba(14,18,28,0.99), rgba(10,12,20,0.99));
+    z-index: -1;
+  }
+  @keyframes wizardBorderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
   .dd-config-title {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 800;
-    font-size: 20px; color: #fff; margin: 0 0 4px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 22px; color: #fff; margin: 0 0 4px; letter-spacing: 0.02em;
   }
   .dd-config-sub {
     font-size: 11px; color: rgba(255,255,255,0.2);
-    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 24px;
+    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px;
   }
 
-  /* ── Smart Presets — Prominent Cards ── */
+  /* ── Smart Presets — Illustrated Architecture Cards ── */
   .dd-presets-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px; margin-bottom: 24px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px; margin-bottom: 20px;
   }
   .dd-preset-card {
-    padding: 16px 18px; border-radius: 14px; cursor: pointer;
+    padding: 18px 16px; border-radius: 16px; cursor: pointer;
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.05);
-    transition: all 0.25s; position: relative; overflow: hidden;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative; overflow: hidden;
   }
   .dd-preset-card::before {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at 30% 30%, rgba(var(--dc-accent-rgb),0.06), transparent 60%);
-    opacity: 0; transition: opacity 0.25s;
+    content: ''; position: absolute; inset: -1px; border-radius: 17px;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.15), transparent 50%, rgba(var(--dc-gold-rgb),0.1));
+    opacity: 0; transition: opacity 0.3s; z-index: -1;
   }
-  .dd-preset-card:hover { border-color: rgba(var(--dc-accent-rgb),0.2); }
+  .dd-preset-card::after {
+    content: ''; position: absolute; inset: 1px; border-radius: 15px;
+    background: linear-gradient(135deg, rgba(14,18,28,0.98), rgba(10,12,20,0.98));
+    z-index: -1; transition: background 0.3s;
+  }
+  .dd-preset-card:hover { transform: translateY(-2px); }
   .dd-preset-card:hover::before { opacity: 1; }
   .dd-preset-card.active {
-    border-color: rgba(var(--dc-accent-rgb),0.5);
-    background: rgba(var(--dc-accent-rgb),0.06);
-    box-shadow: 0 0 24px rgba(var(--dc-accent-rgb),0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(var(--dc-accent-rgb),0.12), 0 0 0 1px rgba(var(--dc-accent-rgb),0.4);
   }
   .dd-preset-card.active::before { opacity: 1; }
+  .dd-preset-card.active::after {
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.06), rgba(10,12,20,0.95));
+  }
   .dd-preset-card .preset-emoji {
-    font-size: 22px; margin-bottom: 6px; display: block;
+    font-size: 28px; margin-bottom: 8px; display: block;
+    filter: drop-shadow(0 2px 8px rgba(var(--dc-accent-rgb),0.2));
   }
   .dd-preset-card .preset-label {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-    font-size: 13px; color: #fff; margin-bottom: 4px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 14px; color: #fff; margin-bottom: 4px; letter-spacing: 0.02em;
   }
   .dd-preset-card .preset-desc {
-    font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.4;
+    font-size: 10px; color: rgba(255,255,255,0.3); line-height: 1.5;
   }
   .dd-preset-card .preset-badge {
     position: absolute; top: 10px; right: 12px;
-    font-family: 'Space Grotesk', monospace; font-size: 9px; font-weight: 700;
+    font-family: 'Space Grotesk', monospace; font-size: 8px; font-weight: 700;
     color: var(--dc-accent); text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 2px 8px; border-radius: 4px;
+    background: rgba(var(--dc-accent-rgb),0.1);
     opacity: 0; transition: opacity 0.2s;
   }
   .dd-preset-card.active .preset-badge { opacity: 1; }
 
-  /* ── Two-Column Grid ── */
+  /* ── Two-Column Bento Grid ── */
   .dd-config-columns {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-    margin-bottom: 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 16px;
   }
   @media (max-width: 720px) { .dd-config-columns { grid-template-columns: 1fr; } }
 
   .dd-config-section {
-    margin-bottom: 16px; padding: 16px 18px;
+    margin-bottom: 12px; padding: 16px 18px;
     background: rgba(255,255,255,0.015);
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 14px;
-    transition: border-color 0.2s;
+    border-radius: 16px; position: relative;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .dd-config-section::before {
+    content: ''; position: absolute; inset: -1px; border-radius: 17px;
+    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.08), transparent 50%);
+    opacity: 0; transition: opacity 0.3s; z-index: -1;
+  }
+  .dd-config-section::after {
+    content: ''; position: absolute; inset: 1px; border-radius: 15px;
+    background: linear-gradient(135deg, rgba(14,18,28,0.97), rgba(10,12,20,0.99));
+    z-index: -1;
   }
   .dd-config-section:focus-within {
-    border-color: rgba(var(--dc-accent-rgb),0.15);
+    border-color: rgba(var(--dc-accent-rgb),0.2);
+    box-shadow: 0 4px 20px rgba(var(--dc-accent-rgb),0.05);
   }
+  .dd-config-section:focus-within::before { opacity: 1; }
   .dd-config-section h4 {
-    font-family: 'Space Grotesk', monospace; font-weight: 700;
-    font-size: 11px; color: rgba(255,255,255,0.4);
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 12px; color: rgba(255,255,255,0.45);
     text-transform: uppercase; letter-spacing: 0.15em; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dd-config-section h4 .sec-icon {
+    font-size: 14px; opacity: 0.6;
   }
   .dd-config-toggle-group { display: flex; gap: 8px; margin-bottom: 8px; }
   .dd-config-toggle {
-    flex: 1; padding: 10px 14px; border-radius: 10px; cursor: pointer;
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    flex: 1; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.3); font-size: 12px; font-weight: 600;
-    transition: all 0.2s; text-align: center;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center;
+    backdrop-filter: blur(4px); position: relative;
   }
   .dd-config-toggle.active {
     background: rgba(var(--dc-accent-rgb),0.08);
-    border-color: rgba(var(--dc-accent-rgb),0.3);
+    border-color: rgba(var(--dc-accent-rgb),0.35);
     color: var(--dc-accent);
+    box-shadow: 0 4px 16px rgba(var(--dc-accent-rgb),0.08), inset 0 1px 0 rgba(255,255,255,0.03);
   }
   .dd-config-toggle:hover:not(.active) {
-    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.025); color: rgba(255,255,255,0.5);
+    transform: translateY(-1px);
   }
   .dd-config-toggle small {
     display: block; font-size: 10px; color: rgba(255,255,255,0.15);
@@ -797,22 +849,31 @@
 
   /* ── Config Actions ── */
   .dd-config-actions {
-    display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;
+    display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end;
+    padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.04);
   }
   .dd-config-actions button {
-    padding: 10px 24px; border-radius: 10px; font-size: 12px;
-    font-weight: 700; cursor: pointer; transition: all 0.2s;
+    padding: 10px 28px; border-radius: 12px; font-size: 12px;
+    font-weight: 700; cursor: pointer; transition: all 0.25s;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.05em;
   }
   .dd-config-cancel {
-    background: none; border: 1px solid rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.35); backdrop-filter: blur(4px);
   }
-  .dd-config-cancel:hover { color: rgba(255,255,255,0.6); }
+  .dd-config-cancel:hover {
+    color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.1);
+  }
   .dd-config-start {
-    background: var(--dc-accent); border: none; color: #000;
-    font-weight: 800; letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--dc-accent), rgba(var(--dc-accent-rgb),0.8));
+    border: none; color: #000; font-weight: 800;
+    box-shadow: 0 4px 20px rgba(var(--dc-accent-rgb),0.25), inset 0 1px 0 rgba(255,255,255,0.15);
   }
-  .dd-config-start:hover { filter: brightness(1.1); }
+  .dd-config-start:hover {
+    filter: brightness(1.1); transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(var(--dc-accent-rgb),0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
 
   /* ── Group Architecture Inputs ── */
   .dd-arch-grid {
@@ -825,12 +886,17 @@
     margin-bottom: 4px; font-weight: 700;
   }
   .dd-arch-field input {
-    width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 14px;
+    width: 100%; padding: 8px 10px; border-radius: 10px; font-size: 14px;
     font-weight: 700; font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
-    color: #fff; text-align: center; outline: none; transition: border-color 0.2s;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
+    color: #fff; text-align: center; outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    backdrop-filter: blur(4px);
   }
-  .dd-arch-field input:focus { border-color: rgba(var(--dc-accent-rgb),0.4); }
+  .dd-arch-field input:focus {
+    border-color: rgba(var(--dc-accent-rgb),0.4);
+    box-shadow: 0 0 12px rgba(var(--dc-accent-rgb),0.08), inset 0 0 0 1px rgba(var(--dc-accent-rgb),0.1);
+  }
   .dd-arch-summary {
     margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.2);
     font-family: 'Space Grotesk', monospace;
@@ -875,6 +941,110 @@
     text-decoration: underline; cursor: pointer; transition: color 0.2s;
   }
   .dd-tb-edit:hover { color: var(--dc-accent); }
+
+  /* ── Broadcast Customization Section ── */
+  .dd-broadcast-row {
+    display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px;
+  }
+  .dd-broadcast-field { flex: 1; }
+  .dd-broadcast-field label {
+    display: block; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.15em; color: rgba(255,255,255,0.25);
+    margin-bottom: 6px; font-weight: 700;
+  }
+  .dd-color-picker-wrap {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dd-color-picker-wrap input[type="color"] {
+    width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; background: rgba(0,0,0,0.3); cursor: pointer;
+    padding: 2px; -webkit-appearance: none;
+  }
+  .dd-color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .dd-color-picker-wrap input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: none; }
+  .dd-color-picker-wrap .color-hex {
+    font-family: 'Space Grotesk', monospace; font-size: 12px;
+    color: rgba(255,255,255,0.35); font-weight: 600;
+  }
+  .dd-broadcast-field input[type="url"],
+  .dd-broadcast-field input[type="text"] {
+    width: 100%; padding: 8px 12px; border-radius: 10px; font-size: 12px;
+    font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
+    color: #fff; outline: none; transition: border-color 0.25s, box-shadow 0.25s;
+    backdrop-filter: blur(4px);
+  }
+  .dd-broadcast-field input:focus {
+    border-color: rgba(var(--dc-accent-rgb),0.4);
+    box-shadow: 0 0 12px rgba(var(--dc-accent-rgb),0.08);
+  }
+  .dd-broadcast-preview {
+    margin-top: 8px; height: 48px; border-radius: 8px;
+    background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,0.15); overflow: hidden;
+  }
+  .dd-broadcast-preview img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 7px;
+  }
+
+  /* ── Organization Constraints ── */
+  .dd-org-constraint {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .dd-org-constraint .org-limit-input {
+    width: 50px; padding: 6px 8px; border-radius: 8px; font-size: 13px;
+    font-weight: 700; font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
+    color: #fff; text-align: center; outline: none;
+    transition: border-color 0.25s; backdrop-filter: blur(4px);
+  }
+  .dd-org-constraint .org-limit-input:focus {
+    border-color: rgba(var(--dc-accent-rgb),0.4);
+  }
+  .dd-org-help {
+    margin-top: 6px; font-size: 10px; color: rgba(255,255,255,0.18);
+    line-height: 1.4;
+  }
+
+  /* ── Locked Seeds ── */
+  .dd-locked-seeds { margin-top: 8px; }
+  .dd-seed-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+    padding: 6px 10px; border-radius: 10px;
+    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
+    transition: border-color 0.2s;
+  }
+  .dd-seed-row:focus-within { border-color: rgba(var(--dc-accent-rgb),0.2); }
+  .dd-seed-team {
+    flex: 1; font-size: 12px; color: rgba(255,255,255,0.5);
+    font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dd-seed-arrow { color: rgba(255,255,255,0.15); font-size: 12px; }
+  .dd-seed-select {
+    padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.5); outline: none; cursor: pointer;
+  }
+  .dd-seed-remove {
+    width: 20px; height: 20px; border-radius: 6px; font-size: 12px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dd-seed-remove:hover { color: var(--dc-danger); border-color: rgba(var(--dc-danger-rgb, 255,77,77),0.3); }
+  .dd-seed-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
+    cursor: pointer; border: 1px dashed rgba(var(--dc-accent-rgb),0.15);
+    background: rgba(var(--dc-accent-rgb),0.03); color: rgba(var(--dc-accent-rgb),0.5);
+    transition: all 0.2s; margin-top: 4px;
+  }
+  .dd-seed-add:hover {
+    background: rgba(var(--dc-accent-rgb),0.06); color: var(--dc-accent);
+    border-color: rgba(var(--dc-accent-rgb),0.3);
+  }
 </style>
 {% endblock %}
 
@@ -1140,6 +1310,59 @@
         </div>
       </div>
 
+      {# ── Advanced Features — Full-Width Below Grid ── #}
+      <div style="margin-top:4px">
+
+        {# ── Broadcast Customization ── #}
+        <div class="dd-config-section">
+          <h4><span class="sec-icon">🎨</span> Broadcast Customization</h4>
+          <div class="dd-broadcast-row">
+            <div class="dd-broadcast-field">
+              <label>Accent Color</label>
+              <div class="dd-color-picker-wrap">
+                <input type="color" id="cfg-accent-color" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
+                <span class="color-hex" id="cfg-accent-hex">#00ffaa</span>
+              </div>
+            </div>
+            <div class="dd-broadcast-field" style="flex:2">
+              <label>Custom Background URL</label>
+              <input type="url" id="cfg-bg-url" placeholder="https://example.com/backdrop.jpg" oninput="DrawDirector.onBgPreview(this.value)">
+              <div class="dd-broadcast-preview" id="cfg-bg-preview">
+                <span>No background set — uses cinematic default</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Organization Constraints ── #}
+        <div class="dd-config-section">
+          <h4><span class="sec-icon">🏢</span> Organization Constraints</h4>
+          <div class="dd-org-constraint">
+            <label class="dd-config-check" style="margin-top:0">
+              <input type="checkbox" id="cfg-org-limit-enable" onchange="DrawDirector.toggleOrgLimit(this.checked)">
+              Limit teams from same organization per group
+            </label>
+            <input type="number" id="cfg-org-limit-max" class="org-limit-input" min="1" max="8" value="1"
+              disabled title="Max teams from one org in a single group">
+          </div>
+          <div class="dd-org-help">
+            When enabled, the draw engine will avoid placing more than the specified number of
+            teams from the same organization into a single group. Best-effort: skips if mathematically impossible.
+          </div>
+        </div>
+
+        {# ── Locked Seeds ── #}
+        <div class="dd-config-section">
+          <h4><span class="sec-icon">📌</span> Locked Seeds <span style="font-size:9px;font-weight:400;color:rgba(255,255,255,0.15);text-transform:none;letter-spacing:0">(optional pre-assigned slots)</span></h4>
+          <div id="locked-seeds-list" class="dd-locked-seeds">
+            <div style="font-size:10px;color:rgba(255,255,255,0.12)">No locked seeds. Teams will be drawn randomly.</div>
+          </div>
+          <button class="dd-seed-add" id="btn-add-seed" onclick="DrawDirector.addLockedSeed()">
+            <i data-lucide="plus" style="width:11px;height:11px"></i> Add Locked Seed
+          </button>
+        </div>
+      </div>
+
       {# ── Actions ── #}
       <div class="dd-config-actions">
         <button class="dd-config-cancel" onclick="DrawDirector.closeConfig()">Cancel</button>
@@ -1375,6 +1598,24 @@
     renderGroupGrid(msg.groups, msg.group_size);
     updateCounters(0, msg.total, msg.total);
     if (msg.queue) renderQueue(msg.queue);
+
+    // Apply pre-assigned locked seeds
+    if (msg.pre_assigned) {
+      Object.keys(msg.pre_assigned).forEach(function(gName) {
+        var players = msg.pre_assigned[gName];
+        if (!players || !players.length) return;
+        if (!session.assignments[gName]) session.assignments[gName] = [];
+        players.forEach(function(p, idx) {
+          session.assignments[gName].push(p);
+          session.drawn_count++;
+          session.remaining--;
+          fillSlot(gName, idx + 1, p, false);
+          removeFromQueue(p.user_id || p.registration_id);
+        });
+      });
+      updateCounters(session.drawn_count, msg.total, session.remaining);
+    }
+
     setDrawStatus('live');
     showLiveControls(true);
     updateDrawButton(true);
@@ -2128,6 +2369,40 @@
       }
       cfgRegionClash = document.getElementById('cfg-region-clash').checked;
 
+      // Build broadcast_config
+      var broadcastConfig = {};
+      var accentEl = document.getElementById('cfg-accent-color');
+      var bgUrlEl = document.getElementById('cfg-bg-url');
+      if (accentEl && accentEl.value !== '#00ffaa') {
+        broadcastConfig.accent_color = accentEl.value;
+      }
+      if (bgUrlEl && bgUrlEl.value.trim()) {
+        broadcastConfig.background_url = bgUrlEl.value.trim();
+      }
+
+      // Build org_constraint
+      var orgConstraint = null;
+      var orgEnableEl = document.getElementById('cfg-org-limit-enable');
+      var orgMaxEl = document.getElementById('cfg-org-limit-max');
+      if (orgEnableEl && orgEnableEl.checked) {
+        orgConstraint = { max_per_group: parseInt(orgMaxEl.value) || 1 };
+      }
+
+      // Build locked_seeds from UI
+      var lockedSeeds = [];
+      document.querySelectorAll('.dd-seed-row').forEach(function(row) {
+        var teamSel = row.querySelector('.dd-seed-team-select');
+        var groupSel = row.querySelector('.dd-seed-group-select');
+        var slotSel = row.querySelector('.dd-seed-slot-select');
+        if (teamSel && groupSel && teamSel.value && groupSel.value) {
+          lockedSeeds.push({
+            user_id: parseInt(teamSel.value),
+            group_index: parseInt(groupSel.value),
+            slot_index: slotSel ? parseInt(slotSel.value) || 0 : 0,
+          });
+        }
+      });
+
       DrawDirector.closeConfig();
       send({
         action: 'init_draw',
@@ -2139,6 +2414,9 @@
         fill_strategy: cfgStrategy,
         pot_config: potPayload,
         prevent_region_clash: cfgRegionClash,
+        broadcast_config: Object.keys(broadcastConfig).length > 0 ? broadcastConfig : null,
+        org_constraint: orgConstraint,
+        locked_seeds: lockedSeeds.length > 0 ? lockedSeeds : null,
       });
     },
 
@@ -2201,6 +2479,86 @@
       html += '<br>Top <span class="val">' + adv + '</span> per group → <span class="val">' + (ng * adv) + '</span> advance to Playoffs';
       el.innerHTML = html;
     },
+
+    // ── Broadcast Customization ──
+    onAccentChange(hex) {
+      var hexEl = document.getElementById('cfg-accent-hex');
+      if (hexEl) hexEl.textContent = hex;
+    },
+    onBgPreview(url) {
+      var preview = document.getElementById('cfg-bg-preview');
+      if (!preview) return;
+      if (url && url.match(/^https?:\/\/.+/)) {
+        preview.innerHTML = '<img src="' + url.replace(/"/g, '&quot;') + '" onerror="this.parentNode.innerHTML=\'<span>Failed to load image</span>\'">';
+      } else {
+        preview.innerHTML = '<span>No background set — uses cinematic default</span>';
+      }
+    },
+
+    // ── Organization Constraints ──
+    toggleOrgLimit(enabled) {
+      var maxInput = document.getElementById('cfg-org-limit-max');
+      if (maxInput) maxInput.disabled = !enabled;
+    },
+
+    // ── Locked Seeds ──
+    addLockedSeed() {
+      var list = document.getElementById('locked-seeds-list');
+      if (!list) return;
+      // Clear placeholder text on first add
+      if (!list.querySelector('.dd-seed-row')) {
+        list.innerHTML = '';
+      }
+      var numGroups = parseInt(document.getElementById('cfg-num-groups').value) || 4;
+      var groupSize = parseInt(document.getElementById('cfg-group-size').value) || 4;
+      var row = document.createElement('div');
+      row.className = 'dd-seed-row';
+
+      // Team/player select
+      var teamSelect = document.createElement('select');
+      teamSelect.className = 'dd-seed-select dd-seed-team-select';
+      teamSelect.innerHTML = '<option value="">— Select Team —</option>';
+      PARTICIPANTS_DATA.forEach(function(p) {
+        teamSelect.innerHTML += '<option value="' + p.user_id + '">' + (p.team_name || p.display_name || 'Player #' + p.user_id) + '</option>';
+      });
+
+      // Arrow
+      var arrow = document.createElement('span');
+      arrow.className = 'dd-seed-arrow';
+      arrow.textContent = '→';
+
+      // Group select
+      var groupSelect = document.createElement('select');
+      groupSelect.className = 'dd-seed-select dd-seed-group-select';
+      groupSelect.innerHTML = '<option value="">— Group —</option>';
+      for (var i = 0; i < numGroups; i++) {
+        groupSelect.innerHTML += '<option value="' + i + '">Group ' + String.fromCharCode(65 + i) + '</option>';
+      }
+
+      // Slot select
+      var slotSelect = document.createElement('select');
+      slotSelect.className = 'dd-seed-select dd-seed-slot-select';
+      slotSelect.innerHTML = '<option value="0">Slot 1</option>';
+      for (var s = 1; s < groupSize; s++) {
+        slotSelect.innerHTML += '<option value="' + s + '">Slot ' + (s+1) + '</option>';
+      }
+
+      // Remove button
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'dd-seed-remove';
+      removeBtn.innerHTML = '×';
+      removeBtn.onclick = function() { row.remove(); };
+
+      row.appendChild(teamSelect);
+      row.appendChild(arrow);
+      row.appendChild(groupSelect);
+      row.appendChild(slotSelect);
+      row.appendChild(removeBtn);
+      list.appendChild(row);
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
+
     loadPresets() {
       var grid = document.getElementById('presets-grid');
       if (!grid) return;

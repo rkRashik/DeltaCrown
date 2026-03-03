@@ -175,6 +175,9 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         pot_config = content.get("pot_config")          # [{pot:1, user_ids:[...]}, ...]
         fill_strategy = content.get("fill_strategy", "round_robin")  # "round_robin" | "sequential"
         prevent_region_clash = content.get("prevent_region_clash", False)
+        broadcast_config = content.get("broadcast_config")  # {accent_color, background_url}
+        org_constraint = content.get("org_constraint")      # {max_per_group: int} or None
+        locked_seeds = content.get("locked_seeds")          # [{user_id, group_index, slot_index}] or None
 
         # ── Build queue ──
         if pot_config:
@@ -231,9 +234,38 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "fill_strategy": fill_strategy,
             "pot_config": pot_config,
             "prevent_region_clash": prevent_region_clash,
+            "broadcast_config": broadcast_config,
+            "org_constraint": org_constraint,
             "started_at": timezone.now().isoformat(),
             "finalized": False,
         }
+
+        # ── Process locked seeds: pre-assign teams to specific slots ──
+        if locked_seeds:
+            locked_user_ids = set()
+            for seed in locked_seeds:
+                uid = seed.get("user_id")
+                g_idx = seed.get("group_index", 0)
+                if uid is None or g_idx is None:
+                    continue
+                if g_idx < 0 or g_idx >= len(group_names):
+                    continue
+                target_g = group_names[g_idx]
+                # Find the player in queue and move to assignment
+                for i, p in enumerate(session["queue"]):
+                    if p.get("user_id") == uid:
+                        player = session["queue"].pop(i)
+                        session["assignments"][target_g].append(player)
+                        session["draw_log"].append({"player": player, "group": target_g, "locked": True})
+                        session["drawn_count"] += 1
+                        locked_user_ids.add(uid)
+                        break
+
+            # Recompute group index after pre-placed seeds
+            if locked_user_ids:
+                self._recompute_group_index(session, fill_strategy)
+                session["total"] = len(session["queue"]) + session["drawn_count"]
+
         await self._save_session(session)
 
         # Build queue data for spectator roulette pool and director queue
@@ -252,13 +284,15 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(self.group_name, {
             "type": "group_draw.session_open",
             "tournament_id": self.tournament_id,
-            "total": len(queue),
+            "total": session["total"],
             "groups": group_names,
             "group_size": group_size,
             "fill_strategy": fill_strategy,
             "pot_config": pot_config,
             "started_at": session["started_at"],
             "queue": queue_data,
+            "broadcast_config": broadcast_config,
+            "pre_assigned": session["assignments"] if session["drawn_count"] > 0 else None,
         })
 
     async def _handle_draw_next(self, content):
@@ -284,7 +318,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
 
         # Determine target group based on fill strategy
         fill_strategy = session.get("fill_strategy", "round_robin")
-        target_group = self._pick_target_group(session, fill_strategy)
+        target_group = self._pick_target_group(session, fill_strategy, player=player)
 
         if target_group is None:
             await self.send_json({"type": "error", "message": "All groups are full."})
@@ -331,7 +365,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
 
         while session["queue"]:
             player = session["queue"].pop(0)
-            target_group = self._pick_target_group(session, fill_strategy)
+            target_group = self._pick_target_group(session, fill_strategy, player=player)
             if target_group is None:
                 session["queue"].insert(0, player)
                 break
@@ -615,14 +649,41 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
     # Fill strategy helpers
     # ------------------------------------------------------------------ #
 
-    def _pick_target_group(self, session, fill_strategy):
-        """Return the next group name to receive a player, or None if all full."""
+    def _pick_target_group(self, session, fill_strategy, player=None):
+        """Return the next group name to receive a player, or None if all full.
+
+        Supports org_constraint: if set, avoid placing more than N teams from
+        the same organization into a single group (best-effort).
+        """
         groups = session["groups"]
         assignments = session["assignments"]
         group_size = session["group_size"]
+        org_constraint = session.get("org_constraint")
+
+        # Determine player's org for constraint checking
+        player_org_id = None
+        if player and org_constraint:
+            player_org_id = player.get("organization_id")
+
+        def _org_ok(group_name):
+            """Check if placing this player's org in group_name violates the constraint."""
+            if not player_org_id or not org_constraint:
+                return True
+            max_per = org_constraint.get("max_per_group", 1)
+            count = sum(
+                1 for p in assignments.get(group_name, [])
+                if p.get("organization_id") == player_org_id
+            )
+            return count < max_per
 
         if fill_strategy == "sequential":
             # Fill Group A completely, then Group B, etc.
+            # First pass: respect org constraint
+            if player_org_id:
+                for g in groups:
+                    if len(assignments.get(g, [])) < group_size and _org_ok(g):
+                        return g
+            # Fallback: ignore org constraint (best-effort)
             for g in groups:
                 if len(assignments.get(g, [])) < group_size:
                     return g
@@ -633,9 +694,23 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             if idx < len(groups):
                 target = groups[idx]
                 if len(assignments.get(target, [])) < group_size:
+                    if _org_ok(target):
+                        return target
+                    # Org conflict: try other groups at the same fill level
+                    if player_org_id:
+                        target_count = len(assignments.get(target, []))
+                        for g in groups:
+                            if (len(assignments.get(g, [])) == target_count
+                                    and len(assignments.get(g, [])) < group_size
+                                    and _org_ok(g)):
+                                return g
+                    # Best-effort fallback: use the original target anyway
                     return target
             # Fallback: scan ALL groups for any non-full slot
-            # (handles wrap-around edge case where idx overflowed)
+            if player_org_id:
+                for g in groups:
+                    if len(assignments.get(g, [])) < group_size and _org_ok(g):
+                        return g
             for g in groups:
                 if len(assignments.get(g, [])) < group_size:
                     return g
@@ -729,6 +804,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "finalized": session.get("finalized", False),
             "fill_strategy": session.get("fill_strategy", "round_robin"),
             "pot_config": session.get("pot_config"),
+            "broadcast_config": session.get("broadcast_config"),
             "can_undo": len(session.get("draw_log", [])) > 0,
             "queue": queue_data,
         }
@@ -805,6 +881,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             name = ""
             user_id = None
             avatar_url = ""
+            org_id = None  # Track organization for org-constraint feature
             if reg.user:
                 name = reg.user.username
                 user_id = reg.user.id
@@ -824,8 +901,14 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                         avatar_url = logo.url
                     elif isinstance(logo, str):
                         avatar_url = logo
+                    # Track organization for org-constraint feature
+                    if hasattr(team, 'organization_id') and team.organization_id:
+                        org_id = team.organization_id
+                    else:
+                        org_id = None
                 except Exception:
                     name = f"Team #{reg.team_id}"
+                    org_id = None
                 user_id = reg.team_id
             else:
                 name = f"Registration #{reg.registration_number}"
@@ -837,6 +920,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                 "name": name,
                 "display_name": name,
                 "avatar_url": avatar_url,
+                "organization_id": org_id,
             })
         return participants
 

@@ -7,11 +7,74 @@
 <style>
   /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
      LIVE DRAW SPECTATOR — Broadcast Overlay
-     Edge-to-edge cinematic group draw ceremony
-     No navbar — full-screen immersive experience
+     Strict 16:9 — fits 1080p/720p with ZERO scroll
+     OBS-ready: chroma key mode via ?chroma=green|magenta
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-  body { background: #040408 !important; overflow-x: hidden; }
+  /* ── Broadcast Frame: 16:9 Letterboxed ── */
+  html { height: 100%; overflow: hidden; }
+  body {
+    background: #040408 !important;
+    overflow: hidden !important; margin: 0; padding: 0;
+    height: 100vh; width: 100vw;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .spec-draw {
+    position: relative;
+    width: 100vw; height: 100vh;
+    max-width: calc(100vh * 16 / 9);   /* letterbox on ultra-wide */
+    max-height: calc(100vw * 9 / 16);  /* letterbox on portrait */
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Chroma Key Modes ── */
+  body.chroma-green { background: #00FF00 !important; }
+  body.chroma-magenta { background: #FF00FF !important; }
+  body.chroma-green .spec-bg,
+  body.chroma-magenta .spec-bg { display: none !important; }
+  body.chroma-green .spec-draw,
+  body.chroma-magenta .spec-draw { background: transparent; }
+  body.chroma-green .spec-header,
+  body.chroma-magenta .spec-header { background: transparent; backdrop-filter: none; }
+  body.chroma-green .spec-group-card,
+  body.chroma-magenta .spec-group-card { background: rgba(0,0,0,0.85); }
+  body.chroma-green .spec-spotlight,
+  body.chroma-magenta .spec-spotlight { background: rgba(0,0,0,0.7); }
+  body.chroma-green .spec-pending-strip,
+  body.chroma-magenta .spec-pending-strip { background: rgba(0,0,0,0.6); }
+  body.chroma-green .spec-brand-card,
+  body.chroma-magenta .spec-brand-card { background: rgba(0,0,0,0.85); }
+  body.chroma-green .spec-brand-card::before,
+  body.chroma-magenta .spec-brand-card::before,
+  body.chroma-green .spec-brand-card::after,
+  body.chroma-magenta .spec-brand-card::after { display: none; }
+  body.chroma-green .spec-particles,
+  body.chroma-magenta .spec-particles { display: none !important; }
+  body.chroma-green .lottery-overlay,
+  body.chroma-magenta .lottery-overlay { background: rgba(0,0,0,0.6) !important; }
+
+  /* Chroma toggle button */
+  .chroma-toggle {
+    position: fixed; bottom: 8px; right: 8px; z-index: 9999;
+    padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.2s;
+    font-family: 'Space Grotesk', monospace; letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .chroma-toggle:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .chroma-toggle.active { background: #00FF00; color: #000; border-color: #00FF00; }
+
+  /* ── Custom Broadcast Background ── */
+  .spec-custom-bg {
+    position: fixed; inset: 0; z-index: -1;
+    background-size: cover; background-position: center;
+    display: none;
+  }
+  body.has-custom-bg .spec-custom-bg { display: block; }
+  body.has-custom-bg .spec-bg { display: none; }
+  body.has-custom-bg { background: #000 !important; }
 
   /* ── Cinematic Background ── */
   .spec-bg {
@@ -36,10 +99,10 @@
 
   /* ── Header Strip ── */
   .spec-header {
-    position: sticky; top: 0; z-index: 50;
-    background: linear-gradient(180deg, rgba(4,4,8,0.96), rgba(4,4,8,0));
+    z-index: 50; flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(4,4,8,0.96), rgba(4,4,8,0.6));
     backdrop-filter: blur(20px);
-    padding: 14px 28px;
+    padding: 8px 24px;
     display: flex; align-items: center; justify-content: space-between;
   }
   .spec-header-left { display: flex; align-items: center; gap: 12px; }
@@ -215,19 +278,23 @@
   /* ══════════════════════════════════════════════
      LIVE CONTENT
   ══════════════════════════════════════════════ */
-  .spec-live { position: relative; z-index: 1; }
+  .spec-live {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column;
+    min-height: 0; overflow: hidden;
+  }
 
   /* Counters */
   .spec-counters {
-    display: flex; align-items: baseline; justify-content: center; gap: 10px;
-    margin-bottom: 28px;
+    display: flex; align-items: baseline; justify-content: center; gap: 8px;
+    margin-bottom: 8px; flex-shrink: 0;
   }
   .spec-counter-num {
     font-family: 'Rajdhani', sans-serif; font-weight: 900;
-    font-size: 52px; line-height: 1; color: #fff;
+    font-size: 36px; line-height: 1; color: #fff;
   }
   .spec-counter-num.dim { color: rgba(255,255,255,0.12); }
-  .spec-counter-sep { font-size: 32px; color: rgba(255,255,255,0.06); font-weight: 300; }
+  .spec-counter-sep { font-size: 22px; color: rgba(255,255,255,0.06); font-weight: 300; }
   .spec-counter-label {
     font-family: 'Space Grotesk', monospace; font-size: 9px;
     color: rgba(255,255,255,0.15); text-transform: uppercase; letter-spacing: 0.2em;
@@ -238,8 +305,8 @@
   .spec-spotlight {
     background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.04), rgba(77,166,255,0.02));
     border: 1px solid rgba(var(--dc-accent-rgb),0.08);
-    border-radius: 16px; padding: 24px 32px; text-align: center;
-    max-width: 600px; margin: 0 auto 32px;
+    border-radius: 12px; padding: 12px 24px; text-align: center;
+    max-width: 500px; margin: 0 auto 12px;
     position: relative; overflow: hidden;
   }
   .spec-spotlight::before {
@@ -254,7 +321,7 @@
     margin-bottom: 8px;
   }
   .spec-spotlight-name {
-    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 40px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 28px;
     color: #fff; letter-spacing: 0.02em;
     animation: spotIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -268,19 +335,29 @@
   }
 
   /* ══════════════════════════════════════════════
-     GROUP GRID — The Main Stage
+     GROUP GRID — The Main Stage (broadcast auto-scale)
   ══════════════════════════════════════════════ */
+  .spec-group-grid-wrap {
+    flex: 1; overflow: hidden; position: relative; min-height: 0;
+  }
   .spec-group-grid {
     display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 16px; margin-bottom: 24px;
+    gap: 10px; padding: 0;
+    transform-origin: top center;
+    /* JS sets transform: scale() to fit viewport */
   }
-  @media (max-width: 900px) { .spec-group-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 500px) { .spec-group-grid { grid-template-columns: 1fr; } }
+  /* 5-8 groups: 4 columns. 9-16+ groups: switch to more columns */
+  .spec-group-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .spec-group-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .spec-group-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .spec-group-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .spec-group-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+  .spec-group-grid.cols-8 { grid-template-columns: repeat(8, 1fr); }
 
   .spec-group-card {
     background: linear-gradient(135deg, rgba(12,12,22,0.95), rgba(16,16,28,0.85));
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 14px; padding: 18px;
+    border-radius: 10px; padding: 10px 12px;
     transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative; overflow: hidden;
   }
@@ -305,16 +382,16 @@
   }
   .spec-group-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
   /* ── Slots ── */
   .spec-slot {
-    min-height: 44px; display: flex; align-items: center; gap: 10px;
-    padding: 0 14px;
+    min-height: 32px; display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
     background: rgba(255,255,255,0.012);
     border: 1px dashed rgba(255,255,255,0.035);
-    border-radius: 9px; margin-bottom: 6px;
+    border-radius: 7px; margin-bottom: 4px;
     transition: all 0.5s; position: relative; overflow: hidden;
   }
   .spec-slot .slot-num {
@@ -322,10 +399,11 @@
     color: rgba(255,255,255,0.1); width: 18px; flex-shrink: 0;
   }
   .spec-slot .player-name {
-    font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 13px;
+    font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 11px;
     color: rgba(255,255,255,0.1); flex: 1;
     opacity: 0; transform: translateY(4px);
     transition: all 0.4s 0.8s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .spec-slot.filled {
     background: rgba(var(--dc-accent-rgb),0.025);
@@ -362,13 +440,14 @@
     text-align: center; font-family: 'Space Grotesk', monospace;
     font-size: 10px; color: rgba(255,255,255,0.15);
     text-transform: uppercase; letter-spacing: 0.15em;
+    flex-shrink: 0; margin-top: 4px;
   }
   .spec-remaining strong { color: var(--dc-gold); font-weight: 700; }
 
   /* ══════════════════════════════════════════════
      COMPLETE SCREEN
   ══════════════════════════════════════════════ */
-  .spec-complete { text-align: center; padding: 60px 20px; }
+  .spec-complete { text-align: center; padding: 30px 20px; }
   .spec-complete-trophy {
     width: 72px; height: 72px; color: var(--dc-gold);
     margin: 0 auto 16px; display: block;
@@ -660,6 +739,7 @@
 {% endblock %}
 
 {% block draw_body %}
+<div class="spec-custom-bg" id="custom-bg"></div>
 <div class="spec-draw">
   <div class="spec-bg"></div>
 
@@ -692,7 +772,7 @@
     <div id="spec-progress-fill" class="spec-progress-fill" style="width:0%"></div>
   </div>
 
-  <div style="max-width:1400px;margin:0 auto;padding:24px 28px;position:relative;z-index:1">
+  <div id="main-content" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:8px 20px;position:relative;z-index:1">
 
     {# ━━━ Waiting Screen ━━━ #}
     <div id="waiting-screen" class="spec-waiting">
@@ -773,9 +853,11 @@
         <div id="spotlight-group" class="spec-spotlight-group">→ Group —</div>
       </div>
 
-      {# Group Grid #}
-      <div id="spec-group-grid" class="spec-group-grid">
-        {# Rendered by JS #}
+      {# Group Grid — auto-scaled to fit viewport #}
+      <div id="grid-wrap" class="spec-group-grid-wrap">
+        <div id="spec-group-grid" class="spec-group-grid">
+          {# Rendered by JS #}
+        </div>
       </div>
 
       {# Remaining #}
@@ -825,6 +907,12 @@
     </div>
   </div>
 </div>
+
+{# ━━━ Chroma Key Toggle ━━━ #}
+<button id="chroma-btn" class="chroma-toggle" onclick="toggleChroma()" title="Toggle chroma key for OBS">
+  <i data-lucide="monitor" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:3px"></i>
+  Chroma
+</button>
 {% endblock %}
 
 {% block draw_js %}
@@ -842,6 +930,97 @@
   let session = null;
   let participantPool = [];
   let pendingPlayers = [];   // Full queue data for pending strip
+  let chromaState = 'off';   // 'off' | 'green' | 'magenta'
+
+  // ══════════════════════════════════════════════
+  // Broadcast: Chroma Key Mode
+  // ══════════════════════════════════════════════
+
+  // URL parameter detection: ?chroma=green|magenta|true
+  (function initChroma() {
+    var params = new URLSearchParams(window.location.search);
+    var chroma = params.get('chroma');
+    if (chroma === 'true' || chroma === 'green') { applyChroma('green'); }
+    else if (chroma === 'magenta' || chroma === 'pink') { applyChroma('magenta'); }
+  })();
+
+  function applyChroma(mode) {
+    document.body.classList.remove('chroma-green', 'chroma-magenta');
+    if (mode === 'green') {
+      document.body.classList.add('chroma-green');
+      chromaState = 'green';
+    } else if (mode === 'magenta') {
+      document.body.classList.add('chroma-magenta');
+      chromaState = 'magenta';
+    } else {
+      chromaState = 'off';
+    }
+    var btn = document.getElementById('chroma-btn');
+    if (btn) btn.classList.toggle('active', chromaState !== 'off');
+  }
+
+  // URL parameter: ?accent=#ff6600 (custom accent color)
+  (function initCustomAccent() {
+    var params = new URLSearchParams(window.location.search);
+    var accent = params.get('accent');
+    if (accent) {
+      applyAccentColor(accent);
+    }
+    var bg = params.get('bg');
+    if (bg) {
+      applyCustomBackground(bg);
+    }
+  })();
+
+  function applyAccentColor(hex) {
+    if (!hex) return;
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    var r = parseInt(hex.substr(0,2), 16);
+    var g = parseInt(hex.substr(2,2), 16);
+    var b = parseInt(hex.substr(4,2), 16);
+    document.documentElement.style.setProperty('--dc-accent', '#' + hex);
+    document.documentElement.style.setProperty('--dc-accent-rgb', r + ',' + g + ',' + b);
+  }
+
+  function applyCustomBackground(url) {
+    if (!url) return;
+    var bgEl = document.getElementById('custom-bg');
+    if (bgEl) {
+      bgEl.style.backgroundImage = 'url(' + url + ')';
+      document.body.classList.add('has-custom-bg');
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // Broadcast: Auto-Scale Grid to Viewport
+  // ══════════════════════════════════════════════
+
+  function autoScaleGrid() {
+    var wrap = document.getElementById('grid-wrap');
+    var grid = document.getElementById('spec-group-grid');
+    if (!wrap || !grid || grid.children.length === 0) return;
+
+    // Reset scale to measure natural size
+    grid.style.transform = 'none';
+    var wrapH = wrap.clientHeight;
+    var gridH = grid.scrollHeight;
+
+    if (gridH > 0 && wrapH > 0 && gridH > wrapH) {
+      var scale = Math.max(0.5, wrapH / gridH);
+      grid.style.transform = 'scale(' + scale.toFixed(4) + ')';
+      grid.style.transformOrigin = 'top center';
+    } else {
+      grid.style.transform = 'none';
+    }
+  }
+
+  // Debounced resize handler
+  var _scaleTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(_scaleTimer);
+    _scaleTimer = setTimeout(autoScaleGrid, 150);
+  });
 
   // ══════════════════════════════════════════════
   // WebSocket
@@ -950,6 +1129,29 @@
     renderPendingStrip();
     setBadge('live');
     setTickerText('Draw is live — ' + msg.total + ' participants ready!');
+
+    // Apply broadcast customization from session
+    if (msg.broadcast_config && window._applyBroadcastConfig) {
+      window._applyBroadcastConfig(msg.broadcast_config);
+    }
+
+    // Apply pre-assigned locked seeds (placed before draw starts)
+    if (msg.pre_assigned) {
+      Object.keys(msg.pre_assigned).forEach(function(gName) {
+        var players = msg.pre_assigned[gName];
+        if (!players || !players.length) return;
+        if (!session.assignments[gName]) session.assignments[gName] = [];
+        players.forEach(function(p) {
+          session.assignments[gName].push(p);
+          session.drawn_count = (session.drawn_count || 0) + 1;
+          // Remove from pending
+          pendingPlayers = pendingPlayers.filter(function(pp) { return pp.user_id !== p.user_id; });
+        });
+      });
+      renderGroupGrid(msg.groups, msg.group_size);
+      updateCounters(session.drawn_count, msg.total, msg.total - session.drawn_count);
+      renderPendingStrip();
+    }
   }
 
   function onPlayerDrawn(msg) {
@@ -1119,6 +1321,18 @@
   function renderGroupGrid(groups, groupSize) {
     const grid = document.getElementById('spec-group-grid');
     grid.innerHTML = '';
+
+    // Dynamic column count based on group count
+    grid.className = 'spec-group-grid';
+    var n = groups.length;
+    if (n <= 2) grid.classList.add('cols-2');
+    else if (n <= 3) grid.classList.add('cols-3');
+    else if (n <= 4) grid.classList.add('cols-4');
+    else if (n <= 5) grid.classList.add('cols-5');
+    else if (n <= 8) grid.classList.add('cols-4');
+    else if (n <= 12) grid.classList.add('cols-6');
+    else grid.classList.add('cols-8');
+
     groups.forEach(g => {
       const card = document.createElement('div');
       card.className = 'spec-group-card';
@@ -1143,6 +1357,9 @@
       grid.appendChild(card);
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Auto-scale after rendering
+    requestAnimationFrame(function() { autoScaleGrid(); });
   }
 
   function fillSlotInstant(gName, slotNum, player) {
@@ -1475,6 +1692,20 @@
   // ══════════════════════════════════════════════
 
   connect();
+
+  // Expose chroma toggle globally for button onclick
+  window.toggleChroma = function() {
+    if (chromaState === 'off') applyChroma('green');
+    else if (chromaState === 'green') applyChroma('magenta');
+    else applyChroma('off');
+  };
+
+  // Apply broadcast config from WS session_open message
+  window._applyBroadcastConfig = function(cfg) {
+    if (!cfg) return;
+    if (cfg.accent_color) applyAccentColor(cfg.accent_color);
+    if (cfg.background_url) applyCustomBackground(cfg.background_url);
+  };
 })();
 </script>
 {% endblock %}
