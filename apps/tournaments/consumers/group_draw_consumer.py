@@ -108,6 +108,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         """Initialize a draw session. Builds participant queue and group grid.
 
         Accepts optional configuration:
+            group_architecture: {"num_groups": int, "group_size": int, "advancement_count": int}
             pot_config: list of {"pot": int, "user_ids": [int, ...]}
             fill_strategy: "round_robin" (default) | "sequential"
             prevent_region_clash: bool (default False)
@@ -129,6 +130,34 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                 "message": "No confirmed participants to draw.",
             })
             return
+
+        # ── Group Architecture: Create/update groups if config provided ──
+        arch = content.get("group_architecture")
+        if arch:
+            num_groups = int(arch.get("num_groups", 0))
+            g_size = int(arch.get("group_size", 4))
+            adv_count = int(arch.get("advancement_count", 2))
+            total_slots = num_groups * g_size
+            if num_groups < 1 or g_size < 2:
+                await self.send_json({
+                    "type": "error",
+                    "message": "Invalid group architecture: need at least 1 group with 2 slots.",
+                })
+                return
+            if total_slots < len(participants):
+                await self.send_json({
+                    "type": "error",
+                    "message": f"Not enough group slots ({total_slots}) for {len(participants)} participants. "
+                               f"Increase groups or group size.",
+                })
+                return
+            if adv_count >= g_size:
+                await self.send_json({
+                    "type": "error",
+                    "message": f"Advancement count ({adv_count}) must be less than group size ({g_size}).",
+                })
+                return
+            await self._ensure_group_architecture(num_groups, g_size, adv_count)
 
         # Load group configuration
         groups_info = await self._get_groups()
@@ -207,6 +236,12 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         }
         await self._save_session(session)
 
+        # Build queue names for spectator roulette pool
+        queue_names = [
+            {"name": p.get("name", ""), "display_name": p.get("display_name", p.get("name", ""))}
+            for p in queue
+        ]
+
         # Broadcast draw_session_open
         await self.channel_layer.group_send(self.group_name, {
             "type": "group_draw.session_open",
@@ -217,6 +252,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "fill_strategy": fill_strategy,
             "pot_config": pot_config,
             "started_at": session["started_at"],
+            "queue": queue_names,
         })
 
     async def _handle_draw_next(self, content):
@@ -662,6 +698,11 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
 
     def _sanitize_session(self, session):
         """Return a safe copy of session for client consumption."""
+        # Include queue names so spectator can build roulette pool
+        queue_names = [
+            {"name": p.get("name", ""), "display_name": p.get("display_name", p.get("name", ""))}
+            for p in session.get("queue", [])
+        ]
         return {
             "tournament_id": session.get("tournament_id"),
             "groups": session.get("groups", []),
@@ -675,6 +716,7 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
             "fill_strategy": session.get("fill_strategy", "round_robin"),
             "pot_config": session.get("pot_config"),
             "can_undo": len(session.get("draw_log", [])) > 0,
+            "queue": queue_names,
         }
 
     # ------------------------------------------------------------------ #
@@ -786,9 +828,65 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
                 "name": g.name.split()[-1] if " " in g.name else g.name,
                 "full_name": g.name,
                 "max_participants": g.max_participants,
+                "advancement_count": g.advancement_count,
             }
             for g in groups
         ]
+
+    @database_sync_to_async
+    def _ensure_group_architecture(self, num_groups, group_size, advancement_count):
+        """Create or update Group objects to match the requested architecture.
+
+        Deletes excess groups, creates missing ones, updates existing.
+        Also creates/updates the GroupStage model.
+        """
+        from apps.tournaments.models.group import Group, GroupStage
+
+        existing = list(Group.objects.filter(
+            tournament_id=self.tournament_id, is_deleted=False,
+        ).order_by("display_order", "name"))
+
+        letters = [chr(65 + i) for i in range(num_groups)]  # A, B, C, ...
+
+        # Delete excess groups
+        if len(existing) > num_groups:
+            for g in existing[num_groups:]:
+                g.is_deleted = True
+                g.save(update_fields=["is_deleted"])
+            existing = existing[:num_groups]
+
+        # Update existing groups
+        for i, g in enumerate(existing):
+            g.name = f"Group {letters[i]}"
+            g.display_order = i
+            g.max_participants = group_size
+            g.advancement_count = advancement_count
+            g.save(update_fields=["name", "display_order", "max_participants", "advancement_count"])
+
+        # Create missing groups
+        for i in range(len(existing), num_groups):
+            Group.objects.create(
+                tournament_id=self.tournament_id,
+                name=f"Group {letters[i]}",
+                display_order=i,
+                max_participants=group_size,
+                advancement_count=advancement_count,
+            )
+
+        # Ensure GroupStage record
+        gs, created = GroupStage.objects.get_or_create(
+            tournament_id=self.tournament_id,
+            defaults={
+                "num_groups": num_groups,
+                "group_size": group_size,
+                "advancement_count_per_group": advancement_count,
+            },
+        )
+        if not created:
+            gs.num_groups = num_groups
+            gs.group_size = group_size
+            gs.advancement_count_per_group = advancement_count
+            gs.save(update_fields=["num_groups", "group_size", "advancement_count_per_group"])
 
     @database_sync_to_async
     def _commit_assignments(self, assignments, groups_info):

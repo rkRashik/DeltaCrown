@@ -140,6 +140,7 @@ from apps.tournaments.views.withdrawal import (
 from apps.tournaments.views.draw import (
     GroupDrawDirectorView,
     GroupDrawPublicView,
+    smart_group_presets,
 )
 # [TOC Purge] from apps.tournaments.views.payment_status import (
 #     RegistrationStatusView, PaymentResubmitView, DownloadPaymentProofView,
@@ -284,6 +285,7 @@ urlpatterns = [
     # Group Draw Ceremony — Director (organizer) and Public (spectator) views
     path('<slug:slug>/draw/director/', GroupDrawDirectorView.as_view(), name='group_draw_director'),
     path('<slug:slug>/draw/live/', GroupDrawPublicView.as_view(), name='group_draw_live'),
+    path('<slug:slug>/draw/presets/', smart_group_presets, name='smart_group_presets'),
     
     # Sprint 11: Public Spectator View (FE-T-006)
     path('<slug:slug>/spectate/', PublicSpectatorView.as_view(), name='spectate'),

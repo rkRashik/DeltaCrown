@@ -734,6 +734,68 @@
     font-weight: 800; letter-spacing: 0.05em;
   }
   .dd-config-start:hover { filter: brightness(1.1); }
+
+  /* ── Group Architecture Inputs ── */
+  .dd-arch-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+    margin-top: 10px;
+  }
+  .dd-arch-field label {
+    display: block; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.15em; color: rgba(255,255,255,0.25);
+    margin-bottom: 4px; font-weight: 700;
+  }
+  .dd-arch-field input {
+    width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 14px;
+    font-weight: 700; font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+    color: #fff; text-align: center; outline: none; transition: border-color 0.2s;
+  }
+  .dd-arch-field input:focus { border-color: rgba(var(--dc-accent-rgb),0.4); }
+  .dd-arch-summary {
+    margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.2);
+    font-family: 'Space Grotesk', monospace;
+  }
+  .dd-arch-summary .val { color: var(--dc-accent); font-weight: 700; }
+  .dd-arch-summary .warn { color: var(--dc-gold); }
+  .dd-arch-summary .err { color: var(--dc-danger); }
+
+  /* ── Smart Presets ── */
+  .dd-presets-row {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+  }
+  .dd-preset-btn {
+    padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
+    cursor: pointer; border: 1px solid rgba(var(--dc-accent-rgb),0.15);
+    background: rgba(var(--dc-accent-rgb),0.04); color: var(--dc-accent);
+    transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .dd-preset-btn:hover {
+    background: rgba(var(--dc-accent-rgb),0.1);
+    border-color: rgba(var(--dc-accent-rgb),0.4);
+  }
+
+  /* ── Tiebreaker Summary ── */
+  .dd-tiebreaker-summary {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-top: 8px;
+  }
+  .dd-tb-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.3);
+  }
+  .dd-tb-num {
+    width: 14px; height: 14px; border-radius: 50%; font-size: 8px; font-weight: 800;
+    background: rgba(var(--dc-accent-rgb),0.1); color: var(--dc-accent);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .dd-tb-edit {
+    font-size: 10px; color: rgba(var(--dc-accent-rgb),0.5);
+    text-decoration: underline; cursor: pointer; transition: color 0.2s;
+  }
+  .dd-tb-edit:hover { color: var(--dc-accent); }
 </style>
 {% endblock %}
 
@@ -905,6 +967,29 @@
       </div>
       <div class="dd-config-sub">Configure how the group draw will behave</div>
 
+      {# ── Group Architecture ── #}
+      <div class="dd-config-section">
+        <h4><i data-lucide="layout-grid" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Group Architecture</h4>
+        <div id="presets-row" class="dd-presets-row">
+          <span style="font-size:10px;color:rgba(255,255,255,0.12)">Loading presets…</span>
+        </div>
+        <div class="dd-arch-grid">
+          <div class="dd-arch-field">
+            <label>Total Groups</label>
+            <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
+          </div>
+          <div class="dd-arch-field">
+            <label>Players per Group</label>
+            <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
+          </div>
+          <div class="dd-arch-field">
+            <label>Advance to Playoffs</label>
+            <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
+          </div>
+        </div>
+        <div id="arch-summary" class="dd-arch-summary"></div>
+      </div>
+
       {# ── Fill Strategy ── #}
       <div class="dd-config-section">
         <h4><i data-lucide="layers" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Fill Strategy</h4>
@@ -956,6 +1041,18 @@
         </div>
       </div>
 
+      {# ── Tiebreaker Visibility ── #}
+      <div class="dd-config-section" style="background:none;border:1px dashed rgba(255,255,255,0.04);padding:12px 16px">
+        <h4 style="font-size:10px;margin-bottom:6px">
+          <i data-lucide="scale" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:4px"></i>
+          Active Tiebreakers
+        </h4>
+        <div id="tiebreaker-pills" class="dd-tiebreaker-summary"></div>
+        <a class="dd-tb-edit" href="{% url 'toc:hub' tournament.slug %}" target="_blank" style="display:inline-block;margin-top:6px">
+          Edit in Settings →
+        </a>
+      </div>
+
       {# ── Actions ── #}
       <div class="dd-config-actions">
         <button class="dd-config-cancel" onclick="DrawDirector.closeConfig()">Cancel</button>
@@ -1001,6 +1098,9 @@
   // ── Pre-loaded from Django context (server-rendered) ──
   const GROUPS_DATA = {{ groups_json|safe }};
   const PARTICIPANTS_DATA = {{ participants_json|safe }};
+  const TIEBREAKER_RULES = {{ tiebreaker_rules_json|safe }};
+  const GROUP_ARCH = {{ group_arch_json|safe }};
+  const TOURNAMENT_SLUG = '{{ tournament.slug }}';
 
   let ws = null;
   let wsConnected = false;
@@ -1833,6 +1933,17 @@
       var overlay = document.getElementById('config-overlay');
       overlay.style.display = 'flex';
       requestAnimationFrame(function() { overlay.classList.add('show'); });
+
+      // Pre-fill group architecture from existing data
+      if (GROUP_ARCH.num_groups > 0) {
+        document.getElementById('cfg-num-groups').value = GROUP_ARCH.num_groups;
+        document.getElementById('cfg-group-size').value = GROUP_ARCH.group_size;
+        document.getElementById('cfg-adv-count').value = GROUP_ARCH.advancement_count;
+      }
+      DrawDirector.onArchChange();
+      DrawDirector.loadPresets();
+      DrawDirector.renderTiebreakers();
+
       if (typeof lucide !== 'undefined') lucide.createIcons();
     },
     closeConfig() {
@@ -1866,6 +1977,26 @@
       }
     },
     confirmInit() {
+      // ── Validate group architecture ──
+      var numGroups = parseInt(document.getElementById('cfg-num-groups').value) || 0;
+      var groupSize = parseInt(document.getElementById('cfg-group-size').value) || 4;
+      var advCount = parseInt(document.getElementById('cfg-adv-count').value) || 2;
+      var totalSlots = numGroups * groupSize;
+      var pCount = PARTICIPANTS_DATA.length;
+
+      if (numGroups < 1) {
+        alert('Please configure at least 1 group.');
+        return;
+      }
+      if (totalSlots < pCount) {
+        alert('Not enough slots (' + totalSlots + ') for ' + pCount + ' participants. Increase groups or group size.');
+        return;
+      }
+      if (advCount >= groupSize) {
+        alert('Advancement count (' + advCount + ') must be less than group size (' + groupSize + ').');
+        return;
+      }
+
       // Build pot_config payload if pots are enabled
       var potPayload = null;
       if (cfgUsePots && Object.keys(cfgPots).length > 0) {
@@ -1882,6 +2013,11 @@
       DrawDirector.closeConfig();
       send({
         action: 'init_draw',
+        group_architecture: {
+          num_groups: numGroups,
+          group_size: groupSize,
+          advancement_count: advCount,
+        },
         fill_strategy: cfgStrategy,
         pot_config: potPayload,
         prevent_region_clash: cfgRegionClash,
@@ -1923,6 +2059,77 @@
       if (!confirm('Abort the draw? All assignments will be discarded.')) return;
       send({ action: 'abort_draw' });
     },
+    // ── Group Architecture ──
+    onArchChange() {
+      var ng = parseInt(document.getElementById('cfg-num-groups').value) || 0;
+      var gs = parseInt(document.getElementById('cfg-group-size').value) || 0;
+      var adv = parseInt(document.getElementById('cfg-adv-count').value) || 0;
+      var total = ng * gs;
+      var pCount = PARTICIPANTS_DATA.length;
+      var el = document.getElementById('arch-summary');
+      if (!el) return;
+      if (ng < 1 || gs < 2) {
+        el.innerHTML = '<span class="warn">Configure groups above</span>';
+        return;
+      }
+      var html = '<span class="val">' + ng + '</span> groups × <span class="val">' + gs + '</span> slots = <span class="val">' + total + '</span> total slots';
+      if (total < pCount) {
+        html += ' — <span class="err">⚠ Need ' + (pCount - total) + ' more slots for ' + pCount + ' players</span>';
+      } else if (total > pCount) {
+        html += ' — <span class="warn">' + (total - pCount) + ' empty slots</span>';
+      } else {
+        html += ' — <span class="val">✓ Perfect fit</span>';
+      }
+      html += '<br>Top <span class="val">' + adv + '</span> per group → <span class="val">' + (ng * adv) + '</span> advance to Playoffs';
+      el.innerHTML = html;
+    },
+    loadPresets() {
+      var row = document.getElementById('presets-row');
+      if (!row) return;
+      var url = '{% url "tournaments:smart_group_presets" tournament.slug %}';
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.presets || data.presets.length === 0) {
+            row.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.12)">No presets (need ≥ 4 confirmed players)</span>';
+            return;
+          }
+          row.innerHTML = '';
+          data.presets.forEach(function(p) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'dd-preset-btn';
+            btn.innerHTML = '✨ ' + p.label;
+            btn.title = p.description;
+            btn.onclick = function() { DrawDirector.applyPreset(p); };
+            row.appendChild(btn);
+          });
+        })
+        .catch(function() {
+          row.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.12)">Could not load presets</span>';
+        });
+    },
+    applyPreset(preset) {
+      document.getElementById('cfg-num-groups').value = preset.num_groups;
+      document.getElementById('cfg-group-size').value = preset.group_size;
+      document.getElementById('cfg-adv-count').value = preset.advancement_count;
+      DrawDirector.onArchChange();
+      // Flash the applied preset button
+      document.querySelectorAll('.dd-preset-btn').forEach(function(b) {
+        b.style.borderColor = b.textContent.includes(preset.label) ? 'var(--dc-accent)' : '';
+      });
+    },
+    renderTiebreakers() {
+      var container = document.getElementById('tiebreaker-pills');
+      if (!container) return;
+      var html = '';
+      TIEBREAKER_RULES.forEach(function(rule, i) {
+        html += '<span class="dd-tb-pill"><span class="dd-tb-num">' + (i + 1) + '</span> ' + rule + '</span>';
+        if (i < TIEBREAKER_RULES.length - 1) html += '<span style="color:rgba(255,255,255,0.08)">→</span>';
+      });
+      container.innerHTML = html;
+    },
+
     setMode(mode) {
       drawMode = mode;
       selectedPlayer = null;

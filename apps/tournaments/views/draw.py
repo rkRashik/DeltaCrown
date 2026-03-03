@@ -4,17 +4,19 @@ Draw Director & Public Spectator Views
 These views serve the standalone draw ceremony pages:
 1. GroupDrawDirectorView — Organizer-only draw control panel
 2. GroupDrawPublicView — Public spectator view for live draw broadcast
+3. smart_group_presets — AJAX utility returning recommended group formats
 """
 import json
 import logging
+import math
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 
 from apps.tournaments.models import Tournament, Registration
-from apps.tournaments.models.group import Group
+from apps.tournaments.models.group import Group, GroupStage
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +110,32 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
         ctx["participant_count"] = len(participants)
         ctx["group_count"] = len(groups_data)
 
+        # ── Tiebreaker info for config modal ──
+        tiebreaker_rules = ["Points", "Head-to-Head", "Goal Difference", "Goals For"]
+        try:
+            gs = GroupStage.objects.filter(tournament=tournament).first()
+            if gs and gs.config and gs.config.get("tiebreaker_rules"):
+                tb_raw = gs.config["tiebreaker_rules"]
+                tiebreaker_rules = [
+                    r.replace("_", " ").title() for r in tb_raw
+                ]
+        except Exception:
+            pass
+        ctx["tiebreaker_rules_json"] = json.dumps(tiebreaker_rules)
+
+        # ── Existing group architecture for pre-fill ──
+        arch = {"num_groups": 0, "group_size": 4, "advancement_count": 2}
+        if groups_data:
+            arch["num_groups"] = len(groups_data)
+            arch["group_size"] = groups_data[0]["max_participants"] if groups_data else 4
+        try:
+            gs_obj = GroupStage.objects.filter(tournament=tournament).first()
+            if gs_obj:
+                arch["advancement_count"] = gs_obj.advancement_count_per_group
+        except Exception:
+            pass
+        ctx["group_arch_json"] = json.dumps(arch)
+
         return ctx
 
 
@@ -127,3 +155,103 @@ class GroupDrawPublicView(TemplateView):
         ctx["tournament_id"] = tournament.id
         ctx["ws_url"] = f"/ws/tournament/{tournament.id}/group-draw/"
         return ctx
+
+
+# ================================================================== #
+#  Smart Group Presets Utility
+# ================================================================== #
+
+def compute_group_presets(player_count):
+    """Return 2-3 mathematically sound group configurations for a given player count.
+
+    Each preset is a dict: {label, num_groups, group_size, advancement_count, description}
+    """
+    if player_count < 4:
+        return []
+
+    presets = []
+
+    # ── Champions League style: 8 groups of 4, top 2 advance ──
+    if player_count >= 16 and player_count % 4 == 0:
+        n = player_count // 4
+        presets.append({
+            "label": f"Champions League ({n}×4)",
+            "num_groups": n,
+            "group_size": 4,
+            "advancement_count": 2,
+            "description": f"{n} groups of 4, top 2 advance → {n * 2} qualify",
+        })
+
+    # ── Balanced 3-per-group ──
+    if player_count >= 9 and player_count % 3 == 0:
+        n = player_count // 3
+        adv = min(2, 2)  # top 2 from groups of 3
+        presets.append({
+            "label": f"Triple Groups ({n}×3)",
+            "num_groups": n,
+            "group_size": 3,
+            "advancement_count": min(2, 2),
+            "description": f"{n} groups of 3, top {adv} advance → {n * adv} qualify",
+        })
+
+    # ── Larger groups: 5 or 6 per group ──
+    for sz in (6, 5):
+        if player_count >= sz * 2 and player_count % sz == 0:
+            n = player_count // sz
+            adv = 2 if sz <= 5 else 3
+            if not any(p["group_size"] == sz for p in presets):
+                presets.append({
+                    "label": f"Deep Groups ({n}×{sz})",
+                    "num_groups": n,
+                    "group_size": sz,
+                    "advancement_count": adv,
+                    "description": f"{n} groups of {sz}, top {adv} advance → {n * adv} qualify",
+                })
+
+    # ── Fallback: closest power-of-2 friendly format ──
+    if len(presets) < 2:
+        # Try groups of 4 with partial fill
+        g4 = math.ceil(player_count / 4)
+        if g4 >= 2:
+            presets.append({
+                "label": f"Standard ({g4}×4)",
+                "num_groups": g4,
+                "group_size": 4,
+                "advancement_count": 2,
+                "description": f"{g4} groups of 4 (some may have 3), top 2 advance → {g4 * 2} qualify",
+            })
+
+    # ── Two-group split for small counts ──
+    if player_count <= 12 and player_count >= 4:
+        sz = math.ceil(player_count / 2)
+        if sz >= 2 and not any(p["num_groups"] == 2 and p["group_size"] == sz for p in presets):
+            adv = max(1, sz // 2)
+            presets.append({
+                "label": f"Dual Groups (2×{sz})",
+                "num_groups": 2,
+                "group_size": sz,
+                "advancement_count": adv,
+                "description": f"2 groups of {sz}, top {adv} advance → {2 * adv} qualify",
+            })
+
+    # Limit to 3 and deduplicate
+    seen = set()
+    unique = []
+    for p in presets:
+        key = (p["num_groups"], p["group_size"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique[:3]
+
+
+def smart_group_presets(request, slug):
+    """AJAX endpoint returning recommended group formats for a tournament."""
+    tournament = get_object_or_404(Tournament, slug=slug)
+    count = Registration.objects.filter(
+        tournament=tournament,
+        status=Registration.CONFIRMED,
+        is_deleted=False,
+    ).count()
+    presets = compute_group_presets(count)
+    return JsonResponse({"player_count": count, "presets": presets})
