@@ -245,3 +245,124 @@ class SettingsFileUploadView(TOCBaseView):
         if "error" in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
+
+
+# ── S28: Tournament Cloning ───────────────────────────────────────
+
+class CloneTournamentView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/settings/clone/
+    Clone tournament with all settings. Returns new tournament slug.
+    """
+
+    def post(self, request, slug):
+        from django.utils import timezone
+        from django.utils.text import slugify
+        from apps.tournaments.models.tournament import Tournament
+
+        t = self.tournament
+        new_name = request.data.get('name', f'{t.name} (Copy)')
+        new_slug = slugify(new_name)[:80]
+
+        # Ensure unique slug
+        base_slug = new_slug
+        counter = 1
+        while Tournament.objects.filter(slug=new_slug).exists():
+            new_slug = f'{base_slug}-{counter}'
+            counter += 1
+
+        # Clone the tournament
+        clone = Tournament(
+            name=new_name,
+            slug=new_slug,
+            organizer=t.organizer,
+            game=t.game,
+            description=t.description or '',
+            format=t.format,
+            max_participants=t.max_participants,
+            min_participants=t.min_participants,
+            registration_start=t.registration_start,
+            registration_end=t.registration_end,
+            tournament_start=t.tournament_start,
+            tournament_end=t.tournament_end,
+            entry_fee_amount=t.entry_fee_amount,
+            entry_fee_currency=t.entry_fee_currency,
+            config=t.config.copy() if t.config else {},
+            status='draft',
+        )
+        clone.save()
+
+        return Response({
+            'slug': clone.slug,
+            'name': clone.name,
+            'id': clone.id,
+            'message': f'Tournament cloned as "{clone.name}"',
+        }, status=status.HTTP_201_CREATED)
+
+
+# ── S28: Webhook Configuration ────────────────────────────────────
+
+class WebhookConfigView(TOCBaseView):
+    """
+    GET/POST /api/toc/<slug>/settings/webhooks/
+    Manage outgoing webhooks for external integrations.
+    """
+
+    def get(self, request, slug):
+        config = self.tournament.config or {}
+        webhooks = config.get('webhooks', [])
+        return Response({'webhooks': webhooks})
+
+    def post(self, request, slug):
+        config = self.tournament.config or {}
+        webhooks = request.data.get('webhooks', [])
+
+        # Validate
+        valid = []
+        for wh in webhooks:
+            if isinstance(wh, dict) and wh.get('url'):
+                valid.append({
+                    'url': wh['url'],
+                    'events': wh.get('events', ['all']),
+                    'enabled': wh.get('enabled', True),
+                    'secret': wh.get('secret', ''),
+                    'name': wh.get('name', 'Webhook'),
+                })
+
+        config['webhooks'] = valid
+        self.tournament.config = config
+        self.tournament.save(update_fields=['config'])
+        return Response({'webhooks': valid, 'message': 'Webhooks updated'})
+
+
+# ── S28: Danger Zone ──────────────────────────────────────────────
+
+class DangerZoneDeleteView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/settings/danger/delete/
+    Permanently delete tournament (requires confirmation token).
+    """
+
+    def post(self, request, slug):
+        confirm = request.data.get('confirm_slug', '')
+        if confirm != self.tournament.slug:
+            return Response(
+                {'error': f'Type "{self.tournament.slug}" to confirm deletion'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        name = self.tournament.name
+        self.tournament.delete()
+        return Response({'message': f'Tournament "{name}" permanently deleted'})
+
+
+class DangerZoneArchiveView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/settings/danger/archive/
+    Archive tournament (set status to archived).
+    """
+
+    def post(self, request, slug):
+        self.tournament.status = 'archived'
+        self.tournament.save(update_fields=['status'])
+        return Response({'message': 'Tournament archived', 'status': 'archived'})

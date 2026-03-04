@@ -104,17 +104,51 @@ class TOCView(LoginRequiredMixin, TemplateView):
                         caps.add(cap_name)
             ctx['user_capabilities'] = sorted(caps) if caps else ['view_all']
 
-        # Tab definitions for sidebar rendering
-        ctx['toc_tabs'] = [
+        # Tab definitions for sidebar rendering — context-aware
+        participation = getattr(t, 'participation_type', 'team')
+        is_solo = participation == 'solo'
+        fmt = getattr(t, 'format', '')
+        has_brackets = fmt in ('single_elimination', 'double_elimination', 'group_playoff', 'swiss')
+        has_groups = fmt in ('group_playoff', 'round_robin', 'swiss')
+        game_has_servers = getattr(game, 'has_servers', False) if game else False
+
+        base_tabs = [
             {'id': 'overview', 'label': 'Overview', 'icon': 'layout-dashboard', 'group': 'Management'},
             {'id': 'participants', 'label': 'Participants', 'icon': 'users', 'group': 'Management'},
             {'id': 'payments', 'label': 'Payments', 'icon': 'wallet', 'group': 'Management'},
-            {'id': 'brackets', 'label': 'Brackets', 'icon': 'git-branch', 'group': 'Competition'},
+        ]
+        if not is_solo:
+            base_tabs.append({'id': 'rosters', 'label': 'Rosters', 'icon': 'users-round', 'group': 'Management'})
+        base_tabs.extend([
+            {'id': 'checkin', 'label': 'Check-in', 'icon': 'user-check', 'group': 'Management'},
+            {'id': 'analytics', 'label': 'Analytics', 'icon': 'bar-chart-3', 'group': 'Management'},
+        ])
+        if has_brackets:
+            base_tabs.append({'id': 'brackets', 'label': 'Brackets', 'icon': 'git-branch', 'group': 'Competition'})
+        base_tabs.extend([
             {'id': 'matches', 'label': 'Matches', 'icon': 'swords', 'group': 'Competition'},
             {'id': 'schedule', 'label': 'Schedule', 'icon': 'calendar', 'group': 'Competition'},
+        ])
+        if has_groups:
+            base_tabs.append({'id': 'standings', 'label': 'Standings', 'icon': 'trophy', 'group': 'Competition'})
+        base_tabs.append({'id': 'streams', 'label': 'Streams', 'icon': 'tv', 'group': 'Competition'})
+        # Show Lobbies for multiplayer/team games or when game has dedicated servers
+        game_category = getattr(game, 'category', 'OTHER') if game else 'OTHER'
+        show_lobby = game_has_servers or (not is_solo) or game_category in ('FPS', 'MOBA', 'BR', 'SPORTS')
+        if show_lobby:
+            base_tabs.append({'id': 'lobby', 'label': 'Lobbies', 'icon': 'server', 'group': 'Competition'})
+        base_tabs.extend([
             {'id': 'disputes', 'label': 'Disputes', 'icon': 'scale', 'group': 'Platform'},
-            {'id': 'announcements', 'label': 'Announcements', 'icon': 'megaphone', 'group': 'Platform'},
+            {'id': 'notifications', 'label': 'Notifications', 'icon': 'bell', 'group': 'Platform'},
+            {'id': 'rules', 'label': 'Rules & Info', 'icon': 'book-open', 'group': 'Platform'},
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
-        ]
+        ])
+
+        ctx['toc_tabs'] = base_tabs
+        ctx['participation_type'] = participation
+        ctx['is_solo'] = is_solo
+        ctx['has_brackets'] = has_brackets
+        ctx['has_groups'] = has_groups
+        ctx['tournament_format'] = fmt
 
         return ctx

@@ -23,6 +23,8 @@ from apps.tournaments.api.toc import (
     overview, lifecycle, alerts, participants,
     participants_advanced, payments, brackets, matches, disputes,
     settings, announcements, stats, rbac, audit,
+    standings, checkin, streams, analytics, lobby, rules, rosters,
+    notifications as notif_views,
 )
 
 app_name = 'toc_api'
@@ -44,6 +46,7 @@ urlpatterns = [
     path('<slug:slug>/participants/', participants.ParticipantListView.as_view(), name='participants'),
     path('<slug:slug>/participants/bulk-action/', participants.BulkActionView.as_view(), name='participants-bulk-action'),
     path('<slug:slug>/participants/export/', participants.ExportCSVView.as_view(), name='participants-export'),
+    path('<slug:slug>/participants/import/', participants.ImportCSVView.as_view(), name='participants-import'),
     path('<slug:slug>/participants/system-checks/', participants.SystemChecksView.as_view(), name='participants-system-checks'),
     path('<slug:slug>/participants/<int:pk>/', participants.ParticipantDetailView.as_view(), name='participant-detail'),
     path('<slug:slug>/participants/<int:pk>/approve/', participants.ApproveView.as_view(), name='participant-approve'),
@@ -105,6 +108,8 @@ urlpatterns = [
     path('<slug:slug>/schedule/auto-generate/', brackets.ScheduleAutoGenerateView.as_view(), name='schedule-auto-generate'),
     path('<slug:slug>/schedule/bulk-shift/', brackets.ScheduleBulkShiftView.as_view(), name='schedule-bulk-shift'),
     path('<slug:slug>/schedule/add-break/', brackets.ScheduleAddBreakView.as_view(), name='schedule-add-break'),
+    path('<slug:slug>/schedule/<int:pk>/reschedule/', brackets.ScheduleRescheduleMatchView.as_view(), name='schedule-reschedule-match'),
+    path('<slug:slug>/schedule/<int:pk>/manual/', brackets.ScheduleManualMatchView.as_view(), name='schedule-manual-match'),
 
     # ── Group Stage (S5-B10) ──
     path('<slug:slug>/groups/', brackets.GroupStageView.as_view(), name='groups'),
@@ -173,6 +178,12 @@ urlpatterns = [
     # ── File Upload (S10G) ──
     path('<slug:slug>/settings/upload/', settings.SettingsFileUploadView.as_view(), name='settings-upload'),
 
+    # ── S28: Clone, Webhooks, Danger Zone ──
+    path('<slug:slug>/settings/clone/', settings.CloneTournamentView.as_view(), name='settings-clone'),
+    path('<slug:slug>/settings/webhooks/', settings.WebhookConfigView.as_view(), name='settings-webhooks'),
+    path('<slug:slug>/settings/danger/delete/', settings.DangerZoneDeleteView.as_view(), name='settings-danger-delete'),
+    path('<slug:slug>/settings/danger/archive/', settings.DangerZoneArchiveView.as_view(), name='settings-danger-archive'),
+
     # ── Announcements (S8-B7 comms) ──
     path('<slug:slug>/announcements/', announcements.AnnouncementListView.as_view(), name='announcements'),
     path('<slug:slug>/announcements/<int:pk>/', announcements.AnnouncementDetailView.as_view(), name='announcement-detail'),
@@ -216,4 +227,81 @@ urlpatterns = [
 
     # ── Audit Log (S11-B2) ──
     path('<slug:slug>/audit-log/', audit.AuditLogView.as_view(), name='audit-log'),
+
+    # ── Standings / Leaderboards (Sprint 28) ──
+    path('<slug:slug>/standings/', standings.StandingsDashboardView.as_view(), name='standings'),
+    path('<slug:slug>/standings/snapshot/', standings.StandingsSnapshotView.as_view(), name='standings-snapshot'),
+    path('<slug:slug>/standings/qualification/', standings.QualificationTrackerView.as_view(), name='standings-qualification'),
+    path('<slug:slug>/standings/export/', standings.StandingsExportView.as_view(), name='standings-export'),
+
+    # ── Check-in Hub (Sprint 28) ──
+    path('<slug:slug>/checkin/', checkin.CheckinDashboardView.as_view(), name='checkin'),
+    path('<slug:slug>/checkin/open/', checkin.CheckinOpenView.as_view(), name='checkin-open'),
+    path('<slug:slug>/checkin/close/', checkin.CheckinCloseView.as_view(), name='checkin-close'),
+    path('<slug:slug>/checkin/force/', checkin.CheckinForceView.as_view(), name='checkin-force'),
+    path('<slug:slug>/checkin/force-match/', checkin.CheckinForceMatchView.as_view(), name='checkin-force-match'),
+    path('<slug:slug>/checkin/auto-dq/', checkin.CheckinAutoDQView.as_view(), name='checkin-auto-dq'),
+    path('<slug:slug>/checkin/config/', checkin.CheckinConfigView.as_view(), name='checkin-config'),
+    path('<slug:slug>/checkin/stats/', checkin.CheckinStatsView.as_view(), name='checkin-stats'),
+
+    # ── Streams & Media (Sprint 28) ──
+    path('<slug:slug>/streams/', streams.StreamsDashboardView.as_view(), name='streams'),
+    path('<slug:slug>/streams/stations/', streams.StreamsStationView.as_view(), name='streams-station'),
+    path('<slug:slug>/streams/stations/<str:pk>/', streams.StreamsStationDetailView.as_view(), name='streams-station-detail'),
+    path('<slug:slug>/streams/assign/', streams.StreamsAssignView.as_view(), name='streams-assign'),
+    path('<slug:slug>/streams/vods/', streams.StreamsVodView.as_view(), name='streams-vod'),
+    path('<slug:slug>/streams/vods/<str:pk>/', streams.StreamsVodDetailView.as_view(), name='streams-vod-detail'),
+    path('<slug:slug>/streams/overlay/<int:match_id>/', streams.StreamsOverlayView.as_view(), name='streams-overlay'),
+    path('<slug:slug>/streams/overlay-key/', streams.StreamsOverlayKeyView.as_view(), name='streams-overlay-key'),
+
+    # ── Analytics & Insights (Sprint 28) ──
+    path('<slug:slug>/analytics/', analytics.AnalyticsDashboardView.as_view(), name='analytics'),
+    path('<slug:slug>/analytics/registration/', analytics.AnalyticsRegistrationView.as_view(), name='analytics-registration'),
+    path('<slug:slug>/analytics/matches/', analytics.AnalyticsMatchesView.as_view(), name='analytics-matches'),
+    path('<slug:slug>/analytics/revenue/', analytics.AnalyticsRevenueView.as_view(), name='analytics-revenue'),
+    path('<slug:slug>/analytics/engagement/', analytics.AnalyticsEngagementView.as_view(), name='analytics-engagement'),
+    path('<slug:slug>/analytics/timeline/', analytics.AnalyticsTimelineView.as_view(), name='analytics-timeline'),
+    path('<slug:slug>/analytics/export/', analytics.AnalyticsExportView.as_view(), name='analytics-export'),
+
+    # ── Lobby / Server Management (Sprint 28) ──
+    path('<slug:slug>/lobby/', lobby.LobbyDashboardView.as_view(), name='lobby'),
+    path('<slug:slug>/lobby/servers/', lobby.LobbyServerView.as_view(), name='lobby-server'),
+    path('<slug:slug>/lobby/servers/<str:pk>/', lobby.LobbyServerDetailView.as_view(), name='lobby-server-detail'),
+    path('<slug:slug>/lobby/create/', lobby.LobbyCreateView.as_view(), name='lobby-create'),
+    path('<slug:slug>/lobby/close/', lobby.LobbyCloseView.as_view(), name='lobby-close'),
+    path('<slug:slug>/lobby/chat/', lobby.LobbyChatView.as_view(), name='lobby-chat'),
+    path('<slug:slug>/lobby/chat/<int:match_id>/', lobby.LobbyChatDetailView.as_view(), name='lobby-chat-detail'),
+    path('<slug:slug>/lobby/config/', lobby.LobbyConfigView.as_view(), name='lobby-config'),
+
+    # ── Rules & Info (Sprint 28) ──
+    path('<slug:slug>/rules/', rules.RulesDashboardView.as_view(), name='rules'),
+    path('<slug:slug>/rules/sections/<str:section_id>/', rules.RulesSectionView.as_view(), name='rules-section'),
+    path('<slug:slug>/rules/faq/', rules.RulesFaqView.as_view(), name='rules-faq'),
+    path('<slug:slug>/rules/faq/<str:faq_id>/', rules.RulesFaqDetailView.as_view(), name='rules-faq-detail'),
+    path('<slug:slug>/rules/publish/', rules.RulesPublishView.as_view(), name='rules-publish'),
+    path('<slug:slug>/rules/prize-info/', rules.RulesPrizeInfoView.as_view(), name='rules-prize-info'),
+    path('<slug:slug>/rules/quick-reference/', rules.RulesQuickReferenceView.as_view(), name='rules-quick-reference'),
+    path('<slug:slug>/rules/acknowledge/', rules.RulesAcknowledgeView.as_view(), name='rules-acknowledge'),
+
+    # ── Team Roster Management (Sprint 28) ──
+    path('<slug:slug>/rosters/', rosters.RostersDashboardView.as_view(), name='rosters'),
+    path('<slug:slug>/rosters/lock/', rosters.RostersLockView.as_view(), name='rosters-lock'),
+    path('<slug:slug>/rosters/unlock/', rosters.RostersUnlockView.as_view(), name='rosters-unlock'),
+    path('<slug:slug>/rosters/captain/', rosters.RostersCaptainView.as_view(), name='rosters-captain'),
+    path('<slug:slug>/rosters/remove-player/', rosters.RostersRemovePlayerView.as_view(), name='rosters-remove-player'),
+    path('<slug:slug>/rosters/add-player/', rosters.RostersAddPlayerView.as_view(), name='rosters-add-player'),
+    path('<slug:slug>/rosters/config/', rosters.RostersConfigView.as_view(), name='rosters-config'),
+    path('<slug:slug>/rosters/lineup/', rosters.RostersLineupView.as_view(), name='rosters-lineup'),
+    path('<slug:slug>/rosters/eligibility/<int:team_id>/', rosters.RostersEligibilityView.as_view(), name='rosters-eligibility'),
+
+    # ── Notifications Center (Sprint 28) ──
+    path('<slug:slug>/notifications/', notif_views.NotificationsDashboardView.as_view(), name='notifications'),
+    path('<slug:slug>/notifications/templates/', notif_views.NotificationsTemplateView.as_view(), name='notifications-template'),
+    path('<slug:slug>/notifications/templates/<str:template_id>/', notif_views.NotificationsTemplateDetailView.as_view(), name='notifications-template-detail'),
+    path('<slug:slug>/notifications/send/', notif_views.NotificationsSendView.as_view(), name='notifications-send'),
+    path('<slug:slug>/notifications/schedule/', notif_views.NotificationsScheduleView.as_view(), name='notifications-schedule'),
+    path('<slug:slug>/notifications/cancel/<str:scheduled_id>/', notif_views.NotificationsCancelView.as_view(), name='notifications-cancel'),
+    path('<slug:slug>/notifications/auto-rules/', notif_views.NotificationsAutoRulesView.as_view(), name='notifications-auto-rules'),
+    path('<slug:slug>/notifications/channels/', notif_views.NotificationsChannelsView.as_view(), name='notifications-channels'),
+    path('<slug:slug>/notifications/team-message/', notif_views.NotificationsTeamMessageView.as_view(), name='notifications-team-message'),
 ]

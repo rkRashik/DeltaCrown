@@ -134,22 +134,49 @@
         {# Active tournament context #}
         <div class="p-4 border-b border-dc-border sidebar-label">
             <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2.5 block">Active Context</label>
-            <div class="flex items-center gap-3 bg-dc-bg border border-theme/30 rounded-xl px-3.5 py-3 group hover:border-theme/60 transition-all shadow-[0_0_10px_var(--color-primary-muted)]">
-                <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0">
-                    <i data-lucide="trophy" class="w-4 h-4 text-theme"></i>
-                </div>
-                <div class="overflow-hidden min-w-0 flex-1">
-                    <p class="text-sm font-bold text-white truncate leading-tight">{{ tournament.name }}</p>
-                    <div class="flex items-center gap-1.5 mt-1">
-                        {% if is_official %}
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold bg-dc-gold/20 text-dc-gold px-1.5 py-0.5 rounded" title="DeltaCrown Official">
-                            <i data-lucide="badge-check" class="w-3 h-3"></i> Official
-                        </span>
-                        {% else %}
-                        <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow shrink-0"></span>
-                        {% endif %}
-                        <p class="text-[10px] text-dc-text font-mono truncate">{{ game.short_code|default:game.slug|upper }} &middot; {{ tournament.slug }}</p>
+            <div class="bg-dc-bg border border-theme/30 rounded-xl px-3.5 py-3 group hover:border-theme/60 transition-all shadow-[0_0_10px_var(--color-primary-muted)]">
+                <div class="flex items-center gap-3">
+                    {% if game and game.logo %}
+                    <img src="{{ game.logo.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0">
+                    {% elif game and game.icon %}
+                    <img src="{{ game.icon.url }}" alt="{{ game.name }}" class="w-8 h-8 rounded-lg object-cover shrink-0">
+                    {% else %}
+                    <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center shrink-0">
+                        <i data-lucide="trophy" class="w-4 h-4 text-theme"></i>
                     </div>
+                    {% endif %}
+                    <div class="overflow-hidden min-w-0 flex-1">
+                        <p class="text-sm font-bold text-white leading-tight" title="{{ tournament.name }}">{{ tournament.name }}</p>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            {% if is_official %}
+                            <span class="inline-flex items-center gap-1 text-[10px] font-bold bg-dc-gold/20 text-dc-gold px-1.5 py-0.5 rounded" title="DeltaCrown Official">
+                                <i data-lucide="badge-check" class="w-3 h-3"></i> Official
+                            </span>
+                            {% else %}
+                            <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow shrink-0"></span>
+                            {% endif %}
+                            <p class="text-[10px] text-dc-text font-mono truncate">{{ game.short_code|default:game.slug|upper }}</p>
+                        </div>
+                    </div>
+                </div>
+                {# Context badges: game, format, mode #}
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                    {% if game %}
+                    <span class="inline-flex items-center gap-1 text-[10px] font-medium bg-theme/10 text-theme px-2 py-0.5 rounded-full border border-theme/20">
+                        <i data-lucide="gamepad-2" class="w-2.5 h-2.5"></i> {{ game.display_name|default:game.name }}
+                    </span>
+                    {% endif %}
+                    <span class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
+                        <i data-lucide="{% if is_solo %}user{% else %}users{% endif %}" class="w-2.5 h-2.5"></i> {{ participation_type|title }}
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
+                        <i data-lucide="git-branch" class="w-2.5 h-2.5"></i> {{ tournament_format|default:"Custom"|title }}
+                    </span>
+                    {% if status %}
+                    <span class="inline-flex items-center gap-1 text-[10px] font-medium {% if status == 'live' %}bg-dc-success/10 text-dc-success border-dc-success/20{% elif status == 'registration_open' %}bg-theme/10 text-theme border-theme/20{% else %}bg-dc-surface text-dc-text border-dc-border{% endif %} px-2 py-0.5 rounded-full border">
+                        {{ status|title }}
+                    </span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -376,6 +403,66 @@
                     </div>
                 </div>
 
+                {# ── S27: Health Score (1/3) + Upcoming Matches (1/3) + Group Progress (1/3) ── #}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+                    {# Health Score — composite tournament health indicator #}
+                    <div class="glass-box rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-5">
+                            <div id="health-bg-glow" class="w-full h-full rounded-xl"></div>
+                        </div>
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2 relative z-10">Tournament Health</p>
+                        <div id="health-score-ring" class="relative w-24 h-24 mb-3">
+                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" fill="none" class="text-dc-border"/>
+                                <circle id="health-ring-progress" cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" fill="none"
+                                        stroke-dasharray="264" stroke-dashoffset="264" stroke-linecap="round"
+                                        class="text-theme transition-all duration-1000"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="health-score-value" class="text-2xl font-display font-black text-white">—</span>
+                                <span id="health-grade" class="text-[9px] font-bold text-theme uppercase tracking-widest">—</span>
+                            </div>
+                        </div>
+                        <p id="health-label" class="text-xs font-bold text-dc-textBright relative z-10">Loading…</p>
+                        <div id="health-breakdown" class="mt-3 grid grid-cols-5 gap-2 w-full max-w-[200px] relative z-10">
+                            <div class="text-center"><p class="text-[7px] text-dc-text uppercase">Reg</p><p id="hb-reg" class="text-[10px] font-mono font-bold text-white">—</p></div>
+                            <div class="text-center"><p class="text-[7px] text-dc-text uppercase">Pay</p><p id="hb-pay" class="text-[10px] font-mono font-bold text-white">—</p></div>
+                            <div class="text-center"><p class="text-[7px] text-dc-text uppercase">Match</p><p id="hb-match" class="text-[10px] font-mono font-bold text-white">—</p></div>
+                            <div class="text-center"><p class="text-[7px] text-dc-text uppercase">Disp</p><p id="hb-disp" class="text-[10px] font-mono font-bold text-white">—</p></div>
+                            <div class="text-center"><p class="text-[7px] text-dc-text uppercase">Alert</p><p id="hb-alert" class="text-[10px] font-mono font-bold text-white">—</p></div>
+                        </div>
+                    </div>
+
+                    {# Upcoming Matches — next 5 scheduled matches #}
+                    <div class="glass-box rounded-xl flex flex-col max-h-[320px]">
+                        <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
+                            <i data-lucide="calendar-clock" class="w-4 h-4 text-dc-info"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Upcoming Matches</h3>
+                        </div>
+                        <div id="upcoming-matches" class="p-3 space-y-2 flex-1 overflow-y-auto">
+                            <div class="flex items-center justify-center h-24">
+                                <p class="text-xs text-dc-text/50 font-mono">No upcoming matches</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Group Stage Progress — summary of group completion #}
+                    <div class="glass-box rounded-xl flex flex-col max-h-[320px]">
+                        <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
+                            <i data-lucide="layout-grid" class="w-4 h-4 text-purple-400"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Groups</h3>
+                            <span id="group-progress-badge" class="ml-2 text-[10px] font-mono text-dc-bg bg-theme px-2 py-0.5 rounded-full font-bold hidden">0%</span>
+                        </div>
+                        <div id="group-progress" class="p-4 space-y-3 flex-1 overflow-y-auto">
+                            <div class="flex items-center justify-center h-24">
+                                <p class="text-xs text-dc-text/50 font-mono">No group stage configured</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
                 {# ── Action Queue (2/3) + Tournament Progress (1/3) ── #}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -519,6 +606,9 @@
                         <button onclick="TOC.participants.bulkAction('approve')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">Approve</button>
                         <button onclick="TOC.participants.bulkAction('reject')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors">Reject</button>
                         <button onclick="TOC.participants.bulkAction('checkin')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-info/10 border border-dc-info/20 text-dc-info text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-info/20 transition-colors">Check-In</button>
+                        <button onclick="TOC.navigate('checkin')" class="text-[10px] text-dc-text/50 hover:text-theme transition-colors flex items-center gap-1 ml-1" title="Full check-in session management">
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i> Full Check-In
+                        </button>
                     </div>
 
                     {# S2-F9: Export button #}
@@ -555,7 +645,7 @@
                                             Seed <i data-lucide="arrow-up-down" class="w-2.5 h-2.5"></i>
                                         </button>
                                     </th>
-                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Game ID</th>
+                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest" title="IGL/Coordinator for team tournaments, Game ID for solo">IGL / Game ID</th>
                                     <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
@@ -1004,7 +1094,7 @@
 
             </div>
 
-            {# Matches tab — Sprint 25: The Control Room #}
+            {# Matches tab — Sprint 26: Full Control Room Rebuild #}
             <div id="view-matches" data-tab-content="matches" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-0">
 
                 {# S6-F7: Ghost icon — Swords #}
@@ -1017,17 +1107,17 @@
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Match Operations</h2>
                         <p class="text-xs text-dc-text mt-1 font-mono">Master-Detail Control Room</p>
                     </div>
-                    <div class="flex items-center gap-4 text-[10px] font-mono text-dc-text">
-                        <span>Total: <strong id="matches-stat-total" class="text-white">—</strong></span>
-                        <span>Live: <strong id="matches-stat-live" class="text-dc-success">—</strong></span>
-                        <span>Pending: <strong id="matches-stat-pending" class="text-dc-warning">—</strong></span>
-                        <span>Completed: <strong id="matches-stat-completed" class="text-dc-textBright">—</strong></span>
-                        <span>Disputed: <strong id="matches-stat-disputed" class="text-dc-danger">—</strong></span>
+                    <div class="flex items-center gap-5 text-xs font-mono text-dc-text">
+                        <span>Total: <strong id="matches-stat-total" class="text-white font-bold">—</strong></span>
+                        <span>Live: <strong id="matches-stat-live" class="text-dc-success font-bold">—</strong></span>
+                        <span>Pending: <strong id="matches-stat-pending" class="text-dc-warning font-bold">—</strong></span>
+                        <span>Completed: <strong id="matches-stat-completed" class="text-dc-textBright font-bold">—</strong></span>
+                        <span>Disputed: <strong id="matches-stat-disputed" class="text-dc-danger font-bold">—</strong></span>
                     </div>
                 </div>
 
                 {# ━━━ Master-Detail Grid ━━━ #}
-                <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-0 h-[calc(100vh-220px)] min-h-[600px]">
+                <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 h-[calc(100vh-220px)] min-h-[600px]">
 
                     {# ═══ LEFT: Match List Panel ═══ #}
                     <div class="glass-box rounded-l-xl lg:rounded-r-none rounded-xl lg:border-r-0 flex flex-col overflow-hidden">
@@ -1035,12 +1125,10 @@
                         {# Filter bar #}
                         <div class="p-3 border-b border-dc-borderLight bg-dc-panel/50 space-y-2 shrink-0">
                             {# Group filter pills #}
-                            <div id="match-group-pills" class="flex flex-wrap gap-1">
-                                <button data-group="" class="match-pill active px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all bg-theme/15 text-theme border border-theme/20" onclick="TOC.matches.filterGroup('')">All</button>
-                            </div>
+                            <div id="match-group-pills" class="flex flex-wrap gap-1.5" role="toolbar" aria-label="Group filter"></div>
                             {# State + Round + Search #}
                             <div class="flex items-center gap-2">
-                                <select id="match-filter-state" onchange="TOC.matches.refresh()" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                                <select id="match-filter-state" onchange="TOC.matches.refresh()" aria-label="Filter by state" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
                                     <option value="">All States</option>
                                     <option value="scheduled">Scheduled</option>
                                     <option value="check_in">Check-in</option>
@@ -1051,15 +1139,15 @@
                                     <option value="disputed">Disputed</option>
                                     <option value="forfeit">Forfeit</option>
                                 </select>
-                                <select id="match-filter-round" onchange="TOC.matches.refresh()" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                                <select id="match-filter-round" onchange="TOC.matches.refresh()" aria-label="Filter by round" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
                                     <option value="">All Rounds</option>
                                 </select>
                             </div>
-                            <input id="match-search" type="text" placeholder="Search team or match #..." oninput="TOC.matches.debouncedRefresh()" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2.5 py-1.5 focus:border-theme outline-none">
+                            <input id="match-search" type="text" placeholder="Search team or match #..." oninput="TOC.matches.debouncedRefresh()" aria-label="Search matches" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-3 py-2 focus:border-theme outline-none">
                         </div>
 
                         {# Scrollable match list #}
-                        <div id="match-list" class="flex-1 overflow-y-auto divide-y divide-dc-border/20">
+                        <div id="match-list" class="flex-1 overflow-y-auto divide-y divide-dc-border/20" role="listbox" aria-label="Match list">
                             <div class="flex items-center justify-center h-40">
                                 <div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div>
                             </div>
@@ -1067,7 +1155,7 @@
 
                         {# List footer #}
                         <div class="p-2.5 border-t border-dc-borderLight bg-dc-panel/30 text-center shrink-0">
-                            <span id="match-list-count" class="text-[10px] font-mono text-dc-text">0 matches</span>
+                            <span id="match-list-count" class="text-xs font-mono text-dc-text">0 matches</span>
                         </div>
                     </div>
 
@@ -1076,10 +1164,10 @@
 
                         {# Empty state (no match selected) #}
                         <div id="match-detail-empty" class="flex-1 flex items-center justify-center">
-                            <div class="text-center">
-                                <i data-lucide="mouse-pointer-click" class="w-12 h-12 text-dc-border mx-auto mb-3"></i>
-                                <p class="text-sm text-dc-text/50 font-mono">Select a match to view details</p>
-                                <p class="text-[10px] text-dc-text/30 mt-1">Use keyboard arrows or click on the list</p>
+                            <div class="text-center max-w-sm">
+                                <i data-lucide="mouse-pointer-click" class="w-14 h-14 text-dc-border mx-auto mb-4"></i>
+                                <p class="text-sm text-dc-text/60 font-mono mb-1">Select a match to view details</p>
+                                <p class="text-xs text-dc-text/40">Use keyboard ↑↓ arrows or click on the list</p>
                             </div>
                         </div>
 
@@ -1089,57 +1177,94 @@
                             {# Detail header — teams + score #}
                             <div id="match-detail-header" class="p-5 border-b border-dc-borderLight bg-dc-panel/30 shrink-0">
                                 <div class="flex items-center justify-between mb-3">
-                                    <span id="detail-match-id" class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Match #—</span>
-                                    <span id="detail-match-state" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-widest">—</span>
+                                    <div class="flex items-center gap-2">
+                                        <span id="detail-match-id" class="text-xs font-mono text-dc-text uppercase tracking-widest">Match #—</span>
+                                        <button id="detail-back-btn" onclick="TOC.matches.clearDetail()" class="lg:hidden px-2 py-1 text-xs text-dc-text hover:text-white transition-colors" aria-label="Back to match list">
+                                            <i data-lucide="arrow-left" class="w-4 h-4 inline-block"></i> Back
+                                        </button>
+                                    </div>
+                                    <span id="detail-match-state" class="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">—</span>
                                 </div>
                                 <div class="flex items-center gap-5">
                                     {# Team A #}
                                     <div class="flex-1 text-right">
                                         <div class="flex items-center justify-end gap-3">
                                             <div>
-                                                <p id="detail-team-a" class="text-lg font-display font-black text-white">—</p>
-                                                <p id="detail-team-a-meta" class="text-[10px] text-dc-text font-mono">—</p>
+                                                <p id="detail-team-a" class="text-xl font-display font-black text-white">—</p>
+                                                <p id="detail-team-a-meta" class="text-xs text-dc-text font-mono">—</p>
                                             </div>
-                                            <div id="detail-avatar-a" class="w-10 h-10 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center overflow-hidden">
+                                            <div id="detail-avatar-a" class="w-11 h-11 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center overflow-hidden">
                                                 <i data-lucide="user" class="w-5 h-5 text-dc-border"></i>
                                             </div>
                                         </div>
                                     </div>
                                     {# Score display #}
                                     <div class="text-center px-4">
-                                        <div class="flex items-center gap-2">
-                                            <span id="detail-score-a" class="text-3xl font-display font-black text-white">—</span>
-                                            <span class="text-lg text-dc-border font-mono">:</span>
-                                            <span id="detail-score-b" class="text-3xl font-display font-black text-white">—</span>
+                                        <div class="flex items-center gap-3">
+                                            <span id="detail-score-a" class="text-4xl font-display font-black text-white">—</span>
+                                            <span class="text-xl text-dc-border font-mono">:</span>
+                                            <span id="detail-score-b" class="text-4xl font-display font-black text-white">—</span>
                                         </div>
-                                        <p id="detail-round" class="text-[9px] text-dc-text font-mono mt-1">—</p>
+                                        <p id="detail-round" class="text-xs text-dc-text font-mono mt-1">—</p>
                                     </div>
                                     {# Team B #}
                                     <div class="flex-1 text-left">
                                         <div class="flex items-center gap-3">
-                                            <div id="detail-avatar-b" class="w-10 h-10 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center overflow-hidden">
+                                            <div id="detail-avatar-b" class="w-11 h-11 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center overflow-hidden">
                                                 <i data-lucide="user" class="w-5 h-5 text-dc-border"></i>
                                             </div>
                                             <div>
-                                                <p id="detail-team-b" class="text-lg font-display font-black text-white">—</p>
-                                                <p id="detail-team-b-meta" class="text-[10px] text-dc-text font-mono">—</p>
+                                                <p id="detail-team-b" class="text-xl font-display font-black text-white">—</p>
+                                                <p id="detail-team-b-meta" class="text-xs text-dc-text font-mono">—</p>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {# Lobby info row + Check-in indicators #}
+                                <div id="detail-lobby-row" class="hidden mt-4 p-3 rounded-lg bg-dc-bg/50 border border-dc-border/50">
+                                    <div class="flex items-center justify-between flex-wrap gap-3">
+                                        <div class="flex items-center gap-4 text-xs">
+                                            <span id="detail-lobby-code" class="font-mono text-dc-textBright hidden">
+                                                <i data-lucide="key-round" class="w-3.5 h-3.5 inline-block text-theme mr-1"></i>
+                                                Code: <strong class="text-white"></strong>
+                                                <button onclick="TOC.matches.copyLobbyCode()" class="ml-1 text-dc-text hover:text-theme transition-colors" title="Copy code"><i data-lucide="copy" class="w-3 h-3 inline-block"></i></button>
+                                            </span>
+                                            <span id="detail-lobby-map" class="text-dc-text hidden">
+                                                <i data-lucide="map" class="w-3.5 h-3.5 inline-block text-theme mr-1"></i>
+                                                <span class="text-dc-textBright"></span>
+                                            </span>
+                                            <span id="detail-lobby-server" class="text-dc-text hidden">
+                                                <i data-lucide="server" class="w-3.5 h-3.5 inline-block text-theme mr-1"></i>
+                                                <span class="text-dc-textBright"></span>
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-3 text-xs">
+                                            <span id="detail-checkin-p1" class="flex items-center gap-1 text-dc-text">
+                                                <span class="w-2 h-2 rounded-full bg-dc-border"></span> P1
+                                            </span>
+                                            <span id="detail-checkin-p2" class="flex items-center gap-1 text-dc-text">
+                                                <span class="w-2 h-2 rounded-full bg-dc-border"></span> P2
+                                            </span>
+                                            <a id="detail-room-link" href="#" target="_blank" class="hidden px-2.5 py-1 bg-theme/10 text-theme text-xs font-bold rounded-md hover:bg-theme/20 transition-colors">
+                                                <i data-lucide="external-link" class="w-3 h-3 inline-block mr-1"></i>Match Room
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {# Detail tabs — Score Editor / Evidence / Audit #}
-                            <div class="border-b border-dc-borderLight shrink-0">
+                            <div class="border-b border-dc-borderLight shrink-0" role="tablist" aria-label="Match detail tabs">
                                 <div class="flex">
-                                    <button onclick="TOC.matches.switchDetailTab('score')" class="detail-tab active flex-1 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="score">
-                                        <i data-lucide="edit-3" class="w-3 h-3 inline-block mr-1"></i>Score
+                                    <button onclick="TOC.matches.switchDetailTab('score')" class="detail-tab active flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="score" role="tab" aria-selected="true" aria-controls="detail-tab-score">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Score
                                     </button>
-                                    <button onclick="TOC.matches.switchDetailTab('evidence')" class="detail-tab flex-1 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="evidence">
-                                        <i data-lucide="image" class="w-3 h-3 inline-block mr-1"></i>Evidence
+                                    <button onclick="TOC.matches.switchDetailTab('evidence')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="evidence" role="tab" aria-selected="false" aria-controls="detail-tab-evidence">
+                                        <i data-lucide="image" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Evidence
                                     </button>
-                                    <button onclick="TOC.matches.switchDetailTab('audit')" class="detail-tab flex-1 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="audit">
-                                        <i data-lucide="scroll-text" class="w-3 h-3 inline-block mr-1"></i>Audit
+                                    <button onclick="TOC.matches.switchDetailTab('audit')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="audit" role="tab" aria-selected="false" aria-controls="detail-tab-audit">
+                                        <i data-lucide="scroll-text" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Audit
                                     </button>
                                 </div>
                             </div>
@@ -1148,54 +1273,54 @@
                             <div class="flex-1 overflow-y-auto">
 
                                 {# Score Editor Tab #}
-                                <div id="detail-tab-score" class="detail-tab-content p-5 space-y-4">
+                                <div id="detail-tab-score" class="detail-tab-content p-5 space-y-4" role="tabpanel">
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">
+                                            <label for="score-input-a" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">
                                                 <span id="score-label-a">Team A</span> Score
                                             </label>
-                                            <input id="score-input-a" type="number" min="0" class="w-full bg-dc-bg border border-dc-border text-white text-xl font-mono font-black text-center rounded-lg px-3 py-3 focus:border-theme outline-none">
+                                            <input id="score-input-a" type="number" min="0" class="w-full bg-dc-bg border border-dc-border text-white text-2xl font-mono font-black text-center rounded-lg px-3 py-3.5 focus:border-theme outline-none">
                                         </div>
                                         <div>
-                                            <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">
+                                            <label for="score-input-b" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">
                                                 <span id="score-label-b">Team B</span> Score
                                             </label>
-                                            <input id="score-input-b" type="number" min="0" class="w-full bg-dc-bg border border-dc-border text-white text-xl font-mono font-black text-center rounded-lg px-3 py-3 focus:border-theme outline-none">
+                                            <input id="score-input-b" type="number" min="0" class="w-full bg-dc-bg border border-dc-border text-white text-2xl font-mono font-black text-center rounded-lg px-3 py-3.5 focus:border-theme outline-none">
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Winner (Override)</label>
-                                        <select id="score-winner" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-3 py-2.5 focus:border-theme outline-none">
+                                        <label for="score-winner" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">Winner (Override)</label>
+                                        <select id="score-winner" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none">
                                             <option value="">Auto-detect from score</option>
                                             <option value="a" id="winner-opt-a">Team A</option>
                                             <option value="b" id="winner-opt-b">Team B</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Admin Note</label>
-                                        <textarea id="score-note" rows="2" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-3 py-2 focus:border-theme outline-none resize-none" placeholder="Optional note..."></textarea>
+                                        <label for="score-note" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">Admin Note</label>
+                                        <textarea id="score-note" rows="2" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none resize-none" placeholder="Optional note..."></textarea>
                                     </div>
                                 </div>
 
                                 {# Evidence Viewer Tab #}
-                                <div id="detail-tab-evidence" class="detail-tab-content hidden p-5">
+                                <div id="detail-tab-evidence" class="detail-tab-content hidden p-5" role="tabpanel">
                                     <div id="evidence-container" class="space-y-4">
                                         <div class="text-center py-8">
                                             <i data-lucide="image-off" class="w-10 h-10 text-dc-border mx-auto mb-2"></i>
-                                            <p class="text-xs text-dc-text/50">No evidence submitted yet</p>
+                                            <p class="text-sm text-dc-text/50">No evidence submitted yet</p>
                                         </div>
                                     </div>
                                     {# Sprint 9 split-screen viewer #}
                                     <div id="evidence-split" class="hidden mt-4">
                                         <div class="grid grid-cols-2 gap-3">
                                             <div class="glass-box rounded-lg p-3">
-                                                <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2">Team A Submission</p>
+                                                <p class="text-xs font-bold text-dc-text uppercase tracking-widest mb-2">Team A Submission</p>
                                                 <div id="evidence-img-a" class="aspect-video bg-dc-bg rounded-lg overflow-hidden flex items-center justify-center">
                                                     <i data-lucide="image" class="w-8 h-8 text-dc-border"></i>
                                                 </div>
                                             </div>
                                             <div class="glass-box rounded-lg p-3">
-                                                <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2">Team B Submission</p>
+                                                <p class="text-xs font-bold text-dc-text uppercase tracking-widest mb-2">Team B Submission</p>
                                                 <div id="evidence-img-b" class="aspect-video bg-dc-bg rounded-lg overflow-hidden flex items-center justify-center">
                                                     <i data-lucide="image" class="w-8 h-8 text-dc-border"></i>
                                                 </div>
@@ -1204,18 +1329,18 @@
                                         <div id="evidence-mismatch" class="hidden mt-3 p-3 rounded-lg bg-dc-danger/10 border border-dc-danger/20">
                                             <div class="flex items-center gap-2">
                                                 <i data-lucide="alert-triangle" class="w-4 h-4 text-dc-danger"></i>
-                                                <span class="text-xs font-bold text-dc-danger">Score Mismatch Detected</span>
+                                                <span class="text-sm font-bold text-dc-danger">Score Mismatch Detected</span>
                                             </div>
-                                            <p id="evidence-mismatch-detail" class="text-[10px] text-dc-text mt-1"></p>
+                                            <p id="evidence-mismatch-detail" class="text-xs text-dc-text mt-1"></p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {# Audit Trail Tab #}
-                                <div id="detail-tab-audit" class="detail-tab-content hidden">
+                                <div id="detail-tab-audit" class="detail-tab-content hidden" role="tabpanel">
                                     <div id="audit-trail" class="divide-y divide-dc-border/20">
                                         <div class="flex items-center justify-center py-10">
-                                            <p class="text-xs text-dc-text/50 font-mono">No audit entries</p>
+                                            <p class="text-sm text-dc-text/50 font-mono">No audit entries</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1223,29 +1348,34 @@
 
                             {# Action Row — persistent bottom bar #}
                             <div id="match-action-row" class="p-4 border-t border-dc-borderLight bg-dc-panel/50 shrink-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <button onclick="TOC.matches.submitScore()" class="px-4 py-2 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-1.5">
-                                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Confirm Result
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    {# Primary actions #}
+                                    <button onclick="TOC.matches.submitScore()" class="px-5 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Confirm match result">
+                                        <i data-lucide="check" class="w-4 h-4"></i> Confirm Result
                                     </button>
-                                    <button onclick="TOC.matches.openDispute()" class="px-4 py-2 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-1.5">
-                                        <i data-lucide="flag" class="w-3.5 h-3.5"></i> Open Dispute
+                                    <button onclick="TOC.matches.openVerifyScreen()" class="px-5 py-2.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open verification screen">
+                                        <i data-lucide="shield-check" class="w-4 h-4"></i> Verify
                                     </button>
-                                    <button onclick="TOC.matches.resetMatch()" class="px-4 py-2 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-1.5">
-                                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Match
+                                    {# Danger zone #}
+                                    <button onclick="TOC.matches.openDispute()" class="px-5 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open dispute">
+                                        <i data-lucide="flag" class="w-4 h-4"></i> Dispute
+                                    </button>
+                                    <button onclick="TOC.matches.resetMatch()" class="px-5 py-2.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Reset match">
+                                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
                                     </button>
                                     <div class="flex-1"></div>
                                     {# Match Medic quick actions #}
-                                    <button id="btn-medic-live" onclick="TOC.matches.markLive()" class="px-3 py-2 bg-dc-bg border border-dc-border text-dc-text text-[10px] font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden" title="Mark Live">
-                                        <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                    <button id="btn-medic-live" onclick="TOC.matches.markLive()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Mark Live" aria-label="Mark match as live">
+                                        <i data-lucide="play" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-pause" onclick="TOC.matches.pause()" class="px-3 py-2 bg-dc-bg border border-dc-border text-dc-text text-[10px] font-bold rounded-lg hover:text-dc-warning hover:border-dc-warning/30 transition-colors hidden" title="Pause">
-                                        <i data-lucide="pause" class="w-3.5 h-3.5"></i>
+                                    <button id="btn-medic-pause" onclick="TOC.matches.pause()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-warning hover:border-dc-warning/30 transition-colors hidden min-h-[36px]" title="Pause" aria-label="Pause match">
+                                        <i data-lucide="pause" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-resume" onclick="TOC.matches.resume()" class="px-3 py-2 bg-dc-bg border border-dc-border text-dc-text text-[10px] font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden" title="Resume">
-                                        <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+                                    <button id="btn-medic-resume" onclick="TOC.matches.resume()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Resume" aria-label="Resume match">
+                                        <i data-lucide="play-circle" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-force" onclick="TOC.matches.forceComplete()" class="px-3 py-2 bg-dc-bg border border-dc-border text-dc-text text-[10px] font-bold rounded-lg hover:text-dc-danger hover:border-dc-danger/30 transition-colors hidden" title="Force Complete">
-                                        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                                    <button id="btn-medic-force" onclick="TOC.matches.forceComplete()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-danger hover:border-dc-danger/30 transition-colors hidden min-h-[36px]" title="Force Complete" aria-label="Force complete match">
+                                        <i data-lucide="square" class="w-4 h-4"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1264,30 +1394,117 @@
                         <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text transition-transform"></i>
                     </button>
                     <div id="stations-panel" class="p-4 hidden">
-                        <p class="text-dc-text text-xs text-center py-4">No stations configured</p>
+                        <p class="text-dc-text text-sm text-center py-4">No stations configured</p>
                     </div>
                 </div>
 
-                {# Overlay containers for legacy compatibility #}
-                <div id="score-drawer" class="hidden"></div>
-                <div id="match-detail-drawer" class="hidden"></div>
+                {# Dispute Modal (replaces prompt()) #}
+                <div id="dispute-modal" class="fixed inset-0 z-[110] hidden">
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeDisputeModal()"></div>
+                    <div class="absolute inset-0 flex items-center justify-center p-4">
+                        <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
+                            <div class="h-1 w-full bg-dc-danger"></div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-dc-danger/20 flex items-center justify-center">
+                                        <i data-lucide="flag" class="w-5 h-5 text-dc-danger"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-black text-lg text-white">Open Dispute</h3>
+                                        <p class="text-xs text-dc-text">Report an issue with this match result</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="dispute-reason-code" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">Reason</label>
+                                    <select id="dispute-reason-code" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none">
+                                        <option value="score_mismatch">Score Mismatch</option>
+                                        <option value="cheating">Cheating / Unfair Play</option>
+                                        <option value="disconnection">Disconnection</option>
+                                        <option value="game_bug">Game Bug</option>
+                                        <option value="wrong_score">Wrong Score Submitted</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="dispute-description" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">Description</label>
+                                    <textarea id="dispute-description" rows="3" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none resize-none" placeholder="Describe the issue..."></textarea>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button onclick="TOC.matches.closeDisputeModal()" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+                                    <button onclick="TOC.matches.confirmDispute()" class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Open Dispute</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Lobby Editor Modal #}
+                <div id="lobby-editor-modal" class="fixed inset-0 z-[110] hidden">
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeLobbyEditor()"></div>
+                    <div class="absolute inset-0 flex items-center justify-center p-4">
+                        <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
+                            <div class="h-1 w-full bg-theme"></div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-theme/20 flex items-center justify-center">
+                                        <i data-lucide="settings" class="w-5 h-5 text-theme"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-black text-lg text-white">Lobby Settings</h3>
+                                        <p class="text-xs text-dc-text">Configure match lobby details</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label for="lobby-code-input" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Lobby Code</label>
+                                        <input id="lobby-code-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none font-mono" placeholder="ABC123">
+                                    </div>
+                                    <div>
+                                        <label for="lobby-password-input" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Password</label>
+                                        <input id="lobby-password-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none font-mono" placeholder="Optional">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label for="lobby-map-input" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Map</label>
+                                        <input id="lobby-map-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none" placeholder="e.g. Haven">
+                                    </div>
+                                    <div>
+                                        <label for="lobby-server-input" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Server</label>
+                                        <input id="lobby-server-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none" placeholder="e.g. AP-SE">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="lobby-gamemode-input" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Game Mode</label>
+                                    <input id="lobby-gamemode-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none" placeholder="e.g. Competitive">
+                                </div>
+                                <div class="flex gap-3">
+                                    <button onclick="TOC.matches.closeLobbyEditor()" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+                                    <button onclick="TOC.matches.saveLobbyInfo()" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Lobby</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {# Schedule tab — Sprint 5 #}
+            {# Schedule tab — Sprint 27 (Complete Rebuild) #}
             <div id="view-schedule" data-tab-content="schedule" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
 
-                {# S5-F7: Ghost icon — Calendar #}
+                {# S27: Ghost icon — Calendar #}
                 <i data-lucide="calendar" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
 
-                {# Page title #}
+                {# Page title + Action buttons #}
                 <div class="flex items-end justify-between mb-2 relative">
                     <div class="relative">
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Schedule Manager</h2>
-                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline · Auto-Schedule · Bulk Shift · Breaks</p>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Timeline · List · Calendar · Auto-Schedule · Conflicts</p>
                     </div>
-                    {# S5-F6: Schedule action buttons #}
                     <div class="flex items-center gap-2">
+                        <button onclick="TOC.schedule.openUserGuide()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Schedule Guide">
+                            <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guide
+                        </button>
                         <button onclick="TOC.schedule.openAutoSchedule()" data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
                         </button>
@@ -1300,46 +1517,102 @@
                     </div>
                 </div>
 
-                {# Schedule stats #}
-                <div id="schedule-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {# S27: Schedule stats — 6 cards #}
+                <div id="schedule-stats" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Total Matches</p>
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Total</p>
                         <p id="sched-total-matches" class="font-mono font-black text-xl text-white">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
-                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-success">—</p>
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Scheduled</p>
+                        <p id="sched-scheduled" class="font-mono font-black text-xl text-dc-info">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">In Progress</p>
-                        <p id="sched-live" class="font-mono font-black text-xl text-dc-warning">—</p>
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Live</p>
+                        <p id="sched-live" class="font-mono font-black text-xl text-dc-success">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-4 text-center">
-                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
-                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-info">—</p>
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Completed</p>
+                        <p id="sched-completed" class="font-mono font-black text-xl text-dc-warning">—</p>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Conflicts</p>
+                        <p id="sched-conflicts" class="font-mono font-black text-xl text-white">0</p>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Est. End</p>
+                        <p id="sched-est-end" class="font-mono font-black text-sm text-dc-text">—</p>
                     </div>
                 </div>
 
-                {# S5-F5: Schedule timeline/grid #}
-                <div class="glass-box rounded-xl overflow-hidden">
-                    <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="calendar" class="w-4 h-4 text-theme"></i>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Match Schedule</h3>
-                        </div>
-                        <button onclick="TOC.schedule.refresh()" class="text-[10px] text-dc-text hover:text-white transition-colors">
-                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                {# S27: View mode + Filter bar #}
+                <div class="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                    {# View mode toggles #}
+                    <div class="flex items-center gap-1.5 bg-dc-panel rounded-lg p-1 border border-dc-border">
+                        <button id="btn-view-timeline" onclick="TOC.schedule.setViewMode('timeline')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-theme text-dc-bg border-theme" title="Timeline View (Ctrl+1)">
+                            <i data-lucide="layout-list" class="w-3.5 h-3.5"></i> Timeline
+                        </button>
+                        <button id="btn-view-list" onclick="TOC.schedule.setViewMode('list')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="List View (Ctrl+2)">
+                            <i data-lucide="table" class="w-3.5 h-3.5"></i> List
+                        </button>
+                        <button id="btn-view-calendar" onclick="TOC.schedule.setViewMode('calendar')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="Calendar View (Ctrl+3)">
+                            <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Calendar
                         </button>
                     </div>
-                    <div id="schedule-timeline" class="p-4 space-y-4 max-h-[600px] overflow-y-auto">
+
+                    {# Filter controls #}
+                    <div class="flex flex-wrap items-center gap-2 flex-1">
+                        <select id="sched-filter-group" onchange="TOC.schedule.updateFilter('group', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                            <option value="">All Groups</option>
+                        </select>
+                        <select id="sched-filter-round" onchange="TOC.schedule.updateFilter('round', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                            <option value="">All Rounds</option>
+                        </select>
+                        <select id="sched-filter-state" onchange="TOC.schedule.updateFilter('state', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                            <option value="">All States</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="check_in">Check-in</option>
+                            <option value="ready">Ready</option>
+                            <option value="live">Live</option>
+                            <option value="pending_result">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="disputed">Disputed</option>
+                            <option value="forfeit">Forfeit</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-3 h-3 text-dc-text absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <input id="sched-search" type="text" placeholder="Search teams…" oninput="TOC.schedule.debouncedSearch(this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg pl-7 pr-3 py-1.5 w-44 focus:border-theme outline-none">
+                        </div>
+                        <input id="sched-date-from" type="date" title="From date" onchange="TOC.schedule.updateFilter('dateFrom', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                        <input id="sched-date-to" type="date" title="To date" onchange="TOC.schedule.updateFilter('dateTo', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                        <button onclick="TOC.schedule.clearFilters()" class="text-[9px] text-dc-text hover:text-dc-danger transition-colors" title="Clear all filters">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    {# Refresh #}
+                    <button onclick="TOC.schedule.refresh()" class="p-2 text-dc-text hover:text-white transition-colors rounded-lg hover:bg-white/5" title="Refresh (R)">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                {# S27: Main schedule content area (rendered by JS) #}
+                <div class="glass-box rounded-xl overflow-hidden">
+                    <div id="schedule-content" class="p-4 space-y-4 max-h-[700px] overflow-y-auto">
                         <div class="flex items-center justify-center h-40 text-dc-text text-sm">
                             <div class="text-center">
                                 <i data-lucide="calendar" class="w-12 h-12 text-dc-text/20 mx-auto mb-3"></i>
-                                <p>No matches scheduled yet</p>
-                                <p class="text-[10px] mt-1 text-dc-text/60">Generate a bracket first, then auto-schedule</p>
+                                <p>Loading schedule…</p>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {# Keyboard shortcut hint #}
+                <div class="flex items-center gap-4 text-[9px] text-dc-text/40 font-mono">
+                    <span><kbd class="bg-dc-panel border border-dc-border rounded px-1.5 py-0.5 text-dc-text/60">Ctrl+1/2/3</kbd> Switch views</span>
+                    <span><kbd class="bg-dc-panel border border-dc-border rounded px-1.5 py-0.5 text-dc-text/60">R</kbd> Refresh</span>
                 </div>
             </div>
 
@@ -1510,6 +1783,13 @@
                     </button>
                 </div>
 
+                {# ── Group: Core Setup ── #}
+                <div class="flex items-center gap-3">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Core Setup</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
+
                 {# ═══ 1. Basic Information ═══ #}
                 <details open class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
@@ -1658,6 +1938,13 @@
                     </div>
                 </details>
 
+                {# ── Group: Schedule & Venue ── #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Schedule &amp; Venue</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
+
                 {# ═══ 4. Schedule ═══ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
@@ -1711,6 +1998,13 @@
                         </div>
                     </div>
                 </details>
+
+                {# ── Group: Financial ── #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Financial</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
 
                 {# ═══ 6. Entry Fees & Payments ═══ #}
                 <details class="glass-box rounded-xl group">
@@ -1807,6 +2101,13 @@
                     </div>
                 </details>
 
+                {# ── Group: Rules & Features ── #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Rules &amp; Features</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
+
                 {# ═══ 9. Rules & Terms ═══ #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
@@ -1814,38 +2115,26 @@
                         <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
                     </summary>
                     <div class="px-5 pb-5 space-y-4" id="settings-rules">
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Rules (Text / Markdown)</label>
-                            <textarea data-field="rules_text" rows="5" placeholder="Tournament rules..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">Terms & Conditions</label>
-                            <textarea data-field="terms_and_conditions" rows="4" placeholder="Terms and conditions..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50"></textarea>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-dc-text mb-1">Rules PDF</label>
-                                <div class="flex items-center gap-3">
-                                    <input id="upload-rules-pdf" type="file" accept=".pdf" class="hidden" onchange="TOC.settings.uploadFile('rules_pdf', this)">
-                                    <button onclick="document.getElementById('upload-rules-pdf').click()" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
-                                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload PDF
-                                    </button>
-                                    <span id="rules-pdf-status" class="text-xs text-dc-text truncate max-w-[200px]">No file</span>
-                                </div>
+                        {# Delegate banner — full rulebook management is in the dedicated Rules tab #}
+                        <div class="flex items-start gap-4 bg-dc-bg/60 border border-dc-border rounded-xl p-4">
+                            <div class="w-10 h-10 rounded-xl bg-theme/10 border border-theme/20 flex items-center justify-center shrink-0">
+                                <i data-lucide="book" class="w-5 h-5 text-theme"></i>
                             </div>
-                            <div>
-                                <label class="block text-xs text-dc-text mb-1">Terms PDF</label>
-                                <div class="flex items-center gap-3">
-                                    <input id="upload-terms-pdf" type="file" accept=".pdf" class="hidden" onchange="TOC.settings.uploadFile('terms_pdf', this)">
-                                    <button onclick="document.getElementById('upload-terms-pdf').click()" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
-                                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload PDF
-                                    </button>
-                                    <span id="terms-pdf-status" class="text-xs text-dc-text truncate max-w-[200px]">No file</span>
-                                </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-white">Manage your full rulebook in the Rules tab</p>
+                                <p class="text-xs text-dc-text mt-1">The <strong class="text-dc-textBright">Rules</strong> tab provides a complete rulebook editor with sections, PDFs, versioning, and participant-facing publishing. Use it to author and publish all tournament rules and terms.</p>
+                                <button onclick="TOC.navigate('rules')" class="mt-3 px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 w-fit">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Open Rules Tab
+                                </button>
                             </div>
                         </div>
-                        <div>
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="require_terms_acceptance" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Terms Acceptance before registration</label>
+                        {# Only keep the registration-gate toggle here — it is a true setting #}
+                        <div class="pt-2 border-t border-dc-border">
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input data-field="require_terms_acceptance" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme">
+                                Require Terms Acceptance before registration
+                            </label>
+                            <p class="text-[10px] text-dc-text/60 mt-1.5 ml-6">When enabled, participants must accept the Terms &amp; Conditions before they can register.</p>
                         </div>
                     </div>
                 </details>
@@ -1911,6 +2200,13 @@
                         </div>
                     </div>
                 </details>
+
+                {# ── Group: Game Configuration ── #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Game Configuration</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
 
                 {# ═══ 12. Game & Match Config ═══ #}
                 <details id="settings-game-section" class="glass-box rounded-xl group">
@@ -2027,7 +2323,149 @@
                     </div>
                 </details>
 
-                {# ═══ 17. Certificate Templates ═══ #}
+                {# ═══ 17. Scoring System (S27 — game-category aware) ═══ #}
+                <details id="settings-scoring-section" class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4 text-theme"></i> Scoring System
+                            <span class="text-[10px] bg-theme/10 text-theme px-2 py-0.5 rounded-full ml-2">S27</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 space-y-5" id="settings-scoring">
+                        {# Scoring type selector #}
+                        <div>
+                            <label class="block text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1.5">Scoring Type</label>
+                            <select id="scoring-type" onchange="TOC.settings.onScoringTypeChange(this.value)" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                <option value="win_loss">Win / Loss (Standard)</option>
+                                <option value="points">Point Accumulation (Round Robin)</option>
+                                <option value="rounds">Round Wins (FPS)</option>
+                                <option value="kills">Kill-Based (BR/FPS)</option>
+                                <option value="placement">Placement Order</option>
+                                <option value="goals">Goals (Sports)</option>
+                                <option value="custom">Custom Rules</option>
+                            </select>
+                        </div>
+
+                        {# Point Table (for round-robin / group stage) #}
+                        <div id="scoring-point-table" class="space-y-3">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="table-2" class="w-3.5 h-3.5 text-theme"></i> Point Table
+                            </h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Win Points</label>
+                                    <input id="scoring-win-pts" type="number" value="3" min="0" step="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Draw Points</label>
+                                    <input id="scoring-draw-pts" type="number" value="1" min="0" step="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Loss Points</label>
+                                    <input id="scoring-loss-pts" type="number" value="0" min="0" step="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Forfeit Points</label>
+                                    <input id="scoring-forfeit-pts" type="number" value="-1" step="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Round-based scoring (FPS) #}
+                        <div id="scoring-rounds-config" class="space-y-3 hidden">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-theme"></i> Round-Based Config (FPS)
+                            </h4>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Rounds to Win</label>
+                                    <input id="scoring-rounds-to-win" type="number" value="13" min="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Overtime Rounds</label>
+                                    <input id="scoring-overtime-rounds" type="number" value="6" min="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Max Overtime Halves</label>
+                                    <input id="scoring-ot-halves" type="number" value="2" min="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Goals config (Sports) #}
+                        <div id="scoring-goals-config" class="space-y-3 hidden">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5 text-theme"></i> Goals Config (Sports)
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Match Duration (min)</label>
+                                    <input id="scoring-match-duration" type="number" value="90" min="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright font-mono focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-dc-text mb-1">Extra Time</label>
+                                    <select id="scoring-extra-time" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                        <option value="none">None</option>
+                                        <option value="golden_goal">Golden Goal</option>
+                                        <option value="extra_time_30">Extra Time (30 min)</option>
+                                        <option value="penalties">Straight to Penalties</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 text-[10px] text-dc-textBright cursor-pointer">
+                                    <input id="scoring-aggregate" type="checkbox" class="accent-[var(--color-primary)]">
+                                    Enable aggregate scoring (two-leg matches)
+                                </label>
+                            </div>
+                        </div>
+
+                        {# Tiebreaker configuration #}
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 text-dc-warning"></i> Tiebreaker Priority
+                            </h4>
+                            <p class="text-[10px] text-dc-text">Drag to reorder. First rule has highest priority.</p>
+                            <div id="tiebreaker-list" class="space-y-1.5">
+                                {# Populated by JS #}
+                            </div>
+                        </div>
+
+                        {# Presets #}
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 text-dc-info"></i> Quick Presets
+                            </h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="scoring-presets">
+                                <button onclick="TOC.settings.applyScoringPreset('valorant')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                    <p class="text-[10px] font-bold text-white">Valorant / CS2</p>
+                                    <p class="text-[8px] text-dc-text mt-0.5">13 rounds, OT, win/loss</p>
+                                </button>
+                                <button onclick="TOC.settings.applyScoringPreset('moba')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                    <p class="text-[10px] font-bold text-white">DOTA 2 / MLBB</p>
+                                    <p class="text-[8px] text-dc-text mt-0.5">BO3 wins, no draws</p>
+                                </button>
+                                <button onclick="TOC.settings.applyScoringPreset('br')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                    <p class="text-[10px] font-bold text-white">PUBG / Free Fire</p>
+                                    <p class="text-[8px] text-dc-text mt-0.5">Placement + kills</p>
+                                </button>
+                                <button onclick="TOC.settings.applyScoringPreset('sports')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                    <p class="text-[10px] font-bold text-white">EA FC / eFootball</p>
+                                    <p class="text-[8px] text-dc-text mt-0.5">Goals, 3-1-0 pts</p>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button onclick="TOC.settings.saveScoringConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Scoring Config
+                            </button>
+                        </div>
+                    </div>
+                </details>
+
+                {# ═══ 18. Certificate Templates ═══ #}
                 <details id="settings-cert-section" class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
                         <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-theme"></i> Certificate Templates</span>
@@ -2044,6 +2482,13 @@
                         <div id="cert-template-list" class="space-y-1.5"></div>
                     </div>
                 </details>
+
+                {# ── Group: Staff & System ── #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-text opacity-50 px-2">Staff &amp; System</span>
+                    <div class="h-px bg-dc-border/40 flex-1"></div>
+                </div>
 
                 {# ═══ 18. Staff & Roles ═══ #}
                 <details id="settings-staff-section" class="glass-box rounded-xl group">
@@ -2121,6 +2566,708 @@
                         </div>
                         <div id="audit-log-feed" class="space-y-1.5 max-h-[400px] overflow-y-auto">
                             <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  STANDINGS / LEADERBOARDS TAB (Sprint 28)                  ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-standings" data-tab-content="standings" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="trophy" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Standings</span>
+                </div>
+
+                {# Header + Actions #}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Standings & Leaderboards</h2>
+                    <div class="flex items-center gap-2">
+                        <select id="standings-group-filter" onchange="TOC.standings.refresh()" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="">All Groups</option>
+                        </select>
+                        <button onclick="TOC.standings.exportStandings()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="download" class="w-3 h-3"></i> Export
+                        </button>
+                        <button onclick="TOC.standings.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                {# Stats Row #}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="standings-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="standings-stat-groups">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Groups</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="standings-stat-teams">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Teams</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="standings-stat-matches">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Matches Played</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="standings-stat-leader">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Current Leader</div>
+                    </div>
+                </div>
+
+                {# Standings Tables #}
+                <div id="standings-content" class="space-y-4">
+                    <div class="flex items-center justify-center h-32"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                </div>
+
+                {# Qualification Tracker #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-theme"></i> Qualification Tracker</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5" id="standings-qualification">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  CHECK-IN HUB TAB (Sprint 28)                              ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-checkin" data-tab-content="checkin" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="user-check" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Check-in</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Check-in Hub</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.checkin.openCheckin()" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="play" class="w-3 h-3"></i> Open Check-in
+                        </button>
+                        <button onclick="TOC.checkin.closeCheckin()" class="px-3 py-2 rounded-lg bg-dc-danger text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="square" class="w-3 h-3"></i> Close Check-in
+                        </button>
+                        <button onclick="TOC.checkin.autoDQ()" class="px-3 py-2 border border-dc-warning/30 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="user-x" class="w-3 h-3"></i> Auto-DQ
+                        </button>
+                        <button onclick="TOC.checkin.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {# Stats Row #}
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="checkin-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="checkin-stat-checked">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Checked In</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-warning" id="checkin-stat-pending">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Pending</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-danger" id="checkin-stat-missing">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">No-shows</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="checkin-stat-total">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Total</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="checkin-stat-status">Closed</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Status</div>
+                    </div>
+                </div>
+
+                {# Check-in Config #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4 text-theme"></i> Check-in Config</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4" id="checkin-config-section">
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Window (minutes)</label>
+                            <input id="checkin-window-minutes" type="number" min="5" max="120" value="15" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer mt-5">
+                                <input id="checkin-auto-dq" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-DQ on close
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer mt-5">
+                                <input id="checkin-per-round" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Per-round check-in
+                            </label>
+                        </div>
+                        <div class="md:col-span-3 flex justify-end">
+                            <button onclick="TOC.checkin.saveConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
+                        </div>
+                    </div>
+                </details>
+
+                {# Participants List #}
+                <div class="glass-box rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-display font-bold text-white text-sm">Participants</h3>
+                        <input id="checkin-search" type="text" placeholder="Search..." oninput="TOC.checkin.filterParticipants(this.value)" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-1.5 text-xs text-dc-textBright focus:outline-none focus:border-theme/50 w-48">
+                    </div>
+                    <div id="checkin-participants-list" class="space-y-1.5 max-h-[500px] overflow-y-auto">
+                        <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  STREAMS & MEDIA TAB (Sprint 28)                           ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-streams" data-tab-content="streams" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="tv" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Streams</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Streams & Media</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.streams.addStation()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add Station
+                        </button>
+                        <button onclick="TOC.streams.generateOverlayKey()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="key" class="w-3 h-3"></i> Overlay Key
+                        </button>
+                        <button onclick="TOC.streams.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="streams-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="streams-stat-live">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Live Now</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="streams-stat-stations">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Stations</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="streams-stat-upcoming">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Upcoming</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="streams-stat-vods">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">VODs</div>
+                    </div>
+                </div>
+
+                {# Broadcast Stations #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4">Broadcast Stations</h3>
+                    <div id="streams-stations-list" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Upcoming / Live Matches #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4">Stream Schedule</h3>
+                    <div id="streams-schedule-list" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# VOD Library #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="video" class="w-4 h-4 text-theme"></i> VOD Library</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-xs text-dc-text">Recorded matches and highlights</p>
+                            <button onclick="TOC.streams.addVod()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add VOD
+                            </button>
+                        </div>
+                        <div id="streams-vods-list" class="space-y-1.5">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">No VODs yet</p>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  ANALYTICS & INSIGHTS TAB (Sprint 28)                      ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-analytics" data-tab-content="analytics" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Analytics</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Analytics & Insights</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.analytics.exportReport()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="download" class="w-3 h-3"></i> Export Report
+                        </button>
+                        <button onclick="TOC.analytics.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {# Overview Stats #}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="analytics-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="analytics-stat-participants">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Participants</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="analytics-stat-matches">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Matches</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="analytics-stat-revenue">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Revenue</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="analytics-stat-completion">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Completion %</div>
+                    </div>
+                </div>
+
+                {# Registration Funnel #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                        <i data-lucide="funnel" class="w-4 h-4 text-theme"></i> Registration Funnel
+                    </h3>
+                    <div id="analytics-reg-funnel" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Match Analytics #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                        <i data-lucide="swords" class="w-4 h-4 text-theme"></i> Match Analytics
+                    </h3>
+                    <div id="analytics-matches-content" class="space-y-3">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Activity Timeline #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-theme"></i> Activity Timeline
+                    </h3>
+                    <div id="analytics-timeline" class="space-y-1.5 max-h-[400px] overflow-y-auto">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  LOBBY / SERVER MANAGEMENT TAB (Sprint 28)                 ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-lobby" data-tab-content="lobby" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="server" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Lobbies</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Lobby & Server Management</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.lobby.addServer()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add Server
+                        </button>
+                        <button onclick="TOC.lobby.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="lobby-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="lobby-stat-servers">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Servers</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="lobby-stat-active">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Active Lobbies</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="lobby-stat-pending">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Pending</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="lobby-stat-completed">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Completed</div>
+                    </div>
+                </div>
+
+                {# Server Pool #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4">Server Pool</h3>
+                    <div id="lobby-servers-list" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Match Lobbies #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4">Match Lobbies</h3>
+                    <div id="lobby-matches-list" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Lobby Config #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4 text-theme"></i> Lobby Configuration</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4" id="lobby-config-section">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input id="lobby-auto-create" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-create lobbies
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                                <input id="lobby-chat-enabled" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme"> Enable lobby chat
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Auto-close after (min)</label>
+                            <input id="lobby-auto-close" type="number" min="0" value="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div class="md:col-span-3 flex justify-end">
+                            <button onclick="TOC.lobby.saveConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  RULES & INFO TAB (Sprint 28)                              ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-rules" data-tab-content="rules" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="book-open" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Rules & Info</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Rules & Information</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.rules.addSection()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add Section
+                        </button>
+                        <button onclick="TOC.rules.publishVersion()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="upload" class="w-3 h-3"></i> Publish
+                        </button>
+                        <button onclick="TOC.rules.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="rules-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="rules-stat-sections">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Sections</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="rules-stat-faq">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">FAQ Items</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="rules-stat-version">1.0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Version</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="rules-stat-ack">0%</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Acknowledged</div>
+                    </div>
+                </div>
+
+                {# Quick Reference Card #}
+                <div class="glass-box rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4 text-theme"></i> Quick Reference
+                        </h3>
+                        <button onclick="TOC.rules.editQuickRef()" class="text-xs text-theme hover:underline">Edit</button>
+                    </div>
+                    <div id="rules-quick-ref" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        <p class="text-dc-text text-xs text-center py-4 col-span-full opacity-50">Not configured</p>
+                    </div>
+                </div>
+
+                {# Rulebook Sections #}
+                <div id="rules-sections-list" class="space-y-3">
+                    <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                </div>
+
+                {# FAQ  #}
+                <details class="glass-box rounded-xl group" open>
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="help-circle" class="w-4 h-4 text-theme"></i> Frequently Asked Questions</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div class="flex justify-end mb-3">
+                            <button onclick="TOC.rules.addFaq()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add FAQ
+                            </button>
+                        </div>
+                        <div id="rules-faq-list" class="space-y-2">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">No FAQs yet</p>
+                        </div>
+                    </div>
+                </details>
+
+                {# Prize Info #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-theme"></i> Prize Distribution</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5" id="rules-prize-info">
+                        <p class="text-xs text-dc-text text-center py-4 opacity-50">Not configured</p>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  ROSTERS TAB (Sprint 28)                                   ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-rosters" data-tab-content="rosters" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="users-round" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Rosters</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Team Roster Management</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.rosters.lockRosters()" id="rosters-lock-btn" class="px-3 py-2 rounded-lg bg-dc-warning text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="lock" class="w-3 h-3"></i> Lock Rosters
+                        </button>
+                        <button onclick="TOC.rosters.unlockRosters()" id="rosters-unlock-btn" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1 hidden">
+                            <i data-lucide="unlock" class="w-3 h-3"></i> Unlock
+                        </button>
+                        <button onclick="TOC.rosters.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3" id="rosters-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="rosters-stat-teams">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Teams</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="rosters-stat-players">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Players</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="rosters-stat-valid">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Valid</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-danger" id="rosters-stat-invalid">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Invalid</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-emerald-400" id="rosters-stat-game-ids">0</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Game IDs</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="rosters-stat-status">Open</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Status</div>
+                    </div>
+                </div>
+
+                {# Roster Config #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4 text-theme"></i> Roster Settings</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-4 gap-4" id="rosters-config-section">
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Min Roster Size</label>
+                            <input id="rosters-min-size" type="number" min="1" value="1" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Max Roster Size</label>
+                            <input id="rosters-max-size" type="number" min="1" value="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer mt-5">
+                                <input id="rosters-allow-subs" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme"> Allow Substitutes
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Max Subs</label>
+                            <input id="rosters-max-subs" type="number" min="0" value="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div class="md:col-span-4 flex justify-end">
+                            <button onclick="TOC.rosters.saveConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
+                        </div>
+                    </div>
+                </details>
+
+                {# Search / filter bar (populated by JS) #}
+                <div id="rosters-search-bar"></div>
+
+                {# Team Roster Cards #}
+                <div id="rosters-teams-list" class="space-y-3">
+                    <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                </div>
+
+                {# Solo Players #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="user" class="w-4 h-4 text-theme"></i> Solo Players</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div id="rosters-solo-list" class="space-y-1.5">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">No solo players</p>
+                        </div>
+                    </div>
+                </details>
+
+                {# Roster Change Log #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-theme"></i> Change Log</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div id="rosters-change-log" class="space-y-1.5 max-h-[300px] overflow-y-auto">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">No changes yet</p>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  NOTIFICATIONS CENTER TAB (Sprint 28)                      ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-notifications" data-tab-content="notifications" class="hidden-view p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="bell" class="w-5 h-5 opacity-20"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-40 font-display">Notifications</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl font-display font-bold text-white">Notifications Center</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="TOC.notifications.sendNotification()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="send" class="w-3 h-3"></i> Send Now
+                        </button>
+                        <button onclick="TOC.notifications.scheduleNotification()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> Schedule
+                        </button>
+                        <button onclick="TOC.notifications.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="notif-stats-row">
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-white" id="notif-stat-templates">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Templates</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-warning" id="notif-stat-pending">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Scheduled</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-dc-success" id="notif-stat-total">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Sent</div>
+                    </div>
+                    <div class="glass-box rounded-xl p-4 text-center">
+                        <div class="text-lg font-bold text-theme" id="notif-stat-auto">-</div>
+                        <div class="text-[10px] text-dc-text uppercase tracking-widest">Auto Rules</div>
+                    </div>
+                </div>
+
+                {# Templates #}
+                <div class="glass-box rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4 text-theme"></i> Templates
+                        </h3>
+                        <button onclick="TOC.notifications.createTemplate()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Create
+                        </button>
+                    </div>
+                    <div id="notif-templates-list" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Auto-notification Rules #}
+                <div class="glass-box rounded-xl p-5">
+                    <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-theme"></i> Auto-notification Rules
+                    </h3>
+                    <div id="notif-auto-rules" class="space-y-2">
+                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+
+                {# Delivery Channels #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="radio" class="w-4 h-4 text-theme"></i> Delivery Channels</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5 space-y-3" id="notif-channels">
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="notif-channel-inapp" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme"> In-App Notifications
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="notif-channel-email" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Email
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="notif-channel-discord" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Discord Webhook
+                        </label>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Discord Webhook URL</label>
+                            <input id="notif-webhook-url" type="url" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div class="flex justify-end">
+                            <button onclick="TOC.notifications.saveChannels()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Channels</button>
+                        </div>
+                    </div>
+                </details>
+
+                {# Notification Log #}
+                <details class="glass-box rounded-xl group">
+                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
+                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="scroll-text" class="w-4 h-4 text-theme"></i> Notification Log</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div id="notif-log" class="space-y-1.5 max-h-[400px] overflow-y-auto">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">No notifications sent yet</p>
                         </div>
                     </div>
                 </details>
@@ -2236,6 +3383,14 @@
     <script src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
     <script src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>
     <script src="{% static 'tournaments/toc/js/toc-audit.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-standings.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-checkin.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-streams.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-analytics.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-lobby.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
+    <script src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
     <script>
         if (typeof lucide !== 'undefined') { lucide.createIcons(); }
     </script>

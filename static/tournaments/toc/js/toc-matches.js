@@ -1,8 +1,14 @@
 /**
- * TOC Matches Module — Sprint 25: The Control Room (Master-Detail)
+ * TOC Matches Module â€” Sprint 26: Full Control Room Rebuild
+ *
  * Left panel: scrollable match list with group pills, state/round/search filters.
  * Right panel: match detail with inline Score Editor, Evidence Viewer, Audit Trail.
+ * Lobby info panel, check-in indicators, match room link.
  * Persistent action row with Medic controls + Confirm/Dispute/Reset.
+ * Custom dispute modal (replaces prompt()), lobby editor overlay.
+ * Full keyboard navigation & accessibility.
+ * XSS protection on all user-generated content.
+ *
  * Preserves Sprint 9 verify overlay as full-screen power-user mode.
  */
 ;(function () {
@@ -14,6 +20,13 @@
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
+
+  /* --- XSS-safe HTML escaping ------------------------------ */
+  const _escEl = document.createElement('div');
+  function esc(s) {
+    _escEl.textContent = s || '';
+    return _escEl.innerHTML;
+  }
 
   /* --- State Config ---------------------------------------- */
   const stateConfig = {
@@ -37,7 +50,9 @@
   let activeGroupFilter = '';
   let _debounceTimer = null;
 
-  /* --- Fetch & render -------------------------------------- */
+  /* ============================================================
+     FETCH & RENDER
+  ============================================================ */
   async function refresh() {
     const state = $('#match-filter-state')?.value || '';
     const round = $('#match-filter-round')?.value || '';
@@ -52,6 +67,7 @@
       populateGroupPills(allMatches);
     } catch (e) {
       console.error('[matches] fetch error', e);
+      toast('Failed to load matches', 'error');
     }
   }
 
@@ -66,7 +82,7 @@
     if (!container) return;
     var groups = [];
     var seen = {};
-    matches.forEach(function(m) {
+    matches.forEach(function (m) {
       if (m.group_label && !seen[m.group_label]) {
         seen[m.group_label] = true;
         groups.push(m.group_label);
@@ -77,11 +93,12 @@
 
     var html = '<button data-group="" class="match-pill ' +
       (activeGroupFilter === '' ? 'active bg-theme/15 text-theme border-theme/20' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
-      ' px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'\')">All</button>';
-    groups.forEach(function(g) {
-      html += '<button data-group="' + g + '" class="match-pill ' +
+      ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'\')" role="radio" aria-checked="' + (activeGroupFilter === '' ? 'true' : 'false') + '">All</button>';
+    groups.forEach(function (g) {
+      var eg = esc(g);
+      html += '<button data-group="' + eg + '" class="match-pill ' +
         (activeGroupFilter === g ? 'active bg-theme/15 text-theme border-theme/20' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
-        ' px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'' + g + '\')">' + g + '</button>';
+        ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'' + eg.replace(/'/g, "\\'") + '\')" role="radio" aria-checked="' + (activeGroupFilter === g ? 'true' : 'false') + '">' + eg + '</button>';
     });
     container.innerHTML = html;
   }
@@ -94,22 +111,22 @@
 
   function applyGroupFilter() {
     filteredMatches = activeGroupFilter
-      ? allMatches.filter(function(m) { return m.group_label === activeGroupFilter; })
+      ? allMatches.filter(function (m) { return m.group_label === activeGroupFilter; })
       : allMatches.slice();
     renderMatchList(filteredMatches);
-    if (selectedMatchId && !filteredMatches.find(function(m) { return m.id === selectedMatchId; })) {
+    if (selectedMatchId && !filteredMatches.find(function (m) { return m.id === selectedMatchId; })) {
       clearDetail();
     }
   }
 
   /* --- Stats ----------------------------------------------- */
   function renderStats(matches) {
-    var el = function(id, val) { var e = $('#matches-stat-' + id); if (e) e.textContent = val; };
+    var el = function (id, val) { var e = $('#matches-stat-' + id); if (e) e.textContent = val; };
     el('total', matches.length);
-    el('live', matches.filter(function(m) { return m.state === 'live'; }).length);
-    el('pending', matches.filter(function(m) { return m.state === 'pending_result'; }).length);
-    el('completed', matches.filter(function(m) { return m.state === 'completed' || m.state === 'forfeit'; }).length);
-    el('disputed', matches.filter(function(m) { return m.state === 'disputed'; }).length);
+    el('live', matches.filter(function (m) { return m.state === 'live'; }).length);
+    el('pending', matches.filter(function (m) { return m.state === 'pending_result'; }).length);
+    el('completed', matches.filter(function (m) { return m.state === 'completed' || m.state === 'forfeit'; }).length);
+    el('disputed', matches.filter(function (m) { return m.state === 'disputed'; }).length);
   }
 
   /* --- Round filter ---------------------------------------- */
@@ -117,15 +134,15 @@
     var sel = $('#match-filter-round');
     if (!sel) return;
     var roundSet = {};
-    matches.forEach(function(m) { roundSet[m.round_number] = true; });
-    var rounds = Object.keys(roundSet).map(Number).sort(function(a,b){return a-b;});
+    matches.forEach(function (m) { roundSet[m.round_number] = true; });
+    var rounds = Object.keys(roundSet).map(Number).sort(function (a, b) { return a - b; });
     var current = sel.value;
     sel.innerHTML = '<option value="">All Rounds</option>' +
-      rounds.map(function(r) { return '<option value="' + r + '"' + (String(r) === current ? ' selected' : '') + '>Round ' + r + '</option>'; }).join('');
+      rounds.map(function (r) { return '<option value="' + r + '"' + (String(r) === current ? ' selected' : '') + '>Round ' + r + '</option>'; }).join('');
   }
 
   /* ============================================================
-     LEFT PANEL: Match List (compact cards)
+     LEFT PANEL: Match List (redesigned cards)
   ============================================================ */
   function renderMatchList(matches) {
     var list = $('#match-list');
@@ -135,35 +152,68 @@
     if (countEl) countEl.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
 
     if (!matches.length) {
-      list.innerHTML = '<div class="flex items-center justify-center h-40"><div class="text-center">' +
-        '<i data-lucide="inbox" class="w-8 h-8 text-dc-border mx-auto mb-2"></i>' +
-        '<p class="text-xs text-dc-text/50">No matches found</p></div></div>';
+      list.innerHTML =
+        '<div class="flex items-center justify-center h-full min-h-[300px]">' +
+        '<div class="text-center max-w-xs px-6">' +
+        '<div class="w-16 h-16 rounded-2xl bg-dc-border/10 mx-auto mb-4 flex items-center justify-center">' +
+        '<i data-lucide="swords" class="w-8 h-8 text-dc-border/50"></i></div>' +
+        '<h3 class="text-sm font-bold text-dc-text/60 mb-2">No Matches Yet</h3>' +
+        '<p class="text-xs text-dc-text/40 mb-4">Matches haven\'t been generated for this tournament. To begin, ensure groups/brackets are finalized, then go to the Schedule tab.</p>' +
+        '<button onclick="TOC.switchTab && TOC.switchTab(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
+        '<i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Go to Schedule</button>' +
+        '</div></div>';
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
-    list.innerHTML = matches.map(function(m) {
+    list.innerHTML = matches.map(function (m) {
       var sc = stateConfig[m.state] || stateConfig.scheduled;
       var isSelected = m.id === selectedMatchId;
       var isWinner1 = m.winner_id && m.winner_id === m.participant1_id;
       var isWinner2 = m.winner_id && m.winner_id === m.participant2_id;
-      var liveDot = m.state === 'live' ? '<span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
-      var groupTag = m.group_label ? ' &middot; <span class="text-theme">' + m.group_label + '</span>' : '';
+      var liveDot = m.state === 'live' ? '<span class="w-2 h-2 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
+      var groupTag = m.group_label ? ' <span class="text-theme/70">&middot;</span> <span class="text-theme font-bold">' + esc(m.group_label) + '</span>' : '';
+      var disputedBorder = m.state === 'disputed' ? ' ring-1 ring-dc-danger/30' : '';
 
-      return '<div class="match-card px-3 py-2.5 cursor-pointer transition-all hover:bg-white/[0.02] ' +
-        (isSelected ? 'bg-theme/5 border-l-2 border-l-theme' : 'border-l-2 border-l-transparent') +
-        '" onclick="TOC.matches.selectMatch(' + m.id + ')" data-match-id="' + m.id + '">' +
-        '<div class="flex items-center justify-between mb-1.5">' +
-        '<span class="text-[9px] font-mono text-dc-text">R' + m.round_number + ' &middot; #' + m.match_number + groupTag + '</span>' +
-        '<div class="flex items-center gap-1.5">' + liveDot +
-        '<span class="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
-        (m.is_paused ? '<span class="text-[8px] font-bold text-dc-warning">&#x23F8;</span>' : '') +
+      // Check-in dots
+      var checkinHtml = '';
+      if (m.state === 'check_in' || m.state === 'ready') {
+        var c1 = m.participant1_checked_in ? 'bg-dc-success' : 'bg-dc-border';
+        var c2 = m.participant2_checked_in ? 'bg-dc-success' : 'bg-dc-border';
+        checkinHtml = '<span class="flex items-center gap-0.5 text-xs text-dc-text" title="Check-in: P1 ' + (m.participant1_checked_in ? '\u2713' : '\u2717') + ', P2 ' + (m.participant2_checked_in ? '\u2713' : '\u2717') + '">' +
+          '<span class="w-1.5 h-1.5 rounded-full ' + c1 + '"></span>' +
+          '<span class="w-1.5 h-1.5 rounded-full ' + c2 + '"></span></span>';
+      }
+
+      return '<div class="match-card px-4 py-3 cursor-pointer transition-all hover:bg-white/[0.03]' +
+        (isSelected ? ' bg-theme/5 border-l-[3px] border-l-theme' : ' border-l-[3px] border-l-transparent') +
+        disputedBorder +
+        '" onclick="TOC.matches.selectMatch(' + m.id + ')" data-match-id="' + m.id + '"' +
+        ' tabindex="0" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '"' +
+        ' aria-label="Match ' + m.match_number + ': ' + esc(m.participant1_name || 'TBD') + ' vs ' + esc(m.participant2_name || 'TBD') + '">' +
+
+        // Row 1: Round/match info + state badge
+        '<div class="flex items-center justify-between mb-2">' +
+        '<span class="text-xs font-mono text-dc-text">R' + m.round_number + ' &middot; #' + m.match_number + groupTag + '</span>' +
+        '<div class="flex items-center gap-2">' + checkinHtml + liveDot +
+        '<span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
+        (m.is_paused ? '<span class="text-xs font-bold text-dc-warning" title="Paused">&#x23F8;</span>' : '') +
         '</div></div>' +
-        '<div class="flex items-center gap-2">' +
-        '<span class="flex-1 text-right text-xs ' + (isWinner1 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + (m.participant1_name || 'TBD') + '</span>' +
-        '<span class="font-mono font-bold text-xs text-white px-2 py-0.5 rounded bg-dc-bg border border-dc-border min-w-[48px] text-center">' + m.participant1_score + ' &#8211; ' + m.participant2_score + '</span>' +
-        '<span class="flex-1 text-left text-xs ' + (isWinner2 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + (m.participant2_name || 'TBD') + '</span>' +
-        '</div></div>';
+
+        // Row 2: Teams + score
+        '<div class="flex items-center gap-3">' +
+        '<span class="flex-1 text-right text-sm ' + (isWinner1 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant1_name || 'TBD') + '</span>' +
+        '<span class="font-mono font-black text-sm text-white px-3 py-1 rounded bg-dc-bg border border-dc-border min-w-[56px] text-center">' + (m.participant1_score != null ? m.participant1_score : '-') + ' \u2013 ' + (m.participant2_score != null ? m.participant2_score : '-') + '</span>' +
+        '<span class="flex-1 text-left text-sm ' + (isWinner2 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant2_name || 'TBD') + '</span>' +
+        '</div>' +
+
+        // Row 3: Time info (if scheduled)
+        (m.scheduled_time ? '<div class="mt-1.5 text-xs text-dc-text/50 font-mono text-center">' +
+        '<i data-lucide="clock" class="w-3 h-3 inline-block mr-1"></i>' +
+        new Date(m.scheduled_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
+        '</div>' : '') +
+
+        '</div>';
     }).join('');
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -176,14 +226,16 @@
     selectedMatchId = id;
 
     // Highlight selected card in list
-    $$('.match-card').forEach(function(el) {
+    $$('.match-card').forEach(function (el) {
       var mid = parseInt(el.dataset.matchId);
       if (mid === id) {
         el.classList.add('bg-theme/5', 'border-l-theme');
         el.classList.remove('border-l-transparent');
+        el.setAttribute('aria-selected', 'true');
       } else {
         el.classList.remove('bg-theme/5', 'border-l-theme');
         el.classList.add('border-l-transparent');
+        el.setAttribute('aria-selected', 'false');
       }
     });
 
@@ -194,7 +246,7 @@
     if (content) content.classList.remove('hidden');
 
     // Render basic header from list data
-    var m = allMatches.find(function(x) { return x.id === id; });
+    var m = allMatches.find(function (x) { return x.id === id; });
     if (m) {
       renderDetailHeader(m);
       updateMedicButtons(m);
@@ -212,6 +264,7 @@
       updateMedicButtons(data.match || m);
     } catch (e) {
       console.error('[matches] detail fetch error', e);
+      toast('Failed to load match details', 'error');
       if (m) {
         renderScoreEditor(m, []);
         renderEvidence({ match: m, submissions: [], media: [] });
@@ -240,7 +293,7 @@
     var stateEl = $('#detail-match-state');
     if (stateEl) {
       stateEl.textContent = sc.label;
-      stateEl.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-widest border ' + sc.cls;
+      stateEl.className = 'text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border ' + sc.cls;
     }
 
     var teamA = $('#detail-team-a');
@@ -266,28 +319,130 @@
 
     renderAvatar('detail-avatar-a', m.participant1_avatar_url);
     renderAvatar('detail-avatar-b', m.participant2_avatar_url);
+
+    // Lobby info row
+    renderLobbyRow(m);
+
+    // Check-in indicators
+    renderCheckinIndicators(m);
   }
 
   function renderAvatar(containerId, url) {
     var el = $('#' + containerId);
     if (!el) return;
     if (url) {
-      el.innerHTML = '<img src="' + url + '" alt="" class="w-full h-full object-cover">';
+      el.innerHTML = '<img src="' + esc(url) + '" alt="" class="w-full h-full object-cover">';
     } else {
       el.innerHTML = '<i data-lucide="user" class="w-5 h-5 text-dc-border"></i>';
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
   }
 
+  /* -- Lobby Info Row -- */
+  function renderLobbyRow(m) {
+    var row = $('#detail-lobby-row');
+    if (!row) return;
+
+    var li = m.lobby_info || {};
+    var hasLobby = li.lobby_code || li.map || li.server;
+
+    if (hasLobby || m.state === 'check_in' || m.state === 'ready' || m.state === 'live') {
+      row.classList.remove('hidden');
+    } else {
+      row.classList.add('hidden');
+      return;
+    }
+
+    // Lobby code
+    var codeEl = $('#detail-lobby-code');
+    if (codeEl) {
+      if (li.lobby_code) {
+        codeEl.classList.remove('hidden');
+        var strong = codeEl.querySelector('strong');
+        if (strong) strong.textContent = li.lobby_code;
+      } else {
+        codeEl.classList.add('hidden');
+      }
+    }
+
+    // Map
+    var mapEl = $('#detail-lobby-map');
+    if (mapEl) {
+      if (li.map) {
+        mapEl.classList.remove('hidden');
+        var span = mapEl.querySelector('span.text-dc-textBright');
+        if (span) span.textContent = li.map;
+      } else {
+        mapEl.classList.add('hidden');
+      }
+    }
+
+    // Server
+    var serverEl = $('#detail-lobby-server');
+    if (serverEl) {
+      if (li.server) {
+        serverEl.classList.remove('hidden');
+        var sSpan = serverEl.querySelector('span.text-dc-textBright');
+        if (sSpan) sSpan.textContent = li.server;
+      } else {
+        serverEl.classList.add('hidden');
+      }
+    }
+
+    // Match room link
+    var roomLink = $('#detail-room-link');
+    if (roomLink) {
+      roomLink.href = '/tournaments/' + slug + '/matches/' + m.id + '/room/';
+      roomLink.classList.remove('hidden');
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  /* -- Check-in Indicators -- */
+  function renderCheckinIndicators(m) {
+    var p1El = $('#detail-checkin-p1');
+    var p2El = $('#detail-checkin-p2');
+    if (!p1El || !p2El) return;
+
+    var dot1 = p1El.querySelector('span.rounded-full');
+    var dot2 = p2El.querySelector('span.rounded-full');
+
+    if (dot1) {
+      dot1.className = 'w-2 h-2 rounded-full ' + (m.participant1_checked_in ? 'bg-dc-success' : 'bg-dc-border');
+    }
+    if (dot2) {
+      dot2.className = 'w-2 h-2 rounded-full ' + (m.participant2_checked_in ? 'bg-dc-success' : 'bg-dc-border');
+    }
+
+    // Deadline countdown
+    if (m.check_in_deadline && (m.state === 'check_in')) {
+      var deadline = new Date(m.check_in_deadline);
+      var now = new Date();
+      var diff = Math.max(0, Math.round((deadline - now) / 1000 / 60));
+      p1El.title = 'Check-in deadline: ' + diff + 'min remaining';
+      p2El.title = p1El.title;
+    }
+  }
+
+  /* -- Copy Lobby Code -- */
+  function copyLobbyCode() {
+    var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+    if (!m || !m.lobby_info?.lobby_code) return;
+    navigator.clipboard.writeText(m.lobby_info.lobby_code).then(function () {
+      toast('Lobby code copied', 'success');
+    });
+  }
+
   /* -- Medic Buttons -- */
   function updateMedicButtons(m) {
     if (!m) return;
-    var btnLive   = $('#btn-medic-live');
-    var btnPause  = $('#btn-medic-pause');
+    var btnLive = $('#btn-medic-live');
+    var btnPause = $('#btn-medic-pause');
     var btnResume = $('#btn-medic-resume');
-    var btnForce  = $('#btn-medic-force');
+    var btnForce = $('#btn-medic-force');
 
-    [btnLive, btnPause, btnResume, btnForce].forEach(function(b) { if (b) b.classList.add('hidden'); });
+    [btnLive, btnPause, btnResume, btnForce].forEach(function (b) { if (b) b.classList.add('hidden'); });
 
     if (['scheduled', 'check_in', 'ready'].includes(m.state)) {
       if (btnLive) btnLive.classList.remove('hidden');
@@ -333,33 +488,33 @@
     if (!container) return;
 
     var subs = data.submissions || [];
-    var media = (data.media || []).filter(function(x) { return x.is_evidence; });
+    var media = (data.media || []).filter(function (x) { return x.is_evidence; });
     var vs = data.verification_status;
 
     if (subs.length === 0 && media.length === 0) {
       container.innerHTML = '<div class="text-center py-8">' +
         '<i data-lucide="image-off" class="w-10 h-10 text-dc-border mx-auto mb-2"></i>' +
-        '<p class="text-xs text-dc-text/50">No evidence submitted yet</p></div>';
+        '<p class="text-sm text-dc-text/50">No evidence submitted yet</p></div>';
       if (split) split.classList.add('hidden');
       if (mismatch) mismatch.classList.add('hidden');
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
-    container.innerHTML = subs.map(function(s, idx) {
+    container.innerHTML = subs.map(function (s, idx) {
       var statusCls = (s.status === 'confirmed' || s.status === 'finalized') ? 'bg-dc-success/20 text-dc-success' :
         s.status === 'disputed' ? 'bg-dc-danger/20 text-dc-danger' : 'bg-dc-warning/20 text-dc-warning';
-      return '<div class="flex items-center gap-3 p-2.5 rounded-lg ' +
+      return '<div class="flex items-center gap-3 p-3 rounded-lg ' +
         (idx === 0 ? 'bg-blue-500/5 border border-blue-500/20' : 'bg-purple-500/5 border border-purple-500/20') + '">' +
-        '<span class="text-[9px] font-bold uppercase tracking-widest ' +
-        (idx === 0 ? 'text-blue-400' : 'text-purple-400') + ' w-14 shrink-0">' +
-        (s.submitted_by_team_id ? (idx === 0 ? 'Capt. A' : 'Capt. B') : (s.submitted_by_name || 'Sub ' + (idx+1))) + '</span>' +
-        '<span class="font-mono font-black text-white text-sm flex-1 text-center">' +
+        '<span class="text-xs font-bold uppercase tracking-widest ' +
+        (idx === 0 ? 'text-blue-400' : 'text-purple-400') + ' w-16 shrink-0">' +
+        (s.submitted_by_team_id ? (idx === 0 ? 'Capt. A' : 'Capt. B') : esc(s.submitted_by_name || 'Sub ' + (idx + 1))) + '</span>' +
+        '<span class="font-mono font-black text-white text-base flex-1 text-center">' +
         ((s.raw_result_payload && s.raw_result_payload.score_p1 != null) ? s.raw_result_payload.score_p1 : '-') +
         ' - ' +
         ((s.raw_result_payload && s.raw_result_payload.score_p2 != null) ? s.raw_result_payload.score_p2 : '-') +
         '</span>' +
-        '<span class="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ' + statusCls + '">' + s.status + '</span></div>';
+        '<span class="text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ' + statusCls + '">' + esc(s.status) + '</span></div>';
     }).join('');
 
     if (split) {
@@ -369,8 +524,8 @@
         split.classList.remove('hidden');
         var eA = $('#evidence-img-a');
         var eB = $('#evidence-img-b');
-        if (eA) eA.innerHTML = imgA ? '<img src="' + imgA + '" class="w-full h-full object-contain" alt="Evidence A">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
-        if (eB) eB.innerHTML = imgB ? '<img src="' + imgB + '" class="w-full h-full object-contain" alt="Evidence B">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
+        if (eA) eA.innerHTML = imgA ? '<img src="' + esc(imgA) + '" class="w-full h-full object-contain" alt="Evidence A">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
+        if (eB) eB.innerHTML = imgB ? '<img src="' + esc(imgB) + '" class="w-full h-full object-contain" alt="Evidence B">' : '<i data-lucide="image" class="w-8 h-8 text-dc-border"></i>';
       } else {
         split.classList.add('hidden');
       }
@@ -399,26 +554,26 @@
     var disputes = data.disputes || [];
 
     var entries = [];
-    timeline.forEach(function(t) { entries.push({ time: t.created_at, type: 'event', icon: 'activity', color: 'text-theme', text: t.description || t.action }); });
-    notes.forEach(function(n) { entries.push({ time: n.created_at, type: 'note', icon: 'message-square', color: 'text-dc-info', text: n.text, by: n.author }); });
-    disputes.forEach(function(d) { entries.push({ time: d.created_at, type: 'dispute', icon: 'flag', color: 'text-dc-danger', text: d.reason_code + ': ' + d.description, by: d.filed_by }); });
+    timeline.forEach(function (t) { entries.push({ time: t.created_at, type: 'event', icon: 'activity', color: 'text-theme', text: t.description || t.action }); });
+    notes.forEach(function (n) { entries.push({ time: n.created_at, type: 'note', icon: 'message-square', color: 'text-dc-info', text: n.text, by: n.author || ('User #' + (n.user_id || '?')) }); });
+    disputes.forEach(function (d) { entries.push({ time: d.opened_at || d.created_at, type: 'dispute', icon: 'flag', color: 'text-dc-danger', text: (d.reason_code || 'dispute') + ': ' + (d.description || ''), by: d.opened_by_name || d.filed_by }); });
 
-    entries.sort(function(a, b) { return new Date(b.time) - new Date(a.time); });
+    entries.sort(function (a, b) { return new Date(b.time) - new Date(a.time); });
 
     if (!entries.length) {
-      container.innerHTML = '<div class="flex items-center justify-center py-10"><p class="text-xs text-dc-text/50 font-mono">No audit entries</p></div>';
+      container.innerHTML = '<div class="flex items-center justify-center py-10"><p class="text-sm text-dc-text/50 font-mono">No audit entries</p></div>';
       return;
     }
 
-    container.innerHTML = entries.map(function(e) {
+    container.innerHTML = entries.map(function (e) {
       return '<div class="flex gap-3 px-4 py-3">' +
-        '<div class="w-6 h-6 rounded-full bg-dc-bg border border-dc-border flex items-center justify-center shrink-0 mt-0.5">' +
-        '<i data-lucide="' + e.icon + '" class="w-3 h-3 ' + e.color + '"></i></div>' +
+        '<div class="w-7 h-7 rounded-full bg-dc-bg border border-dc-border flex items-center justify-center shrink-0 mt-0.5">' +
+        '<i data-lucide="' + e.icon + '" class="w-3.5 h-3.5 ' + e.color + '"></i></div>' +
         '<div class="flex-1 min-w-0">' +
-        '<p class="text-xs text-dc-textBright">' + e.text + '</p>' +
+        '<p class="text-sm text-dc-textBright">' + esc(e.text) + '</p>' +
         '<div class="flex items-center gap-2 mt-0.5">' +
-        '<span class="text-[9px] text-dc-text font-mono">' + (e.time ? new Date(e.time).toLocaleString() : '') + '</span>' +
-        (e.by ? '<span class="text-[9px] text-dc-text">&middot; ' + e.by + '</span>' : '') +
+        '<span class="text-xs text-dc-text font-mono">' + (e.time ? new Date(e.time).toLocaleString() : '') + '</span>' +
+        (e.by ? '<span class="text-xs text-dc-text">&middot; ' + esc(e.by) + '</span>' : '') +
         '</div></div></div>';
     }).join('');
 
@@ -427,17 +582,19 @@
 
   /* -- Detail Tab Switcher -- */
   function switchDetailTab(tab) {
-    $$('.detail-tab').forEach(function(el) {
+    $$('.detail-tab').forEach(function (el) {
       var t = el.dataset.detailTab;
       if (t === tab) {
         el.classList.add('active', 'text-theme', 'border-b-theme');
         el.classList.remove('text-dc-text', 'border-transparent');
+        el.setAttribute('aria-selected', 'true');
       } else {
         el.classList.remove('active', 'text-theme', 'border-b-theme');
         el.classList.add('text-dc-text', 'border-transparent');
+        el.setAttribute('aria-selected', 'false');
       }
     });
-    $$('.detail-tab-content').forEach(function(el) { el.classList.add('hidden'); });
+    $$('.detail-tab-content').forEach(function (el) { el.classList.add('hidden'); });
     var target = $('#detail-tab-' + tab);
     if (target) target.classList.remove('hidden');
   }
@@ -469,7 +626,7 @@
   async function forceComplete(id) {
     var matchId = id || selectedMatchId;
     if (!matchId) return;
-    if (!confirm('Force-complete this match?')) return;
+    if (!confirm('Force-complete this match? This cannot be undone.')) return;
     try { await API.post('matches/' + matchId + '/force-complete/'); toast('Match force-completed', 'info'); refresh(); selectMatch(matchId); }
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
@@ -495,19 +652,40 @@
     }
   }
 
-  async function openDispute() {
+  /* -- Dispute Modal (replaces prompt()) -- */
+  function openDispute() {
     if (!selectedMatchId) { toast('No match selected', 'error'); return; }
-    var reason = prompt('Dispute reason (brief):');
-    if (!reason) return;
+    var modal = $('#dispute-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      var desc = $('#dispute-description');
+      if (desc) { desc.value = ''; desc.focus(); }
+      var code = $('#dispute-reason-code');
+      if (code) code.value = 'score_mismatch';
+    }
+  }
+
+  function closeDisputeModal() {
+    var modal = $('#dispute-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function confirmDispute() {
+    if (!selectedMatchId) return;
+    var reasonCode = $('#dispute-reason-code')?.value || 'other';
+    var description = $('#dispute-description')?.value || '';
+    if (!description.trim()) { toast('Please describe the issue', 'error'); return; }
+
     try {
       await API.post('matches/' + selectedMatchId + '/verify/', {
         action: 'dispute',
-        reason_code: 'admin_dispute',
-        notes: reason,
+        reason_code: reasonCode,
+        notes: description,
         participant1_score: parseInt($('#score-input-a')?.value) || 0,
         participant2_score: parseInt($('#score-input-b')?.value) || 0,
       });
       toast('Dispute opened', 'warning');
+      closeDisputeModal();
       refresh();
       selectMatch(selectedMatchId);
     } catch (e) { toast(e.message || 'Failed', 'error'); }
@@ -515,7 +693,7 @@
 
   async function resetMatch() {
     if (!selectedMatchId) { toast('No match selected', 'error'); return; }
-    if (!confirm('Reset this match? Scores and state will be cleared.')) return;
+    if (!confirm('Reset this match? Scores and state will be cleared. This cannot be undone.')) return;
     try {
       await API.post('matches/' + selectedMatchId + '/reset/');
       toast('Match reset', 'info');
@@ -524,21 +702,74 @@
     } catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
+  /* ============================================================
+     LOBBY EDITOR
+  ============================================================ */
+  function openLobbyEditor() {
+    if (!selectedMatchId) { toast('No match selected', 'error'); return; }
+    var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+    var li = (m && m.lobby_info) || {};
+
+    var modal = $('#lobby-editor-modal');
+    if (!modal) return;
+
+    var codeInput = $('#lobby-code-input');
+    var passInput = $('#lobby-password-input');
+    var mapInput = $('#lobby-map-input');
+    var serverInput = $('#lobby-server-input');
+    var gmInput = $('#lobby-gamemode-input');
+
+    if (codeInput) codeInput.value = li.lobby_code || '';
+    if (passInput) passInput.value = li.password || '';
+    if (mapInput) mapInput.value = li.map || '';
+    if (serverInput) serverInput.value = li.server || '';
+    if (gmInput) gmInput.value = li.game_mode || '';
+
+    modal.classList.remove('hidden');
+    if (codeInput) codeInput.focus();
+  }
+
+  function closeLobbyEditor() {
+    var modal = $('#lobby-editor-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function saveLobbyInfo() {
+    if (!selectedMatchId) return;
+    var lobbyData = {
+      lobby_code: $('#lobby-code-input')?.value || '',
+      password: $('#lobby-password-input')?.value || '',
+      map: $('#lobby-map-input')?.value || '',
+      server: $('#lobby-server-input')?.value || '',
+      game_mode: $('#lobby-gamemode-input')?.value || '',
+    };
+
+    try {
+      await API.post('matches/' + selectedMatchId + '/add-note/', {
+        text: '[LOBBY_UPDATE] ' + JSON.stringify(lobbyData),
+      });
+      toast('Lobby info saved', 'success');
+      closeLobbyEditor();
+      refresh();
+      selectMatch(selectedMatchId);
+    } catch (e) { toast(e.message || 'Failed to save lobby info', 'error'); }
+  }
+
   /* --- Legacy overlay bridges (reschedule, forfeit) --------- */
   function openScoreDrawer(id) { selectMatch(id); switchDetailTab('score'); }
   function openDetailDrawer(id) { selectMatch(id); }
 
   function openRescheduleModal(id) {
     var mid = id || selectedMatchId;
-    var m = allMatches.find(function(x) { return x.id === mid; });
+    var m = allMatches.find(function (x) { return x.id === mid; });
     if (!m) return;
     var html = '<div class="p-6 space-y-4">' +
       '<h3 class="font-display font-black text-lg text-white">Reschedule Match #' + m.match_number + '</h3>' +
-      '<div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">New Time</label>' +
-      '<input id="rs-time" type="datetime-local" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none"></div>' +
-      '<div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Reason</label>' +
-      '<textarea id="rs-reason" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Optional reason..."></textarea></div>' +
-      '<button onclick="TOC.matches.confirmReschedule(' + mid + ')" class="w-full py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Request Reschedule</button></div>';
+      '<div><label class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">New Time</label>' +
+      '<input id="rs-time" type="datetime-local" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none"></div>' +
+      '<div><label class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Reason</label>' +
+      '<textarea id="rs-reason" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none resize-none" placeholder="Optional reason..."></textarea></div>' +
+      '<button onclick="TOC.matches.confirmReschedule(' + mid + ')" class="w-full py-3 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Request Reschedule</button></div>';
     showOverlay('reschedule-overlay', html);
   }
 
@@ -558,14 +789,14 @@
 
   function openForfeit(id) {
     var mid = id || selectedMatchId;
-    var m = allMatches.find(function(x) { return x.id === mid; });
+    var m = allMatches.find(function (x) { return x.id === mid; });
     if (!m) return;
     var html = '<div class="p-6 space-y-4">' +
       '<h3 class="font-display font-black text-lg text-white">Declare Forfeit</h3>' +
-      '<p class="text-xs text-dc-text">Select which participant is forfeiting:</p>' +
+      '<p class="text-sm text-dc-text">Select which participant is forfeiting:</p>' +
       '<div class="grid grid-cols-2 gap-3">' +
-      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant1_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-xs font-bold rounded-lg hover:bg-dc-danger/20">' + (m.participant1_name || 'Team A') + '</button>' +
-      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant2_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-xs font-bold rounded-lg hover:bg-dc-danger/20">' + (m.participant2_name || 'Team B') + '</button>' +
+      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant1_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant1_name || 'Team A') + '</button>' +
+      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant2_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant2_name || 'Team B') + '</button>' +
       '</div></div>';
     showOverlay('forfeit-overlay', html);
   }
@@ -579,7 +810,9 @@
     } catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
-  /* --- Sprint 9: Full-screen Verification Overlay ----------- */
+  /* ============================================================
+     Sprint 9: Full-screen Verification Overlay
+  ============================================================ */
   var _verifyDetail = null;
   var _evidenceIndex = 0;
   var _zoomScale = 1;
@@ -609,24 +842,24 @@
     var sc = stateConfig[m.state] || stateConfig.scheduled;
 
     var evidenceSources = [];
-    subs.forEach(function(s, idx) {
+    subs.forEach(function (s, idx) {
       if (s.proof_screenshot_url) {
         evidenceSources.push({
-          label: s.submitted_by_team_id ? ('Team ' + (idx === 0 ? 'A' : 'B')) : s.submitted_by_name,
+          label: s.submitted_by_team_id ? ('Team ' + (idx === 0 ? 'A' : 'B')) : (s.submitted_by_name || 'Sub ' + (idx + 1)),
           url: s.proof_screenshot_url,
           notes: s.submitter_notes,
         });
       }
     });
-    media.filter(function(x) { return x.is_evidence; }).forEach(function(x) {
+    media.filter(function (x) { return x.is_evidence; }).forEach(function (x) {
       evidenceSources.push({ label: x.description || x.media_type, url: x.url });
     });
 
     var bannerMap = {
-      match:     { icon: String.fromCodePoint(0x1F7E2), cls: 'bg-dc-success/10 border-dc-success/30 text-dc-success' },
-      mismatch:  { icon: String.fromCodePoint(0x1F534), cls: 'bg-dc-danger/10 border-dc-danger/30 text-dc-danger' },
-      pending:   { icon: String.fromCodePoint(0x1F7E1), cls: 'bg-dc-warning/10 border-dc-warning/30 text-dc-warning' },
-      finalized: { icon: String.fromCodePoint(0x2705), cls: 'bg-dc-text/10 border-dc-border text-dc-textBright' },
+      match: { icon: '\u{1F7E2}', cls: 'bg-dc-success/10 border-dc-success/30 text-dc-success' },
+      mismatch: { icon: '\u{1F534}', cls: 'bg-dc-danger/10 border-dc-danger/30 text-dc-danger' },
+      pending: { icon: '\u{1F7E1}', cls: 'bg-dc-warning/10 border-dc-warning/30 text-dc-warning' },
+      finalized: { icon: '\u2705', cls: 'bg-dc-text/10 border-dc-border text-dc-textBright' },
     };
     var b = bannerMap[vs.code] || bannerMap.pending;
     var sub0 = (subs[0] && subs[0].raw_result_payload) || {};
@@ -634,77 +867,77 @@
     var evTabsHtml = '';
     if (evidenceSources.length > 1) {
       evTabsHtml = '<div class="flex items-center gap-1 ml-3">';
-      evidenceSources.forEach(function(ev, i) {
-        evTabsHtml += '<button onclick="TOC.matches.switchEvidence(' + i + ')" class="px-2 py-0.5 rounded text-[9px] font-bold transition-colors ' +
+      evidenceSources.forEach(function (ev, i) {
+        evTabsHtml += '<button onclick="TOC.matches.switchEvidence(' + i + ')" class="px-2.5 py-1 rounded text-xs font-bold transition-colors ' +
           (i === 0 ? 'bg-theme text-dc-bg' : 'bg-dc-bg border border-dc-border text-dc-text hover:text-white') +
-          '" id="ev-tab-' + i + '">' + ev.label + '</button>';
+          '" id="ev-tab-' + i + '">' + esc(ev.label) + '</button>';
       });
       evTabsHtml += '</div>';
     }
 
     var subsHtml = '';
     if (subs.length > 0) {
-      subs.forEach(function(s, idx) {
+      subs.forEach(function (s, idx) {
         var sCls = (s.status === 'confirmed' || s.status === 'finalized') ? 'bg-dc-success/20 text-dc-success' :
           s.status === 'disputed' ? 'bg-dc-danger/20 text-dc-danger' : 'bg-dc-warning/20 text-dc-warning';
-        subsHtml += '<div class="flex items-center gap-3 p-2 rounded-lg ' +
+        subsHtml += '<div class="flex items-center gap-3 p-3 rounded-lg ' +
           (idx === 0 ? 'bg-blue-500/5 border border-blue-500/20' : 'bg-purple-500/5 border border-purple-500/20') + '">' +
-          '<span class="text-[9px] font-bold uppercase tracking-widest ' +
+          '<span class="text-xs font-bold uppercase tracking-widest ' +
           (idx === 0 ? 'text-blue-400' : 'text-purple-400') + ' w-16">' +
-          (s.submitted_by_team_id ? (idx === 0 ? 'Capt. A' : 'Capt. B') : s.submitted_by_name) + '</span>' +
-          '<span class="font-mono font-black text-white text-sm flex-1 text-center">' +
+          (s.submitted_by_team_id ? (idx === 0 ? 'Capt. A' : 'Capt. B') : esc(s.submitted_by_name || 'Unknown')) + '</span>' +
+          '<span class="font-mono font-black text-white text-base flex-1 text-center">' +
           ((s.raw_result_payload && s.raw_result_payload.score_p1 != null) ? s.raw_result_payload.score_p1 : '-') + ' - ' +
           ((s.raw_result_payload && s.raw_result_payload.score_p2 != null) ? s.raw_result_payload.score_p2 : '-') + '</span>' +
-          '<span class="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ' + sCls + '">' + s.status + '</span></div>';
+          '<span class="text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ' + sCls + '">' + esc(s.status) + '</span></div>';
       });
     } else {
-      subsHtml = '<p class="text-[10px] text-dc-text text-center py-2">No submissions yet</p>';
+      subsHtml = '<p class="text-xs text-dc-text text-center py-2">No submissions yet</p>';
     }
 
     var evidenceHtml;
     if (evidenceSources.length > 0) {
-      evidenceHtml = '<img id="evidence-img" src="' + evidenceSources[0].url + '" alt="Evidence" class="max-w-none select-none" draggable="false" style="transform: scale(1) translate(0px, 0px); transition: transform 0.15s ease;" onerror="this.style.display=\'none\'; document.getElementById(\'evidence-fallback\').style.display=\'flex\';">' +
-        '<div id="evidence-fallback" class="hidden absolute inset-0 flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-xs">Failed to load</span></div>';
+      evidenceHtml = '<img id="evidence-img" src="' + esc(evidenceSources[0].url) + '" alt="Evidence" class="max-w-none select-none" draggable="false" style="transform: scale(1) translate(0px, 0px); transition: transform 0.15s ease;" onerror="this.style.display=\'none\'; document.getElementById(\'evidence-fallback\').style.display=\'flex\';">' +
+        '<div id="evidence-fallback" class="hidden absolute inset-0 flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-sm">Failed to load</span></div>';
     } else {
-      evidenceHtml = '<div class="flex flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-xs">No evidence submitted</span></div>';
+      evidenceHtml = '<div class="flex flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-sm">No evidence submitted</span></div>';
     }
 
     var html = '<div class="flex flex-col h-full max-h-[90vh]">' +
       '<div class="flex items-center justify-between p-4 border-b border-dc-borderLight bg-dc-panel/80">' +
       '<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-theme/20 flex items-center justify-center"><i data-lucide="shield-check" class="w-4 h-4 text-theme"></i></div>' +
       '<div><h3 class="font-display font-black text-white text-sm">R' + m.round_number + ' Match #' + m.match_number + ' &mdash; Verification</h3>' +
-      '<p class="text-[10px] text-dc-text">' + (m.participant1_name || 'TBD') + ' vs ' + (m.participant2_name || 'TBD') + '</p></div></div>' +
-      '<div class="flex items-center gap-2"><span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
+      '<p class="text-xs text-dc-text">' + esc(m.participant1_name || 'TBD') + ' vs ' + esc(m.participant2_name || 'TBD') + '</p></div></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
       '<button onclick="TOC.matches.closeOverlay(\'verify-overlay\')" class="w-8 h-8 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="x" class="w-4 h-4 text-dc-text"></i></button></div></div>' +
       '<div class="mx-4 mt-4 p-3 rounded-lg border ' + b.cls + ' flex items-center gap-2"><span class="text-base">' + b.icon + '</span><div>' +
-      '<span class="text-[10px] font-black uppercase tracking-widest">' + (vs.label || 'Pending') + '</span>' +
-      '<span class="text-[10px] ml-2 opacity-80">' + (vs.detail || '') + '</span></div></div>' +
+      '<span class="text-xs font-black uppercase tracking-widest">' + esc(vs.label || 'Pending') + '</span>' +
+      '<span class="text-xs ml-2 opacity-80">' + esc(vs.detail || '') + '</span></div></div>' +
       '<div class="flex flex-1 overflow-hidden mt-4 mx-4 mb-4 gap-4" style="min-height:0">' +
       '<div class="flex-1 flex flex-col bg-dc-bg border border-dc-border rounded-xl overflow-hidden">' +
       '<div class="flex items-center justify-between p-3 border-b border-dc-border bg-dc-panel/50"><div class="flex items-center gap-2">' +
-      '<i data-lucide="image" class="w-3.5 h-3.5 text-theme"></i><span class="text-[10px] font-bold text-white uppercase tracking-widest">Evidence Viewer</span>' + evTabsHtml + '</div>' +
+      '<i data-lucide="image" class="w-3.5 h-3.5 text-theme"></i><span class="text-xs font-bold text-white uppercase tracking-widest">Evidence Viewer</span>' + evTabsHtml + '</div>' +
       '<div class="flex items-center gap-1">' +
-      '<button onclick="TOC.matches.zoomEvidence(-1)" class="w-6 h-6 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-out" class="w-3 h-3 text-dc-text"></i></button>' +
-      '<span id="verify-zoom-level" class="text-[9px] font-mono text-dc-text w-10 text-center">100%</span>' +
-      '<button onclick="TOC.matches.zoomEvidence(1)" class="w-6 h-6 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-in" class="w-3 h-3 text-dc-text"></i></button>' +
-      '<button onclick="TOC.matches.resetZoom()" class="w-6 h-6 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="maximize-2" class="w-3 h-3 text-dc-text"></i></button></div></div>' +
-      '<div id="evidence-canvas" class="flex-1 overflow-hidden relative cursor-grab active:cursor-grabbing flex items-center justify-center bg-black/40" onmousedown="TOC.matches.startPan(event)" onmousemove="TOC.matches.doPan(event)" onmouseup="TOC.matches.endPan()" onmouseleave="TOC.matches.endPan()" onwheel="TOC.matches.wheelZoom(event)">' +
+      '<button onclick="TOC.matches.zoomEvidence(-1)" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-out" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
+      '<span id="verify-zoom-level" class="text-xs font-mono text-dc-text w-12 text-center">100%</span>' +
+      '<button onclick="TOC.matches.zoomEvidence(1)" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-in" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
+      '<button onclick="TOC.matches.resetZoom()" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="maximize-2" class="w-3.5 h-3.5 text-dc-text"></i></button></div></div>' +
+      '<div id="evidence-canvas" class="flex-1 overflow-hidden relative cursor-grab active:cursor-grabbing flex items-center justify-center bg-black/40" onmousedown="TOC.matches.startPan(event)" onmousemove="TOC.matches.doPan(event)" onmouseup="TOC.matches.endPan()" onmouseleave="TOC.matches.endPan()" onwheel="TOC.matches.wheelZoom(event)" ontouchstart="TOC.matches.startTouch(event)" ontouchmove="TOC.matches.doTouch(event)" ontouchend="TOC.matches.endPan()">' +
       evidenceHtml + '</div></div>' +
       '<div class="w-[380px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">' +
-      '<div class="bg-dc-surface border border-dc-border rounded-xl overflow-hidden"><div class="p-3 border-b border-dc-border bg-dc-panel/50 flex items-center gap-2"><i data-lucide="git-compare" class="w-3.5 h-3.5 text-theme"></i><span class="text-[10px] font-bold text-white uppercase tracking-widest">Submitted Scores</span></div>' +
+      '<div class="bg-dc-surface border border-dc-border rounded-xl overflow-hidden"><div class="p-3 border-b border-dc-border bg-dc-panel/50 flex items-center gap-2"><i data-lucide="git-compare" class="w-3.5 h-3.5 text-theme"></i><span class="text-xs font-bold text-white uppercase tracking-widest">Submitted Scores</span></div>' +
       '<div class="p-4 space-y-3">' + subsHtml + '</div></div>' +
-      '<div class="bg-dc-surface border border-dc-border rounded-xl overflow-hidden"><div class="p-3 border-b border-dc-border bg-dc-panel/50 flex items-center gap-2"><i data-lucide="target" class="w-3.5 h-3.5 text-theme"></i><span class="text-[10px] font-bold text-white uppercase tracking-widest">Final Score</span></div>' +
-      '<div class="p-4"><div class="grid grid-cols-2 gap-3"><div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">' + (m.participant1_name || 'Team A') + '</label>' +
-      '<input id="verify-p1" type="number" value="' + (sub0.score_p1 != null ? sub0.score_p1 : m.participant1_score) + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm font-mono text-center font-bold focus:border-theme outline-none"></div>' +
-      '<div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">' + (m.participant2_name || 'Team B') + '</label>' +
-      '<input id="verify-p2" type="number" value="' + (sub0.score_p2 != null ? sub0.score_p2 : m.participant2_score) + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm font-mono text-center font-bold focus:border-theme outline-none"></div></div></div></div>' +
-      '<textarea id="verify-notes" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Optional admin note ..."></textarea>' +
+      '<div class="bg-dc-surface border border-dc-border rounded-xl overflow-hidden"><div class="p-3 border-b border-dc-border bg-dc-panel/50 flex items-center gap-2"><i data-lucide="target" class="w-3.5 h-3.5 text-theme"></i><span class="text-xs font-bold text-white uppercase tracking-widest">Final Score</span></div>' +
+      '<div class="p-4"><div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">' + esc(m.participant1_name || 'Team A') + '</label>' +
+      '<input id="verify-p1" type="number" value="' + (sub0.score_p1 != null ? sub0.score_p1 : m.participant1_score) + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-base font-mono text-center font-bold focus:border-theme outline-none"></div>' +
+      '<div><label class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">' + esc(m.participant2_name || 'Team B') + '</label>' +
+      '<input id="verify-p2" type="number" value="' + (sub0.score_p2 != null ? sub0.score_p2 : m.participant2_score) + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-base font-mono text-center font-bold focus:border-theme outline-none"></div></div></div></div>' +
+      '<textarea id="verify-notes" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none resize-none" placeholder="Optional admin note ..."></textarea>' +
       '<div class="space-y-2">' +
       '<button onclick="TOC.matches.verifyAction(' + id + ', \'confirm\')" class="w-full py-3 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 ' +
-      (m.state === 'completed' ? 'opacity-40 pointer-events-none' : '') + '">' + String.fromCodePoint(0x2705) + ' Confirm & Finalize</button>' +
+      (m.state === 'completed' ? 'opacity-40 pointer-events-none' : '') + '">\u2705 Confirm & Finalize</button>' +
       '<button onclick="TOC.matches.verifyAction(' + id + ', \'dispute\')" class="w-full py-3 bg-dc-danger/20 border border-dc-danger/30 text-dc-danger text-xs font-black uppercase tracking-widest rounded-xl hover:bg-dc-danger/30 transition-colors flex items-center justify-center gap-2 ' +
-      (m.state === 'disputed' ? 'opacity-40 pointer-events-none' : '') + '">' + String.fromCodePoint(0x274C) + ' Open Dispute</button>' +
-      '<button onclick="TOC.matches.verifyAction(' + id + ', \'note\')" class="w-full py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2">' + String.fromCodePoint(0x1F4DD) + ' Add Admin Note</button>' +
+      (m.state === 'disputed' ? 'opacity-40 pointer-events-none' : '') + '">\u274C Open Dispute</button>' +
+      '<button onclick="TOC.matches.verifyAction(' + id + ', \'note\')" class="w-full py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2">\u{1F4DD} Add Admin Note</button>' +
       '</div></div></div></div>';
 
     showFullOverlay('verify-overlay', html);
@@ -713,10 +946,10 @@
   function switchEvidence(idx) {
     if (!_verifyDetail) return;
     var subs = _verifyDetail.submissions || [];
-    var media = (_verifyDetail.media || []).filter(function(x) { return x.is_evidence; });
+    var media = (_verifyDetail.media || []).filter(function (x) { return x.is_evidence; });
     var sources = [];
-    subs.forEach(function(s) { if (s.proof_screenshot_url) sources.push(s); });
-    media.forEach(function(x) { sources.push(x); });
+    subs.forEach(function (s) { if (s.proof_screenshot_url) sources.push(s); });
+    media.forEach(function (x) { sources.push(x); });
     if (idx < 0 || idx >= sources.length) return;
     _evidenceIndex = idx;
     _zoomScale = 1; _panX = 0; _panY = 0;
@@ -728,10 +961,10 @@
       var fb = document.getElementById('evidence-fallback');
       if (fb) fb.style.display = 'none';
     }
-    document.querySelectorAll('[id^="ev-tab-"]').forEach(function(el, i) {
+    document.querySelectorAll('[id^="ev-tab-"]').forEach(function (el, i) {
       el.className = i === idx
-        ? 'px-2 py-0.5 rounded text-[9px] font-bold transition-colors bg-theme text-dc-bg'
-        : 'px-2 py-0.5 rounded text-[9px] font-bold transition-colors bg-dc-bg border border-dc-border text-dc-text hover:text-white';
+        ? 'px-2.5 py-1 rounded text-xs font-bold transition-colors bg-theme text-dc-bg'
+        : 'px-2.5 py-1 rounded text-xs font-bold transition-colors bg-dc-bg border border-dc-border text-dc-text hover:text-white';
     });
   }
 
@@ -741,6 +974,40 @@
   function startPan(e) { _isPanning = true; _panStartX = e.clientX - _panX; _panStartY = e.clientY - _panY; }
   function doPan(e) { if (!_isPanning) return; _panX = e.clientX - _panStartX; _panY = e.clientY - _panStartY; applyTransform(); }
   function endPan() { _isPanning = false; }
+
+  // Touch support for evidence pan/zoom
+  var _lastTouchDist = 0;
+  function startTouch(e) {
+    if (e.touches.length === 1) {
+      _isPanning = true;
+      _panStartX = e.touches[0].clientX - _panX;
+      _panStartY = e.touches[0].clientY - _panY;
+    } else if (e.touches.length === 2) {
+      _lastTouchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }
+  function doTouch(e) {
+    e.preventDefault();
+    if (e.touches.length === 1 && _isPanning) {
+      _panX = e.touches[0].clientX - _panStartX;
+      _panY = e.touches[0].clientY - _panStartY;
+      applyTransform();
+    } else if (e.touches.length === 2) {
+      var dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (_lastTouchDist > 0) {
+        var delta = (dist - _lastTouchDist) / 100;
+        _zoomScale = Math.max(0.25, Math.min(5, _zoomScale + delta));
+        applyTransform();
+      }
+      _lastTouchDist = dist;
+    }
+  }
 
   function applyTransform() {
     var img = document.getElementById('evidence-img');
@@ -765,7 +1032,9 @@
     } catch (e) { toast(e.message || 'Verification failed', 'error'); }
   }
 
-  /* --- Overlay helpers -------------------------------------- */
+  /* ============================================================
+     OVERLAY HELPERS
+  ============================================================ */
   function showFullOverlay(id, innerHtml) {
     var existing = document.getElementById(id);
     if (existing) existing.remove();
@@ -794,10 +1063,16 @@
 
   function closeOverlay(id) { var el = document.getElementById(id); if (el) el.remove(); }
 
-  /* --- Keyboard Navigation --------------------------------- */
+  /* ============================================================
+     KEYBOARD NAVIGATION
+  ============================================================ */
   function handleKeyboard(e) {
     var matchesTab = $('#view-matches');
     if (!matchesTab || matchesTab.classList.contains('hidden-view')) return;
+
+    // Don't intercept when inside inputs/textareas/selects
+    var tag = (e.target?.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
@@ -817,12 +1092,45 @@
         if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
+
+    // Enter/Space to select focused match card
+    if ((e.key === 'Enter' || e.key === ' ') && e.target?.classList?.contains('match-card')) {
+      e.preventDefault();
+      var mid = parseInt(e.target.dataset.matchId);
+      if (mid) selectMatch(mid);
+    }
+
+    // Escape to clear detail or close modals
+    if (e.key === 'Escape') {
+      var disputeModal = $('#dispute-modal');
+      var lobbyModal = $('#lobby-editor-modal');
+      if (disputeModal && !disputeModal.classList.contains('hidden')) { closeDisputeModal(); return; }
+      if (lobbyModal && !lobbyModal.classList.contains('hidden')) { closeLobbyEditor(); return; }
+      var verify = document.getElementById('verify-overlay');
+      if (verify) { closeOverlay('verify-overlay'); return; }
+      clearDetail();
+    }
+
+    // Tab switching: 1=Score, 2=Evidence, 3=Audit
+    if (e.key === '1' && selectedMatchId) { switchDetailTab('score'); }
+    if (e.key === '2' && selectedMatchId) { switchDetailTab('evidence'); }
+    if (e.key === '3' && selectedMatchId) { switchDetailTab('audit'); }
+
+    // Quick actions (with no modifier)
+    if (e.key === 's' || e.key === 'S') { if (selectedMatchId) { switchDetailTab('score'); $('#score-input-a')?.focus(); } }
+    if (e.key === 'd' || e.key === 'D') { if (selectedMatchId) openDispute(); }
+    if (e.key === 'n' || e.key === 'N') { if (selectedMatchId) { switchDetailTab('score'); $('#score-note')?.focus(); } }
+    if (e.key === 'v' || e.key === 'V') { if (selectedMatchId) openVerifyScreen(); }
+    if (e.key === 'l' || e.key === 'L') { if (selectedMatchId) openLobbyEditor(); }
   }
 
-  /* --- Init ------------------------------------------------ */
+  /* ============================================================
+     INIT
+  ============================================================ */
   function init() {
     refresh();
     switchDetailTab('score');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   document.addEventListener('keydown', handleKeyboard);
@@ -830,16 +1138,21 @@
   window.TOC = window.TOC || {};
   window.TOC.matches = {
     init: init, refresh: refresh, debouncedRefresh: debouncedRefresh,
-    selectMatch: selectMatch, filterGroup: filterGroup,
+    selectMatch: selectMatch, clearDetail: clearDetail, filterGroup: filterGroup,
     switchDetailTab: switchDetailTab,
     markLive: markLive, pause: pause, resume: resume, forceComplete: forceComplete,
-    submitScore: submitScore, openDispute: openDispute, resetMatch: resetMatch,
+    submitScore: submitScore,
+    openDispute: openDispute, closeDisputeModal: closeDisputeModal, confirmDispute: confirmDispute,
+    resetMatch: resetMatch,
+    openLobbyEditor: openLobbyEditor, closeLobbyEditor: closeLobbyEditor, saveLobbyInfo: saveLobbyInfo,
+    copyLobbyCode: copyLobbyCode,
     openScoreDrawer: openScoreDrawer, openDetailDrawer: openDetailDrawer,
     openRescheduleModal: openRescheduleModal, confirmReschedule: confirmReschedule,
     openForfeit: openForfeit, confirmForfeit: confirmForfeit,
     openVerifyScreen: openVerifyScreen, verifyAction: verifyAction,
     switchEvidence: switchEvidence, zoomEvidence: zoomEvidence, resetZoom: resetZoom, wheelZoom: wheelZoom,
     startPan: startPan, doPan: doPan, endPan: endPan,
+    startTouch: startTouch, doTouch: doTouch,
     closeOverlay: closeOverlay,
   };
 

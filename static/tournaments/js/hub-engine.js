@@ -36,6 +36,13 @@ const HubEngine = (() => {
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
 
+  // S27: WebSocket connection for real-time sync
+  let _ws = null;
+  let _wsReconnectTimer = null;
+  let _wsReconnectAttempts = 0;
+  const WS_RECONNECT_MAX = 5;
+  const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
+
   // ── Init ────────────────────────────────────────────────
   function init() {
     _shell = document.getElementById('hub-shell');
@@ -49,6 +56,9 @@ const HubEngine = (() => {
     // Start polling
     _pollStateId = setInterval(_pollState, POLL_STATE_INTERVAL);
     _pollAnnId   = setInterval(_pollAnnouncements, POLL_ANN_INTERVAL);
+
+    // S27: Connect WebSocket for real-time updates
+    _connectWebSocket();
 
     // Keyboard: Escape closes mobile sidebar + modals
     document.addEventListener('keydown', (e) => {
@@ -121,6 +131,10 @@ const HubEngine = (() => {
     }
     if (tabId === 'support') {
       _initSupportForm();
+    }
+    // S27: Lazy-load match schedule for schedule tab
+    if (tabId === 'schedule') {
+      _fetchScheduleMatches();
     }
 
     // Re-init lucide icons for dynamic content
@@ -1147,6 +1161,146 @@ const HubEngine = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
+  // S27: Schedule Tab — Match-Level Schedule
+  // ──────────────────────────────────────────────────────────
+  let _scheduleMatchesCache = null;
+
+  async function _fetchScheduleMatches() {
+    // Reuse the matches API — it returns all match data with scheduled_at
+    const url = _shell?.dataset.apiMatches;
+    if (!url) return;
+
+    const skeleton = document.getElementById('schedule-match-skeleton');
+    const empty    = document.getElementById('schedule-match-empty');
+    const list     = document.getElementById('schedule-match-list');
+    if (!skeleton && !empty && !list) return; // no schedule match section
+
+    if (skeleton) skeleton.classList.remove('hidden');
+    if (empty) empty.classList.add('hidden');
+    if (list) list.classList.add('hidden');
+
+    try {
+      // Use matches cache if available, otherwise fetch
+      let data = _matchesCache;
+      if (!data) {
+        const resp = await fetch(url, { credentials: 'same-origin' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        data = await resp.json();
+        _matchesCache = data;
+      }
+      _renderScheduleMatches(data);
+    } catch (err) {
+      console.warn('[Hub] Schedule matches fetch failed:', err.message);
+      if (skeleton) skeleton.classList.add('hidden');
+      if (empty) { empty.classList.remove('hidden'); }
+    }
+  }
+
+  function _renderScheduleMatches(data) {
+    const skeleton = document.getElementById('schedule-match-skeleton');
+    const empty    = document.getElementById('schedule-match-empty');
+    const list     = document.getElementById('schedule-match-list');
+
+    if (skeleton) skeleton.classList.add('hidden');
+
+    // Combine active + history matches
+    const allMatches = [
+      ...(data.active_matches || []),
+      ...(data.match_history || [])
+    ];
+
+    if (allMatches.length === 0) {
+      if (empty) empty.classList.remove('hidden');
+      if (list) list.classList.add('hidden');
+      return;
+    }
+
+    // Sort by scheduled_at (earliest first), unscheduled at end
+    const sorted = allMatches.sort((a, b) => {
+      if (!a.scheduled_at && !b.scheduled_at) return 0;
+      if (!a.scheduled_at) return 1;
+      if (!b.scheduled_at) return -1;
+      return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+    });
+
+    // Group by day
+    const groups = {};
+    sorted.forEach(m => {
+      const day = m.scheduled_at
+        ? new Date(m.scheduled_at).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Unscheduled';
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(m);
+    });
+
+    let html = '';
+    for (const [day, matches] of Object.entries(groups)) {
+      const isToday = day !== 'Unscheduled' && new Date(matches[0].scheduled_at).toDateString() === new Date().toDateString();
+      html += `
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-[10px] font-bold ${isToday ? 'text-[#00FF66]' : 'text-gray-500'} uppercase tracking-widest" style="font-family:'Space Grotesk',monospace;">
+              ${isToday ? '● Today — ' : ''}${_esc(day)}
+            </span>
+            <div class="flex-1 h-px bg-white/5"></div>
+          </div>`;
+
+      matches.forEach(m => {
+        const stateColors = {
+          live: '#FF2A55', ready: '#00FF66', check_in: '#00F0FF',
+          scheduled: '#FFB800', completed: '#6b7280', cancelled: '#4b5563',
+          forfeit: '#4b5563', disputed: '#f97316'
+        };
+        const color = stateColors[m.state] || '#6b7280';
+        const time = m.scheduled_at
+          ? new Date(m.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const isLive = m.state === 'live';
+        const isCompleted = m.state === 'completed';
+        const resultTag = isCompleted
+          ? (m.is_winner === true ? '<span class="text-[10px] font-bold text-[#00FF66]">WIN</span>'
+            : m.is_winner === false ? '<span class="text-[10px] font-bold text-[#FF2A55]">LOSS</span>'
+            : '<span class="text-[10px] font-bold text-gray-400">DRAW</span>')
+          : '';
+
+        html += `
+          <div class="hub-glass rounded-xl p-4 flex items-center gap-4 border-l-3 transition-all hover:border-l-4" style="border-left-color:${color}">
+            <div class="w-14 text-center shrink-0">
+              <p class="text-sm font-bold ${isLive ? 'text-[#FF2A55]' : 'text-white'}" style="font-family:'Space Grotesk',monospace;">
+                ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse inline-block mr-1"></span>LIVE' : time}
+              </p>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
+              <p class="text-sm font-medium text-white mt-0.5">vs ${_esc(m.opponent_name || 'TBD')}</p>
+            </div>
+            <div class="text-right shrink-0">
+              ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.your_score ?? 0} — ${m.opponent_score ?? 0}</p>` : ''}
+              ${resultTag}
+              ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
+            </div>
+          </div>`;
+      });
+
+      html += '</div>';
+    }
+
+    if (list) {
+      list.innerHTML = html;
+      list.classList.remove('hidden');
+    }
+    if (empty) empty.classList.add('hidden');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  // Public helper for refresh button
+  function refreshScheduleMatches() {
+    _matchesCache = null;
+    _fetchScheduleMatches();
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Participants Tab — Async Fetch & Render
   // ──────────────────────────────────────────────────────────
   async function _fetchParticipants() {
@@ -1274,12 +1428,157 @@ const HubEngine = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
+  // S27: WebSocket — Real-Time Sync
+  // ──────────────────────────────────────────────────────────
+  function _connectWebSocket() {
+    if (!_shell) return;
+    const slug = _shell.dataset.slug;
+    if (!slug) { console.warn('[Hub] No slug for WS'); return; }
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${proto}://${location.host}/ws/tournaments/${slug}/bracket/`;
+
+    try {
+      _ws = new WebSocket(url);
+    } catch (e) {
+      console.warn('[Hub] WS failed:', e);
+      return;
+    }
+
+    _ws.onopen = () => {
+      console.info('[Hub] WS connected');
+      _wsReconnectAttempts = 0;
+      // Add a visual connection indicator
+      const ind = document.getElementById('hub-ws-indicator');
+      if (ind) { ind.classList.remove('disconnected'); ind.classList.add('connected'); }
+    };
+
+    _ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        _handleWsMessage(msg);
+      } catch (e) {
+        console.warn('[Hub] WS parse error:', e);
+      }
+    };
+
+    _ws.onclose = (evt) => {
+      console.info('[Hub] WS closed', evt.code);
+      _ws = null;
+      const ind = document.getElementById('hub-ws-indicator');
+      if (ind) { ind.classList.remove('connected'); ind.classList.add('disconnected'); }
+      // Auto-reconnect with exponential backoff (skip if clean close)
+      if (evt.code !== 1000 && _wsReconnectAttempts < WS_RECONNECT_MAX) {
+        const delay = WS_RECONNECT_BASE * Math.pow(2, _wsReconnectAttempts);
+        _wsReconnectAttempts++;
+        console.info(`[Hub] WS reconnecting in ${delay}ms (attempt ${_wsReconnectAttempts})`);
+        _wsReconnectTimer = setTimeout(_connectWebSocket, delay);
+      }
+    };
+
+    _ws.onerror = () => { /* onclose will fire */ };
+  }
+
+  function _handleWsMessage(msg) {
+    const type = msg.type;
+    console.info('[Hub] WS event:', type);
+
+    switch (type) {
+      case 'bracket_state':
+        // Initial state on connect — prime bracket cache
+        if (msg.bracket) {
+          _bracketCache = msg.bracket;
+        }
+        break;
+
+      case 'bracket_update':
+        // Invalidate bracket + standings + matches caches
+        _bracketCache = null;
+        _standingsCache = null;
+        _matchesCache = null;
+        _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        break;
+
+      case 'match_completed':
+        // Invalidate matches + standings
+        _matchesCache = null;
+        _standingsCache = null;
+        _bracketCache = null;
+        _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        // Show a toast notification
+        _showWsToast('Match completed', 'info');
+        break;
+
+      case 'match_update':
+        _matchesCache = null;
+        _refreshActiveTab(['matches', 'schedule']);
+        break;
+
+      case 'pong':
+        break;
+
+      default:
+        // Unknown event — do a general poll refresh
+        _pollState();
+        break;
+    }
+  }
+
+  /**
+   * If the currently active tab is one of the affected tabs,
+   * trigger a re-fetch by calling switchTab logic for that tab.
+   */
+  function _refreshActiveTab(affectedTabs) {
+    if (!_currentTab) return;
+    if (affectedTabs.includes(_currentTab)) {
+      // Force re-render by clearing the tab and reloading
+      const oldTab = _currentTab;
+      _currentTab = null;  // allow switchTab to proceed
+      switchTab(oldTab);
+    }
+  }
+
+  /**
+   * Lightweight toast notification for WS events.
+   */
+  function _showWsToast(message, level) {
+    let container = document.getElementById('hub-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'hub-toast-container';
+      container.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    const bg = level === 'info' ? '#3b82f6' : level === 'success' ? '#10b981' : '#ef4444';
+    toast.style.cssText = `background:${bg};color:#fff;padding:0.75rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:auto;opacity:0;transform:translateX(100%);transition:all 0.3s ease;`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; });
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 350);
+    }, 4000);
+  }
+
+  // Keep WS alive with periodic pings
+  setInterval(() => {
+    if (_ws && _ws.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }, 30000);
+
+  // ──────────────────────────────────────────────────────────
   // Cleanup (if SPA navigates away)
   // ──────────────────────────────────────────────────────────
   function destroy() {
     if (_pollStateId) clearInterval(_pollStateId);
     if (_pollAnnId) clearInterval(_pollAnnId);
     if (_countdownId) clearInterval(_countdownId);
+    // S27: Close WebSocket
+    if (_wsReconnectTimer) clearTimeout(_wsReconnectTimer);
+    if (_ws) { _ws.close(1000); _ws = null; }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -1476,5 +1775,8 @@ const HubEngine = (() => {
     // Module 12: Support & Disputes
     selectSupportCategory,
     submitSupportRequest,
+    // S27: WebSocket status
+    isWsConnected: () => _ws && _ws.readyState === WebSocket.OPEN,
+    refreshScheduleMatches,
   };
 })();

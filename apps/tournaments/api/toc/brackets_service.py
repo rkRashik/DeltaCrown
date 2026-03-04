@@ -216,73 +216,243 @@ class TOCBracketsService:
 
     @staticmethod
     def get_schedule(tournament) -> Dict[str, Any]:
-        """Full schedule: all matches with times, stations, status."""
+        """
+        Full schedule: all matches with times, stations, status,
+        group names, conflict detection, and summary statistics.
+
+        Sprint 27: Enhanced with conflict detection, group info,
+        per-day breakdown, and estimated completion time.
+        """
         matches = (
             Match.objects.filter(tournament=tournament)
             .select_related("bracket")
             .order_by("scheduled_time", "round_number", "match_number")
         )
 
+        # ── Build group lookup (match → group name) ──
+        group_lookup = {}
+        try:
+            for grp in Group.objects.filter(tournament=tournament):
+                for standing in GroupStanding.objects.filter(group=grp):
+                    if standing.team_id:
+                        group_lookup[standing.team_id] = grp.name
+        except Exception:
+            pass
+
+        # ── Serialize matches by round ──
         rounds = {}
+        all_serialized = []
         for m in matches:
             rn = m.round_number or 0
             if rn not in rounds:
                 rounds[rn] = []
-            rounds[rn].append(TOCBracketsService._serialize_match_schedule(m))
+            serialized = TOCBracketsService._serialize_match_schedule(m)
+            # Attach group name from participant lookup
+            gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
+            serialized["group_name"] = gname
+            rounds[rn].append(serialized)
+            all_serialized.append(serialized)
+
+        # ── Conflict detection ──
+        conflicts = TOCBracketsService._detect_schedule_conflicts(matches)
+
+        # ── Summary statistics ──
+        total = matches.count()
+        scheduled = sum(1 for m in matches if m.state in ("scheduled", "check_in", "ready"))
+        live = sum(1 for m in matches if m.state == "live")
+        completed = sum(1 for m in matches if m.state in ("completed", "forfeit"))
+        pending = sum(1 for m in matches if m.state == "pending_result")
+        disputed = sum(1 for m in matches if m.state == "disputed")
+
+        # Estimated end time (latest scheduled + 1h buffer)
+        scheduled_times = [m.scheduled_time for m in matches if m.scheduled_time]
+        est_end = None
+        if scheduled_times:
+            from datetime import timedelta
+            est_end = (max(scheduled_times) + timedelta(hours=1)).isoformat()
+
+        # Per-day breakdown
+        day_counts = {}
+        for m in matches:
+            if m.scheduled_time:
+                day_key = m.scheduled_time.strftime("%Y-%m-%d")
+                day_counts[day_key] = day_counts.get(day_key, 0) + 1
+
+        # Context flags so the frontend can show smarter empty states
+        has_bracket = Bracket.objects.filter(tournament=tournament).exists()
+        has_groups = Group.objects.filter(tournament=tournament).exists()
 
         return {
-            "total_matches": matches.count(),
+            "total_matches": total,
             "rounds": [
                 {"round": rn, "matches": ms}
                 for rn, ms in sorted(rounds.items())
             ],
+            "summary": {
+                "total": total,
+                "scheduled": scheduled,
+                "live": live,
+                "completed": completed,
+                "pending": pending,
+                "disputed": disputed,
+                "estimated_end": est_end,
+                "conflicts": len(conflicts),
+                "per_day": [
+                    {"date": d, "count": c}
+                    for d, c in sorted(day_counts.items())
+                ],
+            },
+            "conflicts": conflicts,
+            "context": {
+                "has_bracket": has_bracket,
+                "has_groups": has_groups,
+            },
         }
 
     @staticmethod
     def auto_schedule(tournament, data: Dict, user) -> Dict[str, Any]:
-        """Auto-schedule matches with given parameters."""
-        from datetime import timedelta
+        """
+        Auto-schedule matches with smart defaults and round-aware boundaries.
 
-        start_time = data.get("start_time")
-        match_duration = int(data.get("match_duration_minutes", 30))
-        break_between = int(data.get("break_minutes", 10))
-        max_concurrent = int(data.get("max_concurrent", 1))
+        Parameters:
+            start_time           — ISO datetime string
+            match_duration_minutes — minutes per match (default 60)
+            break_minutes        — break between matches (default 15)
+            max_concurrent       — parallel matches per slot (default 1)
+            round_break_minutes  — extra break between rounds (default 30)
+            round_number         — only schedule this round (optional)
+            reschedule_existing  — if True, reschedule already-scheduled matches too
+        """
+        from datetime import timedelta
+        from django.utils.dateparse import parse_datetime
+
+        start_time_str = data.get("start_time")
+        match_duration = int(data.get("match_duration_minutes", 60))
+        break_between = int(data.get("break_minutes", 15))
+        max_concurrent = max(1, int(data.get("max_concurrent", 1)))
+        round_break = int(data.get("round_break_minutes", 30))
         round_filter = data.get("round_number")
+        reschedule_existing = data.get("reschedule_existing", False)
+
+        # Parse start time with validation
+        if start_time_str:
+            current_time = parse_datetime(start_time_str)
+            if not current_time:
+                raise ValueError(f"Invalid start_time format: {start_time_str}. Use ISO 8601 (e.g., 2026-03-15T10:00:00Z).")
+            if timezone.is_naive(current_time):
+                from django.utils.timezone import make_aware
+                current_time = make_aware(current_time)
+        else:
+            # Default: next full hour from now
+            now = timezone.now()
+            current_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+
+        # Query matches
+        states = ["scheduled"]
+        if reschedule_existing:
+            states.extend(["check_in", "ready"])
 
         matches = Match.objects.filter(
-            tournament=tournament, state="scheduled"
+            tournament=tournament, state__in=states
         ).order_by("round_number", "match_number")
 
         if round_filter is not None:
             matches = matches.filter(round_number=round_filter)
 
-        if start_time:
-            from django.utils.dateparse import parse_datetime
-            current_time = parse_datetime(start_time)
-            if not current_time:
-                current_time = timezone.now()
-        else:
-            current_time = timezone.now()
+        if not matches.exists():
+            return {"scheduled": 0, "message": "No matches to schedule. Generate brackets first."}
+
+        match_delta = timedelta(minutes=match_duration + break_between)
+        round_delta = timedelta(minutes=round_break)
 
         slot_counter = 0
         scheduled = 0
-        delta = timedelta(minutes=match_duration + break_between)
+        prev_round = None
+        round_starts = {}
 
         for match in matches:
+            # Add round break when transitioning to a new round
+            if prev_round is not None and match.round_number != prev_round:
+                # Finish current slot row
+                if slot_counter > 0:
+                    current_time += match_delta
+                    slot_counter = 0
+                # Add round break
+                current_time += round_delta
+                round_starts[match.round_number] = current_time.isoformat()
+
+            if prev_round is None:
+                round_starts[match.round_number] = current_time.isoformat()
+
             match.scheduled_time = current_time
             match.save(update_fields=["scheduled_time"])
             scheduled += 1
             slot_counter += 1
+
             if slot_counter >= max_concurrent:
-                current_time += delta
+                current_time += match_delta
                 slot_counter = 0
 
-        return {"scheduled": scheduled, "message": f"{scheduled} matches scheduled"}
+            prev_round = match.round_number
+
+        # Compute estimated end
+        est_end = current_time + timedelta(minutes=match_duration)
+
+        return {
+            "scheduled": scheduled,
+            "start_time": round_starts.get(min(round_starts.keys())) if round_starts else None,
+            "estimated_end": est_end.isoformat(),
+            "round_starts": round_starts,
+            "message": f"{scheduled} matches scheduled across {len(round_starts)} round(s).",
+        }
+
+    @staticmethod
+    def manual_schedule_match(tournament, match_id: int, data: Dict, user) -> Dict[str, Any]:
+        """
+        Manually schedule a single match — sets time + optional check-in deadline.
+        Sprint 27: Distinct from reschedule (no state restriction for unscheduled matches).
+        """
+        from datetime import timedelta
+        from django.utils.dateparse import parse_datetime
+
+        try:
+            match = Match.objects.get(id=match_id, tournament=tournament)
+        except Match.DoesNotExist:
+            raise ValueError("Match not found.")
+
+        new_time_str = data.get("scheduled_time")
+        if not new_time_str:
+            raise ValueError("scheduled_time is required.")
+
+        new_time = parse_datetime(new_time_str)
+        if not new_time:
+            raise ValueError("Invalid datetime format.")
+
+        if timezone.is_naive(new_time):
+            from django.utils.timezone import make_aware
+            new_time = make_aware(new_time)
+
+        match.scheduled_time = new_time
+
+        # Optionally set check-in deadline (e.g., 15 min before)
+        check_in_minutes = data.get("check_in_minutes")
+        if check_in_minutes and int(check_in_minutes) > 0:
+            match.check_in_deadline = new_time - timedelta(minutes=int(check_in_minutes))
+
+        match.save(update_fields=["scheduled_time", "check_in_deadline"])
+
+        return {
+            "match_id": match.id,
+            "scheduled_time": new_time.isoformat(),
+            "check_in_deadline": match.check_in_deadline.isoformat() if match.check_in_deadline else None,
+            "message": f"Match #{match.match_number} (R{match.round_number}) scheduled.",
+        }
 
     @staticmethod
     def bulk_shift(tournament, data: Dict, user) -> Dict[str, Any]:
-        """Bulk shift match times by a delta."""
+        """Bulk shift match times by a delta. Uses single SQL UPDATE."""
         from datetime import timedelta
+        from django.db.models import F
 
         shift_minutes = int(data.get("shift_minutes", 0))
         round_number = data.get("round_number")
@@ -290,42 +460,34 @@ class TOCBracketsService:
         if shift_minutes == 0:
             raise ValueError("shift_minutes must be non-zero.")
 
-        matches = Match.objects.filter(
+        qs = Match.objects.filter(
             tournament=tournament,
             scheduled_time__isnull=False,
         )
         if round_number is not None:
-            matches = matches.filter(round_number=round_number)
+            qs = qs.filter(round_number=round_number)
 
         delta = timedelta(minutes=shift_minutes)
-        count = 0
-        for m in matches:
-            m.scheduled_time = m.scheduled_time + delta
-            m.save(update_fields=["scheduled_time"])
-            count += 1
+        count = qs.update(scheduled_time=F('scheduled_time') + delta)
 
         return {"shifted": count, "delta_minutes": shift_minutes}
 
     @staticmethod
     def add_break(tournament, data: Dict, user) -> Dict[str, Any]:
-        """Insert a break after a specific round — shifts subsequent matches."""
+        """Insert a break after a specific round — shifts subsequent matches. Single SQL UPDATE."""
         from datetime import timedelta
+        from django.db.models import F
 
         after_round = int(data.get("after_round", 1))
         break_minutes = int(data.get("break_minutes", 15))
         label = data.get("label", "Break")
 
-        matches = Match.objects.filter(
+        delta = timedelta(minutes=break_minutes)
+        count = Match.objects.filter(
             tournament=tournament,
             round_number__gt=after_round,
             scheduled_time__isnull=False,
-        )
-        delta = timedelta(minutes=break_minutes)
-        count = 0
-        for m in matches:
-            m.scheduled_time = m.scheduled_time + delta
-            m.save(update_fields=["scheduled_time"])
-            count += 1
+        ).update(scheduled_time=F('scheduled_time') + delta)
 
         return {
             "label": label,
@@ -333,6 +495,94 @@ class TOCBracketsService:
             "break_minutes": break_minutes,
             "matches_shifted": count,
         }
+
+    # ── Per-match reschedule ──────────────────────────────────
+
+    @staticmethod
+    def reschedule_match(tournament, match_id: int, data: Dict, user) -> Dict[str, Any]:
+        """Reschedule a single match to a new time. Sprint 27."""
+        from django.utils.dateparse import parse_datetime
+
+        try:
+            match = Match.objects.get(id=match_id, tournament=tournament)
+        except Match.DoesNotExist:
+            raise ValueError("Match not found.")
+
+        if match.state in ("completed", "forfeit", "cancelled"):
+            raise ValueError(f"Cannot reschedule a match in '{match.state}' state.")
+
+        new_time_str = data.get("scheduled_time")
+        if not new_time_str:
+            raise ValueError("scheduled_time is required.")
+
+        new_time = parse_datetime(new_time_str)
+        if not new_time:
+            raise ValueError("Invalid datetime format.")
+
+        old_time = match.scheduled_time
+        match.scheduled_time = new_time
+        match.save(update_fields=["scheduled_time"])
+
+        return {
+            "match_id": match.id,
+            "old_time": old_time.isoformat() if old_time else None,
+            "new_time": new_time.isoformat(),
+            "message": f"Match #{match.match_number} rescheduled.",
+        }
+
+    # ── Conflict detection helper ──────────────────────────────
+
+    @staticmethod
+    def _detect_schedule_conflicts(matches) -> List[Dict]:
+        """
+        Detect schedule conflicts where the same team appears in
+        two overlapping time slots. Assumes ~60 min match duration.
+        Sprint 27.
+        """
+        from datetime import timedelta
+
+        DEFAULT_DURATION = timedelta(minutes=60)
+        conflicts = []
+        indexed = []
+
+        for m in matches:
+            if not m.scheduled_time:
+                continue
+            start = m.scheduled_time
+            end = start + DEFAULT_DURATION
+            for pid in [m.participant1_id, m.participant2_id]:
+                if pid:
+                    indexed.append({
+                        "match_id": m.id,
+                        "match_number": m.match_number,
+                        "round_number": m.round_number,
+                        "participant_id": pid,
+                        "start": start,
+                        "end": end,
+                    })
+
+        # O(n²) check — fine for tournament scale (<500 matches)
+        seen_pairs = set()
+        for i, a in enumerate(indexed):
+            for b in indexed[i + 1:]:
+                if a["participant_id"] != b["participant_id"]:
+                    continue
+                if a["match_id"] == b["match_id"]:
+                    continue
+                # Check overlap
+                if a["start"] < b["end"] and b["start"] < a["end"]:
+                    pair_key = tuple(sorted([a["match_id"], b["match_id"]]))
+                    if pair_key not in seen_pairs:
+                        seen_pairs.add(pair_key)
+                        conflicts.append({
+                            "match_a": a["match_id"],
+                            "match_b": b["match_id"],
+                            "participant_id": a["participant_id"],
+                            "overlap_start": max(a["start"], b["start"]).isoformat(),
+                            "overlap_end": min(a["end"], b["end"]).isoformat(),
+                        })
+
+        return conflicts
 
     # ── Qualifier Pipelines ────────────────────────────────────
 

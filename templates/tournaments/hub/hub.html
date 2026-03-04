@@ -93,8 +93,25 @@
         </div>
       </div>
 
-      {% comment %}Right: Status Chip (clickable) + Mobile Toggle + User{% endcomment %}
+      {% comment %}Right: Status Chip (clickable) + WS Indicator + Mobile Toggle + User{% endcomment %}
       <div class="flex items-center gap-3 shrink-0">
+        {% comment %}S27: WebSocket connection indicator{% endcomment %}
+        <span id="hub-ws-indicator"
+              class="disconnected hidden sm:flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider opacity-60"
+              title="Real-time connection status">
+          <span class="w-1.5 h-1.5 rounded-full ws-dot"></span>
+          <span class="ws-label">live</span>
+        </span>
+        <style>
+          #hub-ws-indicator.connected .ws-dot { background:#00FF66; box-shadow:0 0 6px #00FF66; }
+          #hub-ws-indicator.connected .ws-label { color:#00FF66; }
+          #hub-ws-indicator.disconnected .ws-dot { background:#ef4444; box-shadow:0 0 6px #ef4444; }
+          #hub-ws-indicator.disconnected .ws-label { color:#ef4444; }
+          #hub-ws-indicator.disconnected .ws-label::after { content:'offline'; }
+          #hub-ws-indicator.connected .ws-label::after { content:'live'; }
+          #hub-ws-indicator .ws-label { font-size:0; }
+          #hub-ws-indicator .ws-label::after { font-size:10px; }
+        </style>
         {% comment %}Status Chip — clickable, opens status detail modal{% endcomment %}
         <button onclick="HubEngine.showStatusModal()" class="hub-status-chip hidden sm:flex" id="hub-status-chip" title="View registration status details">
           <span class="hub-status-dot

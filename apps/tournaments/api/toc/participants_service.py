@@ -28,6 +28,11 @@ from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.checkin_service import CheckinService
 from apps.tournaments.services.registration_verification import RegistrationVerificationService
 
+try:
+    from apps.organizations.models.team import Team as OrgTeam
+except ImportError:
+    OrgTeam = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -153,7 +158,9 @@ class TOCParticipantService:
         offset = (page - 1) * cls.PAGE_SIZE
         registrations = qs[offset:offset + cls.PAGE_SIZE]
 
-        results = [cls._serialize_participant_row(r) for r in registrations]
+        # Build bulk team cache for this page (avoids N+1 for team tournaments)
+        team_cache = cls._build_team_cache(registrations)
+        results = [cls._serialize_participant_row(r, team_cache=team_cache) for r in registrations]
 
         return {
             'results': results,
@@ -478,11 +485,23 @@ class TOCParticipantService:
             raise ValidationError(f"Registration {reg_id} not found in this tournament.")
 
     @classmethod
-    def _serialize_participant_row(cls, reg: Registration) -> Dict[str, Any]:
+    def _serialize_participant_row(cls, reg: Registration, team_cache: dict = None) -> Dict[str, Any]:
         """Serialize a registration to a grid-row dict."""
         payment_status = cls._payment_status_label(reg)
         game_id = (reg.registration_data or {}).get('game_id', '')
-        team_name = cls._participant_name(reg)
+        team_info = (team_cache or {}).get(reg.team_id) if reg.team_id else None
+        team_name = cls._participant_name(reg, team_info=team_info)
+
+        # For team registrations derive coordinator (IGL/captain) from lineup_snapshot
+        coordinator = ''
+        if reg.team_id:
+            snap = reg.lineup_snapshot or []
+            captain = next(
+                (e for e in snap if e.get('role') == 'OWNER' or e.get('is_igl') or e.get('is_tournament_captain')),
+                snap[0] if snap else None,
+            )
+            if captain:
+                coordinator = captain.get('display_name') or captain.get('username', '')
 
         # Quick-review payment data (for inline expand)
         qr_payment = cls._get_quick_review_payment(reg)
@@ -491,6 +510,10 @@ class TOCParticipantService:
             'id': reg.id,
             'registration_number': reg.registration_number or '',
             'participant_name': team_name,
+            'team_name': team_info['name'] if team_info else '',
+            'team_tag': team_info['tag'] if team_info else '',
+            'team_logo_url': team_info.get('logo_url', '') if team_info else '',
+            'coordinator': coordinator,
             'username': reg.user.username if reg.user else None,
             'team_id': reg.team_id,
             'status': reg.status,
@@ -550,7 +573,7 @@ class TOCParticipantService:
         }
 
     @classmethod
-    def _participant_name(cls, reg: Registration) -> str:
+    def _participant_name(cls, reg: Registration, team_info: dict = None) -> str:
         """Best-effort display name for a participant row."""
         data = reg.registration_data or {}
         # Check for team name in reg data
@@ -561,10 +584,49 @@ class TOCParticipantService:
                 team_name = guest.get('team_name', '')
         if team_name:
             return team_name
+        # Use pre-fetched org Team info (avoids extra query)
+        if team_info and team_info.get('name'):
+            return team_info['name']
+        # Fallback DB lookup for org Team by team_id
+        if reg.team_id and OrgTeam is not None:
+            try:
+                obj = OrgTeam.objects.filter(id=reg.team_id).values('name').first()
+                if obj and obj.get('name'):
+                    return obj['name']
+            except Exception:
+                pass
         # Fall back to username
         if reg.user:
             return reg.user.username
         return f"Registration #{reg.id}"
+
+    @classmethod
+    def _build_team_cache(cls, registrations) -> Dict[int, Any]:
+        """
+        Bulk-fetch org Team rows for a list of registrations and return
+        a dict keyed by team_id ready to pass to _serialize_participant_row.
+        """
+        if OrgTeam is None:
+            return {}
+        team_ids = list({r.team_id for r in registrations if r.team_id})
+        if not team_ids:
+            return {}
+        try:
+            cache: Dict[int, Any] = {}
+            for obj in OrgTeam.objects.filter(id__in=team_ids).only('id', 'name', 'tag', 'logo'):
+                logo_url = ''
+                try:
+                    logo_url = obj.logo.url if obj.logo else ''
+                except Exception:
+                    pass
+                cache[obj.id] = {
+                    'name': obj.name or '',
+                    'tag': getattr(obj, 'tag', '') or '',
+                    'logo_url': logo_url,
+                }
+            return cache
+        except Exception:
+            return {}
 
     @classmethod
     def _payment_status_label(cls, reg: Registration) -> str:

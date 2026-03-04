@@ -58,8 +58,8 @@ class TOCAuditService:
         from apps.tournaments.models import AuditLog
 
         qs = AuditLog.objects.filter(
-            tournament=self.tournament
-        ).order_by("-created_at")
+            tournament_id=self.tournament.id
+        ).order_by("-timestamp")
 
         if filters:
             if filters.get("action"):
@@ -67,9 +67,9 @@ class TOCAuditService:
             if filters.get("user_id"):
                 qs = qs.filter(user_id=filters["user_id"])
             if filters.get("since"):
-                qs = qs.filter(created_at__gte=filters["since"])
+                qs = qs.filter(timestamp__gte=filters["since"])
             if filters.get("tab"):
-                qs = qs.filter(extra_data__detail__tab=filters["tab"])
+                qs = qs.filter(metadata__detail__tab=filters["tab"])
 
         limit = int(filters.get("limit", 100)) if filters else 100
         qs = qs[:limit]
@@ -80,9 +80,9 @@ class TOCAuditService:
                 "user_id": a.user_id,
                 "username": getattr(a.user, "username", "") if a.user else "system",
                 "action": a.action,
-                "detail": a.extra_data.get("detail") if isinstance(a.extra_data, dict) else None,
-                "diff": a.extra_data.get("diff") if isinstance(a.extra_data, dict) else None,
-                "created_at": str(a.created_at),
+                "detail": a.metadata.get("detail") if isinstance(a.metadata, dict) else None,
+                "diff": a.metadata.get("diff") if isinstance(a.metadata, dict) else None,
+                "created_at": str(a.timestamp),
             }
             for a in qs
         ]

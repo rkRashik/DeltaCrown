@@ -706,6 +706,198 @@
     }
 
     /* ==================================================================
+     * S27: SCORING SYSTEM CONFIGURATION
+     * ================================================================== */
+
+    const SCORING_PRESETS = {
+        valorant: {
+            scoring_type: 'rounds',
+            win_points: 3, draw_points: 1, loss_points: 0, forfeit_points: -1,
+            rounds_to_win: 13, overtime_rounds: 6, ot_halves: 2,
+            tiebreakers: ['head_to_head', 'round_difference', 'rounds_won', 'buchholz'],
+        },
+        moba: {
+            scoring_type: 'win_loss',
+            win_points: 3, draw_points: 0, loss_points: 0, forfeit_points: -1,
+            tiebreakers: ['head_to_head', 'game_wins', 'time_rating'],
+        },
+        br: {
+            scoring_type: 'kills',
+            win_points: 0, draw_points: 0, loss_points: 0, forfeit_points: -3,
+            tiebreakers: ['total_points', 'total_kills', 'highest_placement', 'avg_placement'],
+        },
+        sports: {
+            scoring_type: 'goals',
+            win_points: 3, draw_points: 1, loss_points: 0, forfeit_points: -1,
+            match_duration: 90, extra_time: 'extra_time_30', aggregate: false,
+            tiebreakers: ['head_to_head', 'goal_difference', 'goals_scored', 'away_goals'],
+        },
+    };
+
+    const ALL_TIEBREAKERS = [
+        { key: 'head_to_head', label: 'Head-to-Head Record' },
+        { key: 'round_difference', label: 'Round Difference' },
+        { key: 'rounds_won', label: 'Rounds Won' },
+        { key: 'game_wins', label: 'Game Wins (series)' },
+        { key: 'goal_difference', label: 'Goal Difference' },
+        { key: 'goals_scored', label: 'Goals Scored' },
+        { key: 'away_goals', label: 'Away Goals' },
+        { key: 'total_points', label: 'Total Points' },
+        { key: 'total_kills', label: 'Total Kills' },
+        { key: 'highest_placement', label: 'Highest Placement' },
+        { key: 'avg_placement', label: 'Average Placement' },
+        { key: 'time_rating', label: 'Time Rating' },
+        { key: 'buchholz', label: 'Buchholz Score' },
+        { key: 'sonneborn_berger', label: 'Sonneborn-Berger' },
+        { key: 'coin_flip', label: 'Coin Flip (emergency)' },
+    ];
+
+    let _currentTiebreakers = ['head_to_head', 'round_difference', 'rounds_won'];
+
+    /* ── S27: Scoring Config helpers (direct DOM, not data-field) ── */
+    function _scoringEl(id) { return document.getElementById(id); }
+    function _setScoringVal(id, val) { var el = _scoringEl(id); if (el) el.value = val ?? ''; }
+    function _getScoringVal(id) { var el = _scoringEl(id); return el ? el.value : ''; }
+
+    async function loadScoringConfig() {
+        try {
+            var data = await API('settings/game-config/');
+            var rules = data.scoring_rules || {};
+
+            _setScoringVal('scoring-type', rules.scoring_type || 'win_loss');
+            _setScoringVal('scoring-win-pts', rules.win_points ?? 3);
+            _setScoringVal('scoring-draw-pts', rules.draw_points ?? 1);
+            _setScoringVal('scoring-loss-pts', rules.loss_points ?? 0);
+            _setScoringVal('scoring-forfeit-pts', rules.forfeit_points ?? -1);
+            _setScoringVal('scoring-rounds-to-win', rules.rounds_to_win ?? 13);
+            _setScoringVal('scoring-overtime-rounds', rules.overtime_rounds ?? 6);
+            _setScoringVal('scoring-ot-halves', rules.ot_halves ?? 2);
+            _setScoringVal('scoring-match-duration', rules.match_duration ?? 90);
+            _setScoringVal('scoring-extra-time', rules.extra_time || 'none');
+
+            var aggEl = document.getElementById('scoring-aggregate');
+            if (aggEl) aggEl.checked = !!rules.aggregate;
+
+            _currentTiebreakers = rules.tiebreakers || ['head_to_head', 'round_difference', 'rounds_won'];
+            renderTiebreakers();
+            onScoringTypeChange(rules.scoring_type || 'win_loss');
+        } catch (e) {
+            console.warn('[toc:settings] scoring config load failed', e);
+        }
+    }
+
+    async function saveScoringConfig() {
+        var rules = {
+            scoring_type: _getScoringVal('scoring-type'),
+            win_points: parseInt(_getScoringVal('scoring-win-pts')) || 0,
+            draw_points: parseInt(_getScoringVal('scoring-draw-pts')) || 0,
+            loss_points: parseInt(_getScoringVal('scoring-loss-pts')) || 0,
+            forfeit_points: parseInt(_getScoringVal('scoring-forfeit-pts')) || 0,
+            rounds_to_win: parseInt(_getScoringVal('scoring-rounds-to-win')) || 13,
+            overtime_rounds: parseInt(_getScoringVal('scoring-overtime-rounds')) || 0,
+            ot_halves: parseInt(_getScoringVal('scoring-ot-halves')) || 0,
+            match_duration: parseInt(_getScoringVal('scoring-match-duration')) || 90,
+            extra_time: _getScoringVal('scoring-extra-time') || 'none',
+            aggregate: document.getElementById('scoring-aggregate')?.checked || false,
+            tiebreakers: _currentTiebreakers,
+        };
+        try {
+            await API('settings/game-config/', {
+                method: 'POST',
+                body: JSON.stringify({ scoring_rules: rules }),
+            });
+            toast('Scoring configuration saved', 'success');
+        } catch (e) {
+            toast('Save failed: ' + e.message, 'error');
+        }
+    }
+
+    function onScoringTypeChange(type) {
+        var pointTable = document.getElementById('scoring-point-table');
+        var roundsConfig = document.getElementById('scoring-rounds-config');
+        var goalsConfig = document.getElementById('scoring-goals-config');
+
+        if (pointTable) pointTable.classList.toggle('hidden', type === 'kills' || type === 'placement');
+        if (roundsConfig) roundsConfig.classList.toggle('hidden', type !== 'rounds');
+        if (goalsConfig) goalsConfig.classList.toggle('hidden', type !== 'goals');
+    }
+
+    function applyScoringPreset(presetName) {
+        var preset = SCORING_PRESETS[presetName];
+        if (!preset) return;
+
+        setVal('scoring-type', preset.scoring_type);
+        if (preset.win_points != null) setVal('scoring-win-pts', preset.win_points);
+        if (preset.draw_points != null) setVal('scoring-draw-pts', preset.draw_points);
+        if (preset.loss_points != null) setVal('scoring-loss-pts', preset.loss_points);
+        if (preset.forfeit_points != null) setVal('scoring-forfeit-pts', preset.forfeit_points);
+        if (preset.rounds_to_win != null) setVal('scoring-rounds-to-win', preset.rounds_to_win);
+        if (preset.overtime_rounds != null) setVal('scoring-overtime-rounds', preset.overtime_rounds);
+        if (preset.ot_halves != null) setVal('scoring-ot-halves', preset.ot_halves);
+        if (preset.match_duration != null) setVal('scoring-match-duration', preset.match_duration);
+        if (preset.extra_time != null) setVal('scoring-extra-time', preset.extra_time);
+
+        var aggEl = document.getElementById('scoring-aggregate');
+        if (aggEl) aggEl.checked = !!preset.aggregate;
+
+        if (preset.tiebreakers) {
+            _currentTiebreakers = [...preset.tiebreakers];
+            renderTiebreakers();
+        }
+
+        onScoringTypeChange(preset.scoring_type);
+        toast('Preset "' + presetName + '" applied — save to persist', 'info');
+    }
+
+    function renderTiebreakers() {
+        var container = document.getElementById('tiebreaker-list');
+        if (!container) return;
+
+        container.innerHTML = _currentTiebreakers.map(function (key, idx) {
+            var tb = ALL_TIEBREAKERS.find(function (t) { return t.key === key; });
+            var label = tb ? tb.label : key;
+            return '<div class="flex items-center gap-2 p-2 bg-dc-surface border border-dc-border rounded-lg group">' +
+                '<span class="text-[10px] font-mono text-dc-text w-5 text-center">' + (idx + 1) + '</span>' +
+                '<span class="text-xs text-dc-textBright flex-1">' + esc(label) + '</span>' +
+                '<button onclick="TOC.settings.moveTiebreaker(' + idx + ', -1)" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === 0 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-up" class="w-3 h-3"></i></button>' +
+                '<button onclick="TOC.settings.moveTiebreaker(' + idx + ', 1)" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === _currentTiebreakers.length - 1 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-down" class="w-3 h-3"></i></button>' +
+                '<button onclick="TOC.settings.removeTiebreaker(' + idx + ')" class="text-dc-text hover:text-dc-danger transition-colors p-0.5 opacity-0 group-hover:opacity-100"><i data-lucide="x" class="w-3 h-3"></i></button>' +
+                '</div>';
+        }).join('');
+
+        // Add button for unused tiebreakers
+        var unused = ALL_TIEBREAKERS.filter(function (t) { return _currentTiebreakers.indexOf(t.key) === -1; });
+        if (unused.length > 0) {
+            container.innerHTML += '<div class="mt-2"><select onchange="TOC.settings.addTiebreaker(this.value); this.value=\'\';" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-1.5 text-[10px] text-dc-textBright focus:border-theme/50 outline-none">' +
+                '<option value="">+ Add tiebreaker…</option>' +
+                unused.map(function (t) { return '<option value="' + t.key + '">' + esc(t.label) + '</option>'; }).join('') +
+                '</select></div>';
+        }
+
+        if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (e) { /* ok */ }
+    }
+
+    function addTiebreaker(key) {
+        if (!key || _currentTiebreakers.indexOf(key) !== -1) return;
+        _currentTiebreakers.push(key);
+        renderTiebreakers();
+    }
+
+    function removeTiebreaker(idx) {
+        _currentTiebreakers.splice(idx, 1);
+        renderTiebreakers();
+    }
+
+    function moveTiebreaker(idx, dir) {
+        var newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= _currentTiebreakers.length) return;
+        var temp = _currentTiebreakers[idx];
+        _currentTiebreakers[idx] = _currentTiebreakers[newIdx];
+        _currentTiebreakers[newIdx] = temp;
+        renderTiebreakers();
+    }
+
+    /* ==================================================================
      * INIT
      * ================================================================== */
     function init () {
@@ -716,6 +908,7 @@
         loadRulebook();
         loadBRScoring();
         loadPaymentMethods();
+        loadScoringConfig();
         applyGameAwareVisibility();
     }
 
@@ -752,6 +945,13 @@
         editPaymentMethod,
         deletePaymentMethod,
         uploadFile,
+        // S27: Scoring system
+        saveScoringConfig,
+        onScoringTypeChange,
+        applyScoringPreset,
+        addTiebreaker,
+        removeTiebreaker,
+        moveTiebreaker,
     };
 
     // Auto-init when navigating to Settings tab

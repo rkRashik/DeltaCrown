@@ -72,6 +72,12 @@ class OverviewSerializer(serializers.Serializer):
     alerts = AlertSerializer(many=True)
     events = UpcomingEventSerializer(many=True)
     transitions = TransitionOptionSerializer(many=True)
+    # Sprint 28 enhancements
+    health_score = serializers.DictField(required=False, default=dict)
+    upcoming_matches = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    group_progress = serializers.DictField(required=False, allow_null=True, default=None)
+    countdowns = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    quick_actions = serializers.ListField(child=serializers.DictField(), required=False, default=list)
 
 
 class LifecycleTransitionInputSerializer(serializers.Serializer):

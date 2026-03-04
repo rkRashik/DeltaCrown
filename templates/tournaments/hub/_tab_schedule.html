@@ -118,4 +118,36 @@
 
   </div>
 
+  {% comment %}S27: Match-Level Schedule — loaded dynamically via JS{% endcomment %}
+  <div id="hub-match-schedule-section" class="mt-10 border-t border-white/5 pt-8">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Match Schedule</h3>
+        <p class="text-sm text-gray-400 mt-1">Upcoming and recent match times for your team.</p>
+      </div>
+      <button onclick="HubEngine.refreshScheduleMatches && HubEngine.refreshScheduleMatches()"
+              class="hub-glass px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
+              title="Refresh schedule">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i>
+      </button>
+    </div>
+
+    {% comment %}Skeleton loader{% endcomment %}
+    <div id="schedule-match-skeleton" class="space-y-3">
+      <div class="hub-glass rounded-xl h-20 animate-pulse"></div>
+      <div class="hub-glass rounded-xl h-20 animate-pulse" style="animation-delay:0.1s"></div>
+      <div class="hub-glass rounded-xl h-20 animate-pulse" style="animation-delay:0.2s"></div>
+    </div>
+
+    {% comment %}Empty state{% endcomment %}
+    <div id="schedule-match-empty" class="hidden text-center py-12">
+      <i data-lucide="calendar-off" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+      <p class="text-sm text-gray-500">No matches scheduled yet.</p>
+      <p class="text-xs text-gray-600 mt-1">Match times will appear here once the bracket is generated.</p>
+    </div>
+
+    {% comment %}Match cards container{% endcomment %}
+    <div id="schedule-match-list" class="hidden space-y-3"></div>
+  </div>
+
 </div>

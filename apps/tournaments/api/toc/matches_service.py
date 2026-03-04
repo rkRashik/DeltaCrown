@@ -32,6 +32,11 @@ from apps.tournaments.models.dispute import DisputeRecord
 from apps.tournaments.models.tournament import Tournament
 from apps.tournaments.services.match_service import MatchService
 
+try:
+    from apps.tournaments.models import GroupStanding
+except ImportError:
+    GroupStanding = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +53,8 @@ class TOCMatchesService:
         round_number: Optional[int] = None,
         state: Optional[str] = None,
         search: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        group: Optional[str] = None,
+    ) -> Dict[str, Any]:
         qs = Match.objects.filter(tournament=tournament).order_by(
             'round_number', 'match_number',
         )
@@ -61,8 +67,14 @@ class TOCMatchesService:
                 Q(participant1_name__icontains=search)
                 | Q(participant2_name__icontains=search)
             )
+        if group:
+            qs = qs.filter(lobby_info__group_label=group)
 
-        return [cls._serialize_match(m) for m in qs[:500]]
+        total = qs.count()
+        # Build group cache for serialization
+        group_cache = cls._build_group_cache(tournament)
+        matches = [cls._serialize_match(m, group_cache=group_cache) for m in qs[:500]]
+        return {'matches': matches, 'total_count': total}
 
     # ── S6-B2: Score submission ───────────────────────────────
 
@@ -84,8 +96,8 @@ class TOCMatchesService:
                 participant2_score=p2_score,
                 user_id=user_id,
             )
-        except Exception:
-            # Fallback: direct update if organizer_override_score has guards
+        except (AttributeError, TypeError) as exc:
+            logger.warning('organizer_override_score unavailable (%s), using fallback', exc)
             match.participant1_score = p1_score
             match.participant2_score = p2_score
             if p1_score > p2_score:
@@ -108,7 +120,8 @@ class TOCMatchesService:
         match = Match.objects.get(pk=match_id, tournament=tournament)
         try:
             updated = MatchService.transition_to_live(match)
-        except Exception:
+        except (AttributeError, TypeError) as exc:
+            logger.warning('transition_to_live unavailable (%s), using fallback', exc)
             match.state = Match.LIVE
             match.started_at = timezone.now()
             match.save(update_fields=['state', 'started_at'])
@@ -195,7 +208,8 @@ class TOCMatchesService:
                 loser_id=forfeiter_id,
                 user_id=user_id,
             )
-        except Exception:
+        except (AttributeError, TypeError) as exc:
+            logger.warning('organizer_forfeit_match unavailable (%s), using fallback', exc)
             match.state = Match.FORFEIT
             match.loser_id = forfeiter_id
             if match.participant1_id == forfeiter_id:
@@ -597,10 +611,43 @@ class TOCMatchesService:
             'notes': note_list,
         }
 
+    # ── Group label cache ────────────────────────────────────
+
+    @classmethod
+    def _build_group_cache(cls, tournament: Tournament) -> Dict[int, str]:
+        """Map participant_id → group name for the tournament."""
+        cache: Dict[int, str] = {}
+        if GroupStanding is None:
+            return cache
+        try:
+            standings = GroupStanding.objects.filter(
+                group__tournament=tournament,
+            ).select_related('group').only('user_id', 'team_id', 'group__name')
+            for gs in standings:
+                key = gs.team_id or gs.user_id
+                if key:
+                    cache[key] = gs.group.name
+        except Exception:
+            pass
+        return cache
+
+    @classmethod
+    def _resolve_group_label(cls, m: Match, group_cache: Optional[Dict[int, str]] = None) -> str:
+        """Derive group label for a match."""
+        # 1. lobby_info (set during match generation)
+        label = (m.lobby_info or {}).get('group_label', '')
+        if label:
+            return label
+        # 2. Lookup via participants in group standings cache
+        if group_cache:
+            label = group_cache.get(m.participant1_id) or group_cache.get(m.participant2_id) or ''
+        return label
+
     # ── Private serializer ───────────────────────────────────
 
     @classmethod
-    def _serialize_match(cls, m: Match) -> Dict[str, Any]:
+    def _serialize_match(cls, m: Match, *, group_cache: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+        lobby = m.lobby_info or {}
         return {
             'id': m.id,
             'round_number': m.round_number,
@@ -618,6 +665,19 @@ class TOCMatchesService:
             'started_at': m.started_at.isoformat() if m.started_at else None,
             'completed_at': m.completed_at.isoformat() if m.completed_at else None,
             'stream_url': m.stream_url,
-            'is_paused': m.lobby_info.get('paused', False),
-            'notes_count': len(m.lobby_info.get('notes', [])),
+            'is_paused': lobby.get('paused', False),
+            'notes_count': len(lobby.get('notes', [])),
+            # Sprint 26 additions
+            'bracket_id': m.bracket_id,
+            'group_label': cls._resolve_group_label(m, group_cache),
+            'lobby_info': {
+                'lobby_code': lobby.get('lobby_code', ''),
+                'password': lobby.get('password', ''),
+                'map': lobby.get('map', ''),
+                'server': lobby.get('server', ''),
+                'game_mode': lobby.get('game_mode', ''),
+            },
+            'participant1_checked_in': getattr(m, 'participant1_checked_in', False),
+            'participant2_checked_in': getattr(m, 'participant2_checked_in', False),
+            'check_in_deadline': m.check_in_deadline.isoformat() if getattr(m, 'check_in_deadline', None) else None,
         }

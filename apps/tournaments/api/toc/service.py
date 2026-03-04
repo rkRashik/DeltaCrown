@@ -47,7 +47,10 @@ class TOCService:
         Assemble the full overview payload for the Command Center tab.
 
         Returns a dict matching OverviewSerializer shape:
-        {status, status_display, is_frozen, freeze_reason, lifecycle, stats, alerts, events, transitions}
+        {status, status_display, is_frozen, freeze_reason, lifecycle, stats, alerts, events, transitions,
+         health_score, upcoming_matches, group_progress}
+
+        Sprint 27: Added health_score, upcoming_matches, group_progress.
         """
         # Gather raw stats from DB
         reg_stats = cls._get_registration_stats(tournament)
@@ -84,6 +87,23 @@ class TOCService:
             freeze_data = config.get('frozen', {})
             freeze_reason = freeze_data.get('reason', '') if isinstance(freeze_data, dict) else ''
 
+        # S27: Health score — composite 0-100 indicator
+        health_score = cls._compute_health_score(
+            tournament, reg_stats, payment_stats, match_stats, dispute_stats, alerts,
+        )
+
+        # S27: Upcoming matches — next 5 scheduled matches
+        upcoming_matches = cls._get_upcoming_matches(tournament)
+
+        # S27: Group stage progress (if applicable)
+        group_progress = cls._get_group_progress(tournament)
+
+        # S28: Countdown timers for key milestones
+        countdowns = cls._get_countdowns(tournament)
+
+        # S28: Quick-launch actions based on tournament state
+        quick_actions = cls._get_quick_actions(tournament)
+
         return {
             'status': tournament.status,
             'status_display': tournament.get_status_display(),
@@ -94,6 +114,11 @@ class TOCService:
             'alerts': alerts,
             'events': events,
             'transitions': transitions,
+            'health_score': health_score,
+            'upcoming_matches': upcoming_matches,
+            'group_progress': group_progress,
+            'countdowns': countdowns,
+            'quick_actions': quick_actions,
         }
 
     # ── S1-S2: Transition Validation & Execution ──────────────────────
@@ -229,6 +254,194 @@ class TOCService:
         return bool(config.get('frozen'))
 
     # ── Private Helpers ───────────────────────────────────────────────
+
+    # ── S27: Health Score ─────────────────────────────────────────────
+
+    @classmethod
+    def _compute_health_score(
+        cls,
+        tournament: Tournament,
+        reg_stats: Dict[str, int],
+        payment_stats: Dict[str, int],
+        match_stats: Dict[str, int],
+        dispute_stats: Dict[str, int],
+        alerts: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Compute a composite 0–100 health score for the tournament.
+
+        Components (weighted):
+        - Registration fill rate: 25%
+        - Payment verification rate: 20%
+        - Match completion rate: 25%
+        - Dispute health (inverse of open dispute %): 15%
+        - Alert health (fewer critical alerts = better): 15%
+
+        Returns: {score, grade, label, breakdown}
+        """
+        breakdown = {}
+        total_weight = 0
+
+        # 1. Registration fill
+        cap = tournament.max_participants or 0
+        if cap > 0:
+            fill = min(100, round((reg_stats.get('confirmed', 0) / cap) * 100))
+        else:
+            fill = 100 if reg_stats.get('total', 0) > 0 else 50
+        breakdown['registration'] = fill
+        total_weight += fill * 25
+
+        # 2. Payment verification
+        pay_total = payment_stats.get('total', 0)
+        if pay_total > 0:
+            pay_score = round((payment_stats.get('verified', 0) / pay_total) * 100)
+        else:
+            pay_score = 100  # No payments required = perfect
+        breakdown['payments'] = pay_score
+        total_weight += pay_score * 20
+
+        # 3. Match completion
+        match_total = match_stats.get('total', 0)
+        if match_total > 0:
+            completed = match_stats.get('completed', 0)
+            match_score = round((completed / match_total) * 100)
+        else:
+            match_score = 50  # No matches yet = neutral
+        breakdown['matches'] = match_score
+        total_weight += match_score * 25
+
+        # 4. Dispute health (inverse)
+        dispute_total = dispute_stats.get('total', 0)
+        if dispute_total > 0:
+            open_disputes = dispute_stats.get('open', 0) + dispute_stats.get('under_review', 0)
+            dispute_score = max(0, round(100 - (open_disputes / dispute_total) * 100))
+        else:
+            dispute_score = 100
+        breakdown['disputes'] = dispute_score
+        total_weight += dispute_score * 15
+
+        # 5. Alert health
+        critical_alerts = sum(1 for a in alerts if a.get('severity') == 'critical')
+        warning_alerts = sum(1 for a in alerts if a.get('severity') == 'warning')
+        alert_penalty = critical_alerts * 20 + warning_alerts * 5
+        alert_score = max(0, 100 - alert_penalty)
+        breakdown['alerts'] = alert_score
+        total_weight += alert_score * 15
+
+        # Weighted average
+        score = round(total_weight / 100)
+
+        # Grade assignment
+        if score >= 90:
+            grade, label = 'A', 'Excellent'
+        elif score >= 75:
+            grade, label = 'B', 'Good'
+        elif score >= 60:
+            grade, label = 'C', 'Fair'
+        elif score >= 40:
+            grade, label = 'D', 'Needs Attention'
+        else:
+            grade, label = 'F', 'Critical'
+
+        return {
+            'score': score,
+            'grade': grade,
+            'label': label,
+            'breakdown': breakdown,
+        }
+
+    # ── S27: Upcoming Matches ─────────────────────────────────────────
+
+    @classmethod
+    def _get_upcoming_matches(cls, tournament: Tournament) -> List[Dict[str, Any]]:
+        """Return next 5 upcoming scheduled matches for the overview."""
+        now = timezone.now()
+        upcoming = (
+            Match.objects
+            .filter(
+                tournament=tournament,
+                is_deleted=False,
+                state__in=[Match.SCHEDULED, 'check_in', 'ready'],
+                scheduled_time__gte=now,
+            )
+            .order_by('scheduled_time')[:5]
+        )
+        result = []
+        for m in upcoming:
+            result.append({
+                'id': m.id,
+                'match_number': m.match_number,
+                'round_number': m.round_number,
+                'participant1_name': m.participant1_name or 'TBD',
+                'participant2_name': m.participant2_name or 'TBD',
+                'scheduled_time': m.scheduled_time.isoformat() if m.scheduled_time else None,
+                'state': m.state,
+            })
+        return result
+
+    # ── S27: Group Stage Progress ─────────────────────────────────────
+
+    @classmethod
+    def _get_group_progress(cls, tournament: Tournament) -> Optional[Dict[str, Any]]:
+        """
+        Return a summary of group stage progress if the tournament has groups.
+        Returns None if no group stage exists.
+        """
+        from apps.tournaments.models.group import GroupStage, Group
+        try:
+            gs = GroupStage.objects.filter(tournament=tournament).first()
+            if not gs:
+                return None
+
+            groups = Group.objects.filter(tournament=tournament).order_by('name')
+            total_groups = groups.count()
+            if total_groups == 0:
+                return None
+
+            total_matches = Match.objects.filter(
+                tournament=tournament,
+                is_deleted=False,
+                bracket__isnull=True,  # Group-stage matches typically have no bracket
+            ).count()
+            completed_matches = Match.objects.filter(
+                tournament=tournament,
+                is_deleted=False,
+                bracket__isnull=True,
+                state__in=[Match.COMPLETED, 'forfeit'],
+            ).count()
+
+            # If bracket-based group matches exist, count them too
+            if total_matches == 0:
+                total_matches = Match.objects.filter(
+                    tournament=tournament,
+                    is_deleted=False,
+                ).count()
+                completed_matches = Match.objects.filter(
+                    tournament=tournament,
+                    is_deleted=False,
+                    state__in=[Match.COMPLETED, 'forfeit'],
+                ).count()
+
+            pct = round((completed_matches / total_matches) * 100) if total_matches > 0 else 0
+
+            group_list = []
+            for g in groups[:8]:  # Max 8 groups in overview
+                group_list.append({
+                    'name': g.name or f'Group {g.id}',
+                    'teams': g.standings.count() if hasattr(g, 'standings') else 0,
+                })
+
+            return {
+                'state': gs.state,
+                'total_groups': total_groups,
+                'total_matches': total_matches,
+                'completed_matches': completed_matches,
+                'completion_pct': pct,
+                'groups': group_list,
+            }
+        except Exception as e:
+            logger.warning("Failed to compute group progress: %s", e)
+            return None
 
     @classmethod
     def _get_registration_stats(cls, tournament: Tournament) -> Dict[str, int]:
@@ -373,3 +586,160 @@ class TOCService:
             change_summary=summary,
             changed_by=actor,
         )
+
+    # ── S28: Countdown Timers ─────────────────────────────────────────
+
+    @classmethod
+    def _get_countdowns(cls, tournament: Tournament) -> List[Dict[str, Any]]:
+        """Return countdown timers for key tournament milestones."""
+        now = timezone.now()
+        countdowns = []
+
+        # Registration close countdown
+        if hasattr(tournament, 'registration_end') and tournament.registration_end:
+            if tournament.registration_end > now:
+                delta = tournament.registration_end - now
+                countdowns.append({
+                    'label': 'Registration Closes',
+                    'target': tournament.registration_end.isoformat(),
+                    'seconds_remaining': int(delta.total_seconds()),
+                    'type': 'registration',
+                })
+
+        # Tournament start countdown
+        if hasattr(tournament, 'tournament_start') and tournament.tournament_start:
+            if tournament.tournament_start > now:
+                delta = tournament.tournament_start - now
+                countdowns.append({
+                    'label': 'Tournament Starts',
+                    'target': tournament.tournament_start.isoformat(),
+                    'seconds_remaining': int(delta.total_seconds()),
+                    'type': 'start',
+                })
+
+        # Next match countdown
+        next_match = Match.objects.filter(
+            tournament=tournament,
+            state__in=['scheduled', 'check_in', 'ready'],
+            scheduled_time__gt=now,
+        ).order_by('scheduled_time').first()
+
+        if next_match and next_match.scheduled_time:
+            delta = next_match.scheduled_time - now
+            countdowns.append({
+                'label': 'Next Match',
+                'target': next_match.scheduled_time.isoformat(),
+                'seconds_remaining': int(delta.total_seconds()),
+                'type': 'match',
+            })
+
+        # Check-in window
+        config = tournament.config or {}
+        checkin_cfg = config.get('checkin', {})
+        if isinstance(checkin_cfg, dict) and checkin_cfg.get('open'):
+            deadline = checkin_cfg.get('deadline')
+            if deadline:
+                try:
+                    from django.utils.dateparse import parse_datetime
+                    dt = parse_datetime(deadline)
+                    if dt and dt > now:
+                        delta = dt - now
+                        countdowns.append({
+                            'label': 'Check-in Closes',
+                            'target': dt.isoformat(),
+                            'seconds_remaining': int(delta.total_seconds()),
+                            'type': 'checkin',
+                        })
+                except (ValueError, TypeError):
+                    pass
+
+        return countdowns
+
+    # ── S28: Quick Actions ────────────────────────────────────────────
+
+    @classmethod
+    def _get_quick_actions(cls, tournament: Tournament) -> List[Dict[str, Any]]:
+        """
+        Return context-sensitive quick-launch actions based on current state.
+        Actions are buttons shown in the overview for common one-click operations.
+        """
+        actions = []
+        status = tournament.status
+
+        if status == 'draft':
+            actions.append({
+                'id': 'open_registration',
+                'label': 'Open Registration',
+                'icon': 'user-plus',
+                'action': 'transition',
+                'target': 'registration_open',
+            })
+
+        elif status == 'registration_open':
+            actions.append({
+                'id': 'close_registration',
+                'label': 'Close Registration',
+                'icon': 'user-x',
+                'action': 'transition',
+                'target': 'registration_closed',
+            })
+            actions.append({
+                'id': 'open_checkin',
+                'label': 'Open Check-in',
+                'icon': 'check-square',
+                'action': 'api',
+                'endpoint': 'checkin/open/',
+                'method': 'POST',
+            })
+
+        elif status == 'registration_closed':
+            actions.append({
+                'id': 'open_checkin',
+                'label': 'Open Check-in',
+                'icon': 'check-square',
+                'action': 'api',
+                'endpoint': 'checkin/open/',
+                'method': 'POST',
+            })
+            actions.append({
+                'id': 'start_tournament',
+                'label': 'Start Tournament',
+                'icon': 'play',
+                'action': 'transition',
+                'target': 'in_progress',
+            })
+
+        elif status == 'in_progress':
+            actions.append({
+                'id': 'broadcast_update',
+                'label': 'Broadcast Update',
+                'icon': 'megaphone',
+                'action': 'tab',
+                'target': 'announcements',
+            })
+            actions.append({
+                'id': 'view_brackets',
+                'label': 'View Brackets',
+                'icon': 'git-branch',
+                'action': 'tab',
+                'target': 'brackets',
+            })
+            actions.append({
+                'id': 'manage_disputes',
+                'label': 'Manage Disputes',
+                'icon': 'shield-alert',
+                'action': 'tab',
+                'target': 'disputes',
+            })
+
+        elif status in ('completed', 'finalized'):
+            actions.append({
+                'id': 'export_results',
+                'label': 'Export Results',
+                'icon': 'download',
+                'action': 'api',
+                'endpoint': 'standings/export/',
+                'method': 'GET',
+            })
+
+        return actions

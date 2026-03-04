@@ -17,6 +17,7 @@ Endpoints:
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import models
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -251,6 +252,85 @@ class ExportCSVView(TOCBaseView):
         return response
 
 
+class ImportCSVView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/participants/import/
+    S28: Bulk import participants from CSV.
+    Expects CSV with columns: username (or email), team_name (optional), seed (optional).
+    """
+
+    def post(self, request, slug):
+        import csv
+        import io
+
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            csv_text = request.data.get('csv_text', '')
+            if not csv_text:
+                return Response({'error': 'No file or csv_text provided'}, status=400)
+            reader = csv.DictReader(io.StringIO(csv_text))
+        else:
+            decoded = csv_file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(decoded))
+
+        results = {'imported': 0, 'skipped': 0, 'errors': []}
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        for row_num, row in enumerate(reader, start=2):
+            try:
+                username = (row.get('username') or row.get('email') or '').strip()
+                if not username:
+                    results['errors'].append(f'Row {row_num}: Missing username/email')
+                    results['skipped'] += 1
+                    continue
+
+                # Find user by username or email
+                user = User.objects.filter(
+                    models.Q(username__iexact=username) | models.Q(email__iexact=username)
+                ).first()
+
+                if not user:
+                    results['errors'].append(f'Row {row_num}: User "{username}" not found')
+                    results['skipped'] += 1
+                    continue
+
+                # Check for existing registration
+                from apps.tournaments.models.registration import Registration
+                existing = Registration.objects.filter(
+                    tournament=self.tournament, user=user,
+                ).exists()
+
+                if existing:
+                    results['errors'].append(f'Row {row_num}: "{username}" already registered')
+                    results['skipped'] += 1
+                    continue
+
+                # Create registration
+                reg = Registration.objects.create(
+                    tournament=self.tournament,
+                    user=user,
+                    status='approved',
+                    source='csv_import',
+                )
+
+                # Seed if provided
+                seed = (row.get('seed') or '').strip()
+                if seed and seed.isdigit():
+                    reg.seed = int(seed)
+                    reg.save(update_fields=['seed'])
+
+                results['imported'] += 1
+
+            except Exception as exc:
+                results['errors'].append(f'Row {row_num}: {str(exc)}')
+                results['skipped'] += 1
+
+        results['total'] = results['imported'] + results['skipped']
+        return Response(results)
+
+
 class SystemChecksView(TOCBaseView):
     """
     GET /api/toc/<slug>/participants/system-checks/
@@ -261,3 +341,4 @@ class SystemChecksView(TOCBaseView):
     def get(self, request, slug):
         data = TOCParticipantService.get_system_checks(self.tournament)
         return Response(data)
+

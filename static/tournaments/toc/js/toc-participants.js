@@ -142,11 +142,16 @@
           </td>
           <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
             <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
-                <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
-              </div>
+              ${row.team_logo_url
+                ? `<img src="${esc(row.team_logo_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">`
+                : `<div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
+                     <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
+                   </div>`}
               <div class="min-w-0">
-                <p class="text-white text-xs font-semibold truncate max-w-[180px]">${esc(row.participant_name)}</p>
+                <div class="flex items-center gap-1.5">
+                  <p class="text-white text-xs font-semibold truncate max-w-[160px]">${esc(row.participant_name)}</p>
+                  ${row.team_tag ? `<span class="text-[8px] px-1 py-0.5 rounded bg-theme/10 text-theme border border-theme/20 font-bold leading-none">${esc(row.team_tag)}</span>` : ''}
+                </div>
                 <p class="text-zinc-500 text-[10px] font-mono truncate">${esc(row.registration_number || row.username || '')}</p>
               </div>
               ${row.is_guest_team ? '<span class="px-1.5 py-0.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase tracking-widest rounded">Guest</span>' : ''}
@@ -184,7 +189,11 @@
             ${row.seed != null ? row.seed : '<span class="text-zinc-600">—</span>'}
           </td>
           <td class="px-3 py-2.5 font-mono text-zinc-400 text-[10px]" onclick="TOC.participants.openDetail(${row.id})">
-            ${esc(row.game_id || '—')}
+            ${row.team_id
+              ? (row.coordinator
+                  ? `<span class="text-theme text-[10px] not-italic">${esc(row.coordinator)}</span><span class="text-zinc-600 text-[9px] ml-1">IGL</span>`
+                  : '<span class="text-zinc-600">—</span>')
+              : esc(row.game_id || '—')}
           </td>
           <td class="px-3 py-2.5 text-right" onclick="event.stopPropagation()">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

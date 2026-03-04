@@ -82,6 +82,9 @@
     renderEvents(data.events);
     renderActionQueue(data.alerts);
     renderProgress(data.lifecycle);
+    renderHealthScore(data.health_score);
+    renderUpcomingMatches(data.upcoming_matches);
+    renderGroupProgress(data.group_progress);
     updateGlobalStatus(data);
     // Async side-channels (non-blocking)
     loadQuickStats();
@@ -467,6 +470,161 @@
   // ═══════════════════════════════════════════════════════════════
   //  S1-F3: Transition Modal
   // ═══════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 27: Health Score Ring
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderHealthScore(hs) {
+    if (!hs) return;
+
+    const scoreEl = $('#health-score-value');
+    const gradeEl = $('#health-grade');
+    const labelEl = $('#health-label');
+    const ringEl = $('#health-ring-progress');
+    const bgGlow = $('#health-bg-glow');
+
+    if (scoreEl) scoreEl.textContent = hs.score;
+    if (gradeEl) gradeEl.textContent = hs.grade;
+    if (labelEl) labelEl.textContent = hs.label;
+
+    // Animate ring progress (circumference = 2 * π * 42 ≈ 264)
+    if (ringEl) {
+      const offset = 264 - (264 * hs.score / 100);
+      requestAnimationFrame(() => { ringEl.style.strokeDashoffset = offset; });
+
+      // Color based on score
+      ringEl.classList.remove('text-theme', 'text-dc-success', 'text-dc-warning', 'text-dc-danger');
+      if (hs.score >= 75) ringEl.classList.add('text-dc-success');
+      else if (hs.score >= 50) ringEl.classList.add('text-theme');
+      else if (hs.score >= 30) ringEl.classList.add('text-dc-warning');
+      else ringEl.classList.add('text-dc-danger');
+    }
+
+    // Background glow
+    if (bgGlow) {
+      if (hs.score >= 75) bgGlow.style.background = 'radial-gradient(circle at center, rgba(0,255,136,0.15) 0%, transparent 70%)';
+      else if (hs.score >= 50) bgGlow.style.background = 'radial-gradient(circle at center, rgba(var(--color-primary-rgb,255,85,0),0.15) 0%, transparent 70%)';
+      else bgGlow.style.background = 'radial-gradient(circle at center, rgba(255,42,85,0.15) 0%, transparent 70%)';
+    }
+
+    // Breakdown values
+    var bd = hs.breakdown || {};
+    _setText('#hb-reg', bd.registration != null ? bd.registration + '%' : '—');
+    _setText('#hb-pay', bd.payments != null ? bd.payments + '%' : '—');
+    _setText('#hb-match', bd.matches != null ? bd.matches + '%' : '—');
+    _setText('#hb-disp', bd.disputes != null ? bd.disputes + '%' : '—');
+    _setText('#hb-alert', bd.alerts != null ? bd.alerts + '%' : '—');
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 27: Upcoming Matches Widget
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderUpcomingMatches(matches) {
+    var container = $('#upcoming-matches');
+    if (!container) return;
+
+    if (!matches || matches.length === 0) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-24 text-center">
+          <i data-lucide="calendar-check" class="w-6 h-6 text-dc-text/30 mb-2"></i>
+          <p class="text-[10px] text-dc-text font-mono">No upcoming matches</p>
+        </div>`;
+      _reinitIcons();
+      return;
+    }
+
+    container.innerHTML = matches.map(function (m) {
+      var time = '—';
+      var relative = '';
+      if (m.scheduled_time) {
+        var d = new Date(m.scheduled_time);
+        time = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+               d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        relative = _relativeTime(d);
+      }
+      return `
+        <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.03] transition-colors group cursor-pointer" onclick="TOC.navigate('schedule')">
+          <div class="w-7 h-7 rounded-lg bg-dc-info/10 border border-dc-info/20 flex items-center justify-center shrink-0">
+            <span class="text-[9px] font-mono font-black text-dc-info">M${m.match_number || '?'}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] text-white font-bold truncate">${_esc(m.participant1_name)}</span>
+              <span class="text-[9px] text-dc-text">vs</span>
+              <span class="text-[10px] text-white font-bold truncate">${_esc(m.participant2_name)}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-[9px] text-dc-text font-mono">${time}</span>
+              <span class="text-[8px] text-theme bg-theme/10 px-1.5 py-0.5 rounded border border-theme/20 font-mono">R${m.round_number || '?'}</span>
+            </div>
+          </div>
+          ${relative ? '<span class="text-[9px] font-mono text-dc-info bg-dc-info/10 px-2 py-0.5 rounded border border-dc-info/20 shrink-0">' + relative + '</span>' : ''}
+        </div>`;
+    }).join('');
+
+    _reinitIcons();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Sprint 27: Group Stage Progress
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderGroupProgress(gp) {
+    var container = $('#group-progress');
+    var badge = $('#group-progress-badge');
+    if (!container) return;
+
+    if (!gp) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-24 text-center">
+          <i data-lucide="layout-grid" class="w-6 h-6 text-dc-text/30 mb-2"></i>
+          <p class="text-[10px] text-dc-text font-mono">No group stage configured</p>
+        </div>`;
+      if (badge) badge.classList.add('hidden');
+      _reinitIcons();
+      return;
+    }
+
+    if (badge) {
+      badge.textContent = gp.completion_pct + '%';
+      badge.classList.remove('hidden');
+    }
+
+    var stateLabel = (gp.state || 'unknown').replace(/_/g, ' ');
+    var stateColor = gp.state === 'completed' ? 'text-dc-success' : gp.state === 'active' ? 'text-theme' : 'text-dc-text';
+
+    container.innerHTML = `
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Group Stage</span>
+          <span class="text-[9px] font-bold ${stateColor} uppercase tracking-widest">${_esc(stateLabel)}</span>
+        </div>
+        <div class="h-2 bg-dc-bg rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-purple-500 to-theme rounded-full transition-all duration-700" style="width:${gp.completion_pct || 0}%"></div>
+        </div>
+        <div class="flex items-center justify-between mt-1">
+          <span class="text-[9px] font-mono text-dc-text">${gp.completed_matches || 0} / ${gp.total_matches || 0} matches</span>
+          <span class="text-[9px] font-mono text-theme font-bold">${gp.completion_pct || 0}%</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        ${(gp.groups || []).map(function (g) {
+          return '<div class="bg-dc-bg border border-dc-border rounded-lg p-2 text-center">' +
+            '<p class="text-[9px] font-bold text-white truncate">' + _esc(g.name) + '</p>' +
+            '<p class="text-[8px] text-dc-text font-mono mt-0.5">' + (g.teams || 0) + ' teams</p>' +
+          '</div>';
+        }).join('')}
+      </div>
+      <div class="mt-2 text-center">
+        <button onclick="TOC.navigate('brackets')" class="text-[9px] text-dc-text hover:text-theme transition-colors font-mono uppercase tracking-widest">
+          View Groups → 
+        </button>
+      </div>`;
+
+    _reinitIcons();
+  }
 
   function openTransitionModal(transitions) {
     const modal = $('#modal-transition');

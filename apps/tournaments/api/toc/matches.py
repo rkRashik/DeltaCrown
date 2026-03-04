@@ -26,13 +26,14 @@ class MatchListView(TOCBaseView):
     """S6-B1: Paginated match list with filters."""
 
     def get(self, request, slug):
-        data = TOCMatchesService.get_matches(
+        result = TOCMatchesService.get_matches(
             self.tournament,
             round_number=request.query_params.get('round'),
             state=request.query_params.get('state'),
             search=request.query_params.get('search'),
+            group=request.query_params.get('group'),
         )
-        return Response({'matches': data})
+        return Response(result)
 
 
 class MatchScoreView(TOCBaseView):

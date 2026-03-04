@@ -21,6 +21,11 @@ from django.db.models import Q
 
 from apps.tournaments.models import Registration
 
+try:
+    from apps.user_profile.models import GameProfile as _GameProfile
+except ImportError:
+    _GameProfile = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +49,20 @@ class RegistrationVerificationService:
             tournament=tournament,
             is_deleted=False,
         ).exclude(status__in=['rejected', 'cancelled']).select_related('user')
+
+        # Pre-build user_id -> IGN map from GameProfile for this tournament's game.
+        # Lineup snapshots never store game_id directly; this is the authoritative source.
+        user_game_ids: dict[int, str] = {}
+        if _GameProfile is not None:
+            try:
+                game_dn = getattr(getattr(tournament, 'game', None), 'display_name', '') or ''
+                if game_dn:
+                    gp_qs = _GameProfile.objects.filter(
+                        game_display_name__iexact=game_dn
+                    ).exclude(ign='').values('user_id', 'ign')
+                    user_game_ids = {gp['user_id']: gp['ign'] for gp in gp_qs}
+            except Exception:
+                pass
 
         flags = []
         per_reg = defaultdict(list)
@@ -86,14 +105,16 @@ class RegistrationVerificationService:
                 if uid:
                     user_team_map[uid].append((reg.id, reg.team_id))
 
-                # Track game IDs for duplicates
-                if gid_val:
-                    game_id_map[gid_val.lower()].append((reg.id, name))
+                # Track game IDs for duplicates.
+                # Snapshot rarely has game_id directly — fall back to GameProfile.ign.
+                effective_gid = gid_val or (user_game_ids.get(uid, '') if uid else '')
+                if effective_gid:
+                    game_id_map[effective_gid.lower()].append((reg.id, name))
                 elif slot in ('STARTER', 'SUBSTITUTE'):
                     reg_flags.append(cls._flag(
                         reg.id, cls.SEVERITY_WARNING, 'missing_game_id',
                         f'{name}: Missing game ID',
-                        f'Player {name} ({slot}) has no game ID set.'
+                        f'Player {name} ({slot}) has no game ID set and no GameProfile for this game.'
                     ))
 
                 if slot == 'STARTER':

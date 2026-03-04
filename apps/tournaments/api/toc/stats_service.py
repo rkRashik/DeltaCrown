@@ -37,18 +37,18 @@ class TOCStatsService:
         t = self.tournament
 
         # --- Match stats ---
-        matches_qs = Match.objects.filter(
-            Q(bracket__tournament=t)
-            | Q(group_stage__group__tournament=t)
-        )
+        matches_qs = Match.objects.filter(tournament=t)
         total_matches = matches_qs.count()
-        completed_matches = matches_qs.filter(status="completed").count()
-        in_progress_matches = matches_qs.filter(status="in_progress").count()
-        pending_matches = matches_qs.filter(status="pending").count()
+        completed_matches = matches_qs.filter(state="completed").count()
+        in_progress_matches = matches_qs.filter(state="live").count()
+        pending_matches = matches_qs.filter(
+            state__in=["scheduled", "check_in", "ready", "pending_result"]
+        ).count()
+        forfeit_matches = matches_qs.filter(state="forfeit").count()
 
         avg_duration = None
         duration_qs = matches_qs.filter(
-            status="completed",
+            state="completed",
             completed_at__isnull=False,
             started_at__isnull=False,
         )
@@ -68,7 +68,9 @@ class TOCStatsService:
         dq_rate = round(disqualified / total_registrations * 100, 1) if total_registrations else 0
 
         # --- Dispute stats ---
-        dispute_qs = DisputeRecord.objects.filter(tournament=t)
+        dispute_qs = DisputeRecord.objects.filter(
+            submission__match__tournament=t
+        )
         total_disputes = dispute_qs.count()
         open_disputes = dispute_qs.filter(status__in=["open", "under_review"]).count()
         resolved_disputes = dispute_qs.filter(status__in=["resolved", "dismissed"]).count()
@@ -82,6 +84,7 @@ class TOCStatsService:
                 "completed": completed_matches,
                 "in_progress": in_progress_matches,
                 "pending": pending_matches,
+                "forfeits": forfeit_matches,
                 "completion_pct": completion_pct,
                 "avg_duration_minutes": avg_duration,
             },

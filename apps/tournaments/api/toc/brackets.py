@@ -146,6 +146,36 @@ class ScheduleAddBreakView(TOCBaseView):
         return Response(data)
 
 
+class ScheduleRescheduleMatchView(TOCBaseView):
+    """S27-B1: POST /api/toc/<slug>/schedule/<pk>/reschedule/"""
+
+    def post(self, request, slug, pk):
+        try:
+            data = TOCBracketsService.reschedule_match(
+                self.tournament, pk, request.data, request.user
+            )
+            return Response(data)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class ScheduleManualMatchView(TOCBaseView):
+    """S27: POST /api/toc/<slug>/schedule/<pk>/manual/ — manually schedule a match."""
+
+    def post(self, request, slug, pk):
+        try:
+            data = TOCBracketsService.manual_schedule_match(
+                self.tournament, pk, request.data, request.user
+            )
+            return Response(data)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 # ── Group Stage endpoints ──────────────────────────────────────
 
 class GroupStageView(TOCBaseView):
