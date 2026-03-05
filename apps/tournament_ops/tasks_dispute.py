@@ -6,13 +6,16 @@ Automated tasks for dispute reminders and escalations.
 Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.2 (Opponent Verification & Dispute System)
 """
 
+import logging
+import os
 from datetime import timedelta
-from typing import Optional
 
 from django.utils import timezone
 from celery import shared_task
 
 from apps.common.events.event_bus import Event, get_event_bus
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(
@@ -42,14 +45,20 @@ def opponent_response_reminder_task(self, submission_id: int):
     TODO: Add env var OPPONENT_RESPONSE_REMINDER_HOURS (default: 24)
     """
     # Import here to avoid circular imports
-    from apps.tournament_ops.adapters import ResultSubmissionAdapter
-    
-    adapter = ResultSubmissionAdapter()
-    
+    from apps.tournaments.models import MatchResultSubmission
+
+    reminder_hours = int(os.getenv('OPPONENT_RESPONSE_REMINDER_HOURS', '24'))
+
     try:
-        # Get submission
-        submission = adapter.get_submission(submission_id)
-        
+        # Fetch submission with match data directly from ORM
+        try:
+            submission = MatchResultSubmission.objects.select_related('match').get(id=submission_id)
+        except MatchResultSubmission.DoesNotExist:
+            return {
+                'status': 'skipped',
+                'reason': f'Submission {submission_id} not found',
+            }
+
         # Only remind if still pending
         if submission.status != 'pending':
             # Already confirmed/disputed/rejected, skip reminder
@@ -57,7 +66,28 @@ def opponent_response_reminder_task(self, submission_id: int):
                 'status': 'skipped',
                 'reason': f'Submission {submission_id} no longer pending (status: {submission.status})',
             }
-        
+
+        # Determine actual opponent user ID from match participants.
+        # In solo tournaments, participant1_id / participant2_id are user IDs.
+        # In team tournaments they are team IDs; user resolution is handled in Epic 6.4.
+        match = submission.match
+        submitter_user_id = submission.submitted_by_user_id
+        opponent_user_id = None
+        if match.participant1_id == submitter_user_id:
+            opponent_user_id = match.participant2_id
+        elif match.participant2_id == submitter_user_id:
+            opponent_user_id = match.participant1_id
+
+        # Calculate real hours elapsed since submission
+        hours_elapsed = (timezone.now() - submission.submitted_at).total_seconds() / 3600
+
+        # Only send reminder after threshold
+        if hours_elapsed < reminder_hours:
+            return {
+                'status': 'skipped',
+                'reason': f'Only {hours_elapsed:.1f}h elapsed, threshold is {reminder_hours}h',
+            }
+
         # Publish reminder event
         # Listener (Epic 6.3): NotificationService sends email/push to opponent
         get_event_bus().publish(Event(
@@ -65,20 +95,20 @@ def opponent_response_reminder_task(self, submission_id: int):
             payload={
                 'submission_id': submission_id,
                 'match_id': submission.match_id,
-                'opponent_user_id': submission.submitted_by_user_id,  # TODO: Get actual opponent user ID from match
+                'opponent_user_id': opponent_user_id,
                 'submitted_at': submission.submitted_at.isoformat(),
             },
             metadata={
                 'reminder_type': 'opponent_response',
-                'hours_elapsed': 24,  # TODO: Calculate from submission.submitted_at
+                'hours_elapsed': round(hours_elapsed, 2),
             }
         ))
-        
+
         return {
             'status': 'success',
             'submission_id': submission_id,
         }
-        
+
     except Exception as exc:
         # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
@@ -121,7 +151,6 @@ def dispute_escalation_task(self):
     from apps.tournament_ops.adapters import DisputeAdapter, ResultSubmissionAdapter
     
     # Get env var or default to 48 hours
-    import os
     escalation_hours = int(os.getenv('DISPUTE_AUTO_ESCALATION_HOURS', '48'))
     escalation_threshold = timezone.now() - timedelta(hours=escalation_hours)
     
@@ -153,8 +182,7 @@ def dispute_escalation_task(self):
             escalated_count += 1
         except Exception as e:
             # Log error but continue processing other disputes
-            print(f"Failed to auto-escalate dispute {dispute_id}: {e}")
-            # TODO: Use proper logging (logger.error)
+            logger.error("Failed to auto-escalate dispute %s: %s", dispute_id, e)
     
     return {
         'status': 'success',

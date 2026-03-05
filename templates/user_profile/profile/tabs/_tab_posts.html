@@ -1,4 +1,8 @@
 {% load profile_tags %}
+{# Hidden CSRF token for AJAX requests (delete, like, comment) #}
+{% if relationship_ctx.is_authenticated_viewer %}
+<form style="display:none;"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"></form>
+{% endif %}
 <style>
 @keyframes slideInDown {
     from {
@@ -788,12 +792,14 @@
                 
                 const postId = this.dataset.postId;
                 const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                    || (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
                 
                 try {
                     const response = await fetch(`/api/profile/posts/${postId}/delete/`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                            'X-CSRFToken': csrfToken
                         }
                     });
                     

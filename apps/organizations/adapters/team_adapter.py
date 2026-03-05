@@ -443,8 +443,17 @@ class TeamAdapter:
         active_count = active_members.count()
         roster_data['active_count'] = active_count
         
-        # Minimum roster size check (game-specific, default to 5)
-        min_roster_size = 5  # TODO: Make game-specific
+        # Minimum roster size check (game-specific via GameTournamentConfig)
+        min_roster_size = 5  # default fallback
+        if game_id or (hasattr(legacy_team, 'game_id') and legacy_team.game_id):
+            try:
+                from apps.games.models.tournament_config import GameTournamentConfig
+                lookup_game_id = game_id or legacy_team.game_id
+                config = GameTournamentConfig.objects.filter(game_id=lookup_game_id).only('min_team_size').first()
+                if config and config.min_team_size:
+                    min_roster_size = config.min_team_size
+            except Exception:
+                pass  # fallback to default
         if active_count < min_roster_size:
             errors.append(f"Roster size ({active_count}) below minimum ({min_roster_size})")
         

@@ -115,10 +115,17 @@
     {# ── Background grid ── #}
     <div class="toc-grid-bg"></div>
 
+    {# ── Game-themed ambient glow orbs ── #}
+    <div class="toc-ambient-glow"></div>
+    <div class="toc-ambient-glow-2"></div>
+
     {# ══════════════════════════════════════════════════════════════ #}
     {# SIDEBAR — 240px, collapsible, grouped nav                    #}
     {# ══════════════════════════════════════════════════════════════ #}
     <aside id="toc-sidebar" class="w-[240px] xl:w-[260px] h-full glass-box border-r border-dc-border flex flex-col shrink-0 z-30 transition-all duration-300">
+
+        {# Sidebar accent stripe #}
+        <div class="toc-sidebar-accent"></div>
 
         {# Brand header #}
         <div class="h-[64px] flex items-center px-5 border-b border-dc-border bg-dc-bg/50">
@@ -235,7 +242,9 @@
     <main class="flex-1 flex flex-col h-full relative z-10">
 
         {# ── Top bar ── #}
-        <header class="h-[64px] glass-box border-b border-dc-border flex items-center justify-between px-6 shrink-0 z-20">
+        <header class="h-[64px] glass-box border-b border-dc-border flex items-center justify-between px-6 shrink-0 z-20 relative">
+            {# Header accent line #}
+            <div class="toc-header-accent"></div>
             {# Search / Cmd+K trigger #}
             <div class="flex-1 max-w-lg relative group">
                 <i data-lucide="search" class="w-4 h-4 text-dc-text absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-theme transition-colors"></i>
@@ -402,6 +411,9 @@
                         <p id="stat-forfeits" class="text-xl font-display font-black text-dc-warning">—</p>
                     </div>
                 </div>
+
+                {# ── Countdown Timers ── #}
+                <div id="overview-countdowns" class="flex flex-wrap gap-3 hidden"></div>
 
                 {# ── S27: Health Score (1/3) + Upcoming Matches (1/3) + Group Progress (1/3) ── #}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -645,7 +657,7 @@
                                             Seed <i data-lucide="arrow-up-down" class="w-2.5 h-2.5"></i>
                                         </button>
                                     </th>
-                                    <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest" title="IGL/Coordinator for team tournaments, Game ID for solo">IGL / Game ID</th>
+                                    <th id="th-igl-gameid" class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest" title="IGL/Coordinator for team tournaments, Game ID for solo">IGL / Game ID</th>
                                     <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
@@ -1005,10 +1017,20 @@
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Group Stage
                     </button>
+                    <button data-subtab="swiss" onclick="TOC.brackets.switchSubTab('swiss')"
+                        class="brackets-pill hidden px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                               border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
+                        <i data-lucide="rows-3" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Swiss Standings
+                    </button>
                     <button data-subtab="bracket" onclick="TOC.brackets.switchSubTab('bracket')"
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="git-branch" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Playoff Bracket
+                    </button>
+                    <button data-subtab="schedule" onclick="TOC.brackets.switchSubTab('schedule')"
+                        class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
+                               border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Schedule
                     </button>
                     <button data-subtab="pipelines" onclick="TOC.brackets.switchSubTab('pipelines')"
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
@@ -1026,8 +1048,16 @@
                             <button onclick="TOC.brackets.openGroupConfig()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i>Configure
                             </button>
-                            <button onclick="TOC.brackets.drawGroups()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
+                            <button id="btn-group-draw" onclick="TOC.brackets.drawGroups()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
                                 <i data-lucide="shuffle" class="w-3 h-3 inline mr-1"></i>Draw
+                            </button>
+                            <a href="{% url 'tournaments:group_draw_director' slug=tournament.slug %}" target="_blank"
+                               data-cap-require="manage_brackets"
+                               class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors inline-flex items-center">
+                                <i data-lucide="tv" class="w-3 h-3 inline mr-1"></i>Live Draw Ceremony
+                            </a>
+                            <button id="btn-group-reset" onclick="TOC.brackets.resetGroups()" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Draw
                             </button>
                             <button onclick="TOC.brackets.recalcStandings()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Recalculate
@@ -1036,6 +1066,32 @@
                     </div>
                     {# Content area — populated by JS (hero state OR masonry grid) #}
                     <div id="groups-content"></div>
+                </div>
+
+                {# ══ SWISS STANDINGS Sub-View ══ #}
+                <div id="sub-swiss" class="brackets-subview hidden">
+                    {# Action bar #}
+                    <div class="flex items-center justify-between mb-6">
+                        <div id="swiss-round-info" class="flex items-center gap-4 text-xs text-dc-text">
+                            <span>Round: <strong id="swiss-current-round" class="text-white font-mono">—</strong> / <strong id="swiss-total-rounds" class="text-dc-textBright font-mono">—</strong></span>
+                            <span id="swiss-complete-badge" class="hidden text-xs font-bold px-2 py-0.5 rounded-full bg-dc-success/20 text-dc-success border border-dc-success/20">Tournament Complete</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="TOC.brackets.refreshSwiss()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Refresh
+                            </button>
+                            <button id="btn-swiss-advance" onclick="TOC.brackets.advanceSwissRound()" data-cap-require="manage_brackets"
+                                class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i> Advance Round
+                            </button>
+                        </div>
+                    </div>
+                    {# Standings table #}
+                    <div id="swiss-standings-container">
+                        <div class="flex items-center justify-center py-16">
+                            <p class="text-sm text-dc-text/50 font-mono">No Swiss bracket generated yet.</p>
+                        </div>
+                    </div>
                 </div>
 
                 {# ══ PLAYOFF BRACKET Sub-View ══ #}
@@ -1062,6 +1118,10 @@
                                 class="px-4 py-2 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-1.5">
                                 <i data-lucide="send" class="w-3.5 h-3.5"></i> Publish
                             </button>
+                            <button onclick="TOC.brackets.shareBracket()" id="btn-bracket-share"
+                                class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Share public bracket link & embed code">
+                                <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
+                            </button>
                         </div>
                     </div>
                     {# Bracket content — populated by JS (empty state OR bracket tree) #}
@@ -1077,6 +1137,21 @@
                         </div>
                         <div id="seed-list" class="p-4 space-y-1 max-h-[400px] overflow-y-auto"></div>
                     </div>
+                </div>
+
+                {# ══ SCHEDULE Sub-View ══ #}
+                <div id="sub-schedule" class="brackets-subview hidden">
+                    {# Action bar #}
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Match Schedule</div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="TOC.brackets.refreshSchedule()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                                <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    {# Schedule content — populated by JS #}
+                    <div id="schedule-content"></div>
                 </div>
 
                 {# ══ QUALIFIER PIPELINES Sub-View ══ #}
@@ -1266,6 +1341,9 @@
                                     <button onclick="TOC.matches.switchDetailTab('audit')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="audit" role="tab" aria-selected="false" aria-controls="detail-tab-audit">
                                         <i data-lucide="scroll-text" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Audit
                                     </button>
+                                    <button onclick="TOC.matches.switchDetailTab('veto')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="veto" role="tab" aria-selected="false" aria-controls="detail-tab-veto">
+                                        <i data-lucide="shield-ban" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Veto
+                                    </button>
                                 </div>
                             </div>
 
@@ -1274,7 +1352,28 @@
 
                                 {# Score Editor Tab #}
                                 <div id="detail-tab-score" class="detail-tab-content p-5 space-y-4" role="tabpanel">
-                                    <div class="grid grid-cols-2 gap-4">
+
+                                    {# Series format selector (BO1/BO3/BO5) #}
+                                    <div class="flex items-center gap-3 pb-3 border-b border-dc-border/30">
+                                        <span class="text-xs font-bold text-dc-text uppercase tracking-widest">Format</span>
+                                        <div class="flex items-center gap-1">
+                                            <button onclick="TOC.matches.setBestOf(1)" id="bo-btn-1" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="1">BO1</button>
+                                            <button onclick="TOC.matches.setBestOf(3)" id="bo-btn-3" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="3">BO3</button>
+                                            <button onclick="TOC.matches.setBestOf(5)" id="bo-btn-5" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="5">BO5</button>
+                                        </div>
+                                        <span id="series-progress-label" class="ml-auto text-xs text-dc-text/60 font-mono hidden"></span>
+                                    </div>
+
+                                    {# BO3/BO5: Game-by-game scorecard #}
+                                    <div id="series-scorecard" class="hidden space-y-2">
+                                        <div id="series-games-list" class="space-y-2"></div>
+                                        <button onclick="TOC.matches.openAddGameScore()" class="w-full py-2 rounded-lg border border-dashed border-dc-border text-xs text-dc-text/60 hover:border-theme/40 hover:text-theme transition-colors flex items-center justify-center gap-1.5">
+                                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Game Score
+                                        </button>
+                                    </div>
+
+                                    {# BO1: standard score inputs #}
+                                    <div id="bo1-score-inputs" class="grid grid-cols-2 gap-4">
                                         <div>
                                             <label for="score-input-a" class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-2">
                                                 <span id="score-label-a">Team A</span> Score
@@ -1342,6 +1441,57 @@
                                         <div class="flex items-center justify-center py-10">
                                             <p class="text-sm text-dc-text/50 font-mono">No audit entries</p>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {# Map Veto Tab #}
+                                <div id="detail-tab-veto" class="detail-tab-content hidden p-5 space-y-4" role="tabpanel">
+
+                                    {# Veto status bar #}
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span id="veto-status-badge" class="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-dc-surface border border-dc-border text-dc-text">No Session</span>
+                                            <span id="veto-step-label" class="text-xs text-dc-text font-mono hidden"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button id="veto-create-btn" onclick="TOC.matches.createVetoSession()" class="px-3 py-1.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
+                                                <i data-lucide="play" class="w-3.5 h-3.5"></i> Start Veto
+                                            </button>
+                                            <button id="veto-reset-btn" onclick="TOC.matches.resetVetoSession()" class="hidden px-3 py-1.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-1.5">
+                                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {# Veto sequence overview #}
+                                    <div id="veto-sequence-overview" class="hidden">
+                                        <p class="text-xs font-bold text-dc-text uppercase tracking-widest mb-2">Sequence</p>
+                                        <div id="veto-sequence-steps" class="flex flex-wrap gap-1.5"></div>
+                                    </div>
+
+                                    {# Active veto step — pick/ban action area #}
+                                    <div id="veto-active-step" class="hidden rounded-lg border border-theme/20 bg-theme/5 p-4 space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-xs font-bold text-theme uppercase tracking-widest mb-0.5" id="veto-action-label">Ban</p>
+                                                <p class="text-sm text-white font-bold" id="veto-team-label">Team A's turn</p>
+                                            </div>
+                                            <span class="text-xs font-mono text-dc-text" id="veto-step-counter">Step 1 / 7</span>
+                                        </div>
+                                        <div id="veto-map-grid" class="grid grid-cols-3 gap-2"></div>
+                                    </div>
+
+                                    {# Completed picks list #}
+                                    <div id="veto-picks-section" class="hidden">
+                                        <p class="text-xs font-bold text-dc-text uppercase tracking-widest mb-2">Results</p>
+                                        <div id="veto-picks-list" class="space-y-1.5"></div>
+                                    </div>
+
+                                    {# Empty state when veto is not configured #}
+                                    <div id="veto-not-configured" class="text-center py-8 hidden">
+                                        <i data-lucide="settings-2" class="w-10 h-10 text-dc-border mx-auto mb-2"></i>
+                                        <p class="text-sm text-dc-text/50">Map veto is not enabled for this tournament.</p>
+                                        <p class="text-xs text-dc-text/40 mt-1">Enable it in Settings › Game Config.</p>
                                     </div>
                                 </div>
                             </div>
@@ -1504,6 +1654,9 @@
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.schedule.openUserGuide()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Schedule Guide">
                             <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guide
+                        </button>
+                        <button onclick="TOC.schedule.exportICS()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Download schedule as iCalendar (.ics)">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export .ics
                         </button>
                         <button onclick="TOC.schedule.openAutoSchedule()" data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
@@ -1969,6 +2122,24 @@
                                 <label class="block text-xs text-dc-text mb-1">Tournament Ends</label>
                                 <input data-field="tournament_end" type="datetime-local" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                             </div>
+                            <div>
+                                <label class="block text-xs text-dc-text mb-1">Display Timezone</label>
+                                <select data-field="timezone_name" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                    <option value="Asia/Dhaka">Asia/Dhaka (BST +6)</option>
+                                    <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
+                                    <option value="Asia/Singapore">Asia/Singapore (SGT +8)</option>
+                                    <option value="Asia/Tokyo">Asia/Tokyo (JST +9)</option>
+                                    <option value="Asia/Seoul">Asia/Seoul (KST +9)</option>
+                                    <option value="Asia/Dubai">Asia/Dubai (GST +4)</option>
+                                    <option value="Europe/London">Europe/London (GMT/BST)</option>
+                                    <option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option>
+                                    <option value="America/New_York">America/New_York (ET)</option>
+                                    <option value="America/Los_Angeles">America/Los_Angeles (PT)</option>
+                                    <option value="America/Chicago">America/Chicago (CT)</option>
+                                    <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                                    <option value="UTC">UTC</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </details>
@@ -2179,8 +2350,28 @@
                             <input data-field="contact_email" type="email" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
+                            <label class="block text-xs text-dc-text mb-1">Contact Phone / WhatsApp</label>
+                            <input data-field="contact_phone" type="tel" placeholder="+880..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
                             <label class="block text-xs text-dc-text mb-1">Discord Server URL</label>
                             <input data-field="social_discord" type="url" placeholder="https://discord.gg/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1.5">
+                                Discord Webhook URL
+                                <span class="text-[10px] text-dc-text/50 ml-1">(for automated notifications)</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input data-field="discord_webhook_url" type="url" placeholder="https://discord.com/api/webhooks/..." class="flex-1 bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                                <button type="button" id="btn-test-discord-webhook"
+                                        class="px-3 py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                                        title="Send a test message to verify the webhook">
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
+                                    Test
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-dc-text/40 mt-1">Create a webhook in your Discord server → Channel Settings → Integrations → Webhooks</p>
                         </div>
                         <div>
                             <label class="block text-xs text-dc-text mb-1">Twitter / X</label>
@@ -2191,12 +2382,25 @@
                             <input data-field="social_instagram" type="url" placeholder="https://instagram.com/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
+                            <label class="block text-xs text-dc-text mb-1">Facebook Page/Group</label>
+                            <input data-field="social_facebook" type="url" placeholder="https://facebook.com/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
                             <label class="block text-xs text-dc-text mb-1">YouTube Channel</label>
                             <input data-field="social_youtube" type="url" placeholder="https://youtube.com/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
+                            <label class="block text-xs text-dc-text mb-1">TikTok</label>
+                            <input data-field="social_tiktok" type="url" placeholder="https://tiktok.com/@..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
                             <label class="block text-xs text-dc-text mb-1">Website</label>
                             <input data-field="social_website" type="url" placeholder="https://..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs text-dc-text mb-1">Support & Dispute Info</label>
+                            <textarea data-field="support_info" rows="3" placeholder="Custom support instructions for participants (e.g. how to report issues, dispute process, contact hours)..."
+                                class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50 resize-y"></textarea>
                         </div>
                     </div>
                 </details>
@@ -2514,9 +2718,13 @@
                     <div class="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="settings-waitlist">
                         <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="auto_forfeit_no_shows" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-forfeit no-shows</label>
                         <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="waitlist_auto_promote" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-promote from waitlist</label>
-                        <div>
-                            <label class="block text-xs text-dc-text mb-1">No-Show Timeout (min)</label>
-                            <input data-field="no_show_timeout_minutes" type="number" min="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
+                            <input id="toggle-no-show-timer" data-field="enable_no_show_timer" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncNoShowVisibility()">
+                            Auto-DQ on no-show
+                        </label>
+                        <div id="no-show-timer-details" class="hidden sm:col-span-2 md:col-span-1">
+                            <label class="block text-xs text-dc-text mb-1">No-Show Timeout (minutes after scheduled start)</label>
+                            <input data-field="no_show_timeout_minutes" type="number" min="1" max="60" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
                             <label class="block text-xs text-dc-text mb-1">Max Waitlist Size (0 = unlimited)</label>
@@ -2569,6 +2777,32 @@
                         </div>
                     </div>
                 </details>
+
+                {# ═══ Danger Zone ═══ #}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="h-px bg-dc-danger/20 flex-1"></div>
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold text-dc-danger opacity-60 px-2">Danger Zone</span>
+                    <div class="h-px bg-dc-danger/20 flex-1"></div>
+                </div>
+
+                <div class="glass-box rounded-xl border border-dc-danger/20 overflow-hidden">
+                    <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
+                                <i data-lucide="copy" class="w-4 h-4 text-dc-warning"></i> Clone Tournament
+                            </h3>
+                            <p class="text-xs text-dc-text mt-1">
+                                Create a full copy of this tournament — settings, game config, map pool, regions, payment methods, and custom fields.
+                                Dates and participants are <strong class="text-dc-textBright">not</strong> copied. The clone starts as a draft.
+                            </p>
+                        </div>
+                        <button id="btn-clone-tournament" onclick="TOC.settings.cloneTournament()"
+                            data-cap-require="edit_settings"
+                            class="shrink-0 px-5 py-2.5 rounded-lg bg-dc-warning/10 border border-dc-warning/30 text-dc-warning text-xs font-bold uppercase tracking-widest hover:bg-dc-warning/20 transition-colors flex items-center gap-2 min-h-[38px]">
+                            <i data-lucide="copy" class="w-4 h-4"></i> Clone Tournament
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {# ════════════════════════════════════════════════════════════════ #}
@@ -2644,14 +2878,17 @@
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <h2 class="text-xl font-display font-bold text-white">Check-in Hub</h2>
-                    <div class="flex items-center gap-2">
-                        <button onclick="TOC.checkin.openCheckin()" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button data-checkin-action="open" onclick="TOC.checkin.openCheckin()" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="play" class="w-3 h-3"></i> Open Check-in
                         </button>
-                        <button onclick="TOC.checkin.closeCheckin()" class="px-3 py-2 rounded-lg bg-dc-danger text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-checkin-action="close" onclick="TOC.checkin.closeCheckin()" class="px-3 py-2 rounded-lg bg-dc-danger text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="square" class="w-3 h-3"></i> Close Check-in
                         </button>
-                        <button onclick="TOC.checkin.autoDQ()" class="px-3 py-2 border border-dc-warning/30 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1">
+                        <button onclick="TOC.checkin.blastReminder()" title="Send check-in reminder to all pending participants" class="px-3 py-2 border border-dc-warning/40 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="megaphone" class="w-3 h-3"></i> Blast Reminder
+                        </button>
+                        <button onclick="TOC.checkin.autoDQ()" class="px-3 py-2 border border-dc-danger/30 text-dc-danger text-xs rounded-lg hover:bg-dc-danger/10 transition-colors flex items-center gap-1">
                             <i data-lucide="user-x" class="w-3 h-3"></i> Auto-DQ
                         </button>
                         <button onclick="TOC.checkin.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
@@ -2684,6 +2921,15 @@
                     </div>
                 </div>
 
+                {# Progress ring + countdown #}
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div id="checkin-progress-ring" class="glass-box rounded-xl p-5 flex-1"></div>
+                    <div id="checkin-countdown" class="glass-box rounded-xl p-5 flex items-center justify-center flex-1"></div>
+                </div>
+
+                {# Round check-in matches (per-round) #}
+                <div id="checkin-round-matches" class="glass-box rounded-xl p-5 hidden"></div>
+
                 {# Check-in Config #}
                 <details class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
@@ -2713,10 +2959,10 @@
 
                 {# Participants List #}
                 <div class="glass-box rounded-xl p-5">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-3">
                         <h3 class="font-display font-bold text-white text-sm">Participants</h3>
-                        <input id="checkin-search" type="text" placeholder="Search..." oninput="TOC.checkin.filterParticipants(this.value)" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-1.5 text-xs text-dc-textBright focus:outline-none focus:border-theme/50 w-48">
                     </div>
+                    <div id="checkin-filter-bar" class="mb-3"></div>
                     <div id="checkin-participants-list" class="space-y-1.5 max-h-[500px] overflow-y-auto">
                         <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
                     </div>
@@ -2853,13 +3099,53 @@
                     </div>
                 </div>
 
-                {# Match Analytics #}
+                {# Match Analytics + Round Progress (side by side) #}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="glass-box rounded-xl p-5">
+                        <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                            <i data-lucide="swords" class="w-4 h-4 text-theme"></i> Match Analytics
+                        </h3>
+                        <div id="analytics-matches-content" class="space-y-3">
+                            <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                        </div>
+                    </div>
+                    <div class="glass-box rounded-xl p-5">
+                        <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-theme"></i> Round Progress
+                        </h3>
+                        <div id="analytics-rounds-progress" class="space-y-2">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Revenue + Engagement (side by side) #}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="glass-box rounded-xl p-5">
+                        <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                            <i data-lucide="banknote" class="w-4 h-4 text-dc-success"></i> Revenue
+                        </h3>
+                        <div id="analytics-revenue-content" class="space-y-3">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">Loading…</p>
+                        </div>
+                    </div>
+                    <div class="glass-box rounded-xl p-5">
+                        <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
+                            <i data-lucide="eye" class="w-4 h-4 text-theme"></i> Engagement
+                        </h3>
+                        <div id="analytics-engagement-content" class="space-y-3">
+                            <p class="text-xs text-dc-text text-center py-4 opacity-50">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Closest matches #}
                 <div class="glass-box rounded-xl p-5">
                     <h3 class="font-display font-bold text-white text-sm mb-4 flex items-center gap-2">
-                        <i data-lucide="swords" class="w-4 h-4 text-theme"></i> Match Analytics
+                        <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i> Closest Matches
                     </h3>
-                    <div id="analytics-matches-content" class="space-y-3">
-                        <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    <div id="analytics-closest-matches">
+                        <p class="text-xs text-dc-text text-center py-4 opacity-50">Loading…</p>
                     </div>
                 </div>
 
@@ -3357,6 +3643,9 @@
             gameCategory: '{{ game_category }}',
             gameType: '{{ game_type }}',
             tournamentMode: '{{ tournament_mode }}',
+            participationType: '{{ participation_type }}',
+            isSolo: {{ is_solo|yesno:"true,false" }},
+            gameIdLabel: '{{ game_id_label|default:"Game ID" }}',
             isOrganizer: {{ is_organizer|yesno:"true,false" }},
             isOfficial: {{ is_official|yesno:"true,false" }},
             gameColors: {

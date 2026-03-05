@@ -91,6 +91,22 @@
   opacity: 0; transition: opacity .3s;
 }
 .dc-post-card:hover::before { opacity: 1; }
+.dc-post-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 16px; right: 16px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(108,0,255,.1), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.dc-post-card:hover::after { opacity: 1; }
+
+/* === Post card left accent (esports HUD feel) === */
+.dc-post-card .dc-accent-bar {
+  position: absolute; top: 12px; left: 0; width: 3px; height: 24px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #00E5FF, #6C00FF);
+  opacity: 0; transition: opacity .3s;
+}
+.dc-post-card:hover .dc-accent-bar { opacity: .6; }
 
 /* === Like pop === */
 .dc-like-pop { animation: dcPop .35s ease; }
@@ -178,12 +194,19 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* === Modal panel === */
+/* === Modal panel (unused — kept for compat) === */
 .dc-modal-panel { animation: dcModalIn .3s cubic-bezier(.16,1,.3,1) both; }
 @keyframes dcModalIn {
   from { opacity: 0; transform: translateY(20px) scale(.96); }
   to   { opacity: 1; transform: none; }
 }
+
+/* === Inline comments expand === */
+.dc-inline-comments {
+  animation: dcSlide .25s ease-out both;
+}
+.dc-inline-comments .dc-comments-list::-webkit-scrollbar { width: 3px; }
+.dc-inline-comments .dc-comments-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 3px; }
 
 /* === Team badge === */
 .dc-team-badge {
@@ -243,6 +266,52 @@
 
 /* === Sentinel === */
 #feed-sentinel { height: 1px; }
+
+/* === HUD scan-line effect (subtle) === */
+.dc-hud-scanline {
+  position: relative;
+}
+.dc-hud-scanline::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,229,255,.008) 2px,
+    rgba(0,229,255,.008) 4px
+  );
+  opacity: 0;
+  transition: opacity .4s;
+}
+.dc-hud-scanline:hover::after { opacity: 1; }
+
+/* === Status indicator === */
+.dc-status-live {
+  position: relative;
+  padding-left: 14px;
+}
+.dc-status-live::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px rgba(16,185,129,.4);
+  animation: dcPulseDot 2s ease-in-out infinite;
+}
+
+/* === Hexagonal badge (game tags in feed) === */
+.dc-hex-badge {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 700;
+}
+
+/* === Comment inline thread line === */
+.dc-comment-in + .dc-comment-in {
+  position: relative;
+}
 </style>
 {% endblock %}
 
@@ -254,8 +323,25 @@
   <div class="dc-glow-tl"></div>
   <div class="dc-glow-br"></div>
 
-  {# HEADER BAR #}
+  {# HEADER BAR — Esports HUD style #}
   <header class="sticky top-0 z-40 backdrop-blur-xl bg-delta-base/80 border-b border-white/[.05]">
+    {# Thin status strip #}
+    <div class="border-b border-white/[.03] bg-white/[.01]">
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-7 text-[10px] text-white/25 tracking-wider uppercase font-medium">
+          <div class="flex items-center gap-4">
+            <span class="dc-status-live">Community Online</span>
+            <span class="hidden sm:inline opacity-50">|</span>
+            <span class="hidden sm:inline" id="hud-stat-posts">— posts</span>
+            <span class="hidden sm:inline opacity-50">|</span>
+            <span class="hidden sm:inline" id="hud-stat-teams">— teams</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-[#00E5FF]/40">DeltaCrown Esports Network</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
       {# Row 1: Logo / Search / CTA #}
       <div class="flex items-center gap-4 h-[60px]">
@@ -328,7 +414,12 @@
 
       {# Browse Games #}
       <div class="mb-7">
-        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Games</div>
+        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="w-3 h-3 text-[#00E5FF]/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Game Channels
+          </span>
+        </div>
         <div id="sidebar-games" class="space-y-1">
           <div class="dc-skeleton h-9 w-full"></div>
           <div class="dc-skeleton h-9 w-full"></div>
@@ -698,53 +789,7 @@
 </div>
 
 
-{# COMMENT MODAL #}
-<div id="comment-modal" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="comment-overlay"></div>
-  <div class="dc-modal-panel absolute inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 top-1/2 -translate-y-1/2
-              sm:w-full sm:max-w-xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.08] bg-delta-surface shadow-2xl shadow-black/50 overflow-hidden">
-
-    {# Header #}
-    <div class="flex items-center justify-between px-5 py-4 border-b border-white/[.06] bg-white/[.02]">
-      <div class="flex items-center gap-2.5">
-        <svg class="w-4 h-4 text-[#00E5FF]/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        <h3 class="font-bold text-white/80 text-sm">Comments</h3>
-        <span id="comment-count-badge" class="text-[11px] text-white/20 font-medium"></span>
-      </div>
-      <button id="comment-close" class="p-1.5 rounded-lg hover:bg-white/10 text-white/25 hover:text-white/60 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-
-    {# Comments list #}
-    <div id="comments-list" class="flex-1 overflow-y-auto p-5 space-y-4 min-h-[100px]">
-      <div class="text-center text-sm text-white/15 py-10">Loading…</div>
-    </div>
-
-    {# Comment input #}
-    {% if request.user.is_authenticated %}
-    <div class="px-5 py-4 border-t border-white/[.06] bg-white/[.01]">
-      <div class="flex items-start gap-3">
-        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 grid place-items-center text-[10px] font-bold text-white shrink-0 mt-0.5 border border-white/[.06]">
-          {{ request.user.username|first|upper }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-end gap-2">
-            <textarea id="comment-input" rows="1" placeholder="Write a comment…"
-                   class="flex-1 px-4 py-2.5 rounded-xl bg-white/[.04] border border-white/[.08] text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00E5FF]/30 transition resize-none"
-                   style="min-height:40px; max-height:120px;"></textarea>
-            <button id="comment-send"
-                    class="px-4 py-2.5 rounded-xl bg-[#00E5FF]/80 text-white text-sm font-bold hover:bg-[#00E5FF] transition disabled:opacity-25 disabled:pointer-events-none shrink-0"
-                    disabled>
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-</div>
+{# Comments are now inline-expanded under each post — no modal needed #}
 {% endblock %}
 
 

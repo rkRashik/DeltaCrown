@@ -240,9 +240,34 @@ function handleAlternativeAction(action, teamSlug, modal) {
             
         case 'inactive':
             closeModal(modal);
-            showToast('Feature coming soon: Set inactive status', 'info');
-            // TODO: Implement set inactive functionality
+            setMemberInactive(teamSlug);
             break;
+    }
+}
+
+/**
+ * Set member status to inactive via API
+ */
+async function setMemberInactive(teamSlug) {
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        const resp = await fetch(`/api/teams/${teamSlug}/set-inactive/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            showToast('You are now inactive on this team.', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Failed to set inactive status', 'error');
+        }
+    } catch (err) {
+        showToast('Network error — please try again', 'error');
     }
 }
 

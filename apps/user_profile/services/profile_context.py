@@ -842,7 +842,32 @@ def build_profile_context(request_user: Optional[User], profile_user: User) -> D
         for tm in user_teams
     ]
     
-    context['user_tournaments'] = []  # TODO: Implement when tournament app ready
+    # Wire user tournament participation from the tournaments app
+    try:
+        from apps.tournaments.models import Registration
+        user_regs = Registration.objects.filter(
+            user=profile_user,
+            is_deleted=False,
+            status__in=[
+                Registration.CONFIRMED,
+                Registration.PENDING,
+                Registration.PAYMENT_SUBMITTED,
+            ],
+        ).select_related('tournament').order_by('-tournament__tournament_start')[:10]
+        context['user_tournaments'] = [
+            {
+                'id': reg.tournament.id,
+                'name': reg.tournament.name,
+                'slug': reg.tournament.slug,
+                'status': reg.tournament.status,
+                'registration_status': reg.status,
+                'start_date': reg.tournament.tournament_start,
+                'game_slug': reg.tournament.game.slug if reg.tournament.game_id else '',
+            }
+            for reg in user_regs
+        ]
+    except Exception:
+        context['user_tournaments'] = []
     
     # ========================================================================
     # PROFILE SHOWCASE (About Section Config)

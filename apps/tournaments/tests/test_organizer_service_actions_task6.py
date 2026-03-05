@@ -19,23 +19,6 @@ from apps.tournaments.services.payment_service import PaymentService
 
 User = get_user_model()
 
-# Print DB config at module load
-print(f"\n{'='*60}")
-print(f"TEST DATABASE CONFIGURATION")
-print(f"{'='*60}")
-import os
-from django.conf import settings
-if os.environ.get('USE_LOCAL_TEST_DB', 'false').lower() == 'true':
-    db_config = settings.DATABASES['default']
-    print(f"✓ Using LOCAL test database")
-    print(f"  Database: {db_config['NAME']}")
-    print(f"  Host: {db_config['HOST']}")
-    print(f"  User: {db_config['USER']}")
-else:
-    print(f"⚠ Using DATABASE_URL (Neon) - may fail if user can't create test DB")
-    print(f"  To use local: set USE_LOCAL_TEST_DB=true")
-print(f"{'='*60}\n")
-
 
 @pytest.fixture
 def game(db):

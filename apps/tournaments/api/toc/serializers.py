@@ -105,6 +105,11 @@ class ParticipantRowSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     registration_number = serializers.CharField()
     participant_name = serializers.CharField()
+    team_name = serializers.CharField(allow_blank=True, default='')
+    team_tag = serializers.CharField(allow_blank=True, default='')
+    team_logo_url = serializers.CharField(allow_blank=True, default='')
+    coordinator = serializers.CharField(allow_blank=True, default='')
+    coordinator_game_id = serializers.CharField(allow_blank=True, default='')
     username = serializers.CharField(allow_null=True)
     team_id = serializers.IntegerField(allow_null=True)
     status = serializers.CharField()
@@ -117,6 +122,7 @@ class ParticipantRowSerializer(serializers.Serializer):
     is_guest_team = serializers.BooleanField()
     game_id = serializers.CharField(allow_blank=True)
     registered_at = serializers.CharField(allow_null=True)
+    quick_payment = serializers.DictField(allow_null=True, required=False)
 
 
 class ParticipantListSerializer(serializers.Serializer):

@@ -107,10 +107,20 @@ class SubmitResultView(LoginRequiredMixin, View):
                 'error': 'Tie games are not allowed. There must be a winner.'
             }, status=400)
         
-        # Call backend API (in production, use requests library or DRF client)
-        # For now, we'll update directly and return success
-        # TODO: Replace with actual API call to /api/tournaments/matches/{id}/submit-result/
-        
+        # Delegate to MatchService (same backend the TOC API uses)
+        try:
+            from apps.tournaments.services.match_service import MatchService
+            MatchService.submit_result(
+                match=match,
+                submitted_by_id=request.user.id,
+                participant1_score=participant1_score,
+                participant2_score=participant2_score,
+                notes=notes,
+                evidence_url=evidence_url or "",
+            )
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
         return JsonResponse({
             'success': True,
             'message': 'Result submitted successfully. Awaiting confirmation from opponent or organizer.',
@@ -179,11 +189,22 @@ def report_dispute(request, slug, match_id):
             'error': 'Dispute description is required.'
         }, status=400)
     
-    # TODO: Call backend API POST /api/tournaments/matches/{id}/report-dispute/
-    # For now, return success response
-    
+    # Delegate to MatchService
+    try:
+        from apps.tournaments.services.match_service import MatchService
+        dispute = MatchService.report_dispute(
+            match=match,
+            initiated_by_id=request.user.id,
+            reason=reason,
+            description=description,
+            evidence_video_url=evidence_video_url or "",
+        )
+        dispute_id = dispute.id if dispute else None
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
     return JsonResponse({
         'success': True,
         'message': 'Dispute submitted successfully. A tournament organizer will review it shortly.',
-        'dispute_id': None  # Will come from API response
+        'dispute_id': dispute_id,
     })

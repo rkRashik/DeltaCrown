@@ -8,6 +8,7 @@
  *   TOC.fetch(url, opts)              — CSRF-aware async fetch wrapper
  *   TOC.drawer.open(title, html)      — Slide-out right drawer
  *   TOC.drawer.close()
+ *   TOC.dangerConfirm(opts)            — Styled danger/warning confirmation modal
  *   TOC.toast(message, type, opts)    — Toast notifications
  *   TOC.cmdk.open() / .close() / .toggle()  — Command palette
  *   TOC.badge(tabId, count)           — Nav badge update
@@ -194,6 +195,66 @@
             if (el) el.classList.add('hidden');
         },
     };
+
+
+    /* ───────────────────────────────────────────────
+       S0-J5b: Danger Confirm Modal
+       ─────────────────────────────────────────────── */
+
+    /**
+     * Show a styled danger/warning confirmation modal.
+     *
+     * @param {object} opts
+     * @param {string} opts.title        - Bold modal heading
+     * @param {string} [opts.message]    - Explanatory sub-text
+     * @param {string} [opts.confirmText='Confirm'] - Text for the action button
+     * @param {Function} opts.onConfirm  - Called when user confirms
+     * @param {'danger'|'warning'} [opts.variant='danger'] - Colour theme
+     */
+    function dangerConfirm({ title, message, confirmText = 'Confirm', onConfirm, variant = 'danger' }) {
+        const id = 'toc-danger-confirm-modal';
+        document.getElementById(id)?.remove();
+
+        const isDanger  = variant !== 'warning';
+        const btnCls    = isDanger ? 'bg-dc-danger hover:opacity-90 text-white' : 'bg-dc-warning hover:opacity-90 text-dc-bg';
+        const borderCls = isDanger ? 'border-t-dc-danger/60'  : 'border-t-dc-warning/60';
+        const iconCls   = isDanger ? 'text-dc-danger' : 'text-dc-warning';
+        const bgCls     = isDanger ? 'bg-dc-danger/10' : 'bg-dc-warning/10';
+        const icon      = isDanger ? 'alert-triangle' : 'alert-circle';
+
+        const modal = document.createElement('div');
+        modal.id = id;
+        modal.className = 'fixed inset-0 z-[200] flex items-center justify-center';
+        modal.innerHTML =
+            `<div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-dc-backdrop></div>
+            <div class="bg-dc-surface border border-dc-borderLight border-t-2 ${borderCls} shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-sm relative z-10 overflow-hidden">
+                <div class="p-5 space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg ${bgCls} flex items-center justify-center shrink-0">
+                            <i data-lucide="${icon}" class="w-4 h-4 ${iconCls}"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-black text-base text-white">${escapeHtml(title)}</h3>
+                            ${message ? `<p class="text-xs text-dc-text mt-1">${escapeHtml(message)}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button data-dc-confirm class="flex-1 ${btnCls} text-sm font-bold py-2 rounded-lg transition">${escapeHtml(confirmText)}</button>
+                        <button data-dc-cancel class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.appendChild(modal);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        const remove = () => document.getElementById(id)?.remove();
+        modal.querySelector('[data-dc-confirm]').addEventListener('click', () => { remove(); onConfirm(); });
+        modal.querySelector('[data-dc-cancel]').addEventListener('click', remove);
+        modal.querySelector('[data-dc-backdrop]').addEventListener('click', remove);
+        // Focus cancel by default so accidental Enter doesn't trigger confirm
+        setTimeout(() => modal.querySelector('[data-dc-cancel]')?.focus(), 50);
+    }
 
 
     /* ───────────────────────────────────────────────
@@ -530,6 +591,7 @@
     const apiBase = CFG.apiBase || '';
     const _apiUrl = (path) => `${apiBase}/${String(path).replace(/^\//, '')}`;
     const api = function (path, opts) { return tocFetch(_apiUrl(path), opts); };
+    api.url    = (path) => _apiUrl(path);
     api.get    = (path) => tocFetch(_apiUrl(path));
     api.post   = (path, data) => tocFetch(_apiUrl(path), { method: 'POST', body: data });
     api.put    = (path, data) => tocFetch(_apiUrl(path), { method: 'PUT', body: data });
@@ -552,6 +614,7 @@
         fetch: tocFetch,
         tocFetch: tocFetch,
         drawer,
+        dangerConfirm,
         toast,
         cmdk,
         badge,

@@ -153,7 +153,8 @@
             const socialFields = ['twitter', 'instagram', 'discord', 'youtube', 'twitch'];
             socialFields.forEach(field => {
                 if (draft[field]) {
-                    document.querySelector(`input[name="${field}"]`).value = draft[field];
+                    const el = document.querySelector(`input[name="${CSS.escape(field)}"]`);
+                    if (el) el.value = draft[field];
                 }
             });
 
@@ -966,7 +967,8 @@
             document.querySelectorAll('.game-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            document.querySelector(`.game-card[data-game="${code}"]`).classList.add('selected');
+            const gameCard = document.querySelector(`.game-card[data-game="${CSS.escape(code)}"]`);
+            if (gameCard) gameCard.classList.add('selected');
 
             // Store selection
             this.formData.game = code;
@@ -1163,7 +1165,8 @@
             document.querySelectorAll('.region-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            document.querySelector(`.region-card[data-region="${code}"]`).classList.add('selected');
+            const regionCard = document.querySelector(`.region-card[data-region="${CSS.escape(code)}"]`);
+            if (regionCard) regionCard.classList.add('selected');
 
             // Store selection
             this.formData.region = code;

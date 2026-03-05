@@ -527,7 +527,30 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['career_passports'] = get_game_passports_for_career(profile_user, limit=3)
     
     # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
-    # TODO: Implement tournament participation query when tournament app is ready
+    try:
+        from apps.tournaments.models import Registration
+        user_regs = Registration.objects.filter(
+            user=profile_user,
+            is_deleted=False,
+            status__in=[
+                Registration.CONFIRMED,
+                Registration.PENDING,
+                Registration.PAYMENT_SUBMITTED,
+            ],
+        ).select_related('tournament').order_by('-tournament__tournament_start')[:10]
+        context['user_tournaments'] = [
+            {
+                'id': reg.tournament.id,
+                'name': reg.tournament.name,
+                'slug': reg.tournament.slug,
+                'status': reg.tournament.status,
+                'registration_status': reg.status,
+                'start_date': reg.tournament.tournament_start,
+            }
+            for reg in user_regs
+        ]
+    except Exception:
+        context['user_tournaments'] = []
     
     # PHASE-4C: About Data Command Center - Privacy-Aware Fields
     # privacy_settings already fetched above (connections section)
@@ -2300,11 +2323,29 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                     from django.core.exceptions import ValidationError as EmailValidationError
                     try:
                         validate_email(secondary_email)
-                        # If email changed, mark as unverified
+                        # If email changed, mark as unverified and send OTP
                         if profile.secondary_email != secondary_email:
                             profile.secondary_email = secondary_email
                             profile.secondary_email_verified = False
-                            # TODO: Send OTP verification email
+                            # Send OTP verification email
+                            try:
+                                from apps.user_profile.views.email_verification_api import generate_otp
+                                from django.core.cache import cache
+                                from django.core.mail import send_mail
+                                from django.conf import settings as django_settings
+                                otp = generate_otp()
+                                cache_key = f"email_otp_{request.user.id}_{secondary_email}"
+                                cache.set(cache_key, otp, timeout=600)
+                                send_mail(
+                                    'Verify Your Public Email - DeltaCrown',
+                                    f'Hi {request.user.username},\n\nYour verification code is: {otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn\'t request this, please ignore this email.\n\nBest regards,\nDeltaCrown Team',
+                                    django_settings.DEFAULT_FROM_EMAIL,
+                                    [secondary_email],
+                                    fail_silently=True,
+                                )
+                            except Exception as otp_err:
+                                import logging
+                                logging.getLogger(__name__).warning(f"Failed to send secondary email OTP: {otp_err}")
                     except EmailValidationError:
                         return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
                 else:

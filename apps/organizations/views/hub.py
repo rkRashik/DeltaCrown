@@ -331,10 +331,11 @@ def _get_leaderboard(game_id=None, limit=50):
         ).order_by('-current_cp')
         
         # Apply game filter (legacy Team uses 'game' CharField slug, not game_id FK)
-        # We have game_id but need to convert to slug - skip game filter for now
-        # TODO: Convert game_id to slug via Game.objects.get(id=game_id).slug if needed
-        # if game_id:
-        #     leaderboard_qs = leaderboard_qs.filter(team__game=game_slug)
+        if game_id:
+            from apps.games.models import Game
+            game_obj = Game.objects.filter(id=game_id).values_list('slug', flat=True).first()
+            if game_obj:
+                leaderboard_qs = leaderboard_qs.filter(team__game=game_obj)
         
         leaderboard = list(leaderboard_qs[:limit])
         

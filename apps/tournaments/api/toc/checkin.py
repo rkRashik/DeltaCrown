@@ -92,6 +92,14 @@ class CheckinConfigView(TOCBaseView):
         return Response(result)
 
 
+class CheckinBlastReminderView(TOCBaseView):
+    """Send check-in reminder to all pending participants."""
+
+    def post(self, request, slug):
+        result = TOCCheckinService.blast_reminder(self.tournament)
+        return Response(result)
+
+
 class CheckinStatsView(TOCBaseView):
     """Checkin analytics / stats."""
 

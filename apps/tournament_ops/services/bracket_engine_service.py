@@ -149,7 +149,22 @@ class BracketEngineService:
                 f"format '{format_key}'"
             )
             
-            # TODO (Epic 3.3): Emit BracketGeneratedEvent via EventBus
+            # Emit BracketGeneratedEvent via EventBus
+            try:
+                from apps.common.events.event_bus import Event, get_event_bus
+                get_event_bus().publish(Event(
+                    name='BracketGeneratedEvent',
+                    payload={
+                        'tournament_id': tournament.id,
+                        'stage_id': stage.id if stage else None,
+                        'format': format_key,
+                        'match_count': len(matches),
+                        'participant_count': len(participants),
+                    },
+                    metadata={'source': 'bracket_engine_service'},
+                ))
+            except Exception as _e:
+                logger.warning("Failed to emit BracketGeneratedEvent: %s", _e)
             
             return matches
         

@@ -92,6 +92,7 @@ class TOCSettingsService:
                 "tournament_end": (
                     t.tournament_end.isoformat() if t.tournament_end else None
                 ),
+                "timezone_name": getattr(t, "timezone_name", "Asia/Dhaka") or "Asia/Dhaka",
             },
             "venue": {
                 "venue_name": getattr(t, "venue_name", "") or "",
@@ -135,15 +136,21 @@ class TOCSettingsService:
             },
             "social": {
                 "contact_email": getattr(t, "contact_email", ""),
+                "contact_phone": getattr(t, "contact_phone", ""),
                 "social_discord": getattr(t, "social_discord", ""),
+                "discord_webhook_url": getattr(t, "discord_webhook_url", ""),
                 "social_twitter": getattr(t, "social_twitter", ""),
                 "social_instagram": getattr(t, "social_instagram", ""),
                 "social_youtube": getattr(t, "social_youtube", ""),
                 "social_website": getattr(t, "social_website", ""),
+                "social_facebook": getattr(t, "social_facebook", ""),
+                "social_tiktok": getattr(t, "social_tiktok", ""),
+                "support_info": getattr(t, "support_info", ""),
             },
             "waitlist": {
                 "auto_forfeit_no_shows": getattr(t, "auto_forfeit_no_shows", False),
                 "waitlist_auto_promote": getattr(t, "waitlist_auto_promote", False),
+                "enable_no_show_timer": getattr(t, "enable_no_show_timer", False),
                 "no_show_timeout_minutes": getattr(t, "no_show_timeout_minutes", 10),
                 "max_waitlist_size": getattr(t, "max_waitlist_size", 0),
             },
@@ -166,6 +173,7 @@ class TOCSettingsService:
             # Dates
             "registration_start", "registration_end",
             "tournament_start", "tournament_end",
+            "timezone_name",
             # Venue
             "venue_name", "venue_city", "venue_address", "venue_map_url",
             # Fees
@@ -183,12 +191,14 @@ class TOCSettingsService:
             "enable_challenges", "enable_fan_voting",
             # Media (text URLs only; file uploads via separate endpoint)
             "promo_video_url", "stream_twitch_url", "stream_youtube_url",
-            # Social
-            "contact_email", "social_discord", "social_twitter",
+            # Social & Contact
+            "contact_email", "contact_phone",
+            "social_discord", "discord_webhook_url", "social_twitter",
             "social_instagram", "social_youtube", "social_website",
+            "social_facebook", "social_tiktok", "support_info",
             # Waitlist
             "auto_forfeit_no_shows", "waitlist_auto_promote",
-            "no_show_timeout_minutes", "max_waitlist_size",
+            "enable_no_show_timer", "no_show_timeout_minutes", "max_waitlist_size",
             # SEO
             "meta_description", "meta_keywords",
         }

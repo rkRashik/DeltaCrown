@@ -62,6 +62,9 @@ from apps.tournaments.realtime.utils import (
 )
 from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpers
 
+# Module 2.x: In-app notification dispatch
+from apps.notifications.services import notify as _notify_users
+
 logger = logging.getLogger(__name__)
 
 
@@ -278,8 +281,44 @@ class MatchService:
         
         match.save()
         
-        # TODO: Send notification to opponent (Module 2.x)
-        # TODO: WebSocket broadcast: check-in update (ADR-007)
+        # Notify opponent that this participant has checked in (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _opponent_id = (
+                match.participant2_id
+                if participant_id == match.participant1_id
+                else match.participant1_id
+            )
+            _opponent = _User.objects.filter(id=_opponent_id).first()
+            if _opponent:
+                _notify_users(
+                    [_opponent],
+                    event='match_checkin',
+                    title=f"{match.participant1_name} vs {match.participant2_name} — opponent checked in",
+                    body="Your opponent has checked in. Please check in to begin the match.",
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                )
+        except Exception as _exc:
+            logger.warning(f"check_in notification failed for match {match.id}: {_exc}")
+        
+        # Broadcast check-in update to tournament room (ADR-007)
+        try:
+            from apps.tournaments.realtime.broadcast import broadcast_event
+            broadcast_event(
+                tournament_id=match.tournament_id,
+                event_type='checkin_updated',
+                data={
+                    'match_id': match.id,
+                    'participant_id': participant_id,
+                    'participant1_checked_in': match.participant1_checked_in,
+                    'participant2_checked_in': match.participant2_checked_in,
+                    'match_state': match.state,
+                },
+            )
+        except Exception as _exc:
+            logger.warning(f"checkin_updated broadcast failed for match {match.id}: {_exc}")
         
         return match
     
@@ -456,7 +495,27 @@ class MatchService:
                 extra={'match_id': match.id, 'tournament_id': match.tournament_id}
             )
         
-        # TODO: Notify opponent to confirm result (Module 2.x)
+        # Notify opponent to confirm the submitted result (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _opponent_id = (
+                match.participant2_id
+                if submitted_by_id == match.participant1_id
+                else match.participant1_id
+            )
+            _opponent = _User.objects.filter(id=_opponent_id).first()
+            if _opponent:
+                _notify_users(
+                    [_opponent],
+                    event='match_result_pending',
+                    title=f"{match.participant1_name} vs {match.participant2_name} — confirm result",
+                    body="Your opponent has submitted a match result. Please review and confirm.",
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                )
+        except Exception as _exc:
+            logger.warning(f"result_pending notification failed for match {match.id}: {_exc}")
         
         return match
     
@@ -540,6 +599,12 @@ class MatchService:
                 exc_info=True,
                 extra={'match_id': match.id, 'tournament_id': match.tournament_id}
             )
+
+        # Double Elimination: check if Grand Finals Reset is needed
+        try:
+            MatchService.check_and_activate_gf_reset(match)
+        except Exception as e:
+            logger.warning(f"GF reset check failed for match {match.id}: {e}")
         
         # Publish match.completed event
         _m_id = match.id
@@ -685,7 +750,25 @@ class MatchService:
             except Exception as e:
                 logger.error(f"Failed to broadcast dispute_created to match room: {e}")
         
-        # TODO: Notify organizer of new dispute (Module 2.x)
+        # Notify tournament organizer of new dispute (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            from apps.tournaments.models import Tournament as _Tournament
+            _User = get_user_model()
+            _tournament = _Tournament.objects.filter(id=match.tournament_id).first()
+            if _tournament and _tournament.organizer_id:
+                _organizer = _User.objects.filter(id=_tournament.organizer_id).first()
+                if _organizer:
+                    _notify_users(
+                        [_organizer],
+                        event='dispute_filed',
+                        title=f"New dispute filed — {match.participant1_name} vs {match.participant2_name}",
+                        body=f"A dispute has been filed: {reason}",
+                        tournament_id=match.tournament_id,
+                        match_id=match.id,
+                    )
+        except Exception as _exc:
+            logger.warning(f"dispute organizer notification failed for match {match.id}: {_exc}")
         
         return dispute
     
@@ -840,9 +923,49 @@ class MatchService:
                     pass  # Non-blocking
             transaction.on_commit(_notify_profile)
         
-        # TODO: Notify participants of resolution (Module 2.x)
-        # TODO: Update bracket if match completed (Module 1.5)
-        # TODO: WebSocket broadcast: dispute resolved (ADR-007)
+        # Notify both participants of dispute resolution (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _pids = [p for p in [match.participant1_id, match.participant2_id] if p]
+            _participants = list(_User.objects.filter(id__in=_pids))
+            if _participants:
+                _notify_users(
+                    _participants,
+                    event='dispute_resolved',
+                    title=f"{match.participant1_name} vs {match.participant2_name} — dispute resolved",
+                    body=f"The dispute for your match has been resolved. {resolution_notes[:200]}",
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                )
+        except Exception as _exc:
+            logger.warning(f"dispute_resolved notification failed for dispute {dispute.id}: {_exc}")
+        
+        # Update bracket progression if match was completed by this resolution (Module 1.5)
+        if dispute.status == Dispute.RESOLVED:
+            try:
+                from apps.tournaments.services.bracket_service import BracketService
+                BracketService.update_bracket_after_match(match)
+            except Exception as _exc:
+                logger.error(f"Bracket update failed after dispute resolution (match {match.id}): {_exc}")
+        
+        # Broadcast dispute_resolved event to tournament room (ADR-007)
+        try:
+            from apps.tournaments.realtime.broadcast import broadcast_event
+            broadcast_event(
+                tournament_id=match.tournament_id,
+                event_type='dispute_resolved',
+                data={
+                    'match_id': match.id,
+                    'dispute_id': dispute.id,
+                    'status': dispute.status,
+                    'resolved_by': resolved_by_id,
+                    'final_score1': final_participant1_score,
+                    'final_score2': final_participant2_score,
+                },
+            )
+        except Exception as _exc:
+            logger.warning(f"dispute_resolved broadcast failed for match {match.id}: {_exc}")
         
         return dispute, match
     
@@ -871,7 +994,33 @@ class MatchService:
         dispute.resolution_notes = f"ESCALATED: {escalation_notes}"
         dispute.save()
         
-        # TODO: Notify admins (Module 2.x)
+        # Notify tournament organizer and staff admins about escalation (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            from apps.tournaments.models import Tournament as _Tournament
+            _User = get_user_model()
+            _tournament = _Tournament.objects.filter(id=dispute.match.tournament_id).first()
+            _recipients = []
+            if _tournament and _tournament.organizer_id:
+                _organizer = _User.objects.filter(id=_tournament.organizer_id).first()
+                if _organizer:
+                    _recipients.append(_organizer)
+            # Also notify site staff/admins (capped at 10 to avoid blast)
+            _admin_qs = _User.objects.filter(
+                is_staff=True, is_active=True,
+            ).exclude(id__in=[u.id for u in _recipients])[:10]
+            _recipients.extend(list(_admin_qs))
+            if _recipients:
+                _notify_users(
+                    _recipients,
+                    event='dispute_escalated',
+                    title="Dispute escalated — admin action required",
+                    body=f"A dispute has been escalated and requires admin review. {escalation_notes[:200]}",
+                    tournament_id=_tournament.id if _tournament else None,
+                    match_id=dispute.match_id,
+                )
+        except Exception as _exc:
+            logger.warning(f"escalation notification failed for dispute {dispute.id}: {_exc}")
         
         return dispute
     
@@ -907,7 +1056,23 @@ class MatchService:
         match.lobby_info['cancelled_at'] = timezone.now().isoformat()
         match.save()
         
-        # TODO: Notify participants (Module 2.x)
+        # Notify match participants of cancellation (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _pids = [p for p in [match.participant1_id, match.participant2_id] if p]
+            _participants = list(_User.objects.filter(id__in=_pids))
+            if _participants:
+                _notify_users(
+                    _participants,
+                    event='match_cancelled',
+                    title=f"{match.participant1_name} vs {match.participant2_name} — match cancelled",
+                    body=f"Your match has been cancelled. Reason: {reason}",
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                )
+        except Exception as _exc:
+            logger.warning(f"match_cancelled notification failed for match {match.id}: {_exc}")
         
         return match
     
@@ -958,8 +1123,30 @@ class MatchService:
         match.completed_at = timezone.now()
         match.save()
         
-        # TODO: Update bracket progression (Module 1.5)
-        # TODO: Notify participants (Module 2.x)
+        # Update bracket progression (Module 1.5)
+        try:
+            from apps.tournaments.services.bracket_service import BracketService
+            BracketService.update_bracket_after_match(match)
+        except Exception as _exc:
+            logger.error(f"Bracket update failed after forfeit (match {match.id}): {_exc}")
+        
+        # Notify match participants of forfeit (Module 2.x)
+        try:
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _pids = [p for p in [match.participant1_id, match.participant2_id] if p]
+            _participants = list(_User.objects.filter(id__in=_pids))
+            if _participants:
+                _notify_users(
+                    _participants,
+                    event='match_forfeited',
+                    title=f"{match.participant1_name} vs {match.participant2_name} — forfeit recorded",
+                    body=f"A forfeit has been recorded for your match. Reason: {reason}",
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                )
+        except Exception as _exc:
+            logger.warning(f"match_forfeited notification failed for match {match.id}: {_exc}")
         
         return match
     
@@ -1330,3 +1517,200 @@ class MatchService:
         """
         from apps.tournaments.services.bracket_service import BracketService
         return BracketService.recalculate_bracket(tournament_id=tournament_id, force=force)
+
+    # ------------------------------------------------------------------
+    # Series (BO3 / BO5) helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def submit_game_score(
+        match: "Match",
+        game_number: int,
+        participant1_score: int,
+        participant2_score: int,
+        submitted_by_id: int,
+    ) -> "Match":
+        """
+        Record the result of a single game within a BO3/BO5 series.
+
+        Updates ``match.game_scores`` with the new game entry, then
+        recalculates the series series_wins for each side.  When one
+        side reaches the wins-needed threshold (2 for BO3, 3 for BO5)
+        the overall match is finalized via ``submit_result()``.
+
+        Args:
+            match:              Match instance (best_of must be 3 or 5).
+            game_number:        1-indexed game number (must be > existing games).
+            participant1_score: Rounds/points won by participant 1 in this game.
+            participant2_score: Rounds/points won by participant 2 in this game.
+            submitted_by_id:    User ID submitting this game result.
+
+        Returns:
+            Updated Match instance.
+
+        Raises:
+            ValidationError: If match has best_of=1, game already exists,
+                             or submitter is not a participant.
+        """
+        from django.core.exceptions import ValidationError
+        if match.best_of == 1:
+            raise ValidationError("Use submit_result() for BO1 matches.")
+        if submitted_by_id not in [match.participant1_id, match.participant2_id]:
+            raise ValidationError("Only match participants can submit game scores.")
+        if match.state not in [Match.LIVE, Match.PENDING_RESULT]:
+            raise ValidationError(f"Cannot submit game score in state: {match.state}")
+
+        games: list = list(match.game_scores or [])  # ensure fresh copy
+        existing_nums = {g.get("game") for g in games}
+        if game_number in existing_nums:
+            raise ValidationError(f"Game {game_number} score already recorded.")
+
+        # Determine winner of this game
+        if participant1_score > participant2_score:
+            winner_slot = 1
+        elif participant2_score > participant1_score:
+            winner_slot = 2
+        else:
+            raise ValidationError("Individual game cannot end in a tie.")
+
+        games.append({
+            "game": game_number,
+            "p1": participant1_score,
+            "p2": participant2_score,
+            "winner_slot": winner_slot,
+        })
+        games.sort(key=lambda g: g["game"])  # keep ordered
+
+        match.game_scores = games
+        match.save(update_fields=["game_scores"])
+
+        # Tally wins
+        p1_wins = sum(1 for g in games if g["winner_slot"] == 1)
+        p2_wins = sum(1 for g in games if g["winner_slot"] == 2)
+        wins_needed = (match.best_of // 2) + 1  # BO3→2, BO5→3
+
+        if p1_wins >= wins_needed or p2_wins >= wins_needed:
+            # Finalize the series using cumulative game counts as series scores
+            match = MatchService.submit_result(
+                match=match,
+                submitted_by_id=submitted_by_id,
+                participant1_score=p1_wins,
+                participant2_score=p2_wins,
+            )
+
+        return match
+
+    @staticmethod
+    def get_series_status(match: "Match") -> dict:
+        """
+        Return a summary of the current series state for a BO3/BO5 match.
+
+        Returns:
+            dict with keys: best_of, wins_needed, p1_wins, p2_wins,
+            games_played, games, is_complete, series_winner_slot.
+        """
+        games: list = list(match.game_scores or [])
+        p1_wins = sum(1 for g in games if g.get("winner_slot") == 1)
+        p2_wins = sum(1 for g in games if g.get("winner_slot") == 2)
+        wins_needed = (match.best_of // 2) + 1
+        is_complete = p1_wins >= wins_needed or p2_wins >= wins_needed
+        series_winner_slot = None
+        if p1_wins >= wins_needed:
+            series_winner_slot = 1
+        elif p2_wins >= wins_needed:
+            series_winner_slot = 2
+
+        return {
+            "best_of": match.best_of,
+            "wins_needed": wins_needed,
+            "p1_wins": p1_wins,
+            "p2_wins": p2_wins,
+            "games_played": len(games),
+            "games": games,
+            "is_complete": is_complete,
+            "series_winner_slot": series_winner_slot,
+        }
+
+    # ------------------------------------------------------------------
+    # Double Elimination: Grand Finals Reset
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def check_and_activate_gf_reset(match: "Match") -> bool:
+        """
+        After Grand Finals completes, check if a reset match is needed.
+
+        In double elimination, when the losers bracket finalist (who has 1 prior
+        loss) beats the winners bracket finalist (who has 0 losses) in Grand
+        Finals, both players now have 1 loss each — a reset match is required.
+
+        This method:
+        1. Checks if ``match`` is the Grand Finals node (bracket_type='main',
+           parent exists with is_bye=True and same bracket).
+        2. Determines who came from the winners side (no prior losses) vs the
+           losers side.
+        3. If winners-side participant LOST the GF, activates the reset node by
+           setting ``is_bye=False`` and populating participants.
+
+        Args:
+            match: Completed Grand Finals match.
+
+        Returns:
+            True if a reset match was activated, False otherwise.
+        """
+        from apps.tournaments.models.bracket import BracketNode, Bracket
+
+        try:
+            node = match.bracket_node
+        except Exception:
+            return False
+
+        if not node:
+            return False
+
+        # Only applies to double elimination Grand Finals
+        if node.bracket.format != Bracket.DOUBLE_ELIMINATION:
+            return False
+
+        if node.bracket_type != BracketNode.MAIN:
+            return False
+
+        # Check parent is the GFR node (is_bye=True placeholder)
+        parent = node.parent_node
+        if not parent or not getattr(parent, "is_bye", False):
+            return False
+
+        # The node's child1 came from winners bracket, child2 from losers bracket.
+        # If the losers-side winner (child2 winner) beat child1 participant → reset.
+        child1 = node.child1_node  # WB side
+        child2 = node.child2_node  # LB side
+
+        wb_participant_id = child1.winner_id if child1 else None
+        lb_participant_id = child2.winner_id if child2 else None
+
+        if not wb_participant_id or not lb_participant_id:
+            # Fallback: use p1 = WB side by convention
+            wb_participant_id = node.participant1_id
+            lb_participant_id = node.participant2_id
+
+        gf_winner_id = match.winner_id
+        if gf_winner_id != lb_participant_id:
+            # WB winner won Grand Finals → no reset needed
+            return False
+
+        # LB winner won → activate reset match
+        # Both contestants: WB finalist (now 1 loss) vs LB finalist (1 loss)
+        parent.is_bye = False
+        parent.participant1_id = wb_participant_id
+        parent.participant1_name = (
+            match.participant1_name if match.participant1_id == wb_participant_id
+            else match.participant2_name
+        )
+        parent.participant2_id = lb_participant_id
+        parent.participant2_name = (
+            match.participant1_name if match.participant1_id == lb_participant_id
+            else match.participant2_name
+        )
+        parent.save(update_fields=["is_bye", "participant1_id", "participant1_name",
+                                   "participant2_id", "participant2_name"])
+        return True

@@ -1,4 +1,5 @@
-﻿from django.contrib.auth.decorators import login_required
+﻿import logging
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.urls import reverse
@@ -8,6 +9,8 @@ from django.http import JsonResponse
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from .decorators import require_auth_json
+
+logger = logging.getLogger(__name__)
 
 Notification = apps.get_model("notifications", "Notification")
 UserProfile = apps.get_model("user_profile", "UserProfile")
@@ -130,8 +133,8 @@ def nav_preview(request):
                     target=user_profile,
                     status='PENDING'
                 ).count()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to fetch pending follow requests: {e}")
         
         # Serialize notifications
         items = []
@@ -390,8 +393,8 @@ def accept_team_invite_inline(request, invite_id):
                 body=f"{user.username} accepted the invite to join {team.name} as {invite.role}.",
                 url=f"/teams/{team.slug}/",
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to send invite-accepted notification: {e}")
 
         return JsonResponse({
             "success": True,
@@ -401,7 +404,8 @@ def accept_team_invite_inline(request, invite_id):
         })
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        logger.error(f"Error accepting team invite {invite_id}: {e}", exc_info=True)
+        return JsonResponse({"success": False, "error": "An unexpected error occurred"}, status=500)
 
 
 @require_POST
@@ -443,4 +447,5 @@ def decline_team_invite_inline(request, invite_id):
         })
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        logger.error(f"Error declining team invite {invite_id}: {e}", exc_info=True)
+        return JsonResponse({"success": False, "error": "An unexpected error occurred"}, status=500)

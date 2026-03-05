@@ -162,6 +162,9 @@ from .stats_certs import (
     UserTrophy,           # TOC Sprint 9: Awarded user trophies
     TrustEvent,           # TOC Sprint 9: Player Trust Index events
 )
+from .discord_webhook_log import (
+    DiscordWebhookLog,    # Discord webhook delivery log (rolling 50 entries)
+)
 
 __all__ = [
     'Game',
@@ -248,4 +251,6 @@ __all__ = [
     'ProfileTrophy',
     'UserTrophy',
     'TrustEvent',
+    # Discord Webhook Delivery Log
+    'DiscordWebhookLog',
 ]

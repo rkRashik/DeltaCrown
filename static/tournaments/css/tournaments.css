@@ -6,45 +6,38 @@
 /* --- CSS Custom Properties --- */
 :root {
   --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-surface: rgba(10, 10, 10, 0.7);
-  --glass-strong: rgba(20, 20, 20, 0.85);
+  --glass-surface: #0e0e0e;
+  --glass-strong: #141414;
   --neon-cyan: rgba(6, 182, 212, 0.6);
   --neon-purple: rgba(139, 92, 246, 0.6);
 }
 
-/* --- Glassmorphism --- */
+/* --- Glassmorphism (solid backgrounds — no blur haze) --- */
 .glass {
   background: var(--glass-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 .glass-strong {
   background: var(--glass-strong);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* --- Subtle Grain Overlay --- */
+/* --- Subtle Grain Overlay (disabled — caused foggy look over all pages) --- */
 .grain-overlay::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  display: none;
 }
 
 /* --- Tournament Cards --- */
 .card-modern {
-  background: #0a0a0a;
+  background: #111111;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow: hidden;
   position: relative;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 .card-modern:hover {
   transform: translateY(-4px);
@@ -66,7 +59,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 0%, #0a0a0a 100%);
+  background: linear-gradient(to bottom, transparent 0%, #111111 100%);
 }
 
 /* --- Navigation Pills (Sidebar Filters) --- */

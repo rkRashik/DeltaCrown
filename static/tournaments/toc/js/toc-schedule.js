@@ -819,6 +819,22 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
+   *  ICS Calendar Export
+   * ═══════════════════════════════════════════════════════════════ */
+
+  function exportICS() {
+    // Trigger browser download via anchor click
+    const url = API.url('schedule/export.ics');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('Downloading schedule as .ics calendar file…', 'success');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
    *  User Guide / Help Panel
    * ═══════════════════════════════════════════════════════════════ */
 
@@ -1328,6 +1344,7 @@
     openManualSchedule,
     confirmManualSchedule,
     openUserGuide,
+    exportICS,
     closeOverlay,
   };
 

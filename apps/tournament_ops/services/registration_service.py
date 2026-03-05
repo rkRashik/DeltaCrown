@@ -377,7 +377,3 @@ class RegistrationService:
 
         logger.info(f"Registration {registration.id} withdrawn successfully")
         return withdrawn_registration
-        raise NotImplementedError(
-            "RegistrationService.withdraw_registration() not yet implemented. "
-            "Will be completed in Phase 5, Epic 5.4."
-        )

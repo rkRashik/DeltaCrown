@@ -168,8 +168,15 @@ class RegistrationAdmin(ModelAdmin):
             team_name = data.get('team_name') or data.get('team', {}).get('name') if isinstance(data, dict) else None
             if team_name:
                 return team_name
-            # Fallback: the team_id reference
-            return f"Team #{obj.team_id}"
+            # Fallback: lookup from OrgTeam
+            try:
+                from apps.organizations.models import Team as OrgTeam
+                team = OrgTeam.objects.filter(id=obj.team_id).values_list('name', flat=True).first()
+                if team:
+                    return team
+            except Exception:
+                pass
+            return f"Team {obj.team_id}"
         return "-"
     team_name_display.short_description = "Team Name"
     

@@ -103,6 +103,18 @@
   /* ── Render Grid ────────────────────────────────────────────────── */
 
   function render(data) {
+    // Dynamic column header for IGL/Game ID column
+    var thIgl = document.getElementById('th-igl-gameid');
+    if (thIgl) {
+      var cfg = window.TOC_CONFIG || {};
+      if (cfg.isSolo) {
+        thIgl.textContent = cfg.gameIdLabel || 'Game ID';
+        thIgl.title = 'Player game-specific identifier';
+      } else {
+        thIgl.textContent = 'IGL';
+        thIgl.title = 'In-Game Leader / Captain';
+      }
+    }
     renderRows(data.results);
     renderPagination(data);
     selectedIds.clear();
@@ -143,7 +155,11 @@
           <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
             <div class="flex items-center gap-2.5">
               ${row.team_logo_url
-                ? `<img src="${esc(row.team_logo_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">`
+                ? `<img src="${esc(row.team_logo_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                   <div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
+                     <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
+                   </div>`
                 : `<div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
                      <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
                    </div>`}
@@ -191,7 +207,7 @@
           <td class="px-3 py-2.5 font-mono text-zinc-400 text-[10px]" onclick="TOC.participants.openDetail(${row.id})">
             ${row.team_id
               ? (row.coordinator
-                  ? `<span class="text-theme text-[10px] not-italic">${esc(row.coordinator)}</span><span class="text-zinc-600 text-[9px] ml-1">IGL</span>`
+                  ? `<div class="flex flex-col"><span class="text-theme text-[10px] not-italic">${esc(row.coordinator)}</span>${row.coordinator_game_id ? `<span class="text-zinc-500 text-[9px] font-mono">${esc(row.coordinator_game_id)}</span>` : ''}</div>`
                   : '<span class="text-zinc-600">—</span>')
               : esc(row.game_id || '—')}
           </td>
@@ -616,25 +632,41 @@
     try {
       const d = await TOC.fetch(`${TOC.config.apiBase}/participants/${id}/`);
       const sc = STATUS_CONFIG[d.status] || STATUS_CONFIG.draft;
+      const ti = d.team_info || {};
+      const gm = d.game_meta || {};
+      const gameIdLabel = gm.game_id_label || 'Game ID';
 
-      // ━━ Card 1: Player Identity ━━
+      // Team avatar — with onerror fallback for broken/missing logos
+      const initials = (d.participant_name || '?')[0].toUpperCase();
+      const avatarFallback = `<div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
+            <span class="text-base font-bold text-theme">${initials}</span>
+          </div>`;
+      const avatarHtml = ti.logo_url
+        ? `<img src="${esc(ti.logo_url)}" alt="" class="w-10 h-10 rounded-xl object-cover border border-dc-border/50"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+           <div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
+            <span class="text-base font-bold text-theme">${initials}</span>
+           </div>`
+        : avatarFallback;
+
+      // ━━ Card 1: Identity ━━
       const identityCard = `
         <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
           <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50">
-            <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Player Identity</span>
+            <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">${d.team_id ? 'Team' : 'Player'} Identity</span>
           </div>
           <div class="p-4 space-y-2.5 text-xs">
             <div class="flex items-center gap-3 mb-3">
-              <div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
-                <span class="text-base font-bold text-theme">${(d.participant_name || '?')[0].toUpperCase()}</span>
-              </div>
-              <div>
-                <h3 class="text-white font-bold text-sm">${esc(d.participant_name)}</h3>
+              ${avatarHtml}
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  ${d.team_slug ? `<a href="/teams/${esc(d.team_slug)}/" target="_blank" class="text-white font-bold text-sm hover:text-theme transition-colors">${esc(d.participant_name)}</a>` : `<h3 class="text-white font-bold text-sm">${esc(d.participant_name)}</h3>`}
+                  ${ti.tag ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-dc-surface border border-dc-border/50 text-dc-text font-mono">[${esc(ti.tag)}]</span>` : ''}
+                </div>
                 <p class="text-zinc-500 text-[10px] font-mono">${esc(d.registration_number || '')}</p>
               </div>
             </div>
             ${d.username ? `<div class="flex justify-between"><span class="text-zinc-500">Username</span><span class="text-white">@${esc(d.username)}</span></div>` : ''}
-            ${d.team_id ? `<div class="flex justify-between"><span class="text-zinc-500">Team ID</span><span class="text-white font-mono">${d.team_id}</span></div>` : ''}
             <div class="flex justify-between"><span class="text-zinc-500">Status</span>
               <span class="inline-flex items-center gap-1 px-2 py-0.5 ${sc.bg} border ${sc.border} ${sc.text} text-[9px] font-bold uppercase tracking-widest rounded-md">
                 <i data-lucide="${sc.icon}" class="w-2.5 h-2.5"></i> ${esc(sc.label)}
@@ -650,6 +682,52 @@
             <div class="flex justify-between"><span class="text-zinc-500">Registered</span><span class="text-white font-mono text-[10px]">${formatDate(d.registered_at)}</span></div>
           </div>
         </div>`;
+
+      // ━━ Card 1b: Coordinator / IGL ━━
+      let coordinatorCard = '';
+      const coord = d.coordinator;
+      if (coord && coord.display_name) {
+        coordinatorCard = `
+          <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50 flex items-center gap-2">
+              <i data-lucide="crown" class="w-3 h-3 text-amber-400"></i>
+              <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">IGL / Coordinator</span>
+            </div>
+            <div class="p-4 space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span class="text-zinc-500">Name</span>
+                ${coord.profile_slug
+                  ? `<a href="/u/${esc(coord.profile_slug)}/" target="_blank" class="text-theme hover:underline font-medium">${esc(coord.display_name)}</a>`
+                  : `<span class="text-white font-medium">${esc(coord.display_name)}</span>`}
+              </div>
+              <div class="flex justify-between"><span class="text-zinc-500">Role</span><span class="text-amber-400 text-[10px] font-bold">${esc(coord.role || 'IGL')}</span></div>
+              ${coord.game_id ? `<div class="flex justify-between"><span class="text-zinc-500">${esc(gameIdLabel)}</span><span class="text-emerald-300 font-mono text-[10px]">${esc(coord.game_id)}</span></div>` : ''}
+            </div>
+          </div>`;
+      }
+
+      // ━━ Card 1c: Communication Channels ━━
+      let commCard = '';
+      const channels = d.communication_channels || [];
+      if (channels.length > 0) {
+        const iconMap = { discord: 'message-circle', whatsapp: 'phone', phone: 'phone', messenger: 'message-square', email: 'mail', telegram: 'send' };
+        commCard = `
+          <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50">
+              <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Communication</span>
+            </div>
+            <div class="p-4 space-y-2 text-xs">
+              ${channels.map(ch => {
+                const icon = iconMap[(ch.key || '').toLowerCase()] || 'globe';
+                const val = ch.value || '—';
+                return `<div class="flex items-center justify-between">
+                  <span class="flex items-center gap-1.5 text-zinc-500"><i data-lucide="${icon}" class="w-3 h-3"></i>${esc(ch.label)}</span>
+                  <span class="text-white font-mono text-[10px]">${esc(val)}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
 
       // ━━ Card 2: Automated Checks ━━
       const regFlags = systemChecks[String(d.id)] || systemChecks[d.id] || [];
@@ -710,39 +788,71 @@
 
       // ━━ Card 4: Registration Answers ━━
       let regAnswersCard = '';
-      if (Object.keys(d.registration_data || {}).length > 0) {
+      const regDataFiltered = Object.entries(d.registration_data || {}).filter(([k]) => k !== 'communication_channels');
+      if (regDataFiltered.length > 0) {
         regAnswersCard = `
           <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
             <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50">
               <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Registration Answers</span>
             </div>
             <div class="p-4 space-y-2 text-xs">
-              ${Object.entries(d.registration_data).map(([k, v]) => `
+              ${regDataFiltered.map(([k, v]) => `
                 <div class="flex justify-between gap-3">
                   <span class="text-zinc-500 shrink-0">${esc(k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</span>
-                  <span class="text-white text-right font-mono text-[10px] break-all">${esc(String(v))}</span>
+                  <span class="text-white text-right font-mono text-[10px] break-all">${esc(typeof v === 'object' ? JSON.stringify(v) : String(v))}</span>
                 </div>
               `).join('')}
             </div>
           </div>`;
       }
 
-      // ━━ Card 5: Roster ━━
+      // ━━ Card 5: Roster with Game IDs ━━
       let lineupCard = '';
       if (d.lineup_snapshot && d.lineup_snapshot.length > 0) {
+        const roleIcon = (p) => {
+          if (p.role === 'OWNER' || p.is_igl || p.is_tournament_captain) return `<span class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-500/20 text-amber-400"><i data-lucide="crown" class="w-2.5 h-2.5"></i>IGL</span>`;
+          if (p.roster_slot === 'SUBSTITUTE') return `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400">SUB</span>`;
+          return `<span class="text-[9px] px-1.5 py-0.5 rounded bg-dc-surface/60 text-dc-text border border-dc-border/30">START</span>`;
+        };
         lineupCard = `
           <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
             <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50">
               <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Roster (${d.lineup_snapshot.length})</span>
             </div>
-            <div class="divide-y divide-dc-border/50">
-              ${d.lineup_snapshot.map(p => `
-                <div class="px-4 py-2 flex items-center gap-2 text-xs">
-                  <span class="text-white font-medium">${esc(p.username || p.game_id || 'Unknown')}</span>
-                  ${p.role ? `<span class="text-zinc-500 text-[10px]">${esc(p.role)}</span>` : ''}
-                  ${p.game_id ? `<span class="text-zinc-500 font-mono text-[10px] ml-auto">${esc(p.game_id)}</span>` : ''}
-                </div>
-              `).join('')}
+            <table class="w-full text-[10px]">
+              <thead><tr class="border-b border-dc-border/30 text-zinc-500">
+                <th class="text-left px-4 py-1.5">Player</th>
+                <th class="text-left px-2 py-1.5">Role</th>
+                <th class="text-left px-2 py-1.5">${esc(gameIdLabel)}</th>
+              </tr></thead>
+              <tbody class="divide-y divide-dc-border/20">
+                ${d.lineup_snapshot.map(p => {
+                  const name = p.display_name || p.username || 'Unknown';
+                  const profileLink = p.profile_slug ? `<a href="/u/${esc(p.profile_slug)}/" target="_blank" class="text-white hover:text-theme transition-colors">${esc(name)}</a>` : `<span class="text-white">${esc(name)}</span>`;
+                  const gid = p.game_id ? `<span class="font-mono text-emerald-300">${esc(p.game_id)}</span>` : `<span class="text-zinc-600 italic">—</span>`;
+                  return `<tr class="hover:bg-white/[.02]">
+                    <td class="px-4 py-1.5">${profileLink}</td>
+                    <td class="px-2 py-1.5">${roleIcon(p)}</td>
+                    <td class="px-2 py-1.5">${gid}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      }
+
+      // ━━ Team links ━━
+      let teamLinksCard = '';
+      if (ti.discord_invite_url || ti.twitter_url || ti.website_url) {
+        teamLinksCard = `
+          <div class="bg-dc-panel border border-dc-border rounded-xl overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-dc-border/50 bg-dc-bg/50">
+              <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Team Links</span>
+            </div>
+            <div class="p-4 flex flex-wrap gap-2">
+              ${ti.discord_invite_url ? `<a href="${esc(ti.discord_invite_url)}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#7289DA] text-[10px] font-medium hover:bg-[#5865F2]/20"><i data-lucide="message-circle" class="w-3 h-3"></i>Discord</a>` : ''}
+              ${ti.twitter_url ? `<a href="${esc(ti.twitter_url)}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-medium hover:bg-sky-500/20"><i data-lucide="twitter" class="w-3 h-3"></i>Twitter</a>` : ''}
+              ${ti.website_url ? `<a href="${esc(ti.website_url)}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-dc-surface border border-dc-border/50 text-dc-text text-[10px] font-medium hover:border-dc-borderLight"><i data-lucide="globe" class="w-3 h-3"></i>Website</a>` : ''}
             </div>
           </div>`;
       }
@@ -754,7 +864,7 @@
           <p>Updated: ${formatDate(d.updated_at)}</p>
         </div>`;
 
-      const html = `<div class="space-y-3">${identityCard}${checksCard}${paymentCard}${regAnswersCard}${lineupCard}${timestampsHtml}</div>`;
+      const html = `<div class="space-y-3">${identityCard}${coordinatorCard}${commCard}${checksCard}${paymentCard}${regAnswersCard}${lineupCard}${teamLinksCard}${timestampsHtml}</div>`;
 
       // ━━ Footer: contextual actions with safety friction ━━
       let footerActions = [];
@@ -785,8 +895,17 @@
           </button>`);
       }
 
+      // Send message to team IGL
+      if (d.team_id && coord && coord.display_name) {
+        footerActions.push(`
+          <button onclick="TOC.notifications && TOC.notifications.teamMessage && TOC.notifications.teamMessage(${d.team_id})"
+                  class="flex-1 py-2.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center justify-center gap-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i> Message Team
+          </button>`);
+      }
+
       const footerHtml = footerActions.length > 0
-        ? `<div class="flex gap-2">${footerActions.join('')}</div>`
+        ? `<div class="flex gap-2 flex-wrap">${footerActions.join('')}</div>`
         : '';
 
       TOC.drawer.open(d.participant_name, html, footerHtml);

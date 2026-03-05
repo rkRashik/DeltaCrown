@@ -157,6 +157,7 @@
 
     return ''
     + '<article class="dc-post-card dc-enter rounded-2xl border border-white/[.06] bg-white/[.02] p-5" data-post-id="' + p.id + '">'
+    +   '<div class="dc-accent-bar"></div>'
     +   '<div class="flex items-start gap-3.5">'
     +     '<a href="' + esc(p.author.profile_url) + '" class="shrink-0 mt-0.5">' + av + '</a>'
     +     '<div class="flex-1 min-w-0">'
@@ -192,6 +193,20 @@
     +             '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'
     +           '</svg><span>Share</span></button>'
     +         deleteBtn
+    +       '</div>'
+    +       '<div class="dc-inline-comments hidden mt-4 border-t border-white/[.04]">'
+    +         '<div class="dc-comments-list px-1 pt-4 pb-2 space-y-3 max-h-96 overflow-y-auto"></div>'
+    +         (CFG.isAuthenticated
+    ?           '<div class="px-1 pb-3 flex items-start gap-2.5">'
+    +             '<div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00E5FF]/20 to-[#6C00FF]/20 grid place-items-center text-[9px] font-bold text-white/60 shrink-0 mt-0.5 border border-white/[.05]">'
+    +               esc((CFG.currentUser || "?")[0].toUpperCase())
+    +             '</div>'
+    +             '<div class="flex-1 flex gap-2">'
+    +               '<input type="text" class="dc-comment-input flex-1 px-3 py-2 rounded-xl bg-white/[.03] border border-white/[.06] text-sm text-white/80 placeholder-white/15 focus:outline-none focus:border-[#00E5FF]/30 transition" placeholder="Write a comment\u2026" data-post-id="' + p.id + '">'
+    +               '<button class="dc-comment-send shrink-0 px-3.5 py-2 rounded-xl bg-[#00E5FF]/70 text-white text-xs font-bold hover:bg-[#00E5FF] transition disabled:opacity-20 disabled:cursor-not-allowed" data-post-id="' + p.id + '" disabled>Send</button>'
+    +             '</div>'
+    +           '</div>'
+    :           '')
     +       '</div>'
     +     '</div>'
     +   '</div>'
@@ -305,16 +320,18 @@
         }).join("");
 
         /* Top bar chips */
-        data.games.forEach(function (g) {
-          var c = document.createElement("button");
-          c.dataset.game = g.slug;
-          c.className = "dc-chip flex items-center gap-1.5 px-3.5 py-1.5 rounded-full "
-                      + "border border-white/[.08] bg-white/[.04] text-xs font-medium text-white/50 whitespace-nowrap";
-          c.innerHTML = (g.icon_url
-            ? '<img src="' + esc(g.icon_url) + '" class="w-4 h-4 rounded object-cover" alt="">'
-            : '') + ' ' + esc(g.name);
-          filterBar.appendChild(c);
-        });
+        if (filterBar) {
+          data.games.forEach(function (g) {
+            var c = document.createElement("button");
+            c.dataset.game = g.slug;
+            c.className = "dc-chip flex items-center gap-1.5 px-3.5 py-1.5 rounded-full "
+                        + "border border-white/[.08] bg-white/[.04] text-xs font-medium text-white/50 whitespace-nowrap";
+            c.innerHTML = (g.icon_url
+              ? '<img src="' + esc(g.icon_url) + '" class="w-4 h-4 rounded object-cover" alt="">'
+              : '') + ' ' + esc(g.name);
+            filterBar.appendChild(c);
+          });
+        }
 
         /* Compose game select */
         if (composeGame) {
@@ -355,6 +372,9 @@
         var sp = $("#stat-posts");  if (sp) sp.textContent = fmtNum(data.stats.total_posts);
         var st = $("#stat-teams");  if (st) st.textContent = fmtNum(data.stats.total_teams);
         var sg = $("#stat-games");  if (sg) sg.textContent = fmtNum(data.stats.total_games);
+        /* HUD status strip */
+        var hp = $("#hud-stat-posts"); if (hp) hp.textContent = fmtNum(data.stats.total_posts) + " posts";
+        var ht = $("#hud-stat-teams"); if (ht) ht.textContent = fmtNum(data.stats.total_teams) + " teams";
       }
     } catch (err) {
       console.error("[DC Community] sidebar:", err);
@@ -607,43 +627,61 @@
      COMMENTS
      ══════════════════════════════════════════════════════════════ */
   function openComments(postId) {
-    activePostId = postId;
-    var modal = $("#comment-modal");
-    var list  = $("#comments-list");
-    var input = $("#comment-input");
-    var send  = $("#comment-send");
-    var badge = $("#comment-count-badge");
+    var card = $('[data-post-id="' + postId + '"]');
+    if (!card) return;
+    var section = card.querySelector('.dc-inline-comments');
+    if (!section) return;
 
-    if (modal) modal.classList.remove("hidden");
-    if (list)  list.innerHTML = '<div class="text-center text-sm text-white/20 py-10">Loading comments\u2026</div>';
-    if (input) { input.value = ""; autoResize(input); }
-    if (send)  send.disabled = true;
-    if (badge) badge.textContent = "";
+    // Toggle: if already open, close it
+    if (!section.classList.contains('hidden')) {
+      section.classList.add('hidden');
+      activePostId = null;
+      return;
+    }
+
+    // Close any other open comment sections
+    $$('.dc-inline-comments:not(.hidden)').forEach(function(el) {
+      el.classList.add('hidden');
+    });
+
+    activePostId = postId;
+    section.classList.remove('hidden');
+    section.style.animation = 'dcSlide .25s ease-out both';
+
+    // Load comments
+    var list = section.querySelector('.dc-comments-list');
+    if (list) list.innerHTML = '<div class="text-center text-sm text-white/20 py-6">Loading comments\u2026</div>';
 
     fetchComments(postId);
+
+    // Focus input
+    var input = section.querySelector('.dc-comment-input');
+    if (input) setTimeout(function() { input.focus(); }, 150);
   }
 
   function closeComments() {
-    var modal = $("#comment-modal");
-    if (modal) modal.classList.add("hidden");
+    $$('.dc-inline-comments:not(.hidden)').forEach(function(el) {
+      el.classList.add('hidden');
+    });
     activePostId = null;
   }
 
   async function fetchComments(postId) {
     try {
-      var data  = await api("posts/" + postId + "/comments/");
-      var list  = $("#comments-list");
-      var badge = $("#comment-count-badge");
+      var data = await api("posts/" + postId + "/comments/");
+      var card = $('[data-post-id="' + postId + '"]');
+      if (!card) return;
+      var list = card.querySelector('.dc-comments-list');
+      if (!list) return;
+
+      var countEl = card.querySelector('.comment-count');
 
       if (data.comments && data.comments.length) {
-        if (badge) badge.textContent = "(" + data.comments.length + ")";
+        if (countEl) countEl.textContent = fmtNum(data.comments.length);
         list.innerHTML = data.comments.map(renderComment).join("");
       } else {
         list.innerHTML = ''
-          + '<div class="text-center py-12">'
-          +   '<svg class="w-8 h-8 mx-auto mb-3 text-white/10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">'
-          +     '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>'
-          +   '</svg>'
+          + '<div class="text-center py-6">'
           +   '<p class="text-sm text-white/20">No comments yet. Start the conversation!</p>'
           + '</div>';
       }
@@ -678,22 +716,24 @@
       + '</div>';
   }
 
-  async function sendComment() {
-    var input   = $("#comment-input");
+  async function sendComment(postId) {
+    var card = $('[data-post-id="' + postId + '"]');
+    if (!card) return;
+    var input = card.querySelector('.dc-comment-input');
     var content = (input ? input.value : "").trim();
-    if (!content || !activePostId) return;
+    if (!content) return;
 
-    var send = $("#comment-send");
-    if (send) send.disabled = true;
+    var btn = card.querySelector('.dc-comment-send');
+    if (btn) btn.disabled = true;
 
     try {
-      var data = await api("posts/" + activePostId + "/comments/", {
+      var data = await api("posts/" + postId + "/comments/", {
         method: "POST",
         body: JSON.stringify({ content: content }),
       });
 
       if (data.success && data.comment) {
-        var list = $("#comments-list");
+        var list = card.querySelector('.dc-comments-list');
         // Remove empty-state placeholder
         var ph = list.querySelector(".text-center");
         if (ph) ph.remove();
@@ -701,33 +741,16 @@
         list.insertAdjacentHTML("beforeend", renderComment(data.comment));
         list.scrollTop = list.scrollHeight;
         input.value = "";
-        autoResize(input);
-
-        /* Update badge */
-        var badge = $("#comment-count-badge");
-        if (badge) {
-          var n = list.querySelectorAll(".dc-comment-in").length;
-          badge.textContent = "(" + n + ")";
-        }
 
         /* Update post card counter */
-        var card = $('[data-post-id="' + activePostId + '"]');
-        if (card) {
-          var cnt = card.querySelector(".comment-count");
-          if (cnt) cnt.textContent = fmtNum(data.comments_count);
-        }
+        var cnt = card.querySelector(".comment-count");
+        if (cnt) cnt.textContent = fmtNum(data.comments_count);
       }
     } catch (err) {
       console.error("[DC Community] comment send:", err);
     } finally {
-      if (send) send.disabled = false;
+      if (btn) btn.disabled = false;
     }
-  }
-
-  function autoResize(el) {
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }
 
 
@@ -857,26 +880,33 @@
     var sov = $("#sidebar-overlay");
     if (sov) sov.addEventListener("click", closeSidebar);
 
-    /* Comment modal */
-    var cov = $("#comment-overlay");
-    if (cov) cov.addEventListener("click", closeComments);
-    var ccl = $("#comment-close");
-    if (ccl) ccl.addEventListener("click", closeComments);
-
-    /* Comment input */
-    var ci = $("#comment-input");
-    if (ci) {
-      ci.addEventListener("input", function () {
-        var s = $("#comment-send");
-        if (s) s.disabled = !ci.value.trim();
-        autoResize(ci);
+    /* Inline comment event delegation */
+    var feedRoot = $("#feed");
+    if (feedRoot) {
+      feedRoot.addEventListener("input", function(e) {
+        if (e.target.classList.contains("dc-comment-input")) {
+          var card = e.target.closest('[data-post-id]');
+          if (card) {
+            var btn = card.querySelector('.dc-comment-send');
+            if (btn) btn.disabled = !e.target.value.trim();
+          }
+        }
       });
-      ci.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendComment(); }
+      feedRoot.addEventListener("keydown", function(e) {
+        if (e.target.classList.contains("dc-comment-input") && e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          var pid = e.target.dataset.postId;
+          if (pid) sendComment(parseInt(pid, 10));
+        }
+      });
+      feedRoot.addEventListener("click", function(e) {
+        var sendBtn = e.target.closest('.dc-comment-send');
+        if (sendBtn) {
+          var pid = sendBtn.dataset.postId;
+          if (pid) sendComment(parseInt(pid, 10));
+        }
       });
     }
-    var cs = $("#comment-send");
-    if (cs) cs.addEventListener("click", sendComment);
 
     /* Escape key */
     document.addEventListener("keydown", function (e) {

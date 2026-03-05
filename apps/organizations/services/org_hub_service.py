@@ -110,7 +110,17 @@ permissions = get_permission_context(user, organization) if (user and user.is_au
 }
         for team in teams:
             team.roster_count = team.roster.count() if hasattr(team, 'roster') else 0
-            team.match_count = 0  # TODO: wire to matches app when ready
+            # Query real match count from tournaments.Match
+            try:
+                from django.db.models import Q as _Q
+                from apps.tournaments.models import Match as _Match
+                team.match_count = _Match.objects.filter(
+                    is_deleted=False,
+                ).filter(
+                    _Q(participant1_id=team.id) | _Q(participant2_id=team.id)
+                ).count()
+            except Exception:
+                team.match_count = 0
         
         # Compute statistics
         stats = _compute_org_stats(organization, teams)

@@ -222,6 +222,8 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
             participant1_deaths = 0
             participant2_kills = 0
             participant2_deaths = 0
+            participant1_assists = 0
+            participant2_assists = 0
             
             if hasattr(match, 'result_data') and match.result_data:
                 result_data = match.result_data
@@ -230,6 +232,8 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                     participant1_deaths = result_data.get('participant1_deaths', 0)
                     participant2_kills = result_data.get('participant2_kills', 0)
                     participant2_deaths = result_data.get('participant2_deaths', 0)
+                    participant1_assists = result_data.get('participant1_assists', 0)
+                    participant2_assists = result_data.get('participant2_assists', 0)
             
             # Get completed_at timestamp
             match_completed_at = match.completed_at if hasattr(match, 'completed_at') else datetime.utcnow()
@@ -311,7 +315,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                     score_summary=score_summary,
                     kills=participant1_kills,
                     deaths=participant1_deaths,
-                    assists=0,  # TODO: Extract assists if available
+                    assists=participant1_assists,
                     had_dispute=had_dispute,
                     is_forfeit=is_forfeit,
                     completed_at=match_completed_at,
@@ -330,7 +334,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                     score_summary=score_summary,
                     kills=participant2_kills,
                     deaths=participant2_deaths,
-                    assists=0,  # TODO: Extract assists if available
+                    assists=participant2_assists,
                     had_dispute=had_dispute,
                     is_forfeit=is_forfeit,
                     completed_at=match_completed_at,

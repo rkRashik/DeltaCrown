@@ -230,8 +230,19 @@ class NotificationAdapter:
             user = self._get_user(submitter_id)
             if user:
                 recipients.append(user)
-        # TODO: Resolve organizer from tournament when organizer service available
-        
+        # Resolve tournament organizer and add to recipients
+        tournament_id = getattr(submission_dto, 'tournament_id', None)
+        if tournament_id:
+            try:
+                from apps.tournaments.models import Tournament
+                tournament = Tournament.objects.only('organizer_id').get(id=tournament_id)
+                if tournament.organizer_id:
+                    organizer = self._get_user(tournament.organizer_id)
+                    if organizer and organizer not in recipients:
+                        recipients.append(organizer)
+            except Exception:
+                pass  # Non-blocking — organizer lookup failure must not prevent submission notification
+
         if recipients:
             self._notify(
                 recipients,

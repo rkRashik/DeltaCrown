@@ -883,8 +883,9 @@ class AnalyticsEngineService:
         """
         results = {}
         
-        # Get all active games (would need game adapter)
-        games = ["valorant", "csgo", "lol"]  # Hardcoded for now
+        # Get all active games dynamically
+        from apps.games.models import Game
+        games = list(Game.objects.filter(is_active=True).values_list('slug', flat=True))
         
         # Refresh game-specific leaderboards
         for game in games:

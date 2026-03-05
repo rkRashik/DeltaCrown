@@ -709,12 +709,30 @@ class TournamentService:
             f"Bracket ID: {bracket.id}, Participants: {bracket.participant_count}"
         )
         
-        # TODO: Trigger notifications to advancers
-        # This can be implemented later with NotificationService
-        # Example:
-        # NotificationService.notify_knockout_advancers(
-        #     tournament=tournament,
-        #     bracket=bracket
-        # )
+        # Notify participants who advanced to the knockout stage (Module 2.x)
+        try:
+            from apps.notifications.services import notify as _notify_users
+            from apps.tournaments.models import Registration
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _advancer_user_ids = list(
+                Registration.objects.filter(
+                    tournament_id=tournament_id,
+                    status=Registration.CONFIRMED,
+                    is_deleted=False,
+                ).values_list('user_id', flat=True).distinct()
+            )
+            if _advancer_user_ids:
+                _recipients = list(_User.objects.filter(id__in=_advancer_user_ids, is_active=True))
+                if _recipients:
+                    _notify_users(
+                        _recipients,
+                        event='knockout_stage_advanced',
+                        title=f"{tournament.name} — you've advanced to the knockout stage!",
+                        body="The group stage is complete. Your knockout bracket match has been generated.",
+                        tournament_id=tournament_id,
+                    )
+        except Exception as _exc:
+            logger.warning(f"Advancer notification failed for tournament {tournament_id}: {_exc}")
         
         return bracket

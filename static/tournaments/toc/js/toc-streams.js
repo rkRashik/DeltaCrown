@@ -130,21 +130,66 @@
     container.innerHTML = html;
   }
 
+  /* ─── Drawer helpers ─────────────────────── */
+  const FIELD = 'w-full bg-dc-surface/50 border border-dc-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder-dc-text/40 focus:outline-none focus:border-theme';
+  const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
+  const PLATFORMS = ['twitch', 'youtube', 'custom'];
+
   function addStation() {
-    const name = prompt('Station name:');
-    if (!name) return;
-    const platform = prompt('Platform (twitch/youtube/custom):') || 'twitch';
-    const url = prompt('Stream URL:') || '';
+    const platOpts = PLATFORMS.map(p => `<option value="${p}">${p}</option>`).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Station Name *</label>
+        <input id="streams-st-name" type="text" class="${FIELD}" placeholder="e.g. Main Stream"></div>
+      <div><label class="${LABEL}">Platform</label>
+        <select id="streams-st-platform" class="${FIELD}">${platOpts}</select></div>
+      <div><label class="${LABEL}">Stream URL</label>
+        <input id="streams-st-url" type="url" class="${FIELD}" placeholder="https://twitch.tv/..."></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.streams._submitAddStation()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Station</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Add Broadcast Station', body, footer);
+    setTimeout(() => document.getElementById('streams-st-name')?.focus(), 50);
+  }
+
+  function _submitAddStation() {
+    const name     = document.getElementById('streams-st-name')?.value.trim();
+    const platform = document.getElementById('streams-st-platform')?.value || 'twitch';
+    const url      = document.getElementById('streams-st-url')?.value.trim() || '';
+    if (!name) { toast('Station name is required', 'error'); return; }
     API.post('streams/stations/', { name, platform, url })
-      .then(() => { toast('Station added', 'success'); refresh(); })
+      .then(() => { toast('Station added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function editStation(stationId) {
-    const name = prompt('New station name:');
-    if (!name) return;
-    API.put(`streams/stations/${stationId}/`, { name })
-      .then(() => { toast('Updated', 'success'); refresh(); })
+    const s = (dashData?.stations || []).find(x => x.id == stationId);
+    const platOpts = PLATFORMS.map(p =>
+      `<option value="${p}" ${p === s?.platform ? 'selected' : ''}>${p}</option>`
+    ).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Station Name *</label>
+        <input id="streams-est-name" type="text" value="${esc(s?.name || '')}" class="${FIELD}"></div>
+      <div><label class="${LABEL}">Platform</label>
+        <select id="streams-est-platform" class="${FIELD}">${platOpts}</select></div>
+      <div><label class="${LABEL}">Stream URL</label>
+        <input id="streams-est-url" type="url" value="${esc(s?.url || '')}" class="${FIELD}"></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.streams._submitEditStation('${stationId}')" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Save Changes</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Edit Station', body, footer);
+  }
+
+  function _submitEditStation(stationId) {
+    const name     = document.getElementById('streams-est-name')?.value.trim();
+    const platform = document.getElementById('streams-est-platform')?.value || 'twitch';
+    const url      = document.getElementById('streams-est-url')?.value.trim() || '';
+    if (!name) { toast('Station name is required', 'error'); return; }
+    API.put(`streams/stations/${stationId}/`, { name, platform, url })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -156,20 +201,52 @@
   }
 
   function assignStream(matchId) {
-    const url = prompt('Stream URL for this match:');
-    if (!url) return;
+    const body = `<div class="space-y-4 p-5">
+      <p class="text-xs text-dc-text">Enter the stream URL to assign to Match #${matchId}.</p>
+      <div><label class="${LABEL}">Stream URL *</label>
+        <input id="streams-assign-url" type="url" class="${FIELD}" placeholder="https://twitch.tv/..."></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.streams._submitAssign(${matchId})" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Assign Stream</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Assign Stream', body, footer);
+    setTimeout(() => document.getElementById('streams-assign-url')?.focus(), 50);
+  }
+
+  function _submitAssign(matchId) {
+    const url = document.getElementById('streams-assign-url')?.value.trim();
+    if (!url) { toast('Stream URL is required', 'error'); return; }
     API.post('streams/assign/', { match_id: matchId, stream_url: url })
-      .then(() => { toast('Stream assigned', 'success'); refresh(); })
+      .then(() => { toast('Stream assigned', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function addVod() {
-    const title = prompt('VOD title:');
-    if (!title) return;
-    const url = prompt('VOD URL:') || '';
-    const platform = prompt('Platform (youtube/twitch/other):') || 'youtube';
+    const platOpts = ['youtube', 'twitch', 'other'].map(p => `<option value="${p}">${p}</option>`).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">VOD Title *</label>
+        <input id="streams-vod-title" type="text" class="${FIELD}" placeholder="e.g. Grand Finals Game 1"></div>
+      <div><label class="${LABEL}">URL</label>
+        <input id="streams-vod-url" type="url" class="${FIELD}" placeholder="https://youtube.com/..."></div>
+      <div><label class="${LABEL}">Platform</label>
+        <select id="streams-vod-platform" class="${FIELD}">${platOpts}</select></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.streams._submitAddVod()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add VOD</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Add VOD', body, footer);
+    setTimeout(() => document.getElementById('streams-vod-title')?.focus(), 50);
+  }
+
+  function _submitAddVod() {
+    const title    = document.getElementById('streams-vod-title')?.value.trim();
+    const url      = document.getElementById('streams-vod-url')?.value.trim() || '';
+    const platform = document.getElementById('streams-vod-platform')?.value || 'youtube';
+    if (!title) { toast('VOD title is required', 'error'); return; }
     API.post('streams/vods/', { title, url, platform })
-      .then(() => { toast('VOD added', 'success'); refresh(); })
+      .then(() => { toast('VOD added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -184,15 +261,33 @@
     try {
       const data = await API.post('streams/overlay-key/', {});
       const key = data.overlay_key || '';
-      prompt('Your overlay API key (copy it):', key);
+      const body = `<div class="space-y-4 p-5">
+        <p class="text-xs text-dc-text">Your OBS overlay API key has been generated. Copy it now — it will not be shown again.</p>
+        <div>
+          <label class="${LABEL}">Overlay API Key</label>
+          <div class="flex gap-2">
+            <input id="streams-overlay-key" type="text" readonly value="${esc(key)}" class="${FIELD} font-mono text-xs text-theme cursor-text select-all">
+            <button onclick="navigator.clipboard.writeText('${esc(key)}').then(()=>TOC.toast('Copied!','success'))" class="shrink-0 px-3 bg-theme/20 hover:bg-theme/40 text-theme text-xs rounded-lg transition">Copy</button>
+          </div>
+        </div>
+      </div>`;
+      TOC.drawer.open('Overlay API Key', body);
       toast('Overlay key generated', 'success');
+      setTimeout(() => document.getElementById('streams-overlay-key')?.select(), 100);
     } catch (e) {
       toast('Failed to generate key', 'error');
     }
   }
 
   window.TOC = window.TOC || {};
-  window.TOC.streams = { refresh, addStation, editStation, deleteStation, assignStream, addVod, deleteVod, generateOverlayKey };
+  window.TOC.streams = {
+    refresh,
+    addStation, _submitAddStation,
+    editStation, _submitEditStation, deleteStation,
+    assignStream, _submitAssign,
+    addVod, _submitAddVod, deleteVod,
+    generateOverlayKey,
+  };
 
   // Auto-load when tab is activated
   document.addEventListener('toc:tab-changed', (e) => {

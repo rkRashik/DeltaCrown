@@ -107,7 +107,7 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
                     elif isinstance(logo, str):
                         avatar_url = logo
                 except Exception:
-                    name = f"Team #{reg.team_id}"
+                    name = f"Team {reg.team_id}"
                 uid = reg.team_id
             else:
                 name = f"Registration #{reg.registration_number}"

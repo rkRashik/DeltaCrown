@@ -260,7 +260,7 @@ class TOCParticipantsAdvancedService:
         assigned_by,
     ) -> Dict[str, Any]:
         """Assign a free agent to a team."""
-        from apps.teams.models import Team
+        from apps.organizations.models.team import Team as OrgTeam
 
         fa = FreeAgentRegistration.objects.get(
             id=free_agent_id,
@@ -268,7 +268,7 @@ class TOCParticipantsAdvancedService:
             status=FreeAgentRegistration.STATUS_AVAILABLE,
         )
 
-        team = Team.objects.get(id=team_id)
+        team = OrgTeam.objects.get(id=team_id)
         fa.assign_to_team(team, assigned_by=assigned_by)
 
         logger.info(

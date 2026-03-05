@@ -246,10 +246,8 @@ class GameAdapter(BaseAdapter):
         """
         Get list of tournament formats supported by this game.
         
-        Queries GameTournamentConfig to find enabled formats.
-        
-        TODO: Wire to actual GameTournamentConfig when available (Phase 2, Epic 2.1).
-        For now, returns default formats for active games.
+        Queries GameTournamentConfig to find enabled formats (Phase 2, Epic 2.1).
+        Falls back to all formats when no config is present.
         
         Args:
             game_slug: Game identifier
@@ -265,8 +263,23 @@ class GameAdapter(BaseAdapter):
             if not game or not game.is_active:
                 raise GameConfigNotFoundError(f"Game '{game_slug}' not found or inactive")
             
-            # TODO: Query GameTournamentConfig.objects.filter(game=game, is_enabled=True)
-            # For Phase 1, return default supported formats
+            config = GameService.get_tournament_config(game)
+            if config:
+                # Build list from boolean fields on GameTournamentConfig
+                formats = []
+                if config.supports_single_elimination:
+                    formats.append('single_elimination')
+                if config.supports_double_elimination:
+                    formats.append('double_elimination')
+                if config.supports_round_robin:
+                    formats.append('round_robin')
+                if config.supports_swiss:
+                    formats.append('swiss')
+                if config.supports_group_stage:
+                    formats.append('group_stage')
+                return formats if formats else ['single_elimination', 'double_elimination', 'round_robin', 'swiss']
+            
+            # No config yet — return all default formats
             return ['single_elimination', 'double_elimination', 'round_robin', 'swiss']
         except Exception as e:
             if "not found" in str(e).lower() or "does not exist" in str(e).lower():

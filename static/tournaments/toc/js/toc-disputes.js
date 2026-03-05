@@ -244,12 +244,31 @@
   }
 
   /* ─── S7-F4: Escalate ───────────────────────────────────── */
-  async function escalate(id) {
-    const reason = prompt('Escalation reason (optional):');
-    if (reason === null) return;
+  function escalate(id) {
+    showOverlay('escalate-overlay', `
+      <div class="p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-display font-black text-base text-white">Escalate Dispute</h3>
+          <button onclick="TOC.disputes.closeOverlay('escalate-overlay')" class="text-dc-text hover:text-white transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <p class="text-xs text-dc-text">Escalating will flag this dispute for senior staff review.</p>
+        <div>
+          <label class="block text-[10px] text-dc-text uppercase tracking-widest mb-1">Reason <span class="normal-case text-dc-text/50">(optional)</span></label>
+          <textarea id="escalate-reason" rows="3" class="w-full bg-dc-bg border border-dc-border/60 rounded-lg px-3 py-2 text-white text-xs focus:border-dc-warning/60 focus:outline-none resize-none placeholder-dc-text/40" placeholder="Describe why this needs escalation..."></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="TOC.disputes._confirmEscalate('${id}')" class="flex-1 bg-dc-warning hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Escalate</button>
+          <button onclick="TOC.disputes.closeOverlay('escalate-overlay')" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
+        </div>
+      </div>`);
+  }
+
+  async function _confirmEscalate(id) {
+    const reason = document.getElementById('escalate-reason')?.value.trim() || '';
     try {
-      await API.post(`disputes/${id}/escalate/`, { reason: reason || '' });
+      await API.post(`disputes/${id}/escalate/`, { reason });
       toast('Dispute escalated', 'info');
+      closeOverlay('escalate-overlay');
       closeOverlay('dispute-detail-overlay');
       refresh();
     } catch (e) { toast(e.message || 'Failed', 'error'); }
@@ -303,7 +322,7 @@
   window.TOC.disputes = {
     init, refresh, debouncedRefresh,
     openDetail, openResolveForm, confirmResolve,
-    escalate, assign,
+    escalate, _confirmEscalate, assign,
     closeOverlay,
   };
 

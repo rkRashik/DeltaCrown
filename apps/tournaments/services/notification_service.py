@@ -357,7 +357,117 @@ class TournamentNotificationService:
             pass  # Don't fail if email fails
     
     @staticmethod
-    def notify_permission_requested(permission_request):
+    def notify_payment_submitted_organizer(registration: Registration):
+        """
+        Notify the tournament organizer when a participant submits payment proof.
+
+        Args:
+            registration: Registration whose payment was just submitted
+        """
+        tournament = registration.tournament
+        organizer = getattr(tournament, 'organizer', None)
+        if not organizer:
+            return
+
+        participant_label = (
+            registration.user.username if registration.user
+            else f"Team #{registration.team_id}"
+        )
+
+        Notification.objects.create(
+            user=organizer,
+            title=f"💳 Payment Submitted: {tournament.name}",
+            message=f"{participant_label} has submitted payment proof for {tournament.name}. Please review and verify.",
+            notification_type='tournament',
+            link=f"/tournaments/{tournament.slug}/registrations/",
+            icon='💳',
+        )
+
+    @staticmethod
+    def notify_payment_rejected(registration: Registration, reason: str = ''):
+        """
+        Notify participant that their payment proof was rejected.
+
+        Args:
+            registration: Registration whose payment was rejected
+            reason: Rejection reason shown to the participant
+        """
+        user = registration.user
+        if not user:
+            return
+
+        tournament = registration.tournament
+        detail = f" Reason: {reason}" if reason else ""
+
+        Notification.objects.create(
+            user=user,
+            title=f"❌ Payment Rejected: {tournament.name}",
+            message=f"Your payment for {tournament.name} was rejected.{detail} Please resubmit with a valid proof.",
+            notification_type='tournament',
+            link=f"/tournaments/{tournament.slug}/register/payment/",
+            icon='❌',
+            priority='high',
+        )
+
+        from django.core.mail import send_mail
+        try:
+            send_mail(
+                subject=f"Payment Rejected – {tournament.name}",
+                message=(
+                    f"Hi {user.username},\n\n"
+                    f"Your payment for {tournament.name} was rejected.{detail}\n\n"
+                    f"Please log in and resubmit your payment proof.\n\nDeltaCrown Team"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+    @staticmethod
+    def notify_refund_processed(registration: Registration, refund_amount: str = ''):
+        """
+        Notify participant that their refund has been processed.
+
+        Args:
+            registration: Registration that was refunded
+            refund_amount: Optional human-readable amount string (e.g. "৳500")
+        """
+        user = registration.user
+        if not user:
+            return
+
+        tournament = registration.tournament
+        amount_str = f" of {refund_amount}" if refund_amount else ""
+
+        Notification.objects.create(
+            user=user,
+            title=f"💰 Refund Processed: {tournament.name}",
+            message=f"Your refund{amount_str} for {tournament.name} has been processed. It may take 3-5 business days to reflect.",
+            notification_type='tournament',
+            link=f"/tournaments/{tournament.slug}/",
+            icon='💰',
+        )
+
+        from django.core.mail import send_mail
+        try:
+            send_mail(
+                subject=f"Refund Processed – {tournament.name}",
+                message=(
+                    f"Hi {user.username},\n\n"
+                    f"Your refund{amount_str} for {tournament.name} has been processed.\n"
+                    f"Please allow 3-5 business days for it to appear.\n\nDeltaCrown Team"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+
+
         """
         Notify team captains that a member has requested registration permission.
         
@@ -511,5 +621,54 @@ class TournamentNotificationService:
             )
         except Exception:
             pass  # Don't fail if email fails
+
+    @staticmethod
+    def notify_disqualification(registration: "Registration", reason: str = '') -> None:
+        """
+        Notify participant their registration has been disqualified.
+
+        Args:
+            registration: Registration that was disqualified
+            reason: Human-readable disqualification reason
+        """
+        user = registration.user
+        tournament = registration.tournament
+
+        # In-app notification
+        Notification.objects.create(
+            user=user,
+            title=f"Registration Disqualified: {tournament.name}",
+            message=(
+                f"Your registration for {tournament.name} has been disqualified. "
+                + (f"Reason: {reason}" if reason else "Please contact the organizer for details.")
+            ),
+            notification_type='tournament',
+            link=f"/tournaments/{tournament.slug}/",
+            icon='🚫',
+            priority='high'
+        )
+
+        # Email notification
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        subject = f"Registration Disqualified — {tournament.name}"
+        body = (
+            f"Hi {user.get_full_name() or user.username},\n\n"
+            f"Your registration for {tournament.name} has been disqualified.\n"
+            + (f"Reason: {reason}\n\n" if reason else "\n")
+            + "Please contact the tournament organizer if you have questions."
+        )
+
+        try:
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
 
 

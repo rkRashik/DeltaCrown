@@ -69,7 +69,6 @@ class FollowSystemV2 {
     // ============================================
     
     openFollowersModal(username) {
-        console.log('[FollowSystemV2] openFollowersModal', username);
         this.currentModal = 'followers';
         this.currentUsername = username;
         this.currentPage = 1;
@@ -79,24 +78,27 @@ class FollowSystemV2 {
         const list = document.getElementById('followersList');
         const search = document.getElementById('followersSearch');
         
-        // Reset state
-        list.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
-        search.value = '';
-        
-        // Show modal
-        if (modal) {
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.classList.add('active'), 10);
-        } else {
-            console.warn('[FollowSystemV2] followersModal element not found');
+        if (!modal || !list) {
+            console.warn('[FollowSystemV2] followersModal or followersList element not found');
+            return;
         }
         
-        // Load data
-        this.loadFollowers(username, 1).then(() => console.log('[FollowSystemV2] loadFollowers complete'));
+        // Reset state
+        list.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
+        if (search) search.value = '';
         
-        // Setup search
+        // Show modal
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('active'), 10);
+        
+        // Load data
+        this.loadFollowers(username, 1);
+        
+        // Setup search (remove old listener to prevent duplicates)
         if (search) {
-            search.addEventListener('input', (e) => {
+            const newSearch = search.cloneNode(true);
+            search.parentNode.replaceChild(newSearch, search);
+            newSearch.addEventListener('input', (e) => {
                 clearTimeout(this.searchTimeout);
                 this.searchTimeout = setTimeout(() => {
                     this.searchUsers(e.target.value);
@@ -104,8 +106,11 @@ class FollowSystemV2 {
             });
         }
         
-        // Setup infinite scroll
-        if (list) list.addEventListener('scroll', () => this.handleScroll(list));
+        // Setup infinite scroll (remove old listener via clone to prevent duplicates)
+        const newList = list.cloneNode(true);
+        list.parentNode.replaceChild(newList, list);
+        newList.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
+        newList.addEventListener('scroll', () => this.handleScroll(newList));
     }
     
     openFollowingModal(username) {
@@ -118,9 +123,14 @@ class FollowSystemV2 {
         const list = document.getElementById('followingList');
         const search = document.getElementById('followingSearch');
         
+        if (!modal || !list) {
+            console.warn('[FollowSystemV2] followingModal or followingList element not found');
+            return;
+        }
+        
         // Reset state
         list.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
-        search.value = '';
+        if (search) search.value = '';
         
         // Show modal
         modal.classList.remove('hidden');
@@ -129,16 +139,23 @@ class FollowSystemV2 {
         // Load data
         this.loadFollowing(username, 1);
         
-        // Setup search
-        search.addEventListener('input', (e) => {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.searchUsers(e.target.value);
-            }, 300);
-        });
+        // Setup search (remove old listener to prevent duplicates)
+        if (search) {
+            const newSearch = search.cloneNode(true);
+            search.parentNode.replaceChild(newSearch, search);
+            newSearch.addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.searchUsers(e.target.value);
+                }, 300);
+            });
+        }
         
-        // Setup infinite scroll
-        list.addEventListener('scroll', () => this.handleScroll(list));
+        // Setup infinite scroll (remove old listener via clone to prevent duplicates)
+        const newList = list.cloneNode(true);
+        list.parentNode.replaceChild(newList, list);
+        newList.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
+        newList.addEventListener('scroll', () => this.handleScroll(newList));
     }
     
     closeModal() {
@@ -157,9 +174,7 @@ class FollowSystemV2 {
     // ============================================
     
     async loadFollowers(username, page = 1) {
-        console.log('[FollowSystemV2] loadFollowers start', username, page);
         if (this.isLoading) {
-            console.log('[FollowSystemV2] loadFollowers: already loading');
             return;
         }
         this.isLoading = true;
@@ -173,9 +188,7 @@ class FollowSystemV2 {
         
         try {
             const response = await fetch(`/api/profile/${username}/followers/?page=${page}&per_page=20`);
-            console.log('[FollowSystemV2] loadFollowers response status:', response.status);
             const data = await response.json();
-            console.log('[FollowSystemV2] loadFollowers response data:', data);
             
             if (data && data.success) {
                 if (page === 1) {
@@ -337,8 +350,6 @@ class FollowSystemV2 {
         button.disabled = true;
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
-        console.log('[FollowSystemV2] Following user:', username);
-        
         try {
             const response = await fetch(`/api/profile/${username}/follow/`, {
                 method: 'POST',
@@ -349,8 +360,6 @@ class FollowSystemV2 {
                 credentials: 'same-origin'
             });
             
-            console.log('[FollowSystemV2] Response status:', response.status);
-            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('[FollowSystemV2] HTTP error:', response.status, errorText);
@@ -358,7 +367,6 @@ class FollowSystemV2 {
             }
             
             const data = await response.json();
-            console.log('[FollowSystemV2] Response data:', data);
             
             if (data.success) {
                 // Handle different actions (followed vs request_sent)
@@ -394,8 +402,6 @@ class FollowSystemV2 {
         button.disabled = true;
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
-        console.log('[FollowSystemV2] Unfollowing user:', username);
-        
         try {
             const response = await fetch(`/api/profile/${username}/unfollow/`, {
                 method: 'POST',
@@ -406,8 +412,6 @@ class FollowSystemV2 {
                 credentials: 'same-origin'
             });
             
-            console.log('[FollowSystemV2] Response status:', response.status);
-            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('[FollowSystemV2] HTTP error:', response.status, errorText);
@@ -415,7 +419,6 @@ class FollowSystemV2 {
             }
             
             const data = await response.json();
-            console.log('[FollowSystemV2] Response data:', data);
             
             if (data.success) {
                 button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
@@ -564,7 +567,6 @@ window.closeFollowModal = function() {
 function _initFollowSystemV2() {
     if (!window.followSystemV2) {
         window.followSystemV2 = new FollowSystemV2();
-        console.log('✅ Follow System V2 initialized');
     }
 }
 

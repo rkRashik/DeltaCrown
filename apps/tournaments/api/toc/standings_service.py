@@ -53,9 +53,9 @@ class TOCStandingsService:
                 # Resolve display name
                 name = "Unknown"
                 if s["team_id"]:
-                    from apps.teams.models import Team
+                    from apps.organizations.models.team import Team as OrgTeam
                     try:
-                        name = Team.objects.filter(id=s["team_id"]).values_list("name", flat=True).first() or f"Team #{s['team_id']}"
+                        name = OrgTeam.objects.filter(id=s["team_id"]).values_list("name", flat=True).first() or f"Team #{s['team_id']}"
                     except Exception:
                         name = f"Team #{s['team_id']}"
                 elif s["user_id"]:
@@ -234,9 +234,9 @@ class TOCStandingsService:
                 # Resolve name
                 name = "Unknown"
                 if s.team_id:
-                    from apps.teams.models import Team
+                    from apps.organizations.models.team import Team as OrgTeam
                     try:
-                        name = Team.objects.filter(id=s.team_id).values_list("name", flat=True).first() or f"Team #{s.team_id}"
+                        name = OrgTeam.objects.filter(id=s.team_id).values_list("name", flat=True).first() or f"Team #{s.team_id}"
                     except Exception:
                         name = f"Team #{s.team_id}"
                 elif s.user_id:

@@ -881,7 +881,8 @@ def follow_user(request, username):
             else:
                 return JsonResponse({'error': 'Already following'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            logger.error(f"Error following user {username}: {e}", exc_info=True)
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
     
     return JsonResponse({'error': 'POST required'}, status=405)
 
@@ -910,7 +911,8 @@ def unfollow_user(request, username):
         except Follow.DoesNotExist:
             return JsonResponse({'error': 'Not following'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            logger.error(f"Error unfollowing user {username}: {e}", exc_info=True)
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
     
     return JsonResponse({'error': 'POST required'}, status=405)
 

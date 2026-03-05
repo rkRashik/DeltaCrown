@@ -180,35 +180,76 @@
     container.innerHTML = html;
   }
 
+  /* ─── Drawer helpers ─────────────────────── */
+  const FIELD = 'w-full bg-dc-surface/50 border border-dc-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder-dc-text/40 focus:outline-none focus:border-theme';
+  const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
+  const TRIGGERS = ['manual', 'match_ready', 'checkin_open', 'round_start', 'tournament_end'];
+  function drawerFooter(submitCall, submitLabel) {
+    return `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="${submitCall}" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+  }
+
   /* ─── Actions ─────────────────────────────── */
   function createTemplate() {
-    const name = prompt('Template name:');
-    if (!name) return;
-    const subject = prompt('Subject line:');
-    if (!subject) return;
-    const body = prompt('Message body (use {player}, {team}, {tournament} as variables):');
-    if (!body) return;
-    const trigger = prompt('Trigger event (manual, match_ready, checkin_open, round_start, tournament_end):') || 'manual';
+    const triggerOpts = TRIGGERS.map(t => `<option value="${t}">${t}</option>`).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Template Name *</label>
+        <input id="notif-tpl-name" type="text" class="${FIELD}" placeholder="e.g. Round Start Notification"></div>
+      <div><label class="${LABEL}">Subject *</label>
+        <input id="notif-tpl-subject" type="text" class="${FIELD}" placeholder="Subject line"></div>
+      <div><label class="${LABEL}">Body * <span class="normal-case text-dc-text/60">({player}, {team}, {tournament} supported)</span></label>
+        <textarea id="notif-tpl-body" rows="4" class="${FIELD} resize-none" placeholder="Message body..."></textarea></div>
+      <div><label class="${LABEL}">Trigger Event</label>
+        <select id="notif-tpl-trigger" class="${FIELD}">${triggerOpts}</select></div>
+    </div>`;
+    TOC.drawer.open('New Notification Template', body, drawerFooter("TOC.notifications._submitCreateTemplate()", 'Create Template'));
+    setTimeout(() => document.getElementById('notif-tpl-name')?.focus(), 50);
+  }
 
+  function _submitCreateTemplate() {
+    const name    = document.getElementById('notif-tpl-name')?.value.trim();
+    const subject = document.getElementById('notif-tpl-subject')?.value.trim();
+    const body    = document.getElementById('notif-tpl-body')?.value.trim();
+    const trigger = document.getElementById('notif-tpl-trigger')?.value || 'manual';
+    if (!name)    { toast('Template name is required', 'error'); return; }
+    if (!subject) { toast('Subject is required', 'error'); return; }
+    if (!body)    { toast('Body is required', 'error'); return; }
     API.post('notifications/templates/', { name, subject, body, trigger, enabled: true })
-      .then(() => { toast('Template created', 'success'); refresh(); })
+      .then(() => { toast('Template created', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function editTemplate(id) {
     if (!dashData?.templates) return;
-    const t = dashData.templates.find((t, i) => (t.id || i) == id);
+    const t = dashData.templates.find((x, i) => (x.id || i) == id);
     if (!t) return;
+    const triggerOpts = TRIGGERS.map(tr =>
+      `<option value="${tr}" ${tr === t.trigger ? 'selected' : ''}>${tr}</option>`
+    ).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Template Name *</label>
+        <input id="notif-etpl-name" type="text" value="${esc(t.name)}" class="${FIELD}"></div>
+      <div><label class="${LABEL}">Subject *</label>
+        <input id="notif-etpl-subject" type="text" value="${esc(t.subject)}" class="${FIELD}"></div>
+      <div><label class="${LABEL}">Body</label>
+        <textarea id="notif-etpl-body" rows="4" class="${FIELD} resize-none">${esc(t.body)}</textarea></div>
+      <div><label class="${LABEL}">Trigger Event</label>
+        <select id="notif-etpl-trigger" class="${FIELD}">${triggerOpts}</select></div>
+    </div>`;
+    TOC.drawer.open('Edit Template', body, drawerFooter(`TOC.notifications._submitEditTemplate('${id}', ${!!t.enabled})`, 'Save Changes'));
+  }
 
-    const name = prompt('Template name:', t.name);
-    if (name === null) return;
-    const subject = prompt('Subject:', t.subject);
-    if (subject === null) return;
-    const body = prompt('Body:', t.body);
-    if (body === null) return;
-
-    API.put(`notifications/templates/${id}/`, { name, subject, body, trigger: t.trigger, enabled: t.enabled })
-      .then(() => { toast('Template updated', 'success'); refresh(); })
+  function _submitEditTemplate(id, enabled) {
+    const name    = document.getElementById('notif-etpl-name')?.value.trim();
+    const subject = document.getElementById('notif-etpl-subject')?.value.trim();
+    const body    = document.getElementById('notif-etpl-body')?.value.trim() || '';
+    const trigger = document.getElementById('notif-etpl-trigger')?.value || 'manual';
+    if (!name)    { toast('Name is required', 'error'); return; }
+    if (!subject) { toast('Subject is required', 'error'); return; }
+    API.put(`notifications/templates/${id}/`, { name, subject, body, trigger, enabled })
+      .then(() => { toast('Template updated', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -222,28 +263,93 @@
   }
 
   function sendNotification() {
-    const subject = prompt('Subject:');
-    if (!subject) return;
-    const body = prompt('Message body:');
-    if (!body) return;
-    const target = prompt('Target (all, teams, staff, or specific user ID):') || 'all';
+    const targetOpts = ['all', 'teams', 'staff'].map(t => `<option value="${t}">${t}</option>`).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Subject *</label>
+        <input id="notif-send-subject" type="text" class="${FIELD}" placeholder="Notification subject"></div>
+      <div><label class="${LABEL}">Message Body *</label>
+        <textarea id="notif-send-body" rows="4" class="${FIELD} resize-none" placeholder="Notification message..."></textarea></div>
+      <div><label class="${LABEL}">Target Audience</label>
+        <select id="notif-send-target" class="${FIELD}">${targetOpts}</select></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.notifications._submitSend()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Send Now</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Send Notification', body, footer);
+    setTimeout(() => document.getElementById('notif-send-subject')?.focus(), 50);
+  }
 
+  function _submitSend() {
+    const subject = document.getElementById('notif-send-subject')?.value.trim();
+    const body    = document.getElementById('notif-send-body')?.value.trim();
+    const target  = document.getElementById('notif-send-target')?.value || 'all';
+    if (!subject) { toast('Subject is required', 'error'); return; }
+    if (!body)    { toast('Message body is required', 'error'); return; }
     API.post('notifications/send/', { subject, body, target })
-      .then(() => { toast('Notification sent!', 'success'); refresh(); })
+      .then(() => { toast('Notification sent!', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function scheduleNotification() {
-    const subject = prompt('Subject:');
-    if (!subject) return;
-    const body = prompt('Message body:');
-    if (!body) return;
-    const target = prompt('Target (all, teams, staff):') || 'all';
-    const scheduled_for = prompt('Schedule for (YYYY-MM-DD HH:MM):');
-    if (!scheduled_for) return;
+    const targetOpts = ['all', 'teams', 'staff'].map(t => `<option value="${t}">${t}</option>`).join('');
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Subject *</label>
+        <input id="notif-sched-subject" type="text" class="${FIELD}" placeholder="Notification subject"></div>
+      <div><label class="${LABEL}">Message Body *</label>
+        <textarea id="notif-sched-body" rows="4" class="${FIELD} resize-none" placeholder="Notification message..."></textarea></div>
+      <div><label class="${LABEL}">Target Audience</label>
+        <select id="notif-sched-target" class="${FIELD}">${targetOpts}</select></div>
+      <div><label class="${LABEL}">Schedule For *</label>
+        <input id="notif-sched-dt" type="datetime-local" class="${FIELD}"></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.notifications._submitSchedule()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Schedule</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Schedule Notification', body, footer);
+    setTimeout(() => document.getElementById('notif-sched-subject')?.focus(), 50);
+  }
 
+  function _submitSchedule() {
+    const subject       = document.getElementById('notif-sched-subject')?.value.trim();
+    const body          = document.getElementById('notif-sched-body')?.value.trim();
+    const target        = document.getElementById('notif-sched-target')?.value || 'all';
+    const scheduled_for = document.getElementById('notif-sched-dt')?.value;
+    if (!subject)       { toast('Subject is required', 'error'); return; }
+    if (!body)          { toast('Message body is required', 'error'); return; }
+    if (!scheduled_for) { toast('Schedule date/time is required', 'error'); return; }
     API.post('notifications/schedule/', { subject, body, target, scheduled_for })
-      .then(() => { toast('Notification scheduled', 'success'); refresh(); })
+      .then(() => { toast('Notification scheduled', 'success'); TOC.drawer.close(); refresh(); })
+      .catch(() => toast('Failed', 'error'));
+  }
+
+  function sendTeamMessage() {
+    const teams = (dashData?.teams || []);
+    const teamOpts = teams.length
+      ? teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')
+      : '<option value="">— enter team ID below —</option>';
+    const body = `<div class="space-y-4 p-5">
+      ${teams.length
+        ? `<div><label class="${LABEL}">Team *</label>
+            <select id="notif-team-id" class="${FIELD}">${teamOpts}</select></div>`
+        : `<div><label class="${LABEL}">Team ID *</label>
+            <input id="notif-team-id" type="number" class="${FIELD}" placeholder="Numeric team ID"></div>`}
+      <div><label class="${LABEL}">Message *</label>
+        <textarea id="notif-team-msg" rows="4" class="${FIELD} resize-none" placeholder="Message to team..."></textarea></div>
+    </div>`;
+    TOC.drawer.open('Send Team Message', body, drawerFooter("TOC.notifications._submitTeamMsg()", 'Send Message'));
+    setTimeout(() => document.getElementById('notif-team-msg')?.focus(), 50);
+  }
+
+  function _submitTeamMsg() {
+    const rawId  = document.getElementById('notif-team-id')?.value;
+    const teamId = parseInt(rawId);
+    const message = document.getElementById('notif-team-msg')?.value.trim();
+    if (!teamId)  { toast('Team is required', 'error'); return; }
+    if (!message) { toast('Message is required', 'error'); return; }
+    API.post('notifications/team-message/', { team_id: teamId, message })
+      .then(() => { toast('Message sent', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -269,22 +375,15 @@
     } catch (e) { toast('Save failed', 'error'); }
   }
 
-  function sendTeamMessage() {
-    const teamId = prompt('Team ID:');
-    if (!teamId) return;
-    const message = prompt('Message to team:');
-    if (!message) return;
-
-    API.post('notifications/team-message/', { team_id: parseInt(teamId), message })
-      .then(() => { toast('Message sent', 'success'); refresh(); })
-      .catch(() => toast('Failed', 'error'));
-  }
-
   window.TOC = window.TOC || {};
   window.TOC.notifications = {
-    refresh, createTemplate, editTemplate, deleteTemplate,
-    sendNotification, scheduleNotification, toggleAutoRule,
-    saveChannels, sendTeamMessage
+    refresh,
+    createTemplate, _submitCreateTemplate,
+    editTemplate, _submitEditTemplate, deleteTemplate,
+    sendNotification, _submitSend,
+    scheduleNotification, _submitSchedule,
+    sendTeamMessage, _submitTeamMsg,
+    toggleAutoRule, saveChannels,
   };
 
   // Auto-load when tab is activated

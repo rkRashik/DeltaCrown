@@ -1,7 +1,14 @@
 /**
- * TOC Rosters Module — Sprint 28 (redesigned)
- * Professional team card UI with player role badges, game IDs, check-in status,
- * search/filter, and change log. Reads lineup_snapshot via the fixed backend.
+ * TOC Rosters Module — Sprint 29 (full redesign)
+ *
+ * Features:
+ * - Dynamic game_id_label from game model (e.g. "Riot ID")
+ * - Player grouping: Starters, Substitutes, Coach/Manager
+ * - Clickable team → /teams/{slug}/, player → /u/{profile_slug}/
+ * - Coordinator vs IGL distinction
+ * - Communication channels display
+ * - Enhanced actions: Set IGL, Remove, View Profile, Message
+ * - Team social links (Discord, Twitter, Website)
  */
 ;(function () {
   'use strict';
@@ -17,8 +24,8 @@
 
   let dashData = null;
   let searchQuery = '';
-  let slotFilter = 'all';   // 'all' | 'starter' | 'sub'
-  let statusFilter = 'all'; // 'all' | 'valid' | 'invalid'
+  let statusFilter = 'all';
+  let gameIdLabel = 'Game ID';   // dynamic from backend
 
   /* ─────────────────────────── Data fetch ─────────────────────────── */
 
@@ -32,6 +39,7 @@
     try {
       const data = await API.get('rosters/');
       dashData = data;
+      gameIdLabel = data.game_meta?.game_id_label || 'Game ID';
       renderAll(data);
     } catch (e) {
       console.error('[rosters] fetch error', e);
@@ -61,7 +69,6 @@
     el('valid', s.valid_rosters ?? 0);
     el('invalid', s.invalid_rosters ?? 0);
     el('status', s.locked ? 'Locked' : 'Open');
-    // New stats
     const gidEl = $(`#rosters-stat-game-ids`);
     if (gidEl) gidEl.textContent = s.players_with_game_ids ?? 0;
   }
@@ -76,7 +83,7 @@
       <div class="flex flex-wrap gap-2 items-center mb-4">
         <div class="relative flex-1 min-w-[180px]">
           <i data-lucide="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dc-text pointer-events-none"></i>
-          <input id="rosters-search-input" type="text" placeholder="Search team or player…"
+          <input id="rosters-search-input" type="text" placeholder="Search team, player, or ${gameIdLabel}…"
             class="w-full pl-8 pr-3 py-1.5 text-xs bg-dc-surface/60 border border-dc-border/50 rounded-lg text-white placeholder:text-dc-text/50 focus:outline-none focus:border-theme/50">
         </div>
         <div class="flex gap-1" id="rosters-filter-chips"></div>
@@ -87,10 +94,9 @@
     if (input) {
       input.addEventListener('input', () => {
         searchQuery = input.value.trim().toLowerCase();
-        renderTeams(dashData?.teams || [], dashData?.solo_players || []);
+        renderTeams(dashData?.teams || []);
       });
     }
-
     renderFilterChips();
   }
 
@@ -111,13 +117,25 @@
     `).join('');
   }
 
+  /* ────────────────────── Helpers: group players ──────────────────── */
+
+  function groupPlayers(players) {
+    const starters = [], subs = [], staff = [];
+    for (const p of players) {
+      const slot = (p.roster_slot || 'STARTER').toUpperCase();
+      if (slot === 'SUBSTITUTE') subs.push(p);
+      else if (slot === 'COACH' || slot === 'MANAGER') staff.push(p);
+      else starters.push(p);
+    }
+    return { starters, subs, staff };
+  }
+
   /* ─────────────────────────── Team cards ─────────────────────────── */
 
   function renderTeams(teams) {
     const container = $('#rosters-teams-list');
     if (!container) return;
 
-    // Apply search filter
     let filtered = teams;
     if (searchQuery) {
       filtered = teams.filter(t => {
@@ -145,6 +163,21 @@
 
     container.innerHTML = `<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">${filtered.map(t => buildTeamCard(t)).join('')}</div>`;
     refreshIcons();
+
+    // Attach dropdown listeners
+    container.querySelectorAll('[data-action-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dd = btn.nextElementSibling;
+        // Close all other open dropdowns
+        container.querySelectorAll('.roster-action-dd.active').forEach(d => { if (d !== dd) d.classList.remove('active'); });
+        dd?.classList.toggle('active');
+      });
+    });
+    // Close dropdowns on outside click
+    document.addEventListener('click', () => {
+      container.querySelectorAll('.roster-action-dd.active').forEach(d => d.classList.remove('active'));
+    }, { once: true });
   }
 
   function renderSoloPlayers(players) {
@@ -156,6 +189,9 @@
     }
     const rows = players.map(p => {
       const avatarLetter = (p.display_name || p.username || '?')[0].toUpperCase();
+      const nameHtml = p.profile_slug
+        ? `<a href="/u/${esc(p.profile_slug)}/" class="text-white text-[11px] hover:text-theme transition-colors">${esc(p.display_name || p.username)}</a>`
+        : `<span class="text-white text-[11px]">${esc(p.display_name || p.username)}</span>`;
       const gameIdHtml = p.game_id
         ? `<span class="font-mono text-[10px] text-emerald-300">${esc(p.game_id)}</span>`
         : `<span class="text-[10px] text-dc-text opacity-35 italic">—</span>`;
@@ -164,7 +200,7 @@
           <td class="px-3 py-1.5">
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-dc-surface/80 border border-dc-border/50 flex items-center justify-center text-[9px] font-bold text-dc-text">${esc(avatarLetter)}</span>
-              <span class="text-white text-[11px]">${esc(p.display_name || p.username)}</span>
+              ${nameHtml}
             </div>
           </td>
           <td class="px-3 py-1.5">${gameIdHtml}</td>
@@ -175,29 +211,51 @@
       <table class="w-full text-xs">
         <thead><tr class="border-b border-dc-border/30">
           <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Player</th>
-          <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Game ID</th>
+          <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">${esc(gameIdLabel)}</th>
           <th class="text-right px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Check-In</th>
         </tr></thead>
         <tbody class="divide-y divide-dc-border/20">${rows}</tbody>
       </table>`;
   }
 
+  /* ─────────────────────── Build team card ─────────────────────── */
+
   function buildTeamCard(t) {
     const accentColor = t.primary_color || '';
-    const accentStyle = accentColor ? `style="border-color: ${accentColor}40; --team-accent: ${accentColor};"` : '';
+    const accentVar = accentColor || 'var(--color-theme, #7c3aed)';
     const initials = (t.tag || t.team_name || '?').slice(0, 3).toUpperCase();
     const logoHtml = t.logo_url
       ? `<img src="${esc(t.logo_url)}" alt="" class="w-10 h-10 rounded-lg object-cover">`
       : `<div class="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-white"
-            style="background:${accentColor || 'var(--color-theme, #7c3aed)'}30; color:${accentColor || 'var(--color-theme, #7c3aed)'}">${esc(initials)}</div>`;
+            style="background:${accentVar}30; color:${accentVar}">${esc(initials)}</div>`;
 
+    // ── Team name — clickable if slug exists ──
+    const teamNameHtml = t.slug
+      ? `<a href="/teams/${esc(t.slug)}/" class="text-sm font-bold text-white leading-tight truncate hover:text-theme transition-colors" target="_blank">${esc(t.team_name)}</a>`
+      : `<p class="text-sm font-bold text-white leading-tight truncate">${esc(t.team_name)}</p>`;
+
+    // ── Organization badge ──
+    let orgBadgeHtml = '';
+    if (t.organization && t.organization.name) {
+      const orgLink = t.organization.slug ? `/orgs/${esc(t.organization.slug)}/` : '';
+      const orgLogoHtml = t.organization.logo_url
+        ? `<img src="${esc(t.organization.logo_url)}" alt="" class="w-3.5 h-3.5 rounded-sm object-cover">`
+        : '';
+      const verifiedIcon = t.organization.is_verified
+        ? `<i data-lucide="badge-check" class="w-3 h-3 text-blue-400 shrink-0"></i>`
+        : '';
+      const orgInner = `${orgLogoHtml}<span>${esc(t.organization.name)}</span>${verifiedIcon}`;
+      orgBadgeHtml = orgLink
+        ? `<a href="${orgLink}" target="_blank" class="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-theme/5 border border-theme/15 text-theme/80 hover:text-theme hover:border-theme/30 transition-colors">${orgInner}</a>`
+        : `<span class="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-theme/5 border border-theme/15 text-theme/80">${orgInner}</span>`;
+    }
+
+    // ── Status badges ──
     const validBadge = t.roster_valid
       ? `<span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-dc-success/15 text-dc-success border border-dc-success/20">
-           <i data-lucide="check" class="w-2.5 h-2.5"></i>Valid
-         </span>`
+           <i data-lucide="check" class="w-2.5 h-2.5"></i>Valid</span>`
       : `<span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-dc-danger/15 text-dc-danger border border-dc-danger/20">
-           <i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i>Issues
-         </span>`;
+           <i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i>Issues</span>`;
 
     const ignsOk = t.has_game_ids
       ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">IDs ✓</span>`
@@ -207,59 +265,148 @@
       ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Checked In</span>`
       : '';
 
-    const captainLine = t.captain_name
-      ? `<p class="text-[10px] text-dc-text mt-0.5">IGL: <span class="text-theme font-medium">${esc(t.captain_name)}</span></p>`
-      : '';
+    // ── Coordinator / IGL info line ──
+    let leaderLine = '';
+    if (t.coordinator_name && t.coordinator_id !== t.captain_id) {
+      // Show coordinator + IGL separately
+      const coordLabel = (t.coordinator_role || 'Coordinator').replace(/_/g, ' ');
+      leaderLine = `<p class="text-[10px] text-dc-text mt-0.5">
+        <i data-lucide="shield" class="inline w-2.5 h-2.5 text-amber-400"></i>
+        <span class="capitalize">${esc(coordLabel)}</span>: <span class="text-amber-400 font-medium">${esc(t.coordinator_name)}</span>`;
+      if (t.captain_name) {
+        leaderLine += ` · <i data-lucide="crown" class="inline w-2.5 h-2.5 text-theme"></i> IGL: <span class="text-theme font-medium">${esc(t.captain_name)}</span>`;
+      }
+      leaderLine += `</p>`;
+    } else if (t.captain_name) {
+      leaderLine = `<p class="text-[10px] text-dc-text mt-0.5">
+        <i data-lucide="crown" class="inline w-2.5 h-2.5 text-theme"></i>
+        IGL: <span class="text-theme font-medium">${esc(t.captain_name)}</span></p>`;
+    }
 
-    const playerRows = (t.players || []).map(p => buildPlayerRow(t, p)).join('');
+    // ── Communication channels row ──
+    const commChannels = t.communication_channels || {};
+    const channelIcons = { discord: 'message-circle', whatsapp: 'phone', messenger: 'message-square', telegram: 'send', email: 'mail' };
+    let commHtml = '';
+    const channelEntries = Object.entries(commChannels).filter(([, v]) => v);
+    if (channelEntries.length) {
+      commHtml = `<div class="flex items-center gap-2 mt-1">`
+        + channelEntries.map(([key, val]) => {
+          const icon = channelIcons[key] || 'link';
+          const isUrl = typeof val === 'string' && (val.startsWith('http') || val.startsWith('//'));
+          return isUrl
+            ? `<a href="${esc(val)}" target="_blank" class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-dc-surface/50 text-dc-text border border-dc-border/30 hover:border-theme/40 hover:text-theme transition-colors" title="${esc(key)}">
+                <i data-lucide="${icon}" class="w-2.5 h-2.5"></i>${esc(key)}</a>`
+            : `<span class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-dc-surface/50 text-dc-text border border-dc-border/30" title="${esc(String(val))}">
+                <i data-lucide="${icon}" class="w-2.5 h-2.5"></i>${esc(key)}: ${esc(String(val))}</span>`;
+        }).join('')
+        + `</div>`;
+    }
+
+    // ── Team social links ──
+    let socialHtml = '';
+    const socialLinks = [];
+    if (t.discord_invite_url) socialLinks.push(`<a href="${esc(t.discord_invite_url)}" target="_blank" class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors inline-flex items-center gap-0.5"><i data-lucide="message-circle" class="w-2.5 h-2.5"></i>Discord</a>`);
+    if (t.twitter_url) socialLinks.push(`<a href="${esc(t.twitter_url)}" target="_blank" class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition-colors inline-flex items-center gap-0.5"><i data-lucide="twitter" class="w-2.5 h-2.5"></i>Twitter</a>`);
+    if (t.website_url) socialLinks.push(`<a href="${esc(t.website_url)}" target="_blank" class="text-[9px] px-1.5 py-0.5 rounded bg-dc-surface/40 text-dc-text border border-dc-border/30 hover:border-theme/40 transition-colors inline-flex items-center gap-0.5"><i data-lucide="globe" class="w-2.5 h-2.5"></i>Website</a>`);
+    if (socialLinks.length) {
+      socialHtml = `<div class="flex items-center gap-1 mt-1">${socialLinks.join('')}</div>`;
+    }
+
+    // ── Player sections: grouped by role ──
+    const groups = groupPlayers(t.players || []);
+    let playerSections = '';
+
+    if (groups.starters.length) {
+      playerSections += buildPlayerSection('Starters', groups.starters, t, 'shield');
+    }
+    if (groups.subs.length) {
+      playerSections += buildPlayerSection('Substitutes', groups.subs, t, 'repeat');
+    }
+    if (groups.staff.length) {
+      playerSections += buildPlayerSection('Staff', groups.staff, t, 'briefcase');
+    }
+    if (!groups.starters.length && !groups.subs.length && !groups.staff.length) {
+      playerSections = `<div class="px-4 py-6 text-center text-dc-text opacity-50 text-xs">No players in roster</div>`;
+    }
+
+    // ── Size chips ──
+    const sizeInfo = `<span class="text-[10px] text-dc-text">
+      ${t.starter_count || 0} starter${(t.starter_count || 0) !== 1 ? 's' : ''}${t.sub_count ? ` · ${t.sub_count} sub${t.sub_count !== 1 ? 's' : ''}` : ''}
+    </span>`;
 
     return `
-      <div class="glass-box rounded-xl border border-dc-border/50 overflow-hidden flex flex-col" ${accentStyle}>
+      <div class="glass-box rounded-xl border border-dc-border/50 overflow-hidden flex flex-col"
+           style="${accentColor ? `border-left: 3px solid ${accentColor}; --team-accent: ${accentColor};` : ''}">
         <!-- Card header -->
-        <div class="px-4 py-3 border-b border-dc-border/40 flex items-start justify-between gap-3"
-             style="${accentColor ? `border-left: 3px solid ${accentColor};` : ''}">
-          <div class="flex items-center gap-3 min-w-0">
-            ${logoHtml}
-            <div class="min-w-0">
-              <p class="text-sm font-bold text-white leading-tight truncate">${esc(t.team_name)}</p>
-              ${t.tag ? `<p class="text-[11px] text-dc-text">[${esc(t.tag)}] · ${t.size} player${t.size !== 1 ? 's' : ''}</p>` : `<p class="text-[11px] text-dc-text">${t.size} player${t.size !== 1 ? 's' : ''}</p>`}
-              ${captainLine}
+        <div class="px-4 py-3 border-b border-dc-border/40">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              ${logoHtml}
+              <div class="min-w-0">
+                ${teamNameHtml}
+                <div class="flex items-center gap-2 flex-wrap">
+                  ${t.tag ? `<span class="text-[10px] text-dc-text">[${esc(t.tag)}]</span>` : ''}
+                  ${orgBadgeHtml}
+                  ${sizeInfo}
+                </div>
+                ${leaderLine}
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              ${validBadge}
+              ${ignsOk}
+              ${checkinBadge}
             </div>
           </div>
-          <div class="flex flex-col items-end gap-1 shrink-0">
-            ${validBadge}
-            ${ignsOk}
-            ${checkinBadge}
-          </div>
+          ${commHtml}
+          ${socialHtml}
         </div>
 
-        <!-- Player table -->
+        <!-- Player sections -->
         <div class="flex-1 overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-b border-dc-border/30">
-                <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Player</th>
-                <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Role</th>
-                <th class="text-left px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Game ID</th>
-                <th class="text-right px-3 py-2 text-[10px] text-dc-text font-medium uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-dc-border/20">
-              ${playerRows || '<tr><td colspan="4" class="px-3 py-4 text-center text-dc-text opacity-50 text-xs">No players in snapshot</td></tr>'}
-            </tbody>
-          </table>
+          ${playerSections}
         </div>
 
         <!-- Card footer -->
-        <div class="px-4 py-2 border-t border-dc-border/30 flex items-center justify-between">
+        <div class="px-4 py-2 border-t border-dc-border/30 flex items-center justify-between gap-2">
           <span class="text-[10px] text-dc-text opacity-60">${t.registered_at ? 'Reg: ' + new Date(t.registered_at).toLocaleDateString() : ''}</span>
-          <button onclick="TOC.rosters.addPlayer(${t.team_id})"
-            class="inline-flex items-center gap-1 text-[10px] text-theme hover:underline">
-            <i data-lucide="user-plus" class="w-3 h-3"></i>Add Player
-          </button>
+          <div class="flex items-center gap-2">
+            ${t.discord_invite_url ? `<a href="${esc(t.discord_invite_url)}" target="_blank" class="inline-flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors"><i data-lucide="send" class="w-3 h-3"></i>Message</a>` : ''}
+            <button onclick="TOC.rosters.addPlayer(${t.team_id})"
+              class="inline-flex items-center gap-1 text-[10px] text-theme hover:underline">
+              <i data-lucide="user-plus" class="w-3 h-3"></i>Add Player
+            </button>
+          </div>
         </div>
       </div>`;
   }
+
+  /* ────────────────── Player section (grouped table) ──────────────── */
+
+  function buildPlayerSection(label, players, team, icon) {
+    const rows = players.map(p => buildPlayerRow(team, p)).join('');
+    return `
+      <div class="border-b border-dc-border/20 last:border-b-0">
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-dc-surface/30">
+          <i data-lucide="${icon}" class="w-3 h-3 text-dc-text opacity-60"></i>
+          <span class="text-[10px] font-semibold text-dc-text uppercase tracking-wide">${esc(label)}</span>
+          <span class="text-[10px] text-dc-text opacity-50">(${players.length})</span>
+        </div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-dc-border/20">
+              <th class="text-left px-3 py-1.5 text-[10px] text-dc-text font-medium uppercase tracking-wide">Player</th>
+              <th class="text-left px-3 py-1.5 text-[10px] text-dc-text font-medium uppercase tracking-wide">Role</th>
+              <th class="text-left px-3 py-1.5 text-[10px] text-dc-text font-medium uppercase tracking-wide">${esc(gameIdLabel)}</th>
+              <th class="text-right px-3 py-1.5 text-[10px] text-dc-text font-medium uppercase tracking-wide w-16">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-dc-border/10">${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  /* ────────────────────── Build player row ────────────────────────── */
 
   function buildPlayerRow(t, p) {
     // Role badge
@@ -267,57 +414,73 @@
     if (p.is_igl) {
       roleBadge = `<span class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-theme/20 text-theme border border-theme/30">
         <i data-lucide="crown" class="w-2.5 h-2.5"></i>IGL</span>`;
-    } else if (p.roster_slot === 'SUBSTITUTE') {
+    } else if (p.is_coordinator && !p.is_igl) {
+      roleBadge = `<span class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+        <i data-lucide="shield" class="w-2.5 h-2.5"></i>COORD</span>`;
+    } else if ((p.roster_slot || '').toUpperCase() === 'SUBSTITUTE') {
       roleBadge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 border border-slate-500/20">SUB</span>`;
+    } else if ((p.roster_slot || '').toUpperCase() === 'COACH') {
+      roleBadge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/20">COACH</span>`;
+    } else if ((p.roster_slot || '').toUpperCase() === 'MANAGER') {
+      roleBadge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/20">MGR</span>`;
     } else {
       roleBadge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-dc-surface/60 text-dc-text border border-dc-border/30">START</span>`;
     }
 
-    // In-game role (e.g. "Duelist", "Controller") if populated
+    // In-game role (Duelist, Controller, etc.)
     const roleLabel = p.player_role
-      ? `<span class="ml-1 text-[9px] text-dc-text opacity-70">${esc(p.player_role)}</span>` : '';
+      ? `<span class="ml-1 text-[9px] text-dc-text opacity-60">${esc(p.player_role)}</span>` : '';
 
-    // Player avatar initial
+    // Avatar
     const avatarLetter = (p.display_name || p.username || '?')[0].toUpperCase();
     const avatarHtml = p.avatar
       ? `<img src="${esc(p.avatar)}" alt="" class="w-5 h-5 rounded-full object-cover">`
       : `<span class="w-5 h-5 rounded-full bg-dc-surface/80 border border-dc-border/50 flex items-center justify-center text-[9px] font-bold text-dc-text">${esc(avatarLetter)}</span>`;
 
-    // Game ID — monospace, muted if empty
+    // Player name — clickable if profile_slug
+    const displayName = p.display_name || p.username || `User #${p.user_id}`;
+    const nameHtml = p.profile_slug
+      ? `<a href="/u/${esc(p.profile_slug)}/" class="text-white text-[11px] truncate max-w-[120px] hover:text-theme transition-colors" target="_blank">${esc(displayName)}</a>`
+      : `<span class="text-white text-[11px] truncate max-w-[120px]">${esc(displayName)}</span>`;
+
+    // Game ID
     const gameIdHtml = p.game_id
       ? `<span class="font-mono text-[10px] text-emerald-300">${esc(p.game_id)}</span>`
       : `<span class="text-[10px] text-dc-text opacity-35 italic">—</span>`;
 
-    // Check-in indicator
+    // Check-in dot
     const ciDot = p.checked_in
       ? `<span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" title="Checked in"></span>` : '';
 
-    // Actions
-    const setIglBtn = !p.is_igl
-      ? `<button onclick="TOC.rosters.setCaptain(${t.team_id}, ${p.user_id ?? 0})"
-           class="text-[9px] text-dc-text hover:text-theme transition-colors" title="Set as IGL">IGL</button>` : '';
-    const removeBtn = `<button onclick="TOC.rosters.removePlayer(${t.team_id}, ${p.user_id ?? 0})"
-       class="text-[9px] text-dc-danger hover:underline" title="Remove from roster">✕</button>`;
+    // Actions dropdown
+    const uid = p.user_id ?? 0;
+    const profileItem = p.profile_slug
+      ? `<a href="/u/${esc(p.profile_slug)}/" target="_blank" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-text hover:bg-white/[.04] hover:text-white transition-colors"><i data-lucide="user" class="inline w-3 h-3 mr-1 opacity-60"></i>View Profile</a>` : '';
+    const setIglItem = !p.is_igl
+      ? `<button onclick="TOC.rosters.setCaptain(${t.team_id}, ${uid})" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-text hover:bg-white/[.04] hover:text-theme transition-colors"><i data-lucide="crown" class="inline w-3 h-3 mr-1 opacity-60"></i>Set as IGL</button>` : '';
+    const removeItem = `<button onclick="TOC.rosters.removePlayer(${t.team_id}, ${uid})" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-danger hover:bg-white/[.04] transition-colors"><i data-lucide="user-minus" class="inline w-3 h-3 mr-1 opacity-60"></i>Remove</button>`;
 
     return `
-      <tr class="hover:bg-white/[.02] transition-colors">
+      <tr class="hover:bg-white/[.02] transition-colors group">
         <td class="px-3 py-1.5">
           <div class="flex items-center gap-1.5">
             ${avatarHtml}
-            <span class="text-white text-[11px] truncate max-w-[120px]">${esc(p.display_name || p.username || `User #${p.user_id}`)}</span>
+            ${nameHtml}
             ${ciDot}
           </div>
         </td>
         <td class="px-3 py-1.5">
-          <div class="flex items-center gap-1">
-            ${roleBadge}${roleLabel}
-          </div>
+          <div class="flex items-center gap-1">${roleBadge}${roleLabel}</div>
         </td>
         <td class="px-3 py-1.5">${gameIdHtml}</td>
         <td class="px-3 py-1.5 text-right">
-          <div class="flex items-center justify-end gap-2">
-            ${setIglBtn}
-            ${removeBtn}
+          <div class="relative inline-block">
+            <button data-action-toggle class="p-0.5 rounded hover:bg-white/[.06] text-dc-text opacity-0 group-hover:opacity-100 transition-all">
+              <i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>
+            </button>
+            <div class="roster-action-dd hidden absolute right-0 top-full mt-1 w-36 bg-dc-surface border border-dc-border/50 rounded-lg shadow-xl z-50 py-1 overflow-hidden">
+              ${profileItem}${setIglItem}${removeItem}
+            </div>
           </div>
         </td>
       </tr>`;
@@ -374,10 +537,17 @@
 
   /* ─────────────────────────── Actions ────────────────────────────── */
 
-  async function lockRosters() {
-    if (!confirm('Lock all rosters? No more changes will be allowed.')) return;
-    try { await API.post('rosters/lock/', {}); toast('Rosters locked', 'warning'); refresh(); }
-    catch { toast('Failed to lock', 'error'); }
+  function lockRosters() {
+    TOC.dangerConfirm({
+      title: 'Lock All Rosters',
+      message: 'Players will no longer be able to join or leave any team. This cannot be undone without admin action.',
+      confirmText: 'Lock Rosters',
+      variant: 'warning',
+      onConfirm: async function () {
+        try { await API.post('rosters/lock/', {}); toast('Rosters locked', 'warning'); refresh(); }
+        catch { toast('Failed to lock', 'error'); }
+      },
+    });
   }
 
   async function unlockRosters() {
@@ -398,10 +568,25 @@
   }
 
   function addPlayer(teamId) {
-    const userId = prompt('Enter User ID to add to this roster:');
-    if (!userId || isNaN(+userId)) return;
-    API.post('rosters/add-player/', { team_id: teamId, user_id: parseInt(userId) })
-      .then(() => { toast('Player added', 'success'); refresh(); })
+    const FIELD = 'w-full bg-dc-surface/50 border border-dc-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder-dc-text/40 focus:outline-none focus:border-theme';
+    const body = `<div class="space-y-4 p-5">
+      <div>
+        <label class="block text-[10px] text-dc-text uppercase tracking-widest mb-1">User ID *</label>
+        <input id="roster-add-uid" type="number" class="${FIELD}" placeholder="Numeric user ID"></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.rosters._submitAddPlayer(${teamId})" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Player</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Add Player to Roster', body, footer);
+    setTimeout(() => document.getElementById('roster-add-uid')?.focus(), 50);
+  }
+
+  function _submitAddPlayer(teamId) {
+    const userId = parseInt(document.getElementById('roster-add-uid')?.value || '');
+    if (!userId || isNaN(userId)) { toast('Valid user ID is required', 'error'); return; }
+    API.post('rosters/add-player/', { team_id: teamId, user_id: userId })
+      .then(() => { toast('Player added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed to add player', 'error'));
   }
 
@@ -427,7 +612,7 @@
   function _setFilter(key) {
     statusFilter = key;
     renderFilterChips();
-    renderTeams(dashData?.teams || [], dashData?.solo_players || []);
+    renderTeams(dashData?.teams || []);
   }
 
   /* ─────────────────────────── Public API ─────────────────────────── */
@@ -435,7 +620,7 @@
   window.TOC = window.TOC || {};
   window.TOC.rosters = {
     refresh, lockRosters, unlockRosters,
-    setCaptain, removePlayer, addPlayer,
+    setCaptain, removePlayer, addPlayer, _submitAddPlayer,
     checkEligibility, saveConfig,
     _setFilter,
   };
@@ -444,4 +629,9 @@
   document.addEventListener('toc:tab-changed', (e) => {
     if (e.detail?.tab === 'rosters') refresh();
   });
+
+  /* ── Dropdown CSS (injected once) ── */
+  const style = document.createElement('style');
+  style.textContent = `.roster-action-dd.active { display: block !important; }`;
+  document.head.appendChild(style);
 })();

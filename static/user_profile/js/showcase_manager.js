@@ -401,19 +401,75 @@ class ShowcaseManager {
     }
     
     /**
-     * Show add highlight modal (simple prompt-based for now)
-     * TODO: Replace with proper modal UI if needed
+     * Show add highlight inline form
      */
     showAddHighlightModal() {
-        const type = prompt('Highlight type (tournament/achievement/milestone/custom):');
-        if (!type) return;
-        
-        const title = prompt('Highlight title:');
-        if (!title) return;
-        
-        const description = prompt('Description (optional):') || '';
-        
-        this.addHighlight({ type, title, description, metadata: {} });
+        // Remove any existing inline form
+        const existingForm = document.getElementById('highlight-inline-form');
+        if (existingForm) {
+            existingForm.remove();
+            return;
+        }
+
+        // Find the container to insert the form (next to the add button)
+        const addBtn = document.querySelector('[data-action="add-highlight"]') ||
+                       document.querySelector('.add-highlight-btn');
+        const container = addBtn ? addBtn.closest('.showcase-section, .highlights-section, .card, div') : document.body;
+
+        const form = document.createElement('div');
+        form.id = 'highlight-inline-form';
+        form.className = 'p-4 mt-3 rounded-lg border border-gray-600 bg-gray-800/50';
+        form.innerHTML = `
+            <h4 class="text-sm font-semibold text-gray-200 mb-3">Add Highlight</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Type</label>
+                    <select id="highlight-type-input" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200">
+                        <option value="tournament">Tournament</option>
+                        <option value="achievement">Achievement</option>
+                        <option value="milestone">Milestone</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Title <span class="text-red-400">*</span></label>
+                    <input type="text" id="highlight-title-input" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200" placeholder="Enter highlight title" />
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Description (optional)</label>
+                    <input type="text" id="highlight-desc-input" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200" placeholder="Brief description" />
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" id="highlight-cancel-btn" class="px-3 py-1.5 text-sm rounded bg-gray-600 hover:bg-gray-500 text-gray-200">Cancel</button>
+                    <button type="button" id="highlight-save-btn" class="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white">Save</button>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(form);
+
+        // Focus the title input
+        const titleInput = document.getElementById('highlight-title-input');
+        if (titleInput) titleInput.focus();
+
+        // Cancel button
+        document.getElementById('highlight-cancel-btn').addEventListener('click', () => form.remove());
+
+        // Save button
+        document.getElementById('highlight-save-btn').addEventListener('click', () => {
+            const type = document.getElementById('highlight-type-input').value;
+            const title = document.getElementById('highlight-title-input').value.trim();
+            const description = document.getElementById('highlight-desc-input').value.trim();
+
+            if (!title) {
+                if (window.Toast) window.Toast.warning('Please enter a highlight title');
+                return;
+            }
+
+            this.addHighlight({ type, title, description, metadata: {} });
+            form.remove();
+            if (window.Toast) window.Toast.success('Highlight added!');
+        });
     }
 }
 

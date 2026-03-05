@@ -814,9 +814,12 @@ class RegistrationService:
         registration.status = Registration.PAYMENT_SUBMITTED
         registration.save(update_fields=['status'])
         
-        # TODO: Future integration points
-        # - Send notification to organizer (apps.notifications)
-        # - Log payment submission event
+        # Notify organizer that payment proof has been submitted
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            TournamentNotificationService.notify_payment_submitted_organizer(registration)
+        except Exception as _exc:
+            logger.error(f"Failed to send payment-submitted organizer notification: {_exc}")
         
         return payment
     
@@ -1288,8 +1291,14 @@ class RegistrationService:
         )
         
         # TODO: Future integration points
-        # - Send rejection notification to participant (apps.notifications)
         # - Explain how to resubmit payment
+        
+        # Notify participant their payment was rejected
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            TournamentNotificationService.notify_payment_rejected(registration, reason=reason)
+        except Exception as _exc:
+            logger.error(f"Failed to send payment-rejected notification: {_exc}")
         
         # Emit payment.rejected event (P4-T06)
         _reg_id = registration.id
@@ -1647,7 +1656,16 @@ class RegistrationService:
         # TODO: Future integration points
         # - Process actual refund through payment gateway
         # - Refund DeltaCoin if applicable (apps.economy)
-        # - Send refund notification (apps.notifications)
+        
+        # Notify participant their refund has been processed
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            _amount_str = str(payment.amount) if getattr(payment, 'amount', None) else ''
+            TournamentNotificationService.notify_refund_processed(
+                payment.registration, refund_amount=_amount_str
+            )
+        except Exception as _exc:
+            logger.error(f"Failed to send refund notification: {_exc}")
         
         return payment
     
@@ -1803,21 +1821,33 @@ class RegistrationService:
         
         # Check if team is sponsored (requires apps.teams integration)
         if registration.team_id:
-            # TODO: Check team sponsorship status
-            # from apps.organizations.models import Team
-            # team = Team.objects.get(id=registration.team_id)
-            # if team.is_sponsored or team.sponsor_covers_fees:
-            #     return (True, f"Team sponsored by {team.sponsor_name}")
-            pass
+            try:
+                from apps.organizations.models import Team
+                team = Team.objects.filter(id=registration.team_id).only('metadata').first()
+                if team and isinstance(getattr(team, 'metadata', None), dict):
+                    sponsors = team.metadata.get('sponsors', [])
+                    if sponsors:
+                        sponsor_name = sponsors[0] if isinstance(sponsors[0], str) else sponsors[0].get('name', 'Sponsor')
+                        return (True, f"Team sponsored by {sponsor_name}")
+            except Exception:
+                pass  # Sponsor check failed, continue to other checks
         
         # Check top-ranked status (requires apps.leaderboards integration)
         if registration.user:
-            # TODO: Check user ranking
-            # from apps.leaderboards.services import LeaderboardService
-            # rank = LeaderboardService.get_user_rank(registration.user, tournament.game)
-            # if rank and rank <= 10:  # Top 10 players get free entry
-            #     return (True, f"Top-ranked player (Rank #{rank})")
-            pass
+            try:
+                from apps.leaderboards.services import get_leaderboard_service
+                service = get_leaderboard_service()
+                game_slug = tournament.game.slug if hasattr(tournament, 'game') and tournament.game else None
+                if game_slug:
+                    entry = service.get_player_rank(
+                        player_id=registration.user.id,
+                        leaderboard_type='seasonal',
+                        game=game_slug,
+                    )
+                    if entry and entry.rank <= 10:
+                        return (True, f"Top-ranked player (Rank #{entry.rank})")
+            except Exception:
+                pass  # Ranking check failed, continue
         
         return (False, "No auto-waive criteria met")
     
@@ -2212,10 +2242,15 @@ class RegistrationService:
                 if not hasattr(next_waitlist, 'promoted_from_waitlist_at'):
                     next_waitlist.registration_data['promoted_from_waitlist_at'] = timezone.now().isoformat()
                 next_waitlist.save()
-                
-                # TODO: Send email notification about promotion
-                # from apps.notifications.services import send_waitlist_promotion_email
-                # send_waitlist_promotion_email(next_waitlist)
+
+                # Notify participant about promotion
+                try:
+                    from apps.tournaments.services.notification_service import TournamentNotificationService
+                    deadline_hours = tournament.payment_deadline_hours or 48
+                    payment_deadline = timezone.now() + timezone.timedelta(hours=deadline_hours)
+                    TournamentNotificationService.notify_waitlist_promotion(next_waitlist, payment_deadline)
+                except Exception as _e:
+                    logger.warning("Failed to send waitlist promotion notification: %s", _e)
     
     @staticmethod
     @transaction.atomic
@@ -2240,11 +2275,14 @@ class RegistrationService:
         
         # Keep roster locked (they're still disqualified from this tournament)
         # Unlock will happen after tournament ends
-        
-        # TODO: Send disqualification email
-        # from apps.notifications.services import send_disqualification_email
-        # send_disqualification_email(registration, reason)
-        
+
+        # Notify participant about disqualification
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            TournamentNotificationService.notify_disqualification(registration, reason=reason)
+        except Exception as _e:
+            logger.warning("Failed to send disqualification notification: %s", _e)
+
         return {
             'success': True,
             'message': 'Registration disqualified',

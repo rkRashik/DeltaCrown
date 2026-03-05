@@ -39,8 +39,44 @@ class StandingSerializer:
             "goals_for": standing.goals_for,
             "goals_against": standing.goals_against,
             "goal_difference": standing.goal_difference,
-            "form": [],  # TODO: Last 5 results
+            "form": StandingSerializer._get_form(standing),
         }
+
+    @staticmethod
+    def _get_form(standing: GroupStanding, limit: int = 5) -> list:
+        """
+        Compute last N match results (W/D/L) for a participant in the group.
+
+        Returns e.g. ['W', 'L', 'W', 'W', 'D'] — most-recent first.
+        """
+        from django.db.models import Q
+
+        participant_id = standing.team_id if standing.team_id else (standing.user_id if standing.user else None)
+        if participant_id is None:
+            return []
+
+        try:
+            matches = (
+                Match.objects.filter(
+                    tournament=standing.group.tournament,
+                    state=Match.COMPLETED,
+                )
+                .filter(
+                    Q(participant1_id=participant_id) | Q(participant2_id=participant_id)
+                )
+                .order_by('-updated_at')[:limit]
+            )
+            form = []
+            for m in matches:
+                if m.winner_id == participant_id:
+                    form.append('W')
+                elif m.winner_id is None:
+                    form.append('D')
+                else:
+                    form.append('L')
+            return form
+        except Exception:
+            return []
 
 
 class GroupSerializer:

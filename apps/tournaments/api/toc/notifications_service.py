@@ -99,6 +99,38 @@ class TOCNotificationsService:
                 "trigger": "round_start",
                 "enabled": True,
             },
+            {
+                "id": "bracket_generated",
+                "name": "Bracket Generated",
+                "subject": "Bracket is Ready!",
+                "body": "The bracket for {tournament_name} has been generated. Check your matchups!",
+                "trigger": "bracket_generated",
+                "enabled": True,
+            },
+            {
+                "id": "bracket_published",
+                "name": "Bracket Published",
+                "subject": "Bracket Published",
+                "body": "The bracket for {tournament_name} has been published. View it now on the tournament hub.",
+                "trigger": "bracket_published",
+                "enabled": True,
+            },
+            {
+                "id": "group_draw_complete",
+                "name": "Group Draw Complete",
+                "subject": "Group Draw Complete",
+                "body": "The group draw for {tournament_name} is complete. Check your group assignment.",
+                "trigger": "group_draw_complete",
+                "enabled": True,
+            },
+            {
+                "id": "checkin_closed",
+                "name": "Check-in Closed",
+                "subject": "Check-in has closed",
+                "body": "Check-in for {tournament_name} is now closed.",
+                "trigger": "checkin_closed",
+                "enabled": True,
+            },
         ]
 
     @staticmethod
@@ -106,9 +138,13 @@ class TOCNotificationsService:
         """Default auto-notification rules."""
         return [
             {"id": "auto_checkin_open", "event": "checkin_open", "template_id": "checkin_reminder", "enabled": True},
+            {"id": "auto_checkin_closed", "event": "checkin_closed", "template_id": "checkin_closed", "enabled": True},
             {"id": "auto_match_ready", "event": "match_ready", "template_id": "match_ready", "enabled": True},
             {"id": "auto_match_complete", "event": "match_complete", "template_id": "match_result", "enabled": True},
             {"id": "auto_round_start", "event": "round_start", "template_id": "round_start", "enabled": True},
+            {"id": "auto_bracket_generated", "event": "bracket_generated", "template_id": "bracket_generated", "enabled": True},
+            {"id": "auto_bracket_published", "event": "bracket_published", "template_id": "bracket_published", "enabled": True},
+            {"id": "auto_group_draw", "event": "group_draw_complete", "template_id": "group_draw_complete", "enabled": True},
         ]
 
     @staticmethod
@@ -223,9 +259,50 @@ class TOCNotificationsService:
         tournament.config = config
         tournament.save(update_fields=["config"])
 
-        # In production, would dispatch to notification system.
-        # For now, record it.
-        logger.info("Notification sent: %s to %d recipients", subject, recipient_count)
+        # ── Dispatch to real notification system ──
+        channels = notif_config.get("channels", {})
+        try:
+            from apps.notifications.services import emit as notify_emit
+
+            # Collect recipient User objects
+            recipient_users = list(
+                regs.exclude(user__isnull=True)
+                    .values_list("user", flat=True)
+                    .distinct()
+            )
+            if recipient_users:
+                emit_kwargs = {
+                    "title": subject,
+                    "body": body,
+                    "event": "tournament_update",
+                    "tournament": tournament,
+                    "url": f"/tournaments/{tournament.slug}/hub/",
+                    "dedupe": False,
+                }
+                # Only include email params if email channel is enabled
+                if channels.get("email", False):
+                    emit_kwargs["email_subject"] = subject
+                    emit_kwargs["email_template"] = "notifications/email/tournament_update.html"
+                    emit_kwargs["email_ctx"] = {
+                        "tournament_name": tournament.name,
+                        "subject": subject,
+                        "body": body,
+                    }
+                notify_emit(recipient_users, **emit_kwargs)
+                logger.info("Dispatched notification '%s' to %d users via emit()", subject, len(recipient_users))
+        except Exception as e:
+            logger.warning("Failed to dispatch via emit(): %s", e)
+
+        # ── Also dispatch to Discord webhook (announcements) ──
+        try:
+            from apps.tournaments.services.discord_webhook import DiscordWebhookService
+            DiscordWebhookService.send_event_async(tournament, 'announcement', {
+                'subject': subject,
+                'body': body,
+            })
+        except Exception as e:
+            logger.warning("Discord webhook dispatch failed for announcement: %s", e)
+
         return entry
 
     @staticmethod
@@ -316,3 +393,74 @@ class TOCNotificationsService:
                 "target": user_ids,
             },
         )
+
+    @classmethod
+    def fire_auto_event(cls, tournament: Tournament, event: str, context: dict = None):
+        """
+        Fire an auto-notification if a matching enabled rule exists for the event.
+
+        Called by bracket/group/checkin services when key events occur:
+          - bracket_generated, bracket_published
+          - checkin_open, checkin_closed
+          - match_ready, match_complete
+          - round_start, group_draw_complete
+          - tournament_live
+
+        Args:
+            tournament: The tournament instance
+            event: Event identifier string (e.g., "bracket_generated")
+            context: Optional dict with template placeholders (round_number, result, etc.)
+        """
+        try:
+            config = tournament.config or {}
+            notif_config = config.get("notifications", {})
+
+            # Get auto-rules — fall back to defaults
+            auto_rules = notif_config.get("auto_rules", cls._default_auto_rules())
+            templates = notif_config.get("templates", cls._default_templates())
+
+            # Find matching enabled rule for this event
+            matching_rules = [r for r in auto_rules if r.get("event") == event and r.get("enabled", True)]
+            if not matching_rules:
+                return  # No rule for this event, skip silently
+
+            ctx = context or {}
+            for rule in matching_rules:
+                template_id = rule.get("template_id")
+                tmpl = next((t for t in templates if t.get("id") == template_id and t.get("enabled", True)), None)
+
+                subject = ""
+                body = ""
+                if tmpl:
+                    subject = tmpl.get("subject", "")
+                    body = tmpl.get("body", "")
+                else:
+                    # No template — use event as subject
+                    subject = event.replace("_", " ").title()
+                    body = f"{tournament.name}: {subject}"
+
+                # Replace common placeholders
+                body = body.replace("{tournament_name}", tournament.name)
+                subject = subject.replace("{tournament_name}", tournament.name)
+                for key, val in ctx.items():
+                    body = body.replace("{" + key + "}", str(val))
+                    subject = subject.replace("{" + key + "}", str(val))
+
+                cls.send_notification(tournament, {
+                    "subject": subject,
+                    "body": body,
+                    "target": "all",
+                })
+                logger.info("Auto-notification fired: event=%s, template=%s for %s", event, template_id, tournament.slug)
+
+            # ── Also dispatch to Discord webhook async (if configured) ──
+            try:
+                from apps.tournaments.services.discord_webhook import DiscordWebhookService
+                discord_ctx = dict(ctx) if ctx else {}
+                discord_ctx['subject'] = subject if 'subject' not in discord_ctx else discord_ctx['subject']
+                discord_ctx['body'] = body if 'body' not in discord_ctx else discord_ctx['body']
+                DiscordWebhookService.send_event_async(tournament, event, discord_ctx)
+            except Exception as discord_err:
+                logger.warning("Discord webhook dispatch failed for %s/%s: %s", tournament.slug, event, discord_err)
+        except Exception as e:
+            logger.warning("Auto-notification fire_auto_event error for %s/%s: %s", tournament.slug, event, e)

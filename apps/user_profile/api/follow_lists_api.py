@@ -141,6 +141,17 @@ def get_followers_list(request, username):
             'follower__profile'
         )[:100]
         
+        # Prefetch which followers the viewer follows (avoid N+1)
+        viewer_follows_ids = set()
+        if viewer_user:
+            follower_user_ids = [f.follower_id for f in followers]
+            viewer_follows_ids = set(
+                Follow.objects.filter(
+                    follower=viewer_user,
+                    following_id__in=follower_user_ids
+                ).values_list('following_id', flat=True)
+            )
+        
         # Build response data
         followers_data = []
         for follow_obj in followers:
@@ -148,19 +159,14 @@ def get_followers_list(request, username):
             follower_profile = getattr(follower_user, 'profile', None)
             
             # Check if viewer follows this person
-            is_followed_by_viewer = False
-            if viewer_user and viewer_user != follower_user:
-                is_followed_by_viewer = Follow.objects.filter(
-                    follower=viewer_user,
-                    following=follower_user
-                ).exists()
+            is_followed_by_viewer = follower_user.id in viewer_follows_ids
             
             # Get avatar URL
             avatar_url = '/static/img/user_avatar/default-avatar.png'
             if follower_profile and follower_profile.avatar:
                 try:
                     avatar_url = follower_profile.avatar.url
-                except:
+                except Exception:
                     pass
             
             followers_data.append({
@@ -238,6 +244,17 @@ def get_following_list(request, username):
             'following__profile'
         )[:100]
         
+        # Prefetch which followed users the viewer also follows (avoid N+1)
+        viewer_follows_ids = set()
+        if viewer_user:
+            following_user_ids = [f.following_id for f in following]
+            viewer_follows_ids = set(
+                Follow.objects.filter(
+                    follower=viewer_user,
+                    following_id__in=following_user_ids
+                ).values_list('following_id', flat=True)
+            )
+        
         # Build response data
         following_data = []
         for follow_obj in following:
@@ -245,19 +262,14 @@ def get_following_list(request, username):
             followed_profile = getattr(followed_user, 'profile', None)
             
             # Check if viewer follows this person
-            is_followed_by_viewer = False
-            if viewer_user and viewer_user != followed_user:
-                is_followed_by_viewer = Follow.objects.filter(
-                    follower=viewer_user,
-                    following=followed_user
-                ).exists()
+            is_followed_by_viewer = followed_user.id in viewer_follows_ids
             
             # Get avatar URL
             avatar_url = '/static/img/user_avatar/default-avatar.png'
             if followed_profile and followed_profile.avatar:
                 try:
                     avatar_url = followed_profile.avatar.url
-                except:
+                except Exception:
                     pass
             
             following_data.append({

@@ -252,30 +252,54 @@ def handle_match_state_change(sender, instance, created, **kwargs):
         )
     
     # Send notification if event was triggered
-    # Note: Recipients list is empty in this simplified version
-    # Full implementation would resolve participant users from teams
     if event:
         logger.debug(
             f"Match state change detected: event={event}, match_id={instance.id}, "
             f"old_state={old_state}, new_state={new_state}"
         )
-        
-        # TODO: Resolve actual user recipients from participant IDs
-        # For now, just log the event
-        # In full implementation:
-        # if recipients:
-        #     notify(
-        #         recipients=recipients,
-        #         event=event,
-        #         title=title,
-        #         body=body,
-        #         tournament=tournament,
-        #         match=instance,
-        #         url=f'/tournaments/{tournament.slug}/matches/{instance.id}/',
-        #         email_subject=title if EMAIL_ENABLED else None,
-        #         email_template=email_template if EMAIL_ENABLED else None,
-        #         email_ctx={'match': instance, 'tournament': tournament} if EMAIL_ENABLED else None
-        #     )
+
+        # Resolve actual user recipients from participant IDs.
+        # For solo tournaments participant IDs are user IDs directly.
+        # For team tournaments we look up the registered user for each team.
+        try:
+            from django.contrib.auth import get_user_model
+            from apps.tournaments.models import Registration as _Reg
+
+            User = get_user_model()
+            p_ids = [
+                pid for pid in [instance.participant1_id, instance.participant2_id]
+                if pid is not None
+            ]
+
+            if tournament.participation_type == Tournament.SOLO:
+                # Participant IDs == user IDs
+                recipients = list(User.objects.filter(id__in=p_ids, is_active=True))
+            else:
+                # Team tournament: resolve via confirmed/active registrations
+                user_ids = list(
+                    _Reg.objects.filter(
+                        tournament=tournament,
+                        team_id__in=p_ids,
+                        is_deleted=False,
+                    ).values_list('user_id', flat=True)
+                )
+                recipients = list(User.objects.filter(id__in=user_ids, is_active=True))
+        except Exception as _exc:
+            logger.warning(f"Could not resolve match recipients: {_exc}")
+            recipients = []
+
+        if recipients:
+            try:
+                notify(
+                    recipients=recipients,
+                    event=event,
+                    title=title,
+                    body=body,
+                    tournament_id=tournament.id,
+                    match_id=instance.id,
+                )
+            except Exception as _exc:
+                logger.warning(f"Failed to send match notification ({event}): {_exc}")
         
         # ── Discord match-result webhook on COMPLETED ──
         if new_state == Match.COMPLETED:

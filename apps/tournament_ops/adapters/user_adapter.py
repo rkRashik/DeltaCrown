@@ -131,26 +131,51 @@ class UserAdapter(BaseAdapter):
             if not profile.email_verified:
                 return False
             
-            # TODO: Check ban status when ModerationService is available
-            # For now, assume user is not banned if profile exists
-            
+            # Ban check
+            if self.is_user_banned(user_id):
+                return False
+
             # TODO: Add age requirement check based on tournament config
             # TODO: Add region restriction check based on tournament config
-            
+
             return True
         except UserNotFoundError:
             return False
     
     def is_user_banned(self, user_id: int) -> bool:
         """
-        Check if user is currently banned from platform.
-        
-        TODO: Implement via ModerationService when available.
-        For now, returns False (assume not banned).
+        Check if user has an active global ban or suspension.
+
+        Queries ModerationSanction for active TYPE_BAN or TYPE_SUSPEND records
+        with SCOPE_GLOBAL.  A sanction is active when:
+        - starts_at <= now
+        - revoked_at IS NULL
+        - ends_at IS NULL (permanent) OR ends_at > now
         """
-        # TODO: Call ModerationService.is_user_banned(user_id)
-        # For Phase 1, we assume users are not banned
-        return False
+        try:
+            from django.db.models import Q
+            from django.utils import timezone
+            from apps.user_profile.models import UserProfile
+            from apps.moderation.models import ModerationSanction
+
+            try:
+                profile = UserProfile.objects.only('id').get(user_id=user_id)
+            except UserProfile.DoesNotExist:
+                return False
+
+            now = timezone.now()
+            return ModerationSanction.objects.filter(
+                subject_profile_id=profile.id,
+                type__in=[ModerationSanction.TYPE_BAN, ModerationSanction.TYPE_SUSPEND],
+                scope=ModerationSanction.SCOPE_GLOBAL,
+                starts_at__lte=now,
+                revoked_at__isnull=True,
+            ).filter(
+                Q(ends_at__isnull=True) | Q(ends_at__gt=now)
+            ).exists()
+        except Exception:
+            # Fail open — a ban-check error must never block legitimate users
+            return False
     
     def check_health(self) -> bool:
         """

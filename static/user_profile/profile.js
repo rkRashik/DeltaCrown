@@ -120,13 +120,12 @@ function debugLog(...args) {
 function showToast(message, type = 'info') {
     debugLog(`Toast ${type}:`, message);
     
-    // For now, use alert for errors (can be upgraded to toast library later)
-    if (type === 'error' && typeof alert !== 'undefined') {
-        alert(message);
-    } else if (type === 'success' && typeof alert !== 'undefined') {
-        alert(message);
+    if (window.Toast) {
+        if (type === 'error') window.Toast.error(message);
+        else if (type === 'success') window.Toast.success(message);
+        else if (type === 'warning') window.Toast.warning(message);
+        else window.Toast.info(message);
     }
-    // info type: silent for now (could show as notification badge)
 }
 
 // ============================================================================
@@ -332,7 +331,7 @@ function copyToClipboard(text) {
         }, 2000);
     }).catch(function(err) {
         console.error('Failed to copy: ', err);
-        alert('Failed to copy to clipboard. Please copy manually.');
+        if (window.Toast) window.Toast.error('Failed to copy to clipboard. Please copy manually.');
     });
 }
 
@@ -574,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rank = safeGetById('passportRankInput').value.trim() || null;
             
             if (!gameId || !ign) {
-                alert('Please select a game and enter your IGN');
+                if (window.Toast) window.Toast.warning('Please select a game and enter your IGN');
                 return;
             }
             
@@ -786,7 +785,7 @@ async function submitBounty() {
     submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
     
     if (result && result.success) {
-        alert(`Bounty created! ${result.stake_amount} DC locked in escrow.`);
+        if (window.Toast) window.Toast.success(`Bounty created! ${result.stake_amount} DC locked in escrow.`);
         closeCreateBountyModal();
         location.reload();
     } else if (result) {
@@ -811,7 +810,7 @@ async function acceptBounty(bountyId, url) {
     });
     
     if (data && data.success) {
-        alert(data.message);
+        if (window.Toast) window.Toast.success(data.message);
         location.reload();
     } else {
         btn.disabled = false;
@@ -963,7 +962,7 @@ safeGetById('hardwareForm').addEventListener('submit', async (e) => {
         try {
             specs = JSON.parse(specsRaw);
         } catch (err) {
-            alert('Invalid JSON in specs field. Use format: {"key": "value"}');
+            if (window.Toast) window.Toast.warning('Invalid JSON in specs field. Use format: {"key": "value"}');
             return;
         }
     }
@@ -1000,14 +999,14 @@ safeGetById('hardwareForm').addEventListener('submit', async (e) => {
         btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
         
         if (data && data.success) {
-            alert(data.message || 'Hardware saved successfully!');
+            if (window.Toast) window.Toast.success(data.message || 'Hardware saved successfully!');
             resetHardwareForm();
             window.location.reload();
         }
     } catch (err) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
-        alert('Network error: ' + err.message);
+        if (window.Toast) window.Toast.error('Network error: ' + err.message);
     }
 });
 
@@ -1037,7 +1036,7 @@ async function deleteHardware(id, category) {
     
     const data = await safeFetch(url, { method: 'DELETE' });
     if (data && data.success) {
-        alert(data.message || 'Hardware deleted successfully!');
+        if (window.Toast) window.Toast.success(data.message || 'Hardware deleted successfully!');
         window.location.reload();
     }
 }
@@ -1152,7 +1151,7 @@ safeGetById('gameConfigForm').addEventListener('submit', async (e) => {
             const additionalSettings = JSON.parse(settingsRaw);
             settings = { ...settings, ...additionalSettings };
         } catch (err) {
-            alert('Invalid JSON in settings field. Use format: {"key": "value"}');
+            if (window.Toast) window.Toast.warning('Invalid JSON in settings field. Use format: {"key": "value"}');
             return;
         }
     }
@@ -1185,7 +1184,7 @@ safeGetById('gameConfigForm').addEventListener('submit', async (e) => {
     btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Config';
     
     if (data && data.success) {
-        alert(data.message || 'Game config saved successfully!');
+        if (window.Toast) window.Toast.success(data.message || 'Game config saved successfully!');
         resetGameConfigForm();
         window.location.reload();
     }
@@ -1243,7 +1242,7 @@ async function deleteGameConfig(id, gameName) {
     
     const data = await safeFetch(url, { method: 'DELETE' });
     if (data && data.success) {
-        alert(data.message || 'Game config deleted successfully!');
+        if (window.Toast) window.Toast.success(data.message || 'Game config deleted successfully!');
         window.location.reload();
     }
 }
@@ -1309,7 +1308,7 @@ async function startMatch(bountyId) {
     const data = await safeFetch(url, { method: 'POST' });
     
     if (data && data.success) {
-        alert(data.message);
+        if (window.Toast) window.Toast.success(data.message);
         location.reload();
     } else {
         btn.disabled = false;
@@ -1360,12 +1359,12 @@ async function submitProof() {
     const description = safeGetById('proofDescription').value.trim();
     
     if (!winnerId) {
-        alert('Please select a winner');
+        if (window.Toast) window.Toast.warning('Please select a winner');
         return;
     }
     
     if (!proofUrl) {
-        alert('Please provide a proof URL');
+        if (window.Toast) window.Toast.warning('Please provide a proof URL');
         return;
     }
     
@@ -1386,7 +1385,7 @@ async function submitProof() {
     });
     
     if (result && result.success) {
-        alert(result.message);
+        if (window.Toast) window.Toast.success(result.message);
         closeProofModal();
         location.reload();
     }
@@ -1407,7 +1406,7 @@ async function confirmResult(bountyId) {
     const data = await safeFetch(url, { method: 'POST' });
     
     if (data && data.success) {
-        alert(data.message);
+        if (window.Toast) window.Toast.success(data.message);
         location.reload();
     } else {
         btn.disabled = false;
@@ -1455,7 +1454,7 @@ async function submitDispute() {
     const reason = safeGetById('disputeReason').value.trim();
     
     if (reason.length < 50) {
-        alert('Dispute reason must be at least 50 characters');
+        if (window.Toast) window.Toast.warning('Dispute reason must be at least 50 characters');
         return;
     }
     
@@ -1469,7 +1468,7 @@ async function submitDispute() {
     });
     
     if (result && result.success) {
-        alert(result.message);
+        if (window.Toast) window.Toast.success(result.message);
         closeDisputeModal();
         location.reload();
     }
@@ -1532,7 +1531,7 @@ function closeEndorseModal() {
 async function submitEndorsement() {
     if (!requireOwner('submitEndorsement')) return;
     if (selectedSkills.size === 0) {
-        alert('Please select at least one skill to endorse');
+        if (window.Toast) window.Toast.warning('Please select at least one skill to endorse');
         return;
     }
     
@@ -1556,7 +1555,7 @@ async function submitEndorsement() {
     });
     
     if (result && result.success) {
-        alert(result.message || 'Endorsement submitted!');
+        if (window.Toast) window.Toast.success(result.message || 'Endorsement submitted!');
         closeEndorseModal();
         location.reload();
     } else {
@@ -1589,13 +1588,13 @@ async function handleMediaUpload(file, mediaType) {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        if (window.Toast) window.Toast.warning('Please select an image file');
         return;
     }
     
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be smaller than 5MB');
+        if (window.Toast) window.Toast.warning('Image must be smaller than 5MB');
         return;
     }
     
@@ -1610,7 +1609,7 @@ async function handleMediaUpload(file, mediaType) {
     });
     
     if (data && data.success) {
-        alert(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
+        if (window.Toast) window.Toast.success(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
         
         // Update preview
         if (mediaType === 'avatar') {
@@ -1627,7 +1626,7 @@ async function handleMediaUpload(file, mediaType) {
 // UP-PHASE2F: Follower/Following Modal System
 function openFollowersModal() {
     if (!IS_OWN_PROFILE) {
-        alert('This followers list is private');
+        if (window.Toast) window.Toast.info('This followers list is private');
         return;
     }
     
@@ -1719,13 +1718,13 @@ async function addSocialLink() {
     const url = urlInput.value.trim();
     
     if (!platform || !url) {
-        alert('Please select a platform and enter a URL');
+        if (window.Toast) window.Toast.warning('Please select a platform and enter a URL');
         return;
     }
     
     // Basic URL validation
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert('Please enter a valid URL (must start with http:// or https://)');
+        if (window.Toast) window.Toast.warning('Please enter a valid URL (must start with http:// or https://)');
         return;
     }
     
@@ -1739,7 +1738,7 @@ async function addSocialLink() {
         platformSelect.value = '';
         urlInput.value = '';
         loadSocialLinks();
-        alert('Social link added successfully!');
+        if (window.Toast) window.Toast.success('Social link added successfully!');
     }
 }
 

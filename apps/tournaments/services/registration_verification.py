@@ -8,9 +8,12 @@ Checks performed:
   - Duplicate game IDs across registrations in the same tournament
   - Missing/empty game IDs on starters
   - Roster size compliance (min/max)
+  - Substitute count cap
   - Banned/suspended players
   - Captain/IGL assignment
   - Duplicate user across multiple teams
+  - Duplicate team names
+  - Communication channel presence
   - Player role completeness
 """
 import logging
@@ -124,6 +127,10 @@ class RegistrationVerificationService:
 
                 if entry.get('is_igl'):
                     has_captain = True
+                if entry.get('role') == 'OWNER':
+                    has_captain = True
+                if entry.get('is_tournament_captain'):
+                    has_captain = True
 
             # Check captain assignment from registration_data too
             coord_role = rd.get('coordinator_role', '')
@@ -139,8 +146,8 @@ class RegistrationVerificationService:
 
             # Roster size check
             try:
-                from apps.core.services import game_service
-                rl = game_service.get_roster_limits(tournament.game)
+                from apps.games.services.game_service import GameService
+                rl = GameService.get_roster_limits(tournament.game)
                 min_size = rl.get('min_team_size', 1)
                 max_size = rl.get('max_roster_size', 20)
             except Exception:
@@ -172,6 +179,36 @@ class RegistrationVerificationService:
                     reg.id, cls.SEVERITY_INFO, 'missing_player_role',
                     f'{len(missing_roles)} player(s) missing in-game role',
                     f'Players without roles: {", ".join(missing_roles[:5])}'
+                ))
+
+            # Substitute count cap
+            try:
+                max_subs = rl.get('max_substitutes', 5)
+            except NameError:
+                max_subs = 5
+            if subs > max_subs:
+                reg_flags.append(cls._flag(
+                    reg.id, cls.SEVERITY_WARNING, 'too_many_subs',
+                    f'Too many substitutes ({subs}/{max_subs})',
+                    f'Team has {subs} substitutes but max allowed is {max_subs}.'
+                ))
+
+            # Communication channel check — team should have a discord or comms link
+            team_discord = rd.get('discord_url', '') or rd.get('comms_url', '')
+            if not team_discord and reg.team_id:
+                try:
+                    from apps.teams.models import OrgTeam
+                    org_team = OrgTeam.objects.filter(id=reg.team_id).first()
+                    if org_team:
+                        team_discord = getattr(org_team, 'discord_url', '') or ''
+                except Exception:
+                    pass
+            if not team_discord:
+                reg_flags.append(cls._flag(
+                    reg.id, cls.SEVERITY_INFO, 'no_comms_channel',
+                    'No communication channel',
+                    'Team has no Discord or communication link set. '
+                    'Match coordination may be difficult.'
                 ))
 
             flags.extend(reg_flags)
@@ -208,6 +245,32 @@ class RegistrationVerificationService:
                         )
                         flags.append(f)
                         per_reg[rid].append(f)
+
+        # ── Duplicate team names ──
+        team_name_map = defaultdict(list)  # normalized_name -> [reg_id]
+        for reg in registrations:
+            pname = (reg.registration_data or {}).get('display_name', '') or ''
+            if not pname and reg.team_id:
+                try:
+                    from apps.teams.models import OrgTeam
+                    ot = OrgTeam.objects.filter(id=reg.team_id).values_list('name', flat=True).first()
+                    pname = ot or ''
+                except Exception:
+                    pass
+            if pname:
+                team_name_map[pname.strip().lower()].append(reg.id)
+
+        for name, reg_ids in team_name_map.items():
+            if len(reg_ids) > 1:
+                for rid in reg_ids:
+                    f = cls._flag(
+                        rid, cls.SEVERITY_WARNING, 'duplicate_team_name',
+                        f'Duplicate team name detected',
+                        f'Team name "{name}" is used by {len(reg_ids)} registrations. '
+                        f'This may confuse organizers and spectators.'
+                    )
+                    flags.append(f)
+                    per_reg[rid].append(f)
 
         # ── Banned/suspended player check ──
         try:

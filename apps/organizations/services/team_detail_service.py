@@ -169,11 +169,32 @@ class TeamDetailService:
                     'joined_at': membership.joined_at,
                 })
         
-        # Query 5: Get team statistics (placeholder - implement when match/tournament models ready)
+        # Query 5: Get team statistics from tournament/match data
+        tournament_count = 0
+        match_count = 0
+        win_rate = 0
+        try:
+            from apps.tournaments.models import Registration, Match
+            tournament_count = Registration.objects.filter(
+                team_id=team.id,
+                is_deleted=False,
+                status__in=['confirmed', 'pending', 'payment_submitted'],
+            ).values('tournament_id').distinct().count()
+            match_qs = Match.objects.filter(
+                is_deleted=False,
+            ).filter(
+                models.Q(participant1_id=team.id) | models.Q(participant2_id=team.id)
+            )
+            match_count = match_qs.count()
+            if match_count > 0:
+                wins = match_qs.filter(winner_id=team.id).count()
+                win_rate = round((wins / match_count) * 100)
+        except Exception:
+            pass
         stats = {
-            'tournament_count': 0,  # TODO: Implement when tournament app integrated
-            'match_count': 0,  # TODO: Implement when match app integrated
-            'win_rate': 0,  # TODO: Calculate from match results
+            'tournament_count': tournament_count,
+            'match_count': match_count,
+            'win_rate': win_rate,
         }
         
         # Permission flags

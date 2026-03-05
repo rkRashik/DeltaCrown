@@ -387,7 +387,7 @@ class TOCService:
         Return a summary of group stage progress if the tournament has groups.
         Returns None if no group stage exists.
         """
-        from apps.tournaments.models.group import GroupStage, Group
+        from apps.tournaments.models.group import GroupStage, Group, GroupStanding
         try:
             gs = GroupStage.objects.filter(tournament=tournament).first()
             if not gs:
@@ -426,9 +426,31 @@ class TOCService:
 
             group_list = []
             for g in groups[:8]:  # Max 8 groups in overview
+                # Per-group match progress: collect team/user IDs in this group
+                g_standings = g.standings.filter(is_deleted=False) if hasattr(g, 'standings') else GroupStanding.objects.none()
+                g_team_ids = set(g_standings.values_list('team_id', flat=True))
+                g_user_ids = set(g_standings.exclude(user__isnull=True).values_list('user_id', flat=True))
+
+                # Count matches where both participants are in this group
+                g_match_qs = Match.objects.filter(
+                    tournament=tournament, is_deleted=False, bracket__isnull=True,
+                )
+                if g_team_ids - {None, 0}:
+                    g_match_qs = g_match_qs.filter(
+                        participant1_id__in=g_team_ids, participant2_id__in=g_team_ids,
+                    )
+                elif g_user_ids:
+                    g_match_qs = g_match_qs.filter(
+                        participant1_id__in=g_user_ids, participant2_id__in=g_user_ids,
+                    )
+                g_total = g_match_qs.count()
+                g_completed = g_match_qs.filter(state__in=[Match.COMPLETED, 'forfeit']).count()
+
                 group_list.append({
                     'name': g.name or f'Group {g.id}',
-                    'teams': g.standings.count() if hasattr(g, 'standings') else 0,
+                    'teams': g_standings.count(),
+                    'matches_total': g_total,
+                    'matches_completed': g_completed,
                 })
 
             return {
@@ -701,6 +723,15 @@ class TOCService:
                 'endpoint': 'checkin/open/',
                 'method': 'POST',
             })
+            # Draw Director if group stage exists
+            if tournament.format in ('group_playoff', 'group_stage', 'round_robin'):
+                actions.append({
+                    'id': 'draw_director',
+                    'label': 'Live Draw Ceremony',
+                    'icon': 'radio',
+                    'action': 'link',
+                    'target': f'/tournaments/{tournament.slug}/draw/director/',
+                })
             actions.append({
                 'id': 'start_tournament',
                 'label': 'Start Tournament',
@@ -717,6 +748,15 @@ class TOCService:
                 'action': 'tab',
                 'target': 'announcements',
             })
+            # Draw Director if group stage exists and is active
+            if tournament.format in ('group_playoff', 'group_stage', 'round_robin'):
+                actions.append({
+                    'id': 'draw_director',
+                    'label': 'Live Draw Ceremony',
+                    'icon': 'radio',
+                    'action': 'link',
+                    'target': f'/tournaments/{tournament.slug}/draw/director/',
+                })
             actions.append({
                 'id': 'view_brackets',
                 'label': 'View Brackets',

@@ -441,7 +441,7 @@ class Team(models.Model):
         if self.logo:
             return self.logo
         
-        return '/static/images/default_team_logo.png'
+        return '/static/img/teams/default-logo.svg'
     
     def can_user_manage(self, user):
         """

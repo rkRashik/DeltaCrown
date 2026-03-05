@@ -251,7 +251,13 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text='When tournament ends (set automatically)'
     )
-    
+    timezone_name = models.CharField(
+        max_length=64,
+        default='Asia/Dhaka',
+        blank=True,
+        help_text='IANA timezone name for display (e.g. Asia/Dhaka, UTC). Does not affect stored UTC datetimes.'
+    )
+
     # Prize pool
     prize_pool = models.DecimalField(
         max_digits=10,
@@ -404,10 +410,36 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         default='',
         help_text='Discord server invite URL'
     )
+    discord_webhook_url = models.URLField(
+        blank=True,
+        default='',
+        help_text='Discord webhook URL for automated tournament notifications'
+    )
     contact_email = models.EmailField(
         blank=True,
         default='',
         help_text='Organizer contact email for participants'
+    )
+    contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        help_text='Organizer phone number for participants (WhatsApp-enabled)'
+    )
+    social_facebook = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer Facebook page/group URL'
+    )
+    social_tiktok = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer TikTok profile URL'
+    )
+    support_info = models.TextField(
+        blank=True,
+        default='',
+        help_text='Custom support/dispute instructions for participants (shown in Hub)'
     )
     
     # Features (enable/disable various tournament features)
@@ -442,6 +474,14 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     enable_fan_voting = models.BooleanField(
         default=False,
         help_text='Enable spectator voting/predictions'
+    )
+    enable_no_show_timer = models.BooleanField(
+        default=False,
+        help_text='Automatically forfeit matches when both teams fail to start within the timeout window'
+    )
+    no_show_timeout_minutes = models.PositiveIntegerField(
+        default=10,
+        help_text='Minutes after scheduled start before a no-show forfeit is issued (requires enable_no_show_timer)'
     )
 
     # Guest team settings (P2-T02)

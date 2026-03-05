@@ -1060,7 +1060,7 @@ class CareerTabService:
             return history
         except Exception as e:
             # Graceful fallback - don't crash Career Tab
-            print(f"Error fetching team history: {e}")
+            logger.warning(f"Error fetching team history: {e}")
             return []
     
     @staticmethod
@@ -1178,7 +1178,7 @@ class CareerTabService:
             return achievements
         except Exception as e:
             # Graceful fallback - don't crash Career Tab
-            print(f"Error fetching achievements: {e}")
+            logger.warning(f"Error fetching achievements: {e}")
             return []
     
     @staticmethod

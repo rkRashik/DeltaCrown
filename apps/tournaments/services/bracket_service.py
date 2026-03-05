@@ -245,7 +245,7 @@ class BracketService:
             id=1,  # Placeholder: actual stage model doesn't exist yet
             tournament_id=tournament.id,
             type=bracket_format,
-            third_place_match=False,  # TODO: Read from tournament settings
+            third_place_match=(tournament.config or {}).get('bracket_settings', {}).get('third_place_match', False),
             metadata={
                 "is_single_stage": True,
             }
@@ -285,23 +285,51 @@ class BracketService:
         )
         
         # Convert MatchDTOs to BracketNode models
-        # TODO (Epic 3.3): Wire match advancement logic via next_match_id
-        # For now, create nodes without advancement wiring
+        created_nodes = []
         for match_dto in match_dtos:
-            BracketNode.objects.create(
+            node = BracketNode.objects.create(
                 bracket=bracket,
                 round_number=match_dto.round_number,
                 match_number=match_dto.match_number,
                 team1_id=match_dto.team1_id,
                 team2_id=match_dto.team2_id,
-                # TODO: Wire next_match_id based on bracket structure
-                # This requires StageTransitionService (Epic 3.3)
                 metadata={
                     "stage_type": match_dto.stage_type,
                     "generated_by": "universal_engine",
                     "bracket_type": match_dto.metadata.get("bracket_type") if match_dto.metadata else None,
                 }
             )
+            created_nodes.append(node)
+        
+        # Wire parent_node advancement links
+        # In single-elimination: match M in round R advances winner to
+        # match ceil(M/2) in round R+1, occupying slot 1 (odd M) or 2 (even M)
+        import math
+        node_lookup = {}
+        for node in created_nodes:
+            rn = node.round_number
+            mn = getattr(node, 'match_number_in_round', None) or getattr(node, 'match_number', None)
+            if rn is not None and mn is not None:
+                node_lookup[(rn, mn)] = node
+        
+        max_round = max((n.round_number for n in created_nodes), default=0)
+        nodes_to_update = []
+        for node in created_nodes:
+            rn = node.round_number
+            mn = getattr(node, 'match_number_in_round', None) or getattr(node, 'match_number', None)
+            if rn is None or mn is None or rn >= max_round:
+                continue  # Final round has no parent
+            parent_round = rn + 1
+            parent_match = math.ceil(mn / 2)
+            parent_slot = 1 if (mn % 2 == 1) else 2
+            parent_node = node_lookup.get((parent_round, parent_match))
+            if parent_node:
+                node.parent_node = parent_node
+                node.parent_slot = parent_slot
+                nodes_to_update.append(node)
+        
+        if nodes_to_update:
+            BracketNode.objects.bulk_update(nodes_to_update, ['parent_node', 'parent_slot'])
         
         logger.info(
             f"Created {len(match_dtos)} BracketNode instances for bracket {bracket.id}"
@@ -421,10 +449,13 @@ class BracketService:
             bracket = BracketService._generate_double_elimination(tournament, seeded_participants, seeding_method)
         elif bracket_format == Bracket.ROUND_ROBIN:
             bracket = BracketService._generate_round_robin(tournament, seeded_participants, seeding_method)
+        elif bracket_format == Bracket.SWISS:
+            from apps.tournaments.services.swiss_service import SwissService
+            bracket = SwissService.generate_round1(tournament, seeded_participants, seeding_method)
         else:
             raise ValidationError(
                 f"Bracket format '{bracket_format}' not yet implemented. "
-                f"Supported formats: single-elimination, double-elimination, round-robin"
+                f"Supported formats: single-elimination, double-elimination, round-robin, swiss"
             )
         
         return bracket
@@ -539,7 +570,7 @@ class BracketService:
                 advancers.append(advancer)
         
         # Sort advancers by group position first, then by points and game-specific stats
-        # TODO Phase 3.2: Use GameTournamentConfig.default_tiebreakers instead of hardcoded logic
+        # Uses game_service.get_tiebreakers() which reads from GameTournamentConfig (Phase 3.2)
         game_slug = tournament.game.slug
         tiebreakers = game_service.get_tiebreakers(tournament.game)
         
@@ -712,21 +743,32 @@ class BracketService:
             tournament=tournament,
             status=Registration.CONFIRMED
         ).select_related('user').order_by('registered_at')
+
+        # Pre-fetch team names for team tournaments
+        team_ids = [r.team_id for r in registrations if r.team_id]
+        team_name_map = {}
+        if team_ids:
+            try:
+                from apps.organizations.models.team import Team as OrgTeam
+                team_name_map = dict(
+                    OrgTeam.objects.filter(id__in=team_ids)
+                    .values_list('id', 'name')
+                )
+            except Exception:
+                pass
         
         participants = []
         for reg in registrations:
             # Determine participant ID and name
             if reg.team_id:
-                # Team-based tournament
-                participant_id = reg.team_id  # Store as integer
-                # Fetch team name from apps.teams (to be implemented)
-                # For now, use generic name
-                participant_name = f"Team #{reg.team_id}"
+                # Team-based tournament — resolve real name
+                participant_id = reg.team_id
+                participant_name = team_name_map.get(reg.team_id) or f"Team {reg.team_id}"
                 is_team = True
             else:
                 # Solo tournament
                 participant_id = reg.user_id  # Store as integer
-                participant_name = reg.user.username if reg.user else f"User #{reg.user_id}"
+                participant_name = reg.user.username if reg.user else f"User {reg.user_id}"
                 is_team = False
             
             participants.append({
@@ -927,32 +969,254 @@ class BracketService:
     ) -> Bracket:
         """
         Generate double elimination bracket.
-        
-        Algorithm:
-        1. Create winners bracket (same as single elimination)
-        2. Create losers bracket (losers from winners bracket)
-        3. Create grand finals node
-        4. Link brackets with proper progression
-        
+
+        Structure:
+        - Winners Bracket (WB): Standard single-elimination.
+        - Losers Bracket (LB): Losers from WB drop in; only eliminated after 2 losses.
+          * LB round 1: WB round 1 losers (n/2 teams → n/4 matches)
+          * LB round 2: LB round 1 winners (survivors only)  
+          * WB round k losers drop into LB at corresponding level.
+        - Grand Finals (GF): WB winner vs LB winner.
+        - Grand Finals Reset (GFR): If LB winner beats WB winner in GF,
+          they play a reset match (LB side had 0 prior losses, WB side had 1).
+
         Args:
             tournament: Tournament instance
             participants: Seeded participant list
             seeding_method: Seeding method used
-        
+
         Returns:
-            Created Bracket instance with winners and losers brackets
-        
-        Note:
-            This is a simplified implementation. Full double elimination requires
-            complex loser bracket pairing logic.
+            Created Bracket instance with WB, LB, GF, and GFR nodes.
         """
-        # TODO: Implement full double elimination logic
-        # For now, raise NotImplementedError
-        raise NotImplementedError(
-            "Double elimination bracket generation will be implemented in next iteration. "
-            "Current implementation supports single-elimination and round-robin formats."
+        import math
+
+        n = len(participants)
+        if n < 2:
+            raise ValidationError("Double elimination requires at least 2 participants.")
+
+        # WB structure (same as single elimination)
+        wb_rounds = math.ceil(math.log2(n)) if n > 1 else 1
+        wb_size = 2 ** wb_rounds  # virtual bracket size (power-of-2)
+
+        # LB structure: WB round k losers feed to LB round (2k-2 or 2k-1).
+        # For n participants: LB has 2*(wb_rounds-1) rounds.
+        lb_rounds = 2 * (wb_rounds - 1)
+
+        # Total rounds: WB rounds + LB rounds + GF + GFR
+        # We label them all as sequential numbers in their respective bracket_type.
+        total_wb_matches = wb_size - 1
+        total_lb_matches = (wb_size // 2) - 1  # LB is half the WB size minus grand final entry
+        gf_matches = 2  # Grand Finals + potential Reset
+
+        bracket_structure = {
+            "format": "double-elimination",
+            "total_participants": n,
+            "wb_rounds": wb_rounds,
+            "lb_rounds": lb_rounds,
+            "wb_size": wb_size,
+            "rounds": [],
+        }
+
+        # Summarise rounds for metadata
+        for r in range(1, wb_rounds + 1):
+            bracket_structure["rounds"].append({
+                "bracket_type": "main",
+                "round_number": r,
+                "round_name": f"WB Round {r}",
+                "matches": wb_size // (2 ** r),
+            })
+        for r in range(1, lb_rounds + 1):
+            bracket_structure["rounds"].append({
+                "bracket_type": "losers",
+                "round_number": r,
+                "round_name": f"LB Round {r}",
+                "matches": max(1, (wb_size // 4) // (((r + 1) // 2))),
+            })
+        bracket_structure["rounds"].append({"bracket_type": "main", "round_number": wb_rounds + 1, "round_name": "Grand Finals", "matches": 1})
+        bracket_structure["rounds"].append({"bracket_type": "main", "round_number": wb_rounds + 2, "round_name": "Grand Finals Reset", "matches": 1})
+
+        # ── WB→LB loser-drop routing table ───────────────────────────
+        # Maps "main_Rk_Mm" → {lb_round, lb_match, lb_slot} so that
+        # update_bracket_after_match() can route WB losers to the right LB node
+        # without any hard-coded round arithmetic at result time.
+        loser_drops: Dict[str, dict] = {}
+        if lb_rounds > 0:
+            wb_r1_mc = wb_size // 2  # WB round-1 match count
+            # WB-R1 losers pair up in LB-R1 (adjacent WB matches share one LB node)
+            for m in range(1, wb_r1_mc + 1):
+                loser_drops[f"main_R1_M{m}"] = {
+                    "lb_round": 1,
+                    "lb_match": (m + 1) // 2,
+                    "lb_slot": 1 if m % 2 == 1 else 2,
+                }
+            # WB-Rk (k ≥ 2) losers drop to LB feed round (2k-2), slot 2
+            # Slot 1 is reserved for the LB survivor advancing from the prior LB round.
+            for k in range(2, wb_rounds + 1):
+                lb_feed_round = 2 * k - 2
+                wb_mk = wb_size // (2 ** k)
+                for m in range(1, wb_mk + 1):
+                    loser_drops[f"main_R{k}_M{m}"] = {
+                        "lb_round": lb_feed_round,
+                        "lb_match": m,
+                        "lb_slot": 2,
+                    }
+        bracket_structure["loser_drops"] = loser_drops
+
+        bracket = Bracket.objects.create(
+            tournament=tournament,
+            format=Bracket.DOUBLE_ELIMINATION,
+            total_rounds=wb_rounds + lb_rounds + 2,  # +GF +GFR
+            total_matches=total_wb_matches + max(1, lb_rounds) + gf_matches,
+            bracket_structure=bracket_structure,
+            seeding_method=seeding_method,
+            is_finalized=False,
         )
-    
+
+        # ── Winners Bracket Nodes ──────────────────────────────────────
+        # Mirror single-elimination logic but bracket_type='main'
+        participants_with_byes = participants + [None] * (wb_size - n)
+        wb_nodes: Dict[str, BracketNode] = {}  # key: "wbR{r}_M{m}"
+
+        position = 1
+        wb_r1_matches = wb_size // 2
+
+        # Create WB round 1 nodes
+        seeded_slots = []
+        for i in range(wb_r1_matches):
+            seeded_slots.append((participants_with_byes[i], participants_with_byes[wb_size - 1 - i]))
+
+        for match_num, (p1, p2) in enumerate(seeded_slots, start=1):
+            is_bye = p1 is None or p2 is None
+            node = BracketNode.objects.create(
+                bracket=bracket, position=position, round_number=1,
+                match_number_in_round=match_num,
+                participant1_id=p1["id"] if p1 else None,
+                participant1_name=p1["name"] if p1 else "",
+                participant2_id=p2["id"] if p2 else None,
+                participant2_name=p2["name"] if p2 else "",
+                is_bye=is_bye,
+                bracket_type=BracketNode.MAIN,
+            )
+            wb_nodes[f"wb_R1_M{match_num}"] = node
+            position += 1
+
+        # Create WB rounds 2 → wb_rounds
+        for r in range(2, wb_rounds + 1):
+            matches = wb_size // (2 ** r)
+            for m in range(1, matches + 1):
+                node = BracketNode.objects.create(
+                    bracket=bracket, position=position, round_number=r,
+                    match_number_in_round=m, bracket_type=BracketNode.MAIN,
+                )
+                wb_nodes[f"wb_R{r}_M{m}"] = node
+                position += 1
+
+        # Link WB parent/child
+        for r in range(1, wb_rounds):
+            matches_curr = wb_size // (2 ** r)
+            for m in range(1, matches_curr + 1):
+                curr_node = wb_nodes[f"wb_R{r}_M{m}"]
+                parent_m = (m + 1) // 2
+                parent_node = wb_nodes[f"wb_R{r + 1}_M{parent_m}"]
+                curr_node.parent_node = parent_node
+                curr_node.parent_slot = 1 if m % 2 == 1 else 2
+                curr_node.save()
+                if m % 2 == 1:
+                    parent_node.child1_node = curr_node
+                else:
+                    parent_node.child2_node = curr_node
+                    parent_node.save()
+
+        # ── Losers Bracket Nodes ─────────────────────────────────────
+        # LB round structure:
+        # LB-R1 (n/4 matches): WB-R1 losers vs WB-R1 losers
+        # LB-R2 (n/4 matches): LB-R1 winners vs WB-R2 losers (if same count)
+        # … alternating between "feed" rounds and "play" rounds
+        lb_nodes: Dict[str, BracketNode] = {}
+        lb_r1_matches = wb_r1_matches // 2  # n/4
+
+        for r in range(1, lb_rounds + 1):
+            # LB match count halves every 2 rounds
+            lb_matches_this_round = max(1, lb_r1_matches // (2 ** ((r - 1) // 2)))
+            for m in range(1, lb_matches_this_round + 1):
+                node = BracketNode.objects.create(
+                    bracket=bracket, position=position,
+                    round_number=r, match_number_in_round=m,
+                    bracket_type=BracketNode.LOSERS,
+                )
+                lb_nodes[f"lb_R{r}_M{m}"] = node
+                position += 1
+
+        # ── Grand Finals & Reset ──────────────────────────────────────
+        gf_node = BracketNode.objects.create(
+            bracket=bracket, position=position,
+            round_number=wb_rounds + 1, match_number_in_round=1,
+            bracket_type=BracketNode.MAIN,
+        )
+        position += 1
+
+        gf_reset_node = BracketNode.objects.create(
+            bracket=bracket, position=position,
+            round_number=wb_rounds + 2, match_number_in_round=1,
+            bracket_type=BracketNode.MAIN,
+            is_bye=True,  # Reset only played if LB winner wins GF
+        )
+
+        # Link WB finals → Grand Finals
+        wb_finals = wb_nodes.get(f"wb_R{wb_rounds}_M1")
+        if wb_finals:
+            wb_finals.parent_node = gf_node
+            wb_finals.parent_slot = 1
+            wb_finals.save()
+            gf_node.child1_node = wb_finals
+            gf_node.save()
+
+        # Link GF → GFR
+        gf_node.parent_node = gf_reset_node
+        gf_node.parent_slot = 1
+        gf_node.save()
+        gf_reset_node.child1_node = gf_node
+        gf_reset_node.save()
+
+        # ── Wire Losers Bracket parent/child links ────────────────────
+        # Two transition types alternate through LB rounds:
+        #   Odd LB round  → Even LB round (feed):  same match number, slot 1
+        #   Even LB round → Odd LB round (consol.): pair-up like SE, slot per parity
+        # Last LB round (LB Finals) winner advances to GF slot 2.
+        if lb_rounds > 0 and lb_nodes:
+            for r in range(1, lb_rounds + 1):
+                lb_m_count = max(1, lb_r1_matches // (2 ** ((r - 1) // 2)))
+                for m in range(1, lb_m_count + 1):
+                    curr_lb = lb_nodes[f"lb_R{r}_M{m}"]
+
+                    if r == lb_rounds:
+                        # LB Finals → GF slot 2
+                        curr_lb.parent_node = gf_node
+                        curr_lb.parent_slot = 2
+                        curr_lb.save()
+                        gf_node.child2_node = curr_lb
+                        gf_node.save()
+                    else:
+                        if r % 2 == 1:
+                            # Odd → even (feed round): 1:1, LB winner fills slot 1
+                            parent_m = m
+                            parent_slot = 1
+                        else:
+                            # Even → odd (consolidation): pairs fold like SE
+                            parent_m = (m + 1) // 2
+                            parent_slot = 1 if m % 2 == 1 else 2
+                        parent_lb = lb_nodes[f"lb_R{r + 1}_M{parent_m}"]
+                        curr_lb.parent_node = parent_lb
+                        curr_lb.parent_slot = parent_slot
+                        curr_lb.save()
+                        if parent_slot == 1:
+                            parent_lb.child1_node = curr_lb
+                        else:
+                            parent_lb.child2_node = curr_lb
+                        parent_lb.save()
+
+        return bracket
+
     @staticmethod
     def _generate_round_robin(
         tournament: Tournament,
@@ -1220,11 +1484,117 @@ class BracketService:
                 f"Invalid parent_slot {node.parent_slot} for node {node.id}. "
                 "Must be 1 or 2."
             )
-        
-        parent_node.save(update_fields=['participant1_id', 'participant1_name', 
-                                       'participant2_id', 'participant2_name'])
+
+        # ── GF Reset activation (Double Elimination) ─────────────────────
+        # If the parent node is flagged as a conditional bye match (is_bye=True),
+        # this is the Grand Finals → GF Reset transition.  The GF loser must be
+        # seeded into the opposite slot so the reset match can be scheduled.
+        gfr_activated = False
+        if parent_node.is_bye:
+            loser_id = (
+                node.participant2_id
+                if match.winner_id == node.participant1_id
+                else node.participant1_id
+            )
+            loser_name = (
+                node.participant2_name
+                if match.winner_id == node.participant1_id
+                else node.participant1_name
+            ) or ""
+            # Place loser in the slot NOT already taken by the winner
+            if node.parent_slot == 1:
+                parent_node.participant2_id = loser_id
+                parent_node.participant2_name = loser_name
+            else:
+                parent_node.participant1_id = loser_id
+                parent_node.participant1_name = loser_name
+            parent_node.is_bye = False
+            gfr_activated = True
+            logger.info(
+                "GFR activated for bracket node %s: GF winner=%s, GFR loser=%s",
+                parent_node.id, match.winner_id, loser_id,
+            )
+
+        save_fields = ['participant1_id', 'participant1_name',
+                       'participant2_id', 'participant2_name']
+        if gfr_activated:
+            save_fields.append('is_bye')
+        parent_node.save(update_fields=save_fields)
         updated_node_ids.append(parent_node.id)
-        
+
+        # ── WB Loser Drop (Double Elimination) ───────────────────────
+        # When a WB (bracket_type=MAIN) match completes and the bracket is DE,
+        # route the loser to the appropriate LB node as stored in loser_drops.
+        # Skip byes (no real loser) and skip GF/GFR nodes (handled separately).
+        if (
+            not gfr_activated
+            and node.bracket_type == BracketNode.MAIN
+            and node.bracket.format == Bracket.DOUBLE_ELIMINATION
+            and not node.is_bye
+        ):
+            bstruct = node.bracket.bracket_structure or {}
+            loser_drops = bstruct.get("loser_drops", {})
+            drop_key = f"main_R{node.round_number}_M{node.match_number_in_round}"
+            drop_info = loser_drops.get(drop_key)
+            if drop_info:
+                loser_id = (
+                    node.participant2_id
+                    if match.winner_id == node.participant1_id
+                    else node.participant1_id
+                )
+                loser_name = (
+                    (node.participant2_name if match.winner_id == node.participant1_id
+                     else node.participant1_name) or ""
+                )
+                try:
+                    lb_node = BracketNode.objects.select_related('bracket').get(
+                        bracket=node.bracket,
+                        bracket_type=BracketNode.LOSERS,
+                        round_number=drop_info["lb_round"],
+                        match_number_in_round=drop_info["lb_match"],
+                    )
+                    lb_slot = drop_info["lb_slot"]
+                    lb_save = []
+                    if lb_slot == 1:
+                        lb_node.participant1_id = loser_id
+                        lb_node.participant1_name = loser_name
+                        lb_save = ['participant1_id', 'participant1_name']
+                    else:
+                        lb_node.participant2_id = loser_id
+                        lb_node.participant2_name = loser_name
+                        lb_save = ['participant2_id', 'participant2_name']
+                    lb_node.save(update_fields=lb_save)
+                    updated_node_ids.append(lb_node.id)
+                    logger.info(
+                        "DE loser drop: match %s loser %s → LB-R%s-M%s slot %s",
+                        match.id, loser_id,
+                        drop_info["lb_round"], drop_info["lb_match"], lb_slot,
+                    )
+                    # Create LB match if both participants are now ready
+                    if lb_node.has_both_participants and not lb_node.match_id:
+                        lb_match = Match.objects.create(
+                            tournament=lb_node.bracket.tournament,
+                            round_number=lb_node.round_number,
+                            match_number=lb_node.match_number_in_round,
+                            participant1_id=lb_node.participant1_id,
+                            participant2_id=lb_node.participant2_id,
+                            status=Match.SCHEDULED,
+                        )
+                        lb_node.match = lb_match
+                        lb_node.save(update_fields=['match'])
+                        created_matches.append({
+                            'match_id': lb_match.id,
+                            'round': lb_match.round_number,
+                            'match_number': lb_match.match_number,
+                            'participant1_id': lb_match.participant1_id,
+                            'participant2_id': lb_match.participant2_id,
+                        })
+                except BracketNode.DoesNotExist:
+                    logger.warning(
+                        "DE loser drop: LB node not found for drop_key=%s (bracket %s)",
+                        drop_key, node.bracket_id,
+                    )
+
         # Check if parent node is ready for match creation
         if parent_node.has_both_participants and not parent_node.match:
             # Create match for parent node

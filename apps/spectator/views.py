@@ -21,6 +21,38 @@ from apps.tournaments.models import Tournament, Match, Registration
 from apps.leaderboards.services import LeaderboardService
 
 
+def _enrich_leaderboard_entries(entries):
+    """Resolve team/player names for leaderboard entries in-place."""
+    if not entries:
+        return
+    team_ids = [e.get('team_id') or e.get('team_id') for e in entries if e.get('team_id')]
+    user_ids = [e.get('participant_id') for e in entries if e.get('participant_id') and not e.get('team_id')]
+
+    team_names = {}
+    if team_ids:
+        try:
+            from apps.organizations.models import Team as OrgTeam
+            team_names = dict(OrgTeam.objects.filter(id__in=team_ids).values_list('id', 'name'))
+        except Exception:
+            pass
+
+    user_names = {}
+    if user_ids:
+        try:
+            from apps.accounts.models import User
+            user_names = dict(User.objects.filter(id__in=user_ids).values_list('id', 'username'))
+        except Exception:
+            pass
+
+    for entry in entries:
+        if entry.get('team_id') and entry['team_id'] in team_names:
+            entry['display_name'] = team_names[entry['team_id']]
+        elif entry.get('participant_id') and entry['participant_id'] in user_names:
+            entry['display_name'] = user_names[entry['participant_id']]
+        else:
+            entry.setdefault('display_name', None)
+
+
 @require_http_methods(["GET"])
 def tournament_list_view(request):
     """
@@ -118,6 +150,9 @@ def tournament_spectator_view(request, tournament_id):
     ws_host = request.get_host()
     ws_tournament_url = f"{ws_scheme}://{ws_host}/ws/tournament/{tournament_id}/"
     
+    # Resolve team/player names for leaderboard entries
+    _enrich_leaderboard_entries(leaderboard_entries)
+
     context = {
         'tournament_id': tournament.id,
         'game_code': tournament.game,
@@ -156,6 +191,9 @@ def tournament_leaderboard_fragment(request, tournament_id):
         limit=20
     )
     
+    # Resolve team/player names for leaderboard entries
+    _enrich_leaderboard_entries(leaderboard_entries)
+
     context = {
         'tournament_id': tournament.id,
         'leaderboard_entries': leaderboard_entries,

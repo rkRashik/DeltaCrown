@@ -160,25 +160,58 @@
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
+  /* ─── Drawer helpers ─────────────────────── */
+  const FIELD = 'w-full bg-dc-surface/50 border border-dc-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder-dc-text/40 focus:outline-none focus:border-theme';
+  const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
+  function drawerFooter(submitCall, submitLabel, danger = false) {
+    const btnCls = danger ? 'bg-dc-danger hover:opacity-90' : 'bg-theme hover:opacity-90';
+    return `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="${submitCall}" class="flex-1 ${btnCls} text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+  }
+
   /* ─── Actions ─────────────────────────────── */
   function addSection() {
-    const id = prompt('Section ID (e.g. "custom_rules"):');
-    if (!id) return;
-    const title = prompt('Section title:') || id;
-    const content = prompt('Content (you can edit later):') || '';
-    API.post(`rules/sections/${id}/`, { title, content })
-      .then(() => { toast('Section added', 'success'); refresh(); })
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Section ID *</label>
+        <input id="rules-sec-id" type="text" class="${FIELD}" placeholder="e.g. custom_rules"></div>
+      <div><label class="${LABEL}">Title *</label>
+        <input id="rules-sec-title" type="text" class="${FIELD}" placeholder="Section title"></div>
+      <div><label class="${LABEL}">Content</label>
+        <textarea id="rules-sec-content" rows="5" class="${FIELD} resize-none" placeholder="Section content (Markdown supported)"></textarea></div>
+    </div>`;
+    TOC.drawer.open('Add Rule Section', body, drawerFooter("TOC.rules._submitAddSection()", 'Add Section'));
+    setTimeout(() => document.getElementById('rules-sec-id')?.focus(), 50);
+  }
+
+  function _submitAddSection() {
+    const id = document.getElementById('rules-sec-id')?.value.trim();
+    const title = document.getElementById('rules-sec-title')?.value.trim();
+    const content = document.getElementById('rules-sec-content')?.value.trim() || '';
+    if (!id) { toast('Section ID is required', 'error'); return; }
+    API.post(`rules/sections/${id}/`, { title: title || id, content })
+      .then(() => { toast('Section added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function editSection(sectionId) {
-    const section = (dashData?.sections || []).find(s => s.id === sectionId);
-    const title = prompt('Section title:', section?.title || '');
-    if (title === null) return;
-    const content = prompt('Content:', section?.content || '');
-    if (content === null) return;
+    const s = (dashData?.sections || []).find(x => x.id === sectionId);
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Title *</label>
+        <input id="rules-esec-title" type="text" value="${esc(s?.title || '')}" class="${FIELD}"></div>
+      <div><label class="${LABEL}">Content</label>
+        <textarea id="rules-esec-content" rows="6" class="${FIELD} resize-none">${esc(s?.content || '')}</textarea></div>
+    </div>`;
+    TOC.drawer.open('Edit Section', body, drawerFooter(`TOC.rules._submitEditSection('${sectionId}')`, 'Save Changes'));
+  }
+
+  function _submitEditSection(sectionId) {
+    const title = document.getElementById('rules-esec-title')?.value.trim();
+    const content = document.getElementById('rules-esec-content')?.value.trim() || '';
+    if (!title) { toast('Title is required', 'error'); return; }
     API.post(`rules/sections/${sectionId}/`, { title, content })
-      .then(() => { toast('Updated', 'success'); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -190,22 +223,42 @@
   }
 
   function addFaq() {
-    const question = prompt('Question:');
-    if (!question) return;
-    const answer = prompt('Answer:') || '';
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Question *</label>
+        <input id="rules-faq-q" type="text" class="${FIELD}" placeholder="Frequently asked question"></div>
+      <div><label class="${LABEL}">Answer *</label>
+        <textarea id="rules-faq-a" rows="4" class="${FIELD} resize-none" placeholder="Detailed answer..."></textarea></div>
+    </div>`;
+    TOC.drawer.open('Add FAQ', body, drawerFooter("TOC.rules._submitAddFaq()", 'Add FAQ'));
+    setTimeout(() => document.getElementById('rules-faq-q')?.focus(), 50);
+  }
+
+  function _submitAddFaq() {
+    const question = document.getElementById('rules-faq-q')?.value.trim();
+    const answer = document.getElementById('rules-faq-a')?.value.trim() || '';
+    if (!question) { toast('Question is required', 'error'); return; }
     API.post('rules/faq/', { question, answer })
-      .then(() => { toast('FAQ added', 'success'); refresh(); })
+      .then(() => { toast('FAQ added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function editFaq(faqId) {
-    const faq = (dashData?.faq || []).find(f => f.id === faqId);
-    const question = prompt('Question:', faq?.question || '');
-    if (question === null) return;
-    const answer = prompt('Answer:', faq?.answer || '');
-    if (answer === null) return;
+    const f = (dashData?.faq || []).find(x => x.id === faqId);
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Question *</label>
+        <input id="rules-efaq-q" type="text" value="${esc(f?.question || '')}" class="${FIELD}"></div>
+      <div><label class="${LABEL}">Answer</label>
+        <textarea id="rules-efaq-a" rows="4" class="${FIELD} resize-none">${esc(f?.answer || '')}</textarea></div>
+    </div>`;
+    TOC.drawer.open('Edit FAQ', body, drawerFooter(`TOC.rules._submitEditFaq('${faqId}')`, 'Save Changes'));
+  }
+
+  function _submitEditFaq(faqId) {
+    const question = document.getElementById('rules-efaq-q')?.value.trim();
+    const answer = document.getElementById('rules-efaq-a')?.value.trim() || '';
+    if (!question) { toast('Question is required', 'error'); return; }
     API.put(`rules/faq/${faqId}/`, { question, answer })
-      .then(() => { toast('Updated', 'success'); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -217,28 +270,70 @@
   }
 
   function publishVersion() {
-    const version = prompt('Version number (e.g. 2.0):');
-    if (!version) return;
-    const changelog = prompt('Changelog:') || '';
+    const body = `<div class="space-y-4 p-5">
+      <p class="text-xs text-dc-text">Publishing timestamps the rulebook and sends acknowledgement requests to all participants.</p>
+      <div><label class="${LABEL}">Version Number *</label>
+        <input id="rules-pub-version" type="text" class="${FIELD}" placeholder="e.g. 2.0"></div>
+      <div><label class="${LABEL}">Changelog</label>
+        <textarea id="rules-pub-changelog" rows="4" class="${FIELD} resize-none" placeholder="What changed in this version?"></textarea></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.rules._submitPublish()" class="flex-1 bg-dc-success hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Publish Version</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Publish Rulebook Version', body, footer);
+    setTimeout(() => document.getElementById('rules-pub-version')?.focus(), 50);
+  }
+
+  function _submitPublish() {
+    const version = document.getElementById('rules-pub-version')?.value.trim();
+    const changelog = document.getElementById('rules-pub-changelog')?.value.trim() || '';
+    if (!version) { toast('Version number is required', 'error'); return; }
     API.post('rules/publish/', { version, changelog })
-      .then(() => { toast(`Version ${version} published`, 'success'); refresh(); })
+      .then(() => { toast(`Version ${version} published`, 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function editQuickRef() {
     const qr = dashData?.quick_reference || {};
-    const format = prompt('Format:', qr.format || '');
-    const match_format = prompt('Match Format:', qr.match_format || '');
-    const checkin_time = prompt('Check-in Time:', qr.checkin_time || '');
-    const map_pool = prompt('Map Pool:', qr.map_pool || '');
-    const contact = prompt('Contact:', qr.contact || '');
+    const body = `<div class="space-y-4 p-5">
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="${LABEL}">Format</label>
+          <input id="rules-qr-format" type="text" value="${esc(qr.format || '')}" class="${FIELD}" placeholder="e.g. Double Elim"></div>
+        <div><label class="${LABEL}">Match Format</label>
+          <input id="rules-qr-match" type="text" value="${esc(qr.match_format || '')}" class="${FIELD}" placeholder="e.g. Best of 3"></div>
+        <div><label class="${LABEL}">Check-in Time</label>
+          <input id="rules-qr-checkin" type="text" value="${esc(qr.checkin_time || '')}" class="${FIELD}" placeholder="e.g. 15 min before"></div>
+        <div><label class="${LABEL}">Map Pool</label>
+          <input id="rules-qr-maps" type="text" value="${esc(qr.map_pool || '')}" class="${FIELD}" placeholder="e.g. Dust2, Mirage"></div>
+      </div>
+      <div><label class="${LABEL}">Contact</label>
+        <input id="rules-qr-contact" type="text" value="${esc(qr.contact || '')}" class="${FIELD}" placeholder="Discord handle or email"></div>
+    </div>`;
+    TOC.drawer.open('Edit Quick Reference', body, drawerFooter("TOC.rules._submitQuickRef()", 'Save Quick Reference'));
+  }
+
+  function _submitQuickRef() {
+    const format       = document.getElementById('rules-qr-format')?.value.trim()  || '';
+    const match_format = document.getElementById('rules-qr-match')?.value.trim()   || '';
+    const checkin_time = document.getElementById('rules-qr-checkin')?.value.trim() || '';
+    const map_pool     = document.getElementById('rules-qr-maps')?.value.trim()    || '';
+    const contact      = document.getElementById('rules-qr-contact')?.value.trim() || '';
     API.post('rules/quick-reference/', { format, match_format, checkin_time, map_pool, contact })
-      .then(() => { toast('Updated', 'success'); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
   window.TOC = window.TOC || {};
-  window.TOC.rules = { refresh, addSection, editSection, deleteSection, addFaq, editFaq, deleteFaq, publishVersion, editQuickRef };
+  window.TOC.rules = {
+    refresh,
+    addSection, _submitAddSection,
+    editSection, _submitEditSection, deleteSection,
+    addFaq, _submitAddFaq,
+    editFaq, _submitEditFaq, deleteFaq,
+    publishVersion, _submitPublish,
+    editQuickRef, _submitQuickRef,
+  };
 
   // Auto-load when tab is activated
   document.addEventListener('toc:tab-changed', (e) => {

@@ -3,8 +3,10 @@ Simplified Email Verification API
 - Primary email: Already verified, just copy it (no OTP needed)
 - Custom email: Send OTP and verify
 """
-import random
+import secrets
 import string
+import json
+import logging
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.conf import settings
@@ -13,12 +15,13 @@ from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-import json
+
+logger = logging.getLogger(__name__)
 
 
 def generate_otp(length=6):
-    """Generate a random 6-digit OTP code"""
-    return ''.join(random.choices(string.digits, k=length))
+    """Generate a cryptographically secure 6-digit OTP code"""
+    return ''.join(secrets.choice(string.digits) for _ in range(length))
 
 
 @login_required
@@ -106,7 +109,7 @@ DeltaCrown Team
                 fail_silently=False,
             )
         except Exception as e:
-            print(f"Email sending error: {e}")
+            logger.error(f"Failed to send verification email to {email}: {e}", exc_info=True)
             return JsonResponse({
                 'success': False,
                 'error': 'Failed to send verification email. Please try again later.'
@@ -121,7 +124,7 @@ DeltaCrown Team
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
-        print(f"Verification error: {e}")
+        logger.error(f"Error in send_verification_otp: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
 
 
@@ -182,20 +185,5 @@ def verify_otp_code(request):
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
-        print(f"Verification error: {e}")
-        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
-
-        cache.delete(attempt_key)
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Email verified successfully!',
-            'email': email,
-            'verified': True
-        })
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
-    except Exception as e:
-        print(f"Verification error: {e}")
+        logger.error(f"Error in verify_otp_code: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)

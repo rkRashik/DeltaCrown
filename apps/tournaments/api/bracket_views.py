@@ -129,9 +129,39 @@ class BracketViewSet(viewsets.ReadOnlyModelViewSet):
         # Build participants list if manual IDs provided
         participants = None
         if participant_ids:
-            # TODO: Fetch participants from registration service
-            # For now, let BracketService fetch confirmed participants
-            pass
+            # Fetch participants from confirmed registrations matching the provided IDs
+            from apps.tournaments.models import Registration
+            from apps.organizations.models.team import Team as OrgTeam
+            regs = Registration.objects.filter(
+                tournament=tournament,
+                status=Registration.CONFIRMED,
+                id__in=participant_ids,
+            ).select_related('user').order_by('registered_at')
+            team_ids = [r.team_id for r in regs if r.team_id]
+            team_name_map = {}
+            if team_ids:
+                try:
+                    team_name_map = dict(OrgTeam.objects.filter(id__in=team_ids).values_list('id', 'name'))
+                except Exception:
+                    pass
+            participants = []
+            for reg in regs:
+                if reg.team_id:
+                    pid = reg.team_id
+                    pname = team_name_map.get(reg.team_id) or f"Team {reg.team_id}"
+                    is_team = True
+                else:
+                    pid = reg.user_id
+                    pname = reg.user.username if reg.user else f"User {reg.user_id}"
+                    is_team = False
+                participants.append({
+                    'id': pid,
+                    'participant_id': pid,
+                    'name': pname,
+                    'seed': reg.seed if reg.seed else len(participants) + 1,
+                    'registration_id': reg.id,
+                    'is_team': is_team,
+                })
         
         try:
             # Generate bracket via service

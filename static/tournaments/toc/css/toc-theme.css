@@ -148,6 +148,136 @@
    6px, dark theme, Firefox + WebKit compatible
    ═══════════════════════════════════════════════════════ */
 
+/* ─── Premium Game-Themed Ambient Effects ─────────────── */
+
+/* Ambient glow orb behind the main content area */
+.toc-ambient-glow {
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.08) 0%,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.02) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(40px);
+  animation: toc-ambient-drift 12s ease-in-out infinite alternate;
+}
+
+/* Second ambient glow in bottom-left */
+.toc-ambient-glow-2 {
+  position: absolute;
+  bottom: -100px;
+  left: -60px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.05) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(60px);
+  animation: toc-ambient-drift 16s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes toc-ambient-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-30px, 20px) scale(1.1); }
+}
+
+/* Sidebar top accent bar — game-colored gradient stripe */
+.toc-sidebar-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.3) 100%
+  );
+  z-index: 50;
+}
+
+/* Header bar bottom accent */
+.toc-header-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.25) 30%,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.25) 70%,
+    transparent 100%
+  );
+}
+
+/* Active nav item — game-colored left bar */
+.toc-nav-btn.toc-active {
+  border-left: 3px solid var(--color-primary);
+  background: rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.08);
+}
+
+.toc-nav-btn.toc-active .sidebar-label {
+  color: var(--color-primary);
+}
+
+/* Game-themed data grid header line */
+.data-grid thead::after {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.2),
+    transparent
+  );
+}
+
+/* Panel hover glow on glass-box elements */
+.glass-box:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4),
+              0 0 1px rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.1);
+}
+
+/* Premium stat card accent */
+.toc-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+.toc-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.toc-stat-card:hover::before {
+  opacity: 1;
+}
+
+/* ─── End Premium Game-Themed Effects ─────────────────── */
+
 /* Firefox */
 * {
   scrollbar-width: thin;

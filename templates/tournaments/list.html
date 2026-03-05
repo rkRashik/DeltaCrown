@@ -13,9 +13,9 @@
 <style>
     /* --- DISCOVERY PAGE AESTHETICS --- */
 
-    /* Glassmorphism */
-    .glass { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-    .glass-strong { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    /* Glassmorphism (solid, no blur haze) */
+    .glass { background: #0e0e0e; border: 1px solid rgba(255, 255, 255, 0.06); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3); }
+    .glass-strong { background: #141414; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35); }
 
     /* Navigation Pills */
     .nav-pill {
@@ -44,9 +44,10 @@
 
     /* Tournament Cards */
     .card-modern {
-        background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08);
+        background: #111111; border: 1px solid rgba(255,255,255,0.08);
         border-radius: 16px; overflow: hidden; position: relative;
         transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.35);
     }
     .card-modern:hover {
         transform: translateY(-4px);
@@ -58,7 +59,7 @@
     .card-modern:hover .card-img-wrap img { transform: scale(1.08); }
     .card-img-wrap::after {
         content: ''; position: absolute; inset: 0;
-        background: linear-gradient(to bottom, transparent 0%, #0a0a0a 100%);
+        background: linear-gradient(to bottom, transparent 0%, #111111 100%);
     }
 
     /* Live card border glow */
@@ -66,7 +67,7 @@
     .card-modern.card-live:hover { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 10px 30px -10px rgba(239,68,68,0.15); }
 
     /* Completed card */
-    .card-modern.card-ended { opacity: 0.75; filter: grayscale(0.3); }
+    .card-modern.card-ended { opacity: 0.8; filter: grayscale(0.2); }
     .card-modern.card-ended:hover { opacity: 1; filter: grayscale(0); }
 
     /* Scrollbar Hide */
@@ -117,8 +118,8 @@
           <div class="flex items-center gap-4 pt-2">
             <a href="{% if t.id in user_registered_tournaments and t.status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
                class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition flex items-center gap-2">
-              <i data-lucide="{% if t.status == 'live' %}play{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
-              {% if t.id in user_registered_tournaments and t.status == 'live' %}Enter Hub{% elif t.status == 'live' %}Watch Stream{% else %}View Details{% endif %}
+              <i data-lucide="{% if t.status == 'live' %}play{% elif t.status == 'registration_open' %}user-plus{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
+              {% if t.id in organizer_tournaments %}Manage{% elif t.id in user_registered_tournaments and t.status == 'live' %}Enter Hub{% elif t.status == 'live' %}Watch Live{% elif t.status == 'registration_open' %}Register Now{% else %}View Details{% endif %}
             </a>
             {% if t.prize_pool %}
             <div class="text-sm font-medium text-white bg-black/50 px-4 py-2 rounded-lg border border-white/10">
@@ -253,7 +254,7 @@
       {# Tournament card grid #}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         {% for t in tournament_list %}
-        <a href="{% if t.id in user_registered_tournaments and t.status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
+        <a href="{% url 'tournaments:detail' t.slug %}"
            class="card-modern group cursor-pointer {% if t.status == 'live' %}card-live{% elif t.status == 'completed' %}card-ended{% endif %}">
           <div class="card-img-wrap">
             <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop{% endif %}"
@@ -276,6 +277,8 @@
               <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase animate-pulse">● Live</span>
               {% elif t.status == 'registration_open' %}
               <span class="bg-green-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Open</span>
+              {% elif t.status == 'registration_closed' %}
+              <span class="bg-amber-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Reg Closed</span>
               {% elif t.status == 'completed' %}
               <span class="bg-gray-800 text-gray-300 text-[10px] font-bold px-2 py-1 rounded uppercase">Ended</span>
               {% else %}
@@ -336,15 +339,24 @@
               {% endif %}
             </div>
 
-            {# Action button — registration-aware #}
-            {% if t.id in user_registered_tournaments %}
+            {# Action button — registration + role aware #}
+            {% if t.id in organizer_tournaments %}
+              {# Organizer/Staff: always show Manage #}
+              <span class="w-full py-2.5 rounded-lg bg-gradient-to-r from-dc-purple to-indigo-600 border border-dc-purple/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-dc-purple/20 group-hover:shadow-dc-purple/40">
+                <i data-lucide="settings" class="w-4 h-4"></i> Manage Tournament
+              </span>
+            {% elif t.id in user_registered_tournaments %}
               {% if t.status == 'live' %}
-              <span class="w-full py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 border border-red-500/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20">
+              <span class="w-full py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 border border-red-500/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 animate-pulse">
                 <i data-lucide="swords" class="w-4 h-4"></i> Enter Tournament Hub
               </span>
               {% elif t.status == 'completed' %}
               <span class="w-full py-2.5 rounded-lg bg-dc-gold/10 border border-dc-gold/30 text-dc-gold group-hover:bg-dc-gold/20 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="trophy" class="w-4 h-4"></i> View Results
+              </span>
+              {% elif t.status == 'registration_closed' %}
+              <span class="w-full py-2.5 rounded-lg bg-amber-600/20 border border-amber-500/30 text-amber-400 group-hover:bg-amber-600/30 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4"></i> Registered — Awaiting Start
               </span>
               {% else %}
               <span class="w-full py-2.5 rounded-lg bg-green-600/20 border border-green-500/30 text-green-400 group-hover:bg-green-600/30 font-bold text-sm transition-all flex items-center justify-center gap-2">
@@ -354,19 +366,27 @@
             {% else %}
               {% if t.status == 'live' %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-red-600 group-hover:border-red-600 group-hover:text-white text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
-                <i data-lucide="tv" class="w-4 h-4"></i> Watch Stream
+                <i data-lucide="tv" class="w-4 h-4"></i> Watch Live
               </span>
               {% elif t.status == 'completed' %}
-              <span class="w-full py-2.5 rounded-lg bg-transparent border border-white/10 group-hover:bg-white/5 text-gray-400 group-hover:text-white font-bold text-sm transition-all flex items-center justify-center">
-                View Results
+              <span class="w-full py-2.5 rounded-lg bg-transparent border border-white/10 group-hover:bg-white/5 text-gray-400 group-hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="trophy" class="w-4 h-4"></i> View Results
               </span>
               {% elif t.status == 'registration_open' %}
               <span class="w-full py-2.5 rounded-lg bg-dc-cyan hover:bg-dc-cyan/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2">
-                Register {% if t.participation_type == 'team' %}Team{% endif %} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Register {% if t.participation_type == 'team' %}Team{% endif %} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </span>
+              {% elif t.status == 'registration_closed' %}
+              <span class="w-full py-2.5 rounded-lg bg-white/5 border border-amber-500/20 text-amber-400/80 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="lock" class="w-4 h-4"></i> Registration Closed
+              </span>
+              {% elif t.status == 'published' %}
+              <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-dc-cyan/10 group-hover:border-dc-cyan/30 group-hover:text-dc-cyan text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="bell" class="w-4 h-4"></i> Notify Me When Open
               </span>
               {% else %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-dc-purple group-hover:border-dc-purple text-white font-bold text-sm transition-all flex items-center justify-center">
-                Pre-Register
+                View Details
               </span>
               {% endif %}
             {% endif %}

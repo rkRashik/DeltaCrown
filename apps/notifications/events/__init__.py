@@ -234,7 +234,10 @@ def notify_checkin_open(event):
         Registration = apps.get_model("tournaments", "Registration")
         Notification = apps.get_model("notifications", "Notification")
 
-        tournament = Tournament.objects.get(id=event.data.get('tournament_id'))
+        tournament = Tournament.objects.filter(id=event.data.get('tournament_id')).first()
+        if not tournament:
+            logger.warning(f"notify_checkin_open: Tournament {event.data.get('tournament_id')} not found")
+            return
         confirmed_users = Registration.objects.filter(
             tournament=tournament,
             status='confirmed',
@@ -270,7 +273,10 @@ def notify_tournament_cancelled(event):
         Registration = apps.get_model("tournaments", "Registration")
         Notification = apps.get_model("notifications", "Notification")
 
-        tournament = Tournament.objects.get(id=event.data.get('tournament_id'))
+        tournament = Tournament.objects.filter(id=event.data.get('tournament_id')).first()
+        if not tournament:
+            logger.warning(f"notify_tournament_cancelled: Tournament {event.data.get('tournament_id')} not found")
+            return
         registered_users = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,

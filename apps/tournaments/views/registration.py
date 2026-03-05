@@ -290,8 +290,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             context['step_title'] = 'Additional Information'
             context['step_description'] = 'Please provide the following details'
             
-            # TODO: Load dynamic custom fields from tournament.custom_fields JSONField
-            # For now, show placeholder in-game ID field
+            # Load dynamic custom fields from tournament's related CustomField model
             from apps.games.services import game_service
             canonical_slug = game_service.normalize_slug(tournament.game.slug)
             game_spec = game_service.get_game(canonical_slug)
@@ -309,7 +308,8 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 except Exception:
                     pass  # No profile or game ID not set
             
-            context['custom_fields'] = [
+            # Build custom fields list: start with built-in in-game ID field
+            custom_fields_list = [
                 {
                     'name': 'in_game_id',
                     'label': f'{game_display_name} In-Game ID',
@@ -320,6 +320,25 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                     'auto_filled': bool(auto_filled_value),
                 }
             ]
+            
+            # Append dynamic custom fields defined by the organizer
+            try:
+                dynamic_fields = tournament.custom_fields.all().order_by('order', 'field_name')
+                for field in dynamic_fields:
+                    custom_fields_list.append({
+                        'name': field.field_key,
+                        'label': field.field_name,
+                        'type': field.field_type,
+                        'required': field.is_required,
+                        'help_text': field.help_text or '',
+                        'current_value': custom_field_values.get(field.field_key, ''),
+                        'auto_filled': False,
+                        'config': field.field_config or {},
+                    })
+            except Exception:
+                pass  # No custom fields or table not migrated
+            
+            context['custom_fields'] = custom_fields_list
         
         elif tournament.has_entry_fee:
             # Step 4: Payment (conditional)

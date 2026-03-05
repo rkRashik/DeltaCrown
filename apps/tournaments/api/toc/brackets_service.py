@@ -38,10 +38,26 @@ class TOCBracketsService:
 
     @staticmethod
     def generate_bracket(tournament, user) -> Dict[str, Any]:
-        """Generate bracket from confirmed registrations + seeding."""
+        """Generate bracket from confirmed registrations + seeding.
+
+        Sprint 29: Added re-generation guard — prevents accidental
+        destruction of an existing bracket. Must reset first.
+        """
+        existing = Bracket.objects.filter(tournament=tournament).first()
+        if existing:
+            raise ValueError(
+                "A bracket already exists. Reset the current bracket "
+                "before generating a new one."
+            )
         bracket = BracketService.generate_bracket_universal_safe(
             tournament_id=tournament.id,
         )
+        # Fire auto-notification for bracket generation
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+            TOCNotificationsService.fire_auto_event(tournament, "bracket_generated")
+        except Exception:
+            pass
         return TOCBracketsService._serialize_bracket(bracket)
 
     @staticmethod
@@ -65,6 +81,12 @@ class TOCBracketsService:
         bracket = BracketService.finalize_bracket(
             bracket_id=bracket.id, finalized_by=user
         )
+        # Fire auto-notification for bracket publication
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+            TOCNotificationsService.fire_auto_event(tournament, "bracket_published")
+        except Exception:
+            pass
         return TOCBracketsService._serialize_bracket(bracket)
 
     @staticmethod
@@ -83,11 +105,65 @@ class TOCBracketsService:
             "match"
         ).order_by("round_number", "match_number_in_round")
 
+        # Batch-resolve team names & logos for all participant IDs in nodes
+        is_team = tournament.participation_type != 'solo'
+        team_map = {}
+        if is_team:
+            participant_ids = set()
+            for n in nodes:
+                if n.participant1_id:
+                    participant_ids.add(n.participant1_id)
+                if n.participant2_id:
+                    participant_ids.add(n.participant2_id)
+            if participant_ids:
+                try:
+                    from apps.organizations.models.team import Team as OrgTeam
+                    teams = OrgTeam.objects.filter(
+                        id__in=participant_ids
+                    ).select_related('organization')
+                    for t in teams:
+                        logo_url = ''
+                        try:
+                            if t.logo:
+                                logo_url = t.logo.url
+                            elif t.organization and getattr(t.organization, 'enforce_brand', False) and getattr(t.organization, 'logo', None):
+                                logo_url = t.organization.logo.url
+                        except (ValueError, Exception):
+                            pass
+                        team_map[t.id] = {
+                            'name': t.name,
+                            'tag': t.tag or '',
+                            'logo_url': logo_url,
+                        }
+                except Exception:
+                    pass
+
+        # For double elimination, annotate GF / GFR nodes so the frontend
+        # can render them with special labels and visual treatment.
+        is_double_elim = (bracket.format == Bracket.DOUBLE_ELIMINATION)
+        gf_round = gfr_round = None
+        if is_double_elim:
+            bstruct = bracket.bracket_structure or {}
+            wb_rounds = bstruct.get("wb_rounds", 0)
+            if wb_rounds:
+                gf_round = wb_rounds + 1
+                gfr_round = wb_rounds + 2
+
+        def _annotate(n):
+            data = TOCBracketsService._serialize_node(n, team_map=team_map, is_team=is_team)
+            if gf_round and n.bracket_type == BracketNode.MAIN:
+                data["is_gf"] = n.round_number == gf_round
+                data["is_gf_reset"] = n.round_number == gfr_round
+            else:
+                data["is_gf"] = False
+                data["is_gf_reset"] = False
+            return data
+
         return {
             "exists": True,
             "bracket": TOCBracketsService._serialize_bracket(bracket),
             "visualization": viz,
-            "nodes": [TOCBracketsService._serialize_node(n) for n in nodes],
+            "nodes": [_annotate(n) for n in nodes],
         }
 
     @staticmethod
@@ -123,13 +199,37 @@ class TOCBracketsService:
             standings = GroupStanding.objects.filter(
                 group=g, is_deleted=False
             ).order_by("rank")
+
+            # Compute per-group match completion for "Final" badge
+            g_team_ids = set(standings.values_list('team_id', flat=True)) - {None, 0}
+            g_user_ids = set(standings.exclude(user__isnull=True).values_list('user_id', flat=True))
+
+            g_match_qs = Match.objects.filter(
+                tournament=tournament, is_deleted=False, bracket__isnull=True,
+            )
+            if g_team_ids:
+                g_match_qs = g_match_qs.filter(
+                    participant1_id__in=g_team_ids, participant2_id__in=g_team_ids,
+                )
+            elif g_user_ids:
+                g_match_qs = g_match_qs.filter(
+                    participant1_id__in=g_user_ids, participant2_id__in=g_user_ids,
+                )
+
+            g_total = g_match_qs.count()
+            g_completed = g_match_qs.filter(state__in=[Match.COMPLETED, 'forfeit']).count()
+            is_completed = g_total > 0 and g_completed == g_total
+
             result_groups.append({
                 "id": str(g.id),
                 "name": g.name,
                 "display_order": g.display_order,
                 "max_participants": g.max_participants,
                 "advancement_count": g.advancement_count,
-                "is_finalized": g.is_finalized,
+                "is_finalized": is_completed,
+                "is_drawn": g.is_finalized,
+                "matches_total": g_total,
+                "matches_completed": g_completed,
                 "standings": [
                     TOCBracketsService._serialize_standing(s) for s in standings
                 ],
@@ -181,11 +281,21 @@ class TOCBracketsService:
 
     @staticmethod
     def draw_groups(tournament, data: Dict, user) -> Dict[str, Any]:
-        """Execute group draw."""
+        """Execute group draw.
+
+        Sprint 29: Added re-draw guard — prevents accidental
+        destruction of already-drawn groups.
+        """
         draw_method = data.get("method", "random")
         stage = GroupStage.objects.filter(tournament=tournament).first()
         if not stage:
             raise ValueError("Configure groups first.")
+        if stage.state in ('active', 'completed'):
+            raise ValueError(
+                "Groups have already been drawn (stage is "
+                f"'{stage.state}'). Reset the group stage before "
+                "re-drawing."
+            )
 
         GroupStageService.draw_groups(
             tournament_id=tournament.id,
@@ -194,7 +304,41 @@ class TOCBracketsService:
         # Update stage state
         stage.state = 'active'
         stage.save(update_fields=['state'])
+        # Fire auto-notification for group draw completion
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+            TOCNotificationsService.fire_auto_event(tournament, "group_draw_complete")
+        except Exception:
+            pass
         return TOCBracketsService.get_groups(tournament)
+
+    @staticmethod
+    def reset_groups(tournament, user) -> Dict[str, Any]:
+        """Reset group draw — clears standings and returns stage to pending.
+
+        Sprint 29: Allows re-drawing groups after reset.
+        """
+        stage = GroupStage.objects.filter(tournament=tournament).first()
+        if not stage:
+            raise ValueError("No group stage configured.")
+
+        # Clear all standings
+        GroupStanding.objects.filter(
+            group__tournament=tournament,
+        ).delete()
+
+        # Reset stage state
+        stage.state = 'pending'
+        stage.config = {
+            k: v for k, v in (stage.config or {}).items()
+            if k != 'draw_audit'
+        }
+        stage.save(update_fields=['state', 'config'])
+
+        return {
+            "status": "reset",
+            "message": "Group draw reset. You can now re-draw.",
+        }
 
     @staticmethod
     def get_group_standings(tournament) -> Dict[str, Any]:
@@ -239,6 +383,39 @@ class TOCBracketsService:
         except Exception:
             pass
 
+        # ── Batch-resolve team names & logos ──
+        is_team = tournament.participation_type != 'solo'
+        team_map = {}
+        if is_team:
+            participant_ids = set()
+            for m in matches:
+                if m.participant1_id:
+                    participant_ids.add(m.participant1_id)
+                if m.participant2_id:
+                    participant_ids.add(m.participant2_id)
+            if participant_ids:
+                try:
+                    from apps.organizations.models.team import Team as OrgTeam
+                    teams = OrgTeam.objects.filter(
+                        id__in=participant_ids
+                    ).select_related('organization')
+                    for t in teams:
+                        logo_url = ''
+                        try:
+                            if t.logo:
+                                logo_url = t.logo.url
+                            elif t.organization and getattr(t.organization, 'enforce_brand', False) and getattr(t.organization, 'logo', None):
+                                logo_url = t.organization.logo.url
+                        except (ValueError, Exception):
+                            pass
+                        team_map[t.id] = {
+                            'name': t.name,
+                            'tag': t.tag or '',
+                            'logo_url': logo_url,
+                        }
+                except Exception:
+                    pass
+
         # ── Serialize matches by round ──
         rounds = {}
         all_serialized = []
@@ -246,7 +423,9 @@ class TOCBracketsService:
             rn = m.round_number or 0
             if rn not in rounds:
                 rounds[rn] = []
-            serialized = TOCBracketsService._serialize_match_schedule(m)
+            serialized = TOCBracketsService._serialize_match_schedule(
+                m, team_map=team_map, is_team=is_team
+            )
             # Attach group name from participant lookup
             gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
             serialized["group_name"] = gname
@@ -638,7 +817,7 @@ class TOCBracketsService:
         }
 
     @staticmethod
-    def _serialize_node(node) -> Dict:
+    def _serialize_node(node, team_map=None, is_team=False) -> Dict:
         match_data = None
         if node.match:
             match_data = {
@@ -652,7 +831,29 @@ class TOCBracketsService:
                     if node.match.scheduled_time
                     else None
                 ),
+                "best_of": getattr(node.match, "best_of", 1) or 1,
+                "game_scores": getattr(node.match, "game_scores", []) or [],
             }
+
+        # Resolve participant names & logos from team_map (overrides denormalized names)
+        p1_name = node.participant1_name
+        p2_name = node.participant2_name
+        p1_logo = ''
+        p2_logo = ''
+        p1_tag = ''
+        p2_tag = ''
+        if is_team and team_map:
+            if node.participant1_id and node.participant1_id in team_map:
+                info = team_map[node.participant1_id]
+                p1_name = info['name']
+                p1_logo = info['logo_url']
+                p1_tag = info['tag']
+            if node.participant2_id and node.participant2_id in team_map:
+                info = team_map[node.participant2_id]
+                p2_name = info['name']
+                p2_logo = info['logo_url']
+                p2_tag = info['tag']
+
         return {
             "id": node.id,
             "position": node.position,
@@ -660,9 +861,13 @@ class TOCBracketsService:
             "match_number": node.match_number_in_round,
             "bracket_type": node.bracket_type,
             "participant1_id": node.participant1_id,
-            "participant1_name": node.participant1_name,
+            "participant1_name": p1_name,
+            "participant1_logo": p1_logo,
+            "participant1_tag": p1_tag,
             "participant2_id": node.participant2_id,
-            "participant2_name": node.participant2_name,
+            "participant2_name": p2_name,
+            "participant2_logo": p2_logo,
+            "participant2_tag": p2_tag,
             "winner_id": node.winner_id,
             "is_bye": node.is_bye,
             "match": match_data,
@@ -670,12 +875,12 @@ class TOCBracketsService:
 
     @staticmethod
     def _serialize_standing(s) -> Dict:
-        # Resolve team or user name
+        # Sprint 29: Resolve team or user name via OrgTeam (not legacy Team stub)
         display_name = None
         if s.team_id:
             try:
-                from apps.teams.models import Team
-                team = Team.objects.filter(id=s.team_id).values_list('name', flat=True).first()
+                from apps.organizations.models.team import Team as OrgTeam
+                team = OrgTeam.objects.filter(id=s.team_id).values_list('name', flat=True).first()
                 display_name = team
             except Exception:
                 pass
@@ -690,7 +895,7 @@ class TOCBracketsService:
                 except Exception:
                     pass
             if not display_name:
-                display_name = f'Team #{s.team_id}'
+                display_name = f'Team {s.team_id}'
         elif hasattr(s, 'user') and s.user:
             display_name = s.user.get_display_name() if hasattr(s.user, 'get_display_name') else str(s.user)
         else:
@@ -715,13 +920,28 @@ class TOCBracketsService:
         }
 
     @staticmethod
-    def _serialize_match_schedule(m) -> Dict:
+    def _serialize_match_schedule(m, team_map=None, is_team=False) -> Dict:
+        p1_name = m.participant1_name
+        p2_name = m.participant2_name
+        p1_logo = ''
+        p2_logo = ''
+        if is_team and team_map:
+            if m.participant1_id and m.participant1_id in team_map:
+                p1_name = team_map[m.participant1_id]['name']
+                p1_logo = team_map[m.participant1_id]['logo_url']
+            if m.participant2_id and m.participant2_id in team_map:
+                p2_name = team_map[m.participant2_id]['name']
+                p2_logo = team_map[m.participant2_id]['logo_url']
         return {
             "id": m.id,
             "round_number": m.round_number,
             "match_number": m.match_number,
-            "participant1_name": m.participant1_name,
-            "participant2_name": m.participant2_name,
+            "participant1_id": m.participant1_id,
+            "participant1_name": p1_name,
+            "participant1_logo": p1_logo,
+            "participant2_id": m.participant2_id,
+            "participant2_name": p2_name,
+            "participant2_logo": p2_logo,
             "participant1_score": m.participant1_score,
             "participant2_score": m.participant2_score,
             "state": m.state,

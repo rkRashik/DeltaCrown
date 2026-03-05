@@ -18,7 +18,7 @@ Architecture:
 WebSocket Events (inherited from MatchService):
 - score_updated: Broadcast on submit_result
 - match_completed: Broadcast on confirm_result
-- dispute_created: Broadcast on report_dispute (TODO: not yet implemented in MatchService)
+- dispute_created: Broadcast on report_dispute (via MatchService.report_dispute → realtime/broadcast.py)
 
 Planning Documents:
 - PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service
@@ -336,7 +336,7 @@ class ResultViewSet(viewsets.GenericViewSet):
         Side Effects:
         - Creates Dispute record
         - Transitions match.state to DISPUTED
-        - TODO: Broadcasts dispute_created WebSocket event (Module 2.3 - not yet in MatchService)
+        - Broadcasts dispute_created WebSocket event (via MatchService → realtime broadcast)
         - Creates audit log (Module 2.4)
         
         Response:

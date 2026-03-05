@@ -156,10 +156,16 @@
         loadTemplates();
     }
 
-    async function deleteTemplate (id) {
-        if (!confirm('Delete this certificate template? This cannot be undone.')) return;
-        await api(`certificates/${id}/`, { method: 'DELETE' });
-        loadTemplates();
+    function deleteTemplate (id) {
+        TOC.dangerConfirm({
+            title: 'Delete Certificate Template',
+            message: 'This template and all its configuration will be permanently removed. This cannot be undone.',
+            confirmText: 'Delete Template',
+            onConfirm: async function () {
+                await api(`certificates/${id}/`, { method: 'DELETE' });
+                loadTemplates();
+            },
+        });
     }
 
     function generateSingle (templateId) {

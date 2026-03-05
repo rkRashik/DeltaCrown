@@ -482,11 +482,9 @@ def compute_seasonal_leaderboard(season: str):
     service = get_leaderboard_service()
     cache = get_leaderboard_cache()
     
-    # TODO: Implement seasonal leaderboard computation
-    # (Not yet implemented in service layer)
-    
-    # Invalidate cache after computation
-    cache.invalidate("seasonal", season=season)
+    # LEGACY: No computation implemented — Phase F uses snapshot_season_rankings().
+    # Do NOT invalidate cache until computation is implemented.
+    logger.info(f"compute_seasonal_leaderboard({season}) called — LEGACY stub, no-op")
 
 
 @shared_task
@@ -501,10 +499,9 @@ def compute_all_time_leaderboard():
     service = get_leaderboard_service()
     cache = get_leaderboard_cache()
     
-    # TODO: Implement all-time leaderboard computation
-    
-    # Invalidate cache
-    cache.invalidate("all_time")
+    # LEGACY: No computation implemented — Phase F uses snapshot_all_time().
+    # Do NOT invalidate cache until computation is implemented.
+    logger.info("compute_all_time_leaderboard() called — LEGACY stub, no-op")
 
 
 @shared_task
@@ -519,10 +516,9 @@ def compute_game_specific_leaderboard(game: str, season: str):
     service = get_leaderboard_service()
     cache = get_leaderboard_cache()
     
-    # TODO: Implement game-specific leaderboard computation
-    
-    # Invalidate cache
-    cache.invalidate("game_specific", game=game, season=season)
+    # LEGACY: No computation implemented — Phase F uses snapshot_season_rankings().
+    # Do NOT invalidate cache until computation is implemented.
+    logger.info(f"compute_game_specific_leaderboard({game}, {season}) called — LEGACY stub, no-op")
 
 
 @shared_task
@@ -535,10 +531,9 @@ def compute_team_leaderboard():
     service = get_leaderboard_service()
     cache = get_leaderboard_cache()
     
-    # TODO: Implement team leaderboard computation
-    
-    # Invalidate cache
-    cache.invalidate("team")
+    # LEGACY: No computation implemented.
+    # Do NOT invalidate cache until computation is implemented.
+    logger.info("compute_team_leaderboard() called — LEGACY stub, no-op")
 
 
 @shared_task
@@ -686,8 +681,9 @@ def nightly_user_analytics_refresh() -> dict:
     )
     
     try:
-        # Get all games (would use game adapter in real implementation)
-        games = ["valorant", "csgo", "lol"]  # Hardcoded for now
+        # Get all active games dynamically
+        from apps.games.models import Game
+        games = list(Game.objects.filter(is_active=True).values_list('slug', flat=True))
         
         users_refreshed = 0
         errors = 0
@@ -808,8 +804,9 @@ def nightly_team_analytics_refresh() -> dict:
     )
     
     try:
-        # Get all games
-        games = ["valorant", "csgo", "lol"]
+        # Get all active games dynamically
+        from apps.games.models import Game
+        games = list(Game.objects.filter(is_active=True).values_list('slug', flat=True))
         
         teams_refreshed = 0
         errors = 0

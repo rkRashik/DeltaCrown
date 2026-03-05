@@ -30,7 +30,7 @@ def can_view_follower_list(viewer, target_user):
         privacy = target_user.profile.privacy_settings
         # Simple boolean: True = public, False = private (owner only)
         return privacy.show_followers_list
-    except:
+    except Exception:
         return True  # Default to public if privacy not set
 
 
@@ -45,7 +45,7 @@ def can_view_following_list(viewer, target_user):
         privacy = target_user.profile.privacy_settings
         # Simple boolean: True = public, False = private (owner only)
         return privacy.show_following_list
-    except:
+    except Exception:
         return True  # Default to public if privacy not set
 
 
@@ -69,6 +69,17 @@ def get_followers(request, username):
     # Get followers
     followers = Follow.objects.filter(following=target_user).select_related('follower', 'follower__profile')
     
+    # Prefetch which followers the current user follows (avoid N+1)
+    followed_ids = set()
+    if request.user.is_authenticated:
+        follower_user_ids = [f.follower_id for f in followers]
+        followed_ids = set(
+            Follow.objects.filter(
+                follower=request.user,
+                following_id__in=follower_user_ids
+            ).values_list('following_id', flat=True)
+        )
+    
     # Build response
     followers_data = []
     for follow in followers:
@@ -81,12 +92,9 @@ def get_followers(request, username):
                 'display_name': profile.display_name,
                 'avatar_url': profile.get_avatar_url() or '',
                 'is_verified': profile.is_verified,
-                'is_following': request.user.is_authenticated and Follow.objects.filter(
-                    follower=request.user,
-                    following=follower
-                ).exists()
+                'is_following': follower.id in followed_ids,
             })
-        except:
+        except Exception:
             continue
     
     return JsonResponse({
@@ -116,6 +124,17 @@ def get_following(request, username):
     # Get following
     following = Follow.objects.filter(follower=target_user).select_related('following', 'following__profile')
     
+    # Prefetch which followed users the current user also follows (avoid N+1)
+    followed_ids = set()
+    if request.user.is_authenticated:
+        following_user_ids = [f.following_id for f in following]
+        followed_ids = set(
+            Follow.objects.filter(
+                follower=request.user,
+                following_id__in=following_user_ids
+            ).values_list('following_id', flat=True)
+        )
+    
     # Build response
     following_data = []
     for follow in following:
@@ -128,12 +147,9 @@ def get_following(request, username):
                 'display_name': profile.display_name,
                 'avatar_url': profile.get_avatar_url() or '',
                 'is_verified': profile.is_verified,
-                'is_following': request.user.is_authenticated and Follow.objects.filter(
-                    follower=request.user,
-                    following=followed_user
-                ).exists()
+                'is_following': followed_user.id in followed_ids,
             })
-        except:
+        except Exception:
             continue
     
     return JsonResponse({
@@ -170,8 +186,8 @@ def follow_user(request, username):
         
         target_user.profile.follower_count = Follow.objects.filter(following=target_user).count()
         target_user.profile.save(update_fields=['follower_count'])
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to update follow counts: {e}")
     
     return JsonResponse({
         'success': True,
@@ -207,8 +223,8 @@ def unfollow_user(request, username):
         
         target_user.profile.follower_count = Follow.objects.filter(following=target_user).count()
         target_user.profile.save(update_fields=['follower_count'])
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to update unfollow counts: {e}")
     
     return JsonResponse({
         'success': True,

@@ -27,12 +27,14 @@
                     {% endif %}
                 </td>
                 
-                <!-- Participant/Team ID -->
+                <!-- Participant/Team Name -->
                 <td class="px-2 py-3">
-                    {% if entry.team_id %}
-                    <span class="text-dc-primary font-mono">Team #{{ entry.team_id }}</span>
+                    {% if entry.display_name %}
+                    <span class="text-white font-semibold">{{ entry.display_name }}</span>
+                    {% elif entry.team_id %}
+                    <span class="text-dc-primary font-semibold">Team {{ entry.team_id }}</span>
                     {% else %}
-                    <span class="text-dc-secondary font-mono">Player #{{ entry.participant_id }}</span>
+                    <span class="text-dc-secondary font-semibold">Player {{ entry.participant_id }}</span>
                     {% endif %}
                 </td>
                 

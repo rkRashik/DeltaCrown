@@ -26,20 +26,18 @@ def team_invites(request):
     Loads both membership and email-based invites via API.
     
     Feature Flag Protection:
-    - Same as vnext_hub (respects TEAM_VNEXT_ADAPTER_ENABLED)
+    - Only TEAM_VNEXT_FORCE_LEGACY blocks access (emergency killswitch)
     
     Query Budget Target: 0 (all data loaded via AJAX)
     
     Returns:
         - 200: Renders team_invites.html
-        - 302: Redirects to /teams/my_invites/ if feature flags disabled
+        - 302: Redirects to /teams/my_invites/ if FORCE_LEGACY enabled
     """
-    # Check feature flags (same as hub)
+    # Emergency killswitch only
     force_legacy = getattr(settings, 'TEAM_VNEXT_FORCE_LEGACY', False)
-    adapter_enabled = getattr(settings, 'TEAM_VNEXT_ADAPTER_ENABLED', False)
-    routing_mode = getattr(settings, 'TEAM_VNEXT_ROUTING_MODE', 'adapter')
     
-    if force_legacy or not adapter_enabled or routing_mode == 'legacy_only':
+    if force_legacy:
         return redirect('/teams/my_invites/')
     
     return render(request, 'organizations/team/team_invites.html', {
@@ -56,20 +54,15 @@ def team_create(request):
     Actual creation handled by REST API endpoints.
     
     Feature Flag Protection:
-    - If TEAM_VNEXT_ADAPTER_ENABLED is False, redirects to home
-    - If TEAM_VNEXT_FORCE_LEGACY is True, redirects to home
-    - If TEAM_VNEXT_ROUTING_MODE is 'legacy_only', redirects to home
+    - Only TEAM_VNEXT_FORCE_LEGACY blocks access (emergency killswitch)
     
     Returns:
         - 200: Renders team_create.html (Tailwind UI)
-        - 302: Redirects to home if feature flags disabled
+        - 302: Redirects to home if FORCE_LEGACY enabled
     """
-    # Check feature flags (same logic as API endpoints)
+    # Emergency killswitch — only FORCE_LEGACY blocks team creation
     force_legacy = getattr(settings, 'TEAM_VNEXT_FORCE_LEGACY', False)
-    adapter_enabled = getattr(settings, 'TEAM_VNEXT_ADAPTER_ENABLED', False)
-    routing_mode = getattr(settings, 'TEAM_VNEXT_ROUTING_MODE', 'adapter_first')
     
-    # Priority: FORCE_LEGACY (highest) > ADAPTER_ENABLED > ROUTING_MODE
     if force_legacy:
         messages.warning(
             request,
@@ -85,37 +78,6 @@ def team_create(request):
         )
         return redirect('/')
     
-    if not adapter_enabled:
-        messages.info(
-            request,
-            'This feature is not yet available. Check back soon!'
-        )
-        logger.info(
-            f"vNext UI access denied for user {request.user.id}: Adapter disabled",
-            extra={
-                'event_type': 'vnext_ui_blocked',
-                'user_id': request.user.id,
-                'reason': 'adapter_disabled',
-            }
-        )
-        return redirect('/')
-    
-    if routing_mode == 'legacy_only':
-        messages.info(
-            request,
-            'This feature is not yet available. Check back soon!'
-        )
-        logger.info(
-            f"vNext UI access denied for user {request.user.id}: Legacy-only mode",
-            extra={
-                'event_type': 'vnext_ui_blocked',
-                'user_id': request.user.id,
-                'reason': 'legacy_only_mode',
-            }
-        )
-        return redirect('/')
-    
-    # Feature flags allow access
     logger.info(
         f"vNext UI accessed by user {request.user.id}",
         extra={

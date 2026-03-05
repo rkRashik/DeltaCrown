@@ -342,8 +342,33 @@ class LobbyService:
             is_visible=True,
         )
         
-        # TODO: Send notifications to participants
-        # This would integrate with apps.notifications module
+        # Notify confirmed tournament participants of the new announcement (Module 2.x)
+        try:
+            from apps.notifications.services import notify as _notify_users
+            from django.contrib.auth import get_user_model
+            _User = get_user_model()
+            _participant_ids = list(
+                Registration.objects.filter(
+                    tournament_id=tournament_id,
+                    status=Registration.CONFIRMED,
+                    is_deleted=False,
+                ).values_list('user_id', flat=True).distinct()
+            )
+            if _participant_ids:
+                _recipients = list(_User.objects.filter(id__in=_participant_ids, is_active=True))
+                if _recipients:
+                    _notify_users(
+                        _recipients,
+                        event='lobby_announcement',
+                        title=title,
+                        body=message[:500],
+                        tournament_id=tournament_id,
+                    )
+        except Exception as _exc:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                f"Lobby announcement notification failed for tournament {tournament_id}: {_exc}"
+            )
         
         return announcement
     

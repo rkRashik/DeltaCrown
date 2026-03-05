@@ -250,7 +250,30 @@ class Match(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text=_('When match was completed (state → COMPLETED)')
     )
-    
+
+    # Series format (BO1 / BO3 / BO5)
+    BEST_OF_1 = 1
+    BEST_OF_3 = 3
+    BEST_OF_5 = 5
+    BEST_OF_CHOICES = [(1, 'BO1'), (3, 'BO3'), (5, 'BO5')]
+
+    best_of = models.PositiveSmallIntegerField(
+        default=1,
+        choices=BEST_OF_CHOICES,
+        verbose_name=_('Best Of'),
+        help_text=_('Series format: 1 = single game, 3 = first to 2, 5 = first to 3')
+    )
+
+    game_scores = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_('Game Scores'),
+        help_text=_(
+            'Per-game scores for BO3/BO5 series. '
+            'List of {"game": N, "p1": X, "p2": Y, "winner_slot": 1|2} objects.'
+        )
+    )
+
     class Meta:
         db_table = 'tournament_engine_match_match'
         verbose_name = _('Match')

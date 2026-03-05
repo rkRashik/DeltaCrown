@@ -186,8 +186,9 @@ class OrganizerSchedulingView(APIView):
         In production, this would check tournament-specific permissions.
         For now, simplified to staff check.
         """
-        # TODO: Implement proper tournament organizer check
-        return user.is_staff
+        # Check if user is the organizer of any tournament
+        from apps.tournaments.models import Tournament
+        return Tournament.objects.filter(organizer=user).exists()
 
 
 class OrganizerBulkShiftView(APIView):
@@ -253,7 +254,8 @@ class OrganizerBulkShiftView(APIView):
     
     def _is_tournament_organizer(self, user) -> bool:
         """Check if user is a tournament organizer."""
-        return user.is_staff
+        from apps.tournaments.models import Tournament
+        return Tournament.objects.filter(organizer=user).exists()
 
 
 class OrganizerSchedulingSlotsView(APIView):
@@ -339,4 +341,5 @@ class OrganizerSchedulingSlotsView(APIView):
     
     def _is_tournament_organizer(self, user) -> bool:
         """Check if user is a tournament organizer."""
-        return user.is_staff
+        from apps.tournaments.models import Tournament
+        return Tournament.objects.filter(organizer=user).exists()

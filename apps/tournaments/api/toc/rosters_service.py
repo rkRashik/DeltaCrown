@@ -40,6 +40,13 @@ def _get_game_profile_model():
     except ImportError:
         return None
 
+def _get_user_profile_model():
+    try:
+        from apps.user_profile.models import UserProfile
+        return UserProfile
+    except ImportError:
+        return None
+
 
 class TOCRostersService:
     """All read/write operations for the Rosters tab."""
@@ -60,10 +67,35 @@ class TOCRostersService:
         min_roster = roster_config.get("min_roster_size", 1)
         max_roster = roster_config.get("max_roster_size", 10)
 
-        # ── Resolve tournament game display name for GameProfile lookup ──
+        # ── Game metadata ──
+        game_meta = {}
         game_dn = ""
         try:
-            game_dn = getattr(tournament.game, "display_name", "") or ""
+            g = tournament.game
+            game_dn = getattr(g, "display_name", "") or ""
+            game_meta = {
+                "display_name": game_dn,
+                "game_id_label": getattr(g, "game_id_label", "Game ID") or "Game ID",
+                "game_id_placeholder": getattr(g, "game_id_placeholder", "") or "",
+                "game_type": getattr(g, "game_type", "") or "",
+                "category": getattr(g, "category", "") or "",
+            }
+        except Exception:
+            pass
+
+        # ── Form configuration (communication channels, coordinator config) ──
+        form_config_data = {}
+        try:
+            from apps.tournaments.models.form_configuration import TournamentFormConfiguration
+            fc = TournamentFormConfiguration.objects.filter(tournament=tournament).first()
+            if fc:
+                form_config_data = {
+                    "coordinator_enabled": bool(fc.enable_coordinator_role),
+                    "coordinator_roles": fc.coordinator_role_choices or [],
+                    "communication_channels": fc.communication_channels or [],
+                    "show_member_game_ids": fc.show_member_game_ids,
+                    "show_member_ranks": fc.show_member_ranks,
+                }
         except Exception:
             pass
 
@@ -93,20 +125,69 @@ class TOCRostersService:
             OrgTeam = _get_org_team_model()
             if OrgTeam is not None:
                 try:
-                    for obj in OrgTeam.objects.filter(id__in=all_team_ids).only(
-                        "id", "name", "tag", "logo", "primary_color"
+                    for obj in OrgTeam.objects.filter(id__in=all_team_ids).select_related(
+                        'organization'
+                    ).only(
+                        "id", "name", "tag", "slug", "logo", "primary_color",
+                        "discord_url", "twitter_url", "website_url",
+                        "organization__id", "organization__name", "organization__slug",
+                        "organization__logo", "organization__is_verified",
                     ):
                         logo_url = ""
                         try:
                             logo_url = obj.logo.url if obj.logo else ""
                         except Exception:
                             pass
+                        # Organization info
+                        org_info = None
+                        if obj.organization_id:
+                            org = obj.organization
+                            org_logo = ""
+                            try:
+                                org_logo = org.logo.url if org.logo else ""
+                            except Exception:
+                                pass
+                            org_info = {
+                                "id": org.id,
+                                "name": org.name or "",
+                                "slug": org.slug or "",
+                                "logo_url": org_logo,
+                                "is_verified": getattr(org, "is_verified", False),
+                            }
                         team_meta[obj.id] = {
                             "name": obj.name or f"Team {obj.id}",
                             "tag": getattr(obj, "tag", "") or "",
+                            "slug": obj.slug or "",
                             "logo_url": logo_url,
                             "primary_color": getattr(obj, "primary_color", "") or "",
+                            "discord_url": getattr(obj, "discord_url", "") or "",
+                            "twitter_url": getattr(obj, "twitter_url", "") or "",
+                            "website_url": getattr(obj, "website_url", "") or "",
+                            "organization": org_info,
                         }
+                except Exception:
+                    pass
+
+        # ── Batch-load user profile slugs for player links ──
+        all_user_ids = set()
+        for reg in registrations:
+            for entry in (reg.lineup_snapshot or []):
+                uid = entry.get("user_id")
+                if uid:
+                    all_user_ids.add(uid)
+            if reg.user_id:
+                all_user_ids.add(reg.user_id)
+
+        profile_slug_map: dict[int, str] = {}
+        if all_user_ids:
+            UserProfile = _get_user_profile_model()
+            if UserProfile is not None:
+                try:
+                    for row in UserProfile.objects.filter(
+                        user_id__in=list(all_user_ids)
+                    ).values("user_id", "slug"):
+                        if row.get("slug"):
+                            profile_slug_map[row["user_id"]] = row["slug"]
                 except Exception:
                     pass
 
@@ -123,17 +204,31 @@ class TOCRostersService:
 
                 if tid not in seen_team_ids:
                     seen_team_ids.add(tid)
+
+                    # Communication channels from registration_data
+                    rd = reg.registration_data or {}
+                    comm_channels = rd.get("communication_channels", {})
+
                     teams[tid] = {
                         "team_id": tid,
                         "registration_id": reg.pk,
                         "team_name": team_name,
                         "tag": meta.get("tag", ""),
+                        "slug": meta.get("slug", ""),
                         "logo_url": meta.get("logo_url", ""),
                         "primary_color": meta.get("primary_color", ""),
+                        "discord_url": meta.get("discord_url", ""),
+                        "twitter_url": meta.get("twitter_url", ""),
+                        "website_url": meta.get("website_url", ""),
+                        "organization": meta.get("organization"),
+                        "communication_channels": comm_channels if isinstance(comm_channels, dict) else {},
                         "checked_in": reg.checked_in,
                         "status": reg.status,
                         "captain_id": None,
                         "captain_name": "",
+                        "coordinator_id": None,
+                        "coordinator_name": "",
+                        "coordinator_role": "",
                         "players": [],
                         "roster_valid": True,
                         "registered_at": reg.registered_at.isoformat() if reg.registered_at else None,
@@ -149,20 +244,24 @@ class TOCRostersService:
                             or bool(entry.get("is_igl"))
                             or bool(entry.get("is_tournament_captain"))
                         )
+                        is_coordinator = bool(entry.get("is_coordinator"))
                         display_name = (
                             entry.get("display_name")
                             or entry.get("username")
                             or (f"User #{uid}" if uid else "Unknown")
                         )
                         ign = user_ign_map.get(uid, "") if uid else ""
+                        p_slug = profile_slug_map.get(uid, "") if uid else ""
 
                         player_dict = {
                             "user_id": uid,
                             "username": entry.get("username", ""),
                             "display_name": display_name,
+                            "profile_slug": p_slug,
                             "roster_slot": slot,
                             "player_role": entry.get("player_role", ""),
                             "is_igl": is_igl,
+                            "is_coordinator": is_coordinator,
                             "game_id": ign,
                             "avatar": entry.get("avatar", ""),
                             "checked_in": reg.checked_in,  # team-level check-in
@@ -173,12 +272,20 @@ class TOCRostersService:
                             teams[tid]["captain_id"] = uid
                             teams[tid]["captain_name"] = display_name
 
-                else:
-                    # Duplicate team registration — just update if it's more active
-                    pass
+                        if is_coordinator and teams[tid]["coordinator_id"] is None:
+                            teams[tid]["coordinator_id"] = uid
+                            teams[tid]["coordinator_name"] = display_name
+                            teams[tid]["coordinator_role"] = entry.get("coordinator_role", "coordinator")
+
+                    # If no explicit coordinator, IGL is the coordinator
+                    if not teams[tid]["coordinator_id"] and teams[tid]["captain_id"]:
+                        teams[tid]["coordinator_id"] = teams[tid]["captain_id"]
+                        teams[tid]["coordinator_name"] = teams[tid]["captain_name"]
+                        teams[tid]["coordinator_role"] = "captain_igl"
 
             else:
                 # Solo registration (individual tournament)
+                p_slug = profile_slug_map.get(reg.user_id, "") if reg.user_id else ""
                 solo_players.append({
                     "user_id": reg.user_id,
                     "username": reg.user.username if reg.user else "",
@@ -186,6 +293,7 @@ class TOCRostersService:
                         getattr(reg.user, "display_name", None)
                         or (reg.user.username if reg.user else f"Reg #{reg.id}")
                     ),
+                    "profile_slug": p_slug,
                     "game_id": user_ign_map.get(reg.user_id, "")
                         if reg.user_id else (reg.registration_data or {}).get("game_id", ""),
                     "checked_in": reg.checked_in,
@@ -198,9 +306,11 @@ class TOCRostersService:
         valid_count = 0
         for t in team_list:
             starters = sum(1 for p in t["players"] if p["roster_slot"] == "STARTER")
+            subs = sum(1 for p in t["players"] if p["roster_slot"] == "SUBSTITUTE")
             total = len(t["players"])
             t["size"] = total
             t["starter_count"] = starters
+            t["sub_count"] = subs
             t["roster_valid"] = min_roster <= starters <= max_roster
             t["has_game_ids"] = all(p["game_id"] for p in t["players"] if p["roster_slot"] == "STARTER")
             if t["roster_valid"]:
@@ -223,6 +333,8 @@ class TOCRostersService:
                 "allow_subs": roster_config.get("allow_subs", True),
                 "max_subs": roster_config.get("max_subs", 2),
             },
+            "game_meta": game_meta,
+            "form_config": form_config_data,
             "teams": team_list,
             "solo_players": solo_players,
             "change_log": change_log[-50:],

@@ -280,12 +280,27 @@ def get_live_stats():
         User = apps.get_model('auth', 'User')
         Tournament = apps.get_model('tournaments', 'Tournament')
         Registration = apps.get_model('tournaments', 'Registration')
+        Match = apps.get_model('tournaments', 'Match')
+        
+        # Count matches completed today
+        from django.db.models import Sum
+        today = timezone.now().date()
+        matches_today = Match.objects.filter(
+            state='completed',
+            completed_at__date=today,
+        ).count()
+        
+        # Sum prize pools from completed tournaments
+        total_prize = Tournament.objects.filter(
+            status='completed',
+        ).aggregate(total=Sum('prize_pool'))['total'] or 0
+        prize_str = f'৳{int(total_prize):,}' if total_prize else '৳0'
         
         return {
             'players': User.objects.count(),
             'tournaments': Tournament.objects.count(),
-            'matches_today': 24,  # TODO: Implement actual match tracking
-            'prize_distributed': '৳12,50,000',  # TODO: Calculate from payments
+            'matches_today': matches_today,
+            'prize_distributed': prize_str,
         }
     except Exception:
         return {

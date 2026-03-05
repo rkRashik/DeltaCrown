@@ -99,6 +99,7 @@
                 ['registration_start', 'registration_end', 'tournament_start', 'tournament_end'].forEach(f => {
                     if (s.dates[f]) setVal(dates, f, s.dates[f].substring(0, 16));
                 });
+                if (s.dates.timezone_name) setVal(dates, 'timezone_name', s.dates.timezone_name);
             }
             // Venue
             const venue = document.getElementById('settings-venue');
@@ -155,23 +156,30 @@
                 setVal(feat, 'check_in_minutes_before', s.features.check_in_minutes_before);
                 setVal(feat, 'check_in_closes_minutes_before', s.features.check_in_closes_minutes_before);
             }
-            // Social
+            // Social & Contact
             const social = document.getElementById('settings-social');
             if (social && s.social) {
                 setVal(social, 'contact_email', s.social.contact_email);
+                setVal(social, 'contact_phone', s.social.contact_phone);
                 setVal(social, 'social_discord', s.social.social_discord);
+                setVal(social, 'discord_webhook_url', s.social.discord_webhook_url);
                 setVal(social, 'social_twitter', s.social.social_twitter);
                 setVal(social, 'social_instagram', s.social.social_instagram);
                 setVal(social, 'social_youtube', s.social.social_youtube);
                 setVal(social, 'social_website', s.social.social_website);
+                setVal(social, 'social_facebook', s.social.social_facebook);
+                setVal(social, 'social_tiktok', s.social.social_tiktok);
+                setVal(social, 'support_info', s.social.support_info);
             }
             // Waitlist
             const wait = document.getElementById('settings-waitlist');
             if (wait && s.waitlist) {
                 setVal(wait, 'auto_forfeit_no_shows', s.waitlist.auto_forfeit_no_shows);
                 setVal(wait, 'waitlist_auto_promote', s.waitlist.waitlist_auto_promote);
+                setVal(wait, 'enable_no_show_timer', s.waitlist.enable_no_show_timer);
                 setVal(wait, 'no_show_timeout_minutes', s.waitlist.no_show_timeout_minutes);
                 setVal(wait, 'max_waitlist_size', s.waitlist.max_waitlist_size);
+                syncNoShowVisibility();
             }
             // SEO
             const seo = document.getElementById('settings-seo');
@@ -232,6 +240,12 @@
         const on = document.getElementById('toggle-check-in')?.checked || false;
         const win = document.getElementById('check-in-window');
         if (win) win.classList.toggle('hidden', !on);
+    }
+
+    function syncNoShowVisibility () {
+        const on = document.getElementById('toggle-no-show-timer')?.checked || false;
+        const det = document.getElementById('no-show-timer-details');
+        if (det) det.classList.toggle('hidden', !on);
     }
 
     function syncFeeVisibility () {
@@ -524,10 +538,17 @@
         } catch (e) { toast('Update failed', 'error'); }
     }
 
-    async function publishRulebook (versionId) {
-        if (!confirm('Publish this version? This will deactivate other versions.')) return;
-        await API('settings/rulebook/' + versionId + '/publish/', { method: 'POST' });
-        loadRulebook(); toast('Rulebook published', 'success');
+    function publishRulebook (versionId) {
+        TOC.dangerConfirm({
+            title: 'Publish Rulebook Version',
+            message: 'This version will become active and all other versions will be deactivated. Participants may be prompted to re-acknowledge.',
+            confirmText: 'Publish Version',
+            variant: 'warning',
+            onConfirm: async function () {
+                await API('settings/rulebook/' + versionId + '/publish/', { method: 'POST' });
+                loadRulebook(); toast('Rulebook published', 'success');
+            },
+        });
     }
 
     /* ==================================================================
@@ -898,6 +919,50 @@
     }
 
     /* ==================================================================
+     * CLONE TOURNAMENT
+     * ================================================================== */
+    function cloneTournament() {
+        const defaultName = (document.querySelector('[data-field="name"]')?.value || 'Tournament') + ' (Copy)';
+        const FIELD = 'w-full bg-dc-bg border border-dc-border/60 rounded-lg px-3 py-2 text-white text-sm focus:border-theme focus:outline-none';
+        const body = `<div class="space-y-4 p-5">
+          <p class="text-xs text-dc-text">Creates a full copy of this tournament with all settings, rules and configuration — but no participants or match data.</p>
+          <div>
+            <label class="block text-[10px] text-dc-text uppercase tracking-widest mb-1">New Tournament Name *</label>
+            <input id="clone-tournament-name" type="text" value="${defaultName.replace(/"/g, '&quot;')}" class="${FIELD}">
+          </div>
+        </div>`;
+        const footer = `<div class="flex gap-3 p-4 pt-0">
+          <button onclick="TOC.settings._confirmClone()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Clone Tournament</button>
+          <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+        </div>`;
+        TOC.drawer.open('Clone Tournament', body, footer);
+        setTimeout(() => {
+            const inp = document.getElementById('clone-tournament-name');
+            if (inp) { inp.focus(); inp.select(); }
+        }, 50);
+    }
+
+    async function _confirmClone() {
+        const defaultName = (document.querySelector('[data-field="name"]')?.value || 'Tournament') + ' (Copy)';
+        const newName = document.getElementById('clone-tournament-name')?.value.trim() || defaultName;
+        TOC.drawer.close();
+
+        const btn = document.getElementById('btn-clone-tournament');
+        if (btn) { btn.disabled = true; btn.textContent = 'Cloning…'; }
+
+        try {
+            const result = await API.post('settings/clone/', { name: newName });
+            toast('Tournament cloned! Redirecting…', 'success');
+            setTimeout(() => {
+                window.location.href = `/tournaments/${result.slug}/manage/`;
+            }, 1200);
+        } catch (e) {
+            toast('Clone failed: ' + (e?.data?.error || 'Unknown error'), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Clone Tournament'; }
+        }
+    }
+
+    /* ==================================================================
      * INIT
      * ================================================================== */
     function init () {
@@ -920,6 +985,7 @@
         saveGameConfig,
         syncModeVisibility,
         syncCheckInVisibility,
+        syncNoShowVisibility,
         syncFeeVisibility,
         syncVetoVisibility,
         addVetoStep,
@@ -952,7 +1018,52 @@
         addTiebreaker,
         removeTiebreaker,
         moveTiebreaker,
+        // S28: Tournament cloning
+        cloneTournament, _confirmClone,
     };
+
+    // ── Discord Webhook Test Button ──
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('#btn-test-discord-webhook');
+        if (!btn) return;
+
+        const input = document.querySelector('[data-field="discord_webhook_url"]');
+        const webhookUrl = input ? input.value.trim() : '';
+        if (!webhookUrl) {
+            window.tocToast?.('Enter a Discord webhook URL first', 'warning');
+            return;
+        }
+        if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+            window.tocToast?.('Invalid Discord webhook URL format', 'warning');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75"></path></svg> Testing...';
+
+        const slug = window.TOC_CONFIG?.slug || '';
+        fetch(`/api/toc/${slug}/settings/discord-webhook-test/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+            },
+            body: JSON.stringify({ webhook_url: webhookUrl }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.tocToast?.('✅ Discord webhook test sent! Check your Discord channel.', 'success');
+            } else {
+                window.tocToast?.(data.error || 'Webhook test failed', 'error');
+            }
+        })
+        .catch(() => window.tocToast?.('Network error testing webhook', 'error'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg> Test';
+        });
+    });
 
     // Auto-init when navigating to Settings tab
     document.addEventListener('toc:tab-changed', function (e) {

@@ -680,4 +680,7 @@ class TOCMatchesService:
             'participant1_checked_in': getattr(m, 'participant1_checked_in', False),
             'participant2_checked_in': getattr(m, 'participant2_checked_in', False),
             'check_in_deadline': m.check_in_deadline.isoformat() if getattr(m, 'check_in_deadline', None) else None,
+            # Series (BO3/BO5)
+            'best_of': getattr(m, 'best_of', 1),
+            'game_scores': getattr(m, 'game_scores', []) or [],
         }

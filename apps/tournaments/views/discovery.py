@@ -37,7 +37,7 @@ class TournamentListView(ListView):
         from apps.tournaments.models import Registration
 
         queryset = Tournament.objects.select_related('game', 'organizer').filter(
-            status__in=['published', 'registration_open', 'live', 'completed']
+            status__in=['published', 'registration_open', 'registration_closed', 'live', 'completed']
         ).annotate(
             registration_count=Count(
                 'registrations',
@@ -121,6 +121,18 @@ class TournamentListView(ListView):
 
             context['user_registered_tournaments'] = set(user_registrations) | team_registrations
 
+            # Organizer tournaments — tournaments this user organizes (for "Manage" CTA)
+            organizer_tournaments = set(
+                Tournament.objects.filter(
+                    organizer=self.request.user,
+                    id__in=[t.id for t in context['tournament_list']]
+                ).values_list('id', flat=True)
+            )
+            # Staff/superuser can manage all
+            if self.request.user.is_staff or self.request.user.is_superuser:
+                organizer_tournaments = set(t.id for t in context['tournament_list'])
+            context['organizer_tournaments'] = organizer_tournaments
+
             # Also get ALL user registered tournaments (not just current page)
             all_solo_regs = Registration.objects.filter(
                 user=self.request.user, is_deleted=False
@@ -166,6 +178,7 @@ class TournamentListView(ListView):
             context['my_tournaments_sidebar'] = my_tournaments_sidebar[:8]
         else:
             context['user_registered_tournaments'] = set()
+            context['organizer_tournaments'] = set()
             context['my_tournaments_sidebar'] = []
 
         all_games = game_service.list_active_games()
@@ -190,6 +203,7 @@ class TournamentListView(ListView):
         context['status_options'] = [
             {'value': '', 'label': 'All'},
             {'value': 'registration_open', 'label': 'Registration Open'},
+            {'value': 'registration_closed', 'label': 'Registration Closed'},
             {'value': 'live', 'label': 'Live'},
             {'value': 'published', 'label': 'Upcoming'},
             {'value': 'completed', 'label': 'Completed'},

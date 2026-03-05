@@ -366,10 +366,11 @@ class StageTransitionService:
         stage.save()
         
         # Distribute participants
+        is_team = (stage.tournament.participation_type == 'team')
         GroupStageService.auto_balance_groups(
             stage_id=group_stage_instance.id,
             participant_ids=participant_ids,
-            is_team=True,  # TODO: Detect from Tournament.team_based
+            is_team=is_team,
         )
         
         # Generate matches
@@ -422,12 +423,23 @@ class StageTransitionService:
             config=stage.config or {},
         )
         
+        # Bulk-fetch team names to avoid N+1 queries
+        team_name_map: Dict[int, str] = {}
+        if stage.tournament.participation_type == 'team' and participant_ids:
+            try:
+                from apps.organizations.models import Team as _OrgTeam
+                team_name_map = dict(
+                    _OrgTeam.objects.filter(id__in=participant_ids).values_list('id', 'name')
+                )
+            except Exception as _e:
+                logger.warning("Could not bulk-fetch team names: %s", _e)
+
         # Convert participants to TeamDTOs
         team_dtos = []
         for idx, participant_id in enumerate(participant_ids):
             team_dtos.append(TeamDTO(
                 id=participant_id,
-                name=f"Team {participant_id}",  # TODO: Fetch actual team name from teams app
+                name=team_name_map.get(participant_id, f"Team {participant_id}"),
                 captain_id=0,  # Placeholder
                 captain_name="",
                 member_ids=[],

@@ -309,7 +309,7 @@ class PlayerStatsManager {
 
   comparePlayer(playerId) {
     // TODO: Implement player comparison feature
-    alert('Player comparison feature coming soon!');
+    if (window.Toast) window.Toast.info('Player comparison feature coming soon!');
   }
 
   closeModal() {

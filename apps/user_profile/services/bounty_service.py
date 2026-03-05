@@ -15,6 +15,7 @@ Design: 03a_bounty_system_design.md
 
 from typing import Optional, Dict, Any, Tuple, List
 from decimal import Decimal
+import logging
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
@@ -34,6 +35,7 @@ from apps.economy.models import DeltaCrownWallet
 from apps.core.models import Game
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -743,7 +745,7 @@ def expire_open_bounties(batch_size: int = 100) -> Dict[str, int]:
         except Exception as e:
             # Log error and continue
             failed += 1
-            print(f"Failed to expire bounty {bounty.id}: {e}")
+            logger.error(f"Failed to expire bounty {bounty.id}: {e}", exc_info=True)
     
     return {
         'processed': processed,

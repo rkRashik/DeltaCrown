@@ -185,6 +185,18 @@
           '<span class="w-1.5 h-1.5 rounded-full ' + c2 + '"></span></span>';
       }
 
+      // Swiss round label + BO series vars for card display
+      var isSwissRound = (window.TOC_CONFIG || {}).tournamentFormat === 'swiss';
+      var roundPrefix = isSwissRound ? 'Swiss R' : 'R';
+      var bestOf = m.best_of || 1;
+      var gameScores = m.game_scores || [];
+      var sp1 = 0; var sp2 = 0;
+      gameScores.forEach(function(g) { if ((g.p1_score||0) > (g.p2_score||0)) sp1++; else if ((g.p2_score||0) > (g.p1_score||0)) sp2++; });
+      var showSeries = bestOf > 1 && gameScores.length > 0;
+      var scoreA = showSeries ? sp1 : (m.participant1_score != null ? m.participant1_score : '-');
+      var scoreB = showSeries ? sp2 : (m.participant2_score != null ? m.participant2_score : '-');
+      var boLabel = bestOf > 1 ? '<span class="text-[8px] font-mono text-dc-text/40">BO' + bestOf + '</span> ' : '';
+
       return '<div class="match-card px-4 py-3 cursor-pointer transition-all hover:bg-white/[0.03]' +
         (isSelected ? ' bg-theme/5 border-l-[3px] border-l-theme' : ' border-l-[3px] border-l-transparent') +
         disputedBorder +
@@ -194,7 +206,7 @@
 
         // Row 1: Round/match info + state badge
         '<div class="flex items-center justify-between mb-2">' +
-        '<span class="text-xs font-mono text-dc-text">R' + m.round_number + ' &middot; #' + m.match_number + groupTag + '</span>' +
+        '<span class="text-xs font-mono text-dc-text">' + roundPrefix + m.round_number + ' &middot; #' + m.match_number + groupTag + '</span>' +
         '<div class="flex items-center gap-2">' + checkinHtml + liveDot +
         '<span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
         (m.is_paused ? '<span class="text-xs font-bold text-dc-warning" title="Paused">&#x23F8;</span>' : '') +
@@ -203,7 +215,7 @@
         // Row 2: Teams + score
         '<div class="flex items-center gap-3">' +
         '<span class="flex-1 text-right text-sm ' + (isWinner1 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant1_name || 'TBD') + '</span>' +
-        '<span class="font-mono font-black text-sm text-white px-3 py-1 rounded bg-dc-bg border border-dc-border min-w-[56px] text-center">' + (m.participant1_score != null ? m.participant1_score : '-') + ' \u2013 ' + (m.participant2_score != null ? m.participant2_score : '-') + '</span>' +
+        '<span class="font-mono font-black text-sm text-white px-3 py-1 rounded bg-dc-bg border border-dc-border min-w-[56px] text-center">' + boLabel + scoreA + ' \u2013 ' + scoreB + '</span>' +
         '<span class="flex-1 text-left text-sm ' + (isWinner2 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant2_name || 'TBD') + '</span>' +
         '</div>' +
 
@@ -478,6 +490,152 @@
     if (winSel) winSel.value = '';
     var noteEl = $('#score-note');
     if (noteEl) noteEl.value = '';
+
+    // Render series UI
+    renderSeriesPanel(m);
+  }
+
+  /* -- Series Panel (BO3/BO5) -- */
+  function renderSeriesPanel(m) {
+    var bestOf = (m && m.best_of) || 1;
+    var games = (m && m.game_scores) || [];
+
+    // Update BO buttons
+    [1, 3, 5].forEach(function (bo) {
+      var btn = $('#bo-btn-' + bo);
+      if (!btn) return;
+      if (bo === bestOf) {
+        btn.classList.add('border-theme', 'text-theme', 'bg-theme/10');
+        btn.classList.remove('border-dc-border', 'text-dc-text', 'bg-dc-surface');
+      } else {
+        btn.classList.remove('border-theme', 'text-theme', 'bg-theme/10');
+        btn.classList.add('border-dc-border', 'text-dc-text', 'bg-dc-surface');
+      }
+    });
+
+    var scorecard = $('#series-scorecard');
+    var bo1Inputs = $('#bo1-score-inputs');
+    var progressLabel = $('#series-progress-label');
+
+    if (bestOf === 1) {
+      if (scorecard) scorecard.classList.add('hidden');
+      if (bo1Inputs) bo1Inputs.classList.remove('hidden');
+      if (progressLabel) progressLabel.classList.add('hidden');
+      return;
+    }
+
+    // BO3 or BO5
+    if (scorecard) scorecard.classList.remove('hidden');
+    if (bo1Inputs) bo1Inputs.classList.add('hidden');
+
+    var winsNeeded = Math.floor(bestOf / 2) + 1;
+    var p1Wins = games.filter(function (g) { return g.winner_slot === 1; }).length;
+    var p2Wins = games.filter(function (g) { return g.winner_slot === 2; }).length;
+
+    if (progressLabel) {
+      progressLabel.classList.remove('hidden');
+      progressLabel.textContent = 'BO' + bestOf + ' | ' + p1Wins + '–' + p2Wins;
+    }
+
+    var gamesList = $('#series-games-list');
+    if (!gamesList) return;
+
+    if (!games.length) {
+      gamesList.innerHTML = '<p class="text-xs text-dc-text/50 text-center py-2">No games recorded yet</p>';
+      return;
+    }
+
+    var p1Name = (m && m.participant1_name) || 'Team A';
+    var p2Name = (m && m.participant2_name) || 'Team B';
+
+    gamesList.innerHTML = games.map(function (g) {
+      var w1 = g.winner_slot === 1;
+      var w2 = g.winner_slot === 2;
+      return '<div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-dc-bg border border-dc-border/40">' +
+        '<span class="text-xs text-dc-text/50 font-mono w-12 shrink-0">G' + g.game + '</span>' +
+        '<span class="flex-1 text-right text-xs ' + (w1 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(p1Name) + '</span>' +
+        '<span class="font-mono font-black text-sm text-white px-3 py-0.5 rounded bg-dc-panel border border-dc-border">' + g.p1 + ' – ' + g.p2 + '</span>' +
+        '<span class="flex-1 text-left text-xs ' + (w2 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(p2Name) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function setBestOf(bo) {
+    if (!selectedMatchId) return;
+    try {
+      await API('matches/' + selectedMatchId + '/series/', { method: 'PATCH', body: JSON.stringify({ best_of: bo }), headers: { 'Content-Type': 'application/json' } });
+      var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+      if (m) { m.best_of = bo; renderSeriesPanel(m); }
+      toast('Series format set to BO' + bo, 'success');
+    } catch (e) { toast(e.message || 'Failed to set format', 'error'); }
+  }
+
+  function openAddGameScore() {
+    if (!selectedMatchId) return;
+    var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+    var games = (m && m.game_scores) || [];
+    var nextGame = games.length + 1;
+    var p1Name = (m && m.participant1_name) || 'Team A';
+    var p2Name = (m && m.participant2_name) || 'Team B';
+
+    var html = '<div class="bg-dc-panel border border-dc-border rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">' +
+      '<h3 class="text-base font-bold text-white">Record Game ' + nextGame + '</h3>' +
+      '<div class="grid grid-cols-2 gap-3">' +
+      '<div><label class="text-xs text-dc-text uppercase tracking-widest block mb-1.5">' + esc(p1Name) + '</label>' +
+      '<input id="add-game-p1" type="number" min="0" value="0" class="w-full bg-dc-bg border border-dc-border text-white text-2xl font-mono text-center rounded-lg px-3 py-3 focus:border-theme outline-none"></div>' +
+      '<div><label class="text-xs text-dc-text uppercase tracking-widest block mb-1.5">' + esc(p2Name) + '</label>' +
+      '<input id="add-game-p2" type="number" min="0" value="0" class="w-full bg-dc-bg border border-dc-border text-white text-2xl font-mono text-center rounded-lg px-3 py-3 focus:border-theme outline-none"></div>' +
+      '</div>' +
+      '<div class="flex gap-2 pt-2">' +
+      '<button onclick="TOC.matches.confirmAddGameScore(' + nextGame + ')" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold rounded-lg hover:bg-dc-success/20 transition-colors">Save Game ' + nextGame + '</button>' +
+      '<button onclick="TOC.matches.closeGameScoreModal()" class="px-4 py-2.5 bg-dc-panel border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:bg-white/5 transition-colors">Cancel</button>' +
+      '</div></div>';
+
+    var backdrop = document.createElement('div');
+    backdrop.id = 'game-score-modal';
+    backdrop.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm';
+    backdrop.innerHTML = html;
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) closeGameScoreModal(); });
+    document.body.appendChild(backdrop);
+    setTimeout(function () { var inp = document.getElementById('add-game-p1'); if (inp) inp.focus(); }, 50);
+  }
+
+  function closeGameScoreModal() {
+    var el = document.getElementById('game-score-modal');
+    if (el) el.remove();
+  }
+
+  async function confirmAddGameScore(gameNumber) {
+    var p1Input = document.getElementById('add-game-p1');
+    var p2Input = document.getElementById('add-game-p2');
+    if (!p1Input || !p2Input) return;
+    var p1 = parseInt(p1Input.value, 10) || 0;
+    var p2 = parseInt(p2Input.value, 10) || 0;
+    if (p1 === p2) { toast('Game cannot end in a tie', 'error'); return; }
+    closeGameScoreModal();
+    try {
+      var result = await API('matches/' + selectedMatchId + '/series/game/', {
+        method: 'POST',
+        body: JSON.stringify({ game_number: gameNumber, participant1_score: p1, participant2_score: p2 }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+      if (m) {
+        m.best_of = result.best_of;
+        m.game_scores = result.games;
+        m.participant1_score = result.p1_wins;
+        m.participant2_score = result.p2_wins;
+        renderSeriesPanel(m);
+        renderDetailHeader(m);
+      }
+      if (result.is_complete) {
+        toast('Series complete! Refreshing…', 'success');
+        await refresh();
+        selectMatch(selectedMatchId);
+      } else {
+        toast('Game ' + gameNumber + ' recorded', 'success');
+      }
+    } catch (e) { toast(e.message || 'Failed to record game', 'error'); }
   }
 
   /* -- Evidence Viewer Tab -- */
@@ -597,6 +755,7 @@
     $$('.detail-tab-content').forEach(function (el) { el.classList.add('hidden'); });
     var target = $('#detail-tab-' + tab);
     if (target) target.classList.remove('hidden');
+    if (tab === 'veto') loadVetoTab();
   }
 
   /* ============================================================
@@ -623,12 +782,18 @@
     catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
-  async function forceComplete(id) {
+  function forceComplete(id) {
     var matchId = id || selectedMatchId;
     if (!matchId) return;
-    if (!confirm('Force-complete this match? This cannot be undone.')) return;
-    try { await API.post('matches/' + matchId + '/force-complete/'); toast('Match force-completed', 'info'); refresh(); selectMatch(matchId); }
-    catch (e) { toast(e.message || 'Failed', 'error'); }
+    TOC.dangerConfirm({
+      title: 'Force-Complete Match',
+      message: 'The match outcome will be finalized immediately. This cannot be undone.',
+      confirmText: 'Force Complete',
+      onConfirm: async function () {
+        try { await API.post('matches/' + matchId + '/force-complete/'); toast('Match force-completed', 'info'); refresh(); selectMatch(matchId); }
+        catch (e) { toast(e.message || 'Failed', 'error'); }
+      },
+    });
   }
 
   async function submitScore() {
@@ -691,15 +856,22 @@
     } catch (e) { toast(e.message || 'Failed', 'error'); }
   }
 
-  async function resetMatch() {
+  function resetMatch() {
     if (!selectedMatchId) { toast('No match selected', 'error'); return; }
-    if (!confirm('Reset this match? Scores and state will be cleared. This cannot be undone.')) return;
-    try {
-      await API.post('matches/' + selectedMatchId + '/reset/');
-      toast('Match reset', 'info');
-      refresh();
-      selectMatch(selectedMatchId);
-    } catch (e) { toast(e.message || 'Failed', 'error'); }
+    var matchId = selectedMatchId;
+    TOC.dangerConfirm({
+      title: 'Reset Match',
+      message: 'Scores and match state will be cleared completely. This cannot be undone.',
+      confirmText: 'Reset Match',
+      onConfirm: async function () {
+        try {
+          await API.post('matches/' + matchId + '/reset/');
+          toast('Match reset', 'info');
+          refresh();
+          selectMatch(matchId);
+        } catch (e) { toast(e.message || 'Failed', 'error'); }
+      },
+    });
   }
 
   /* ============================================================
@@ -1064,6 +1236,207 @@
   function closeOverlay(id) { var el = document.getElementById(id); if (el) el.remove(); }
 
   /* ============================================================
+     MAP VETO
+  ============================================================ */
+  var _vetoSession    = null;
+  var _vetoMapPool    = [];
+  var _vetoGameConfig = null;
+
+  async function loadVetoTab() {
+    if (!selectedMatchId) return;
+    var badge = $('#veto-status-badge');
+    if (badge) badge.textContent = 'Loading\u2026';
+    try {
+      var results = await Promise.all([
+        API('settings/veto/' + selectedMatchId + '/').catch(function () { return null; }),
+        API('settings/map-pool/').catch(function () { return []; }),
+        API('settings/game-config/').catch(function () { return {}; }),
+      ]);
+      var sessionData = results[0]; var mapPool = results[1]; var gameConfig = results[2];
+      _vetoSession    = (sessionData && sessionData.id) ? sessionData : null;
+      _vetoMapPool    = Array.isArray(mapPool) ? mapPool.filter(function (mp) { return mp.is_active; }) : [];
+      _vetoGameConfig = gameConfig || {};
+      _renderVetoState();
+    } catch (e) { toast('Failed to load veto data', 'error'); }
+  }
+
+  function _renderVetoState() {
+    var enabled = !!(_vetoGameConfig && _vetoGameConfig.enable_veto);
+    var notCfg    = $('#veto-not-configured');
+    var createBtn = $('#veto-create-btn');
+    var resetBtn  = $('#veto-reset-btn');
+    var seqOverview  = $('#veto-sequence-overview');
+    var activeStep   = $('#veto-active-step');
+    var picksSection = $('#veto-picks-section');
+    var badge      = $('#veto-status-badge');
+    var stepLabel  = $('#veto-step-label');
+
+    if (!enabled) {
+      if (notCfg)    notCfg.classList.remove('hidden');
+      if (createBtn) createBtn.classList.add('hidden');
+      if (resetBtn)  resetBtn.classList.add('hidden');
+      if (seqOverview)  seqOverview.classList.add('hidden');
+      if (activeStep)   activeStep.classList.add('hidden');
+      if (picksSection) picksSection.classList.add('hidden');
+      if (badge) { badge.textContent = 'Disabled'; badge.className = 'text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-dc-surface border border-dc-border text-dc-text'; }
+      return;
+    }
+    if (notCfg) notCfg.classList.add('hidden');
+
+    var vs = _vetoSession;
+    if (!vs) {
+      if (badge) { badge.textContent = 'No Session'; badge.className = 'text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-dc-surface border border-dc-border text-dc-text'; }
+      if (stepLabel)  stepLabel.classList.add('hidden');
+      if (createBtn)  createBtn.classList.remove('hidden');
+      if (resetBtn)   resetBtn.classList.add('hidden');
+      if (seqOverview)  seqOverview.classList.add('hidden');
+      if (activeStep)   activeStep.classList.add('hidden');
+      if (picksSection) picksSection.classList.add('hidden');
+      return;
+    }
+
+    if (createBtn) createBtn.classList.add('hidden');
+    if (resetBtn)  resetBtn.classList.remove('hidden');
+
+    var statusColors = {
+      pending:     'bg-dc-warning/20 text-dc-warning border-dc-warning/30',
+      in_progress: 'bg-theme/20 text-theme border-theme/30',
+      completed:   'bg-dc-success/20 text-dc-success border-dc-success/30',
+      cancelled:   'bg-dc-danger/20 text-dc-danger border-dc-border',
+    };
+    var sc = statusColors[vs.status] || 'bg-dc-surface border-dc-border text-dc-text';
+    if (badge) { badge.textContent = vs.status.replace('_', ' '); badge.className = 'text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border ' + sc; }
+
+    // Sequence overview pills
+    var seq = vs.sequence || [];
+    if (seqOverview && seq.length) {
+      seqOverview.classList.remove('hidden');
+      var stepsContainer = $('#veto-sequence-steps');
+      if (stepsContainer) {
+        stepsContainer.innerHTML = seq.map(function (s, i) {
+          var completed = i < vs.current_step;
+          var active    = i === vs.current_step && vs.status !== 'completed';
+          var actionClass = s.action === 'ban' ? 'bg-dc-danger/20 text-dc-danger border-dc-danger/30'
+            : s.action === 'pick' ? 'bg-dc-success/20 text-dc-success border-dc-success/30'
+            : 'bg-dc-warning/20 text-dc-warning border-dc-warning/30';
+          var completedPick = (vs.picks || []).find(function (p) { return p.step === i; });
+          var label    = completedPick ? _vetoEsc(completedPick.map || '?') : _vetoEsc(s.action);
+          var ringClass = active ? ' ring-2 ring-theme ring-offset-1 ring-offset-dc-bg' : '';
+          var opClass   = (completed || active) ? '' : ' opacity-40';
+          return '<span class="text-[11px] font-bold px-2 py-1 rounded-lg border ' + actionClass + ringClass + opClass + '" title="Step ' + (i + 1) + ': ' + _vetoEsc(s.action) + ' (' + _vetoEsc(s.team || '') + ')">' + label + '</span>';
+        }).join('');
+      }
+    } else if (seqOverview) {
+      seqOverview.classList.add('hidden');
+    }
+
+    // Active step panel (pending or in_progress)
+    if (vs.status === 'in_progress' || vs.status === 'pending') {
+      var currentStepDef = seq[vs.current_step];
+      if (currentStepDef && activeStep) {
+        activeStep.classList.remove('hidden');
+        var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
+        var teamName    = _resolveVetoTeam(currentStepDef.team, m);
+        var actionLabel = $('#veto-action-label');
+        var teamLabel   = $('#veto-team-label');
+        var stepCounter = $('#veto-step-counter');
+        var mapGrid     = $('#veto-map-grid');
+        if (actionLabel) actionLabel.textContent = currentStepDef.action === 'ban' ? 'Ban' : currentStepDef.action === 'pick' ? 'Pick' : 'Decider';
+        if (teamLabel)   teamLabel.textContent = teamName + '\u2019s turn';
+        if (stepCounter) stepCounter.textContent = 'Step ' + (vs.current_step + 1) + ' / ' + seq.length;
+        // Map grid — exclude already used maps
+        var usedMaps = (vs.picks || []).map(function (p) { return (p.map || '').toLowerCase(); });
+        var available = _vetoMapPool.filter(function (mp) { return !usedMaps.includes((mp.map_name || '').toLowerCase()); });
+        if (!available.length) available = _vetoMapPool;
+        if (mapGrid) {
+          mapGrid.innerHTML = available.map(function (mp) {
+            return '<button onclick="TOC.matches.doVetoAction(this.dataset.map)" data-map="' + _vetoEsc(mp.map_name) + '" '
+              + 'class="px-3 py-2 rounded-lg border border-dc-border bg-dc-surface text-xs font-bold text-dc-textBright hover:border-theme/60 hover:bg-theme/10 hover:text-white transition-colors truncate text-left">'
+              + _vetoEsc(mp.map_name) + '</button>';
+          }).join('');
+        }
+      } else if (activeStep) { activeStep.classList.add('hidden'); }
+      if (stepLabel) stepLabel.classList.add('hidden');
+    } else {
+      if (activeStep) activeStep.classList.add('hidden');
+      if (stepLabel) { stepLabel.classList.remove('hidden'); stepLabel.textContent = vs.status === 'completed' ? 'All steps complete' : ''; }
+    }
+
+    // Picks list
+    var picks = vs.picks || [];
+    if (picksSection && picks.length) {
+      picksSection.classList.remove('hidden');
+      var picksList = $('#veto-picks-list');
+      if (picksList) {
+        picksList.innerHTML = picks.map(function (p) {
+          var ac = p.action === 'ban' ? 'text-dc-danger bg-dc-danger/10' : p.action === 'pick' ? 'text-dc-success bg-dc-success/10' : 'text-dc-warning bg-dc-warning/10';
+          return '<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-dc-surface/50 border border-dc-border">'
+            + '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ' + ac + '">' + _vetoEsc(p.action || '?') + '</span>'
+            + '<span class="flex-1 text-xs font-bold text-white truncate">' + _vetoEsc(p.map || '\u2014') + '</span>'
+            + '<span class="text-[10px] font-mono text-dc-text">' + _vetoEsc(p.team || '') + '</span>'
+            + '</div>';
+        }).join('');
+      }
+    } else if (picksSection) { picksSection.classList.add('hidden'); }
+  }
+
+  function _resolveVetoTeam(teamKey, match) {
+    if (!match) return teamKey || 'TBD';
+    if (teamKey === 'higher_seed' || teamKey === 'team_a') return match.participant1_name || 'Team A';
+    if (teamKey === 'lower_seed'  || teamKey === 'team_b') return match.participant2_name || 'Team B';
+    return teamKey || 'TBD';
+  }
+
+  function _vetoEsc(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  async function createVetoSession() {
+    if (!selectedMatchId) return;
+    var seq = (_vetoGameConfig && _vetoGameConfig.veto_sequence) ? _vetoGameConfig.veto_sequence : [];
+    if (!seq.length) { toast('No veto sequence defined. Configure it in Settings \u203a Game Config.', 'error'); return; }
+    var vetoType = (_vetoGameConfig && _vetoGameConfig.veto_type) || 'standard';
+    try {
+      await API('settings/veto/' + selectedMatchId + '/', { method: 'POST', body: JSON.stringify({ veto_type: vetoType, sequence: seq }), headers: { 'Content-Type': 'application/json' } });
+      var sessionData = await API('settings/veto/' + selectedMatchId + '/').catch(function () { return null; });
+      _vetoSession = (sessionData && sessionData.id) ? sessionData : null;
+      _renderVetoState();
+      toast('Veto session started', 'success');
+    } catch (e) { toast(e.message || 'Failed to create session', 'error'); }
+  }
+
+  async function resetVetoSession() {
+    if (!selectedMatchId) return;
+    var seq = (_vetoGameConfig && _vetoGameConfig.veto_sequence) ? _vetoGameConfig.veto_sequence : [];
+    var vetoType = (_vetoGameConfig && _vetoGameConfig.veto_type) || 'standard';
+    try {
+      await API('settings/veto/' + selectedMatchId + '/', { method: 'POST', body: JSON.stringify({ veto_type: vetoType, sequence: seq }), headers: { 'Content-Type': 'application/json' } });
+      var sessionData = await API('settings/veto/' + selectedMatchId + '/').catch(function () { return null; });
+      _vetoSession = (sessionData && sessionData.id) ? sessionData : null;
+      _renderVetoState();
+      toast('Veto session reset', 'success');
+    } catch (e) { toast(e.message || 'Failed to reset', 'error'); }
+  }
+
+  async function doVetoAction(mapName) {
+    if (!selectedMatchId || !_vetoSession) return;
+    var vs  = _vetoSession;
+    var seq = vs.sequence || [];
+    var step = seq[vs.current_step];
+    if (!step) return;
+    try {
+      var result = await API('settings/veto/' + selectedMatchId + '/advance/', {
+        method: 'POST',
+        body: JSON.stringify({ action: step.action, team: step.team, map: mapName }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      _vetoSession = Object.assign({}, vs, { current_step: result.current_step, status: result.status, picks: result.picks });
+      _renderVetoState();
+      if (result.status === 'completed') toast('Veto complete!', 'success');
+    } catch (e) { toast(e.message || 'Failed to advance veto', 'error'); }
+  }
+
+  /* ============================================================
      KEYBOARD NAVIGATION
   ============================================================ */
   function handleKeyboard(e) {
@@ -1111,10 +1484,11 @@
       clearDetail();
     }
 
-    // Tab switching: 1=Score, 2=Evidence, 3=Audit
+    // Tab switching: 1=Score, 2=Evidence, 3=Audit, 4=Veto
     if (e.key === '1' && selectedMatchId) { switchDetailTab('score'); }
     if (e.key === '2' && selectedMatchId) { switchDetailTab('evidence'); }
     if (e.key === '3' && selectedMatchId) { switchDetailTab('audit'); }
+    if (e.key === '4' && selectedMatchId) { switchDetailTab('veto'); }
 
     // Quick actions (with no modifier)
     if (e.key === 's' || e.key === 'S') { if (selectedMatchId) { switchDetailTab('score'); $('#score-input-a')?.focus(); } }
@@ -1154,6 +1528,11 @@
     startPan: startPan, doPan: doPan, endPan: endPan,
     startTouch: startTouch, doTouch: doTouch,
     closeOverlay: closeOverlay,
+    // Series (BO3/BO5)
+    setBestOf: setBestOf,
+    openAddGameScore: openAddGameScore, closeGameScoreModal: closeGameScoreModal, confirmAddGameScore: confirmAddGameScore,
+    // Map Veto
+    createVetoSession: createVetoSession, resetVetoSession: resetVetoSession, doVetoAction: doVetoAction,
   };
 
   document.addEventListener('toc:tab-changed', function (e) {

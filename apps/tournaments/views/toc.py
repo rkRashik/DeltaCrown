@@ -75,6 +75,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['game_slug'] = game.slug if game else 'default'
         ctx['game_category'] = getattr(game, 'category', 'OTHER') if game else 'OTHER'
         ctx['game_type'] = getattr(game, 'game_type', 'TEAM_VS_TEAM') if game else 'TEAM_VS_TEAM'
+        ctx['game_id_label'] = getattr(game, 'game_id_label', 'Game ID') if game else 'Game ID'
         ctx['tournament_mode'] = getattr(t, 'mode', 'online')
         ctx['game_colors'] = {
             'primary': getattr(game, 'primary_color', '#3B82F6') or '#3B82F6',

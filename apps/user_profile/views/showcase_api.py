@@ -437,7 +437,18 @@ def add_showcase_highlight(request):
             user_profile=user_profile
         )
         
-        # TODO: Add validation that item_id belongs to user (depends on type)
+        # Validate that item_id belongs to user based on type
+        if highlight_type == 'tournament':
+            from apps.tournaments.models import Registration
+            if not Registration.objects.filter(
+                user=request.user,
+                tournament_id=item_id,
+                status__in=['confirmed', 'pending', 'payment_submitted'],
+            ).exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Tournament not found in your registrations'
+                }, status=403)
         
         showcase.add_highlight(highlight_type, item_id, label, icon, metadata)
         

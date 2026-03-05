@@ -707,6 +707,23 @@ class TournamentDetailView(DetailView):
             if not groups.exists():
                 return context
 
+            # Pre-fetch team names for all group standings with team_id
+            all_group_standings = GroupStanding.objects.filter(
+                group__tournament=tournament,
+                is_deleted=False,
+            ).exclude(team_id__isnull=True).values_list('team_id', flat=True)
+            team_ids = list(set(all_group_standings))
+            team_name_map = {}
+            team_logo_map = {}
+            if team_ids:
+                from apps.organizations.models import Team as OrgTeam
+                for t in OrgTeam.objects.filter(id__in=team_ids).only('id', 'name', 'logo'):
+                    team_name_map[t.id] = t.name
+                    try:
+                        team_logo_map[t.id] = t.logo.url if t.logo else ''
+                    except Exception:
+                        team_logo_map[t.id] = ''
+
             all_standings = []
             group_summaries = []
 
@@ -714,15 +731,15 @@ class TournamentDetailView(DetailView):
                 group_standings = GroupStanding.objects.filter(
                     group=group,
                     is_deleted=False
-                ).select_related('team', 'user').order_by('rank')
+                ).select_related('user').order_by('rank')
 
                 advancers = []
                 others = []
 
                 for idx, standing in enumerate(group_standings, start=1):
-                    if standing.team:
-                        participant_name = standing.team.name
-                        participant_id = f"team-{standing.team.id}"
+                    if standing.team_id:
+                        participant_name = team_name_map.get(standing.team_id, f"Team {standing.team_id}")
+                        participant_id = f"team-{standing.team_id}"
                     elif standing.user:
                         participant_name = standing.user.profile.display_name if hasattr(standing.user, 'profile') and standing.user.profile.display_name else standing.user.username
                         participant_id = f"user-{standing.user.id}"
@@ -800,7 +817,7 @@ class TournamentDetailView(DetailView):
             for reg in registrations:
                 if reg.team_id:
                     team = teams_map.get(reg.team_id)
-                    participant_name = team.name if team else f"Team #{reg.team_id}"
+                    participant_name = team.name if team else f"Team {reg.team_id}"
                     participant_id = f"team-{reg.team_id}"
                     pid = reg.team_id
                 elif reg.user:

@@ -250,7 +250,6 @@
                 }
             });
             
-            console.log('Privacy settings loaded');
         } catch (error) {
             console.error('Failed to load privacy settings:', error);
         }
@@ -389,8 +388,6 @@
         const settingsNav = document.querySelector('.settings-nav-item');
         if (!settingsNav) return;
         
-        console.log('Initializing Settings Hub (UP-UI-REBIRTH-01)...');
-        
         try {
             initSectionNav();
             initToggleSwitches();
@@ -400,8 +397,7 @@
             
             // Load privacy settings on page load
             await loadPrivacySettings();
-            
-            console.log('✅ Settings Hub initialized with unsaved changes tracking');
+
         } catch (error) {
             console.error('Error initializing Settings:', error);
         }

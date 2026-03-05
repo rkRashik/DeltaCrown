@@ -349,6 +349,7 @@
    */
   async function searchPlayers(query) {
     const resultsContainer = document.getElementById('player-search-results');
+    if (!resultsContainer) return;
     if (!query || query.length < 2) {
       resultsContainer.innerHTML = '';
       return;
@@ -357,18 +358,23 @@
     resultsContainer.innerHTML = '<div class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> Searching...</div>';
 
     try {
-      // TODO: Implement actual player search API
-      setTimeout(() => {
-        resultsContainer.innerHTML = `
-          <div class="search-result-item">
-            <img src="/static/img/user_avatar/default-avatar.png" alt="Player">
-            <span>Example Player</span>
-            <button class="btn btn-sm btn-primary">Select</button>
-          </div>
-        `;
-      }, 500);
+      const teamSlug = document.body.dataset.teamSlug || window.TEAM_SLUG || '';
+      const resp = await fetch(`/api/teams/${teamSlug}/search-players/?q=${encodeURIComponent(query)}`);
+      if (!resp.ok) throw new Error('Search failed');
+      const data = await resp.json();
+      if (!data.results || data.results.length === 0) {
+        resultsContainer.innerHTML = '<div class="text-dc-text/50 text-xs py-2">No players found</div>';
+        return;
+      }
+      resultsContainer.innerHTML = data.results.map(p =>
+        `<div class="search-result-item">
+          <img src="${p.avatar || '/static/img/user_avatar/default-avatar.png'}" alt="${p.username}" class="w-6 h-6 rounded-full">
+          <span>${p.username}</span>
+          <button class="btn btn-sm btn-primary" data-username="${p.username}">Select</button>
+        </div>`
+      ).join('');
     } catch (error) {
-      resultsContainer.innerHTML = '<div class="text-error">Failed to search players</div>';
+      resultsContainer.innerHTML = '<div class="text-error text-xs">Failed to search players</div>';
     }
   }
 
@@ -380,8 +386,8 @@
     if (generalForm) {
       generalForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // TODO: Implement save general settings
-        alert('General settings saved! (API integration pending)');
+        // TODO: Implement save general settings via API
+        if (window.Toast) window.Toast.info('General settings saved! (API integration pending)');
       });
     }
 
@@ -389,8 +395,8 @@
     if (brandingForm) {
       brandingForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // TODO: Implement save branding
-        alert('Branding saved! (API integration pending)');
+        // TODO: Implement save branding via API
+        if (window.Toast) window.Toast.info('Branding saved! (API integration pending)');
       });
     }
 
@@ -398,8 +404,8 @@
     if (privacyForm) {
       privacyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // TODO: Implement save privacy settings
-        alert('Privacy settings saved! (API integration pending)');
+        // TODO: Implement save privacy settings via API
+        if (window.Toast) window.Toast.info('Privacy settings saved! (API integration pending)');
       });
     }
   }

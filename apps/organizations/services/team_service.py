@@ -179,22 +179,30 @@ class TeamService:
             badge_url = team.organization.badge.url if team.organization.badge else None
         else:
             # Use team's own logo (or fallback)
-            logo_url = team.logo.url if team.logo else '/static/images/default_team_logo.png'
+            logo_url = team.logo.url if team.logo else '/static/img/teams/default-logo.svg'
             badge_url = None
             # If org team without brand enforcement, still show org badge if available
             if is_org_team and team.organization.badge:
                 badge_url = team.organization.badge.url
         
         # Build TeamIdentity DTO
-        # TODO: game_name will need lookup from games.Game in Phase 4
-        # For now, using game_id as placeholder
+        # Lookup game display name from games.Game
+        game_name = f"Game {team.game_id}"
+        try:
+            from apps.games.models import Game as _Game
+            _game = _Game.objects.only('display_name').filter(id=team.game_id).first()
+            if _game:
+                game_name = _game.display_name
+        except Exception:
+            pass
+
         return TeamIdentity(
             team_id=team.id,
             name=team.name,
             slug=team.slug,
             logo_url=logo_url,
             badge_url=badge_url,
-            game_name=f"Game {team.game_id}",  # TODO: Replace with actual game lookup in Phase 4
+            game_name=game_name,
             game_id=team.game_id,
             region=team.region,
             is_verified=team.organization.is_verified if is_org_team else False,
@@ -534,7 +542,7 @@ class TeamService:
             'id': team.id,
             'name': team.name,
             'slug': team.slug,
-            'logo_url': team.logo.url if team.logo else '/static/images/default_team_logo.png',
+            'logo_url': team.logo.url if team.logo else '/static/img/teams/default-logo.svg',
             'banner_url': team.banner.url if team.banner else None,
             'game_id': team.game_id,
             'region': team.region,
@@ -990,7 +998,7 @@ class TeamService:
                 'id': team.id,
                 'name': team.name,
                 'slug': team.slug,
-                'logo_url': team.logo.url if team.logo else '/static/images/default_team_logo.png',
+                'logo_url': team.logo.url if team.logo else '/static/img/teams/default-logo.svg',
                 'banner_url': team.banner.url if team.banner else None,
                 'game_id': team.game_id,
                 'region': team.region,

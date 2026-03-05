@@ -85,6 +85,7 @@
     renderHealthScore(data.health_score);
     renderUpcomingMatches(data.upcoming_matches);
     renderGroupProgress(data.group_progress);
+    renderCountdowns(data.countdowns || []);
     updateGlobalStatus(data);
     // Async side-channels (non-blocking)
     loadQuickStats();
@@ -611,9 +612,17 @@
       </div>
       <div class="grid grid-cols-2 gap-2">
         ${(gp.groups || []).map(function (g) {
-          return '<div class="bg-dc-bg border border-dc-border rounded-lg p-2 text-center">' +
+          var gPct = g.matches_total > 0 ? Math.round((g.matches_completed / g.matches_total) * 100) : 0;
+          var gLabel = g.matches_total > 0
+            ? g.matches_completed + '/' + g.matches_total
+            : (g.teams || 0) + ' teams';
+          return '<div class="bg-dc-bg border border-dc-border rounded-lg p-2">' +
+            '<div class="flex items-center justify-between mb-1">' +
             '<p class="text-[9px] font-bold text-white truncate">' + _esc(g.name) + '</p>' +
-            '<p class="text-[8px] text-dc-text font-mono mt-0.5">' + (g.teams || 0) + ' teams</p>' +
+            '<span class="text-[8px] text-dc-text font-mono">' + gLabel + '</span></div>' +
+            (g.matches_total > 0
+              ? '<div class="h-1 bg-dc-panel rounded-full overflow-hidden"><div class="h-full bg-theme rounded-full transition-all" style="width:' + gPct + '%"></div></div>'
+              : '') +
           '</div>';
         }).join('')}
       </div>
@@ -837,6 +846,91 @@
     if (hours > 24) return `${Math.floor(hours / 24)}d`;
     if (hours > 0) return `${hours}h ${mins}m`;
     return `${mins}m`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Countdown Timers
+  // ═══════════════════════════════════════════════════════════════
+
+  let _countdownTimers = [];
+
+  function renderCountdowns(countdowns) {
+    const container = $('#overview-countdowns');
+    if (!container) return;
+
+    // Stop any existing tickers
+    _countdownTimers.forEach(id => clearInterval(id));
+    _countdownTimers = [];
+
+    if (!countdowns || !countdowns.length) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = '';
+
+    // Map countdown types to colors
+    const typeColor = {
+      registration: 'text-dc-info border-dc-info/30 bg-dc-info/5',
+      start: 'text-dc-success border-dc-success/30 bg-dc-success/5',
+      match: 'text-theme border-theme/30 bg-theme/5',
+      checkin: 'text-dc-warning border-dc-warning/30 bg-dc-warning/5',
+    };
+    const typeIcon = {
+      registration: 'user-plus',
+      start: 'play-circle',
+      match: 'swords',
+      checkin: 'user-check',
+    };
+
+    // Create card for each countdown
+    countdowns.forEach((cd, idx) => {
+      const cardId = `cd-card-${idx}`;
+      const colorClass = typeColor[cd.type] || 'text-dc-text border-dc-border/30 bg-dc-surface/50';
+      const icon = typeIcon[cd.type] || 'clock';
+
+      const card = document.createElement('div');
+      card.id = cardId;
+      card.className = `flex items-center gap-3 px-4 py-3 rounded-xl border ${colorClass} min-w-[200px]`;
+      card.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i>
+        <div>
+          <div class="text-[10px] uppercase tracking-widest opacity-70">${cd.label}</div>
+          <div class="text-sm font-bold font-mono" id="cd-time-${idx}">--:--:--</div>
+        </div>`;
+      container.appendChild(card);
+
+      // Live tick
+      let seconds = cd.seconds_remaining;
+      let timerId;
+      function tick() {
+        if (seconds <= 0) {
+          const el = $(`#cd-time-${idx}`);
+          if (el) el.textContent = 'Now!';
+          if (timerId) clearInterval(timerId);
+          return;
+        }
+        const d = Math.floor(seconds / 86400);
+        const h = Math.floor((seconds % 86400) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        const el = $(`#cd-time-${idx}`);
+        if (el) {
+          if (d > 0) {
+            el.textContent = `${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          } else {
+            el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          }
+        }
+        seconds--;
+      }
+      tick();
+      timerId = setInterval(tick, 1000);
+      _countdownTimers.push(timerId);
+    });
+
+    _reinitIcons();
   }
 
   function _reinitIcons() {

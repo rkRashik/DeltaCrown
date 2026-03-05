@@ -141,16 +141,42 @@ def _on_enter_published(t: Tournament) -> None:
         t.save(update_fields=['published_at'])
 
 
+def _on_enter_registration_open(t: Tournament) -> None:
+    try:
+        from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+        TOCNotificationsService.fire_auto_event(t, "registration_open")
+    except Exception:
+        pass
+
+
+def _on_enter_registration_closed(t: Tournament) -> None:
+    try:
+        from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+        TOCNotificationsService.fire_auto_event(t, "registration_closed")
+    except Exception:
+        pass
+
+
 def _on_enter_live(t: Tournament) -> None:
     if not t.tournament_start or t.tournament_start > timezone.now():
         # Snap start time to now if it hasn't started yet
         pass  # We leave tournament_start as configured
+    try:
+        from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+        TOCNotificationsService.fire_auto_event(t, "tournament_live")
+    except Exception:
+        pass
 
 
 def _on_enter_completed(t: Tournament) -> None:
     if not t.tournament_end:
         t.tournament_end = timezone.now()
         t.save(update_fields=['tournament_end'])
+    try:
+        from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+        TOCNotificationsService.fire_auto_event(t, "tournament_complete")
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -162,8 +188,8 @@ TRANSITIONS: List[Transition] = [
     Transition(Tournament.DRAFT, Tournament.PUBLISHED, guard=_guard_publish, on_enter=_on_enter_published),
     Transition(Tournament.DRAFT, Tournament.PENDING_APPROVAL),
     Transition(Tournament.PENDING_APPROVAL, Tournament.PUBLISHED, on_enter=_on_enter_published),
-    Transition(Tournament.PUBLISHED, Tournament.REGISTRATION_OPEN, guard=_guard_open_registration),
-    Transition(Tournament.REGISTRATION_OPEN, Tournament.REGISTRATION_CLOSED, guard=_guard_close_registration),
+    Transition(Tournament.PUBLISHED, Tournament.REGISTRATION_OPEN, guard=_guard_open_registration, on_enter=_on_enter_registration_open),
+    Transition(Tournament.REGISTRATION_OPEN, Tournament.REGISTRATION_CLOSED, guard=_guard_close_registration, on_enter=_on_enter_registration_closed),
     Transition(Tournament.REGISTRATION_CLOSED, Tournament.LIVE, guard=_guard_go_live, on_enter=_on_enter_live),
     Transition(Tournament.LIVE, Tournament.COMPLETED, guard=_guard_complete, on_enter=_on_enter_completed),
     Transition(Tournament.COMPLETED, Tournament.ARCHIVED, guard=_guard_archive),
@@ -180,7 +206,7 @@ TRANSITIONS: List[Transition] = [
     Transition(Tournament.CANCELLED, Tournament.ARCHIVED),
 
     # Shortcut: DRAFT → REGISTRATION_OPEN (when publish + reg dates already passed)
-    Transition(Tournament.DRAFT, Tournament.REGISTRATION_OPEN, guard=_guard_open_registration, on_enter=_on_enter_published),
+    Transition(Tournament.DRAFT, Tournament.REGISTRATION_OPEN, guard=_guard_open_registration, on_enter=lambda t: (_on_enter_published(t), _on_enter_registration_open(t))),  # noqa: E731
 ]
 
 # Build a fast lookup: (from, to) → Transition

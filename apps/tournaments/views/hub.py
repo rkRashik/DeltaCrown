@@ -30,6 +30,7 @@ from apps.tournaments.models import (
     LobbyAnnouncement,
     TournamentSponsor,
     PrizeClaim,
+    TournamentStaff,
 )
 from apps.tournaments.models.bracket import Bracket, BracketNode
 from apps.tournaments.models.group import Group, GroupStanding
@@ -43,6 +44,23 @@ logger = logging.getLogger(__name__)
 # ────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────
+
+def _is_tournament_staff_or_organizer(user, tournament):
+    """Check if user is the organizer, a site admin, or assigned tournament staff."""
+    if not user or not user.is_authenticated:
+        return False
+    # Organizer / superuser / site staff
+    if user == tournament.organizer or user.is_staff or user.is_superuser:
+        return True
+    # Legacy TournamentStaff assignments
+    if TournamentStaff.objects.filter(tournament=tournament, user=user).exists():
+        return True
+    # Phase 7 StaffAssignment
+    from apps.tournaments.models.staffing import TournamentStaffAssignment
+    if TournamentStaffAssignment.objects.filter(tournament=tournament, user=user).exists():
+        return True
+    return False
+
 
 def _get_user_registration(user, tournament):
     """Return the user's active Registration for this tournament (individual or team)."""
@@ -103,7 +121,7 @@ def _build_hub_context(request, tournament, registration):
         check_in_countdown = lobby.check_in_countdown_seconds
 
         # Personal check-in record
-        if is_team and registration.team_id:
+        if is_team and registration and registration.team_id:
             check_in = CheckIn.objects.filter(
                 tournament=tournament,
                 team_id=registration.team_id,
@@ -123,7 +141,7 @@ def _build_hub_context(request, tournament, registration):
     squad = []
     squad_warnings = []
     igl_user_id = None
-    if is_team and registration.team_id:
+    if is_team and registration and registration.team_id:
         # Prefer lineup_snapshot from registration (frozen at registration time)
         lineup_snapshot = getattr(registration, 'lineup_snapshot', None) or []
 
@@ -332,7 +350,7 @@ def _build_hub_context(request, tournament, registration):
     team_detail_url = ''
     is_captain = False
     roster_locked = False
-    if is_team and registration.team_id:
+    if is_team and registration and registration.team_id:
         from apps.organizations.models import Team
         try:
             team = Team.objects.get(id=registration.team_id)
@@ -441,11 +459,19 @@ def _build_hub_context(request, tournament, registration):
         # Social / Contact
         'discord_url': tournament.social_discord or (lobby.discord_server_url if lobby else ''),
         'contact_email': tournament.contact_email or '',
+        'contact_phone': getattr(tournament, 'contact_phone', '') or '',
         'organizer_name': tournament.organizer.get_full_name() or tournament.organizer.username if tournament.organizer else 'Organizer',
         'social_twitter': tournament.social_twitter or '',
         'social_instagram': tournament.social_instagram or '',
         'social_youtube': tournament.social_youtube or '',
         'social_website': tournament.social_website or '',
+        'social_facebook': getattr(tournament, 'social_facebook', '') or '',
+        'social_tiktok': getattr(tournament, 'social_tiktok', '') or '',
+        'support_info': getattr(tournament, 'support_info', '') or '',
+
+        # Streaming URLs
+        'stream_twitch_url': getattr(tournament, 'stream_twitch_url', '') or '',
+        'stream_youtube_url': getattr(tournament, 'stream_youtube_url', '') or '',
 
         # Support system API
         'api_support_url': f'/tournaments/{tournament.slug}/hub/api/support/',
@@ -456,6 +482,17 @@ def _build_hub_context(request, tournament, registration):
 def _build_status_detail(registration, check_in, tournament, now):
     """Build detailed status info for the status modal."""
     import json
+
+    if not registration:
+        return {
+            'raw_status': 'staff',
+            'label': 'Staff / Organizer',
+            'registered_at': '',
+            'registered_at_display': '',
+            'tournament_name': tournament.name,
+            'steps': [{'label': 'Organizer Access', 'done': True, 'icon': 'shield-check'}],
+            'steps_json': json.dumps([{'label': 'Organizer Access', 'done': True, 'icon': 'shield-check'}]),
+        }
 
     status = registration.status
     detail = {
@@ -568,6 +605,8 @@ def _registration_status_label(registration, check_in):
         return 'Eliminated'
     if check_in and check_in.is_checked_in:
         return 'Checked In'
+    if not registration:
+        return 'Staff / Organizer'
     status_map = {
         'confirmed': 'Registered',
         'auto_approved': 'Registered',
@@ -624,8 +663,11 @@ class TournamentHubView(LoginRequiredMixin, View):
             slug=slug,
         )
 
+        # Staff / organizer bypass — they don't need a registration
+        is_staff_or_organizer = _is_tournament_staff_or_organizer(request.user, tournament)
+
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not is_staff_or_organizer:
             messages.warning(
                 request,
                 "You must be registered for this tournament to access The Hub."
@@ -633,6 +675,7 @@ class TournamentHubView(LoginRequiredMixin, View):
             return redirect('tournaments:detail', slug=slug)
 
         context = _build_hub_context(request, tournament, registration)
+        context['is_staff_or_organizer'] = is_staff_or_organizer
         return render(request, self.template_name, context)
 
 
@@ -645,7 +688,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         now = timezone.now()
@@ -655,13 +698,13 @@ class HubStateAPIView(LoginRequiredMixin, View):
         check_in = None
         if lobby:
             from apps.organizations.models import TeamMembership
-            if tournament.participation_type == 'team' and registration.team_id:
+            if tournament.participation_type == 'team' and registration and registration.team_id:
                 check_in = CheckIn.objects.filter(
                     tournament=tournament,
                     team_id=registration.team_id,
                     is_deleted=False,
                 ).first()
-            else:
+            elif registration:
                 check_in = CheckIn.objects.filter(
                     tournament=tournament,
                     user=request.user,
@@ -696,12 +739,12 @@ class HubCheckInAPIView(LoginRequiredMixin, View):
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         try:
             team_id = None
-            if tournament.participation_type == 'team' and registration.team_id:
+            if tournament.participation_type == 'team' and registration and registration.team_id:
                 team_id = registration.team_id
 
             check_in = LobbyService.perform_check_in(
@@ -723,7 +766,7 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         lobby = getattr(tournament, 'lobby', None)
@@ -758,14 +801,15 @@ class HubRosterAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         try:
             roster_data = LobbyService.get_roster(tournament.id)
             return JsonResponse(roster_data)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            logger.error(f"Error fetching roster for {slug}: {e}", exc_info=True)
+            return JsonResponse({'error': 'Failed to load roster'}, status=500)
 
 
 class HubSquadAPIView(LoginRequiredMixin, View):
@@ -778,10 +822,10 @@ class HubSquadAPIView(LoginRequiredMixin, View):
         import json
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
-        if tournament.participation_type != 'team' or not registration.team_id:
+        if not registration or tournament.participation_type != 'team' or not registration.team_id:
             return JsonResponse({'error': 'Not a team tournament'}, status=400)
 
         from apps.organizations.models import Team, TeamMembership
@@ -883,7 +927,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
             slug=slug,
         )
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         # ── Rules ──────────────────────────────────────
@@ -963,7 +1007,7 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         # ── Prize Pool Info ────────────────────────────
@@ -1023,7 +1067,7 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
 
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         try:
@@ -1098,7 +1142,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         try:
@@ -1167,7 +1211,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         is_team = tournament.participation_type == 'team'
@@ -1196,7 +1240,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                         name = t.name
                     except Team.DoesNotExist:
                         name = f'Team #{s.team_id}'
-                    is_you = s.team_id == registration.team_id
+                    is_you = registration and s.team_id == registration.team_id
                 elif s.user_id:
                     name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'
                     is_you = s.user_id == request.user.id
@@ -1236,11 +1280,11 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         is_team = tournament.participation_type == 'team'
-        participant_id = registration.team_id if is_team else request.user.id
+        participant_id = (registration.team_id if registration else None) if is_team else request.user.id
 
         # Get user's matches
         user_matches = Match.objects.filter(
@@ -1303,7 +1347,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         is_team = tournament.participation_type == 'team'
@@ -1316,13 +1360,13 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         ).select_related('user').order_by('created_at')
 
         # Check if user's own registration is unverified (not in confirmed list)
-        user_reg_confirmed = registration.status in ('confirmed', 'auto_approved')
+        user_reg_confirmed = registration.status in ('confirmed', 'auto_approved') if registration else False
         seen_ids = set()
 
         participants = []
 
         # If user's team is NOT confirmed, add it first with "pending" status
-        if not user_reg_confirmed:
+        if registration and not user_reg_confirmed:
             user_entry = self._build_participant(
                 registration, is_team, registration, tournament, request.user,
                 verified=False,
@@ -1433,7 +1477,7 @@ class HubSupportAPIView(LoginRequiredMixin, View):
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('organizer'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
-        if not registration:
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         try:

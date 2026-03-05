@@ -27,6 +27,7 @@ Supported Games:
 
 from typing import List, Dict, Optional, Tuple
 from decimal import Decimal
+import functools
 import logging
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -948,7 +949,7 @@ class GroupStageService:
         Tiebreaker order (from GameTournamentConfig):
         1. Points
         2. Wins
-        3. Head-to-head (TODO: Epic 3.5)
+        3. Head-to-head (implemented — comparator-based via functools.cmp_to_key)
         4. Goal/score difference
         5. Goals/score for
         
@@ -1096,21 +1097,55 @@ class GroupStageService:
             for data in standings_data.values():
                 data["goal_diff"] = data["goals_for"] - data["goals_against"]
             
-            # Sort by tiebreakers (from config)
-            def build_sort_key(standing_data):
-                key = []
-                for rule in tiebreaker_rules:
-                    if rule == 'points':
-                        key.append(-standing_data["points"])
-                    elif rule == 'wins':
-                        key.append(-standing_data["wins"])
-                    elif rule == 'goal_difference' or rule == 'score_difference':
-                        key.append(-standing_data["goal_diff"])
-                    elif rule == 'goals_for' or rule == 'score_for':
-                        key.append(-standing_data["goals_for"])
-                return tuple(key)
+            # Build head-to-head results map (Epic 3.5)
+            # h2h_results[(p1_id, p2_id)] = 1 if p1 won, -1 if p2 won, 0 if draw / no result
+            h2h_results: Dict = {}
+            for match in matches:
+                p1_id = match.participant1_id
+                p2_id = match.participant2_id
+                if match.winner_id == p1_id:
+                    h2h_results[(p1_id, p2_id)] = 1
+                    h2h_results[(p2_id, p1_id)] = -1
+                elif match.winner_id == p2_id:
+                    h2h_results[(p1_id, p2_id)] = -1
+                    h2h_results[(p2_id, p1_id)] = 1
+                else:
+                    h2h_results.setdefault((p1_id, p2_id), 0)
+                    h2h_results.setdefault((p2_id, p1_id), 0)
             
-            sorted_standings = sorted(standings_data.values(), key=build_sort_key)
+            # Sort by tiebreakers using comparator (supports head-to-head, from config)
+            def _cmp_standings(a, b):
+                for rule in tiebreaker_rules:
+                    if rule in ('head_to_head', 'h2h'):
+                        # Positive = a is ranked higher (better)
+                        h2h = h2h_results.get((a["participant_id"], b["participant_id"]))
+                        if h2h is not None and h2h != 0:
+                            return -h2h  # -1 means a beat b → a ranks first
+                    else:
+                        a_val = _tiebreaker_val(a, rule)
+                        b_val = _tiebreaker_val(b, rule)
+                        if a_val > b_val:
+                            return -1  # a ranks higher
+                        if a_val < b_val:
+                            return 1   # b ranks higher
+                return 0
+            
+            def _tiebreaker_val(data, rule):
+                """Return numeric value for a tiebreaker rule (higher = better)."""
+                if rule == 'points':
+                    return data["points"]
+                if rule == 'wins':
+                    return data["wins"]
+                if rule in ('goal_difference', 'score_difference'):
+                    return data["goal_diff"]
+                if rule in ('goals_for', 'score_for'):
+                    return data["goals_for"]
+                return 0
+            
+            sorted_standings = sorted(
+                standings_data.values(),
+                key=functools.cmp_to_key(_cmp_standings),
+            )
             
             # Assign ranks and update database
             for rank, data in enumerate(sorted_standings, start=1):

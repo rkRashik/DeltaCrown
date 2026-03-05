@@ -105,6 +105,7 @@ urlpatterns = [
 
     # ── Schedule (S5-B6 through S5-B9) ──
     path('<slug:slug>/schedule/', brackets.ScheduleGetView.as_view(), name='schedule'),
+    path('<slug:slug>/schedule/export.ics', brackets.ScheduleExportICSView.as_view(), name='schedule-export-ics'),
     path('<slug:slug>/schedule/auto-generate/', brackets.ScheduleAutoGenerateView.as_view(), name='schedule-auto-generate'),
     path('<slug:slug>/schedule/bulk-shift/', brackets.ScheduleBulkShiftView.as_view(), name='schedule-bulk-shift'),
     path('<slug:slug>/schedule/add-break/', brackets.ScheduleAddBreakView.as_view(), name='schedule-add-break'),
@@ -115,6 +116,7 @@ urlpatterns = [
     path('<slug:slug>/groups/', brackets.GroupStageView.as_view(), name='groups'),
     path('<slug:slug>/groups/configure/', brackets.GroupConfigureView.as_view(), name='groups-configure'),
     path('<slug:slug>/groups/draw/', brackets.GroupDrawView.as_view(), name='groups-draw'),
+    path('<slug:slug>/groups/reset/', brackets.GroupResetView.as_view(), name='groups-reset'),
     path('<slug:slug>/groups/standings/', brackets.GroupStandingsView.as_view(), name='groups-standings'),
 
     # ── Qualifier Pipelines (S5-B11) ──
@@ -134,6 +136,11 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/media/', matches.MatchMediaView.as_view(), name='match-media'),
     path('<slug:slug>/matches/<int:pk>/detail/', matches.MatchDetailView.as_view(), name='match-detail'),
     path('<slug:slug>/matches/<int:pk>/verify/', matches.MatchVerifyView.as_view(), name='match-verify'),
+    path('<slug:slug>/matches/<int:pk>/series/', matches.MatchSeriesStatusView.as_view(), name='match-series-status'),
+    path('<slug:slug>/matches/<int:pk>/series/game/', matches.MatchSeriesGameView.as_view(), name='match-series-game'),
+    # Swiss system
+    path('<slug:slug>/swiss/standings/', brackets.SwissStandingsView.as_view(), name='swiss-standings'),
+    path('<slug:slug>/swiss/advance-round/', brackets.SwissAdvanceRoundView.as_view(), name='swiss-advance-round'),
 
     # ── Disputes (S7-B1 through S7-B7) ──
     path('<slug:slug>/disputes/', disputes.DisputeListView.as_view(), name='disputes'),
@@ -183,6 +190,7 @@ urlpatterns = [
     path('<slug:slug>/settings/webhooks/', settings.WebhookConfigView.as_view(), name='settings-webhooks'),
     path('<slug:slug>/settings/danger/delete/', settings.DangerZoneDeleteView.as_view(), name='settings-danger-delete'),
     path('<slug:slug>/settings/danger/archive/', settings.DangerZoneArchiveView.as_view(), name='settings-danger-archive'),
+    path('<slug:slug>/settings/discord-webhook-test/', settings.DiscordWebhookTestView.as_view(), name='settings-discord-webhook-test'),
 
     # ── Announcements (S8-B7 comms) ──
     path('<slug:slug>/announcements/', announcements.AnnouncementListView.as_view(), name='announcements'),
@@ -242,6 +250,7 @@ urlpatterns = [
     path('<slug:slug>/checkin/force-match/', checkin.CheckinForceMatchView.as_view(), name='checkin-force-match'),
     path('<slug:slug>/checkin/auto-dq/', checkin.CheckinAutoDQView.as_view(), name='checkin-auto-dq'),
     path('<slug:slug>/checkin/config/', checkin.CheckinConfigView.as_view(), name='checkin-config'),
+    path('<slug:slug>/checkin/blast-reminder/', checkin.CheckinBlastReminderView.as_view(), name='checkin-blast-reminder'),
     path('<slug:slug>/checkin/stats/', checkin.CheckinStatsView.as_view(), name='checkin-stats'),
 
     # ── Streams & Media (Sprint 28) ──

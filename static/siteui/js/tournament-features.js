@@ -281,9 +281,14 @@ class TournamentFeatures {
     }
 
     showMatchDetails(matchId) {
-        // Open modal or drawer with detailed match information
-        dcLog('Show match details:', matchId);
-        // TODO: Implement match details modal
+        if (!matchId) return;
+        // Navigate to match detail page if on tournament hub
+        const slug = document.body.dataset.tournamentSlug || window.TOURNAMENT_SLUG || '';
+        if (slug) {
+            window.location.href = `/tournaments/${slug}/matches/${matchId}/`;
+        } else {
+            dcLog('Show match details (no tournament context):', matchId);
+        }
     }
 
     showBracketError() {

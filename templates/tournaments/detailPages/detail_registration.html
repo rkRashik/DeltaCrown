@@ -247,9 +247,9 @@ Inspired by Battlefy/FACEIT tournament listings with:
 
     <!-- Participant Grid -->
     {% if participants %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {% for p in participants|slice:":12" %}
-        <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all {% if p.is_current_user %}border-indigo-500/30 bg-indigo-500/5{% endif %}">
+    <div id="participants-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {% for p in participants %}
+        <div class="participant-card flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all {% if p.is_current_user %}border-indigo-500/30 bg-indigo-500/5{% endif %}" {% if forloop.counter > 12 %}style="display: none;" data-extra-participant="true"{% endif %}>
             {% if p.type == 'team' %}
                 {% if p.logo %}
                 <img src="{{ p.logo }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-white/10 flex-shrink-0">
@@ -282,9 +282,42 @@ Inspired by Battlefy/FACEIT tournament listings with:
     </div>
 
     {% if participants|length > 12 %}
-    <p class="text-center text-xs text-gray-500 mt-4">
-        + {{ participants|length|add:"-12" }} more participants
-    </p>
+    <div class="text-center mt-4">
+        <button id="btn-show-all-participants" onclick="toggleAllParticipants()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all hover:scale-[1.02] active:scale-[0.98]" style="color: var(--game-color); border-color: rgba(var(--game-color-rgb), 0.25); background: rgba(var(--game-color-rgb), 0.06);">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            <span id="toggle-participants-label">View All {{ participants|length }} Participants</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform" id="toggle-participants-icon"></i>
+        </button>
+    </div>
+    <script>
+    function toggleAllParticipants() {
+        const extras = document.querySelectorAll('[data-extra-participant]');
+        const label = document.getElementById('toggle-participants-label');
+        const icon = document.getElementById('toggle-participants-icon');
+        const isHidden = extras[0]?.style.display === 'none';
+        extras.forEach((el, i) => {
+            if (isHidden) {
+                el.style.display = '';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(8px)';
+                setTimeout(() => {
+                    el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, i * 30);
+            } else {
+                el.style.display = 'none';
+            }
+        });
+        if (isHidden) {
+            label.textContent = 'Show Less';
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            label.textContent = 'View All {{ participants|length }} Participants';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+    </script>
     {% endif %}
 
     {% else %}

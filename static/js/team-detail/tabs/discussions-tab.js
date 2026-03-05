@@ -308,7 +308,7 @@ class DiscussionsTab {
       await this.loadDiscussions();
     } catch (error) {
       this.logger.error('Error voting discussion:', error);
-      alert('Failed to vote. Please try again.');
+      if (window.Toast) window.Toast.error('Failed to vote. Please try again.');
     }
   }
 
@@ -383,7 +383,7 @@ class DiscussionsTab {
     const content = document.getElementById('discussion-content').value.trim();
 
     if (!title || !content) {
-      alert('Please fill in all required fields');
+      if (window.Toast) window.Toast.warning('Please fill in all required fields');
       return;
     }
 
@@ -394,7 +394,7 @@ class DiscussionsTab {
       await this.loadDiscussions();
     } catch (error) {
       this.logger.error('Error creating discussion:', error);
-      alert('Failed to create discussion. Please try again.');
+      if (window.Toast) window.Toast.error('Failed to create discussion. Please try again.');
     }
   }
 
@@ -404,7 +404,7 @@ class DiscussionsTab {
   showDiscussionDetail(discussionId) {
     // TODO: Implement discussion detail view
     this.logger.info('Show discussion detail:', discussionId);
-    alert('Discussion detail view coming soon!');
+    if (window.Toast) window.Toast.info('Discussion detail view coming soon!');
   }
 
   /**

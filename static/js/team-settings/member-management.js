@@ -289,7 +289,7 @@ class MemberManagement {
     if (!member) return;
 
     // TODO: Implement edit modal
-    alert(`Edit ${member.display_name}'s role and details`);
+    if (window.Toast) window.Toast.info(`Edit ${member.display_name}'s role and details`);
   }
 
   async showPromoteModal(memberId) {
@@ -430,11 +430,11 @@ class MemberManagement {
   }
 
   showSuccess(message) {
-    alert('✓ ' + message);
+    if (window.Toast) window.Toast.success(message);
   }
 
   showError(message) {
-    alert('✗ ' + message);
+    if (window.Toast) window.Toast.error(message);
   }
 }
 

@@ -188,3 +188,65 @@ class MatchVerifyView(TOCBaseView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ------------------------------------------------------------------
+# Series (BO3/BO5) endpoints
+# ------------------------------------------------------------------
+
+class MatchSeriesStatusView(TOCBaseView):
+    """GET /api/toc/{slug}/matches/{pk}/series/ — Return series status."""
+
+    def get(self, request, slug, pk):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.match_service import MatchService
+        try:
+            match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
+        except Match.DoesNotExist:
+            return Response({'error': 'Match not found'}, status=status.HTTP_404_NOT_FOUND)
+        data = MatchService.get_series_status(match)
+        return Response(data)
+
+    def patch(self, request, slug, pk):
+        """PATCH /series/ with {best_of: 1|3|5} to set series format."""
+        from apps.tournaments.models.match import Match
+        try:
+            match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
+        except Match.DoesNotExist:
+            return Response({'error': 'Match not found'}, status=status.HTTP_404_NOT_FOUND)
+        best_of = request.data.get('best_of')
+        if best_of not in (1, 3, 5):
+            return Response({'error': 'best_of must be 1, 3, or 5'}, status=status.HTTP_400_BAD_REQUEST)
+        match.best_of = best_of
+        match.save(update_fields=['best_of'])
+        from apps.tournaments.services.match_service import MatchService
+        return Response(MatchService.get_series_status(match))
+
+
+class MatchSeriesGameView(TOCBaseView):
+    """POST /api/toc/{slug}/matches/{pk}/series/game/ — Submit a single game score."""
+
+    def post(self, request, slug, pk):
+        from apps.tournaments.models.match import Match
+        from apps.tournaments.services.match_service import MatchService
+        from django.core.exceptions import ValidationError
+        try:
+            match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
+        except Match.DoesNotExist:
+            return Response({'error': 'Match not found'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            game_number = int(request.data.get('game_number', 0))
+            p1_score = int(request.data.get('participant1_score', 0))
+            p2_score = int(request.data.get('participant2_score', 0))
+            match = MatchService.submit_game_score(
+                match=match,
+                game_number=game_number,
+                participant1_score=p1_score,
+                participant2_score=p2_score,
+                submitted_by_id=request.user.id,
+            )
+            return Response(MatchService.get_series_status(match))
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError) as e:
+            return Response({'error': f'Invalid data: {e}'}, status=status.HTTP_400_BAD_REQUEST)

@@ -13,6 +13,10 @@ Policy Structure:
 - Expiration: None (retain indefinitely)
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_lifecycle_policy():
     """
@@ -157,7 +161,7 @@ def apply_lifecycle_policy(s3_client, bucket_name):
         )
         return True
     except Exception as e:
-        print(f"Error applying lifecycle policy: {str(e)}")
+        logger.error(f"Error applying lifecycle policy: {str(e)}")
         return False
 
 

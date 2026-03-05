@@ -252,51 +252,37 @@ class SettingsFileUploadView(TOCBaseView):
 class CloneTournamentView(TOCBaseView):
     """
     POST /api/toc/<slug>/settings/clone/
-    Clone tournament with all settings. Returns new tournament slug.
+    Deep-clone tournament (all settings, format config, scoring, map pool, etc.).
+    Returns new tournament slug for immediate redirect.
+
+    Body (optional):
+        name  — override name for the clone (default: "<name> (Copy)")
     """
 
     def post(self, request, slug):
-        from django.utils import timezone
-        from django.utils.text import slugify
-        from apps.tournaments.models.tournament import Tournament
+        from apps.tournaments.services.tournament_cloning_service import TournamentCloningService
 
-        t = self.tournament
-        new_name = request.data.get('name', f'{t.name} (Copy)')
-        new_slug = slugify(new_name)[:80]
+        overrides = {}
+        if "name" in request.data:
+            overrides["name"] = request.data["name"]
 
-        # Ensure unique slug
-        base_slug = new_slug
-        counter = 1
-        while Tournament.objects.filter(slug=new_slug).exists():
-            new_slug = f'{base_slug}-{counter}'
-            counter += 1
-
-        # Clone the tournament
-        clone = Tournament(
-            name=new_name,
-            slug=new_slug,
-            organizer=t.organizer,
-            game=t.game,
-            description=t.description or '',
-            format=t.format,
-            max_participants=t.max_participants,
-            min_participants=t.min_participants,
-            registration_start=t.registration_start,
-            registration_end=t.registration_end,
-            tournament_start=t.tournament_start,
-            tournament_end=t.tournament_end,
-            entry_fee_amount=t.entry_fee_amount,
-            entry_fee_currency=t.entry_fee_currency,
-            config=t.config.copy() if t.config else {},
-            status='draft',
-        )
-        clone.save()
+        try:
+            clone = TournamentCloningService.clone(
+                source=self.tournament,
+                organizer=request.user,
+                overrides=overrides,
+            )
+        except Exception as exc:
+            return Response(
+                {"error": f"Clone failed: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response({
-            'slug': clone.slug,
-            'name': clone.name,
-            'id': clone.id,
-            'message': f'Tournament cloned as "{clone.name}"',
+            "slug": clone.slug,
+            "name": clone.name,
+            "id": clone.id,
+            "message": f'Tournament cloned as "{clone.name}"',
         }, status=status.HTTP_201_CREATED)
 
 
@@ -366,3 +352,31 @@ class DangerZoneArchiveView(TOCBaseView):
         self.tournament.status = 'archived'
         self.tournament.save(update_fields=['status'])
         return Response({'message': 'Tournament archived', 'status': 'archived'})
+
+
+# ------------------------------------------------------------------
+# Discord Webhook Test
+# ------------------------------------------------------------------
+
+class DiscordWebhookTestView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/settings/discord-webhook-test/
+    Send a test message to verify the configured Discord webhook URL.
+    """
+
+    def post(self, request, slug):
+        webhook_url = request.data.get('webhook_url') or getattr(self.tournament, 'discord_webhook_url', '')
+        if not webhook_url:
+            return Response(
+                {'error': 'No webhook URL provided'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        from apps.tournaments.services.discord_webhook import DiscordWebhookService
+        result = DiscordWebhookService.test_webhook(webhook_url, self.tournament.name)
+        if result.get('success'):
+            return Response({'message': 'Test message sent successfully!', 'success': True})
+        else:
+            return Response(
+                {'error': result.get('error', 'Unknown error'), 'success': False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

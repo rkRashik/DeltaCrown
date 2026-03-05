@@ -677,9 +677,28 @@
   }
 
   function openAssignBounty(bountyId) {
-    const registrationId = prompt('Enter the registration ID of the winner:');
-    if (!registrationId) return;
-    const reason = prompt('Assignment reason (optional):') || '';
+    const FIELD = 'w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none';
+    const body = `<div class="space-y-4 p-5">
+      <div>
+        <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Registration ID *</label>
+        <input id="assign-reg-id" type="text" class="${FIELD}" placeholder="e.g. 42"></div>
+      <div>
+        <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Reason <span class="text-dc-text/40">(optional)</span></label>
+        <input id="assign-reg-reason" type="text" class="${FIELD}" placeholder="e.g. Tournament MVP"></div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.payments._submitAssignBounty('${bountyId}')" class="flex-1 bg-theme hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Assign Bounty</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Assign Bounty', body, footer);
+    setTimeout(() => document.getElementById('assign-reg-id')?.focus(), 50);
+  }
+
+  function _submitAssignBounty(bountyId) {
+    const registrationId = document.getElementById('assign-reg-id')?.value.trim();
+    const reason = document.getElementById('assign-reg-reason')?.value.trim() || '';
+    if (!registrationId) { TOC.toast('Registration ID is required', 'error'); return; }
+    TOC.drawer.close();
     assignBounty(bountyId, registrationId, reason);
   }
 
@@ -1002,7 +1021,7 @@
     toggleSelectAll,
     openCreateBountyDrawer,
     confirmCreateBounty,
-    openAssignBounty,
+    openAssignBounty, _submitAssignBounty,
     deleteBounty,
     highlightNextPending,
     _searchDebounce,

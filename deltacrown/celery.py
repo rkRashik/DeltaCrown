@@ -75,7 +75,25 @@ app.conf.beat_schedule = {
             'expires': 900,  # 15 minutes
         },
     },
-    
+
+    # Match-ready reminders: notify participants 5 minutes before scheduled matches
+    'notify-match-ready': {
+        'task': 'apps.tournaments.tasks.notify_match_ready',
+        'schedule': crontab(minute='*/5'),
+        'options': {
+            'expires': 300,  # 5 minutes
+        },
+    },
+
+    # No-show auto-DQ: forfeit matches where teams fail to start within timeout
+    'check-no-show-matches': {
+        'task': 'apps.tournaments.tasks.check_no_show_matches',
+        'schedule': crontab(minute='*/2'),
+        'options': {
+            'expires': 120,  # 2 minutes
+        },
+    },
+
     # ========================================================================
     # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)
     # ========================================================================

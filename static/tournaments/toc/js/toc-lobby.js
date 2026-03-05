@@ -109,13 +109,36 @@
     if (close) close.value = config.auto_close_minutes || 0;
   }
 
+  /* ─── Drawer helpers ─────────────────────── */
+  const FIELD = 'w-full bg-dc-surface/50 border border-dc-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder-dc-text/40 focus:outline-none focus:border-theme';
+  const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
+
   function addServer() {
-    const name = prompt('Server name:');
-    if (!name) return;
-    const region = prompt('Region (e.g. US-East):') || '';
-    const ip = prompt('IP / hostname:') || '';
+    const body = `<div class="space-y-4 p-5">
+      <div><label class="${LABEL}">Server Name *</label>
+        <input id="lobby-srv-name" type="text" class="${FIELD}" placeholder="e.g. EU Match Server 1"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="${LABEL}">Region</label>
+          <input id="lobby-srv-region" type="text" class="${FIELD}" placeholder="e.g. US-East"></div>
+        <div><label class="${LABEL}">IP / Hostname</label>
+          <input id="lobby-srv-ip" type="text" class="${FIELD}" placeholder="e.g. 192.168.1.1"></div>
+      </div>
+    </div>`;
+    const footer = `<div class="flex gap-3 p-4 pt-0">
+      <button onclick="TOC.lobby._submitAddServer()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Server</button>
+      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+    </div>`;
+    TOC.drawer.open('Add Server to Pool', body, footer);
+    setTimeout(() => document.getElementById('lobby-srv-name')?.focus(), 50);
+  }
+
+  function _submitAddServer() {
+    const name   = document.getElementById('lobby-srv-name')?.value.trim();
+    const region = document.getElementById('lobby-srv-region')?.value.trim() || '';
+    const ip     = document.getElementById('lobby-srv-ip')?.value.trim() || '';
+    if (!name) { toast('Server name is required', 'error'); return; }
     API.post('lobby/servers/', { name, region, ip })
-      .then(() => { toast('Server added', 'success'); refresh(); })
+      .then(() => { toast('Server added', 'success'); TOC.drawer.close(); refresh(); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -157,7 +180,7 @@
   }
 
   window.TOC = window.TOC || {};
-  window.TOC.lobby = { refresh, addServer, deleteServer, createLobby, closeLobby, saveConfig };
+  window.TOC.lobby = { refresh, addServer, _submitAddServer, deleteServer, createLobby, closeLobby, saveConfig };
 
   // Auto-load when tab is activated
   document.addEventListener('toc:tab-changed', (e) => {
