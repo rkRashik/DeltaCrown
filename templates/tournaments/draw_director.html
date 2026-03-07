@@ -699,9 +699,11 @@
   @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
 
   /* ══════════════════════════════════════════════
-     PRE-DRAW CONFIGURATION MODAL — Bento Box Wizard
-     Glassmorphism + gradient borders + premium UX
+     DRAW COMMAND CENTER — Full-Screen Tabbed Wizard
+     Bento-box glassmorphism + neon toggles + game-dynamic theming
   ══════════════════════════════════════════════ */
+
+  /* ── Full-screen overlay ── */
   .dd-config-overlay {
     position: fixed; inset: 0; z-index: 8000;
     background: rgba(2,2,6,0.92); backdrop-filter: blur(32px);
@@ -709,15 +711,18 @@
     opacity: 0; transition: opacity 0.35s;
   }
   .dd-config-overlay.show { opacity: 1; }
-  .dd-config-card {
-    background: linear-gradient(135deg, rgba(14,18,28,0.95), rgba(10,12,20,0.98));
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 24px; padding: 28px 32px; width: 920px; max-width: 96vw;
-    max-height: 90vh; overflow-y: auto; position: relative;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 120px rgba(var(--dc-accent-rgb),0.03);
+
+  /* ── Main wizard shell ── */
+  .dd-wizard-shell {
+    width: 1100px; max-width: 97vw; height: 85vh; max-height: 92vh;
+    background: rgba(13,13,20,0.80); backdrop-filter: blur(40px);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 24px;
+    box-shadow: 0 0 80px rgba(0,0,0,0.8);
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
   }
-  /* Animated gradient border */
-  .dd-config-card::before {
+
+  /* Animated border glow */
+  .dd-wizard-shell::before {
     content: ''; position: absolute; inset: -1px; border-radius: 25px; z-index: -1;
     background: conic-gradient(
       from 0deg,
@@ -727,65 +732,164 @@
     );
     animation: wizardBorderSpin 12s linear infinite;
   }
-  .dd-config-card::after {
+  .dd-wizard-shell::after {
     content: ''; position: absolute; inset: 1px; border-radius: 23px;
-    background: linear-gradient(135deg, rgba(14,18,28,0.99), rgba(10,12,20,0.99));
+    background: linear-gradient(135deg, rgba(13,13,20,0.99), rgba(10,10,18,0.99));
     z-index: -1;
   }
   @keyframes wizardBorderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-  .dd-config-title {
-    font-family: 'Rajdhani', sans-serif; font-weight: 800;
-    font-size: 22px; color: #fff; margin: 0 0 4px; letter-spacing: 0.02em;
-  }
-  .dd-config-sub {
-    font-size: 11px; color: rgba(255,255,255,0.2);
-    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px;
+  /* ── Ambient glow orb ── */
+  .wizard-ambient-glow {
+    position: absolute; width: 600px; height: 600px; top: -300px; left: -300px;
+    background: radial-gradient(circle, rgba(var(--dc-accent-rgb),0.10) 0%, transparent 70%);
+    pointer-events: none; z-index: 0; filter: blur(40px);
   }
 
-  /* ── Smart Presets — Illustrated Architecture Cards ── */
+  /* ── Header bar ── */
+  .wizard-header {
+    padding: 20px 28px 16px; flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: linear-gradient(90deg, rgba(16,16,28,0.5), transparent);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    position: relative; z-index: 10;
+  }
+  .wizard-header-title {
+    font-family: 'Rajdhani', sans-serif; font-weight: 800;
+    font-size: 26px; color: #fff; letter-spacing: 0.04em;
+    display: flex; align-items: center; gap: 10px;
+    text-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+  .wizard-header-sub {
+    font-family: 'Space Grotesk', monospace; font-size: 10px;
+    color: rgba(255,255,255,0.25); text-transform: uppercase;
+    letter-spacing: 0.2em; margin-top: 4px;
+  }
+  .wizard-tournament-badge {
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 6px 14px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+    background: rgba(var(--dc-accent-rgb),0.06);
+    border: 1px solid rgba(var(--dc-accent-rgb),0.18);
+    color: var(--dc-accent);
+  }
+  .wizard-tournament-badge .badge-icon {
+    display: inline-block; color: var(--dc-gold); margin-right: 6px; vertical-align: middle;
+  }
+
+  /* ── Content area: left nav + tab panels ── */
+  .wizard-body { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 10; }
+
+  /* ── Left navigation rail ── */
+  .wizard-nav {
+    width: 220px; flex-shrink: 0; padding: 16px;
+    background: rgba(0,0,0,0.20); border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .wizard-nav-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 14px 18px; border-radius: 14px;
+    border: none; background: transparent;
+    color: rgba(255,255,255,0.30); font-family: 'Rajdhani', sans-serif;
+    font-size: 16px; font-weight: 700; letter-spacing: 0.03em;
+    cursor: pointer; text-align: left; position: relative;
+    border-left: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .wizard-nav-btn:hover {
+    color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.02);
+  }
+  .wizard-nav-btn.active {
+    background: linear-gradient(90deg, rgba(var(--dc-accent-rgb),0.10), transparent);
+    border-left-color: var(--dc-accent); color: #fff;
+  }
+  .wizard-nav-btn.active i[data-lucide] {
+    color: var(--dc-accent); filter: drop-shadow(0 0 8px rgba(var(--dc-accent-rgb),0.6));
+  }
+  .wizard-nav-btn i[data-lucide] {
+    width: 18px; height: 18px; opacity: 0.5; transition: all 0.3s;
+  }
+  .wizard-nav-btn.active i[data-lucide] { opacity: 1; }
+
+  /* ── Tab content panels ── */
+  .wizard-tab-panel { display: none; flex: 1; overflow-y: auto; padding: 24px 28px; position: relative; }
+  .wizard-tab-panel.active {
+    display: block;
+    animation: wizTabSlideUp 0.4s ease forwards;
+  }
+  @keyframes wizTabSlideUp {
+    from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Premium scrollbar inside tab panels */
+  .wizard-tab-panel::-webkit-scrollbar { width: 6px; }
+  .wizard-tab-panel::-webkit-scrollbar-track { background: transparent; }
+  .wizard-tab-panel::-webkit-scrollbar-thumb { background: rgba(var(--dc-accent-rgb),0.2); border-radius: 10px; }
+  .wizard-tab-panel::-webkit-scrollbar-thumb:hover { background: rgba(var(--dc-accent-rgb),0.4); }
+
+  /* ── Section labels ── */
+  .wiz-section-label {
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.12); margin-bottom: 10px; padding-left: 2px;
+  }
+
+  /* ── Bento card — reusable glassmorphism container ── */
+  .bento-card {
+    background: rgba(19,19,31,0.40); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.05); border-radius: 18px;
+    padding: 20px 22px; position: relative; overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bento-card:hover {
+    border-color: rgba(var(--dc-accent-rgb),0.20);
+    box-shadow: 0 8px 32px rgba(var(--dc-accent-rgb),0.05);
+    transform: translateY(-2px);
+  }
+  .bento-card .bento-glow-line {
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--dc-accent-rgb),0.3), transparent);
+  }
+  .bento-card-title {
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 13px; color: rgba(255,255,255,0.45);
+    text-transform: uppercase; letter-spacing: 0.15em;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  .bento-card-title i[data-lucide] { color: var(--dc-accent); width: 15px; height: 15px; }
+
+  /* ── Smart Presets grid ── */
   .dd-presets-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px; margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
   }
   .dd-preset-card {
-    padding: 18px 16px; border-radius: 16px; cursor: pointer;
-    background: rgba(255,255,255,0.02);
+    padding: 16px; border-radius: 16px; cursor: pointer;
+    background: rgba(19,19,31,0.4); backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.05);
-    backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative; overflow: hidden;
+    position: relative; overflow: hidden; text-align: left;
   }
-  .dd-preset-card::before {
-    content: ''; position: absolute; inset: -1px; border-radius: 17px;
-    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.15), transparent 50%, rgba(var(--dc-gold-rgb),0.1));
-    opacity: 0; transition: opacity 0.3s; z-index: -1;
-  }
-  .dd-preset-card::after {
-    content: ''; position: absolute; inset: 1px; border-radius: 15px;
-    background: linear-gradient(135deg, rgba(14,18,28,0.98), rgba(10,12,20,0.98));
-    z-index: -1; transition: background 0.3s;
-  }
-  .dd-preset-card:hover { transform: translateY(-2px); }
-  .dd-preset-card:hover::before { opacity: 1; }
+  .dd-preset-card:hover { transform: translateY(-2px); border-color: rgba(var(--dc-accent-rgb),0.2); }
   .dd-preset-card.active {
     transform: translateY(-2px);
     box-shadow: 0 8px 32px rgba(var(--dc-accent-rgb),0.12), 0 0 0 1px rgba(var(--dc-accent-rgb),0.4);
-  }
-  .dd-preset-card.active::before { opacity: 1; }
-  .dd-preset-card.active::after {
-    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.06), rgba(10,12,20,0.95));
+    border-color: rgba(var(--dc-accent-rgb),0.4);
+    background: rgba(var(--dc-accent-rgb),0.04);
   }
   .dd-preset-card .preset-emoji {
-    font-size: 28px; margin-bottom: 8px; display: block;
+    font-size: 26px; margin-bottom: 6px; display: block;
     filter: drop-shadow(0 2px 8px rgba(var(--dc-accent-rgb),0.2));
   }
   .dd-preset-card .preset-label {
     font-family: 'Rajdhani', sans-serif; font-weight: 700;
-    font-size: 14px; color: #fff; margin-bottom: 4px; letter-spacing: 0.02em;
+    font-size: 15px; color: #fff; margin-bottom: 3px; letter-spacing: 0.02em;
+    transition: color 0.3s;
   }
+  .dd-preset-card:hover .preset-label { color: var(--dc-accent); }
   .dd-preset-card .preset-desc {
-    font-size: 10px; color: rgba(255,255,255,0.3); line-height: 1.5;
+    font-family: 'Space Grotesk', monospace; font-size: 9px;
+    color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.12em;
   }
   .dd-preset-card .preset-badge {
     position: absolute; top: 10px; right: 12px;
@@ -797,77 +901,211 @@
   }
   .dd-preset-card.active .preset-badge { opacity: 1; }
 
-  /* ── Two-Column Bento Grid ── */
-  .dd-config-columns {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    margin-bottom: 16px;
+  /* ── Architecture map inputs ── */
+  .arch-input-cell {
+    background: rgba(0,0,0,0.40); border-radius: 14px; padding: 12px;
+    border: 1px solid rgba(255,255,255,0.05); text-align: center;
+    transition: border-color 0.25s;
   }
-  @media (max-width: 720px) { .dd-config-columns { grid-template-columns: 1fr; } }
+  .arch-input-cell:focus-within { border-color: rgba(var(--dc-accent-rgb),0.35); }
+  .arch-input-cell.arch-advance {
+    background: rgba(var(--dc-accent-rgb),0.04);
+  }
+  .arch-input-cell.arch-advance label { color: var(--dc-accent); }
+  .arch-input-cell label {
+    display: block; font-family: 'Space Grotesk', monospace;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; color: rgba(255,255,255,0.25); margin-bottom: 6px;
+  }
+  .arch-input-cell input[type="number"] {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: #fff; font-family: 'Space Grotesk', monospace;
+    font-size: 22px; font-weight: 700; text-align: center;
+    transition: color 0.2s;
+  }
+  .arch-input-cell input[type="number"]:focus { color: var(--dc-accent); }
 
-  .dd-config-section {
-    margin-bottom: 12px; padding: 16px 18px;
-    background: rgba(255,255,255,0.015);
-    border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 16px; position: relative;
-    backdrop-filter: blur(8px);
-    transition: border-color 0.3s, box-shadow 0.3s;
+  /* ── Architecture summary bar ── */
+  .arch-summary-bar {
+    margin-top: 14px; padding: 10px 16px; border-radius: 10px;
+    background: rgba(var(--dc-accent-rgb),0.04);
+    border: 1px solid rgba(var(--dc-accent-rgb),0.10);
+    font-family: 'Space Grotesk', monospace; font-size: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: rgba(255,255,255,0.3);
   }
-  .dd-config-section::before {
-    content: ''; position: absolute; inset: -1px; border-radius: 17px;
-    background: linear-gradient(135deg, rgba(var(--dc-accent-rgb),0.08), transparent 50%);
-    opacity: 0; transition: opacity 0.3s; z-index: -1;
+  .arch-summary-bar .val { color: var(--dc-accent); font-weight: 700; }
+  .arch-summary-bar .warn { color: var(--dc-gold); font-weight: 600; }
+  .arch-summary-bar .err { color: var(--dc-danger); font-weight: 600; }
+  .arch-summary-bar .status { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+
+  /* ── Fill strategy radio buttons ── */
+  .strategy-radio { display: none; }
+  .strategy-option {
+    padding: 12px 14px; border-radius: 14px; cursor: pointer;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.25s; position: relative;
   }
-  .dd-config-section::after {
-    content: ''; position: absolute; inset: 1px; border-radius: 15px;
-    background: linear-gradient(135deg, rgba(14,18,28,0.97), rgba(10,12,20,0.99));
-    z-index: -1;
+  .strategy-radio:checked + .strategy-option {
+    border-color: rgba(var(--dc-accent-rgb),0.50);
+    background: rgba(var(--dc-accent-rgb),0.05);
   }
-  .dd-config-section:focus-within {
-    border-color: rgba(var(--dc-accent-rgb),0.2);
-    box-shadow: 0 4px 20px rgba(var(--dc-accent-rgb),0.05);
+  .strategy-option .strat-name {
+    font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 2px; letter-spacing: 0.02em;
+    transition: color 0.2s;
   }
-  .dd-config-section:focus-within::before { opacity: 1; }
-  .dd-config-section h4 {
-    font-family: 'Rajdhani', sans-serif; font-weight: 700;
-    font-size: 12px; color: rgba(255,255,255,0.45);
-    text-transform: uppercase; letter-spacing: 0.15em; margin: 0 0 12px;
+  .strategy-radio:checked + .strategy-option .strat-name { color: var(--dc-accent); }
+  .strategy-option .strat-desc {
+    font-family: 'Space Grotesk', monospace; font-size: 9px;
+    color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  .strategy-dot {
+    position: absolute; top: 14px; right: 14px; width: 10px; height: 10px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,0.15);
+    transition: all 0.2s;
+  }
+  .strategy-radio:checked ~ .strategy-option .strategy-dot,
+  .strategy-radio:checked + .strategy-option .strategy-dot {
+    border-color: var(--dc-accent); background: var(--dc-accent);
+    box-shadow: 0 0 8px rgba(var(--dc-accent-rgb),0.6);
+  }
+
+  /* ── Neon toggle switch ── */
+  .neon-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .neon-toggle-input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .neon-toggle-track {
+    width: 36px; height: 20px; border-radius: 12px; flex-shrink: 0;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.10);
+    position: relative; display: flex; align-items: center; padding: 0 2px;
+    transition: all 0.3s;
+  }
+  .neon-toggle-input:checked + .neon-toggle-track {
+    background: rgba(var(--dc-accent-rgb),0.15);
+    border-color: var(--dc-accent);
+    box-shadow: 0 0 15px rgba(var(--dc-accent-rgb),0.30);
+  }
+  .neon-toggle-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s;
+  }
+  .neon-toggle-input:checked + .neon-toggle-track .neon-toggle-dot {
+    transform: translateX(16px);
+    background: var(--dc-accent);
+    box-shadow: 0 0 10px var(--dc-accent);
+  }
+  .neon-toggle-label {
+    font-size: 12px; color: rgba(255,255,255,0.35); font-weight: 600; transition: color 0.2s;
+  }
+  .neon-toggle:has(.neon-toggle-input:checked) .neon-toggle-label { color: rgba(255,255,255,0.7); }
+
+  /* ── Rules section cards ── */
+  .rule-card {
+    padding: 16px; border-radius: 14px;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.3s;
+  }
+  .rule-card:hover { border-color: rgba(var(--dc-accent-rgb),0.25); }
+  .rule-card-title {
+    font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.02em;
     display: flex; align-items: center; gap: 8px;
   }
-  .dd-config-section h4 .sec-icon {
-    font-size: 14px; opacity: 0.6;
-  }
-  .dd-config-toggle-group { display: flex; gap: 8px; margin-bottom: 8px; }
-  .dd-config-toggle {
-    flex: 1; padding: 10px 14px; border-radius: 12px; cursor: pointer;
-    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.3); font-size: 12px; font-weight: 600;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center;
-    backdrop-filter: blur(4px); position: relative;
-  }
-  .dd-config-toggle.active {
-    background: rgba(var(--dc-accent-rgb),0.08);
-    border-color: rgba(var(--dc-accent-rgb),0.35);
-    color: var(--dc-accent);
-    box-shadow: 0 4px 16px rgba(var(--dc-accent-rgb),0.08), inset 0 1px 0 rgba(255,255,255,0.03);
-  }
-  .dd-config-toggle:hover:not(.active) {
-    background: rgba(255,255,255,0.025); color: rgba(255,255,255,0.5);
-    transform: translateY(-1px);
-  }
-  .dd-config-toggle small {
-    display: block; font-size: 10px; color: rgba(255,255,255,0.15);
-    font-weight: 400; margin-top: 3px;
-  }
-  .dd-config-toggle.active small { color: rgba(var(--dc-accent-rgb),0.5); }
-  .dd-config-check {
-    display: flex; align-items: center; gap: 10px; margin-top: 10px;
-    font-size: 12px; color: rgba(255,255,255,0.35); cursor: pointer;
-  }
-  .dd-config-check input[type="checkbox"] {
-    accent-color: var(--dc-accent); width: 15px; height: 15px;
+  .rule-card-sub {
+    font-family: 'Space Grotesk', monospace; font-size: 9px;
+    color: rgba(255,255,255,0.2); text-transform: uppercase;
+    letter-spacing: 0.12em; margin-top: 3px;
   }
 
-  /* ── Pot Builder ── */
+  /* ── Tiebreaker hierarchy items ── */
+  .tb-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 14px; border-radius: 12px;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
+  }
+  .tb-rank {
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 800;
+  }
+  .tb-rank-primary {
+    background: rgba(var(--dc-accent-rgb),0.10); border: 1px solid rgba(var(--dc-accent-rgb),0.20);
+    color: var(--dc-accent); box-shadow: 0 0 10px rgba(var(--dc-accent-rgb),0.2);
+  }
+  .tb-rank-secondary {
+    background: rgba(var(--dc-accent-rgb),0.06); border: 1px solid rgba(var(--dc-accent-rgb),0.12);
+    color: var(--dc-accent);
+  }
+  .tb-rank-dim {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.3);
+  }
+  .tb-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
+  .tb-item.tb-dim .tb-name { color: rgba(255,255,255,0.4); }
+
+  /* ── Broadcast accent picker ── */
+  .bc-color-wrap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 14px;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.25s;
+  }
+  .bc-color-wrap:focus-within { border-color: rgba(var(--dc-accent-rgb),0.40); }
+  .bc-color-wrap input[type="color"] {
+    width: 32px; height: 32px; border: none; border-radius: 8px;
+    background: transparent; cursor: pointer; padding: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+  .bc-color-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .bc-color-wrap input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: none; }
+  .bc-color-wrap input[type="text"] {
+    background: transparent; border: none; outline: none;
+    font-family: 'Space Grotesk', monospace; font-size: 13px;
+    font-weight: 700; color: #fff; text-transform: uppercase; width: 100%;
+  }
+  .bc-input-wrap {
+    position: relative;
+  }
+  .bc-input-wrap i[data-lucide] { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.2); }
+  .bc-input-wrap input[type="url"],
+  .bc-input-wrap input[type="text"] {
+    width: 100%; padding: 12px 12px 12px 36px; border-radius: 14px;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
+    color: #fff; font-family: 'Space Grotesk', monospace; font-size: 12px;
+    outline: none; transition: border-color 0.25s;
+  }
+  .bc-input-wrap input:focus { border-color: rgba(var(--dc-accent-rgb),0.40); }
+  .bc-input-wrap input::placeholder { color: rgba(255,255,255,0.10); }
+  .dd-broadcast-preview {
+    margin-top: 8px; height: 48px; border-radius: 10px;
+    background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,0.15); overflow: hidden;
+  }
+  .dd-broadcast-preview img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 9px;
+  }
+
+  /* ── Delay button group ── */
+  .delay-group {
+    display: inline-flex; background: rgba(0,0,0,0.40); padding: 4px; border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.05); gap: 2px;
+  }
+  .delay-btn {
+    padding: 9px 22px; border-radius: 10px; border: 1px solid transparent;
+    font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    cursor: pointer; background: transparent;
+    color: rgba(255,255,255,0.25); transition: all 0.2s;
+  }
+  .delay-btn:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.03); }
+  .delay-btn.active {
+    background: rgba(var(--dc-accent-rgb),0.10);
+    border-color: rgba(var(--dc-accent-rgb),0.30);
+    color: var(--dc-accent);
+    box-shadow: 0 0 10px rgba(var(--dc-accent-rgb),0.10);
+  }
+
+  /* ── Pot builder ── */
   .dd-pot-builder { margin-top: 14px; }
   .dd-pot-row {
     display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;
@@ -884,7 +1122,7 @@
   .dd-pot-pool {
     flex: 1; min-height: 36px; padding: 4px 6px;
     background: rgba(255,255,255,0.015); border: 1px dashed rgba(255,255,255,0.06);
-    border-radius: 8px; display: flex; flex-wrap: wrap; gap: 4px;
+    border-radius: 10px; display: flex; flex-wrap: wrap; gap: 4px;
   }
   .dd-pot-pool.drag-over { border-color: var(--dc-accent); background: rgba(var(--dc-accent-rgb),0.03); }
   .dd-pot-chip {
@@ -897,218 +1135,118 @@
   .dd-pot-chip:hover { background: rgba(var(--dc-accent-rgb),0.12); color: #fff; }
   .dd-pot-chip.dragging { opacity: 0.4; }
 
-  /* ── Delay Setting ── */
-  .dd-delay-group {
-    display: flex; gap: 8px; align-items: center;
-  }
-  .dd-delay-btn {
-    padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
-    cursor: pointer; border: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.3);
-    transition: all 0.2s;
-  }
-  .dd-delay-btn.active {
-    background: rgba(var(--dc-accent-rgb),0.08);
-    border-color: rgba(var(--dc-accent-rgb),0.3); color: var(--dc-accent);
-  }
-
-  /* ── Config Actions ── */
-  .dd-config-actions {
-    display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end;
-    padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.04);
-  }
-  .dd-config-actions button {
-    padding: 10px 28px; border-radius: 12px; font-size: 12px;
-    font-weight: 700; cursor: pointer; transition: all 0.25s;
-    font-family: 'Rajdhani', sans-serif; letter-spacing: 0.05em;
-  }
-  .dd-config-cancel {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.35); backdrop-filter: blur(4px);
-  }
-  .dd-config-cancel:hover {
-    color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.1);
-  }
-  .dd-config-start {
-    background: linear-gradient(135deg, var(--dc-accent), rgba(var(--dc-accent-rgb),0.8));
-    border: none; color: #000; font-weight: 800;
-    box-shadow: 0 4px 20px rgba(var(--dc-accent-rgb),0.25), inset 0 1px 0 rgba(255,255,255,0.15);
-  }
-  .dd-config-start:hover {
-    filter: brightness(1.1); transform: translateY(-1px);
-    box-shadow: 0 6px 28px rgba(var(--dc-accent-rgb),0.35), inset 0 1px 0 rgba(255,255,255,0.15);
-  }
-
-  /* ── Group Architecture Inputs ── */
-  .dd-arch-grid {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
-    margin-top: 10px;
-  }
-  .dd-arch-field label {
-    display: block; font-size: 9px; text-transform: uppercase;
-    letter-spacing: 0.15em; color: rgba(255,255,255,0.25);
-    margin-bottom: 4px; font-weight: 700;
-  }
-  .dd-arch-field input {
-    width: 100%; padding: 8px 10px; border-radius: 10px; font-size: 14px;
-    font-weight: 700; font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
-    color: #fff; text-align: center; outline: none;
-    transition: border-color 0.25s, box-shadow 0.25s;
-    backdrop-filter: blur(4px);
-  }
-  .dd-arch-field input:focus {
-    border-color: rgba(var(--dc-accent-rgb),0.4);
-    box-shadow: 0 0 12px rgba(var(--dc-accent-rgb),0.08), inset 0 0 0 1px rgba(var(--dc-accent-rgb),0.1);
-  }
-  .dd-arch-summary {
-    margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.2);
-    font-family: 'Space Grotesk', monospace;
-  }
-  .dd-arch-summary .val { color: var(--dc-accent); font-weight: 700; }
-  .dd-arch-summary .warn { color: var(--dc-gold); }
-  .dd-arch-summary .err { color: var(--dc-danger); }
-
-  /* ── Smart Presets (small fallback, cards above are primary) ── */
-  .dd-presets-row {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
-  }
-  .dd-preset-btn {
-    padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
-    cursor: pointer; border: 1px solid rgba(var(--dc-accent-rgb),0.15);
-    background: rgba(var(--dc-accent-rgb),0.04); color: var(--dc-accent);
-    transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;
-  }
-  .dd-preset-btn:hover {
-    background: rgba(var(--dc-accent-rgb),0.1);
-    border-color: rgba(var(--dc-accent-rgb),0.4);
-  }
-
-  /* ── Tiebreaker Summary ── */
-  .dd-tiebreaker-summary {
-    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-    margin-top: 8px;
-  }
-  .dd-tb-pill {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600;
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.3);
-  }
-  .dd-tb-num {
-    width: 14px; height: 14px; border-radius: 50%; font-size: 8px; font-weight: 800;
-    background: rgba(var(--dc-accent-rgb),0.1); color: var(--dc-accent);
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .dd-tb-edit {
-    font-size: 10px; color: rgba(var(--dc-accent-rgb),0.5);
-    text-decoration: underline; cursor: pointer; transition: color 0.2s;
-  }
-  .dd-tb-edit:hover { color: var(--dc-accent); }
-
-  /* ── Broadcast Customization Section ── */
-  .dd-broadcast-row {
-    display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px;
-  }
-  .dd-broadcast-field { flex: 1; }
-  .dd-broadcast-field label {
-    display: block; font-size: 9px; text-transform: uppercase;
-    letter-spacing: 0.15em; color: rgba(255,255,255,0.25);
-    margin-bottom: 6px; font-weight: 700;
-  }
-  .dd-color-picker-wrap {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .dd-color-picker-wrap input[type="color"] {
-    width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px; background: rgba(0,0,0,0.3); cursor: pointer;
-    padding: 2px; -webkit-appearance: none;
-  }
-  .dd-color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
-  .dd-color-picker-wrap input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: none; }
-  .dd-color-picker-wrap .color-hex {
-    font-family: 'Space Grotesk', monospace; font-size: 12px;
-    color: rgba(255,255,255,0.35); font-weight: 600;
-  }
-  .dd-broadcast-field input[type="url"],
-  .dd-broadcast-field input[type="text"] {
-    width: 100%; padding: 8px 12px; border-radius: 10px; font-size: 12px;
-    font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
-    color: #fff; outline: none; transition: border-color 0.25s, box-shadow 0.25s;
-    backdrop-filter: blur(4px);
-  }
-  .dd-broadcast-field input:focus {
-    border-color: rgba(var(--dc-accent-rgb),0.4);
-    box-shadow: 0 0 12px rgba(var(--dc-accent-rgb),0.08);
-  }
-  .dd-broadcast-preview {
-    margin-top: 8px; height: 48px; border-radius: 8px;
-    background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.06);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; color: rgba(255,255,255,0.15); overflow: hidden;
-  }
-  .dd-broadcast-preview img {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 7px;
-  }
-
-  /* ── Organization Constraints ── */
-  .dd-org-constraint {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  }
-  .dd-org-constraint .org-limit-input {
-    width: 50px; padding: 6px 8px; border-radius: 8px; font-size: 13px;
-    font-weight: 700; font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
-    color: #fff; text-align: center; outline: none;
-    transition: border-color 0.25s; backdrop-filter: blur(4px);
-  }
-  .dd-org-constraint .org-limit-input:focus {
-    border-color: rgba(var(--dc-accent-rgb),0.4);
-  }
-  .dd-org-help {
-    margin-top: 6px; font-size: 10px; color: rgba(255,255,255,0.18);
-    line-height: 1.4;
-  }
-
-  /* ── Locked Seeds ── */
+  /* ── Locked seeds ── */
   .dd-locked-seeds { margin-top: 8px; }
   .dd-seed-row {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
-    padding: 6px 10px; border-radius: 10px;
-    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    padding: 5px 8px; border-radius: 14px;
+    background: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.05);
     transition: border-color 0.2s;
   }
-  .dd-seed-row:focus-within { border-color: rgba(var(--dc-accent-rgb),0.2); }
-  .dd-seed-team {
-    flex: 1; font-size: 12px; color: rgba(255,255,255,0.5);
-    font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .dd-seed-arrow { color: rgba(255,255,255,0.15); font-size: 12px; }
+  .dd-seed-row:focus-within { border-color: rgba(var(--dc-accent-rgb),0.25); }
   .dd-seed-select {
-    padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
-    font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.5); outline: none; cursor: pointer;
+    flex: 1; padding: 6px 8px; border-radius: 8px;
+    font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700;
+    background: transparent; border: none; color: #fff; outline: none; cursor: pointer;
+  }
+  .dd-seed-select.dd-seed-group-select,
+  .dd-seed-select.dd-seed-slot-select {
+    flex: 0 0 auto; background: var(--dc-surface);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+    color: rgba(255,255,255,0.5); padding: 5px 8px;
+  }
+  .dd-seed-arrow {
+    color: rgba(255,255,255,0.15); flex-shrink: 0; display: flex; align-items: center;
   }
   .dd-seed-remove {
-    width: 20px; height: 20px; border-radius: 6px; font-size: 12px;
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+    width: 26px; height: 26px; border-radius: 8px; font-size: 12px;
+    background: transparent; border: none;
     color: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .dd-seed-remove:hover { color: var(--dc-danger); border-color: rgba(var(--dc-danger-rgb, 255,77,77),0.3); }
+  .dd-seed-remove:hover { color: var(--dc-danger); background: rgba(var(--dc-danger-rgb, 255,68,68),0.10); }
   .dd-seed-add {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
-    cursor: pointer; border: 1px dashed rgba(var(--dc-accent-rgb),0.15);
-    background: rgba(var(--dc-accent-rgb),0.03); color: rgba(var(--dc-accent-rgb),0.5);
-    transition: all 0.2s; margin-top: 4px;
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 14px; border-radius: 14px; margin-top: 8px;
+    font-family: 'Space Grotesk', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    cursor: pointer; border: 1px dashed rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.01);
+    color: rgba(255,255,255,0.25); transition: all 0.2s;
   }
   .dd-seed-add:hover {
-    background: rgba(var(--dc-accent-rgb),0.06); color: var(--dc-accent);
-    border-color: rgba(var(--dc-accent-rgb),0.3);
+    color: var(--dc-accent); border-color: rgba(var(--dc-accent-rgb),0.40);
+    background: rgba(var(--dc-accent-rgb),0.03);
+  }
+
+  /* ── Footer action bar ── */
+  .wizard-footer {
+    padding: 16px 28px; flex-shrink: 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    background: rgba(13,13,20,0.90); backdrop-filter: blur(20px);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 10;
+  }
+  .wizard-cancel-btn {
+    padding: 10px 22px; border-radius: 14px;
+    font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    background: transparent; border: 1px solid transparent;
+    color: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.2s;
+  }
+  .wizard-cancel-btn:hover {
+    color: #fff; border-color: rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+  }
+  .wizard-init-btn {
+    padding: 12px 36px; border-radius: 14px;
+    font-family: 'Rajdhani', sans-serif; font-size: 17px; font-weight: 800;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--dc-accent), rgba(var(--dc-accent-rgb),0.8));
+    border: none; color: #000; cursor: pointer;
+    box-shadow: 0 0 20px rgba(var(--dc-accent-rgb),0.30), inset 0 1px 0 rgba(255,255,255,0.50);
+    display: flex; align-items: center; gap: 8px;
+    position: relative; overflow: hidden;
+    transition: all 0.25s;
+  }
+  .wizard-init-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(var(--dc-accent-rgb),0.50), inset 0 1px 0 rgba(255,255,255,0.60);
+  }
+  .wizard-init-btn .shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.40) 50%, transparent 70%);
+    transform: translateX(-100%); transition: transform 0.6s ease;
+  }
+  .wizard-init-btn:hover .shimmer { transform: translateX(100%); }
+
+  /* ── Org constraint inline ── */
+  .org-limit-input {
+    width: 56px; padding: 6px 8px; border-radius: 8px; font-size: 13px;
+    font-weight: 700; font-family: 'Space Grotesk', monospace;
+    background: var(--dc-surface); border: 1px solid rgba(255,255,255,0.08);
+    color: var(--dc-accent); text-align: center; outline: none;
+    transition: border-color 0.25s;
+  }
+  .org-limit-input:focus { border-color: rgba(var(--dc-accent-rgb),0.4); }
+
+  /* ── Tiebreaker edit link ── */
+  .tb-edit-link {
+    font-family: 'Space Grotesk', monospace; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--dc-accent); text-decoration: none; transition: color 0.2s;
+  }
+  .tb-edit-link:hover { color: #fff; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .wizard-nav { width: 56px; padding: 8px 6px; }
+    .wizard-nav-btn { padding: 10px; justify-content: center; font-size: 0; }
+    .wizard-nav-btn i[data-lucide] { width: 20px; height: 20px; }
+    .wizard-tab-panel { padding: 16px; }
+    .dd-wizard-shell { height: 95vh; border-radius: 16px; }
+    .wizard-header { padding: 14px 16px 12px; }
+    .wizard-header-title { font-size: 20px; }
+    .wizard-tournament-badge { display: none; }
   }
 </style>
 {% endblock %}
@@ -1296,172 +1434,274 @@
     </main>
   </div>
 
-  {# ━━━ Pre-Draw Configuration Modal — Setup Wizard ━━━ #}
+  {# ━━━ DRAW COMMAND CENTER — Full-Screen Tabbed Wizard ━━━ #}
   <div id="config-overlay" class="dd-config-overlay">
-    <div class="dd-config-card">
-      <div class="dd-config-title">
-        <i data-lucide="settings-2" style="width:18px;height:18px;display:inline;vertical-align:middle;margin-right:6px;color:var(--dc-accent)"></i>
-        Draw Setup Wizard
-      </div>
-      <div class="dd-config-sub">Configure tournament format, rules and draw behaviour</div>
+    <div class="dd-wizard-shell">
+      <div class="wizard-ambient-glow"></div>
 
-      {# ── Smart Presets — Prominent Cards ── #}
-      <div id="presets-grid" class="dd-presets-grid">
-        <div style="grid-column:1/-1;font-size:10px;color:rgba(255,255,255,0.12);text-align:center;padding:12px 0">Loading smart presets…</div>
-      </div>
-
-      {# ── Two‑Column Layout ── #}
-      <div class="dd-config-columns">
-
-        {# ═══ LEFT: Group Architecture ═══ #}
+      {# ── Header ── #}
+      <div class="wizard-header">
         <div>
-          <div class="dd-config-section">
-            <h4><i data-lucide="layout-grid" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Group Architecture</h4>
-            <div class="dd-arch-grid">
-              <div class="dd-arch-field">
-                <label>Total Groups</label>
-                <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
-              </div>
-              <div class="dd-arch-field">
-                <label>Players per Group</label>
-                <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
-              </div>
-              <div class="dd-arch-field">
-                <label>Advance</label>
-                <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
-              </div>
-            </div>
-            <div id="arch-summary" class="dd-arch-summary"></div>
-          </div>
-
-          {# ── Pot Seeding ── #}
-          <div class="dd-config-section">
-            <h4><i data-lucide="trophy" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Pot Seeding</h4>
-            <label class="dd-config-check">
-              <input type="checkbox" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
-              Enable — one team from each Pot per Group
-            </label>
-            <div id="pot-builder" class="dd-pot-builder" style="display:none"></div>
-          </div>
+          <h1 class="wizard-header-title">
+            <i data-lucide="crosshair" style="width:24px;height:24px;color:var(--dc-accent);filter:drop-shadow(0 0 12px rgba(var(--dc-accent-rgb),0.8))"></i>
+            DRAW COMMAND CENTER
+          </h1>
+          <p class="wizard-header-sub">Configure tournament format, rules and broadcast behaviour</p>
         </div>
-
-        {# ═══ RIGHT: Draw Rules ═══ #}
-        <div>
-          {# ── Fill Strategy ── #}
-          <div class="dd-config-section">
-            <h4><i data-lucide="layers" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Fill Strategy</h4>
-            <div class="dd-config-toggle-group">
-              <div class="dd-config-toggle active" data-strategy="round_robin" onclick="DrawDirector.setStrategy(this)">
-                Round-Robin
-                <small>Slot 1 in all groups, then Slot 2, etc.</small>
-              </div>
-              <div class="dd-config-toggle" data-strategy="sequential" onclick="DrawDirector.setStrategy(this)">
-                Sequential
-                <small>Fill Group A fully, then Group B, etc.</small>
-              </div>
-            </div>
-          </div>
-
-          {# ── Commentary Delay ── #}
-          <div class="dd-config-section">
-            <h4><i data-lucide="timer" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Commentary Delay</h4>
-            <div class="dd-delay-group">
-              <button class="dd-delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">Off</button>
-              <button class="dd-delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
-              <button class="dd-delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
-              <button class="dd-delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
-            </div>
-          </div>
-
-          {# ── Region Constraint ── #}
-          <div class="dd-config-section">
-            <h4><i data-lucide="globe" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px"></i> Game-Aware Constraints</h4>
-            <label class="dd-config-check">
-              <input type="checkbox" id="cfg-region-clash">
-              Prevent Region Clashes
-            </label>
-            <div style="font-size:10px;color:rgba(255,255,255,0.1);margin-top:4px;padding-left:25px">
-              Best-effort: skips if mathematically impossible
-            </div>
-          </div>
-
-          {# ── Tiebreaker Visibility ── #}
-          <div class="dd-config-section" style="background:none;border:1px dashed rgba(255,255,255,0.04);padding:12px 16px">
-            <h4 style="font-size:10px;margin-bottom:6px">
-              <i data-lucide="scale" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:4px"></i>
-              Active Tiebreakers
-            </h4>
-            <div id="tiebreaker-pills" class="dd-tiebreaker-summary"></div>
-            <a class="dd-tb-edit" href="{% url 'toc:hub' tournament.slug %}" target="_blank" style="display:inline-block;margin-top:6px">
-              Edit in Settings →
-            </a>
-          </div>
+        <div class="wizard-tournament-badge">
+          <i data-lucide="shield" class="badge-icon" style="width:13px;height:13px"></i>
+          {{ tournament.name }}
         </div>
       </div>
 
-      {# ── Advanced Features — Full-Width Below Grid ── #}
-      <div style="margin-top:4px">
+      {# ── Body: Left Nav + Tab Panels ── #}
+      <div class="wizard-body">
 
-        {# ── Broadcast Customization ── #}
-        <div class="dd-config-section">
-          <h4><span class="sec-icon">🎨</span> Broadcast Customization</h4>
-          <div class="dd-broadcast-row">
-            <div class="dd-broadcast-field">
-              <label>Accent Color</label>
-              <div class="dd-color-picker-wrap">
-                <input type="color" id="cfg-accent-color" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
-                <span class="color-hex" id="cfg-accent-hex">#00ffaa</span>
-              </div>
-            </div>
-            <div class="dd-broadcast-field" style="flex:2">
-              <label>Custom Background URL</label>
-              <input type="url" id="cfg-bg-url" placeholder="https://example.com/backdrop.jpg" oninput="DrawDirector.onBgPreview(this.value)">
-              <div class="dd-broadcast-preview" id="cfg-bg-preview">
-                <span>No background set — uses cinematic default</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {# ── Organization Constraints ── #}
-        <div class="dd-config-section">
-          <h4><span class="sec-icon">🏢</span> Organization Constraints</h4>
-          <div class="dd-org-constraint">
-            <label class="dd-config-check" style="margin-top:0">
-              <input type="checkbox" id="cfg-org-limit-enable" onchange="DrawDirector.toggleOrgLimit(this.checked)">
-              Limit teams from same organization per group
-            </label>
-            <input type="number" id="cfg-org-limit-max" class="org-limit-input" min="1" max="8" value="1"
-              disabled title="Max teams from one org in a single group">
-          </div>
-          <div class="dd-org-help">
-            When enabled, the draw engine will avoid placing more than the specified number of
-            teams from the same organization into a single group. Best-effort: skips if mathematically impossible.
-          </div>
-        </div>
-
-        {# ── Locked Seeds ── #}
-        <div class="dd-config-section">
-          <h4><span class="sec-icon">📌</span> Locked Seeds <span style="font-size:9px;font-weight:400;color:rgba(255,255,255,0.15);text-transform:none;letter-spacing:0">(optional pre-assigned slots)</span></h4>
-          <div id="locked-seeds-list" class="dd-locked-seeds">
-            <div style="font-size:10px;color:rgba(255,255,255,0.12)">No locked seeds. Teams will be drawn randomly.</div>
-          </div>
-          <button class="dd-seed-add" id="btn-add-seed" onclick="DrawDirector.addLockedSeed()">
-            <i data-lucide="plus" style="width:11px;height:11px"></i> Add Locked Seed
+        {# ── Left Navigation Rail ── #}
+        <nav class="wizard-nav">
+          <button class="wizard-nav-btn active" onclick="DrawDirector.openTab(event,'tab-structure')">
+            <i data-lucide="layout-template"></i> Structure &amp; Seeding
           </button>
-        </div>
-      </div>
+          <button class="wizard-nav-btn" onclick="DrawDirector.openTab(event,'tab-rules')">
+            <i data-lucide="gavel"></i> Rules &amp; Constraints
+          </button>
+          <button class="wizard-nav-btn" onclick="DrawDirector.openTab(event,'tab-broadcast')">
+            <i data-lucide="radio"></i> Broadcast Settings
+          </button>
+        </nav>
 
-      {# ── Actions ── #}
-      <div class="dd-config-actions">
-        <button class="dd-config-cancel" onclick="DrawDirector.closeConfig()">Cancel</button>
-        <button class="dd-config-start" onclick="DrawDirector.confirmInit()">
-          <i data-lucide="play" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px"></i>
-          Start Draw
+        {# ── TAB 1: Structure & Seeding ── #}
+        <div id="tab-structure" class="wizard-tab-panel active">
+
+          {# ── Smart Presets ── #}
+          <div class="wiz-section-label">Smart Presets</div>
+          <div id="presets-grid" class="dd-presets-grid" style="margin-bottom:22px">
+            <div style="grid-column:1/-1;font-size:10px;color:rgba(255,255,255,0.12);text-align:center;padding:12px 0">Loading smart presets…</div>
+          </div>
+
+          {# ── Architecture Map + Fill Strategy ── #}
+          <div style="display:grid;grid-template-columns:1fr 280px;gap:18px;margin-bottom:18px">
+
+            {# Architecture Map bento card #}
+            <div class="bento-card">
+              <div class="bento-glow-line"></div>
+              <div class="bento-card-title">
+                <i data-lucide="grid-3x3"></i> Architecture Map
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                <div class="arch-input-cell">
+                  <label>Total Groups</label>
+                  <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
+                </div>
+                <div class="arch-input-cell">
+                  <label>Size per Group</label>
+                  <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
+                </div>
+                <div class="arch-input-cell arch-advance">
+                  <label>Advance</label>
+                  <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
+                </div>
+              </div>
+              <div id="arch-summary" class="arch-summary-bar" style="display:none"></div>
+            </div>
+
+            {# Fill Strategy bento card #}
+            <div class="bento-card">
+              <div class="bento-card-title">
+                <i data-lucide="arrow-down-up"></i> Fill Strategy
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <label style="cursor:pointer;display:block">
+                  <input type="radio" name="cfg-strategy" value="round_robin" class="strategy-radio" checked onchange="DrawDirector.setStrategy(this)">
+                  <div class="strategy-option">
+                    <div class="strat-name">Round-Robin</div>
+                    <div class="strat-desc">A1, B1, C1… then A2</div>
+                    <div class="strategy-dot"></div>
+                  </div>
+                </label>
+                <label style="cursor:pointer;display:block">
+                  <input type="radio" name="cfg-strategy" value="sequential" class="strategy-radio" onchange="DrawDirector.setStrategy(this)">
+                  <div class="strategy-option">
+                    <div class="strat-name">Sequential</div>
+                    <div class="strat-desc">Group A full, then B</div>
+                    <div class="strategy-dot"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          {# ── Pot Seeding + Locked Seeds — Split bento card ── #}
+          <div class="bento-card" style="margin-bottom:0">
+            <div style="display:grid;grid-template-columns:1fr 1px 1fr;gap:24px">
+
+              {# Pot Seeding Engine #}
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div class="bento-card-title" style="margin-bottom:0">
+                    <i data-lucide="bar-chart-2"></i> Pot Seeding Engine
+                  </div>
+                  <label class="neon-toggle">
+                    <input type="checkbox" class="neon-toggle-input" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
+                    <div class="neon-toggle-track"><div class="neon-toggle-dot"></div></div>
+                  </label>
+                </div>
+                <p style="font-family:'Space Grotesk',monospace;font-size:10px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.12em;line-height:1.6">
+                  Distributes teams evenly based on skill tiers.<br>
+                  <span style="color:var(--dc-accent)">Active:</span> 1 team from each pot per group.
+                </p>
+                <div id="pot-builder" class="dd-pot-builder" style="display:none"></div>
+              </div>
+
+              {# Divider #}
+              <div style="background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.08),transparent)"></div>
+
+              {# Pre-Assigned Slots #}
+              <div>
+                <div class="bento-card-title">
+                  <i data-lucide="lock"></i> Pre-Assigned Slots
+                </div>
+                <div id="locked-seeds-list" class="dd-locked-seeds">
+                  <div style="font-size:10px;color:rgba(255,255,255,0.12)">No locked seeds. Teams will be drawn randomly.</div>
+                </div>
+                <button class="dd-seed-add" id="btn-add-seed" onclick="DrawDirector.addLockedSeed()">
+                  <i data-lucide="plus" style="width:12px;height:12px"></i> Add Locked Seed
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>{# /tab-structure #}
+
+        {# ── TAB 2: Rules & Constraints ── #}
+        <div id="tab-rules" class="wizard-tab-panel">
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+            {# ── Matchmaking Rules ── #}
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="bento-card">
+                <div class="bento-card-title" style="margin-bottom:18px">
+                  <i data-lucide="shield-alert"></i> Matchmaking Rules
+                </div>
+
+                {# Region Clashes #}
+                <div class="rule-card" style="margin-bottom:12px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                    <div>
+                      <div class="rule-card-title">
+                        Region Clashes
+                        <i data-lucide="info" style="width:12px;height:12px;color:rgba(255,255,255,0.15)"></i>
+                      </div>
+                      <div class="rule-card-sub">Best-effort separation</div>
+                    </div>
+                    <label class="neon-toggle">
+                      <input type="checkbox" class="neon-toggle-input" id="cfg-region-clash">
+                      <div class="neon-toggle-track"><div class="neon-toggle-dot"></div></div>
+                    </label>
+                  </div>
+                </div>
+
+                {# Organization Limits #}
+                <div class="rule-card">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+                    <div>
+                      <div class="rule-card-title">Organization Limits</div>
+                      <div class="rule-card-sub">Cap teams from same org</div>
+                    </div>
+                    <label class="neon-toggle">
+                      <input type="checkbox" class="neon-toggle-input" id="cfg-org-limit-enable" onchange="DrawDirector.toggleOrgLimit(this.checked)">
+                      <div class="neon-toggle-track"><div class="neon-toggle-dot"></div></div>
+                    </label>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05)">
+                    <span style="font-family:'Space Grotesk',monospace;font-size:10px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.12em">Max Allowed:</span>
+                    <input type="number" id="cfg-org-limit-max" class="org-limit-input" min="1" max="8" value="1"
+                      disabled title="Max teams from one org in a single group">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {# ── Hierarchy Resolution (Tiebreakers) ── #}
+            <div class="bento-card" style="overflow:hidden;position:relative">
+              <i data-lucide="list-ordered" style="position:absolute;bottom:-12px;right:-12px;width:120px;height:120px;color:rgba(255,255,255,0.02);pointer-events:none"></i>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;z-index:2">
+                <div class="bento-card-title" style="margin-bottom:0">
+                  <i data-lucide="scale"></i> Hierarchy Resolution
+                </div>
+                <a class="tb-edit-link" href="{% url 'toc:hub' tournament.slug %}" target="_blank">Edit Base →</a>
+              </div>
+              <div id="tiebreaker-hierarchy" style="display:flex;flex-direction:column;gap:10px;position:relative;z-index:2"></div>
+            </div>
+
+          </div>
+
+        </div>{# /tab-rules #}
+
+        {# ── TAB 3: Broadcast Settings ── #}
+        <div id="tab-broadcast" class="wizard-tab-panel">
+
+          {# ── Studio Visuals ── #}
+          <div class="bento-card" style="margin-bottom:18px">
+            <div class="bento-card-title" style="margin-bottom:18px">
+              <i data-lucide="monitor-play"></i> Studio Visuals
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:18px">
+              <div>
+                <label style="display:block;font-family:'Space Grotesk',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.25);margin-bottom:6px">Accent Hex</label>
+                <div class="bc-color-wrap">
+                  <input type="color" id="cfg-accent-color" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
+                  <input type="text" id="cfg-accent-hex" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font-family:'Space Groteq',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.25);margin-bottom:6px">Cinematic Background Plate</label>
+                <div class="bc-input-wrap">
+                  <i data-lucide="image" style="width:15px;height:15px"></i>
+                  <input type="url" id="cfg-bg-url" placeholder="https://assets.deltacrown.com/bg-ucl.jpg" oninput="DrawDirector.onBgPreview(this.value)">
+                </div>
+                <div class="dd-broadcast-preview" id="cfg-bg-preview">
+                  <span>No background set — uses cinematic default</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# ── Dramatization Delay ── #}
+          <div class="bento-card">
+            <div class="bento-card-title">
+              <i data-lucide="clock"></i> Dramatization Delay
+            </div>
+            <p style="font-family:'Space Grotesk',monospace;font-size:10px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:14px">
+              Paces the draw engine to allow casters time to react to picks.
+            </p>
+            <div class="delay-group">
+              <button class="delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">0s (Off)</button>
+              <button class="delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
+              <button class="delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
+              <button class="delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
+            </div>
+          </div>
+
+        </div>{# /tab-broadcast #}
+
+      </div>{# /.wizard-body #}
+
+      {# ── Footer ── #}
+      <div class="wizard-footer">
+        <button class="wizard-cancel-btn" onclick="DrawDirector.closeConfig()">Cancel</button>
+        <button class="wizard-init-btn" onclick="DrawDirector.confirmInit()">
+          <span class="shimmer"></span>
+          <i data-lucide="play" style="width:18px;height:18px;fill:currentColor"></i>
+          INITIALIZE DRAW
         </button>
       </div>
-    </div>
-  </div>
+
+    </div>{# /.dd-wizard-shell #}
+  </div>{# /#config-overlay #}
 
   {# ━━━ Lottery Spinner Overlay ━━━ #}
   <div id="lottery-overlay" class="lottery-overlay" style="display:none">
@@ -1500,6 +1740,7 @@
   const TIEBREAKER_RULES = {{ tiebreaker_rules_json|safe }};
   const GROUP_ARCH = {{ group_arch_json|safe }};
   const TOURNAMENT_SLUG = '{{ tournament.slug }}';
+  const GAME_THEME = JSON.parse('{{ game_theme_json|escapejs }}');
 
   let ws = null;
   let wsConnected = false;
@@ -2404,12 +2645,48 @@
   // Public API
   // ══════════════════════════════════════════════
 
+  // ── Game-Theme Engine ──
+  function applyGameTheme() {
+    if (!GAME_THEME || !GAME_THEME.primary_color) return;
+    var hex = GAME_THEME.primary_color;
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    var root = document.documentElement.style;
+    root.setProperty('--dc-accent', hex);
+    root.setProperty('--dc-accent-rgb', r + ',' + g + ',' + b);
+    // Set accent picker defaults
+    var accentColor = document.getElementById('cfg-accent-color');
+    var accentHex = document.getElementById('cfg-accent-hex');
+    if (accentColor) accentColor.value = hex;
+    if (accentHex) accentHex.value = hex;
+    // Optionally set default background from game banner
+    if (GAME_THEME.banner_url) {
+      var bgInput = document.getElementById('cfg-bg-url');
+      if (bgInput && !bgInput.value) {
+        bgInput.value = GAME_THEME.banner_url;
+        DrawDirector.onBgPreview(GAME_THEME.banner_url);
+      }
+    }
+  }
+
   window.DrawDirector = {
     // ── Config Modal ──
     openConfig() {
       var overlay = document.getElementById('config-overlay');
       overlay.style.display = 'flex';
       requestAnimationFrame(function() { overlay.classList.add('show'); });
+
+      // Reset to first tab
+      document.querySelectorAll('.wizard-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.wizard-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+      var firstTab = document.getElementById('tab-structure');
+      var firstBtn = document.querySelector('.wizard-nav-btn');
+      if (firstTab) firstTab.classList.add('active');
+      if (firstBtn) firstBtn.classList.add('active');
+
+      // Apply game theme colors
+      applyGameTheme();
 
       // Pre-fill group architecture from existing data
       if (GROUP_ARCH.num_groups > 0) {
@@ -2428,15 +2705,20 @@
       overlay.classList.remove('show');
       setTimeout(function() { overlay.style.display = 'none'; }, 300);
     },
+    openTab(evt, tabId) {
+      document.querySelectorAll('.wizard-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.wizard-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+      var panel = document.getElementById(tabId);
+      if (panel) panel.classList.add('active');
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
     setStrategy(el) {
-      cfgStrategy = el.dataset.strategy;
-      document.querySelectorAll('.dd-config-toggle[data-strategy]').forEach(function(t) {
-        t.classList.toggle('active', t.dataset.strategy === cfgStrategy);
-      });
+      cfgStrategy = el.value;
     },
     setDelay(el) {
       cfgDelay = parseInt(el.dataset.delay);
-      document.querySelectorAll('.dd-delay-btn').forEach(function(b) {
+      document.querySelectorAll('.delay-btn').forEach(function(b) {
         b.classList.toggle('active', parseInt(b.dataset.delay) === cfgDelay);
       });
       var delayVal = document.getElementById('delay-value');
@@ -2583,25 +2865,39 @@
       var el = document.getElementById('arch-summary');
       if (!el) return;
       if (ng < 1 || gs < 2) {
-        el.innerHTML = '<span class="warn">Configure groups above</span>';
+        el.style.display = 'none';
         return;
       }
-      var html = '<span class="val">' + ng + '</span> groups × <span class="val">' + gs + '</span> slots = <span class="val">' + total + '</span> total slots';
+      el.style.display = 'flex';
+      var left = '<span style="font-family:Space Grotesk,monospace;font-size:11px;color:rgba(255,255,255,.45)">' +
+        '<span style="color:var(--dc-accent);font-weight:700">' + ng + '</span> groups × ' +
+        '<span style="color:var(--dc-accent);font-weight:700">' + gs + '</span> = ' +
+        '<span style="color:#fff;font-weight:700">' + total + '</span> slots' +
+        ' &nbsp;|&nbsp; Top <span style="color:var(--dc-accent);font-weight:700">' + adv + '</span> → ' +
+        '<span style="color:#fff;font-weight:700">' + (ng * adv) + '</span> advance</span>';
+      var right = '';
       if (total < pCount) {
-        html += ' — <span class="err">⚠ Need ' + (pCount - total) + ' more slots for ' + pCount + ' players</span>';
+        right = '<span style="background:rgba(239,68,68,.12);color:#f87171;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600">⚠ Need ' + (pCount - total) + ' more slots</span>';
       } else if (total > pCount) {
-        html += ' — <span class="warn">' + (total - pCount) + ' empty slots</span>';
+        right = '<span style="background:rgba(250,204,21,.08);color:#facc15;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600">' + (total - pCount) + ' empty slots</span>';
       } else {
-        html += ' — <span class="val">✓ Perfect fit</span>';
+        right = '<span style="background:rgba(var(--dc-accent-rgb),.1);color:var(--dc-accent);padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600">✓ Perfect fit</span>';
       }
-      html += '<br>Top <span class="val">' + adv + '</span> per group → <span class="val">' + (ng * adv) + '</span> advance to Playoffs';
-      el.innerHTML = html;
+      el.innerHTML = left + right;
     },
 
     // ── Broadcast Customization ──
     onAccentChange(hex) {
+      var colorEl = document.getElementById('cfg-accent-color');
       var hexEl = document.getElementById('cfg-accent-hex');
-      if (hexEl) hexEl.textContent = hex;
+      if (colorEl) colorEl.value = hex;
+      if (hexEl) hexEl.value = hex;
+      // Live-update accent CSS vars for preview
+      if (hex && /^#[0-9a-f]{6}$/i.test(hex)) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        document.documentElement.style.setProperty('--dc-accent', hex);
+        document.documentElement.style.setProperty('--dc-accent-rgb', r+','+g+','+b);
+      }
     },
     onBgPreview(url) {
       var preview = document.getElementById('cfg-bg-preview');
@@ -2717,13 +3013,19 @@
       DrawDirector.onArchChange();
     },
     renderTiebreakers() {
-      var container = document.getElementById('tiebreaker-pills');
+      var container = document.getElementById('tiebreaker-hierarchy');
       if (!container) return;
       var html = '';
       TIEBREAKER_RULES.forEach(function(rule, i) {
-        html += '<span class="dd-tb-pill"><span class="dd-tb-num">' + (i + 1) + '</span> ' + rule + '</span>';
-        if (i < TIEBREAKER_RULES.length - 1) html += '<span style="color:rgba(255,255,255,0.08)">→</span>';
+        var rankClass = i === 0 ? 'tb-rank-primary' : i < 3 ? 'tb-rank-secondary' : 'tb-rank-dim';
+        html += '<div class="tb-item">' +
+          '<span class="tb-rank ' + rankClass + '">' + (i + 1) + '</span>' +
+          '<span class="tb-name">' + rule + '</span>' +
+          '</div>';
       });
+      if (TIEBREAKER_RULES.length === 0) {
+        html = '<div style="font-size:10px;color:rgba(255,255,255,0.12)">No tiebreaker rules configured</div>';
+      }
       container.innerHTML = html;
     },
 
@@ -2836,6 +3138,7 @@
   // Init
   // ══════════════════════════════════════════════
 
+  applyGameTheme();
   preRender();
   connect();
 })();

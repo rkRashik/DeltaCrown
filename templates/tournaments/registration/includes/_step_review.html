@@ -301,8 +301,8 @@
             </button>
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
-                    <div class="text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 rules-content scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
-                        {{ tournament.rules|linebreaksbr }}
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 rules-content scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {{ tournament.rules_text|safe }}
                     </div>
                 </div>
             </div>
@@ -323,8 +323,8 @@
             </button>
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
-                    <div class="text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
-                        {{ form_config.custom_registration_rules|linebreaksbr }}
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {{ form_config.custom_registration_rules|safe }}
                     </div>
                 </div>
             </div>
@@ -344,8 +344,8 @@
             </button>
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
-                    <div class="text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
-                        {{ form_config.custom_tos_text|linebreaksbr }}
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {{ form_config.custom_tos_text|safe }}
                     </div>
                 </div>
             </div>
@@ -364,8 +364,8 @@
             </button>
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
-                    <div class="text-xs text-gray-400 leading-relaxed space-y-2">
-                        {{ form_config.custom_fair_play_text|linebreaksbr }}
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed space-y-2">
+                        {{ form_config.custom_fair_play_text|safe }}
                     </div>
                 </div>
             </div>

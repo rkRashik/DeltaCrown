@@ -325,6 +325,27 @@ class RegistrationService:
         # For team registrations, validate user has permission to register the team
         if team_id is not None and not is_guest_team:
             RegistrationService._validate_team_registration_permission(team_id, user)
+
+            # ── Minimum roster size enforcement ─────────────────────────
+            from apps.organizations.models import TeamMembership
+            active_members = TeamMembership.objects.filter(
+                team_id=team_id, status=TeamMembership.Status.ACTIVE
+            ).count()
+            min_roster = 5  # default for Valorant
+            try:
+                from apps.games.services import game_service
+                spec = game_service.get_game_spec(tournament.game_id) if tournament.game_id else None
+                if spec and hasattr(spec, 'roster_config'):
+                    min_roster = getattr(spec.roster_config, 'min_starters', 5)
+            except Exception:
+                pass
+            if tournament.config and isinstance(tournament.config, dict):
+                min_roster = tournament.config.get('min_roster_size', min_roster)
+            if active_members < min_roster:
+                raise ValidationError(
+                    f'Team must have at least {min_roster} active players '
+                    f'to register. Currently has {active_members}.'
+                )
         
         # Check for duplicate registration
         existing_registration = Registration.objects.filter(
@@ -2254,11 +2275,12 @@ class RegistrationService:
     
     @staticmethod
     @transaction.atomic
-    def disqualify_registration(registration: Registration, reason: str, disqualified_by) -> dict:
+    def disqualify_registration(registration: Registration, reason: str, disqualified_by, auto_refund: bool = False) -> dict:
         """
         Disqualify a registration (organizer action).
         
-        This is different from withdrawal - no refund, locks remain until tournament ends.
+        This is different from withdrawal - by default no refund, locks remain until tournament ends.
+        If auto_refund=True, any verified payment will be refunded automatically.
         """
         if registration.status == Registration.CANCELLED:
             raise ValidationError("Registration is already cancelled")
@@ -2271,10 +2293,32 @@ class RegistrationService:
         registration.registration_data['disqualified_at'] = timezone.now().isoformat()
         registration.registration_data['disqualified_by'] = disqualified_by.username if hasattr(disqualified_by, 'username') else str(disqualified_by)
         registration.registration_data['disqualification_reason'] = reason
+        registration.registration_data['auto_refunded'] = auto_refund
         registration.save()
         
         # Keep roster locked (they're still disqualified from this tournament)
         # Unlock will happen after tournament ends
+
+        # Process auto-refund if requested
+        refund_result = None
+        if auto_refund:
+            try:
+                payment = registration.payments.filter(
+                    status='verified', is_deleted=False
+                ).order_by('-created_at').first()
+                if payment:
+                    RegistrationService.refund_payment(
+                        payment_id=payment.id,
+                        refunded_by=disqualified_by,
+                        reason=f'Auto-refund: disqualification — {reason}',
+                    )
+                    refund_result = {'refunded': True, 'payment_id': payment.id}
+                    logger.info("Auto-refund processed for registration %s (payment %s)", registration.id, payment.id)
+                else:
+                    refund_result = {'refunded': False, 'reason': 'No verified payment found'}
+            except Exception as e:
+                logger.warning("Auto-refund failed for registration %s: %s", registration.id, e)
+                refund_result = {'refunded': False, 'reason': str(e)}
 
         # Notify participant about disqualification
         try:
@@ -2283,12 +2327,15 @@ class RegistrationService:
         except Exception as _e:
             logger.warning("Failed to send disqualification notification: %s", _e)
 
-        return {
+        result = {
             'success': True,
             'message': 'Registration disqualified',
             'reason': reason,
-            'previous_status': old_status
+            'previous_status': old_status,
         }
+        if refund_result:
+            result['refund'] = refund_result
+        return result
     
     @staticmethod
     @transaction.atomic

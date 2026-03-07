@@ -610,7 +610,14 @@
 
     // Series wins for BO3/BO5
     var bestOf = (m && m.best_of) ? m.best_of : 1;
-    var gameScores = (m && m.game_scores) ? m.game_scores : [];
+    var rawGs = (m && m.game_scores) ? m.game_scores : [];
+    if (typeof rawGs === 'string') { try { rawGs = JSON.parse(rawGs); } catch (_e) { rawGs = []; } }
+    if (rawGs && typeof rawGs === 'object' && !Array.isArray(rawGs) && Array.isArray(rawGs.maps)) {
+      rawGs = rawGs.maps.map(function(mp, i) {
+        return { game: i+1, p1_score: mp.team1_rounds||0, p2_score: mp.team2_rounds||0, map_name: mp.map_name||'' };
+      });
+    }
+    var gameScores = Array.isArray(rawGs) ? rawGs : [];
     var p1Wins = 0; var p2Wins = 0;
     gameScores.forEach(function(g) {
       if (g.p1_score > g.p2_score) p1Wins++; else if (g.p2_score > g.p1_score) p2Wins++;

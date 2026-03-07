@@ -299,14 +299,15 @@ class TOCParticipantService:
     @classmethod
     def disqualify_registration(
         cls, tournament: Tournament, registration_id: int, actor,
-        reason: str = '', evidence: str = ''
+        reason: str = '', evidence: str = '', auto_refund: bool = False
     ) -> Dict[str, Any]:
-        """Disqualify a confirmed registration."""
+        """Disqualify a confirmed registration. Optionally auto-refund payment."""
         reg = cls._get_registration(tournament, registration_id)
         RegistrationService.disqualify_registration(
             registration=reg,
             reason=reason,
             disqualified_by=actor,
+            auto_refund=auto_refund,
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)

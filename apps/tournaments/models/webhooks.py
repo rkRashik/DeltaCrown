@@ -12,7 +12,7 @@ from typing import Dict, Optional, List
 from datetime import datetime
 from django.db import models
 from django.utils import timezone
-from apps.tournaments.models import TournamentRegistrationForm, FormResponse
+from .form_template import TournamentRegistrationForm, FormResponse
 
 
 class FormWebhook(models.Model):

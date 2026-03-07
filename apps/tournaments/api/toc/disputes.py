@@ -11,6 +11,7 @@ S7-B7 POST disputes/<id>/update-status/
 """
 
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
@@ -78,14 +79,18 @@ class DisputeAssignView(TOCBaseView):
 
 
 class DisputeAddEvidenceView(TOCBaseView):
-    """S7-B6: Add evidence to dispute."""
+    """S7-B6: Add evidence to dispute. Supports URL and/or file upload."""
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, slug, pk):
+        from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+        evidence_file = request.FILES.get('evidence_file')
         data = TOCDisputesService.add_evidence(
             dispute_id=pk,
             tournament=self.tournament,
             evidence_type=request.data.get('evidence_type', 'screenshot'),
             url=request.data.get('url', ''),
+            evidence_file=evidence_file,
             notes=request.data.get('notes', ''),
             user_id=request.user.id,
         )

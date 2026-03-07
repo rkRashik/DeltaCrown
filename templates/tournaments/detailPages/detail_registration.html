@@ -41,6 +41,20 @@ Inspired by Battlefy/FACEIT tournament listings with:
 }
 .timeline-dot.active { border-color: var(--game-color); background: rgba(var(--game-color-rgb), 0.2); }
 .timeline-dot.completed { border-color: #10b981; background: rgba(16,185,129,0.2); }
+
+/* Rich text description styling */
+.desc-content p { margin-bottom: 0.75rem; }
+.desc-content p:last-child { margin-bottom: 0; }
+.desc-content strong { color: #e2e8f0; font-weight: 700; }
+.desc-content ul, .desc-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+.desc-content ul { list-style-type: disc; }
+.desc-content ol { list-style-type: decimal; }
+.desc-content li { margin-bottom: 0.375rem; color: #a0a0b8; }
+.desc-content li strong { color: #e2e8f0; }
+.desc-content a { color: var(--game-color); text-decoration: underline; text-underline-offset: 2px; }
+.desc-content a:hover { color: #ffffff; }
+.desc-content h2, .desc-content h3, .desc-content h4 { color: #ffffff; font-weight: 700; margin: 1rem 0 0.5rem; }
+.desc-content blockquote { border-left: 3px solid var(--game-color); padding-left: 1rem; color: #a0a0b8; font-style: italic; margin: 0.75rem 0; }
 {% endblock %}
 
 {% block hero_extra %}
@@ -143,8 +157,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <i data-lucide="file-text" class="w-5 h-5 game-accent"></i>
         <h3 class="text-lg font-display font-bold text-white">About This Tournament</h3>
     </div>
-    <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
-        {{ tournament.description|linebreaksbr }}
+    <div class="desc-content text-sm text-gray-300 leading-relaxed">
+        {{ tournament.description|safe }}
     </div>
 </div>
 {% endif %}
@@ -345,8 +359,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
     </div>
 
     {% if tournament.rules_text %}
-    <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
-        {{ tournament.rules_text|linebreaksbr }}
+    <div class="desc-content text-sm text-gray-300 leading-relaxed">
+        {{ tournament.rules_text|safe }}
     </div>
     {% elif tournament.rules_pdf %}
     <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
@@ -369,8 +383,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
             <i data-lucide="shield" class="w-4 h-4 text-gray-500"></i>
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Terms & Conditions</p>
         </div>
-        <div class="text-xs text-gray-500 leading-relaxed max-h-32 overflow-y-auto">
-            {{ tournament.terms_and_conditions|linebreaksbr }}
+        <div class="desc-content text-xs text-gray-500 leading-relaxed max-h-32 overflow-y-auto">
+            {{ tournament.terms_and_conditions|safe }}
         </div>
     </div>
     {% endif %}
@@ -532,6 +546,45 @@ Inspired by Battlefy/FACEIT tournament listings with:
         {% endif %}
     </div>
 </div>
+
+<!-- Refund Policy -->
+{% if tournament.refund_policy and tournament.refund_policy != 'no_refund' %}
+<div class="glass p-4 rounded-2xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+        <i data-lucide="shield-check" class="w-3 h-3"></i> Refund Policy
+    </h4>
+    <div class="text-xs">
+        {% if tournament.refund_policy == 'full_refund' %}
+        <div class="flex items-center gap-2 text-emerald-400">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 flex-shrink-0"></i>
+            <span class="font-semibold">Full refund available anytime</span>
+        </div>
+        {% elif tournament.refund_policy == 'refund_until_checkin' %}
+        <div class="flex items-center gap-2 text-amber-400">
+            <i data-lucide="clock" class="w-3.5 h-3.5 flex-shrink-0"></i>
+            <span class="font-semibold">Refundable until check-in</span>
+        </div>
+        {% elif tournament.refund_policy == 'refund_until_bracket' %}
+        <div class="flex items-center gap-2 text-amber-400">
+            <i data-lucide="clock" class="w-3.5 h-3.5 flex-shrink-0"></i>
+            <span class="font-semibold">Refundable until bracket generation</span>
+        </div>
+        {% elif tournament.refund_policy == 'custom' and tournament.refund_policy_text %}
+        <p class="text-gray-400 leading-relaxed">{{ tournament.refund_policy_text }}</p>
+        {% endif %}
+    </div>
+</div>
+{% elif tournament.has_entry_fee %}
+<div class="glass p-4 rounded-2xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+        <i data-lucide="shield-alert" class="w-3 h-3"></i> Refund Policy
+    </h4>
+    <div class="flex items-center gap-2 text-xs text-red-400/80">
+        <i data-lucide="x-circle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+        <span class="font-semibold">No refunds</span>
+    </div>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
 

@@ -83,6 +83,13 @@ class MatchResultSubmission(models.Model):
         default='',
         help_text='URL to proof screenshot (Discord, Imgur, S3, etc.)'
     )
+
+    proof_screenshot = models.ImageField(
+        upload_to='matches/evidence/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='Direct file upload of proof screenshot. Max 10MB recommended.'
+    )
     
     # Status
     status = models.CharField(

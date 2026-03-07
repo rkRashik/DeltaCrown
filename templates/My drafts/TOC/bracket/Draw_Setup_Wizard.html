@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown Ultimate Draw Wizard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dc: {
+                            bg: '#050508', // Deepest background
+                            surface: '#0d0d14', // Elevated surface
+                            card: '#13131f', // Bento card base
+                            accent: '#00ffaa', // Primary neon green
+                            gold: '#ffc832', // Warning/Accent
+                            danger: '#ff4444', 
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'monospace'],
+                        gaming: ['Rajdhani', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+                        'accent-gradient': 'linear-gradient(135deg, #00ffaa 0%, #00cc88 100%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* --- Premium Scrollbar --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 255, 170, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 170, 0.4); }
+
+        /* --- Glassmorphism & Bento Box Effects --- */
+        .bento-card {
+            background: rgba(19, 19, 31, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bento-card:hover {
+            border-color: rgba(0, 255, 170, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 255, 170, 0.05);
+            transform: translateY(-2px);
+        }
+
+        /* --- Custom Neon Toggles --- */
+        .neon-toggle-input:checked + .neon-toggle-bg {
+            background-color: rgba(0, 255, 170, 0.15);
+            border-color: #00ffaa;
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.3);
+        }
+        .neon-toggle-input:checked + .neon-toggle-bg .neon-toggle-dot {
+            transform: translateX(100%);
+            background-color: #00ffaa;
+            box-shadow: 0 0 10px #00ffaa;
+        }
+
+        /* --- Tab Transitions --- */
+        .tab-content { display: none; opacity: 0; transition: opacity 0.4s ease; }
+        .tab-content.active { display: block; opacity: 1; animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn { transition: all 0.3s ease; border-left: 2px solid transparent; }
+        .tab-btn.active {
+            background: linear-gradient(90deg, rgba(0,255,170,0.1) 0%, transparent 100%);
+            border-left-color: #00ffaa;
+            color: #fff;
+        }
+        .tab-btn.active svg { color: #00ffaa; opacity: 1; filter: drop-shadow(0 0 8px rgba(0,255,170,0.6)); }
+
+        /* --- Ambient Background Glow --- */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0,255,170,0.1) 0%, transparent 70%);
+            top: -300px;
+            left: -300px;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(40px);
+        }
+    </style>
+</head>
+<body class="bg-dc-bg text-gray-300 font-sans min-h-screen flex items-center justify-center p-4 antialiased selection:bg-dc-accent/30 overflow-hidden relative">
+
+    <div class="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+    <div class="fixed top-1/4 left-1/4 w-96 h-96 bg-dc-accent/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="w-full max-w-[1100px] bg-dc-surface/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden relative z-10 flex flex-col h-[85vh]">
+        
+        <div class="ambient-glow"></div>
+
+        <div class="px-8 py-6 border-b border-white/5 bg-gradient-to-r from-dc-card/50 to-transparent flex items-center justify-between shrink-0 relative z-10">
+            <div>
+                <h1 class="text-3xl font-gaming font-bold text-white tracking-widest flex items-center gap-3 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                    <i data-lucide="crosshair" class="text-dc-accent w-7 h-7 drop-shadow-[0_0_12px_rgba(0,255,170,0.8)]"></i>
+                    DRAW COMMAND CENTER
+                </h1>
+                <p class="text-[10px] font-display text-gray-400 mt-1 uppercase tracking-[0.2em] opacity-80">Configure tournament format, rules and broadcast behaviour</p>
+            </div>
+            <div class="hidden md:flex flex-col items-end">
+                <span class="text-[9px] font-display uppercase tracking-widest text-gray-500 mb-1">Target Tournament</span>
+                <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                    <i data-lucide="shield" class="w-3.5 h-3.5 text-dc-gold"></i>
+                    <span class="text-xs font-display font-bold text-white tracking-wider">UraDhura UCL S1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-1 overflow-hidden relative z-10">
+            
+            <nav class="w-64 bg-black/20 border-r border-white/5 p-4 flex flex-col gap-2 shrink-0">
+                <button onclick="openTab(event, 'tab-structure')" class="tab-btn active w-full text-left px-5 py-4 rounded-xl font-gaming text-lg text-gray-400 flex items-center gap-3 tracking-wide">
+                    <i data-lucide="layout-template" class="w-5 h-5 opacity-50"></i>
+                    Structure & Seeding
+                </button>
+                <button onclick="openTab(event, 'tab-rules')" class="tab-btn w-full text-left px-5 py-4 rounded-xl font-gaming text-lg text-gray-400 flex items-center gap-3 tracking-wide">
+                    <i data-lucide="gavel" class="w-5 h-5 opacity-50"></i>
+                    Rules & Constraints
+                </button>
+                <button onclick="openTab(event, 'tab-broadcast')" class="tab-btn w-full text-left px-5 py-4 rounded-xl font-gaming text-lg text-gray-400 flex items-center gap-3 tracking-wide">
+                    <i data-lucide="radio" class="w-5 h-5 opacity-50"></i>
+                    Broadcast Settings
+                </button>
+            </nav>
+
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 relative">
+                
+                <div id="tab-structure" class="tab-content active h-full">
+                    
+                    <h3 class="font-display text-[10px] text-gray-500 uppercase tracking-[0.15em] mb-3 pl-1">Smart Presets</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <button class="bento-card rounded-2xl p-4 text-left group">
+                            <span class="text-2xl mb-2 block filter drop-shadow-[0_0_8px_rgba(255,200,50,0.4)]">🏆</span>
+                            <h4 class="font-gaming text-lg font-bold text-white tracking-wider group-hover:text-dc-accent transition-colors">Champions League</h4>
+                            <p class="text-[10px] font-display text-gray-500 mt-1 uppercase tracking-wider">8 Groups • Top 2 Adv</p>
+                        </button>
+                        <button class="bento-card rounded-2xl p-4 text-left group">
+                            <span class="text-2xl mb-2 block filter drop-shadow-[0_0_8px_rgba(0,200,255,0.4)]">⚡</span>
+                            <h4 class="font-gaming text-lg font-bold text-white tracking-wider group-hover:text-dc-accent transition-colors">Quick Deathmatch</h4>
+                            <p class="text-[10px] font-display text-gray-500 mt-1 uppercase tracking-wider">4 Groups • Top 1 Adv</p>
+                        </button>
+                        <button class="bento-card rounded-2xl p-4 text-left group">
+                            <span class="text-2xl mb-2 block filter drop-shadow-[0_0_8px_rgba(255,50,100,0.4)]">🎯</span>
+                            <h4 class="font-gaming text-lg font-bold text-white tracking-wider group-hover:text-dc-accent transition-colors">Massive Swiss</h4>
+                            <p class="text-[10px] font-display text-gray-500 mt-1 uppercase tracking-wider">16 Groups • Top 1 Adv</p>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-6">
+                        
+                        <div class="col-span-12 lg:col-span-8 bento-card rounded-2xl p-6 relative overflow-hidden">
+                            <div class="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-dc-accent/30 to-transparent"></div>
+                            <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] mb-5 flex items-center gap-2">
+                                <i data-lucide="grid-3X3" class="text-dc-accent w-4 h-4"></i> Architecture Map
+                            </h2>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="bg-black/40 rounded-xl p-3 border border-white/5">
+                                    <label class="block font-display text-[9px] text-gray-500 uppercase tracking-[0.15em] mb-2 text-center">Total Groups</label>
+                                    <input type="number" value="8" class="w-full bg-transparent text-center text-white font-display text-2xl font-bold focus:outline-none focus:text-dc-accent transition-colors">
+                                </div>
+                                <div class="bg-black/40 rounded-xl p-3 border border-white/5">
+                                    <label class="block font-display text-[9px] text-gray-500 uppercase tracking-[0.15em] mb-2 text-center">Size per Group</label>
+                                    <input type="number" value="4" class="w-full bg-transparent text-center text-white font-display text-2xl font-bold focus:outline-none focus:text-dc-accent transition-colors">
+                                </div>
+                                <div class="bg-black/40 rounded-xl p-3 border border-white/5 relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-dc-accent/5 pointer-events-none"></div>
+                                    <label class="block font-display text-[9px] text-dc-accent uppercase tracking-[0.15em] mb-2 text-center">Advance</label>
+                                    <input type="number" value="2" class="w-full bg-transparent text-center text-white font-display text-2xl font-bold focus:outline-none focus:text-dc-accent transition-colors">
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center justify-between text-[10px] font-display bg-dc-accent/5 border border-dc-accent/10 rounded-lg px-4 py-3">
+                                <span class="text-gray-400"><span class="text-dc-accent font-bold">8</span> × <span class="text-dc-accent font-bold">4</span> = <span class="text-white font-bold">32 Slots Total</span></span>
+                                <span class="flex items-center gap-1 text-dc-accent font-bold uppercase tracking-widest"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Perfect Fit</span>
+                            </div>
+                        </div>
+
+                        <div class="col-span-12 lg:col-span-4 bento-card rounded-2xl p-6">
+                            <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] mb-5 flex items-center gap-2">
+                                <i data-lucide="arrow-down-up" class="text-dc-accent w-4 h-4"></i> Fill Strategy
+                            </h2>
+                            <div class="flex flex-col gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="strategy" class="peer sr-only" checked>
+                                    <div class="p-3 rounded-xl border border-white/5 bg-black/40 peer-checked:border-dc-accent/50 peer-checked:bg-dc-accent/5 transition-all">
+                                        <div class="text-sm font-bold text-white mb-0.5 peer-checked:text-dc-accent tracking-wide">Round-Robin</div>
+                                        <div class="text-[9px] font-display text-gray-500 uppercase tracking-widest">A1, B1, C1... then A2</div>
+                                    </div>
+                                    <div class="absolute top-4 right-4 w-3 h-3 rounded-full border border-gray-600 peer-checked:border-dc-accent peer-checked:bg-dc-accent shadow-[0_0_8px_rgba(0,255,170,0)] peer-checked:shadow-[0_0_8px_rgba(0,255,170,0.6)] transition-all"></div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="strategy" class="peer sr-only">
+                                    <div class="p-3 rounded-xl border border-white/5 bg-black/40 peer-checked:border-dc-accent/50 peer-checked:bg-dc-accent/5 transition-all">
+                                        <div class="text-sm font-bold text-white mb-0.5 peer-checked:text-dc-accent tracking-wide">Sequential</div>
+                                        <div class="text-[9px] font-display text-gray-500 uppercase tracking-widest">Group A full, then B</div>
+                                    </div>
+                                    <div class="absolute top-4 right-4 w-3 h-3 rounded-full border border-gray-600 peer-checked:border-dc-accent peer-checked:bg-dc-accent shadow-[0_0_8px_rgba(0,255,170,0)] peer-checked:shadow-[0_0_8px_rgba(0,255,170,0.6)] transition-all"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-span-12 bento-card rounded-2xl p-6">
+                            <div class="flex flex-col lg:flex-row gap-8">
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] flex items-center gap-2">
+                                            <i data-lucide="bar-chart-2" class="text-dc-accent w-4 h-4"></i> Pot Seeding Engine
+                                        </h2>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only neon-toggle-input" checked>
+                                            <div class="w-10 h-5 bg-black border border-white/10 rounded-full neon-toggle-bg transition-all duration-300 relative flex items-center px-0.5">
+                                                <div class="w-4 h-4 bg-gray-500 rounded-full neon-toggle-dot transition-transform duration-300"></div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <p class="text-[10px] font-display text-gray-500 uppercase tracking-widest leading-relaxed">
+                                        Distributes teams evenly based on skill tiers. <br>
+                                        <span class="text-dc-accent">Active:</span> 1 team from each pot per group.
+                                    </p>
+                                </div>
+                                
+                                <div class="w-px bg-gradient-to-b from-transparent via-white/10 to-transparent hidden lg:block"></div>
+
+                                <div class="flex-1">
+                                    <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] flex items-center gap-2 mb-3">
+                                        <i data-lucide="lock" class="text-dc-accent w-4 h-4"></i> Pre-Assigned Slots
+                                    </h2>
+                                    
+                                    <div class="flex items-center gap-2 p-1.5 bg-black/40 border border-white/5 rounded-xl mb-3 focus-within:border-dc-accent/30 transition-colors">
+                                        <select class="flex-1 bg-transparent text-[11px] font-display font-bold text-white outline-none cursor-pointer pl-2">
+                                            <option>ucl_kronos</option>
+                                        </select>
+                                        <i data-lucide="arrow-right" class="w-3 h-3 text-gray-600"></i>
+                                        <select class="bg-dc-surface border border-white/10 rounded-lg text-[11px] text-gray-300 font-display px-2 py-1.5 outline-none cursor-pointer">
+                                            <option>Group A</option>
+                                        </select>
+                                        <select class="bg-dc-surface border border-white/10 rounded-lg text-[11px] text-gray-300 font-display px-2 py-1.5 outline-none cursor-pointer">
+                                            <option>Slot 1</option>
+                                        </select>
+                                        <button class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-dc-danger hover:bg-dc-danger/10 transition-colors">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <button class="w-full py-2.5 border border-dashed border-white/10 hover:border-dc-accent/50 bg-white/[0.02] text-gray-400 hover:text-dc-accent rounded-xl text-[10px] font-display uppercase tracking-widest font-bold transition-all flex items-center justify-center gap-2">
+                                        <i data-lucide="plus" class="w-3 h-3"></i> Add Locked Seed
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="tab-rules" class="tab-content h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <div class="space-y-6">
+                            <div class="bento-card rounded-2xl p-6">
+                                <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+                                    <i data-lucide="shield-alert" class="text-dc-accent w-4 h-4"></i> Matchmaking Rules
+                                </h2>
+                                
+                                <div class="flex items-start justify-between p-4 bg-black/40 rounded-xl border border-white/5 mb-4 group hover:border-dc-accent/30 transition-colors">
+                                    <div>
+                                        <h4 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                                            Region Clashes
+                                            <i data-lucide="info" class="w-3 h-3 text-gray-600 group-hover:text-dc-accent transition-colors"></i>
+                                        </h4>
+                                        <p class="text-[10px] font-display text-gray-500 uppercase tracking-widest mt-1">Best-effort separation</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only neon-toggle-input">
+                                        <div class="w-9 h-5 bg-black border border-white/10 rounded-full neon-toggle-bg transition-all duration-300 relative flex items-center px-[1px]">
+                                            <div class="w-4 h-4 bg-gray-600 rounded-full neon-toggle-dot transition-transform duration-300"></div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="p-4 bg-black/40 rounded-xl border border-white/5 group hover:border-dc-accent/30 transition-colors">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div>
+                                            <h4 class="text-sm font-bold text-white tracking-wide">Organization Limits</h4>
+                                            <p class="text-[10px] font-display text-gray-500 uppercase tracking-widest mt-1">Cap teams from same org</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only neon-toggle-input" checked>
+                                            <div class="w-9 h-5 bg-black border border-white/10 rounded-full neon-toggle-bg transition-all duration-300 relative flex items-center px-[1px]">
+                                                <div class="w-4 h-4 bg-gray-600 rounded-full neon-toggle-dot transition-transform duration-300"></div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center gap-3 pt-3 border-t border-white/5">
+                                        <label class="text-[10px] font-display text-gray-400 uppercase tracking-widest">Max Allowed:</label>
+                                        <input type="number" value="1" class="w-16 bg-dc-surface border border-white/10 rounded-lg px-2 py-1 text-center text-dc-accent font-display font-bold outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bento-card rounded-2xl p-6 relative overflow-hidden">
+                            <i data-lucide="list-ordered" class="absolute -bottom-4 -right-4 w-32 h-32 text-white/[0.02] pointer-events-none"></i>
+                            <div class="flex items-center justify-between mb-6 relative z-10">
+                                <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] flex items-center gap-2">
+                                    <i data-lucide="scale" class="text-dc-accent w-4 h-4"></i> Hierarchy Resolution
+                                </h2>
+                                <button class="text-[9px] font-display font-bold uppercase tracking-widest text-dc-accent hover:text-white transition-colors">Edit Base →</button>
+                            </div>
+                            
+                            <div class="space-y-3 relative z-10">
+                                <div class="flex items-center gap-4 p-3 bg-black/40 border border-white/5 rounded-xl">
+                                    <span class="w-6 h-6 rounded bg-dc-accent/10 border border-dc-accent/20 text-dc-accent flex items-center justify-center font-display font-bold text-xs shadow-[0_0_10px_rgba(0,255,170,0.2)]">1</span>
+                                    <span class="font-bold text-white tracking-wide text-sm">Total Points</span>
+                                </div>
+                                <div class="pl-3 py-1">
+                                    <i data-lucide="arrow-down" class="w-4 h-4 text-gray-600"></i>
+                                </div>
+                                <div class="flex items-center gap-4 p-3 bg-black/40 border border-white/5 rounded-xl">
+                                    <span class="w-6 h-6 rounded bg-dc-accent/10 border border-dc-accent/20 text-dc-accent flex items-center justify-center font-display font-bold text-xs">2</span>
+                                    <span class="font-bold text-white tracking-wide text-sm">Head-to-Head Wins</span>
+                                </div>
+                                <div class="pl-3 py-1">
+                                    <i data-lucide="arrow-down" class="w-4 h-4 text-gray-600"></i>
+                                </div>
+                                <div class="flex items-center gap-4 p-3 bg-black/40 border border-white/5 rounded-xl opacity-80">
+                                    <span class="w-6 h-6 rounded bg-white/5 border border-white/10 text-gray-400 flex items-center justify-center font-display font-bold text-xs">3</span>
+                                    <span class="font-bold text-gray-300 tracking-wide text-sm">Goal Difference</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="tab-broadcast" class="tab-content h-full">
+                    
+                    <div class="bento-card rounded-2xl p-6 mb-6">
+                        <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+                            <i data-lucide="monitor-play" class="text-dc-accent w-4 h-4"></i> Studio Visuals
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <div class="col-span-1 md:col-span-4">
+                                <label class="block font-display text-[9px] text-gray-500 uppercase tracking-[0.15em] mb-2">Accent Hex</label>
+                                <div class="flex items-center gap-3 p-2 bg-black/40 rounded-xl border border-white/5 group focus-within:border-dc-accent/50 transition-colors">
+                                    <input type="color" value="#00ffaa" class="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0">
+                                    <input type="text" value="#00ffaa" class="bg-transparent border-none text-white focus:ring-0 outline-none font-display font-bold text-sm w-full uppercase">
+                                </div>
+                            </div>
+
+                            <div class="col-span-1 md:col-span-8">
+                                <label class="block font-display text-[9px] text-gray-500 uppercase tracking-[0.15em] mb-2">Cinematic Background Plate</label>
+                                <div class="relative">
+                                    <i data-lucide="image" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                                    <input type="text" placeholder="https://assets.deltacrown.com/bg-ucl.jpg" class="w-full pl-9 bg-black/40 border border-white/5 rounded-xl py-3 text-white placeholder-gray-700 focus:border-dc-accent outline-none transition-all text-sm font-display">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bento-card rounded-2xl p-6">
+                        <h2 class="text-sm font-gaming font-bold text-gray-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                            <i data-lucide="clock" class="text-dc-accent w-4 h-4"></i> Dramatization Delay
+                        </h2>
+                        <p class="text-[10px] font-display text-gray-500 uppercase tracking-widest mb-5">Paces the draw engine to allow casters time to react to picks.</p>
+                        
+                        <div class="inline-flex bg-black/40 p-1 rounded-xl border border-white/5">
+                            <button class="px-6 py-2.5 rounded-lg text-xs font-display font-bold uppercase tracking-widest border border-dc-accent/30 bg-dc-accent/10 text-dc-accent shadow-[0_0_10px_rgba(0,255,170,0.1)] transition-all">0s (Off)</button>
+                            <button class="px-6 py-2.5 rounded-lg text-xs font-display font-bold uppercase tracking-widest border border-transparent text-gray-500 hover:text-white hover:bg-white/5 transition-all">5s</button>
+                            <button class="px-6 py-2.5 rounded-lg text-xs font-display font-bold uppercase tracking-widest border border-transparent text-gray-500 hover:text-white hover:bg-white/5 transition-all">10s</button>
+                            <button class="px-6 py-2.5 rounded-lg text-xs font-display font-bold uppercase tracking-widest border border-transparent text-gray-500 hover:text-white hover:bg-white/5 transition-all">Manual</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+        </div>
+
+        <div class="px-8 py-5 border-t border-white/5 bg-dc-surface/90 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-10">
+            <button class="px-6 py-2.5 rounded-xl font-display font-bold text-[11px] uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10">
+                Cancel
+            </button>
+            <button class="relative group px-10 py-3 rounded-xl bg-accent-gradient text-black font-gaming font-bold text-lg tracking-widest shadow-[0_0_20px_rgba(0,255,170,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] hover:shadow-[0_0_30px_rgba(0,255,170,0.5),inset_0_1px_0_rgba(255,255,255,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2 overflow-hidden">
+                <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                <i data-lucide="play" class="w-5 h-5 fill-black"></i>
+                INITIALIZE DRAW
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Init Lucide Icons
+        lucide.createIcons();
+
+        // Shimmer animation for primary button
+        tailwind.config.theme.extend.keyframes = {
+            shimmer: {
+                '100%': { transform: 'translateX(100%)' }
+            }
+        };
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            
+            // Hide all content
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+
+            // Reset all buttons
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+                tablinks[i].classList.replace("text-white", "text-gray-400");
+                var icon = tablinks[i].querySelector('svg');
+                icon.classList.replace("opacity-100", "opacity-50");
+            }
+
+            // Activate chosen tab
+            document.getElementById(tabName).classList.add("active");
+            
+            // Activate clicked button
+            evt.currentTarget.classList.add("active");
+            evt.currentTarget.classList.replace("text-gray-400", "text-white");
+            var targetIcon = evt.currentTarget.querySelector('svg');
+            targetIcon.classList.replace("opacity-50", "opacity-100");
+        }
+    </script>
+</body>
+</html>

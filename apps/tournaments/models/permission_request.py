@@ -8,7 +8,7 @@ to register the team for tournaments.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from apps.tournaments.models import Tournament
+from .tournament import Tournament
 
 
 class TeamRegistrationPermissionRequest(models.Model):
@@ -102,8 +102,18 @@ class TeamRegistrationPermissionRequest(models.Model):
             models.Index(fields=['requester', 'status']),
         ]
     
+    @property
+    def team(self):
+        """Lazy-load Team from organizations app."""
+        if not self.team_id:
+            return None
+        if not hasattr(self, '_team_cache'):
+            from apps.organizations.models import Team
+            self._team_cache = Team.objects.filter(pk=self.team_id).first()
+        return self._team_cache
+
     def __str__(self):
-        return f"{self.requester.username} → Team#{self.team_id} ({self.tournament.title}) - {self.get_status_display()}"
+        return f"{self.requester.username} → Team#{self.team_id} ({self.tournament.name}) - {self.get_status_display()}"
     
     def approve(self, approved_by, message: str = ''):
         """Approve the permission request"""
@@ -151,11 +161,11 @@ class TeamRegistrationPermissionRequest(models.Model):
         """Get list of users who can respond to this request"""
         from apps.organizations.models import TeamMembership
         from django.contrib.auth import get_user_model
-        
+
         User = get_user_model()
-        
+
         return User.objects.filter(
-            team_memberships__team=self.team,
-            team_memberships__role__in=['captain', 'manager', 'admin'],
-            team_memberships__is_active=True
+            team_memberships__team_id=self.team_id,
+            team_memberships__role__in=['OWNER', 'MANAGER', 'COACH'],
+            team_memberships__status='ACTIVE'
         ).distinct()

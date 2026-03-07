@@ -166,6 +166,37 @@ class TournamentDetailView(DetailView):
         # Phase-specific context
         context.update(self._get_phase_context(tournament, user))
 
+        # Detailed registration status (wire up the dead code at _get_registration_status)
+        if user.is_authenticated and context.get('is_registered'):
+            try:
+                context['registration_detail_status'] = self._get_registration_status(tournament, user)
+            except Exception:
+                context['registration_detail_status'] = None
+        else:
+            context['registration_detail_status'] = None
+
+        # CoinPolicy — DeltaCoin rewards for this tournament
+        try:
+            from apps.economy.models import CoinPolicy
+            coin_policy = CoinPolicy.objects.filter(
+                tournament_id=tournament.id, enabled=True
+            ).first()
+            context['coin_policy'] = coin_policy
+        except Exception:
+            context['coin_policy'] = None
+
+        # Social links presence flag (avoids empty card rendering)
+        context['has_social_links'] = any([
+            tournament.social_discord, tournament.social_twitter,
+            tournament.social_instagram, tournament.social_youtube,
+            tournament.social_facebook, tournament.social_tiktok,
+            tournament.social_website, tournament.contact_email,
+        ])
+
+        # Spectator page link (for live/completed tournaments)
+        if tournament.status in ['live', 'completed', 'archived']:
+            context['spectator_url'] = f'/tournaments/{tournament.slug}/spectate/'
+
         return context
 
     def _get_phase_context(self, tournament, user):
@@ -290,10 +321,32 @@ class TournamentDetailView(DetailView):
         if phase_ctx['is_completed_phase']:
             from apps.tournaments.models.result import TournamentResult
             try:
-                results = TournamentResult.objects.filter(
-                    tournament=tournament, is_deleted=False
-                ).order_by('placement')[:3]
-                phase_ctx['podium'] = list(results)
+                result = TournamentResult.objects.select_related(
+                    'winner', 'runner_up', 'third_place',
+                ).get(tournament=tournament, is_deleted=False)
+
+                from types import SimpleNamespace
+                from apps.tournaments.models.prize import PrizeTransaction
+
+                # Build prize lookup  {registration_id: amount}
+                prize_lookup = dict(
+                    PrizeTransaction.objects.filter(
+                        tournament=tournament,
+                    ).values_list('participant_id', 'amount')
+                )
+
+                podium = []
+                for reg in [result.winner, result.runner_up, result.third_place]:
+                    if reg is None:
+                        continue
+                    podium.append(SimpleNamespace(
+                        team=reg.team,           # Registration.team @property resolves team_id -> Team
+                        player=reg.user if reg.user_id else None,
+                        prize_amount=prize_lookup.get(reg.id),
+                    ))
+                phase_ctx['podium'] = podium
+            except TournamentResult.DoesNotExist:
+                phase_ctx['podium'] = []
             except Exception:
                 phase_ctx['podium'] = []
 
@@ -568,14 +621,26 @@ class TournamentDetailView(DetailView):
             group_name = ''
             round_label = ''
             if phase == 'knockout_stage' and match.round_number:
-                if match.round_number == 1:
-                    round_label = 'Final'
-                elif match.round_number == 2:
-                    round_label = 'Semi-Finals'
-                elif match.round_number == 3:
-                    round_label = 'Quarter-Finals'
+                # For double-elimination, round_number maps sequentially:
+                # UB-R1=1, UB-QF=2, UB-SF=3, UB-F=4, LB-R1=5..LB-F=10, GF=11
+                # For single-elimination: round 1=R1, last=Final
+                if tournament.format == 'double_elimination':
+                    de_round_labels = {
+                        1: 'UB Round 1', 2: 'UB Quarter-Final', 3: 'UB Semi-Final', 4: 'UB Final',
+                        5: 'LB Round 1', 6: 'LB Round 2', 7: 'LB Round 3', 8: 'LB Round 4',
+                        9: 'LB Semi-Final', 10: 'LB Final', 11: 'Grand Final',
+                    }
+                    round_label = de_round_labels.get(match.round_number, f'Round {match.round_number}')
                 else:
-                    round_label = f'Round {match.round_number}'
+                    # Single-elim: highest round_number = final
+                    if match.round_number == 1:
+                        round_label = 'Final'
+                    elif match.round_number == 2:
+                        round_label = 'Semi-Finals'
+                    elif match.round_number == 3:
+                        round_label = 'Quarter-Finals'
+                    else:
+                        round_label = f'Round of {2 ** match.round_number}'
 
             stage_label = ''
             if phase == 'group_stage' and group_name:
@@ -640,8 +705,22 @@ class TournamentDetailView(DetailView):
 
             lobby_info = match.lobby_info or {}
             best_of_label = ''
-            if lobby_info.get('best_of'):
+            if match.best_of and match.best_of > 1:
+                best_of_label = f"BO{match.best_of}"
+            elif lobby_info.get('best_of'):
                 best_of_label = f"BO{lobby_info['best_of']}"
+
+            # Parse per-map scores from game_scores
+            map_scores = []
+            gs = match.game_scores or {}
+            gs_maps = gs.get('maps', []) if isinstance(gs, dict) else gs if isinstance(gs, list) else []
+            for gm in gs_maps:
+                map_scores.append({
+                    'map_name': gm.get('map', gm.get('map_name', '')),
+                    'p1_score': gm.get('p1', gm.get('p1_score', gm.get('team1_rounds', 0))),
+                    'p2_score': gm.get('p2', gm.get('p2_score', gm.get('team2_rounds', 0))),
+                    'winner_side': gm.get('winner_side', gm.get('winner_slot', 0)),
+                })
 
             matches_list.append({
                 'id': match.id,
@@ -667,6 +746,8 @@ class TournamentDetailView(DetailView):
                 'starts_at_relative': starts_at_relative,
                 'team1_name': p1_name,
                 'team2_name': p2_name,
+                'team1_id': match.participant1_id,
+                'team2_id': match.participant2_id,
                 'team1_logo_url': p1_logo,
                 'team2_logo_url': p2_logo,
                 'team1_is_winner': team1_is_winner,
@@ -681,7 +762,99 @@ class TournamentDetailView(DetailView):
                 'lobby_info': lobby_info,
                 'round_number': match.round_number,
                 'winner_id': match.winner_id,
+                'map_scores': map_scores,
+                'best_of': match.best_of,
+                'bracket_type': 'losers' if (tournament.format == 'double_elimination' and match.round_number and 5 <= match.round_number <= 10) else 'main',
             })
+
+        # Enrich matches with MVP info + per-player scoreboard from MatchPlayerStat
+        try:
+            from apps.tournaments.models.match_player_stats import MatchPlayerStat, MatchMapPlayerStat
+            match_ids = [m['id'] for m in matches_list]
+
+            # MVP lookup
+            mvps = MatchPlayerStat.objects.filter(
+                match_id__in=match_ids, is_mvp=True
+            ).select_related('player').values_list('match_id', 'player__username')
+            mvp_map = {mid: uname for mid, uname in mvps}
+
+            # Full per-player stats grouped by match
+            all_stats = MatchPlayerStat.objects.filter(
+                match_id__in=match_ids
+            ).select_related('player').order_by('-acs')
+
+            stats_by_match = {}
+            for s in all_stats:
+                stats_by_match.setdefault(s.match_id, []).append({
+                    'player_name': s.player.username if s.player else '?',
+                    'display_name': getattr(s.player, 'first_name', '') or s.player.username,
+                    'team_id': s.team_id,
+                    'agent': s.agent,
+                    'kills': s.kills,
+                    'deaths': s.deaths,
+                    'assists': s.assists,
+                    'kd_ratio': float(s.kd_ratio) if s.kd_ratio else 0,
+                    'acs': float(s.acs) if s.acs else 0,
+                    'adr': float(s.adr) if s.adr else 0,
+                    'hs_pct': float(s.headshot_pct) if s.headshot_pct else 0,
+                    'first_kills': s.first_kills,
+                    'first_deaths': s.first_deaths,
+                    'clutches': s.clutches,
+                    'is_mvp': s.is_mvp,
+                })
+
+            # Per-map stats
+            all_map_stats = MatchMapPlayerStat.objects.filter(
+                match_id__in=match_ids
+            ).select_related('player').order_by('map_number', '-acs')
+
+            map_stats_by_match = {}
+            for ms in all_map_stats:
+                key = ms.match_id
+                map_stats_by_match.setdefault(key, {})
+                map_stats_by_match[key].setdefault(ms.map_number, []).append({
+                    'player_name': ms.player.username if ms.player else '?',
+                    'display_name': getattr(ms.player, 'first_name', '') or ms.player.username,
+                    'team_id': ms.team_id,
+                    'agent': ms.agent,
+                    'map_name': ms.map_name,
+                    'kills': ms.kills,
+                    'deaths': ms.deaths,
+                    'assists': ms.assists,
+                    'acs': float(ms.acs) if ms.acs else 0,
+                    'adr': float(ms.adr) if ms.adr else 0,
+                    'hs_pct': float(ms.headshot_pct) if ms.headshot_pct else 0,
+                    'first_kills': ms.first_kills,
+                    'first_deaths': ms.first_deaths,
+                })
+
+            for m in matches_list:
+                mid = m['id']
+                m['mvp_name'] = mvp_map.get(mid, '')
+                m['player_stats'] = stats_by_match.get(mid, [])
+                # Split player stats by team for template rendering
+                t1_stats = [s for s in m['player_stats'] if s.get('team_id') == m.get('team1_id')]
+                t2_stats = [s for s in m['player_stats'] if s.get('team_id') == m.get('team2_id')]
+                # If team_id matching fails, split by order (first 5 = team1, next 5 = team2)
+                if not t1_stats and not t2_stats and m['player_stats']:
+                    half = len(m['player_stats']) // 2
+                    t1_stats = m['player_stats'][:half]
+                    t2_stats = m['player_stats'][half:]
+                m['team1_stats'] = t1_stats
+                m['team2_stats'] = t2_stats
+                # Map-level stats as ordered list of dicts
+                match_maps = map_stats_by_match.get(mid, {})
+                m['map_player_stats'] = [
+                    {'map_number': mn, 'players': match_maps[mn]}
+                    for mn in sorted(match_maps.keys())
+                ]
+        except Exception:
+            for m in matches_list:
+                m['mvp_name'] = ''
+                m['player_stats'] = []
+                m['team1_stats'] = []
+                m['team2_stats'] = []
+                m['map_player_stats'] = []
 
         return {
             'matches': matches_list,
@@ -799,6 +972,7 @@ class TournamentDetailView(DetailView):
         else:
             from apps.tournaments.models import Registration, Match
             from apps.organizations.models import Team
+            from apps.tournaments.models.prize import PrizeTransaction
 
             registrations = Registration.objects.filter(
                 tournament=tournament,
@@ -812,6 +986,20 @@ class TournamentDetailView(DetailView):
             team_ids = [reg.team_id for reg in registrations if reg.team_id]
             teams_map = {team.id: team for team in Team.objects.filter(id__in=team_ids)} if team_ids else {}
 
+            # Prize lookup: participant_id (Registration.id) → amount
+            prize_lookup = dict(
+                PrizeTransaction.objects.filter(
+                    tournament=tournament,
+                ).values_list('participant_id', 'amount')
+            )
+            # Build reg_id → team mapping for prize resolution
+            reg_prize_map = {}
+            for reg in registrations:
+                if reg.id in prize_lookup:
+                    pid = reg.team_id or (reg.user_id if reg.user else None)
+                    if pid:
+                        reg_prize_map[pid] = prize_lookup[reg.id]
+
             standings_rows = []
 
             for reg in registrations:
@@ -820,10 +1008,15 @@ class TournamentDetailView(DetailView):
                     participant_name = team.name if team else f"Team {reg.team_id}"
                     participant_id = f"team-{reg.team_id}"
                     pid = reg.team_id
+                    try:
+                        logo_url = team.logo.url if team and team.logo else ''
+                    except Exception:
+                        logo_url = ''
                 elif reg.user:
                     participant_name = reg.user.profile.display_name if hasattr(reg.user, 'profile') and reg.user.profile.display_name else reg.user.username
                     participant_id = f"user-{reg.user.id}"
                     pid = reg.user.id
+                    logo_url = ''
                 else:
                     continue
 
@@ -841,10 +1034,28 @@ class TournamentDetailView(DetailView):
                 losses = matches_played - wins
                 points = wins * 3
 
+                # Compute map differential from game_scores
+                maps_won = 0
+                maps_lost = 0
+                for m in matches:
+                    gs = m.game_scores or {}
+                    gs_maps = gs.get('maps', []) if isinstance(gs, dict) else gs if isinstance(gs, list) else []
+                    for gm in gs_maps:
+                        ws = gm.get('winner_side', gm.get('winner_slot', 0))
+                        is_p1 = (m.participant1_id == pid)
+                        if (ws == 1 and is_p1) or (ws == 2 and not is_p1):
+                            maps_won += 1
+                        else:
+                            maps_lost += 1
+                map_diff = maps_won - maps_lost
+
+                prize_amount = reg_prize_map.get(pid)
+
                 standings_rows.append({
                     'rank': 0,
                     'name': participant_name,
                     'participant_id': participant_id,
+                    'logo_url': logo_url,
                     'group_name': None,
                     'matches_played': matches_played,
                     'wins': wins,
@@ -855,6 +1066,8 @@ class TournamentDetailView(DetailView):
                     'goal_difference': None,
                     'round_difference': None,
                     'kill_difference': None,
+                    'map_differential': map_diff,
+                    'prize_amount': prize_amount,
                     'game_specific_label': None
                 })
 

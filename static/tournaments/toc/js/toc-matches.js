@@ -189,7 +189,14 @@
       var isSwissRound = (window.TOC_CONFIG || {}).tournamentFormat === 'swiss';
       var roundPrefix = isSwissRound ? 'Swiss R' : 'R';
       var bestOf = m.best_of || 1;
-      var gameScores = m.game_scores || [];
+      var rawGs = m.game_scores || [];
+      if (typeof rawGs === 'string') { try { rawGs = JSON.parse(rawGs); } catch (_e) { rawGs = []; } }
+      if (rawGs && typeof rawGs === 'object' && !Array.isArray(rawGs) && Array.isArray(rawGs.maps)) {
+        rawGs = rawGs.maps.map(function(mp, i) {
+          return { game: i+1, p1_score: mp.team1_rounds||0, p2_score: mp.team2_rounds||0, map_name: mp.map_name||'' };
+        });
+      }
+      var gameScores = Array.isArray(rawGs) ? rawGs : [];
       var sp1 = 0; var sp2 = 0;
       gameScores.forEach(function(g) { if ((g.p1_score||0) > (g.p2_score||0)) sp1++; else if ((g.p2_score||0) > (g.p1_score||0)) sp2++; });
       var showSeries = bestOf > 1 && gameScores.length > 0;
@@ -498,7 +505,14 @@
   /* -- Series Panel (BO3/BO5) -- */
   function renderSeriesPanel(m) {
     var bestOf = (m && m.best_of) || 1;
-    var games = (m && m.game_scores) || [];
+    var _rawGs2 = (m && m.game_scores) || [];
+    if (typeof _rawGs2 === 'string') { try { _rawGs2 = JSON.parse(_rawGs2); } catch (_e) { _rawGs2 = []; } }
+    if (_rawGs2 && typeof _rawGs2 === 'object' && !Array.isArray(_rawGs2) && Array.isArray(_rawGs2.maps)) {
+      _rawGs2 = _rawGs2.maps.map(function(mp, i) {
+        return { game: i+1, p1_score: mp.team1_rounds||0, p2_score: mp.team2_rounds||0, map_name: mp.map_name||'' };
+      });
+    }
+    var games = Array.isArray(_rawGs2) ? _rawGs2 : [];
 
     // Update BO buttons
     [1, 3, 5].forEach(function (bo) {
@@ -573,7 +587,14 @@
   function openAddGameScore() {
     if (!selectedMatchId) return;
     var m = allMatches.find(function (x) { return x.id === selectedMatchId; });
-    var games = (m && m.game_scores) || [];
+    var _rawGs3 = (m && m.game_scores) || [];
+    if (typeof _rawGs3 === 'string') { try { _rawGs3 = JSON.parse(_rawGs3); } catch (_e) { _rawGs3 = []; } }
+    if (_rawGs3 && typeof _rawGs3 === 'object' && !Array.isArray(_rawGs3) && Array.isArray(_rawGs3.maps)) {
+      _rawGs3 = _rawGs3.maps.map(function(mp, i) {
+        return { game: i+1, p1_score: mp.team1_rounds||0, p2_score: mp.team2_rounds||0, map_name: mp.map_name||'' };
+      });
+    }
+    var games = Array.isArray(_rawGs3) ? _rawGs3 : [];
     var nextGame = games.length + 1;
     var p1Name = (m && m.participant1_name) || 'Team A';
     var p2Name = (m && m.participant2_name) || 'Team B';

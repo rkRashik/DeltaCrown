@@ -499,8 +499,32 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                         result['valid'] = False
                         result['errors']['team_id'] = 'You don\'t have permission to register this team'
                     else:
-                        result['data']['team_id'] = team_id
-                        result['data']['team_name'] = team.name
+                        # ── Roster size validation ──────────────────────
+                        active_members = TeamMembership.objects.filter(
+                            team=team, status='ACTIVE'
+                        ).count()
+                        # Get minimum roster from game spec or tournament config
+                        min_roster = 5  # default for Valorant
+                        try:
+                            from apps.games.services import game_service
+                            spec = game_service.get_game_spec(tournament.game_id) if tournament.game_id else None
+                            if spec and hasattr(spec, 'roster_config'):
+                                min_roster = getattr(spec.roster_config, 'min_starters', 5)
+                        except Exception:
+                            pass
+                        # Also check tournament.config for override
+                        if tournament.config and isinstance(tournament.config, dict):
+                            min_roster = tournament.config.get('min_roster_size', min_roster)
+
+                        if active_members < min_roster:
+                            result['valid'] = False
+                            result['errors']['team_id'] = (
+                                f'Your team needs at least {min_roster} active players '
+                                f'to register. Currently: {active_members} player{"s" if active_members != 1 else ""}.'
+                            )
+                        else:
+                            result['data']['team_id'] = team_id
+                            result['data']['team_name'] = team.name
                 except Team.DoesNotExist:
                     result['valid'] = False
                     result['errors']['team_id'] = 'Invalid team selected'

@@ -11,6 +11,7 @@ This replaces the Sprint 5 lobby (checkin.py) and Sprint 10 lobby (lobby.py)
 with a single, SPA-style page driven by JSON API endpoints for real-time data.
 """
 
+import json
 import logging
 from datetime import timedelta
 
@@ -481,8 +482,6 @@ def _build_hub_context(request, tournament, registration):
 
 def _build_status_detail(registration, check_in, tournament, now):
     """Build detailed status info for the status modal."""
-    import json
-
     if not registration:
         return {
             'raw_status': 'staff',
@@ -819,7 +818,6 @@ class HubSquadAPIView(LoginRequiredMixin, View):
     """
 
     def post(self, request, slug):
-        import json
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
@@ -1063,8 +1061,6 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         })
 
     def post(self, request, slug):
-        import json
-
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
@@ -1187,7 +1183,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'score': m.participant2_score,
                     'is_winner': m.winner_id == m.participant2_id if m.winner_id else False,
                 },
-                'scheduled_at': m.scheduled_at.isoformat() if hasattr(m, 'scheduled_at') and m.scheduled_at else None,
+                'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
             })
 
         return JsonResponse({
@@ -1206,7 +1202,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class HubStandingsAPIView(LoginRequiredMixin, View):
-    """GET: Returns group standings for the tournament."""
+    """GET: Returns group standings or bracket-derived standings for the tournament."""
 
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
@@ -1216,57 +1212,137 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
 
         is_team = tournament.participation_type == 'team'
         groups = Group.objects.filter(
-            stage__tournament=tournament,
+            tournament=tournament,
         ).prefetch_related('standings').order_by('name')
 
-        if not groups.exists():
-            # Fallback: check overall tournament standings from match results
-            return JsonResponse({'has_standings': False, 'groups': []})
+        if groups.exists():
+            groups_data = []
+            for group in groups:
+                standings = GroupStanding.objects.filter(
+                    group=group,
+                ).order_by('rank', '-points', '-goal_difference')
 
-        groups_data = []
-        for group in groups:
-            standings = GroupStanding.objects.filter(
-                group=group,
-            ).order_by('rank', '-points', '-goal_difference')
+                rows = []
+                for s in standings:
+                    name = ''
+                    is_you = False
+                    if is_team and s.team_id:
+                        from apps.organizations.models import Team
+                        try:
+                            t = Team.objects.get(id=s.team_id)
+                            name = t.name
+                        except Team.DoesNotExist:
+                            name = f'Team #{s.team_id}'
+                        is_you = registration and s.team_id == registration.team_id
+                    elif s.user_id:
+                        name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'
+                        is_you = s.user_id == request.user.id
 
-            rows = []
-            for s in standings:
-                name = ''
-                is_you = False
-                if is_team and s.team_id:
-                    from apps.organizations.models import Team
-                    try:
-                        t = Team.objects.get(id=s.team_id)
-                        name = t.name
-                    except Team.DoesNotExist:
-                        name = f'Team #{s.team_id}'
-                    is_you = registration and s.team_id == registration.team_id
-                elif s.user_id:
-                    name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'
-                    is_you = s.user_id == request.user.id
+                    rows.append({
+                        'rank': s.rank,
+                        'name': name,
+                        'is_you': is_you,
+                        'matches_played': s.matches_played,
+                        'won': s.matches_won,
+                        'drawn': s.matches_drawn,
+                        'lost': s.matches_lost,
+                        'points': str(s.points),
+                        'goal_difference': s.goal_difference,
+                        'rounds_won': s.rounds_won,
+                        'rounds_lost': s.rounds_lost,
+                    })
 
-                rows.append({
-                    'rank': s.rank,
-                    'name': name,
-                    'is_you': is_you,
-                    'matches_played': s.matches_played,
-                    'won': s.matches_won,
-                    'drawn': s.matches_drawn,
-                    'lost': s.matches_lost,
-                    'points': str(s.points),
-                    'goal_difference': s.goal_difference,
-                    'rounds_won': s.rounds_won,
-                    'rounds_lost': s.rounds_lost,
+                groups_data.append({
+                    'name': group.name,
+                    'standings': rows,
                 })
 
-            groups_data.append({
-                'name': group.name,
-                'standings': rows,
+            return JsonResponse({
+                'has_standings': True,
+                'standings_type': 'groups',
+                'groups': groups_data,
             })
+
+        # ── Fallback: derive standings from bracket match results ──
+        matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            state__in=['completed', 'forfeit'],
+        )
+        if not matches.exists():
+            return JsonResponse({'has_standings': False, 'groups': []})
+
+        # Aggregate W/L per participant
+        from collections import defaultdict
+        stats = defaultdict(lambda: {
+            'wins': 0, 'losses': 0, 'map_wins': 0, 'map_losses': 0,
+            'round_wins': 0, 'round_losses': 0, 'name': 'TBD',
+        })
+
+        for m in matches:
+            for pid, opp_pid, own_score, opp_score, pname in [
+                (m.participant1_id, m.participant2_id, m.participant1_score, m.participant2_score, m.participant1_name),
+                (m.participant2_id, m.participant1_id, m.participant2_score, m.participant1_score, m.participant2_name),
+            ]:
+                if not pid:
+                    continue
+                entry = stats[pid]
+                if pname:
+                    entry['name'] = pname
+                if m.winner_id == pid:
+                    entry['wins'] += 1
+                else:
+                    entry['losses'] += 1
+                entry['map_wins'] += own_score or 0
+                entry['map_losses'] += opp_score or 0
+
+                # Extract round diff from game_scores JSON
+                raw_gs = getattr(m, 'game_scores', None)
+                if isinstance(raw_gs, str):
+                    try:
+                        raw_gs = json.loads(raw_gs)
+                    except (ValueError, TypeError):
+                        raw_gs = []
+                if isinstance(raw_gs, dict) and 'maps' in raw_gs:
+                    raw_gs = raw_gs.get('maps', [])
+                if not isinstance(raw_gs, list):
+                    raw_gs = []
+                for g in raw_gs:
+                    is_p1 = (pid == m.participant1_id)
+                    rw = g.get('team1_rounds', 0) if is_p1 else g.get('team2_rounds', 0)
+                    rl = g.get('team2_rounds', 0) if is_p1 else g.get('team1_rounds', 0)
+                    entry['round_wins'] += rw or 0
+                    entry['round_losses'] += rl or 0
+
+        participant_id = None
+        if registration:
+            participant_id = registration.team_id if is_team else request.user.id
+
+        rows = []
+        for pid, s in stats.items():
+            rows.append({
+                'participant_id': pid,
+                'name': s['name'],
+                'is_you': pid == participant_id if participant_id else False,
+                'wins': s['wins'],
+                'losses': s['losses'],
+                'points': s['wins'] * 3,
+                'map_diff': s['map_wins'] - s['map_losses'],
+                'round_diff': s['round_wins'] - s['round_losses'],
+                'map_wins': s['map_wins'],
+                'map_losses': s['map_losses'],
+                'round_wins': s['round_wins'],
+                'round_losses': s['round_losses'],
+            })
+
+        rows.sort(key=lambda r: (-r['wins'], -r['map_diff'], -r['round_diff']))
+        for i, r in enumerate(rows, 1):
+            r['rank'] = i
 
         return JsonResponse({
             'has_standings': True,
-            'groups': groups_data,
+            'standings_type': 'bracket',
+            'rows': rows,
         })
 
 
@@ -1284,31 +1360,71 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         is_team = tournament.participation_type == 'team'
+        is_staff_view = not registration and _is_tournament_staff_or_organizer(request.user, tournament)
         participant_id = (registration.team_id if registration else None) if is_team else request.user.id
 
-        # Get user's matches
+        # Get user's matches (staff/organizers see ALL matches)
         user_matches = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
-        ).filter(
-            models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
-        ).order_by('round_number', 'match_number')
+        )
+        if not is_staff_view:
+            user_matches = user_matches.filter(
+                models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
+            )
+        user_matches = user_matches.order_by('round_number', 'match_number')
+
+        # Pre-fetch bracket once for round name lookups (avoid N+1)
+        bracket = None
+        try:
+            bracket = Bracket.objects.get(tournament=tournament)
+        except Bracket.DoesNotExist:
+            pass
 
         active = []
         history = []
         for m in user_matches:
-            is_p1 = m.participant1_id == participant_id
-            opponent_name = m.participant2_name if is_p1 else m.participant1_name
-            your_score = m.participant1_score if is_p1 else m.participant2_score
-            opponent_score = m.participant2_score if is_p1 else m.participant1_score
-            is_winner = m.winner_id == participant_id if m.winner_id else None
+            if is_staff_view:
+                # Staff/organizer sees both sides — no "your" vs "opponent"
+                is_p1 = True  # default perspective: p1 on left
+                opponent_name = m.participant2_name
+                your_score = m.participant1_score
+                opponent_score = m.participant2_score
+                is_winner = None
+            else:
+                is_p1 = m.participant1_id == participant_id
+                opponent_name = m.participant2_name if is_p1 else m.participant1_name
+                your_score = m.participant1_score if is_p1 else m.participant2_score
+                opponent_score = m.participant2_score if is_p1 else m.participant1_score
+                is_winner = m.winner_id == participant_id if m.winner_id else None
 
-            round_name = ''
-            try:
-                bracket = Bracket.objects.get(tournament=tournament)
+            if bracket:
                 round_name = bracket.get_round_name(m.round_number)
-            except Bracket.DoesNotExist:
+            else:
                 round_name = f'Round {m.round_number}'
+
+            # Normalize game_scores for JS consumption
+            raw_gs = getattr(m, 'game_scores', None)
+            if isinstance(raw_gs, str):
+                try:
+                    raw_gs = json.loads(raw_gs)
+                except (json.JSONDecodeError, TypeError):
+                    raw_gs = []
+            if isinstance(raw_gs, dict) and 'maps' in raw_gs:
+                best_of = raw_gs.get('best_of', 3)
+                raw_gs = [
+                    {
+                        'map_name': mp.get('map_name', ''),
+                        'p1_score': mp.get('team1_rounds', 0),
+                        'p2_score': mp.get('team2_rounds', 0),
+                        'winner_side': mp.get('winner_side', None),
+                    }
+                    for mp in raw_gs.get('maps', [])
+                ]
+            else:
+                best_of = 3
+            if not isinstance(raw_gs, list):
+                raw_gs = []
 
             match_data = {
                 'id': m.id,
@@ -1317,12 +1433,20 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'p1_name': m.participant1_name or 'TBD',
+                'p2_name': m.participant2_name or 'TBD',
                 'opponent_name': opponent_name or 'TBD',
                 'your_score': your_score,
                 'opponent_score': opponent_score,
+                'p1_score': m.participant1_score,
+                'p2_score': m.participant2_score,
                 'is_winner': is_winner,
+                'winner_name': m.winner_name if hasattr(m, 'winner_name') else None,
+                'is_staff_view': is_staff_view,
                 'lobby_info': m.lobby_info or {},
-                'scheduled_at': m.scheduled_at.isoformat() if hasattr(m, 'scheduled_at') and m.scheduled_at else None,
+                'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
+                'game_scores': raw_gs,
+                'best_of': best_of,
             }
 
             if m.state in ('completed', 'forfeit'):
@@ -1433,7 +1557,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     'tag': team.tag or team.name[:3].upper(),
                     'logo_url': logo_url,
                     'detail_url': team_detail_url,
-                    'is_you': reg.team_id == user_registration.team_id if user_registration.team_id else False,
+                    'is_you': bool(user_registration and user_registration.team_id and reg.team_id == user_registration.team_id),
                     'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
                     'member_count': members_qs.count(),
                     'member_avatars': member_avatars,

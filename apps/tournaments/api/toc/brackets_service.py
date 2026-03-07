@@ -832,7 +832,7 @@ class TOCBracketsService:
                     else None
                 ),
                 "best_of": getattr(node.match, "best_of", 1) or 1,
-                "game_scores": getattr(node.match, "game_scores", []) or [],
+                "game_scores": TOCBracketsService._safe_game_scores(node.match),
             }
 
         # Resolve participant names & logos from team_map (overrides denormalized names)
@@ -920,6 +920,45 @@ class TOCBracketsService:
         }
 
     @staticmethod
+    def _safe_game_scores(m):
+        """
+        Always return a normalised list of game-score dicts for the frontend.
+        The DB can store either:
+          - A list of dicts: [{p1_score, p2_score, ...}]     (canonical)
+          - A Valorant-style dict: {"maps": [{team1_rounds, team2_rounds, ...}]}
+          - A JSON string of either shape
+          - None
+        Frontend expects:  [{p1_score: int, p2_score: int, map_name: str, ...}, ...]
+        """
+        import json as _json
+        raw = getattr(m, 'game_scores', None)
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            try:
+                raw = _json.loads(raw)
+            except (ValueError, TypeError):
+                return []
+        # Dict with "maps" key → normalise to list
+        if isinstance(raw, dict):
+            maps = raw.get('maps', [])
+            if not isinstance(maps, list):
+                return []
+            result = []
+            for i, mp in enumerate(maps):
+                result.append({
+                    'game': i + 1,
+                    'map_name': mp.get('map_name', ''),
+                    'p1_score': mp.get('team1_rounds', 0),
+                    'p2_score': mp.get('team2_rounds', 0),
+                    'winner_side': mp.get('winner_side', 0),
+                })
+            return result
+        if isinstance(raw, list):
+            return raw
+        return []
+
+    @staticmethod
     def _serialize_match_schedule(m, team_map=None, is_team=False) -> Dict:
         p1_name = m.participant1_name
         p2_name = m.participant2_name
@@ -954,6 +993,8 @@ class TOCBracketsService:
                 m.completed_at.isoformat() if m.completed_at else None
             ),
             "stream_url": m.stream_url or "",
+            "best_of": getattr(m, 'best_of', 1) or 1,
+            "game_scores": TOCBracketsService._safe_game_scores(m),
         }
 
     @staticmethod

@@ -1021,15 +1021,9 @@
   }
 
   // Bind to TOC tab system — load when participants tab is shown
-  const origNavigate = TOC.navigate;
-  if (origNavigate) {
-    TOC.navigate = function (tabId) {
-      origNavigate.call(TOC, tabId);
-      if (tabId === 'participants') {
-        init();
-      }
-    };
-  }
+  document.addEventListener('toc:tab-changed', function (e) {
+    if (e.detail?.tab === 'participants') init();
+  });
 
   // First-time load if we land directly on participants tab
   if (window.location.hash === '#participants') {

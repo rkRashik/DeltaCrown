@@ -31,7 +31,11 @@
   {% elif tournament.rules_text %}
   <div class="hub-glass rounded-2xl p-6 md:p-10 border border-white/5">
     <div class="prose prose-invert prose-sm max-w-none hub-rich-text">
-      {{ tournament.rules_text|safe }}
+      {% if '<' in tournament.rules_text and '>' in tournament.rules_text %}
+        {{ tournament.rules_text|safe }}
+      {% else %}
+        {{ tournament.rules_text|linebreaksbr }}
+      {% endif %}
     </div>
   </div>
   {% else %}

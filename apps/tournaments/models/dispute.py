@@ -238,7 +238,16 @@ class DisputeEvidence(models.Model):
     
     url = models.URLField(
         max_length=500,
+        blank=True,
+        default='',
         help_text='URL to external resource (imgur, Discord CDN, S3, etc.)'
+    )
+
+    evidence_file = models.FileField(
+        upload_to='disputes/evidence/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='Direct file upload (screenshot, video clip). Max 10MB recommended.'
     )
     
     notes = models.TextField(

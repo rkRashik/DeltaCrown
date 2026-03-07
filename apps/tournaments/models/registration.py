@@ -656,7 +656,7 @@ class Payment(models.Model):
             # Status must be valid
             models.CheckConstraint(
                 check=models.Q(
-                    status__in=['pending', 'submitted', 'verified', 'rejected', 'refunded', 'expired']
+                    status__in=['pending', 'submitted', 'verified', 'rejected', 'refunded', 'expired', 'waived']
                 ),
                 name='payment_status_valid'
             ),

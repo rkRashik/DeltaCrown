@@ -340,8 +340,29 @@ class RegistrationEligibilityService:
                 
                 # Adapter returns: {'is_valid': bool, 'errors': [], 'warnings': [], 'roster_data': {}}
                 if not validation_result['is_valid']:
-                    # Extract first error message
-                    error_msg = validation_result['errors'][0] if validation_result['errors'] else 'Team roster does not meet requirements.'
+                    # Convert technical adapter errors to user-friendly messages
+                    roster_data = validation_result.get('roster_data', {})
+                    active_count = roster_data.get('active_count', 0)
+                    raw_error = validation_result['errors'][0] if validation_result['errors'] else ''
+
+                    if 'below minimum' in raw_error.lower() or 'roster size' in raw_error.lower():
+                        # Extract min from roster_data or parse from error
+                        import re
+                        min_match = re.search(r'minimum\s*\((\d+)\)', raw_error)
+                        min_size = int(min_match.group(1)) if min_match else 1
+                        if active_count == 0:
+                            error_msg = (
+                                f'Your team "{team_with_permission.name}" has no active members. '
+                                f'You need at least {min_size} member(s) to register.'
+                            )
+                        else:
+                            error_msg = (
+                                f'Your team "{team_with_permission.name}" needs at least {min_size} '
+                                f'active members ({active_count} currently).'
+                            )
+                    else:
+                        error_msg = raw_error or 'Team roster does not meet requirements.'
+
                     return {
                         'eligible': False,
                         'reason': error_msg,

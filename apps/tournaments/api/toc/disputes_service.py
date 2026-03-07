@@ -159,7 +159,8 @@ class TOCDisputesService:
         tournament: Tournament,
         *,
         evidence_type: str = 'screenshot',
-        url: str,
+        url: str = '',
+        evidence_file=None,
         notes: str = '',
         user_id: int,
     ) -> Dict[str, Any]:
@@ -173,12 +174,14 @@ class TOCDisputesService:
             uploaded_by_id=user_id,
             evidence_type=evidence_type,
             url=url,
+            evidence_file=evidence_file,
             notes=notes,
         )
         return {
             'id': ev.id,
             'evidence_type': ev.evidence_type,
-            'url': ev.url,
+            'url': ev.url or (ev.evidence_file.url if ev.evidence_file else ''),
+            'file_url': ev.evidence_file.url if ev.evidence_file else None,
             'notes': ev.notes,
             'created_at': ev.created_at.isoformat(),
         }

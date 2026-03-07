@@ -13,6 +13,8 @@ from django.views.generic import DetailView
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.http import Http404
+from decimal import Decimal
+import json
 
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.tournaments.models.result import TournamentResult
@@ -191,33 +193,178 @@ class MatchDetailView(DetailView):
         return obj
     
     def get_context_data(self, **kwargs):
-        """Add match-specific context."""
+        """Add match-specific context with team data, player stats, and map scores."""
         context = super().get_context_data(**kwargs)
         match = self.object
-        
-        # Add tournament context
-        context['tournament'] = match.tournament
-        
-        # Participant details (user lookup for display)
-        context['participant1'] = self._get_participant_details(match.participant1_id)
-        context['participant2'] = self._get_participant_details(match.participant2_id)
-        
-        # Check if current user is participant
+        tournament = match.tournament
+
+        context['tournament'] = tournament
+
+        # ── Round label ──
+        DOUBLE_ELIM_LABELS = {
+            1: 'UB Round 1', 2: 'UB Quarterfinals', 3: 'UB Semifinals', 4: 'UB Final',
+            5: 'LB Round 1', 6: 'LB Round 2', 7: 'LB Round 3', 8: 'LB Round 4',
+            9: 'LB Semifinal', 10: 'LB Final', 11: 'Grand Final',
+        }
+        if tournament.format == 'double_elimination' and match.round_number:
+            context['round_label'] = DOUBLE_ELIM_LABELS.get(match.round_number, f'Round {match.round_number}')
+        else:
+            context['round_label'] = match.round_name or f'Round {match.round_number}'
+
+        # ── Team info (for team tournaments) ──
+        team1 = self._get_team(match.participant1_id)
+        team2 = self._get_team(match.participant2_id)
+        context['team1'] = team1
+        context['team2'] = team2
+        context['is_team_tournament'] = team1 is not None or team2 is not None
+
+        # Fallback: participant details (for 1v1)
+        if not context['is_team_tournament']:
+            context['participant1'] = self._get_participant_details(match.participant1_id)
+            context['participant2'] = self._get_participant_details(match.participant2_id)
+
+        # ── Map scores from game_scores JSON ──
+        maps = []
+        game_scores = match.game_scores or {}
+        for m in game_scores.get('maps', []):
+            maps.append({
+                'map_name': m.get('map_name', ''),
+                'team1_rounds': m.get('team1_rounds', 0),
+                'team2_rounds': m.get('team2_rounds', 0),
+                'winner_side': m.get('winner_side'),
+            })
+        context['maps'] = maps
+        context['best_of'] = game_scores.get('best_of', match.best_of or 1)
+
+        # ── Per-player stats (MatchPlayerStat + MatchMapPlayerStat) ──
+        try:
+            from apps.tournaments.models.match_player_stats import MatchPlayerStat, MatchMapPlayerStat
+            player_stats_qs = MatchPlayerStat.objects.filter(
+                match=match, is_deleted=False
+            ).order_by('-acs')
+
+            team1_stats = []
+            team2_stats = []
+            for ps in player_stats_qs:
+                stat_dict = {
+                    'id': ps.id,
+                    'player_name': ps.player_name,
+                    'display_name': ps.display_name or ps.player_name,
+                    'agent': ps.agent or '',
+                    'kills': ps.kills or 0,
+                    'deaths': ps.deaths or 0,
+                    'assists': ps.assists or 0,
+                    'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
+                    'acs': float(ps.acs) if ps.acs else 0.0,
+                    'adr': float(ps.adr) if ps.adr else 0.0,
+                    'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
+                    'first_kills': ps.first_kills or 0,
+                    'first_deaths': ps.first_deaths or 0,
+                    'clutches': ps.clutches or 0,
+                    'is_mvp': ps.is_mvp,
+                }
+                if ps.team_id == match.participant1_id:
+                    team1_stats.append(stat_dict)
+                elif ps.team_id == match.participant2_id:
+                    team2_stats.append(stat_dict)
+
+            # If team_id matching fails, split by order
+            if not team1_stats and not team2_stats and player_stats_qs.exists():
+                all_stats = [s for s in player_stats_qs]
+                mid = len(all_stats) // 2
+                for ps in all_stats[:mid]:
+                    team1_stats.append({
+                        'player_name': ps.player_name,
+                        'display_name': ps.display_name or ps.player_name,
+                        'agent': ps.agent or '', 'kills': ps.kills or 0,
+                        'deaths': ps.deaths or 0, 'assists': ps.assists or 0,
+                        'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
+                        'acs': float(ps.acs) if ps.acs else 0.0,
+                        'adr': float(ps.adr) if ps.adr else 0.0,
+                        'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
+                        'first_kills': ps.first_kills or 0, 'first_deaths': ps.first_deaths or 0,
+                        'clutches': ps.clutches or 0, 'is_mvp': ps.is_mvp,
+                    })
+                for ps in all_stats[mid:]:
+                    team2_stats.append({
+                        'player_name': ps.player_name,
+                        'display_name': ps.display_name or ps.player_name,
+                        'agent': ps.agent or '', 'kills': ps.kills or 0,
+                        'deaths': ps.deaths or 0, 'assists': ps.assists or 0,
+                        'kd_ratio': float(ps.kd_ratio) if ps.kd_ratio else 0.0,
+                        'acs': float(ps.acs) if ps.acs else 0.0,
+                        'adr': float(ps.adr) if ps.adr else 0.0,
+                        'hs_pct': float(ps.hs_pct) if ps.hs_pct else 0.0,
+                        'first_kills': ps.first_kills or 0, 'first_deaths': ps.first_deaths or 0,
+                        'clutches': ps.clutches or 0, 'is_mvp': ps.is_mvp,
+                    })
+
+            context['team1_stats'] = sorted(team1_stats, key=lambda x: -x['acs'])
+            context['team2_stats'] = sorted(team2_stats, key=lambda x: -x['acs'])
+
+            # Per-map stats
+            map_stats_qs = MatchMapPlayerStat.objects.filter(
+                match_stat__match=match, match_stat__is_deleted=False
+            ).select_related('match_stat').order_by('map_number', '-kills')
+
+            map_player_stats = {}
+            for mps in map_stats_qs:
+                mn = mps.map_number
+                if mn not in map_player_stats:
+                    map_player_stats[mn] = {
+                        'map_number': mn,
+                        'map_name': maps[mn - 1]['map_name'] if mn <= len(maps) else f'Map {mn}',
+                        'players': [],
+                    }
+                map_player_stats[mn]['players'].append({
+                    'player_name': mps.match_stat.display_name or mps.match_stat.player_name,
+                    'team_id': mps.match_stat.team_id,
+                    'kills': mps.kills or 0, 'deaths': mps.deaths or 0, 'assists': mps.assists or 0,
+                    'acs': float(mps.acs) if mps.acs else 0.0,
+                    'adr': float(mps.adr) if mps.adr else 0.0,
+                })
+            context['map_player_stats'] = sorted(map_player_stats.values(), key=lambda x: x['map_number'])
+        except ImportError:
+            context['team1_stats'] = []
+            context['team2_stats'] = []
+            context['map_player_stats'] = []
+
+        # MVP
+        mvp_stat = next((s for s in (context.get('team1_stats', []) + context.get('team2_stats', [])) if s.get('is_mvp')), None)
+        context['mvp'] = mvp_stat
+
+        # Is participant?
         if self.request.user.is_authenticated:
             context['is_participant'] = (
-                match.participant1_id == self.request.user.id or 
+                match.participant1_id == self.request.user.id or
                 match.participant2_id == self.request.user.id
             )
         else:
             context['is_participant'] = False
-        
-        # Show lobby info only to participants
         context['show_lobby_info'] = context['is_participant'] and match.lobby_info
-        
-        # Match timeline (basic events)
+
+        # Timeline
         context['timeline'] = self._build_match_timeline(match)
-        
+
         return context
+
+    def _get_team(self, participant_id):
+        """Get team details for a participant ID. Returns None if not found."""
+        if not participant_id:
+            return None
+        try:
+            from apps.teams.models import Team
+            team = Team.objects.filter(id=participant_id, is_deleted=False).first()
+            if team:
+                return {
+                    'id': team.id,
+                    'name': team.name,
+                    'tag': getattr(team, 'tag', ''),
+                    'logo_url': team.logo.url if team.logo else None,
+                }
+        except (ImportError, Exception):
+            pass
+        return None
     
     def _get_participant_details(self, user_id):
         """Get user details for a participant."""

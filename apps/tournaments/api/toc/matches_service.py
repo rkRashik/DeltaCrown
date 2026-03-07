@@ -643,6 +643,41 @@ class TOCMatchesService:
             label = group_cache.get(m.participant1_id) or group_cache.get(m.participant2_id) or ''
         return label
 
+    # ── Private helpers ──────────────────────────────────────
+
+    @staticmethod
+    def _safe_game_scores(m):
+        """
+        Always return a normalised list of game-score dicts for the frontend.
+        Handles dict-with-maps format, list format, string, or None.
+        """
+        import json as _json
+        raw = getattr(m, 'game_scores', None)
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            try:
+                raw = _json.loads(raw)
+            except (ValueError, TypeError):
+                return []
+        if isinstance(raw, dict):
+            maps = raw.get('maps', [])
+            if not isinstance(maps, list):
+                return []
+            result = []
+            for i, mp in enumerate(maps):
+                result.append({
+                    'game': i + 1,
+                    'map_name': mp.get('map_name', ''),
+                    'p1_score': mp.get('team1_rounds', 0),
+                    'p2_score': mp.get('team2_rounds', 0),
+                    'winner_side': mp.get('winner_side', 0),
+                })
+            return result
+        if isinstance(raw, list):
+            return raw
+        return []
+
     # ── Private serializer ───────────────────────────────────
 
     @classmethod
@@ -682,5 +717,5 @@ class TOCMatchesService:
             'check_in_deadline': m.check_in_deadline.isoformat() if getattr(m, 'check_in_deadline', None) else None,
             # Series (BO3/BO5)
             'best_of': getattr(m, 'best_of', 1),
-            'game_scores': getattr(m, 'game_scores', []) or [],
+            'game_scores': cls._safe_game_scores(m),
         }

@@ -146,6 +146,7 @@ class DisqualifyView(TOCBaseView):
                 actor=request.user,
                 reason=ser.validated_data.get('reason', ''),
                 evidence=ser.validated_data.get('evidence', ''),
+                auto_refund=request.data.get('auto_refund', False),
             )
             return Response({
                 'ok': True,

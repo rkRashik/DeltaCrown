@@ -111,39 +111,52 @@ class TournamentTeamInvitation(models.Model):
         verbose_name_plural = "Tournament Team Invitations"
     
     def __str__(self):
-        return f"{self.tournament.name} → {self.team.name} ({self.get_status_display()})"
-    
+        return f"{self.tournament.name} → Team#{self.team_id} ({self.get_status_display()})"
+
+    @property
+    def team(self):
+        """Lazy-load Team from organizations app."""
+        if not self.team_id:
+            return None
+        if not hasattr(self, '_team_cache'):
+            from apps.organizations.models import Team
+            self._team_cache = Team.objects.filter(pk=self.team_id).first()
+        return self._team_cache
+
     def clean(self):
         """Validation logic for invitations"""
         # Cannot invite if tournament registration is closed
-        if self.tournament and not self.tournament.allow_registration:
+        if self.tournament and hasattr(self.tournament, 'is_registration_open') and not self.tournament.is_registration_open():
             raise ValidationError({
                 'tournament': 'Cannot send invitations when tournament registration is closed.'
             })
-        
+
         # Check if tournament has already started
-        if self.tournament and self.tournament.start_date and timezone.now() > self.tournament.start_date:
+        if self.tournament and self.tournament.tournament_start and timezone.now() > self.tournament.tournament_start:
             raise ValidationError({
                 'tournament': 'Cannot send invitations after tournament has started.'
             })
-        
+
         # Check if team is already registered
-        if self.team and self.tournament:
+        if self.team_id and self.tournament:
             from .registration import Registration
             if Registration.objects.filter(
                 tournament=self.tournament,
-                team=self.team,
+                team_id=self.team_id,
                 status__in=['confirmed', 'pending', 'payment_submitted']
             ).exists():
+                team = self.team
+                team_name = team.name if team else f"Team#{self.team_id}"
                 raise ValidationError({
-                    'team': f'{self.team.name} is already registered for this tournament.'
+                    'team_id': f'{team_name} is already registered for this tournament.'
                 })
-        
+
         # Validate team game matches tournament game
-        if self.team and self.tournament:
-            if self.team.game != self.tournament.game:
+        team = self.team
+        if team and self.tournament:
+            if team.game_id != self.tournament.game_id:
                 raise ValidationError({
-                    'team': f'Team game ({self.team.game}) does not match tournament game ({self.tournament.game}).'
+                    'team_id': f'Team game does not match tournament game.'
                 })
     
     def is_expired(self) -> bool:

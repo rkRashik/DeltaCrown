@@ -20,7 +20,8 @@
     <meta property="og:site_name" content="DeltaCrown">
     <meta property="og:type" content="website">
     <meta property="og:title" content="{% block og_title %}DeltaCrown{% endblock %}">
-    <meta property="og:image" content="{% static 'siteui/og/default.png' %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'siteui/og/default.png' %}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}DeltaCrown — The Esports Operating System{% endblock %}">
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

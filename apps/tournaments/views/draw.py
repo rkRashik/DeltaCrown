@@ -63,6 +63,21 @@ class GroupDrawDirectorView(LoginRequiredMixin, TemplateView):
         ctx["ws_url"] = f"/ws/tournament/{tournament.id}/group-draw/"
         ctx["ws_auth_token"] = _mint_ws_token(user)
 
+        # ── Game branding for dynamic wizard theming ──
+        game_theme = {"slug": "", "primary_color": "#00ffaa", "secondary_color": "#1e1b4b", "accent_color": "", "banner_url": ""}
+        if tournament.game:
+            g = tournament.game
+            game_theme["slug"] = g.slug or ""
+            game_theme["primary_color"] = g.primary_color or "#00ffaa"
+            game_theme["secondary_color"] = g.secondary_color or "#1e1b4b"
+            game_theme["accent_color"] = g.accent_color or ""
+            if g.banner:
+                try:
+                    game_theme["banner_url"] = g.banner.url
+                except Exception:
+                    pass
+        ctx["game_theme_json"] = json.dumps(game_theme)
+
         # ── Pre-load groups for empty-state grid ──
         groups = Group.objects.filter(
             tournament=tournament, is_deleted=False,

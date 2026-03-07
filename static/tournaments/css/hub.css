@@ -480,98 +480,159 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BRACKET TAB
+   BRACKET TAB — V2 (Esports bracket tree)
    ═══════════════════════════════════════════════════════════════ */
-.bracket-rounds-flex {
+
+/* ── Section Labels (UB / LB / GF) ── */
+.bk-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1.75rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid;
+  background: rgba(255, 255, 255, 0.02);
+}
+.bk-label:first-child { margin-top: 0; }
+.bk-ub { color: #00FF66; border-left-color: #00FF66; background: rgba(0,255,102,0.04); }
+.bk-lb { color: #FF2A55; border-left-color: #FF2A55; background: rgba(255,42,85,0.04); }
+.bk-gf { color: #FFB800; border-left-color: #FFB800; background: rgba(255,184,0,0.04); }
+
+/* ── Section Container (horizontal flex of rounds) ── */
+.bk-section {
   display: flex;
-  gap: 2rem;
+  gap: 2.5rem;
   overflow-x: auto;
-  padding: 1.5rem 0;
-  min-height: 260px;
+  padding: 0.5rem 0 1rem;
+  position: relative;
 }
-.bracket-round {
+
+/* ── Round Column ── */
+.bk-col {
   flex: 0 0 auto;
-  min-width: 200px;
+  min-width: 210px;
+  z-index: 2;
+  position: relative;
 }
-.bracket-round-header {
-  font-size: 0.625rem;
+.bk-col-title {
+  font-size: 0.58rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6B7280;
-  margin-bottom: 1rem;
+  color: #4B5563;
+  margin-bottom: 0.75rem;
   text-align: center;
 }
-.bracket-match-card {
-  background: rgba(0, 240, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  transition: border-color 0.2s;
+.bk-col-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
 }
-.bracket-match-card:hover {
-  border-color: rgba(0, 240, 255, 0.2);
+
+/* ── Match Card ── */
+.bk-match {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 4px 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
 }
-.bracket-match-live {
-  border-color: rgba(255, 42, 85, 0.4);
-  box-shadow: 0 0 20px rgba(255, 42, 85, 0.1);
+.bk-match:hover {
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
-.bracket-match-done {
-  opacity: 0.7;
+.bk-match.bk-live {
+  border-color: rgba(255, 42, 85, 0.5);
+  box-shadow: 0 0 18px rgba(255, 42, 85, 0.12);
+  animation: bkPulseCard 2s ease-in-out infinite alternate;
 }
-.bracket-participant {
+.bk-match.bk-done { opacity: 0.8; }
+.bk-match.bk-done:hover { opacity: 1; }
+
+@keyframes bkPulseCard {
+  from { box-shadow: 0 0 10px rgba(255, 42, 85, 0.08); }
+  to   { box-shadow: 0 0 22px rgba(255, 42, 85, 0.18); }
+}
+
+/* ── Match Header (match number + live badge) ── */
+.bk-match-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px;
+  min-height: 14px;
+}
+.bk-mnum {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.15);
+  font-family: 'Outfit', 'Space Grotesk', monospace;
+}
+.bk-badge-live {
+  font-size: 0.45rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #FF2A55;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bk-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #FF2A55;
+  animation: bkDot 1.5s ease-in-out infinite;
+}
+@keyframes bkDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* ── Team Row ── */
+.bk-team {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 5px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.035);
 }
-.bracket-participant:last-child {
-  border-bottom: none;
-}
-.bracket-p-name {
-  font-size: 0.8rem;
+.bk-name {
+  font-size: 0.7rem;
   font-weight: 600;
   color: #9CA3AF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
+  max-width: 145px;
 }
-.bracket-winner .bracket-p-name {
-  color: #FFFFFF;
-}
-.bracket-p-score {
-  font-size: 0.8rem;
-  font-weight: 900;
+.bk-w .bk-name { color: #FFFFFF; }
+.bk-sc {
+  font-size: 0.75rem;
+  font-weight: 800;
   font-family: 'Outfit', sans-serif;
-  color: #6B7280;
-  min-width: 1.5rem;
-  text-align: right;
-}
-.bracket-winner .bracket-p-score {
-  color: #00FF66;
-}
-.bracket-match-badge {
-  font-size: 0.5rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  color: #4B5563;
+  min-width: 1.2rem;
   text-align: center;
-  margin-top: 0.35rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
 }
-.bracket-match-badge.live {
-  color: #FF2A55;
-}
-.bracket-match-badge.done {
-  color: #6B7280;
+.bk-w .bk-sc { color: #00FF66; }
+
+/* ── SVG Connector Lines ── */
+.bk-svg { overflow: visible; }
+.bk-line {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1.5;
+  fill: none;
 }
 
-/* Bracket zoom */
+/* ── Bracket Zoom Controls ── */
 .bracket-zoom-btn {
   width: 2rem;
   height: 2rem;
@@ -591,47 +652,194 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STANDINGS TAB
+   STANDINGS TAB — Esports Style
    ═══════════════════════════════════════════════════════════════ */
-.standings-group {
-  margin-bottom: 2rem;
+
+/* ── Champion Banner ── */
+.stnd-champion-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 184, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.08) 0%, rgba(255, 184, 0, 0.02) 100%);
 }
-.standings-table {
+.stnd-champ-icon { font-size: 2.5rem; }
+.stnd-champ-label {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #FFB800;
+  margin-bottom: 2px;
+}
+.stnd-champ-name {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  font-family: 'Outfit', sans-serif;
+}
+.stnd-champ-stat {
+  font-size: 0.7rem;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+
+/* ── Table Wrapper ── */
+.stnd-table-wrap {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.015);
+}
+.stnd-table {
+  width: 100%;
   border-collapse: collapse;
 }
-.standings-th {
-  font-size: 0.5rem;
+
+/* ── Table Header ── */
+.stnd-th {
+  font-size: 0.55rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #4B5563;
   padding: 0.75rem 0.75rem;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
 }
-.standings-row {
+.stnd-th-rank { width: 100px; text-align: center; }
+.stnd-th-team { text-align: left; }
+
+/* ── Table Rows ── */
+.stnd-row {
   transition: background 0.15s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
 }
-.standings-row:hover {
-  background: rgba(0, 240, 255, 0.03);
-}
-.standings-row-you {
-  background: rgba(0, 240, 255, 0.05) !important;
-  border-left: 2px solid #00F0FF;
-}
-.standings-td {
+.stnd-row:last-child { border-bottom: none; }
+.stnd-row:hover { background: rgba(0, 240, 255, 0.03) !important; }
+.stnd-row-you { border-left: 2px solid #00F0FF; background: rgba(0, 240, 255, 0.04) !important; }
+
+/* ── Table Cells ── */
+.stnd-td {
   font-size: 0.75rem;
   padding: 0.65rem 0.75rem;
   text-align: center;
   color: #9CA3AF;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
-.standings-qualified {
-  color: #00FF66;
+.stnd-td-rank { text-align: center; }
+.stnd-td-team { text-align: left; }
+
+/* ── Rank Badge ── */
+.stnd-rank-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  font-family: 'Outfit', sans-serif;
 }
-.standings-playoff {
+
+/* ── Team Cell ── */
+.stnd-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.stnd-team-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stnd-team-initial {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #6B7280;
+}
+.stnd-team-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #E2E8F0;
+}
+.stnd-you {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   color: #00F0FF;
+  background: rgba(0, 240, 255, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
 }
+
+/* ── Series / Maps ── */
+.stnd-series { font-weight: 700; font-family: 'Outfit', sans-serif; }
+.stnd-w { color: #00FF66; }
+.stnd-l { color: #FF2A55; }
+.stnd-sep { color: #374151; margin: 0 2px; }
+.stnd-maps { font-weight: 600; color: #6B7280; font-family: 'Outfit', sans-serif; }
+.stnd-rd { font-weight: 700; font-family: 'Outfit', sans-serif; }
+.stnd-pos { color: #00FF66; }
+.stnd-neg { color: #FF2A55; }
+
+/* ── Win% Progress Bar ── */
+.stnd-winpct-bar {
+  position: relative;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.stnd-winpct-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.25;
+  transition: width 0.4s ease;
+}
+.stnd-winpct-txt {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #9CA3AF;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── Group Standings ── */
+.stnd-group { margin-bottom: 2rem; }
+.stnd-group-title {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.stnd-qualified { color: #00FF66; }
+.stnd-playoff { color: #00F0FF; }
 
 /* ═══════════════════════════════════════════════════════════════
    MATCHES TAB  

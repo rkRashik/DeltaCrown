@@ -527,6 +527,18 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Current tournament status'
     )
     
+    # Cancellation info (referenced by detail_cancelled.html)
+    cancellation_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text='Reason for tournament cancellation (shown to participants)'
+    )
+    cancelled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When tournament was cancelled'
+    )
+    
     # Published timestamp
     published_at = models.DateTimeField(
         null=True,

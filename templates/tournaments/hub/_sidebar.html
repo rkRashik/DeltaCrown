@@ -4,7 +4,20 @@
 {% endcomment %}
 
 {% comment %}Team Identity Block{% endcomment %}
-{% if is_team and team_name %}
+{% if is_staff_or_organizer and not is_team or is_staff_or_organizer and not team_name %}
+<div class="p-5 border-b border-white/5">
+  <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Viewing As</p>
+  <div class="flex items-center gap-3 p-3 rounded-xl bg-[#FFB800]/[0.06] border border-[#FFB800]/20">
+    <div class="w-8 h-8 rounded bg-[#FFB800]/20 border border-[#FFB800]/30 flex items-center justify-center">
+      <i data-lucide="shield-check" class="w-4 h-4 text-[#FFB800]"></i>
+    </div>
+    <div class="overflow-hidden flex-1 min-w-0">
+      <p class="text-sm font-bold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+      <p class="text-[10px] text-[#FFB800] font-semibold uppercase tracking-wider" style="font-family:'Space Grotesk',monospace;">Staff / Organizer</p>
+    </div>
+  </div>
+</div>
+{% elif is_team and team_name %}
 <div class="p-5 border-b border-white/5">
   <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Competing As</p>
   <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">

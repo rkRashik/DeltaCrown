@@ -184,11 +184,44 @@ class Bracket(TimestampedModel):
         """
         if not self.bracket_structure or 'rounds' not in self.bracket_structure:
             return f"Round {round_number}"
-        
-        for round_info in self.bracket_structure.get('rounds', []):
-            if round_info.get('round_number') == round_number:
-                return round_info.get('round_name', f"Round {round_number}")
-        
+
+        rounds_data = self.bracket_structure.get('rounds', [])
+
+        # Handle list format: [{'round_number': 1, 'round_name': '...'}, ...]
+        if isinstance(rounds_data, list):
+            for round_info in rounds_data:
+                if isinstance(round_info, dict):
+                    rn = round_info.get('round_number') or round_info.get('round')
+                    if rn == round_number:
+                        return round_info.get('round_name') or round_info.get('name') or f"Round {round_number}"
+            return f"Round {round_number}"
+
+        # Handle dict format: {'upper': [...], 'lower': [...], 'grand_final': [...]}
+        if isinstance(rounds_data, dict):
+            # Build a mapping from global round_number to name.
+            # For double-elimination the match model uses a global sequence:
+            #   UB rounds first, then LB rounds, then Grand Final.
+            upper = rounds_data.get('upper', [])
+            lower = rounds_data.get('lower', [])
+            grand_final = rounds_data.get('grand_final', [])
+
+            offset = 0
+            for rd in upper:
+                if isinstance(rd, dict):
+                    offset += 1
+                    if offset == round_number:
+                        return rd.get('name') or rd.get('round_name') or f"Round {round_number}"
+            for rd in lower:
+                if isinstance(rd, dict):
+                    offset += 1
+                    if offset == round_number:
+                        return rd.get('name') or rd.get('round_name') or f"Round {round_number}"
+            for rd in grand_final:
+                if isinstance(rd, dict):
+                    offset += 1
+                    if offset == round_number:
+                        return rd.get('name') or rd.get('round_name') or f"Round {round_number}"
+
         return f"Round {round_number}"
     
     @property

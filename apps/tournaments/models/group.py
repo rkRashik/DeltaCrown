@@ -19,10 +19,10 @@ Supports 9 games:
 """
 
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, CheckConstraint, UniqueConstraint, F
-from django.contrib.postgres.fields import JSONField
 from decimal import Decimal
 
 from apps.common.models import TimestampedModel
@@ -374,14 +374,30 @@ class GroupStanding(TimestampedModel):
             ),
         ]
     
+    @property
+    def team(self):
+        """Resolve Team object from team_id (plain IntegerField, not FK)."""
+        if self.team_id:
+            from apps.teams.models import Team
+            try:
+                return Team.objects.get(pk=self.team_id)
+            except Team.DoesNotExist:
+                return None
+        return None
+
     def __str__(self):
-        participant = self.team.name if self.team else self.user.username
+        participant = self.participant_name
         return f"{self.group.name} - {participant} (Rank {self.rank})"
     
     @property
     def participant_name(self):
         """Get participant display name."""
-        return self.team.name if self.team else self.user.username
+        if self.team_id:
+            team = self.team
+            return team.name if team else f'Team #{self.team_id}'
+        if self.user:
+            return self.user.username
+        return 'Unknown'
     
     @property
     def win_percentage(self):

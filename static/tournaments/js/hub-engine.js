@@ -72,6 +72,13 @@ const HubEngine = (() => {
 
     // First-visit welcome guide
     setTimeout(_checkWelcomeGuide, 500);
+
+    // Redraw bracket connector lines on window resize
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(_redrawBracketLines, 150);
+    });
   }
 
   // ──────────────────────────────────────────────────────────
@@ -474,11 +481,20 @@ const HubEngine = (() => {
   // ──────────────────────────────────────────────────────────
   let _bracketScale = 1;
 
+  function _redrawBracketLines() {
+    const tree = document.getElementById('hub-bracket-tree');
+    if (!tree) return;
+    requestAnimationFrame(() => {
+      tree.querySelectorAll('.bk-section').forEach(sec => _drawBracketConnectors(sec));
+    });
+  }
+
   function bracketZoom(dir) {
     const tree = document.getElementById('hub-bracket-tree');
     if (!tree) return;
     _bracketScale = Math.max(0.3, Math.min(2, _bracketScale + dir * 0.2));
     tree.style.transform = `scale(${_bracketScale})`;
+    _redrawBracketLines();
   }
 
   function bracketReset() {
@@ -486,6 +502,7 @@ const HubEngine = (() => {
     if (!tree) return;
     _bracketScale = 1;
     tree.style.transform = 'scale(1)';
+    _redrawBracketLines();
   }
 
   // ──────────────────────────────────────────────────────────
@@ -941,58 +958,125 @@ const HubEngine = (() => {
       return;
     }
 
-    // Show zoom controls
     _show('bracket-zoom-controls');
-
-    // Update format label
     const fmtEl = document.getElementById('bracket-format-label');
     if (fmtEl && data.format_display) fmtEl.textContent = data.format_display;
 
     const tree = document.getElementById('hub-bracket-tree');
     if (!tree) return;
 
-    let html = '<div class="bracket-rounds-flex">';
+    const fmt = (data.format || '').toLowerCase();
+    const isDE = fmt.includes('double');
 
-    data.rounds.forEach((round, ri) => {
-      html += `<div class="bracket-round">`;
-      html += `<div class="bracket-round-header">${_esc(round.round_name)}</div>`;
-      html += `<div class="bracket-round-matches">`;
-
-      round.matches.forEach(m => {
-        const liveClass = m.state === 'live' ? ' bracket-match-live' : '';
-        const doneClass = m.state === 'completed' || m.state === 'forfeit' ? ' bracket-match-done' : '';
-        html += `<div class="bracket-match-card${liveClass}${doneClass}">`;
-
-        // Participant 1
-        const p1Win = m.participant1.is_winner ? ' bracket-winner' : '';
-        html += `<div class="bracket-participant${p1Win}">`;
-        html += `<span class="bracket-p-name">${_esc(m.participant1.name)}</span>`;
-        html += `<span class="bracket-p-score">${m.participant1.score}</span>`;
-        html += `</div>`;
-
-        // Participant 2
-        const p2Win = m.participant2.is_winner ? ' bracket-winner' : '';
-        html += `<div class="bracket-participant${p2Win}">`;
-        html += `<span class="bracket-p-name">${_esc(m.participant2.name)}</span>`;
-        html += `<span class="bracket-p-score">${m.participant2.score}</span>`;
-        html += `</div>`;
-
-        // State badge
-        if (m.state === 'live') {
-          html += `<div class="bracket-match-badge live"><span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse inline-block"></span> LIVE</div>`;
-        } else if (m.state === 'completed') {
-          html += `<div class="bracket-match-badge done">Final</div>`;
-        }
-
-        html += `</div>`; // match-card
+    // Split rounds into UB, LB, GF sections for double elimination
+    let sections = [];
+    if (isDE) {
+      let ub = [], lb = [], gf = [];
+      data.rounds.forEach(r => {
+        const rn = (r.round_name || '').toLowerCase();
+        if (rn.includes('grand') || rn.includes('gf')) gf.push(r);
+        else if (rn.includes('lb') || rn.includes('lower')) lb.push(r);
+        else ub.push(r);
       });
+      if (ub.length) sections.push({ label: 'UPPER BRACKET', cls: 'bk-ub', icon: '🟢', rounds: ub });
+      if (lb.length) sections.push({ label: 'LOWER BRACKET', cls: 'bk-lb', icon: '🔴', rounds: lb });
+      if (gf.length) sections.push({ label: 'GRAND FINAL',   cls: 'bk-gf', icon: '👑', rounds: gf });
+    } else {
+      sections.push({ label: '', cls: '', icon: '', rounds: data.rounds });
+    }
 
-      html += `</div></div>`; // matches, round
+    // ── Match card renderer ──
+    function matchHTML(m) {
+      const p1 = m.participant1 || { name: 'TBD', score: null, is_winner: false };
+      const p2 = m.participant2 || { name: 'TBD', score: null, is_winner: false };
+      const st = m.state === 'live' ? 'bk-live' : (m.state === 'completed' || m.state === 'forfeit') ? 'bk-done' : '';
+      const matchNum = m.match_number ? `<span class="bk-mnum">M${m.match_number}</span>` : '';
+      const liveBadge = m.state === 'live'
+        ? '<span class="bk-badge-live"><span class="bk-dot"></span>LIVE</span>' : '';
+      return `<div class="bk-match ${st}" data-mid="${m.id || ''}">
+        <div class="bk-match-head">${matchNum}${liveBadge}</div>
+        <div class="bk-team${p1.is_winner ? ' bk-w' : ''}">
+          <span class="bk-name">${_esc(p1.name)}</span>
+          <span class="bk-sc">${p1.score != null ? p1.score : '-'}</span>
+        </div>
+        <div class="bk-team${p2.is_winner ? ' bk-w' : ''}">
+          <span class="bk-name">${_esc(p2.name)}</span>
+          <span class="bk-sc">${p2.score != null ? p2.score : '-'}</span>
+        </div>
+      </div>`;
+    }
+
+    // ── Build HTML for all sections ──
+    let html = '';
+    sections.forEach(sec => {
+      const maxMatches = Math.max(...sec.rounds.map(r => (r.matches || []).length), 1);
+      const secH = Math.max(maxMatches * 92, 200);
+
+      if (sec.label) {
+        html += `<div class="bk-label ${sec.cls}">${sec.icon} ${sec.label}</div>`;
+      }
+      html += `<div class="bk-section" data-sec="${sec.cls}">`;
+      sec.rounds.forEach((round, ri) => {
+        html += `<div class="bk-col">`;
+        html += `<div class="bk-col-title">${_esc(round.round_name || 'Round')}</div>`;
+        html += `<div class="bk-col-body" style="height:${secH}px">`;
+        (round.matches || []).forEach(m => { html += matchHTML(m); });
+        html += `</div></div>`;
+      });
+      html += `</div>`;
     });
 
-    html += '</div>';
     tree.innerHTML = html;
+
+    // Draw SVG connector lines after layout renders
+    requestAnimationFrame(() => {
+      tree.querySelectorAll('.bk-section').forEach(sec => _drawBracketConnectors(sec));
+    });
     if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  // ── SVG bracket connector lines ──
+  function _drawBracketConnectors(section) {
+    const cols = section.querySelectorAll('.bk-col');
+    if (cols.length < 2) return;
+
+    section.querySelectorAll('.bk-svg').forEach(s => s.remove());
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('bk-svg');
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible;';
+    section.appendChild(svg);
+
+    const base = section.getBoundingClientRect();
+
+    for (let ci = 0; ci < cols.length - 1; ci++) {
+      const curCards = cols[ci].querySelectorAll('.bk-match');
+      const nxtCards = cols[ci + 1].querySelectorAll('.bk-match');
+      if (!curCards.length || !nxtCards.length) continue;
+
+      const ratio = Math.max(1, Math.ceil(curCards.length / nxtCards.length));
+
+      nxtCards.forEach((nc, ni) => {
+        const nr = nc.getBoundingClientRect();
+        const ny = nr.top + nr.height / 2 - base.top;
+        const nx = nr.left - base.left;
+
+        for (let j = 0; j < ratio; j++) {
+          const idx = ni * ratio + j;
+          if (idx >= curCards.length) break;
+          const cc = curCards[idx];
+          const cr = cc.getBoundingClientRect();
+          const cy = cr.top + cr.height / 2 - base.top;
+          const cx = cr.right - base.left;
+          const mx = (cx + nx) / 2;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', `M${cx},${cy} H${mx} V${ny} H${nx}`);
+          path.classList.add('bk-line');
+          svg.appendChild(path);
+        }
+      });
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -1018,7 +1102,7 @@ const HubEngine = (() => {
   function _renderStandings(data) {
     _hide('standings-skeleton');
 
-    if (!data.has_standings || !data.groups || data.groups.length === 0) {
+    if (!data.has_standings) {
       _show('standings-empty');
       return;
     }
@@ -1028,44 +1112,143 @@ const HubEngine = (() => {
     if (!container) return;
 
     let html = '';
-    data.groups.forEach(group => {
-      html += `<div class="standings-group">`;
-      html += `<h3 class="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">`;
-      html += `<i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i> ${_esc(group.name)}</h3>`;
 
-      html += `<div class="hub-glass rounded-xl overflow-hidden">`;
-      html += `<table class="standings-table w-full">`;
+    // ── Esports placement tier helpers ──
+    function placementLabel(rank, total) {
+      if (rank === 1) return '1st';
+      if (rank === 2) return '2nd';
+      if (rank === 3) return '3rd';
+      if (rank <= 4) return '3rd–4th';
+      if (rank <= 6) return '5th–6th';
+      if (rank <= 8) return '5th–8th';
+      if (rank <= 12) return '9th–12th';
+      if (rank <= 16) return '13th–16th';
+      return `${rank}th`;
+    }
+    function tierColor(rank) {
+      if (rank === 1) return '#FFB800';
+      if (rank === 2) return '#C0C0C0';
+      if (rank <= 4) return '#CD7F32';
+      if (rank <= 8) return '#00F0FF';
+      return '#4B5563';
+    }
+    function tierBg(rank) {
+      if (rank === 1) return 'rgba(255,184,0,0.08)';
+      if (rank === 2) return 'rgba(192,192,192,0.06)';
+      if (rank <= 4) return 'rgba(205,127,50,0.05)';
+      return 'transparent';
+    }
+    function tierIcon(rank) {
+      if (rank === 1) return '👑';
+      if (rank === 2) return '🥈';
+      if (rank === 3) return '🥉';
+      return '';
+    }
+
+    // ── Bracket-derived standings (no groups) ──
+    if (data.standings_type === 'bracket' && Array.isArray(data.rows)) {
+
+      // ── Champion banner ──
+      const champ = data.rows.find(r => r.rank === 1);
+      if (champ) {
+        html += `<div class="stnd-champion-banner">
+          <div class="stnd-champ-icon">👑</div>
+          <div class="stnd-champ-info">
+            <div class="stnd-champ-label">TOURNAMENT CHAMPION</div>
+            <div class="stnd-champ-name">${_esc(champ.name)}</div>
+            <div class="stnd-champ-stat">${champ.wins}W – ${champ.losses}L &nbsp;·&nbsp; Maps ${champ.map_wins || 0}–${champ.map_losses || 0} &nbsp;·&nbsp; RD ${champ.round_diff > 0 ? '+' : ''}${champ.round_diff}</div>
+          </div>
+        </div>`;
+      }
+
+      // ── Final placements table (esports-style) ──
+      html += `<div class="stnd-table-wrap">`;
+      html += `<table class="stnd-table">`;
       html += `<thead><tr>`;
-      html += `<th class="standings-th w-12">#</th>`;
-      html += `<th class="standings-th text-left">Team</th>`;
-      html += `<th class="standings-th">P</th>`;
-      html += `<th class="standings-th">W</th>`;
-      html += `<th class="standings-th">D</th>`;
-      html += `<th class="standings-th">L</th>`;
-      html += `<th class="standings-th">GD</th>`;
-      html += `<th class="standings-th font-bold">Pts</th>`;
+      html += `<th class="stnd-th stnd-th-rank">PLACE</th>`;
+      html += `<th class="stnd-th stnd-th-team">TEAM</th>`;
+      html += `<th class="stnd-th">SERIES</th>`;
+      html += `<th class="stnd-th">MAPS</th>`;
+      html += `<th class="stnd-th">RND DIFF</th>`;
+      html += `<th class="stnd-th">WIN%</th>`;
       html += `</tr></thead><tbody>`;
 
-      group.standings.forEach(row => {
-        const youClass = row.is_you ? ' standings-row-you' : '';
-        const rankBadge = row.rank <= 2 ? ' standings-qualified' : row.rank <= 4 ? ' standings-playoff' : '';
-        html += `<tr class="standings-row${youClass}">`;
-        html += `<td class="standings-td font-bold${rankBadge}">${row.rank}</td>`;
-        html += `<td class="standings-td text-left font-medium text-white">`;
-        html += `${_esc(row.name)}`;
-        if (row.is_you) html += ` <span class="text-[#00F0FF] text-[10px] font-bold">(YOU)</span>`;
-        html += `</td>`;
-        html += `<td class="standings-td">${row.matches_played}</td>`;
-        html += `<td class="standings-td text-[#00FF66]">${row.won}</td>`;
-        html += `<td class="standings-td">${row.drawn}</td>`;
-        html += `<td class="standings-td text-[#FF2A55]">${row.lost}</td>`;
-        html += `<td class="standings-td">${row.goal_difference > 0 ? '+' : ''}${row.goal_difference}</td>`;
-        html += `<td class="standings-td font-bold text-white">${row.points}</td>`;
+      data.rows.forEach(row => {
+        const tc = tierColor(row.rank);
+        const bg = tierBg(row.rank);
+        const icon = tierIcon(row.rank);
+        const youTag = row.is_you ? ` <span class="stnd-you">YOU</span>` : '';
+        const youCls = row.is_you ? ' stnd-row-you' : '';
+        const totalGames = row.wins + row.losses;
+        const winPct = totalGames > 0 ? Math.round((row.wins / totalGames) * 100) : 0;
+        const mapW = row.map_wins || 0;
+        const mapL = row.map_losses || 0;
+        const rdSign = row.round_diff > 0 ? '+' : '';
+
+        html += `<tr class="stnd-row${youCls}" style="background:${bg}">`;
+        // Placement
+        html += `<td class="stnd-td stnd-td-rank"><span class="stnd-rank-badge" style="color:${tc};border-color:${tc}40">${icon ? icon + ' ' : ''}${placementLabel(row.rank, data.rows.length)}</span></td>`;
+        // Team
+        html += `<td class="stnd-td stnd-td-team">`;
+        html += `<div class="stnd-team-cell">`;
+        html += `<div class="stnd-team-avatar" style="border-color:${tc}30"><span class="stnd-team-initial">${_esc((row.name || '?').charAt(0))}</span></div>`;
+        html += `<div class="stnd-team-info"><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></div>`;
+        html += `</div></td>`;
+        // Series record (W-L)
+        html += `<td class="stnd-td"><span class="stnd-series"><span class="stnd-w">${row.wins}</span><span class="stnd-sep">–</span><span class="stnd-l">${row.losses}</span></span></td>`;
+        // Maps record
+        html += `<td class="stnd-td"><span class="stnd-maps">${mapW}–${mapL}</span></td>`;
+        // Round diff
+        html += `<td class="stnd-td"><span class="stnd-rd ${row.round_diff > 0 ? 'stnd-pos' : row.round_diff < 0 ? 'stnd-neg' : ''}">${rdSign}${row.round_diff}</span></td>`;
+        // Win %
+        html += `<td class="stnd-td"><div class="stnd-winpct-bar"><div class="stnd-winpct-fill" style="width:${winPct}%;background:${tc}"></div><span class="stnd-winpct-txt">${winPct}%</span></div></td>`;
         html += `</tr>`;
       });
 
-      html += `</tbody></table></div></div>`;
-    });
+      html += `</tbody></table></div>`;
+    }
+
+    // ── Group-based standings ──
+    else if (Array.isArray(data.groups) && data.groups.length > 0) {
+      data.groups.forEach(group => {
+        html += `<div class="stnd-group">`;
+        html += `<h3 class="stnd-group-title"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i> ${_esc(group.name)}</h3>`;
+
+        html += `<div class="stnd-table-wrap">`;
+        html += `<table class="stnd-table">`;
+        html += `<thead><tr>`;
+        html += `<th class="stnd-th stnd-th-rank">#</th>`;
+        html += `<th class="stnd-th stnd-th-team">TEAM</th>`;
+        html += `<th class="stnd-th">P</th>`;
+        html += `<th class="stnd-th">W</th>`;
+        html += `<th class="stnd-th">D</th>`;
+        html += `<th class="stnd-th">L</th>`;
+        html += `<th class="stnd-th">GD</th>`;
+        html += `<th class="stnd-th">PTS</th>`;
+        html += `</tr></thead><tbody>`;
+
+        (group.standings || []).forEach(row => {
+          const youCls = row.is_you ? ' stnd-row-you' : '';
+          const youTag = row.is_you ? ` <span class="stnd-you">YOU</span>` : '';
+          const qualCls = row.rank <= 2 ? 'stnd-qualified' : row.rank <= 4 ? 'stnd-playoff' : '';
+          html += `<tr class="stnd-row${youCls}">`;
+          html += `<td class="stnd-td stnd-td-rank ${qualCls}">${row.rank}</td>`;
+          html += `<td class="stnd-td stnd-td-team"><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></td>`;
+          html += `<td class="stnd-td">${row.matches_played}</td>`;
+          html += `<td class="stnd-td stnd-w">${row.won}</td>`;
+          html += `<td class="stnd-td">${row.drawn}</td>`;
+          html += `<td class="stnd-td stnd-l">${row.lost}</td>`;
+          html += `<td class="stnd-td">${row.goal_difference > 0 ? '+' : ''}${row.goal_difference}</td>`;
+          html += `<td class="stnd-td font-bold text-white">${row.points}</td>`;
+          html += `</tr>`;
+        });
+
+        html += `</tbody></table></div></div>`;
+      });
+    } else {
+      _show('standings-empty');
+      return;
+    }
 
     container.innerHTML = html;
     container.classList.remove('hidden');
@@ -1095,6 +1278,8 @@ const HubEngine = (() => {
   function _renderMatches(data) {
     _hide('matches-skeleton');
 
+    const isStaff = data.active_matches?.some(m => m.is_staff_view) || data.match_history?.some(m => m.is_staff_view);
+
     // Active matches
     const cardsEl = document.getElementById('hub-match-cards');
     if (cardsEl) {
@@ -1103,6 +1288,9 @@ const HubEngine = (() => {
         data.active_matches.forEach(m => {
           const stateColor = m.state === 'live' ? '#FF2A55' : m.state === 'ready' ? '#00FF66' : '#00F0FF';
           const lobbyCode = m.lobby_info?.lobby_code || '';
+          const matchLabel = isStaff
+            ? `${_esc(m.p1_name)} vs ${_esc(m.p2_name)}`
+            : `vs ${_esc(m.opponent_name)}`;
           html += `
             <div class="hub-glass rounded-xl p-5 border-l-4 match-card-active" style="border-left-color: ${stateColor}">
               <div class="flex items-center justify-between mb-3">
@@ -1114,8 +1302,8 @@ const HubEngine = (() => {
               </div>
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-bold text-white">vs ${_esc(m.opponent_name)}</p>
-                  ${m.state === 'live' ? `<p class="text-lg font-black text-white mt-1" style="font-family:Outfit,sans-serif;">${m.your_score} — ${m.opponent_score}</p>` : ''}
+                  <p class="text-sm font-bold text-white">${matchLabel}</p>
+                  ${m.state === 'live' ? `<p class="text-lg font-black text-white mt-1" style="font-family:Outfit,sans-serif;">${m.p1_score ?? 0} — ${m.p2_score ?? 0}</p>` : ''}
                 </div>
                 ${lobbyCode ? `<div class="text-right"><p class="text-[10px] text-gray-500">Lobby Code</p><p class="text-sm font-bold text-[#00F0FF]" style="font-family:'Space Grotesk',monospace;">${_esc(lobbyCode)}</p></div>` : ''}
               </div>
@@ -1136,19 +1324,49 @@ const HubEngine = (() => {
         let html = '';
         data.match_history.forEach(m => {
           const resultClass = m.is_winner === true ? 'text-[#00FF66]' : m.is_winner === false ? 'text-[#FF2A55]' : 'text-gray-400';
-          const resultLabel = m.is_winner === true ? 'WIN' : m.is_winner === false ? 'LOSS' : 'DRAW';
+          const resultLabel = isStaff ? (m.winner_name ? _esc(m.winner_name) + ' won' : '—') : (m.is_winner === true ? 'WIN' : m.is_winner === false ? 'LOSS' : 'DRAW');
+          const matchLabel = isStaff
+            ? `${_esc(m.p1_name)} vs ${_esc(m.p2_name)}`
+            : `vs ${_esc(m.opponent_name)}`;
+
+          // Map-level scores (game_scores)
+          let mapsHtml = '';
+          const gs = Array.isArray(m.game_scores) ? m.game_scores : [];
+          if (gs.length > 0) {
+            mapsHtml = '<div class="flex items-center gap-2 mt-2">';
+            gs.forEach((g, i) => {
+              const mapName = g.map_name || `Map ${i + 1}`;
+              const p1r = g.p1_score ?? 0;
+              const p2r = g.p2_score ?? 0;
+              const p1Win = p1r > p2r;
+              const p1Class = p1Win ? 'text-[#00FF66]' : 'text-[#FF2A55]';
+              const p2Class = p1Win ? 'text-[#FF2A55]' : 'text-[#00FF66]';
+              mapsHtml += `
+                <div class="hub-glass rounded-lg px-2.5 py-1.5 text-center" style="min-width:3.5rem">
+                  <p class="text-[9px] text-gray-500 truncate" style="max-width:4rem">${_esc(mapName)}</p>
+                  <p class="text-xs font-black" style="font-family:'Space Grotesk',monospace;">
+                    <span class="${p1Class}">${p1r}</span><span class="text-gray-600">-</span><span class="${p2Class}">${p2r}</span>
+                  </p>
+                </div>`;
+            });
+            mapsHtml += '</div>';
+          }
+
           html += `
-            <div class="hub-glass rounded-xl p-4 flex items-center justify-between match-history-card">
-              <div class="flex items-center gap-4">
-                <span class="text-xs font-black ${resultClass} w-10">${resultLabel}</span>
-                <div>
-                  <p class="text-sm font-medium text-white">vs ${_esc(m.opponent_name)}</p>
-                  <p class="text-[10px] text-gray-500">${_esc(m.round_name)}</p>
+            <div class="hub-glass rounded-xl p-4 match-history-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <span class="text-xs font-black ${resultClass} w-14">${resultLabel}</span>
+                  <div>
+                    <p class="text-sm font-medium text-white">${matchLabel}</p>
+                    <p class="text-[10px] text-gray-500">${_esc(m.round_name)}</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? 0} — ${m.p2_score ?? 0}</p>
                 </div>
               </div>
-              <div class="text-right">
-                <p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.your_score} — ${m.opponent_score}</p>
-              </div>
+              ${mapsHtml}
             </div>`;
         });
         historyEl.innerHTML = html;
@@ -1272,10 +1490,10 @@ const HubEngine = (() => {
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-              <p class="text-sm font-medium text-white mt-0.5">vs ${_esc(m.opponent_name || 'TBD')}</p>
+              <p class="text-sm font-medium text-white mt-0.5">${m.is_staff_view ? _esc(m.p1_name || 'TBD') + ' vs ' + _esc(m.p2_name || 'TBD') : 'vs ' + _esc(m.opponent_name || 'TBD')}</p>
             </div>
             <div class="text-right shrink-0">
-              ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.your_score ?? 0} — ${m.opponent_score ?? 0}</p>` : ''}
+              ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? m.your_score ?? 0} — ${m.p2_score ?? m.opponent_score ?? 0}</p>` : ''}
               ${resultTag}
               ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
             </div>
@@ -1432,11 +1650,11 @@ const HubEngine = (() => {
   // ──────────────────────────────────────────────────────────
   function _connectWebSocket() {
     if (!_shell) return;
-    const slug = _shell.dataset.slug;
-    if (!slug) { console.warn('[Hub] No slug for WS'); return; }
+    const tid = _shell.dataset.tournamentId;
+    if (!tid) { console.warn('[Hub] No tournament ID for WS'); return; }
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${proto}://${location.host}/ws/tournaments/${slug}/bracket/`;
+    const url = `${proto}://${location.host}/ws/tournament/${tid}/`;
 
     try {
       _ws = new WebSocket(url);
