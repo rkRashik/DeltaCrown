@@ -351,6 +351,25 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
     # Event Handlers (called by channel layer group_send)
     # -------------------------------------------------------------------------
     
+    async def tournament_event(self, event: Dict[str, Any]):
+        """
+        Generic dispatcher for events sent via broadcast.py with type='tournament_event'.
+
+        broadcast.py sends ``{type: 'tournament_event', event_type: '...', ...}``.
+        This method re-dispatches as the concrete ``event_type`` to the client,
+        so the existing JS handler switch (bracket_updated, match_completed, etc.) works.
+        """
+        event_type = event.get('event_type', 'unknown')
+        payload = {k: v for k, v in event.items() if k not in ('type',)}
+        payload['type'] = event_type  # replace 'tournament_event' → actual type
+
+        await self.send_json(payload)
+
+        logger.debug(
+            f"Forwarded tournament_event/{event_type} to user {self.user.username}: "
+            f"tournament={self.tournament_id}"
+        )
+
     async def match_started(self, event: Dict[str, Any]):
         """
         Handle match_started event from channel layer.

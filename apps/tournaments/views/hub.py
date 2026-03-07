@@ -1133,7 +1133,60 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class HubBracketAPIView(LoginRequiredMixin, View):
-    """GET: Returns bracket structure and match data for visualization."""
+    """
+    GET: Returns bracket structure and match data for bracket visualization.
+
+    Endpoint: /tournaments/<slug>/hub/api/bracket/
+
+    Purpose:
+        Provides the full bracket tree for the Hub bracket tab, including
+        round metadata and match details (participants, scores, state).
+
+    Authentication:
+        Requires login. User must be a registered participant or tournament
+        staff/organizer.
+
+    Response Schema:
+        When bracket is NOT generated:
+            {"generated": false, "format": str, "format_display": str}
+
+        When bracket IS generated:
+            {
+                "generated": true,
+                "format": str,              # e.g. "double_elimination"
+                "format_display": str,      # e.g. "Double Elimination"
+                "total_rounds": int,
+                "total_matches": int,
+                "is_finalized": bool,
+                "rounds": [
+                    {
+                        "round_number": int,
+                        "round_name": str,   # e.g. "UB Round 1", "LB Round 3", "Grand Final"
+                        "matches": [
+                            {
+                                "id": int,
+                                "match_number": int,
+                                "state": str,        # scheduled|live|completed|forfeit|...
+                                "state_display": str,
+                                "participant1": {"id": int|null, "name": str, "score": int, "is_winner": bool},
+                                "participant2": {"id": int|null, "name": str, "score": int, "is_winner": bool},
+                                "scheduled_at": str|null  # ISO 8601
+                            }
+                        ]
+                    }
+                ]
+            }
+
+    Bracket vs Group Behavior:
+        This view only returns bracket-based data. For group-stage standings,
+        use HubStandingsAPIView which handles both group and bracket-derived
+        standings.
+
+    Double Elimination:
+        For double_elimination format, round_name includes prefixes
+        ("UB Round 1", "LB Round 2", "Grand Final") so the frontend can
+        split rounds into Upper Bracket / Lower Bracket / Grand Final sections.
+    """
 
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
@@ -1202,7 +1255,72 @@ class HubBracketAPIView(LoginRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class HubStandingsAPIView(LoginRequiredMixin, View):
-    """GET: Returns group standings or bracket-derived standings for the tournament."""
+    """
+    GET: Returns tournament standings for the Hub standings tab.
+
+    Endpoint: /tournaments/<slug>/hub/api/standings/
+
+    Purpose:
+        Provides either group-stage standings (if groups exist) or
+        bracket-derived aggregate standings (W/L/map diff/round diff)
+        computed from completed match results.
+
+    Authentication:
+        Requires login. User must be a registered participant or tournament
+        staff/organizer.
+
+    Response Schema:
+        When no standings exist:
+            {"has_standings": false, "groups": []}
+
+        Group-stage standings:
+            {
+                "has_standings": true,
+                "standings_type": "groups",
+                "groups": [
+                    {
+                        "name": str,
+                        "standings": [
+                            {
+                                "rank": int,
+                                "name": str,
+                                "is_you": bool,
+                                "matches_played": int,
+                                "won": int, "drawn": int, "lost": int,
+                                "points": str,
+                                "goal_difference": int,
+                                "rounds_won": int, "rounds_lost": int
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        Bracket-derived standings:
+            {
+                "has_standings": true,
+                "standings_type": "bracket",
+                "rows": [
+                    {
+                        "rank": int,
+                        "participant_id": int,
+                        "name": str,
+                        "is_you": bool,
+                        "wins": int, "losses": int,
+                        "points": int,
+                        "map_diff": int, "map_wins": int, "map_losses": int,
+                        "round_diff": int, "round_wins": int, "round_losses": int
+                    }
+                ]
+            }
+
+    Bracket vs Group Behavior:
+        - If Group objects exist for the tournament, returns group standings
+          with per-group data from GroupStanding model.
+        - If no groups exist, falls back to aggregating W/L/map/round stats
+          from all completed bracket matches. Sorted by wins desc, then
+          map_diff desc, then round_diff desc.
+    """
 
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
@@ -1351,7 +1469,56 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class HubMatchesAPIView(LoginRequiredMixin, View):
-    """GET: Returns matches relevant to the current user/team."""
+    """
+    GET: Returns matches relevant to the current user/team.
+
+    Endpoint: /tournaments/<slug>/hub/api/matches/
+
+    Purpose:
+        Provides the user's active matches (check-in, ready, live,
+        pending_result) and completed match history with per-map
+        game_scores for the Hub matches tab.
+
+    Authentication:
+        Requires login. User must be a registered participant or tournament
+        staff/organizer. Staff/organizers see ALL matches.
+
+    Response Schema:
+        {
+            "active_matches": [
+                {
+                    "id": int,
+                    "round_number": int,
+                    "round_name": str,
+                    "match_number": int,
+                    "state": str,
+                    "state_display": str,
+                    "p1_name": str, "p2_name": str,
+                    "opponent_name": str,
+                    "your_score": int, "opponent_score": int,
+                    "p1_score": int, "p2_score": int,
+                    "is_winner": bool|null,
+                    "is_staff_view": bool,
+                    "lobby_info": dict,
+                    "scheduled_at": str|null,
+                    "game_scores": [{"map_name": str, "p1_score": int, "p2_score": int, "winner_side": str|null}],
+                    "best_of": int
+                }
+            ],
+            "match_history": [...],  # same schema, completed/forfeit matches
+            "total": int
+        }
+
+    game_scores Format:
+        The backend normalizes game_scores to a flat list of dicts.
+        - Array format:  [{game, p1, p2, winner_slot}]  → passed through
+        - Dict-with-maps: {maps: [{map_name, team1_rounds, team2_rounds}], best_of}
+          → normalized to [{map_name, p1_score, p2_score, winner_side}]
+
+    Bracket vs Group Behavior:
+        This view returns matches regardless of bracket/group format.
+        Round names are resolved from the Bracket model if available.
+    """
 
     def get(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)

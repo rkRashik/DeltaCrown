@@ -326,6 +326,43 @@ def broadcast_dispute_created(
 
 
 # ============================================================================
+# Bracket State Broadcast (full JSON for Hub real-time refresh)
+# ============================================================================
+
+def broadcast_bracket_state(tournament_id: int) -> bool:
+    """
+    Broadcast a full bracket_update event after match result changes.
+
+    This triggers the Hub frontend to invalidate its bracket cache and
+    re-fetch the latest bracket JSON from HubBracketAPIView.
+
+    Args:
+        tournament_id: Tournament ID
+
+    Returns:
+        True if broadcast succeeded, False otherwise
+    """
+    channel_layer = get_channel_layer()
+    room_group = _get_room_group_name(tournament_id)
+
+    payload = {
+        "type": "bracket_updated",
+        "data": {
+            "tournament_id": tournament_id,
+            "action": "refresh",
+        },
+    }
+
+    try:
+        async_to_sync(channel_layer.group_send)(room_group, payload)
+        logger.info(f"Broadcast bracket_state refresh (tournament={tournament_id})")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to broadcast bracket_state: {e}")
+        return False
+
+
+# ============================================================================
 # Phase F: Rank Update Broadcast (NEW)
 # ============================================================================
 

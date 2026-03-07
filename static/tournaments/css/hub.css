@@ -1194,3 +1194,40 @@
   background: var(--game-primary);
   transition: width 0.6s ease-out;
 }
+
+/* ══════════════════════════════════════════════════════════
+   Mobile Bracket Support
+   Ensure horizontal scroll on small screens
+   ══════════════════════════════════════════════════════════ */
+.bracket-tree-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .bk-section {
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+  }
+  .bk-col {
+    min-width: 180px;
+  }
+  .bk-match {
+    margin: 2px 0;
+  }
+  .bk-name {
+    max-width: 110px;
+    font-size: 0.6rem;
+  }
+  .bk-sc {
+    font-size: 0.65rem;
+  }
+  .bk-col-title {
+    font-size: 0.5rem;
+  }
+  .bk-label {
+    font-size: 0.55rem;
+    padding: 0.25rem 0.75rem;
+  }
+}

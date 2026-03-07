@@ -113,12 +113,16 @@ class ResultViewSet(viewsets.GenericViewSet):
         - 404: Match not found
         """
         match = self.get_object()
-        serializer = ResultSubmissionSerializer(data=request.data)
+        serializer = ResultSubmissionSerializer(
+            data=request.data,
+            context={'best_of': match.best_of}
+        )
         serializer.is_valid(raise_exception=True)
         
         # Extract validated data
         participant1_score = serializer.validated_data['participant1_score']
         participant2_score = serializer.validated_data['participant2_score']
+        game_scores = serializer.validated_data.get('game_scores', [])
         notes = serializer.validated_data.get('notes', '')
         evidence_url = serializer.validated_data.get('evidence_url', '')
         
@@ -129,6 +133,7 @@ class ResultViewSet(viewsets.GenericViewSet):
                 submitted_by_id=request.user.id,
                 participant1_score=participant1_score,
                 participant2_score=participant2_score,
+                game_scores=game_scores,
                 notes=notes,
                 evidence_url=evidence_url
             )

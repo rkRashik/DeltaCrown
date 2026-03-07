@@ -2,6 +2,7 @@
   Tab: Rulebook — Inline rules rendering (PDF embed or rich text)
   Replaces external link behavior, keeps users in the Hub experience.
 {% endcomment %}
+{% load tournament_filters %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto space-y-8">
 
@@ -32,7 +33,7 @@
   <div class="hub-glass rounded-2xl p-6 md:p-10 border border-white/5">
     <div class="prose prose-invert prose-sm max-w-none hub-rich-text">
       {% if '<' in tournament.rules_text and '>' in tournament.rules_text %}
-        {{ tournament.rules_text|safe }}
+        {{ tournament.rules_text|sanitize_html }}
       {% else %}
         {{ tournament.rules_text|linebreaksbr }}
       {% endif %}

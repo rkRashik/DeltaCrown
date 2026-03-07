@@ -40,7 +40,7 @@ const HubEngine = (() => {
   let _ws = null;
   let _wsReconnectTimer = null;
   let _wsReconnectAttempts = 0;
-  const WS_RECONNECT_MAX = 5;
+  const WS_RECONNECT_MAX = 3;
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
 
   // ── Init ────────────────────────────────────────────────
@@ -931,22 +931,152 @@ const HubEngine = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
+  // Loading & Error State Helpers
+  // ──────────────────────────────────────────────────────────
+  /**
+   * Show a loading spinner inside a container element.
+   * @param {string} containerId  DOM id of the container
+   * @param {string} [message]    Optional loading text
+   */
+  function _showLoading(containerId, message) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const msg = message || 'Loading…';
+    el.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-16 gap-4 text-gray-400">
+        <svg class="animate-spin w-8 h-8 text-[#00F0FF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-sm">${_esc(msg)}</span>
+      </div>`;
+    el.classList.remove('hidden');
+  }
+
+  /**
+   * Show an error message inside a container element.
+   * @param {string} containerId  DOM id of the container
+   * @param {string} message      Error text
+   * @param {Function} [retryFn]  Optional retry callback
+   */
+  function _showError(containerId, message, retryFn) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const retryBtn = retryFn
+      ? `<button onclick="(${retryFn.toString()})()" class="mt-3 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all">Retry</button>`
+      : '';
+    el.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-16 gap-3 text-center">
+        <div class="w-12 h-12 rounded-xl bg-[#FF2A55]/10 flex items-center justify-center">
+          <svg class="w-6 h-6 text-[#FF2A55]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <p class="text-sm text-gray-400 max-w-sm">${_esc(message)}</p>
+        ${retryBtn}
+      </div>`;
+    el.classList.remove('hidden');
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Map Viewer — Match Game Scores Detail Modal
+  // ──────────────────────────────────────────────────────────
+  let _mapViewerMatch = null;
+
+  function openMapViewer(matchData) {
+    _mapViewerMatch = matchData;
+    let modal = document.getElementById('hub-map-viewer-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'hub-map-viewer-modal';
+      modal.className = 'fixed inset-0 z-[100] flex items-center justify-center hidden';
+      modal.onclick = (e) => { if (e.target === modal) closeMapViewer(); };
+      document.body.appendChild(modal);
+    }
+
+    const m = matchData;
+    const gs = Array.isArray(m.game_scores) ? m.game_scores : [];
+    const bo = m.best_of || (gs.length > 0 ? gs.length : 1);
+
+    let mapsHtml = '';
+    if (gs.length > 0) {
+      gs.forEach((g, i) => {
+        const mapName = g.map_name || `Map ${i + 1}`;
+        const p1r = g.p1_score ?? g.team1_rounds ?? 0;
+        const p2r = g.p2_score ?? g.team2_rounds ?? 0;
+        const p1Win = p1r > p2r;
+        mapsHtml += `
+          <div class="flex items-center justify-between px-5 py-3 ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-bold text-gray-500 w-14">MAP ${i + 1}</span>
+              <span class="text-sm text-white font-medium">${_esc(mapName)}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-black ${p1Win ? 'text-[#00FF66]' : 'text-[#FF2A55]'}" style="font-family:Outfit,sans-serif;">${p1r}</span>
+              <span class="text-gray-600 text-xs">:</span>
+              <span class="text-lg font-black ${p1Win ? 'text-[#FF2A55]' : 'text-[#00FF66]'}" style="font-family:Outfit,sans-serif;">${p2r}</span>
+            </div>
+          </div>`;
+      });
+    } else {
+      mapsHtml = `<div class="px-5 py-8 text-center text-sm text-gray-500">No map details available for this match.</div>`;
+    }
+
+    modal.innerHTML = `
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+      <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-white/10 overflow-hidden">
+        <div class="p-5 flex items-center justify-between border-b border-white/5">
+          <div>
+            <h3 class="text-base font-bold text-white" style="font-family:Outfit,sans-serif;">
+              ${_esc(m.p1_name || 'Team 1')} vs ${_esc(m.p2_name || 'Team 2')}
+            </h3>
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+              ${_esc(m.round_name || '')} · Match ${m.match_number || ''} · BO${bo}
+            </p>
+          </div>
+          <button onclick="HubEngine.closeMapViewer()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="flex items-center justify-between px-5 py-3 bg-white/[0.03]">
+          <span class="text-sm font-bold text-white">${_esc(m.p1_name || 'Team 1')}</span>
+          <span class="text-2xl font-black text-white" style="font-family:Outfit,sans-serif;">
+            ${m.p1_score ?? 0} — ${m.p2_score ?? 0}
+          </span>
+          <span class="text-sm font-bold text-white">${_esc(m.p2_name || 'Team 2')}</span>
+        </div>
+        ${mapsHtml}
+      </div>`;
+    modal.classList.remove('hidden');
+  }
+
+  function closeMapViewer() {
+    const modal = document.getElementById('hub-map-viewer-modal');
+    if (modal) modal.classList.add('hidden');
+    _mapViewerMatch = null;
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Bracket Tab — Async Fetch & Render
   // ──────────────────────────────────────────────────────────
   async function _fetchBracket() {
     const url = _shell?.dataset.apiBracket;
     if (!url) return;
 
+    _showLoading('hub-bracket-tree', 'Loading bracket…');
+    _hide('bracket-not-generated');
+
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _bracketCache = data;
+      _hide('bracket-skeleton');
       _renderBracket(data);
     } catch (err) {
       console.warn('[HubEngine] Bracket fetch failed:', err.message);
       _hide('bracket-skeleton');
-      _show('bracket-not-generated');
+      _showError('hub-bracket-tree', 'Failed to load bracket. Please try again.', _fetchBracket);
     }
   }
 
@@ -1086,16 +1216,22 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiStandings;
     if (!url) return;
 
+    const container = document.getElementById('hub-standings-data');
+    if (container) _showLoading('hub-standings-data', 'Loading standings…');
+    _hide('standings-empty');
+
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _standingsCache = data;
+      _hide('standings-skeleton');
       _renderStandings(data);
     } catch (err) {
       console.warn('[HubEngine] Standings fetch failed:', err.message);
       _hide('standings-skeleton');
-      _show('standings-empty');
+      const target = container ? 'hub-standings-data' : 'standings-empty';
+      _showError(target, 'Failed to load standings. Please try again.', _fetchStandings);
     }
   }
 
@@ -1262,16 +1398,20 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiMatches;
     if (!url) return;
 
+    _showLoading('hub-match-cards', 'Loading matches…');
+    _hide('matches-empty');
+
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _matchesCache = data;
+      _hide('matches-skeleton');
       _renderMatches(data);
     } catch (err) {
       console.warn('[HubEngine] Matches fetch failed:', err.message);
       _hide('matches-skeleton');
-      _show('matches-empty');
+      _showError('hub-match-cards', 'Failed to load matches. Please try again.', _fetchMatches);
     }
   }
 
@@ -1321,15 +1461,17 @@ const HubEngine = (() => {
     const historyEl = document.getElementById('hub-match-history');
     if (historyEl) {
       if (data.match_history && data.match_history.length > 0) {
+        // Store match data for map viewer access
+        window._hubMatchHistory = data.match_history;
         let html = '';
-        data.match_history.forEach(m => {
+        data.match_history.forEach((m, mi) => {
           const resultClass = m.is_winner === true ? 'text-[#00FF66]' : m.is_winner === false ? 'text-[#FF2A55]' : 'text-gray-400';
           const resultLabel = isStaff ? (m.winner_name ? _esc(m.winner_name) + ' won' : '—') : (m.is_winner === true ? 'WIN' : m.is_winner === false ? 'LOSS' : 'DRAW');
           const matchLabel = isStaff
             ? `${_esc(m.p1_name)} vs ${_esc(m.p2_name)}`
             : `vs ${_esc(m.opponent_name)}`;
 
-          // Map-level scores (game_scores)
+          // Map-level scores (game_scores) — inline pills
           let mapsHtml = '';
           const gs = Array.isArray(m.game_scores) ? m.game_scores : [];
           if (gs.length > 0) {
@@ -1352,8 +1494,12 @@ const HubEngine = (() => {
             mapsHtml += '</div>';
           }
 
+          const hasDetail = gs.length > 0;
+          const cursorCls = hasDetail ? 'cursor-pointer hover:border-white/15' : '';
+          const clickAttr = hasDetail ? `onclick="HubEngine.openMapViewer(window._hubMatchHistory[${mi}])"` : '';
+
           html += `
-            <div class="hub-glass rounded-xl p-4 match-history-card">
+            <div class="hub-glass rounded-xl p-4 match-history-card ${cursorCls} transition-colors" ${clickAttr}>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
                   <span class="text-xs font-black ${resultClass} w-14">${resultLabel}</span>
@@ -1362,8 +1508,9 @@ const HubEngine = (() => {
                     <p class="text-[10px] text-gray-500">${_esc(m.round_name)}</p>
                   </div>
                 </div>
-                <div class="text-right">
+                <div class="flex items-center gap-3">
                   <p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? 0} — ${m.p2_score ?? 0}</p>
+                  ${hasDetail ? '<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' : ''}
                 </div>
               </div>
               ${mapsHtml}
@@ -1681,7 +1828,6 @@ const HubEngine = (() => {
     };
 
     _ws.onclose = (evt) => {
-      console.info('[Hub] WS closed', evt.code);
       _ws = null;
       const ind = document.getElementById('hub-ws-indicator');
       if (ind) { ind.classList.remove('connected'); ind.classList.add('disconnected'); }
@@ -1689,8 +1835,12 @@ const HubEngine = (() => {
       if (evt.code !== 1000 && _wsReconnectAttempts < WS_RECONNECT_MAX) {
         const delay = WS_RECONNECT_BASE * Math.pow(2, _wsReconnectAttempts);
         _wsReconnectAttempts++;
-        console.info(`[Hub] WS reconnecting in ${delay}ms (attempt ${_wsReconnectAttempts})`);
+        if (_wsReconnectAttempts <= 1) {
+          console.info(`[Hub] WS closed (${evt.code}), reconnecting in ${delay}ms`);
+        }
         _wsReconnectTimer = setTimeout(_connectWebSocket, delay);
+      } else if (_wsReconnectAttempts >= WS_RECONNECT_MAX) {
+        console.info('[Hub] WS unavailable — live updates disabled (requires ASGI server)');
       }
     };
 
@@ -1996,5 +2146,8 @@ const HubEngine = (() => {
     // S27: WebSocket status
     isWsConnected: () => _ws && _ws.readyState === WebSocket.OPEN,
     refreshScheduleMatches,
+    // Map viewer
+    openMapViewer,
+    closeMapViewer,
   };
 })();

@@ -400,6 +400,7 @@ class MatchService:
         submitted_by_id: int,
         participant1_score: int,
         participant2_score: int,
+        game_scores: list = None,
         notes: str = "",
         evidence_url: str = ""
     ) -> Match:
@@ -411,6 +412,7 @@ class MatchService:
             submitted_by_id: User ID submitting result
             participant1_score: Score for participant 1
             participant2_score: Score for participant 2
+            game_scores: Optional per-map/game scores list
             notes: Optional notes about result
             evidence_url: Optional evidence URL
             
@@ -438,6 +440,12 @@ class MatchService:
         if participant1_score == participant2_score:
             raise ValidationError("Match cannot end in a tie (implement tiebreaker logic)")
         
+        # Validate game_scores count against best_of
+        if game_scores and len(game_scores) > match.best_of:
+            raise ValidationError(
+                f"Number of maps ({len(game_scores)}) exceeds best_of ({match.best_of})"
+            )
+        
         # Verify submitter is a participant
         if submitted_by_id not in [match.participant1_id, match.participant2_id]:
             raise ValidationError("Only participants can submit results")
@@ -446,6 +454,10 @@ class MatchService:
         match.participant1_score = participant1_score
         match.participant2_score = participant2_score
         match.state = Match.PENDING_RESULT
+        
+        # Save per-map scores if provided
+        if game_scores is not None:
+            match.game_scores = game_scores
         
         # Determine winner
         if participant1_score > participant2_score:
