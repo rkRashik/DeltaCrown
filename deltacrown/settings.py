@@ -415,19 +415,25 @@ if not db_config:
     raise ImproperlyConfigured(f"Failed to parse database URL for {db_label} environment")
 
 # Apply optimized connection settings
-# Neon serverless Postgres drops idle connections; CONN_MAX_AGE=0 closes
-# the DB connection after every request so Django never reuses a stale socket.
-# CONN_HEALTH_CHECKS is kept True as a safety net for any edge-case reuse.
+# Neon free-tier suspends compute after 5 min idle; cold-start can take several
+# seconds.  CONN_MAX_AGE=300 lets Django reuse connections within that window,
+# and CONN_HEALTH_CHECKS validates them before reuse (catches stale sockets).
 if "neon.tech" in database_url:
-    db_config['CONN_MAX_AGE'] = 0
+    db_config['CONN_MAX_AGE'] = 300          # reuse for up to 5 min
 else:
     db_config['CONN_MAX_AGE'] = 600
-db_config['CONN_HEALTH_CHECKS'] = True
+db_config['CONN_HEALTH_CHECKS'] = True       # SELECT 1 before reusing
 
-# SSL Configuration for Neon
+# Connection hardening for Neon (handles cold-start EOF / timeout)
 if "neon.tech" in database_url:
-    # Neon requires SSL
-    db_config.setdefault('OPTIONS', {})['sslmode'] = 'require'
+    db_config.setdefault('OPTIONS', {}).update({
+        'sslmode': 'require',
+        'connect_timeout': 30,               # wait up to 30 s for cold-start
+        'keepalives': 1,                      # enable TCP keepalives
+        'keepalives_idle': 30,                # idle seconds before first probe
+        'keepalives_interval': 10,            # seconds between probes
+        'keepalives_count': 5,                # failed probes before giving up
+    })
 
 DATABASES = {
     'default': db_config
