@@ -7,10 +7,11 @@
 <meta name="color-scheme" content="dark" />
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
 
 <script>
   tailwind.config = {
@@ -21,6 +22,7 @@
           display: ['"Space Grotesk"', "sans-serif"],
           ui: ['"Plus Jakarta Sans"', "sans-serif"],
           mono: ['"JetBrains Mono"', "monospace"],
+          gaming: ['"Outfit"', "sans-serif"],
         },
         colors: {
           delta: {
@@ -61,6 +63,9 @@
     --team-accent: {{ team.accent_color|default:"#10B981" }};
     --team-dim: color-mix(in srgb, {{ team.primary_color|default:"#3B82F6" }} 14%, transparent);
     --team-glow: color-mix(in srgb, {{ team.primary_color|default:"#3B82F6" }} 26%, transparent);
+    --team-btn-fg: #000000;
+    --team-color-rgb: 59, 130, 246;
+    --bg-base: #020204;
     --glass-bg: rgba(10, 10, 15, 0.6);
     --glass-brd: rgba(255, 255, 255, 0.12);
     --ring-soft: rgba(255, 255, 255, 0.08);
@@ -126,7 +131,85 @@
   body[data-game-type="OTHER"] .game-other-only { display: flex !important; }
 
   /* Hero image mask */
-  .hero-mask { mask-image: linear-gradient(to bottom, black 60%, transparent 100%); }
+  .hero-mask { mask-image: linear-gradient(to bottom, black 70%, transparent 100%); }
+
+  /* Immersive Hub — Gaming font */
+  .font-gaming { font-family: 'Outfit', sans-serif; }
+
+  /* Cinematic fade for hero banner */
+  .fade-bottom {
+    background: linear-gradient(to top, var(--bg-base) 0%, rgba(2, 2, 4, 0.98) 15%, rgba(2, 2, 4, 0.4) 50%, transparent 100%);
+  }
+
+  /* Ambient Team Glow */
+  .ambient-glow {
+    position: absolute;
+    width: 700px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(var(--team-color-rgb), 0.2) 0%, transparent 70%);
+    filter: blur(70px);
+    z-index: 10;
+    bottom: -100px;
+    left: 5%;
+    pointer-events: none;
+  }
+
+  /* Premium Glass Panel */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Avatar Ring System */
+  .avatar-ring {
+    position: relative;
+    border-radius: 1.5rem;
+    padding: 4px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%);
+    box-shadow: 0 0 40px rgba(var(--team-color-rgb), 0.4), inset 0 0 20px rgba(255,255,255,0.1);
+  }
+  .avatar-inner {
+    border-radius: 1.25rem;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid rgba(0,0,0,0.5);
+  }
+
+  /* Follow Button */
+  .btn-follow {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%), rgba(var(--team-color-rgb), 0.15);
+    border: 1px solid rgba(var(--team-color-rgb), 0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+  }
+  .btn-follow:hover {
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%), rgba(var(--team-color-rgb), 0.25);
+    border-color: rgba(var(--team-color-rgb), 0.8);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(var(--team-color-rgb), 0.4);
+  }
+
+  /* Tab System */
+  .dc-tab-btn {
+    position: relative;
+    color: #9ca3af;
+    transition: color 0.3s ease;
+  }
+  .dc-tab-btn:hover { color: #ffffff; }
+  .dc-tab-active { color: #ffffff !important; font-weight: 600; }
+  .dc-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--team-primary);
+    box-shadow: 0 0 8px rgba(var(--team-color-rgb), 0.6), 0 0 20px rgba(var(--team-color-rgb), 0.3);
+    border-radius: 1px;
+  }
 
   /* Chip */
   .chip {
@@ -269,7 +352,7 @@
   /* Verified dot */
   .verified-dot {
     width: 42px; height: 42px; border-radius: 999px;
-    background: var(--team-primary); color: #000;
+    background: var(--team-primary); color: var(--team-btn-fg, #000);
     border: 6px solid rgba(0,0,0,0.85);
     box-shadow: 0 0 22px var(--team-glow);
   }
@@ -317,3 +400,93 @@
     .logo-slab__inner { border-radius: 1.6rem; }
   }
 </style>
+
+{# ── Smart Color System — auto-adjust dark team colors for visibility ──── #}
+<script>
+(function() {
+  var raw = '{{ team.primary_color|default:"#3B82F6" }}';
+
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    var n = parseInt(hex, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function luminance(r, g, b) {
+    var a = [r, g, b].map(function(c) {
+      c /= 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return [h * 360, s * 100, l * 100];
+  }
+
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    var a = s * Math.min(l, 1 - l);
+    function f(n) {
+      var k = (n + h / 30) % 12;
+      var color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    }
+    return '#' + f(0) + f(8) + f(4);
+  }
+
+  var rgb = hexToRgb(raw);
+  var lum = luminance(rgb[0], rgb[1], rgb[2]);
+  var css = '';
+
+  if (lum < 0.12) {
+    /* Color too dark — lighten it so text/icons/accents are visible on #000 bg */
+    var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    var h = hsl[0], s = hsl[1], l = hsl[2];
+    /* Achromatic / near-black: give it a cool blue-violet to look intentional */
+    if (s < 12) { h = 220; s = 50; }
+    var safeColor = hslToHex(h, Math.max(s, 40), Math.max(l, 52));
+    var safeRgb = hexToRgb(safeColor);
+    css += ':root, body, body[data-custom-colors="true"] {\n';
+    css += '  --team-primary: ' + safeColor + ';\n';
+    css += '  --team-color-rgb: ' + safeRgb[0] + ', ' + safeRgb[1] + ', ' + safeRgb[2] + ';\n';
+    css += '  --team-dim: color-mix(in srgb, ' + safeColor + ' 18%, transparent);\n';
+    css += '  --team-glow: color-mix(in srgb, ' + safeColor + ' 30%, transparent);\n';
+    css += '  --team-btn-fg: #ffffff;\n';
+    css += '  --team-primary-raw: ' + raw + ';\n';
+    css += '}\n';
+    document.documentElement.dataset.darkTeam = 'true';
+  } else if (lum < 0.35) {
+    /* Medium-dark color — keep it but force white text on colored buttons */
+    css += ':root, body, body[data-custom-colors="true"] {\n';
+    css += '  --team-btn-fg: #ffffff;\n';
+    css += '  --team-color-rgb: ' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ';\n';
+    css += '}\n';
+  } else {
+    /* Bright color — black text on colored buttons */
+    css += ':root, body, body[data-custom-colors="true"] {\n';
+    css += '  --team-btn-fg: #000000;\n';
+    css += '  --team-color-rgb: ' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ';\n';
+    css += '}\n';
+  }
+
+  if (css) {
+    var style = document.createElement('style');
+    style.id = 'dc-color-safe';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+})();
+</script>

@@ -122,6 +122,36 @@
         transform: translateY(-2px);
         box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
     }
+
+    /* DROPDOWN OPTIONS — fix invisible text */
+    select option {
+        background-color: #0a0a10;
+        color: #e2e8f0;
+        padding: 8px 12px;
+    }
+    select option:checked,
+    select option:hover {
+        background-color: #1a1a2e;
+        color: #ffffff;
+    }
+    select option:disabled {
+        color: #64748b;
+    }
+
+    /* ERROR OVERLAY */
+    .error-overlay {
+        animation: errorSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes errorSlideIn {
+        from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .error-overlay-exit {
+        animation: errorSlideOut 0.25s ease-in forwards;
+    }
+    @keyframes errorSlideOut {
+        to { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    }
 </style>
 {% endblock %}
 
@@ -220,7 +250,7 @@
                 </div>
             </div>
 
-            <form id="createTeamForm" class="space-y-8" method="post" enctype="multipart/form-data" onsubmit="submitTeam(event); return false;">
+            <form id="createTeamForm" class="space-y-8" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 
                 <div id="step1" class="step-content active">
@@ -609,7 +639,7 @@
                                 <label class="block text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                                     <i class="fas fa-panorama text-delta-violet"></i> Team Banner
                                 </label>
-                                <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">1920x400px Recommended</span>
+                                <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">1920×480px Recommended · 4:1</span>
                             </div>
                             <div class="w-full h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 hover:border-delta-violet transition-colors flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group" data-action="trigger-upload" data-target-upload="bannerUpload">
                                 <input type="file" id="bannerUpload" class="hidden" accept="image/*">
@@ -1074,6 +1104,12 @@
     // ========================================================================
     
     function getCsrfToken() {
+        // 1. Read from hidden input rendered by {% csrf_token %}
+        const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (hiddenInput && hiddenInput.value) {
+            return hiddenInput.value;
+        }
+        // 2. Fallback: read from cookie (may fail if CSRF_COOKIE_HTTPONLY=True)
         const name = 'csrftoken';
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -1920,24 +1956,112 @@
     }
     
     function updatePreview() {
-        // Preview panel update logic (unchanged from original)
-        const previewName = document.getElementById('previewName');
-        const previewTag = document.getElementById('previewTag');
-        const previewTagline = document.getElementById('previewTagline');
-        
+        // Team Name
+        const previewName = document.getElementById('previewNameText');
         if (previewName) {
-            const name = document.getElementById('inputName')?.value || 'Your Team Name';
-            previewName.textContent = name;
+            previewName.textContent = document.getElementById('inputName')?.value || 'Team Name';
         }
         
+        // Tag (inside logo placeholder)
+        const previewTag = document.getElementById('previewTagPlaceholder');
         if (previewTag) {
-            const tag = document.getElementById('inputTag')?.value.toUpperCase() || 'TAG';
-            previewTag.textContent = `[${tag}]`;
+            const tag = document.getElementById('inputTag')?.value?.toUpperCase() || 'TAG';
+            previewTag.textContent = tag;
         }
         
+        // Tagline / Motto
+        const previewTagline = document.getElementById('previewTaglineText');
         if (previewTagline) {
-            const tagline = document.getElementById('inputTagline')?.value || 'Your team tagline';
-            previewTagline.textContent = tagline;
+            const tagline = document.getElementById('inputTagline')?.value;
+            previewTagline.textContent = tagline ? `"${tagline}"` : '"Motto goes here..."';
+        }
+        
+        // Game badge
+        const previewGame = document.getElementById('previewGameBadge');
+        if (previewGame) {
+            const checkedGame = document.querySelector('input[name="game"]:checked');
+            if (checkedGame) {
+                const label = checkedGame.closest('label');
+                const gameName = label ? (label.querySelector('span')?.textContent?.trim() || checkedGame.value) : checkedGame.value;
+                previewGame.textContent = gameName.toUpperCase();
+            }
+        }
+        
+        // Region
+        const previewRegion = document.getElementById('previewRegionText');
+        if (previewRegion) {
+            const manualRegion = document.getElementById('manualRegion');
+            if (manualRegion && manualRegion.value) {
+                const selectedOption = manualRegion.options[manualRegion.selectedIndex];
+                previewRegion.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${selectedOption.text}`;
+            }
+        }
+        
+        // Logo preview (live from file upload)
+        const logoInput = document.getElementById('logoUpload');
+        const realLogo = document.getElementById('realLogoPreview');
+        const tagPlaceholder = document.getElementById('previewTagPlaceholder');
+        if (logoInput && logoInput.files && logoInput.files[0] && realLogo) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                realLogo.src = e.target.result;
+                realLogo.classList.remove('hidden');
+                if (tagPlaceholder) tagPlaceholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(logoInput.files[0]);
+        } else if (realLogo && realLogo.classList.contains('hidden') && tagPlaceholder) {
+            tagPlaceholder.classList.remove('hidden');
+        }
+        
+        // Banner preview
+        const bannerInput = document.getElementById('bannerUpload');
+        const realBanner = document.getElementById('realBannerPreview');
+        if (bannerInput && bannerInput.files && bannerInput.files[0] && realBanner) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                realBanner.src = e.target.result;
+                realBanner.classList.remove('hidden');
+            };
+            reader.readAsDataURL(bannerInput.files[0]);
+        }
+        
+        // Organization badge
+        const previewOrgBadge = document.getElementById('previewOrgBadge');
+        const previewOrgName = document.getElementById('previewOrgName');
+        if (previewOrgBadge) {
+            const mode = document.querySelector('input[name="org_status"]:checked')?.value;
+            const orgSelect = document.getElementById('orgSelect');
+            if (mode === 'organization' && orgSelect && orgSelect.value) {
+                const orgName = orgSelect.options[orgSelect.selectedIndex]?.text || 'ORG';
+                if (previewOrgName) previewOrgName.textContent = orgName;
+                previewOrgBadge.classList.remove('hidden');
+            } else {
+                previewOrgBadge.classList.add('hidden');
+            }
+        }
+        
+        // Summary panel (step 5)
+        const summaryName = document.getElementById('summaryName');
+        if (summaryName) summaryName.textContent = document.getElementById('inputName')?.value || '—';
+        const summaryGame = document.getElementById('summaryGame');
+        if (summaryGame) {
+            const g = document.querySelector('input[name="game"]:checked');
+            if (g) {
+                const label = g.closest('label');
+                summaryGame.textContent = label ? (label.querySelector('span')?.textContent?.trim() || g.value) : g.value;
+            }
+        }
+        const summaryRegion = document.getElementById('summaryRegion');
+        if (summaryRegion) {
+            const mr = document.getElementById('manualRegion');
+            if (mr && mr.value) {
+                summaryRegion.textContent = mr.options[mr.selectedIndex]?.text || mr.value;
+            }
+        }
+        const summaryType = document.getElementById('summaryType');
+        if (summaryType) {
+            const m = document.querySelector('input[name="org_status"]:checked')?.value;
+            summaryType.textContent = m === 'organization' ? 'Organization Division' : 'Independent';
         }
     }
     
@@ -1945,6 +2069,74 @@
     // FORM SUBMISSION
     // ========================================================================
 
+    function showFormError(data) {
+        // Remove any existing error overlay
+        const existing = document.getElementById('formErrorOverlay');
+        if (existing) existing.remove();
+        
+        const errorCode = data.code || data.error || '';
+        const mainMsg = data.safe_message || data.message || 'Team creation failed. Please try again.';
+        
+        // Build field error list
+        let fieldHtml = '';
+        if (data.field_errors) {
+            const entries = Object.entries(data.field_errors);
+            if (entries.length > 0) {
+                fieldHtml = '<div class="mt-3 space-y-1.5">';
+                entries.forEach(([field, msgs]) => {
+                    const msg = Array.isArray(msgs) ? msgs[0] : msgs;
+                    const label = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+                    fieldHtml += `<div class="flex items-start gap-2 text-xs"><span class="text-red-400 font-bold uppercase min-w-[60px]">${label}:</span><span class="text-slate-300">${msg}</span></div>`;
+                });
+                fieldHtml += '</div>';
+            }
+        }
+        
+        // Map error codes to friendly descriptions
+        let hint = '';
+        if (errorCode === 'PERMISSION_DENIED' || errorCode.includes('CSRF')) {
+            hint = '<p class="text-xs text-slate-500 mt-2">This is usually caused by an expired session. Try refreshing the page.</p>';
+        } else if (errorCode === 'DUPLICATE_NAME' || errorCode === 'DUPLICATE_TAG') {
+            hint = '<p class="text-xs text-slate-500 mt-2">Another team already uses this name or tag for this game.</p>';
+        }
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'formErrorOverlay';
+        overlay.className = 'fixed top-6 right-6 z-[9999] max-w-md error-overlay';
+        overlay.innerHTML = `
+            <div class="rounded-2xl border border-red-500/20 bg-[#0a0a10]/95 backdrop-blur-xl shadow-2xl shadow-red-500/5 overflow-hidden">
+                <div class="h-1 bg-gradient-to-r from-red-500 via-pink-500 to-red-400"></div>
+                <div class="p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fas fa-exclamation-triangle text-red-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-bold text-white mb-1">Creation Failed</h4>
+                            <p class="text-sm text-slate-300 leading-relaxed">${mainMsg}</p>
+                            ${fieldHtml}
+                            ${hint}
+                            ${errorCode ? `<span class="inline-block mt-2 text-[9px] text-slate-600 font-mono bg-white/5 px-2 py-0.5 rounded">${errorCode}</span>` : ''}
+                        </div>
+                        <button onclick="this.closest('#formErrorOverlay').classList.add('error-overlay-exit'); setTimeout(() => this.closest('#formErrorOverlay')?.remove(), 250)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition shrink-0">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Auto-dismiss after 8 seconds
+        setTimeout(() => {
+            if (document.getElementById('formErrorOverlay') === overlay) {
+                overlay.classList.add('error-overlay-exit');
+                setTimeout(() => overlay.remove(), 250);
+            }
+        }, 8000);
+    }
+    
     function showToast(message, variant = 'info', timeoutMs = 1400) {
         const colors = {
             info: 'border-white/10 bg-black/70 text-white',
@@ -1998,12 +2190,12 @@
         
         // Pre-submit validation gate
         if (state.validation.ownership.blocked) {
-            alert('You already own an active team for this game. Please manage your existing team instead.');
+            showFormError({ safe_message: 'You already own an active team for this game. Please manage your existing team instead.', code: 'OWNERSHIP_CONFLICT' });
             return;
         }
         
         if (!state.validation.game.valid || !state.validation.name.valid || !state.validation.tag.valid) {
-            alert('Please complete all required fields and ensure they are valid.');
+            showFormError({ safe_message: 'Please complete all required fields and ensure they are valid.', code: 'VALIDATION_INCOMPLETE' });
             return;
         }
         
@@ -2126,16 +2318,15 @@
                     }
                 }
                 
-                // Show general error
-                const errorMsg = data.safe_message || data.message || 'Team creation failed. Please try again.';
-                alert(errorMsg);
+                // Show styled error overlay
+                showFormError(data);
                 
                 submitBtn.innerHTML = originalContent;
                 submitBtn.disabled = false;
             }
         } catch (error) {
             console.error('[TeamCreate] Network error:', error);
-            alert('Network error. Please check your connection and try again.');
+            showFormError({ error: 'NETWORK_ERROR', safe_message: 'Network error. Please check your connection and try again.' });
             submitBtn.innerHTML = originalContent;
             submitBtn.disabled = false;
         }
@@ -2399,12 +2590,18 @@
         // File uploads
         const logoUpload = document.getElementById('logoUpload');
         if (logoUpload) {
-            logoUpload.addEventListener('change', () => previewImage(logoUpload, 'previewLogoImg'));
+            logoUpload.addEventListener('change', () => {
+                previewImage(logoUpload, 'realLogoPreview');
+                updatePreview();
+            });
         }
         
         const bannerUpload = document.getElementById('bannerUpload');
         if (bannerUpload) {
-            bannerUpload.addEventListener('change', () => previewImage(bannerUpload, 'previewBannerImg'));
+            bannerUpload.addEventListener('change', () => {
+                previewImage(bannerUpload, 'realBannerPreview');
+                updatePreview();
+            });
         }
         
         // Color pickers
