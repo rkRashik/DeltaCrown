@@ -47,38 +47,75 @@ Features:
     filter: drop-shadow(0 0 20px rgba(250,204,21,0.4));
 }
 
-/* Bracket connector lines */
-.bracket-container {
+/* Bracket connector lines — TOC-style */
+.bracket-tree-wrap {
     position: relative;
+}
+.bracket-tree-wrap svg.bracket-connectors {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+.bracket-tree-wrap svg.bracket-connectors path {
+    fill: none;
+    stroke: rgba(255,255,255,0.12);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.bracket-tree-wrap svg.bracket-connectors path.winner-path {
+    stroke: #22c55e;
+    stroke-width: 2.5;
 }
 .bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 230px;
     position: relative;
+    z-index: 2;
 }
-.bracket-round-matches {
-    min-height: 100%;
-}
-.bracket-match {
+.bracket-match-card {
     position: relative;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
-/* Connector lines between rounds */
-.bracket-round:not(:last-child) .bracket-match::before {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: 50%;
-    width: 12px;
-    height: 1px;
-    background: rgba(255,255,255,0.08);
+.bracket-match-card:hover {
+    box-shadow: 0 0 12px rgba(var(--game-color-rgb), 0.15);
+    z-index: 5;
 }
-.bracket-round:not(:first-child) .bracket-match::after {
-    content: '';
-    position: absolute;
-    right: -1px;
-    top: 50%;
-    width: 12px;
-    height: 1px;
-    background: rgba(255,255,255,0.08);
+/* Drag-scroll bracket containers */
+.bracket-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
 }
+.bracket-scroll-wrap:active { cursor: grabbing; }
+.bracket-scroll-wrap::-webkit-scrollbar { height: 4px; }
+.bracket-scroll-wrap::-webkit-scrollbar-track { background: transparent; }
+.bracket-scroll-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+/* Mobile match result rows */
+@media (max-width: 640px) {
+    .match-row-compact { flex-wrap: wrap; gap: 0.25rem !important; }
+    .match-row-compact .match-team-name { max-width: 100px !important; font-size: 0.7rem !important; }
+    .match-row-compact .match-stage-label { width: auto !important; font-size: 8px !important; }
+    .match-row-compact .match-score-box { padding: 0.125rem 0.375rem !important; }
+    .match-row-compact .match-score-box span { font-size: 0.875rem !important; }
+}
+/* Match result popup */
+.match-popup-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.match-popup {
+    background: #0e0e18; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 1rem; max-width: 480px; width: 100%;
+    max-height: 90vh; overflow-y: auto; position: relative;
+}
+@media (max-width: 640px) { .match-popup { margin: 0.5rem; } }
 {% endblock %}
 
 {% block hero_extra %}
@@ -93,22 +130,22 @@ Features:
 {% endblock %}
 
 {% block phase_nav %}
-<!-- Completed Tournament Sub-Nav -->
-<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-emerald-500/10" style="background: rgba(6,6,8,0.95);">
+<!-- Completed Tournament Sub-Nav (Mobile-optimized) -->
+<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-emerald-500/10" style="background: rgba(6,6,8,0.95); -webkit-backdrop-filter: blur(20px);">
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
-                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-emerald-500 transition-all" onclick="scrollToSection('champion')">Champion</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('results')">Results</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('bracket')">Bracket</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('standings')">Standings</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('participants')">Participants</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('info')">Info</button>
+        <div class="flex items-center justify-between py-0 sm:py-1">
+            <div class="flex items-center gap-1 sm:gap-4 overflow-x-auto no-scrollbar -webkit-overflow-scrolling-touch flex-1 py-2.5 sm:py-3" role="tablist" aria-label="Tournament sections" style="-webkit-overflow-scrolling: touch;">
+                <button role="tab" aria-selected="true" aria-controls="section-champion" class="phase-tab active text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-emerald-500 transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('champion')">Champion</button>
+                <button role="tab" aria-selected="false" aria-controls="section-results" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('results')">Results</button>
+                <button role="tab" aria-selected="false" aria-controls="section-bracket" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('bracket')">Bracket</button>
+                <button role="tab" aria-selected="false" aria-controls="section-standings" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('standings')">Standings</button>
+                <button role="tab" aria-selected="false" aria-controls="section-participants" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('participants')">Participants</button>
+                <button role="tab" aria-selected="false" aria-controls="section-info" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('info')">Info</button>
                 {% if tournament.rules_text or tournament.rules_pdf %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('rules')">Rules</button>
+                <button role="tab" aria-selected="false" aria-controls="section-rules" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('rules')">Rules</button>
                 {% endif %}
             </div>
-            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))" class="text-xs text-gray-500 hover:text-white transition flex items-center gap-1.5">
+            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied to clipboard!'))" class="hidden sm:flex text-xs text-gray-500 hover:text-white transition items-center gap-1.5 flex-shrink-0 ml-3">
                 <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
             </button>
         </div>
@@ -119,7 +156,7 @@ Features:
 {% block phase_content %}
 
 <!-- CHAMPION SHOWCASE -->
-<div id="section-champion" class="section-card p-6 sm:p-8 rounded-2xl relative overflow-hidden confetti-container fade-up">
+<div id="section-champion" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl relative overflow-hidden confetti-container fade-up">
     <!-- Confetti pieces -->
     <div class="confetti-piece rounded-full"></div>
     <div class="confetti-piece rounded"></div>
@@ -136,6 +173,9 @@ Features:
 
         {% if podium %}
             {% with podium.0 as winner %}
+            {% if winner.team and winner.team.logo %}
+            <img src="{{ winner.team.logo.url }}" alt="{{ winner.team.name }}" class="w-16 h-16 rounded-xl object-cover border-2 border-dc-gold/40 mx-auto mb-3 shadow-lg">
+            {% endif %}
             <h2 class="text-3xl sm:text-4xl font-display font-black gold-shimmer mb-3">
                 {% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}Champion{% endif %}
             </h2>
@@ -161,6 +201,9 @@ Features:
         <div class="text-3xl mb-2">
             {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
         </div>
+        {% if result.team and result.team.logo %}
+        <img src="{{ result.team.logo.url }}" alt="{{ result.team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/15 mx-auto mb-2">
+        {% endif %}
         <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">
             {{ forloop.counter }}{% if forloop.counter == 1 %}st{% elif forloop.counter == 2 %}nd{% elif forloop.counter == 3 %}rd{% endif %} Place
         </p>
@@ -204,7 +247,7 @@ Features:
 </div>
 
 <!-- ALL MATCH RESULTS — Esports Style -->
-<div id="section-results" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-3">
+<div id="section-results" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-3">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
             <i data-lucide="swords" class="w-5 h-5 game-accent"></i>
@@ -222,24 +265,19 @@ Features:
              class="group rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12] transition-all duration-200 overflow-hidden"
              {% if forloop.counter > 5 %}x-show="showAll" x-transition.opacity.duration.200ms{% endif %}>
             {# ── Compact match row (always visible) ── #}
-            <div class="flex items-center px-4 py-2.5 gap-3 cursor-pointer" @click="detail = !detail">
-                {# Stage label #}
-                <span class="text-[9px] font-bold uppercase tracking-widest flex-shrink-0 w-24 {% if m.round_number == 1 %}text-dc-gold{% elif m.round_number == 2 %}game-accent{% else %}text-gray-600{% endif %}">{{ m.stage_label }}</span>
-                {# Team 1 #}
+            <div class="match-row-compact flex items-center px-3 sm:px-4 py-2.5 gap-2 sm:gap-3 cursor-pointer" @click="detail = !detail">
+                <span class="match-stage-label text-[9px] font-bold uppercase tracking-widest flex-shrink-0 w-16 sm:w-24 {% if m.round_number == 1 %}text-dc-gold{% elif m.round_number == 2 %}game-accent{% else %}text-gray-600{% endif %}">{{ m.stage_label }}</span>
                 <div class="flex-1 min-w-0 text-right">
-                    <span class="text-sm font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate inline-block max-w-[180px]">{{ m.team1_name }}</span>
+                    <span class="match-team-name text-xs sm:text-sm font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate inline-block max-w-[100px] sm:max-w-[180px]">{{ m.team1_name }}</span>
                 </div>
-                {# Score #}
-                <div class="flex items-center gap-1 flex-shrink-0 px-2.5 py-1 rounded-md {% if m.is_completed %}bg-white/[0.04]{% else %}bg-white/[0.02]{% endif %}">
-                    <span class="text-lg font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-5 text-center">{{ m.score1|default:"0" }}</span>
+                <div class="match-score-box flex items-center gap-1 flex-shrink-0 px-2 sm:px-2.5 py-1 rounded-md {% if m.is_completed %}bg-white/[0.04]{% else %}bg-white/[0.02]{% endif %}">
+                    <span class="text-base sm:text-lg font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-4 sm:w-5 text-center">{{ m.score1|default:"0" }}</span>
                     <span class="text-gray-700 font-bold text-[10px]">:</span>
-                    <span class="text-lg font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-5 text-center">{{ m.score2|default:"0" }}</span>
+                    <span class="text-base sm:text-lg font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-4 sm:w-5 text-center">{{ m.score2|default:"0" }}</span>
                 </div>
-                {# Team 2 #}
                 <div class="flex-1 min-w-0">
-                    <span class="text-sm font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate inline-block max-w-[180px]">{{ m.team2_name }}</span>
+                    <span class="match-team-name text-xs sm:text-sm font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate inline-block max-w-[100px] sm:max-w-[180px]">{{ m.team2_name }}</span>
                 </div>
-                {# Expand chevron + details link #}
                 <div class="flex items-center gap-2 flex-shrink-0">
                     {% if m.id %}
                     <a href="{% url 'tournaments:match_detail' tournament.slug m.id %}" @click.stop class="text-[9px] font-bold game-accent hover:text-white transition opacity-0 group-hover:opacity-100">
@@ -399,56 +437,58 @@ Features:
     {% endif %}
 </div>
 
-<!-- PARTICIPANTS — Team Roster Cards -->
-<div id="section-participants" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
+<!-- PARTICIPANTS — Compact Modern Cards with Show More -->
+<div id="section-participants" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up" x-data="{ showAll: false }">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
             <i data-lucide="users" class="w-5 h-5 game-accent"></i>
             <h3 class="text-lg font-display font-bold text-white">Participants</h3>
         </div>
-        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{{ participants_total|default:"0" }} Teams</span>
+        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{{ participants_total|default:"0" }} {% if tournament.participation_type == 'team' %}Teams{% else %}Players{% endif %}</span>
     </div>
 
     {% if participants %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {% for p in participants %}
-        <div class="rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-200 p-4">
-            <div class="flex items-center gap-3 mb-3">
-                {% if p.logo %}
-                <img src="{{ p.logo }}" alt="{{ p.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0">
-                {% else %}
-                <div class="w-10 h-10 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
-                    <span class="text-xs font-black text-gray-400">{{ p.tag|default:p.name|truncatechars:3 }}</span>
-                </div>
-                {% endif %}
-                <div class="min-w-0">
-                    <p class="text-sm font-bold text-white truncate">{{ p.name }}</p>
-                    <div class="flex items-center gap-2">
-                        {% if p.tag %}<span class="text-[9px] font-bold text-gray-500">[{{ p.tag }}]</span>{% endif %}
-                        <span class="text-[9px] text-gray-600">{{ p.roster_count|default:"5" }} players</span>
-                    </div>
-                </div>
-            </div>
-            {% if p.roster_summary %}
-            <div class="space-y-1">
-                {% for member in p.roster_summary %}
-                <div class="flex items-center justify-between text-[10px]">
-                    <span class="text-gray-400">{{ member.name }}</span>
-                    <span class="text-gray-600 font-bold uppercase tracking-wider">{{ member.role }}</span>
-                </div>
-                {% endfor %}
-                {% if p.roster_count > 3 %}
-                <span class="text-[9px] text-gray-600">+{{ p.roster_count|add:"-3" }} more</span>
-                {% endif %}
+        <a {% if p.slug %}href="{% url 'organizations:team_detail' team_slug=p.slug %}"{% elif p.username %}href="/players/{{ p.username }}/"{% endif %}
+           class="flex items-center gap-2.5 rounded-lg bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.06] transition-all duration-200 px-3 py-2.5 group cursor-pointer no-underline"
+           {% if forloop.counter > 8 %}x-show="showAll" x-transition.opacity.duration.200ms{% endif %}>
+            {% if p.logo %}
+            <img src="{{ p.logo }}" alt="{{ p.name }}" class="w-9 h-9 rounded-lg object-cover border border-white/10 flex-shrink-0 group-hover:border-white/25 transition">
+            {% elif p.avatar %}
+            <img src="{{ p.avatar }}" alt="{{ p.name }}" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0 group-hover:border-white/25 transition">
+            {% else %}
+            <div class="w-9 h-9 {% if p.type == 'team' %}rounded-lg{% else %}rounded-full{% endif %} bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+                <span class="text-[9px] font-black" style="color: var(--game-color);">{{ p.tag|default:p.name|slice:":2"|upper }}</span>
             </div>
             {% endif %}
-            <div class="mt-3 pt-2 border-t border-white/[0.04] flex items-center justify-between">
-                <span class="text-[9px] font-bold uppercase tracking-wider {% if p.status == 'confirmed' %}text-emerald-400{% else %}text-gray-500{% endif %}">{{ p.status }}</span>
-                {% if p.rank %}<span class="text-[9px] text-gray-500">Rank #{{ p.rank }}</span>{% endif %}
+
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-white truncate group-hover:text-gray-200 transition">{{ p.name }}</p>
+                <div class="flex items-center gap-1.5">
+                    {% if p.tag %}<span class="text-[8px] font-bold text-gray-600">[{{ p.tag }}]</span>{% endif %}
+                    {% if p.roster_count %}<span class="text-[8px] text-gray-600">{{ p.roster_count }}p</span>{% endif %}
+                    {% if p.rank %}<span class="text-[8px] text-gray-500">#{{ p.rank }}</span>{% endif %}
+                </div>
             </div>
-        </div>
+        </a>
         {% endfor %}
     </div>
+
+    {% if participants|length > 8 %}
+    <div class="mt-4 text-center">
+        <button @click="showAll = !showAll"
+                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs font-bold text-gray-400 hover:text-white transition-all uppercase tracking-wider">
+            <template x-if="!showAll">
+                <span class="flex items-center gap-1.5"><i data-lucide="chevron-down" class="w-3.5 h-3.5"></i> Show All {{ participants_total }} {% if tournament.participation_type == 'team' %}Teams{% else %}Players{% endif %}</span>
+            </template>
+            <template x-if="showAll">
+                <span class="flex items-center gap-1.5"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i> Show Less</span>
+            </template>
+        </button>
+    </div>
+    {% endif %}
+
     {% else %}
     <div class="text-center py-8">
         <i data-lucide="users" class="w-8 h-8 text-gray-700 mx-auto mb-3"></i>
@@ -457,8 +497,8 @@ Features:
     {% endif %}
 </div>
 
-<!-- FINAL BRACKET — Esports Style -->
-<div id="section-bracket" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-4">
+<!-- FINAL BRACKET — TOC-style -->
+<div id="section-bracket" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-4">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
             <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
@@ -470,8 +510,6 @@ Features:
     </div>
 
     {% if matches %}
-    {# Double-elim: split into Upper Bracket, Lower Bracket, Grand Final sections #}
-    {# bracket_type is 'main' for UB rounds 1-4 + GF 11, 'losers' for LB rounds 5-10 #}
     {% with has_double_elim=tournament.format %}
 
     {# ─── UPPER BRACKET ─── #}
@@ -479,43 +517,36 @@ Features:
     <div class="mb-6">
         <div class="flex items-center gap-2 mb-4">
             <div class="h-px flex-1 bg-emerald-500/20"></div>
-            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.25em] px-3">Upper Bracket</span>
+            <div class="flex items-center gap-1.5 px-3"><div class="w-2 h-2 rounded-full bg-emerald-400"></div><span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.25em]">Winners Bracket</span></div>
             <div class="h-px flex-1 bg-emerald-500/20"></div>
         </div>
-        <div class="overflow-x-auto no-scrollbar pb-2">
-            <div class="min-w-[700px] flex flex-row items-start gap-0 bracket-container">
+        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+            <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-winners">
                 {% regroup matches|dictsort:"round_number" by round_number as rounds %}
                 {% for round in rounds %}
                 {% if round.list.0.bracket_type == 'main' and round.list.0.round_label != 'Grand Final' %}
-                <div class="flex-1 bracket-round" data-round="{{ round.grouper }}">
-                    <div class="text-center mb-4 pb-2 border-b border-emerald-500/[0.12]">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] {% if 'Final' in round.list.0.round_label %}game-accent{% else %}text-gray-500{% endif %}">
-                            {{ round.list.0.round_label }}
-                        </span>
+                <div class="bracket-round" data-round="{{ round.grouper }}">
+                    <div class="text-[9px] font-bold text-gray-500/50 uppercase tracking-widest text-center mb-3 pb-2 border-b border-emerald-500/[0.12] mx-2">
+                        {{ round.list.0.round_label }}
                     </div>
-                    <div class="space-y-4 flex flex-col justify-around h-full bracket-round-matches">
-                        {% for m in round.list %}
-                        <div class="mx-1.5 rounded-lg overflow-hidden border border-white/[0.06] bg-white/[0.02] bracket-match group hover:border-white/[0.15] transition-all duration-200">
-                            <div class="flex items-center justify-between px-3 py-2 {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                                <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    {% if m.team1_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                    {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                    <span class="text-[11px] font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name|truncatechars:15 }}</span>
-                                </div>
-                                <span class="text-sm font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score1|default:"0" }}</span>
+                    {% for m in round.list %}
+                    <div class="bracket-match-card relative bg-[#0c0c14] border border-white/[0.08] rounded-lg overflow-hidden mx-2 my-1">
+                        <div class="flex items-center justify-between px-3 py-2 border-b border-white/[0.05] {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team1_name|slice:":1"|upper }}</span></div>{% endif %}
+                                <span class="text-xs {% if m.team1_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team1_name|default:"TBD" }}</span>
                             </div>
-                            <div class="h-px bg-white/[0.04]"></div>
-                            <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                                <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    {% if m.team2_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                    {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                    <span class="text-[11px] font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team2_name|truncatechars:15 }}</span>
-                                </div>
-                                <span class="text-sm font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score2|default:"0" }}</span>
-                            </div>
+                            <span class="text-xs font-mono font-bold {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score1|default:"0" }}</span>
                         </div>
-                        {% endfor %}
+                        <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team2_name|slice:":1"|upper }}</span></div>{% endif %}
+                                <span class="text-xs {% if m.team2_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team2_name|default:"TBD" }}</span>
+                            </div>
+                            <span class="text-xs font-mono font-bold {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score2|default:"0" }}</span>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
                 {% endif %}
                 {% endfor %}
@@ -523,47 +554,47 @@ Features:
         </div>
     </div>
 
+    {# ─── Bridge annotation ─── #}
+    <div class="flex items-center justify-center gap-2 my-2 opacity-50">
+        <div class="h-px w-16 bg-amber-500/30"></div>
+        <span class="text-[8px] font-bold text-amber-400/60 uppercase tracking-widest">LB Finals Winner → Grand Finals</span>
+        <div class="h-px w-16 bg-amber-500/30"></div>
+    </div>
+
     {# ─── LOWER BRACKET ─── #}
     <div class="mb-6">
         <div class="flex items-center gap-2 mb-4">
             <div class="h-px flex-1 bg-red-500/20"></div>
-            <span class="text-[10px] font-black text-red-400 uppercase tracking-[0.25em] px-3">Lower Bracket</span>
+            <div class="flex items-center gap-1.5 px-3"><div class="w-2 h-2 rounded-full bg-red-400"></div><span class="text-[10px] font-black text-red-400 uppercase tracking-[0.25em]">Losers Bracket</span></div>
             <div class="h-px flex-1 bg-red-500/20"></div>
         </div>
-        <div class="overflow-x-auto no-scrollbar pb-2">
-            <div class="min-w-[700px] flex flex-row items-start gap-0 bracket-container">
+        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+            <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-losers">
                 {% regroup matches|dictsort:"round_number" by round_number as rounds %}
                 {% for round in rounds %}
                 {% if round.list.0.bracket_type == 'losers' %}
-                <div class="flex-1 bracket-round" data-round="{{ round.grouper }}">
-                    <div class="text-center mb-4 pb-2 border-b border-red-500/[0.12]">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
-                            {{ round.list.0.round_label }}
-                        </span>
+                <div class="bracket-round" data-round="{{ round.grouper }}">
+                    <div class="text-[9px] font-bold text-gray-500/50 uppercase tracking-widest text-center mb-3 pb-2 border-b border-red-500/[0.12] mx-2">
+                        {{ round.list.0.round_label }}
                     </div>
-                    <div class="space-y-4 flex flex-col justify-around h-full bracket-round-matches">
-                        {% for m in round.list %}
-                        <div class="mx-1.5 rounded-lg overflow-hidden border border-red-500/[0.06] bg-red-500/[0.01] bracket-match group hover:border-red-500/[0.15] transition-all duration-200">
-                            <div class="flex items-center justify-between px-3 py-2 {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                                <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    {% if m.team1_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                    {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                    <span class="text-[11px] font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name|truncatechars:15 }}</span>
-                                </div>
-                                <span class="text-sm font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score1|default:"0" }}</span>
+                    {% for m in round.list %}
+                    <div class="bracket-match-card relative bg-[#0c0c14] border border-red-500/[0.06] rounded-lg overflow-hidden mx-2 my-1">
+                        <div class="flex items-center justify-between px-3 py-2 border-b border-red-500/[0.05] {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team1_name|slice:":1"|upper }}</span></div>{% endif %}
+                                <span class="text-xs {% if m.team1_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team1_name|default:"TBD" }}</span>
                             </div>
-                            <div class="h-px bg-red-500/[0.06]"></div>
-                            <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                                <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    {% if m.team2_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                    {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                    <span class="text-[11px] font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team2_name|truncatechars:15 }}</span>
-                                </div>
-                                <span class="text-sm font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score2|default:"0" }}</span>
-                            </div>
+                            <span class="text-xs font-mono font-bold {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score1|default:"0" }}</span>
                         </div>
-                        {% endfor %}
+                        <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team2_name|slice:":1"|upper }}</span></div>{% endif %}
+                                <span class="text-xs {% if m.team2_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team2_name|default:"TBD" }}</span>
+                            </div>
+                            <span class="text-xs font-mono font-bold {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score2|default:"0" }}</span>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
                 {% endif %}
                 {% endfor %}
@@ -578,26 +609,26 @@ Features:
     <div class="mb-2">
         <div class="flex items-center gap-2 mb-4">
             <div class="h-px flex-1 bg-dc-gold/30"></div>
-            <span class="text-[10px] font-black text-dc-gold uppercase tracking-[0.25em] px-3">&#9733; Grand Final</span>
+            <span class="text-[10px] font-black text-dc-gold uppercase tracking-[0.25em] px-3">&#x1F451; Grand Finals</span>
             <div class="h-px flex-1 bg-dc-gold/30"></div>
         </div>
         <div class="max-w-md mx-auto">
             {% for m in round.list %}
-            <div class="rounded-xl overflow-hidden border-2 border-dc-gold/30 bg-dc-gold/[0.04] shadow-[0_0_30px_rgba(255,215,0,0.08)]">
-                <div class="flex items-center justify-between px-5 py-3 {% if m.team1_is_winner %}bg-emerald-500/[0.08]{% endif %} transition-colors">
+            <div class="bracket-match-card relative rounded-xl overflow-hidden border-2 border-amber-400/50 bg-amber-500/[0.04] shadow-[0_0_30px_rgba(255,215,0,0.08)]">
+                <div class="text-[8px] font-bold text-amber-400 uppercase tracking-widest text-center py-1 bg-amber-500/5 border-b border-amber-500/20">&#x1F451; Grand Finals</div>
+                <div class="flex items-center justify-between px-5 py-3 border-b border-amber-500/10 {% if m.team1_is_winner %}bg-emerald-500/[0.08]{% endif %}">
                     <div class="flex items-center gap-3 min-w-0 flex-1">
                         {% if m.team1_is_winner %}<div class="w-1.5 h-6 rounded-full bg-dc-gold flex-shrink-0"></div>{% else %}<div class="w-1.5 h-6 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                        {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover flex-shrink-0">{% endif %}
-                        <span class="text-sm font-bold {% if m.team1_is_winner %}text-dc-gold{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name }}</span>
+                        {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-amber-500/30 flex-shrink-0">{% else %}<div class="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0"><span class="text-[9px] font-bold text-amber-400">{{ m.team1_name|slice:":1"|upper }}</span></div>{% endif %}
+                        <span class="text-sm font-bold {% if m.team1_is_winner %}text-dc-gold{% else %}text-gray-500{% endif %}">{{ m.team1_name }}</span>
                     </div>
                     <span class="text-lg font-display font-black {% if m.team1_is_winner %}text-dc-gold{% else %}text-gray-600{% endif %} w-8 text-center flex-shrink-0">{{ m.score1|default:"0" }}</span>
                 </div>
-                <div class="h-px bg-dc-gold/15"></div>
-                <div class="flex items-center justify-between px-5 py-3 {% if m.team2_is_winner %}bg-emerald-500/[0.08]{% endif %} transition-colors">
+                <div class="flex items-center justify-between px-5 py-3 {% if m.team2_is_winner %}bg-emerald-500/[0.08]{% endif %}">
                     <div class="flex items-center gap-3 min-w-0 flex-1">
                         {% if m.team2_is_winner %}<div class="w-1.5 h-6 rounded-full bg-dc-gold flex-shrink-0"></div>{% else %}<div class="w-1.5 h-6 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                        {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover flex-shrink-0">{% endif %}
-                        <span class="text-sm font-bold {% if m.team2_is_winner %}text-dc-gold{% else %}text-gray-500{% endif %} truncate">{{ m.team2_name }}</span>
+                        {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-amber-500/30 flex-shrink-0">{% else %}<div class="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0"><span class="text-[9px] font-bold text-amber-400">{{ m.team2_name|slice:":1"|upper }}</span></div>{% endif %}
+                        <span class="text-sm font-bold {% if m.team2_is_winner %}text-dc-gold{% else %}text-gray-500{% endif %}">{{ m.team2_name }}</span>
                     </div>
                     <span class="text-lg font-display font-black {% if m.team2_is_winner %}text-dc-gold{% else %}text-gray-600{% endif %} w-8 text-center flex-shrink-0">{{ m.score2|default:"0" }}</span>
                 </div>
@@ -609,40 +640,34 @@ Features:
     {% endfor %}
 
     {% else %}
-    {# Single elimination or other formats — standard flat bracket #}
-    <div class="overflow-x-auto no-scrollbar pb-2">
-        <div class="min-w-[700px] flex flex-row items-start gap-0 bracket-container">
+    {# Single elimination — TOC-style flat bracket #}
+    <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+        <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-single">
             {% regroup matches|dictsort:"round_number" by round_number as rounds %}
             {% for round in rounds %}
-            <div class="flex-1 bracket-round" data-round="{{ round.grouper }}">
-                <div class="text-center mb-4 pb-2 border-b border-white/[0.06]">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] {% if round.list.0.round_label == 'Grand Final' %}text-dc-gold{% elif 'Final' in round.list.0.round_label %}game-accent{% else %}text-gray-500{% endif %}">
-                        {% if round.list.0.round_label == 'Grand Final' %}&#9733; Grand Final{% else %}{{ round.list.0.round_label }}{% endif %}
-                    </span>
+            <div class="bracket-round" data-round="{{ round.grouper }}">
+                <div class="text-[9px] font-bold uppercase tracking-widest text-center mb-3 pb-2 border-b border-white/[0.08] mx-2 {% if round.list.0.round_label == 'Grand Final' %}text-dc-gold{% elif 'Final' in round.list.0.round_label %}text-emerald-400{% else %}text-gray-500/50{% endif %}">
+                    {% if round.list.0.round_label == 'Grand Final' %}&#x1F451; Grand Finals{% else %}{{ round.list.0.round_label }}{% endif %}
                 </div>
-                <div class="space-y-4 flex flex-col justify-around h-full bracket-round-matches">
-                    {% for m in round.list %}
-                    <div class="mx-1.5 rounded-lg overflow-hidden border {% if m.round_label == 'Grand Final' %}border-dc-gold/30 bg-dc-gold/[0.04] shadow-[0_0_20px_rgba(255,215,0,0.05)]{% else %}border-white/[0.06] bg-white/[0.02]{% endif %} bracket-match group hover:border-white/[0.15] transition-all duration-200">
-                        <div class="flex items-center justify-between px-3 py-2 {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                            <div class="flex items-center gap-2 min-w-0 flex-1">
-                                {% if m.team1_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                <span class="text-[11px] font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name|truncatechars:15 }}</span>
-                            </div>
-                            <span class="text-sm font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score1|default:"0" }}</span>
+                {% for m in round.list %}
+                <div class="bracket-match-card relative bg-[#0c0c14] border {% if m.round_label == 'Grand Final' %}border-amber-400/50 bg-amber-500/[0.04]{% else %}border-white/[0.08]{% endif %} rounded-lg overflow-hidden mx-2 my-1">
+                    {% if m.round_label == 'Grand Final' %}<div class="text-[8px] font-bold text-amber-400 uppercase tracking-widest text-center py-1 bg-amber-500/5 border-b border-amber-500/20">&#x1F451; Grand Finals</div>{% endif %}
+                    <div class="flex items-center justify-between px-3 py-2 border-b {% if m.round_label == 'Grand Final' %}border-amber-500/10{% else %}border-white/[0.05]{% endif %} {% if m.team1_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team1_name|slice:":1"|upper }}</span></div>{% endif %}
+                            <span class="text-xs {% if m.team1_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team1_name|default:"TBD" }}</span>
                         </div>
-                        <div class="h-px {% if m.round_label == 'Grand Final' %}bg-dc-gold/10{% else %}bg-white/[0.04]{% endif %}"></div>
-                        <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %} transition-colors">
-                            <div class="flex items-center gap-2 min-w-0 flex-1">
-                                {% if m.team2_is_winner %}<div class="w-1 h-5 rounded-full bg-emerald-400 flex-shrink-0"></div>{% else %}<div class="w-1 h-5 rounded-full bg-transparent flex-shrink-0"></div>{% endif %}
-                                {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0">{% endif %}
-                                <span class="text-[11px] font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team2_name|truncatechars:15 }}</span>
-                            </div>
-                            <span class="text-sm font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-center flex-shrink-0">{{ m.score2|default:"0" }}</span>
-                        </div>
+                        <span class="text-xs font-mono font-bold {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score1|default:"0" }}</span>
                     </div>
-                    {% endfor %}
+                    <div class="flex items-center justify-between px-3 py-2 {% if m.team2_is_winner %}bg-emerald-500/[0.06]{% endif %}">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10 flex-shrink-0">{% else %}<div class="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0"><span class="text-[8px] font-bold text-gray-400">{{ m.team2_name|slice:":1"|upper }}</span></div>{% endif %}
+                            <span class="text-xs {% if m.team2_is_winner %}text-white font-bold{% else %}text-white/70{% endif %} truncate max-w-[140px]">{{ m.team2_name|default:"TBD" }}</span>
+                        </div>
+                        <span class="text-xs font-mono font-bold {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} flex-shrink-0">{{ m.score2|default:"0" }}</span>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
             {% endfor %}
         </div>
@@ -656,22 +681,25 @@ Features:
         <p class="text-sm text-gray-500">Bracket data not available.</p>
     </div>
     {% endif %}
+    <div class="flex items-center justify-center gap-2 pt-2 sm:hidden">
+        <i data-lucide="move-horizontal" class="w-3.5 h-3.5 text-gray-600"></i>
+        <span class="text-[9px] text-gray-600 font-bold uppercase tracking-wider">Drag to scroll bracket</span>
+    </div>
 </div>
-
-<!-- STANDINGS — Esports Style -->
 {% if standings_primary %}
-<div id="section-standings" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
+<div id="section-standings" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up" x-data="{ showAllStandings: false }">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
             <i data-lucide="bar-chart-3" class="w-5 h-5 game-accent"></i>
             <h3 class="text-lg font-display font-bold text-white">Final Standings</h3>
         </div>
-        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{{ standings_primary|length }} Teams</span>
+        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{{ standings_primary|length }} {% if tournament.participation_type == 'team' %}Teams{% else %}Players{% endif %}</span>
     </div>
 
     <div class="space-y-2">
         {% for row in standings_primary %}
-        <div class="flex items-center gap-3 px-4 py-3 rounded-xl {% if row.rank == 1 %}bg-gradient-to-r from-dc-gold/[0.08] via-dc-gold/[0.04] to-transparent border border-dc-gold/20{% elif row.rank == 2 %}bg-gradient-to-r from-gray-300/[0.06] via-gray-300/[0.02] to-transparent border border-gray-400/15{% elif row.rank == 3 %}bg-gradient-to-r from-orange-500/[0.06] via-orange-500/[0.02] to-transparent border border-orange-500/15{% else %}bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04]{% endif %} transition-all duration-200 group">
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl {% if row.rank == 1 %}bg-gradient-to-r from-dc-gold/[0.08] via-dc-gold/[0.04] to-transparent border border-dc-gold/20{% elif row.rank == 2 %}bg-gradient-to-r from-gray-300/[0.06] via-gray-300/[0.02] to-transparent border border-gray-400/15{% elif row.rank == 3 %}bg-gradient-to-r from-orange-500/[0.06] via-orange-500/[0.02] to-transparent border border-orange-500/15{% else %}bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04]{% endif %} transition-all duration-200 group"
+             {% if forloop.counter > 6 %}x-show="showAllStandings" x-transition.opacity.duration.200ms{% endif %}>
             {# Rank badge #}
             <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center {% if row.rank == 1 %}bg-dc-gold/20 text-dc-gold{% elif row.rank == 2 %}bg-gray-300/15 text-gray-300{% elif row.rank == 3 %}bg-orange-500/15 text-orange-400{% else %}bg-white/[0.04] text-gray-600{% endif %}">
                 {% if row.rank == 1 %}
@@ -750,11 +778,25 @@ Features:
         </div>
         {% endfor %}
     </div>
+
+    {% if standings_primary|length > 6 %}
+    <div class="mt-4 text-center">
+        <button @click="showAllStandings = !showAllStandings"
+                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs font-bold text-gray-400 hover:text-white transition-all uppercase tracking-wider">
+            <template x-if="!showAllStandings">
+                <span class="flex items-center gap-1.5"><i data-lucide="chevron-down" class="w-3.5 h-3.5"></i> Show All {{ standings_primary|length }} {% if tournament.participation_type == 'team' %}Teams{% else %}Players{% endif %}</span>
+            </template>
+            <template x-if="showAllStandings">
+                <span class="flex items-center gap-1.5"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i> Show Less</span>
+            </template>
+        </button>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
 <!-- TOURNAMENT INFO -->
-<div id="section-info" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
+<div id="section-info" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
     <div class="flex items-center gap-2 mb-5">
         <i data-lucide="info" class="w-5 h-5 game-accent"></i>
         <h3 class="text-lg font-display font-bold text-white">Tournament Info</h3>
@@ -806,21 +848,21 @@ Features:
     {% if tournament.description %}
     <div class="prose prose-invert prose-sm max-w-none">
         <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-2">Description</p>
-        <div class="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{{ tournament.description }}</div>
+        <div class="text-sm text-gray-300 leading-relaxed">{{ tournament.description|safe }}</div>
     </div>
     {% endif %}
 </div>
 
 <!-- RULES -->
 {% if tournament.rules_text or tournament.rules_pdf %}
-<div id="section-rules" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
+<div id="section-rules" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
     <div class="flex items-center gap-2 mb-5">
         <i data-lucide="scroll-text" class="w-5 h-5 game-accent"></i>
         <h3 class="text-lg font-display font-bold text-white">Rules</h3>
     </div>
 
     {% if tournament.rules_text %}
-    <div class="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{{ tournament.rules_text }}</div>
+    <div class="prose prose-invert prose-sm max-w-none text-sm text-gray-300 leading-relaxed">{{ tournament.rules_text|safe }}</div>
     {% endif %}
 
     {% if tournament.rules_pdf %}
@@ -872,10 +914,99 @@ Features:
                 t.classList.remove('active', 'text-white');
                 t.classList.add('text-gray-500');
                 t.style.borderColor = 'transparent';
+                t.setAttribute('aria-selected', 'false');
             });
             event.target.classList.add('active', 'text-white');
             event.target.classList.remove('text-gray-500');
             event.target.style.borderColor = '#10b981';
+            event.target.setAttribute('aria-selected', 'true');
+            // Scroll active tab into view on mobile
+            event.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }
+
+    /* SVG bracket connectors — matches TOC design */
+    function drawBracketConnectors(wrapperId) {
+        var wrap = document.getElementById(wrapperId);
+        if (!wrap) return;
+        // Remove existing SVG
+        var old = wrap.querySelector('svg.bracket-connectors');
+        if (old) old.remove();
+
+        var rounds = wrap.querySelectorAll('.bracket-round');
+        if (rounds.length < 2) return;
+
+        var wrapRect = wrap.getBoundingClientRect();
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'bracket-connectors');
+        svg.setAttribute('width', wrapRect.width);
+        svg.setAttribute('height', wrapRect.height);
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '1';
+
+        for (var i = 0; i < rounds.length - 1; i++) {
+            var currCards = rounds[i].querySelectorAll('.bracket-match-card');
+            var nextCards = rounds[i + 1].querySelectorAll('.bracket-match-card');
+            if (!currCards.length || !nextCards.length) continue;
+
+            currCards.forEach(function(card, ci) {
+                var nextIdx = Math.floor(ci / 2);
+                var nextCard = nextCards[nextIdx] || nextCards[nextCards.length - 1];
+
+                var r1 = card.getBoundingClientRect();
+                var r2 = nextCard.getBoundingClientRect();
+
+                var x1 = r1.right - wrapRect.left;
+                var y1 = r1.top + r1.height / 2 - wrapRect.top;
+                var x2 = r2.left - wrapRect.left;
+                var y2 = r2.top + r2.height / 2 - wrapRect.top;
+                var midX = (x1 + x2) / 2;
+
+                var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' H ' + midX + ' V ' + y2 + ' H ' + x2);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('stroke-linecap', 'round');
+                svg.appendChild(path);
+            });
+        }
+
+        wrap.style.position = 'relative';
+        wrap.appendChild(svg);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        ['bracket-grid-winners', 'bracket-grid-losers', 'bracket-grid-single'].forEach(drawBracketConnectors);
+    });
+    window.addEventListener('resize', function() {
+        ['bracket-grid-winners', 'bracket-grid-losers', 'bracket-grid-single'].forEach(drawBracketConnectors);
+    });
+
+    /* Drag-to-scroll for bracket sections */
+    function bracketDrag() {
+        return {
+            dragging: false, startX: 0, scrollLeft: 0,
+            startDrag(e) {
+                if (e.button !== 0) return;
+                this.dragging = true;
+                this.startX = e.pageX - e.currentTarget.offsetLeft;
+                this.scrollLeft = e.currentTarget.scrollLeft;
+                e.currentTarget.style.cursor = 'grabbing';
+            },
+            onDrag(e) {
+                if (!this.dragging) return;
+                e.preventDefault();
+                var x = e.pageX - e.currentTarget.offsetLeft;
+                e.currentTarget.scrollLeft = this.scrollLeft - (x - this.startX) * 1.5;
+            },
+            stopDrag() {
+                this.dragging = false;
+                if (this.$el) this.$el.style.cursor = 'grab';
+            }
         }
     }
 </script>

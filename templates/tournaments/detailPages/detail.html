@@ -5,15 +5,12 @@
 {% block og_title %}{{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block tournament_css %}
+{# Game-dynamic variables (depend on Django context, must stay inline) #}
 <style>
-    /* ===== GAME-DYNAMIC BRANDING ===== */
     :root {
         --game-color: {{ game_spec.primary_color|default:"#06b6d4" }};
         --game-color-secondary: {{ game_spec.secondary_color|default:"#1e1b4b" }};
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --glass-surface: #111111;
     }
-
     body {
         background-color: #020204;
         background-image:
@@ -25,345 +22,9 @@
         -webkit-font-smoothing: antialiased;
         text-rendering: geometricPrecision;
     }
-
-    /* ===== AMBIENT GLOW ORBS ===== */
-    .detail-ambient-orb-1 {
-        position: fixed; top: -10%; right: -5%; width: 700px; height: 700px;
-        background: radial-gradient(circle, color-mix(in srgb, var(--game-color) 10%, transparent) 0%, color-mix(in srgb, var(--game-color) 3%, transparent) 35%, transparent 65%);
-        pointer-events: none; z-index: 0; filter: blur(60px);
-        animation: ambientFloat1 18s ease-in-out infinite alternate;
-    }
-    .detail-ambient-orb-2 {
-        position: fixed; bottom: -8%; left: -6%; width: 550px; height: 550px;
-        background: radial-gradient(circle, color-mix(in srgb, var(--game-color-secondary) 12%, transparent) 0%, transparent 55%);
-        pointer-events: none; z-index: 0; filter: blur(70px);
-        animation: ambientFloat2 22s ease-in-out infinite alternate-reverse;
-    }
-    .detail-ambient-orb-3 {
-        position: fixed; top: 40%; left: 50%; width: 400px; height: 400px;
-        background: radial-gradient(circle, color-mix(in srgb, var(--game-color) 5%, transparent) 0%, transparent 50%);
-        pointer-events: none; z-index: 0; filter: blur(80px); transform: translateX(-50%);
-        animation: ambientFloat3 15s ease-in-out infinite alternate;
-    }
-    @keyframes ambientFloat1 { 0% { transform: translate(0, 0) scale(1); opacity: 0.7; } 100% { transform: translate(-40px, 30px) scale(1.15); opacity: 1; } }
-    @keyframes ambientFloat2 { 0% { transform: translate(0, 0) scale(1); opacity: 0.6; } 100% { transform: translate(30px, -20px) scale(1.1); opacity: 0.9; } }
-    @keyframes ambientFloat3 { 0% { transform: translateX(-50%) scale(1); opacity: 0.4; } 100% { transform: translateX(-50%) translateY(-30px) scale(1.2); opacity: 0.7; } }
-
-    /* ===== NOISE OVERLAY (disabled — caused hazy layer) ===== */
-    .noise-overlay { display: none; }
-
-    /* ===== HERO ===== */
-    .hero-container { position: relative; height: 70vh; min-height: 500px; max-height: 850px; width: 100%; overflow: hidden; border-bottom: 1px solid var(--glass-border); }
-    @media (max-width: 640px) { .hero-container { height: 55vh; min-height: 400px; } }
-    .hero-banner-img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; transform: scale(1.04); animation: slowPan 25s infinite alternate; filter: brightness(0.6) saturate(1.3) contrast(1.1); image-rendering: -webkit-optimize-contrast; }
-    @keyframes slowPan { 0% { transform: scale(1.04) translateY(0); } 100% { transform: scale(1.06) translateY(-12px); } }
-    .hero-gradient-overlay {
-        background: radial-gradient(ellipse 80% 50% at 70% 15%, color-mix(in srgb, var(--game-color) 10%, transparent), transparent 50%),
-                    linear-gradient(to top, #020204 0%, #020204 6%, rgba(2,2,4,0.96) 14%, rgba(2,2,4,0.72) 30%, rgba(2,2,4,0.25) 55%, rgba(2,2,4,0.45) 100%),
-                    linear-gradient(to right, #020204 0%, rgba(2,2,4,0.65) 15%, transparent 45%);
-    }
-    @media (min-resolution: 1.5dppx) { .hero-banner-img { filter: brightness(0.55) saturate(1.35) contrast(1.15); } }
-    @media (min-resolution: 2dppx) { .hero-banner-img { filter: brightness(0.5) saturate(1.4) contrast(1.2); } }
-    .grid-lines {
-        background-size: 40px 40px;
-        background-image: linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
-        mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-    }
-
-    /* ===== TABS ===== */
-    .sticky-nav-wrapper { position: sticky; top: 64px; z-index: 40; background: #060608; border-bottom: 1px solid var(--glass-border); }
-    .tab-btn {
-        position: relative; font-family: 'Rajdhani', sans-serif; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280;
-        padding: 1.25rem 0.5rem; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;
-        background: none; border: none; white-space: nowrap;
-    }
-    .tab-btn:hover { color: #e5e5e5; }
-    .tab-btn.active { color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.3); }
-    .tab-btn.active::after {
-        content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
-        background: var(--game-color); box-shadow: 0 -4px 15px color-mix(in srgb, var(--game-color) 60%, transparent);
-    }
-
-    /* ===== CARD SYSTEM (solid backgrounds — crisp, no blur haze) ===== */
-    .glass {
-        background: #111111;
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-    }
-    .glass-strong {
-        background: #0c0c0c;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-    .glass-panel {
-        background: #111111;
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-    .glass:hover, .glass-panel:hover { border-color: rgba(255, 255, 255, 0.12); }
-
-    /* ===== GLOW EFFECTS ===== */
-    .text-glow-game { text-shadow: 0 0 20px color-mix(in srgb, var(--game-color) 50%, transparent); }
-    .text-glow-gold { text-shadow: 0 0 20px rgba(250, 204, 21, 0.5); }
-    .game-accent { color: var(--game-color); }
-    .game-accent-bg { background-color: var(--game-color); }
-    .game-accent-border { border-color: var(--game-color); }
-    .game-glow { box-shadow: 0 0 20px color-mix(in srgb, var(--game-color) 30%, transparent); }
-
-    /* ===== SCROLLBAR ===== */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #020204; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--game-color); }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* ===== DESCRIPTION READ-MORE ===== */
-    .desc-container { position: relative; }
-    .desc-container.collapsed { max-height: 180px; overflow: hidden; }
-    .desc-container.collapsed::after {
-        content: ''; position: absolute; bottom: 0; left: 0; width: 100%;
-        height: 80px; background: linear-gradient(to top, rgba(17,17,17,0.95), transparent); pointer-events: none;
-    }
-
-    /* ===== MATCH CARD ===== */
-    .match-card { transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.06); }
-    .match-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
-    .match-card.is-live { border-left: 3px solid #ef4444; animation: livePulse 2s infinite; }
-    @keyframes livePulse { 0%, 100% { border-left-color: #ef4444; } 50% { border-left-color: #fca5a5; } }
-
-    /* ===== STATUS TIMELINE ===== */
-    .timeline-node { transition: all 0.3s ease; }
-    .timeline-node.active { transform: scale(1.15); }
-    .timeline-node.completed { opacity: 1; }
-    .timeline-node.pending { opacity: 0.4; }
-
-    /* ===== CARD DEPTH ===== */
-    .section-card {
-        background: #131313;
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 1rem;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-        transition: border-color 0.3s ease;
-    }
-    .section-card:hover { border-color: rgba(255,255,255,0.12); }
-
-    /* ===== SIDEBAR CARDS ===== */
-    .sidebar-card {
-        background: #131313;
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 1rem;
-        box-shadow: 0 2px 16px rgba(0,0,0,0.35);
-        transition: all 0.3s ease;
-    }
-    .sidebar-card:hover { border-color: rgba(255,255,255,0.12); background: #171717; }
-
-    /* ===== SELECTION ===== */
-    ::selection { background: color-mix(in srgb, var(--game-color) 50%, transparent); color: white; }
-
-    /* ===== BRACKET VISUALIZATION ===== */
-    .detail-bracket-viewport {
-        max-height: 70vh;
-        min-height: 350px;
-        background:
-            radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255,255,255,0.01), transparent),
-            #080810;
-    }
-    .detail-bracket-tree {
-        padding: 1.5rem;
-        transition: transform 0.2s ease;
-    }
-
-    /* Section labels */
-    .db-label {
-        font-size: 0.6rem;
-        font-weight: 900;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        padding: 0.5rem 0.25rem 0.25rem;
-        border-left: 3px solid;
-        padding-left: 0.75rem;
-        margin-bottom: 0.25rem;
-    }
-    .db-ub { color: #00FF66; border-left-color: #00FF66; }
-    .db-lb { color: #FF2A55; border-left-color: #FF2A55; }
-    .db-gf { color: #FFB800; border-left-color: #FFB800; }
-
-    /* Section container */
-    .db-section {
-        display: flex;
-        gap: 2.25rem;
-        padding: 0.5rem 0 1.25rem;
-        position: relative;
-        overflow: visible;
-    }
-
-    /* Round columns */
-    .db-col {
-        flex: 0 0 auto;
-        min-width: 220px;
-        z-index: 2;
-        position: relative;
-    }
-    .db-col-title {
-        font-size: 0.55rem;
-        font-weight: 900;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: #4B5563;
-        margin-bottom: 0.75rem;
-        text-align: center;
-    }
-    .db-col-body {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-    }
-
-    /* Match card */
-    .db-match {
-        background: rgba(255, 255, 255, 0.025);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 8px;
-        overflow: hidden;
-        margin: 4px 0;
-        transition: border-color 0.15s, box-shadow 0.15s;
-        position: relative;
-    }
-    .db-match:hover {
-        border-color: rgba(0, 240, 255, 0.3);
-        box-shadow: 0 0 14px rgba(0, 240, 255, 0.06);
-        background: rgba(255, 255, 255, 0.04);
-    }
-    .db-match.db-live {
-        border-color: rgba(255, 42, 85, 0.5);
-        box-shadow: 0 0 18px rgba(255, 42, 85, 0.12);
-        animation: dbPulse 2s ease-in-out infinite alternate;
-    }
-    .db-match.db-done { opacity: 0.75; }
-    .db-match.db-done:hover { opacity: 1; }
-    @keyframes dbPulse {
-        from { box-shadow: 0 0 10px rgba(255, 42, 85, 0.08); }
-        to   { box-shadow: 0 0 22px rgba(255, 42, 85, 0.18); }
-    }
-
-    /* Match header */
-    .db-match-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 2px 8px;
-        min-height: 14px;
-    }
-    .db-mnum {
-        font-size: 0.48rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        color: rgba(255, 255, 255, 0.15);
-        font-family: 'Outfit', monospace;
-    }
-    .db-bo {
-        font-size: 0.45rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.2);
-        font-family: monospace;
-    }
-    .db-badge-live {
-        font-size: 0.42rem;
-        font-weight: 900;
-        letter-spacing: 0.1em;
-        color: #FF2A55;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-    }
-    .db-dot {
-        width: 5px; height: 5px;
-        border-radius: 50%;
-        background: #FF2A55;
-        animation: dbDot 1.5s ease-in-out infinite;
-    }
-    @keyframes dbDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-
-    /* Team row */
-    .db-team {
-        display: flex;
-        align-items: center;
-        padding: 5px 8px;
-        gap: 6px;
-        border-top: 1px solid rgba(255, 255, 255, 0.035);
-    }
-    .db-logo {
-        width: 20px; height: 20px;
-        border-radius: 4px;
-        object-fit: cover;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        flex-shrink: 0;
-    }
-    .db-logo-fb {
-        width: 20px; height: 20px;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .db-logo-fb span {
-        font-size: 0.5rem;
-        font-weight: 800;
-        color: rgba(255, 255, 255, 0.3);
-    }
-    .db-name {
-        font-size: 0.68rem;
-        font-weight: 600;
-        color: #9CA3AF;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1;
-        min-width: 0;
-    }
-    .db-w .db-name { color: #FFFFFF; }
-    .db-sc {
-        font-size: 0.72rem;
-        font-weight: 800;
-        font-family: 'Outfit', sans-serif;
-        color: #4B5563;
-        min-width: 1.2rem;
-        text-align: center;
-        flex-shrink: 0;
-    }
-    .db-w .db-sc { color: #00FF66; }
-
-    /* SVG connector lines */
-    .db-svg { overflow: visible; }
-    .db-line {
-        stroke: rgba(255, 255, 255, 0.07);
-        stroke-width: 1.5;
-        fill: none;
-    }
-
-    /* ===== BRACKET RESPONSIVE ===== */
-    @media (max-width: 768px) {
-        .detail-bracket-viewport { max-height: 55vh; min-height: 280px; }
-        .detail-bracket-tree { padding: 1rem; }
-        .db-section { gap: 1.25rem; }
-        .db-col { min-width: 170px; }
-        .db-col-title { font-size: 0.5rem; }
-        .db-name { font-size: 0.6rem; max-width: 90px; }
-        .db-logo, .db-logo-fb { width: 16px; height: 16px; }
-    }
-    @media (max-width: 480px) {
-        .db-col { min-width: 150px; }
-        .db-section { gap: 1rem; }
-        .db-team { padding: 4px 6px; gap: 4px; }
-        .db-name { font-size: 0.55rem; max-width: 70px; }
-    }
 </style>
+{# Extracted detail-page stylesheet (cacheable) #}
+<link rel="stylesheet" href="{% static 'tournaments/css/detail-page.css' %}">
 {% endblock %}
 
 {% block tournament_content %}
@@ -543,7 +204,7 @@
                 {% endif %}
 
                 <div class="flex gap-2">
-                    <button class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all" title="Share" onclick="navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))">
+                    <button class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all" title="Share" onclick="dcShareLink()">
                         <i data-lucide="share-2" class="w-4 h-4"></i>
                     </button>
                     {% if tournament.stream_youtube_url or tournament.stream_twitch_url %}
@@ -564,25 +225,25 @@
 <div class="sticky-nav-wrapper w-full border-b border-dc-border shadow-2xl">
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto no-scrollbar">
-                <button class="tab-btn active" onclick="switchTab('overview', this)">Overview</button>
-                <button class="tab-btn" onclick="switchTab('participants', this)">
+            <div class="flex items-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto no-scrollbar" role="tablist" aria-label="Tournament sections">
+                <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-overview" tabindex="0" data-tab="overview" onclick="switchTab('overview', this)">Overview</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-participants" tabindex="-1" data-tab="participants" onclick="switchTab('participants', this)">
                     Participants
                     <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-mono">{{ slots_filled }}/{{ slots_total }}</span>
                 </button>
-                <button class="tab-btn" onclick="switchTab('matches', this)">
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-matches" tabindex="-1" data-tab="matches" onclick="switchTab('matches', this)">
                     Matches
                     {% if matches %}<span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-mono">{{ matches|length }}</span>{% endif %}
                 </button>
-                <button class="tab-btn" onclick="switchTab('bracket', this)">Bracket</button>
-                <button class="tab-btn" onclick="switchTab('standings', this)">Standings</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-bracket" tabindex="-1" data-tab="bracket" onclick="switchTab('bracket', this)">Bracket</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-standings" tabindex="-1" data-tab="standings" onclick="switchTab('standings', this)">Standings</button>
                 {% if has_streams %}
-                <button class="tab-btn" onclick="switchTab('streams', this)">
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-streams" tabindex="-1" data-tab="streams" onclick="switchTab('streams', this)">
                     Streams
                     {% if featured_stream.is_live %}<span class="ml-1 w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse"></span>{% endif %}
                 </button>
                 {% endif %}
-                <button class="tab-btn" onclick="switchTab('rules', this)">Rules</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-rules" tabindex="-1" data-tab="rules" onclick="switchTab('rules', this)">Rules</button>
             </div>
 
             <div class="hidden lg:flex items-center gap-4 py-2 opacity-80 hover:opacity-100 transition-opacity">
@@ -610,7 +271,7 @@
         <div class="lg:col-span-8 space-y-6 sm:space-y-8 min-h-[800px]">
 
             <!-- OVERVIEW TAB -->
-            <div id="tab-overview" class="tab-content block space-y-6 sm:space-y-8">
+            <div id="tab-overview" class="tab-content block space-y-6 sm:space-y-8" role="tabpanel" aria-labelledby="tab-overview" aria-hidden="false">
 
                 <!-- Event Status / Phase Timeline -->
                 <div class="glass-panel p-6 sm:p-8 rounded-2xl relative overflow-hidden group border-t border-white/10">
@@ -1153,7 +814,7 @@
 
 
             <!-- PARTICIPANTS TAB -->
-            <div id="tab-participants" class="tab-content hidden space-y-5">
+            <div id="tab-participants" class="tab-content hidden space-y-5" role="tabpanel" aria-labelledby="tab-participants" aria-hidden="true">
                 {% comment %}── Header bar ──{% endcomment %}
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
                     <div class="flex items-center gap-3">
@@ -1181,65 +842,69 @@
                     </div>
                 </div>
 
-                {% comment %}── Participant grid ──{% endcomment %}
-                <div id="participants-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {% comment %}── Participant grid — Hub-style glass cards ──{% endcomment %}
+                <div id="participants-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {% for p in participants %}
-                    <div class="detail-participant-card group relative rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 overflow-hidden cursor-pointer{% if p.is_current_user %} ring-1 ring-[var(--game-color)]/40{% endif %}"
+                    <div class="detail-participant-card group rounded-xl p-4 border bg-white/[0.02] backdrop-blur-sm hover:border-white/20 transition-all cursor-pointer{% if p.is_current_user %} border-[var(--game-color)]/30{% else %} border-white/[0.06]{% endif %}"
                          data-name="{{ p.name|lower }}{{ p.tag|default:''|lower }}">
-                        {% comment %}Status indicator dot{% endcomment %}
-                        <div class="absolute top-2 right-2 z-10">
-                            {% if p.checked_in %}
-                            <span class="flex h-2.5 w-2.5" title="Checked In"><span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"></span></span>
-                            {% elif p.status == 'confirmed' %}
-                            <span class="flex h-2 w-2 rounded-full bg-green-500/80" title="Confirmed"></span>
-                            {% elif p.status == 'payment_submitted' %}
-                            <span class="flex h-2 w-2 rounded-full bg-yellow-500/80" title="Payment Review"></span>
-                            {% else %}
-                            <span class="flex h-2 w-2 rounded-full bg-gray-600" title="Pending"></span>
-                            {% endif %}
-                        </div>
-                        {% if p.is_current_user %}
-                        <div class="absolute top-2 left-2 z-10">
-                            <span class="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--game-color)]/20 text-[var(--game-color)] border border-[var(--game-color)]/30">You</span>
-                        </div>
-                        {% endif %}
-
-                        {% comment %}Avatar / Logo{% endcomment %}
-                        <div class="flex items-center justify-center pt-5 pb-3 px-3">
+                        <div class="flex items-center gap-3 mb-1">
+                            {% comment %}Logo / Avatar{% endcomment %}
                             {% if p.type == 'team' %}
-                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-800/80 to-gray-900 border border-white/[0.08] flex items-center justify-center overflow-hidden shadow-lg group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.04)] transition-all duration-300">
+                            <div class="w-11 h-11 rounded-lg{% if p.is_current_user %} bg-[var(--game-color)]/15 text-[var(--game-color)]{% else %} bg-white/[0.05] text-gray-400{% endif %} flex items-center justify-center overflow-hidden border border-white/10 shrink-0 group-hover:scale-110 transition-transform">
                                 {% if p.logo %}
                                 <img src="{{ p.logo }}" class="w-full h-full object-cover" alt="{{ p.name }}" loading="lazy">
                                 {% else %}
-                                <span class="text-lg font-black text-white/60">{{ p.tag|default:p.name|truncatechars:2|upper }}</span>
+                                <span class="font-black text-base">{{ p.tag|default:p.name|truncatechars:2|upper }}</span>
                                 {% endif %}
                             </div>
                             {% else %}
-                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-gray-800/80 to-gray-900 border border-white/[0.08] flex items-center justify-center overflow-hidden shadow-lg group-hover:scale-105 transition-all duration-300">
+                            <div class="w-11 h-11 rounded-full{% if p.is_current_user %} bg-[var(--game-color)]/15 text-[var(--game-color)]{% else %} bg-white/[0.05] text-gray-400{% endif %} flex items-center justify-center overflow-hidden border border-white/10 shrink-0 group-hover:scale-110 transition-transform">
                                 {% if p.avatar %}
                                 <img src="{{ p.avatar }}" class="w-full h-full object-cover" alt="{{ p.display_name }}" loading="lazy">
                                 {% else %}
-                                <span class="text-lg font-black text-white/50">{{ p.display_name|truncatechars:2|upper }}</span>
+                                <span class="font-black text-base">{{ p.display_name|truncatechars:2|upper }}</span>
                                 {% endif %}
                             </div>
                             {% endif %}
-                        </div>
 
-                        {% comment %}Name & metadata{% endcomment %}
-                        <div class="text-center px-3 pb-4 space-y-1">
-                            <h4 class="text-xs font-bold text-white truncate group-hover:text-[var(--game-color)] transition-colors">{{ p.name|default:p.display_name }}</h4>
-                            {% if p.type == 'team' %}
-                                {% if p.tag %}
-                                <p class="text-[10px] font-mono text-gray-500 truncate">[{{ p.tag }}]</p>
+                            {% comment %}Name + meta{% endcomment %}
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-bold text-white text-sm truncate group-hover:text-[var(--game-color)] transition-colors">{{ p.name|default:p.display_name }}</h4>
+                                    {% if p.is_current_user %}
+                                    <span class="px-1.5 py-0.5 rounded bg-[var(--game-color)]/20 text-[var(--game-color)] text-[8px] font-black uppercase shrink-0">You</span>
+                                    {% endif %}
+                                    {% comment %}Status dot{% endcomment %}
+                                    {% if p.checked_in %}
+                                    <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] ml-auto shrink-0" title="Checked In"></span>
+                                    {% elif p.status == 'confirmed' %}
+                                    <span class="w-2 h-2 rounded-full bg-green-500/80 ml-auto shrink-0" title="Confirmed"></span>
+                                    {% elif p.status == 'payment_submitted' %}
+                                    <span class="w-2 h-2 rounded-full bg-yellow-500/80 ml-auto shrink-0" title="Payment Review"></span>
+                                    {% endif %}
+                                </div>
+                                {% if p.type == 'team' %}
+                                <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">{{ p.roster_count }} player{{ p.roster_count|pluralize }}</p>
+                                {% else %}
+                                <p class="text-[10px] text-gray-500 truncate mt-0.5">{{ p.sub_label|default:"Solo" }}</p>
                                 {% endif %}
-                                <p class="text-[10px] text-gray-600">{{ p.roster_count }} player{{ p.roster_count|pluralize }}</p>
-                            {% else %}
-                                <p class="text-[10px] text-gray-600 truncate">{{ p.sub_label|default:"Solo" }}</p>
-                            {% endif %}
+                            </div>
                             {% if p.rank %}
-                            <p class="text-[9px] font-mono text-gray-500">#{{ p.rank }}</p>
+                            <span class="text-[10px] text-gray-600 font-mono shrink-0">#{{ p.rank }}</span>
                             {% endif %}
                         </div>
+                        {% comment %}Member avatar stack (teams only){% endcomment %}
+                        {% if p.type == 'team' and p.roster_avatars %}
+                        <div class="flex -space-x-2 overflow-hidden mt-2.5 pl-0.5">
+                            {% for member in p.roster_avatars %}
+                            {% if member.avatar %}
+                            <img class="inline-block h-7 w-7 rounded-full ring-2 ring-[#08080C] object-cover" src="{{ member.avatar }}" alt="{{ member.name }}" loading="lazy">
+                            {% else %}
+                            <div class="inline-flex h-7 w-7 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[9px] font-bold text-white">{{ member.name|truncatechars:1|upper }}</div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -1265,7 +930,7 @@
 
 
             <!-- MATCHES TAB -->
-            <div id="tab-matches" class="tab-content hidden space-y-6">
+            <div id="tab-matches" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tab-matches" aria-hidden="true">
                 {% if matches %}
 
                 {% for m in matches %}
@@ -1379,7 +1044,7 @@
 
 
             <!-- BRACKET TAB -->
-            <div id="tab-bracket" class="tab-content hidden">
+            <div id="tab-bracket" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-bracket" aria-hidden="true">
                 {% if bracket and matches %}
                 {% comment %}── Bracket Header ──{% endcomment %}
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4 px-1">
@@ -1452,7 +1117,7 @@
 
 
             <!-- STANDINGS TAB -->
-            <div id="tab-standings" class="tab-content hidden space-y-6">
+            <div id="tab-standings" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tab-standings" aria-hidden="true">
                 {% if standings_primary %}
                 <div class="glass p-4 sm:p-6 rounded-2xl overflow-hidden">
                     <h3 class="font-gaming font-bold text-xl text-white flex items-center gap-2 mb-6">
@@ -1516,7 +1181,7 @@
 
             <!-- STREAMS TAB -->
             {% if has_streams %}
-            <div id="tab-streams" class="tab-content hidden space-y-6">
+            <div id="tab-streams" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tab-streams" aria-hidden="true">
                 {% if featured_stream %}
                 <div class="glass rounded-2xl overflow-hidden">
                     <div class="aspect-video">
@@ -1564,7 +1229,7 @@
 
 
             <!-- RULES & DOCS TAB -->
-            <div id="tab-rules" class="tab-content hidden space-y-6">
+            <div id="tab-rules" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tab-rules" aria-hidden="true">
                 <div class="glass p-6 sm:p-8 rounded-2xl border border-white/[0.06]">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-6 mb-6 gap-4">
                         <h3 class="font-gaming font-bold text-xl sm:text-2xl text-white flex items-center gap-2">
@@ -1812,7 +1477,7 @@
 
                 <!-- Share / Report -->
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))" class="py-3 bg-dc-surface border border-dc-border rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-2 group">
+                    <button onclick="dcShareLink()" class="py-3 bg-dc-surface border border-dc-border rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-2 group">
                         <i data-lucide="share-2" class="w-4 h-4 group-hover:game-accent transition-colors"></i> Share
                     </button>
                     <button class="py-3 bg-dc-surface border border-dc-border rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-2 group">
@@ -1871,273 +1536,5 @@
 
 
 {% block tournament_js %}
-<script>
-    /* ===== TAB SWITCHING ===== */
-    function switchTab(tabId, btn) {
-        document.querySelectorAll('.tab-content').forEach(el => {
-            el.classList.add('hidden');
-            el.classList.remove('block');
-        });
-        const target = document.getElementById('tab-' + tabId);
-        if (target) {
-            target.classList.remove('hidden');
-            target.classList.add('block');
-        }
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-        history.replaceState(null, '', '#' + tabId);
-    }
-
-    /* ===== DESCRIPTION READ MORE/LESS ===== */
-    function toggleDescription() {
-        const container = document.getElementById('desc-container');
-        const btn = document.getElementById('desc-toggle');
-        if (!container || !btn) return;
-
-        if (container.classList.contains('collapsed')) {
-            container.classList.remove('collapsed');
-            btn.innerHTML = '<span>Show Less</span><i data-lucide="chevron-up" class="w-4 h-4"></i>';
-        } else {
-            container.classList.add('collapsed');
-            btn.innerHTML = '<span>Read More</span><i data-lucide="chevron-down" class="w-4 h-4"></i>';
-        }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function toggleRules() {
-        const container = document.getElementById('rules-container');
-        const btn = document.getElementById('rules-toggle');
-        if (!container || !btn) return;
-
-        if (container.classList.contains('collapsed')) {
-            container.classList.remove('collapsed');
-            btn.innerHTML = '<span>Show Less</span><i data-lucide="chevron-up" class="w-4 h-4"></i>';
-        } else {
-            container.classList.add('collapsed');
-            btn.innerHTML = '<span>Read More</span><i data-lucide="chevron-down" class="w-4 h-4"></i>';
-        }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    /* ===== AUTO-HIDE READ MORE IF CONTENT IS SHORT ===== */
-    document.addEventListener('DOMContentLoaded', function() {
-        const descContainer = document.getElementById('desc-container');
-        const descToggle = document.getElementById('desc-toggle');
-        if (descContainer && descToggle) {
-            if (descContainer.scrollHeight <= 180) {
-                descContainer.classList.remove('collapsed');
-                descToggle.style.display = 'none';
-            }
-        }
-
-        const rulesContainer = document.getElementById('rules-container');
-        const rulesToggle = document.getElementById('rules-toggle');
-        if (rulesContainer && rulesToggle) {
-            if (rulesContainer.scrollHeight <= 180) {
-                rulesContainer.classList.remove('collapsed');
-                rulesToggle.style.display = 'none';
-            }
-        }
-
-        const hash = window.location.hash.replace('#', '');
-        if (hash) {
-            const tabBtn = document.querySelector('.tab-btn[onclick*="' + hash + '"]');
-            if (tabBtn) switchTab(hash, tabBtn);
-        }
-
-        // Render bracket on load if data exists
-        if (window.__detailBracketData) {
-            renderDetailBracket(window.__detailBracketData);
-        }
-    });
-
-    /* ===== PARTICIPANTS SEARCH ===== */
-    function filterDetailParticipants(query) {
-        const grid = document.getElementById('participants-grid');
-        const empty = document.getElementById('participants-empty-search');
-        if (!grid) return;
-        const q = (query || '').toLowerCase().trim();
-        const cards = grid.querySelectorAll('.detail-participant-card');
-        let visible = 0;
-        cards.forEach(function(c) {
-            const name = c.getAttribute('data-name') || '';
-            const show = !q || name.includes(q);
-            c.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-        if (empty) empty.classList.toggle('hidden', visible > 0);
-    }
-
-    /* ===== BRACKET RENDERER ===== */
-    var _detailBracketScale = 1;
-
-    function detailBracketZoom(dir) {
-        var tree = document.getElementById('detail-bracket-tree');
-        if (!tree) return;
-        if (dir === 0) { _detailBracketScale = 1; }
-        else { _detailBracketScale = Math.max(0.4, Math.min(1.5, _detailBracketScale + dir * 0.15)); }
-        tree.style.transform = 'scale(' + _detailBracketScale + ')';
-    }
-
-    function _escBracket(s) {
-        var d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
-    }
-
-    function renderDetailBracket(data) {
-        var tree = document.getElementById('detail-bracket-tree');
-        if (!tree || !data.matches || !data.matches.length) return;
-
-        var isDE = data.format === 'double_elimination';
-
-        // Group matches by round_number and bracket_type
-        var mainRounds = {};
-        var losersRounds = {};
-        var gfMatches = [];
-
-        data.matches.forEach(function(m) {
-            if (!m.round_number) return;
-            if (isDE) {
-                var rl = (m.round_label || '').toLowerCase();
-                if (rl.includes('grand')) {
-                    gfMatches.push(m);
-                } else if (m.bracket_type === 'losers' || rl.includes('lb') || rl.includes('lower')) {
-                    if (!losersRounds[m.round_number]) losersRounds[m.round_number] = { label: m.round_label, matches: [] };
-                    losersRounds[m.round_number].matches.push(m);
-                } else {
-                    if (!mainRounds[m.round_number]) mainRounds[m.round_number] = { label: m.round_label, matches: [] };
-                    mainRounds[m.round_number].matches.push(m);
-                }
-            } else {
-                if (!mainRounds[m.round_number]) mainRounds[m.round_number] = { label: m.round_label, matches: [] };
-                mainRounds[m.round_number].matches.push(m);
-            }
-        });
-
-        function matchCard(m) {
-            var stCls = m.is_live ? 'db-live' : (m.state === 'completed' || m.state === 'forfeit') ? 'db-done' : '';
-            var p1w = m.p1_winner ? ' db-w' : '';
-            var p2w = m.p2_winner ? ' db-w' : '';
-
-            // Team logo / avatar
-            function avatar(logo, name) {
-                if (logo) {
-                    return '<img src="' + logo + '" alt="" class="db-logo" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
-                         + '<div class="db-logo-fb" style="display:none"><span>' + (name || '?')[0].toUpperCase() + '</span></div>';
-                }
-                return '<div class="db-logo-fb"><span>' + (name || '?')[0].toUpperCase() + '</span></div>';
-            }
-
-            var matchNum = m.match_number ? '<span class="db-mnum">M' + m.match_number + '</span>' : '';
-            var boTag = m.best_of ? '<span class="db-bo">' + m.best_of + '</span>' : '';
-            var liveBadge = m.is_live
-                ? '<span class="db-badge-live"><span class="db-dot"></span>LIVE</span>' : '';
-
-            return '<div class="db-match ' + stCls + '">'
-                + '<div class="db-match-head">' + matchNum + boTag + liveBadge + '</div>'
-                + '<div class="db-team' + p1w + '">'
-                + avatar(m.p1_logo, m.p1_name)
-                + '<span class="db-name">' + _escBracket(m.p1_name) + '</span>'
-                + '<span class="db-sc">' + (m.p1_score != null ? m.p1_score : '-') + '</span>'
-                + '</div>'
-                + '<div class="db-team' + p2w + '">'
-                + avatar(m.p2_logo, m.p2_name)
-                + '<span class="db-name">' + _escBracket(m.p2_name) + '</span>'
-                + '<span class="db-sc">' + (m.p2_score != null ? m.p2_score : '-') + '</span>'
-                + '</div></div>';
-        }
-
-        function buildSection(label, cls, icon, rounds) {
-            var keys = Object.keys(rounds).sort(function(a,b){ return a - b; });
-            if (!keys.length) return '';
-            var maxM = 0;
-            keys.forEach(function(k) { maxM = Math.max(maxM, rounds[k].matches.length); });
-            var secH = Math.max(maxM * 88, 200);
-
-            var h = '';
-            if (label) h += '<div class="db-label ' + cls + '">' + icon + ' ' + label + '</div>';
-            h += '<div class="db-section" data-sec="' + cls + '">';
-            keys.forEach(function(k) {
-                var round = rounds[k];
-                h += '<div class="db-col">';
-                h += '<div class="db-col-title">' + _escBracket(round.label || 'Round ' + k) + '</div>';
-                h += '<div class="db-col-body" style="height:' + secH + 'px">';
-                round.matches.forEach(function(m) { h += matchCard(m); });
-                h += '</div></div>';
-            });
-            h += '</div>';
-            return h;
-        }
-
-        var html = '';
-        if (isDE) {
-            html += buildSection('UPPER BRACKET', 'db-ub', '🟢', mainRounds);
-            html += buildSection('LOWER BRACKET', 'db-lb', '🔴', losersRounds);
-            if (gfMatches.length) {
-                var gfRounds = {};
-                gfMatches.forEach(function(m) {
-                    var rn = m.round_number || 99;
-                    if (!gfRounds[rn]) gfRounds[rn] = { label: m.round_label || 'Grand Final', matches: [] };
-                    gfRounds[rn].matches.push(m);
-                });
-                html += buildSection('GRAND FINAL', 'db-gf', '👑', gfRounds);
-            }
-        } else {
-            html += buildSection('', '', '', mainRounds);
-        }
-
-        tree.innerHTML = html;
-
-        // Draw connectors after layout
-        requestAnimationFrame(function() {
-            tree.querySelectorAll('.db-section').forEach(function(sec) {
-                drawDetailConnectors(sec);
-            });
-        });
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function drawDetailConnectors(section) {
-        var cols = section.querySelectorAll('.db-col');
-        if (cols.length < 2) return;
-        section.querySelectorAll('.db-svg').forEach(function(s) { s.remove(); });
-
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('db-svg');
-        svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible;';
-        section.appendChild(svg);
-
-        var base = section.getBoundingClientRect();
-
-        for (var ci = 0; ci < cols.length - 1; ci++) {
-            var curCards = cols[ci].querySelectorAll('.db-match');
-            var nxtCards = cols[ci + 1].querySelectorAll('.db-match');
-            if (!curCards.length || !nxtCards.length) continue;
-            var ratio = Math.max(1, Math.ceil(curCards.length / nxtCards.length));
-
-            nxtCards.forEach(function(nc, ni) {
-                var nr = nc.getBoundingClientRect();
-                var ny = nr.top + nr.height / 2 - base.top;
-                var nx = nr.left - base.left;
-
-                for (var j = 0; j < ratio; j++) {
-                    var idx = ni * ratio + j;
-                    if (idx >= curCards.length) break;
-                    var cc = curCards[idx];
-                    var cr = cc.getBoundingClientRect();
-                    var cy = cr.top + cr.height / 2 - base.top;
-                    var cx = cr.right - base.left;
-                    var mx = (cx + nx) / 2;
-
-                    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute('d', 'M' + cx + ',' + cy + ' H' + mx + ' V' + ny + ' H' + nx);
-                    path.classList.add('db-line');
-                    svg.appendChild(path);
-                }
-            });
-        }
-    }
-</script>
+<script src="{% static 'tournaments/js/detail-page.js' %}"></script>
 {% endblock %}

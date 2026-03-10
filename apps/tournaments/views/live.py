@@ -13,6 +13,8 @@ from django.views.generic import DetailView
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.http import Http404
+from django.utils.safestring import mark_safe
+import json
 from decimal import Decimal
 import json
 
@@ -41,7 +43,7 @@ class TournamentBracketView(DetailView):
         ).select_related(
             'game',
             'organizer',
-            'bracket'  # OneToOne relationship
+            'bracket'
         ).prefetch_related(
             Prefetch(
                 'matches',
@@ -58,14 +60,33 @@ class TournamentBracketView(DetailView):
         context = super().get_context_data(**kwargs)
         tournament = self.object
         
-        # Check if bracket is available
         bracket_available = self._is_bracket_available(tournament)
         context['bracket_available'] = bracket_available
         
         if bracket_available:
-            # Organize matches by round
+            all_matches = list(tournament.matches.all())
+
+            # Batch-load team logos/names for team tournaments
+            teams_map = {}
+            if tournament.participation_type == 'team' and all_matches:
+                from apps.organizations.models import Team
+                pids = set()
+                for m in all_matches:
+                    if m.participant1_id:
+                        pids.add(m.participant1_id)
+                    if m.participant2_id:
+                        pids.add(m.participant2_id)
+                if pids:
+                    for t in Team.objects.filter(id__in=pids).only('id', 'name', 'logo', 'tag'):
+                        try:
+                            logo = t.logo.url if t.logo else ''
+                        except Exception:
+                            logo = ''
+                        teams_map[t.id] = {'name': t.name, 'logo': logo, 'tag': t.tag}
+
+            # Organize matches by round with enriched data
             matches_by_round = {}
-            for match in tournament.matches.all():
+            for match in all_matches:
                 round_num = match.round_number
                 if round_num not in matches_by_round:
                     matches_by_round[round_num] = {
@@ -73,18 +94,84 @@ class TournamentBracketView(DetailView):
                         'round_name': self._get_round_name(round_num, tournament),
                         'matches': []
                     }
-                matches_by_round[round_num]['matches'].append(match)
+
+                # Determine bracket type for double-elim
+                if tournament.format == 'double_elimination' and match.round_number:
+                    if 5 <= match.round_number <= 10:
+                        bracket_type = 'losers'
+                    elif match.round_number == 11:
+                        bracket_type = 'grand_final'
+                    else:
+                        bracket_type = 'winners'
+                else:
+                    bracket_type = 'main'
+
+                # Team info enrichment
+                t1 = teams_map.get(match.participant1_id, {})
+                t2 = teams_map.get(match.participant2_id, {})
+
+                # Parse map scores
+                map_scores = []
+                gs = match.game_scores or {}
+                gs_maps = gs.get('maps', []) if isinstance(gs, dict) else gs if isinstance(gs, list) else []
+                for gm in gs_maps:
+                    map_scores.append({
+                        'map_name': gm.get('map', gm.get('map_name', '')),
+                        'p1_score': gm.get('p1', gm.get('p1_score', gm.get('team1_rounds', 0))),
+                        'p2_score': gm.get('p2', gm.get('p2_score', gm.get('team2_rounds', 0))),
+                        'winner_side': gm.get('winner_side', gm.get('winner_slot', 0)),
+                    })
+
+                best_of_label = ''
+                if match.best_of and match.best_of > 1:
+                    best_of_label = f'BO{match.best_of}'
+
+                match_data = {
+                    'id': match.id,
+                    'match_number': match.match_number,
+                    'round_number': match.round_number,
+                    'state': match.state,
+                    'bracket_type': bracket_type,
+                    'round_label': self._get_round_name(round_num, tournament),
+                    'team1_name': t1.get('name') or match.participant1_name or 'TBD',
+                    'team2_name': t2.get('name') or match.participant2_name or 'TBD',
+                    'team1_logo': t1.get('logo', ''),
+                    'team2_logo': t2.get('logo', ''),
+                    'team1_tag': t1.get('tag', ''),
+                    'team2_tag': t2.get('tag', ''),
+                    'participant1_id': match.participant1_id,
+                    'participant2_id': match.participant2_id,
+                    'score1': match.participant1_score,
+                    'score2': match.participant2_score,
+                    'winner_id': match.winner_id,
+                    'team1_is_winner': match.winner_id and match.participant1_id == match.winner_id,
+                    'team2_is_winner': match.winner_id and match.participant2_id == match.winner_id,
+                    'is_live': match.state == 'live',
+                    'is_completed': match.state in ('completed', 'forfeit'),
+                    'scheduled_time': match.scheduled_time,
+                    'best_of_label': best_of_label,
+                    'map_scores': mark_safe(json.dumps(map_scores)),
+                }
+                matches_by_round[round_num]['matches'].append(match_data)
             
-            # Sort by round number
             context['matches_by_round'] = sorted(
                 matches_by_round.values(),
                 key=lambda x: x['round_number']
             )
             context['bracket'] = tournament.bracket
+            context['is_double_elim'] = tournament.format == 'double_elimination'
+
+            # Flatten all match dicts for the template
+            all_match_dicts = []
+            for rd in context['matches_by_round']:
+                all_match_dicts.extend(rd['matches'])
+            context['all_matches'] = all_match_dicts
         else:
             context['matches_by_round'] = []
             context['bracket'] = None
             context['not_ready_reason'] = self._get_not_ready_reason(tournament)
+            context['is_double_elim'] = False
+            context['all_matches'] = []
         
         return context
     
@@ -142,7 +229,7 @@ class TournamentBracketView(DetailView):
             rounds = bracket_structure.get('rounds', [])
             
             for round_data in rounds:
-                if round_data.get('round_number') == round_number:
+                if isinstance(round_data, dict) and round_data.get('round_number') == round_number:
                     return round_data.get('round_name', f'Round {round_number}')
         
         # Fallback naming

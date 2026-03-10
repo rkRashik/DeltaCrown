@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.core.cache import cache
 from typing import Dict, Any
 
 from apps.tournaments.models import Tournament, TournamentAnnouncement
@@ -53,6 +54,28 @@ class TournamentDetailView(DetailView):
         'cancelled':           'tournaments/detailPages/detail_cancelled.html',
     }
 
+    def get_queryset(self):
+        return super().get_queryset().select_related('game', 'organizer')
+
+    def dispatch(self, request, *args, **kwargs):
+        """Cache entire response for anonymous users on completed tournaments."""
+        self.object = self.get_object()
+        if not request.user.is_authenticated and self.object.status in ('completed', 'archived'):
+            from django.views.decorators.cache import cache_page
+            from django.utils.decorators import method_decorator
+            cached_view = cache_page(3600, key_prefix='detail_page')(
+                super().dispatch
+            )
+            return cached_view(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        """Cache get_object to avoid double queries from dispatch + get."""
+        if hasattr(self, '_cached_object'):
+            return self._cached_object
+        self._cached_object = super().get_object(queryset)
+        return self._cached_object
+
     def get_template_names(self):
         """Route to phase-specific template based on tournament status."""
         tournament = self.object
@@ -78,15 +101,21 @@ class TournamentDetailView(DetailView):
         game_spec = game_service.get_game(canonical_slug)
         context['game_spec'] = game_spec
 
-        # Eligibility check
-        from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
-        eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
-
-        context['can_register'] = eligibility['can_register']
-        context['registration_status_reason'] = eligibility['reason']
-        context['is_registered'] = eligibility['registration'] is not None
-        context['user_registration'] = eligibility['registration']
-        context['eligibility_status'] = eligibility['status']
+        # Eligibility check — skip expensive service for completed/archived
+        if tournament.status in ('completed', 'archived'):
+            context['can_register'] = False
+            context['registration_status_reason'] = 'This tournament has ended.'
+            context['is_registered'] = False
+            context['user_registration'] = None
+            context['eligibility_status'] = 'completed'
+        else:
+            from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
+            eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
+            context['can_register'] = eligibility['can_register']
+            context['registration_status_reason'] = eligibility['reason']
+            context['is_registered'] = eligibility['registration'] is not None
+            context['user_registration'] = eligibility['registration']
+            context['eligibility_status'] = eligibility['status']
 
         # Registration action URL — Smart Registration handles both solo and team
         if tournament.participation_type == Tournament.TEAM:
@@ -96,7 +125,7 @@ class TournamentDetailView(DetailView):
             context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'
             context['registration_action_label'] = 'Register Now'
 
-        if eligibility['registration'] is not None:
+        if context.get('user_registration') is not None:
             context['registration_action_url'] = f'/tournaments/{tournament.slug}/lobby/'
             context['registration_action_label'] = 'Enter Lobby'
 
@@ -137,18 +166,20 @@ class TournamentDetailView(DetailView):
             context['stages'] = config.get('stages', [])
 
             from apps.tournaments.models import Group, GroupStanding
-            groups = Group.objects.filter(
+            groups = list(Group.objects.filter(
                 tournament=tournament,
                 is_deleted=False
-            ).order_by('display_order')
+            ).order_by('display_order'))
             context['groups'] = groups
 
+            # Batch-load all group standings in 1 query (not N+1 per group)
+            all_gs = GroupStanding.objects.filter(
+                group__in=groups,
+                is_deleted=False
+            ).order_by('group_id', 'rank').select_related('group', 'user')
             group_standings = {}
-            for g in groups:
-                group_standings[g.id] = GroupStanding.objects.filter(
-                    group=g,
-                    is_deleted=False
-                ).order_by('rank').select_related('team', 'user')
+            for gs in all_gs:
+                group_standings.setdefault(gs.group_id, []).append(gs)
             context['group_standings'] = group_standings
         else:
             context['is_multi_stage'] = False
@@ -201,6 +232,12 @@ class TournamentDetailView(DetailView):
 
     def _get_phase_context(self, tournament, user):
         """Build phase-specific context for the dynamic detail view."""
+        if tournament.status in ('completed', 'archived'):
+            cache_key = f'detail_phase_{tournament.id}'
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         now = timezone.now()
         status = tournament.status
 
@@ -356,6 +393,9 @@ class TournamentDetailView(DetailView):
             ).exclude(state='cancelled').count()
             phase_ctx['total_matches_played'] = total
 
+        if tournament.status in ('completed', 'archived'):
+            cache.set(f'detail_phase_{tournament.id}', phase_ctx, 3600)
+
         return phase_ctx
 
     def _get_registration_status(self, tournament, user):
@@ -432,6 +472,12 @@ class TournamentDetailView(DetailView):
 
     def _get_participants_context(self, tournament, user):
         """Get context data for Participants tab."""
+        if tournament.status in ('completed', 'archived'):
+            cache_key = f'detail_participants_{tournament.id}'
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         from apps.tournaments.models import Registration
         from apps.organizations.models import Team
 
@@ -446,46 +492,65 @@ class TournamentDetailView(DetailView):
         current_user_registration = None
 
         if tournament.participation_type == 'team':
+            # Batch-load all teams + memberships in 2 queries (not N+1)
+            team_ids = [reg.team_id for reg in registrations_qs if reg.team_id]
+            teams_map = {}
+            if team_ids:
+                teams_qs = Team.objects.filter(
+                    id__in=team_ids
+                ).prefetch_related('vnext_memberships__user__profile')
+                teams_map = {t.id: t for t in teams_qs}
+
+            # Batch-load rankings in 1 query
+            rankings_map = {}
+            try:
+                from apps.teams.models import TeamRankingBreakdown
+                rankings = TeamRankingBreakdown.objects.filter(
+                    team_id__in=team_ids
+                ).values('team_id', 'final_total')
+                # Compute ranks: sort all by final_total desc, assign rank
+                ranked_list = sorted(rankings, key=lambda r: r['final_total'], reverse=True)
+                for idx, r in enumerate(ranked_list, 1):
+                    if r['final_total'] > 0:
+                        rankings_map[r['team_id']] = idx
+            except Exception:
+                pass
+
             for reg in registrations_qs:
                 if not reg.team_id:
                     continue
 
-                try:
-                    team = Team.objects.prefetch_related(
-                        'vnext_memberships__user__profile'
-                    ).get(id=reg.team_id)
-                except Team.DoesNotExist:
+                team = teams_map.get(reg.team_id)
+                if not team:
                     continue
 
-                active_members = team.vnext_memberships.filter(
-                    status='ACTIVE'
-                ).select_related('user', 'user__profile')
+                # Use prefetched memberships (no extra queries)
+                active_members = [
+                    m for m in team.vnext_memberships.all() if m.status == 'ACTIVE'
+                ]
 
                 roster_summary = []
-                for membership in active_members[:3]:
+                roster_avatars = []
+                for membership in active_members[:5]:
+                    m_profile = membership.user.profile if hasattr(membership.user, 'profile') else None
+                    m_name = m_profile.display_name if m_profile and m_profile.display_name else membership.user.username
                     roster_summary.append({
-                        'name': membership.user.profile.display_name if hasattr(membership.user, 'profile') else membership.user.username,
+                        'name': m_name,
                         'role': membership.get_role_display(),
+                    })
+                    roster_avatars.append({
+                        'name': m_name,
+                        'avatar': m_profile.avatar.url if m_profile and m_profile.avatar else None,
                     })
 
                 is_current_user_team = False
                 if user.is_authenticated:
-                    is_current_user_team = active_members.filter(user=user).exists()
+                    is_current_user_team = any(m.user_id == user.id for m in active_members)
                     if is_current_user_team:
                         current_user_registration = reg
 
-                team_rank = None
-                try:
-                    from apps.teams.models import TeamRankingBreakdown
-                    ranking = TeamRankingBreakdown.objects.filter(team=team).first()
-                    if ranking and ranking.final_total > 0:
-                        teams_above = TeamRankingBreakdown.objects.filter(
-                            team__game_id=team.game_id,
-                            final_total__gt=ranking.final_total
-                        ).count()
-                        team_rank = teams_above + 1
-                except Exception:
-                    pass
+                member_count = len(active_members)
+                team_rank = rankings_map.get(team.id)
 
                 participants_list.append({
                     'type': 'team',
@@ -500,9 +565,10 @@ class TournamentDetailView(DetailView):
                     'region': team.region,
                     'game': team.game,
                     'rank': team_rank,
-                    'roster_count': active_members.count(),
+                    'roster_count': member_count,
                     'roster_summary': roster_summary,
-                    'sub_label': f"{active_members.count()} players" + (f" · {team.region}" if team.region else ""),
+                    'roster_avatars': roster_avatars,
+                    'sub_label': f"{member_count} players" + (f" · {team.region}" if team.region else ""),
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -537,7 +603,7 @@ class TournamentDetailView(DetailView):
                     'avatar': profile.avatar.url if profile and profile.avatar else None,
                     'game_id': game_id,
                     'region': region,
-                    'sub_label': "Solo player" + (f" · {region}" if region else ""),
+                    'sub_label': region if region else "",
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -554,7 +620,7 @@ class TournamentDetailView(DetailView):
             user.is_superuser
         )
 
-        return {
+        result = {
             'participants': participants_list,
             'participants_total': len(participants_list),
             'participants_confirmed': confirmed_count,
@@ -563,8 +629,19 @@ class TournamentDetailView(DetailView):
             'is_organizer': is_organizer,
         }
 
+        if tournament.status in ('completed', 'archived'):
+            cache.set(f'detail_participants_{tournament.id}', result, 3600)
+
+        return result
+
     def _get_matches_context(self, tournament):
         """Build matches context for Matches tab."""
+        if tournament.status in ('completed', 'archived'):
+            cache_key = f'detail_matches_{tournament.id}'
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         from apps.tournaments.models import Match, Group
         from apps.organizations.models import Team
 
@@ -857,12 +934,21 @@ class TournamentDetailView(DetailView):
                 m['team2_stats'] = []
                 m['map_player_stats'] = []
 
-        return {
-            'matches': matches_list,
-        }
+        result = {'matches': matches_list}
+
+        if tournament.status in ('completed', 'archived'):
+            cache.set(f'detail_matches_{tournament.id}', result, 3600)
+
+        return result
 
     def _get_standings_context(self, tournament: Tournament) -> Dict[str, Any]:
         """Build standings context for Standings tab."""
+        if tournament.status in ('completed', 'archived'):
+            cache_key = f'detail_standings_{tournament.id}'
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         from apps.tournaments.models.group import Group, GroupStanding
         from django.db.models import Q
 
@@ -927,6 +1013,7 @@ class TournamentDetailView(DetailView):
                         'rank': standing.rank or idx,
                         'name': participant_name,
                         'participant_id': participant_id,
+                        'logo_url': team_logo_map.get(standing.team_id, '') if standing.team_id else '',
                         'group_name': group.name,
                         'matches_played': standing.matches_played,
                         'wins': standing.matches_won,
@@ -1003,6 +1090,13 @@ class TournamentDetailView(DetailView):
 
             standings_rows = []
 
+            # Batch-load all completed matches once (not per participant)
+            all_matches = list(Match.objects.filter(
+                tournament=tournament,
+                is_deleted=False,
+                state__in=['completed', 'forfeit']
+            ))
+
             for reg in registrations:
                 if reg.team_id:
                     team = teams_map.get(reg.team_id)
@@ -1021,17 +1115,12 @@ class TournamentDetailView(DetailView):
                 else:
                     continue
 
-                matches = Match.objects.filter(
-                    tournament=tournament,
-                    is_deleted=False,
-                    state__in=['completed', 'forfeit']
-                ).filter(
-                    Q(participant1_id=pid) | Q(participant2_id=pid)
-                )
-                winner_matches = matches.filter(winner_id=pid)
+                # Filter in Python from pre-loaded matches
+                matches = [m for m in all_matches if m.participant1_id == pid or m.participant2_id == pid]
+                winner_matches = [m for m in matches if m.winner_id == pid]
 
-                matches_played = matches.count()
-                wins = winner_matches.count()
+                matches_played = len(matches)
+                wins = len(winner_matches)
                 losses = matches_played - wins
                 points = wins * 3
 
@@ -1080,6 +1169,9 @@ class TournamentDetailView(DetailView):
             context['standings_primary'] = standings_rows
             context['standings_source'] = 'bracket'
             context['group_standings_summary'] = None
+
+        if tournament.status in ('completed', 'archived'):
+            cache.set(f'detail_standings_{tournament.id}', context, 3600)
 
         return context
 

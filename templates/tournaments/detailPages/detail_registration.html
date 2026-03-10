@@ -282,8 +282,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
                 {% endif %}
             {% endif %}
             <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-white truncate">{{ p.display_name }}</p>
-                <p class="text-[10px] text-gray-500">{{ p.sub_label }}</p>
+                <p class="text-sm font-bold text-white">{{ p.display_name }}</p>
+                {% if p.sub_label %}<p class="text-[10px] text-gray-500">{{ p.sub_label }}</p>{% endif %}
             </div>
             {% if p.is_current_user %}
             <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">You</span>
