@@ -2216,13 +2216,22 @@
     },
 
     async leaveTeam() {
-      if (!confirm("Are you sure you want to leave this team? This cannot be undone.")) return;
+      const input = qs("#leave-confirm-input");
+      const errEl = qs("#leave-confirm-error");
+      const btn   = qs("#leave-submit-btn");
+
+      if (btn && btn.disabled) return;
+      if (btn) { btn.disabled = true; btn.textContent = "Leaving\u2026"; }
+
       try {
         const data = await api("leave/", { method: "POST", body: JSON.stringify({}) });
         toast(data.message || "You have left the team.");
         setTimeout(() => { window.location.href = "/teams/"; }, 1200);
       } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
         toast(err.message, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="log-out" class="w-3.5 h-3.5 inline mr-1.5"></i>Leave Team'; }
       }
     },
 

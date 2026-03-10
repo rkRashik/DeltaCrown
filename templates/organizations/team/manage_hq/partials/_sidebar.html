@@ -148,7 +148,6 @@ Drawer on mobile, fixed on desktop.
         </a>
         {% endif %}
 
-        {% if is_owner %}
         <a data-route="settings" href="#settings"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
             <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
@@ -156,7 +155,6 @@ Drawer on mobile, fixed on desktop.
             </div>
             <span>Settings</span>
         </a>
-        {% endif %}
 
         {# ── Intelligence (per Plan Section 4.1: Treasury visible to OWNER/MANAGER/COACH/PLAYER) ── #}
         {% if is_admin or is_coach or is_member %}

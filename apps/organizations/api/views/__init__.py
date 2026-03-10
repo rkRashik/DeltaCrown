@@ -772,11 +772,10 @@ def check_team_ownership(request: Request) -> Response:
         
         existing_membership = TeamMembership.objects.filter(
             user=request.user,
-            team__game_id=game.id,
-            team__organization__isnull=True,  # Independent teams only
+            game_id=game.id,
+            status='ACTIVE',
+        ).filter(
             team__status='ACTIVE',
-            status='ACTIVE',  # Use string value instead of enum
-            role__in=['OWNER', 'MANAGER']  # Only owners/managers count as "owning"
         ).select_related('team').first()
         
         logger.info(
@@ -809,7 +808,7 @@ def check_team_ownership(request: Request) -> Response:
                 'has_team': True,
                 'team': team_data,
                 'reason_code': 'one_team_per_game',
-                'reason_message': 'You can only own one active independent team per game.'
+                'reason_message': 'You are already a member of a team for this game. Leave it first before creating a new one.'
             }, headers={
                 'X-TeamsVNext-Sig': 'api-2026-02-05-A',
                 'X-TeamsVNext-Endpoint': 'ownership-check',
@@ -1005,8 +1004,9 @@ def create_team(request: Request) -> Response:
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    # PRE-CHECK: For independent teams, verify user doesn't already own a team for this game
-    # This prevents IntegrityError and provides better UX than constraint violation
+    # PRE-CHECK: For independent teams, verify user doesn't already have an active team for this game
+    # Platform rule: a user who is in a team for game X cannot create another team for game X
+    # Exception: Organization teams (administrative action, handled separately)
     if not organization_id and game_id:
         logger.info(
             f"create_team: Pre-checking team limit for user_id={request.user.id}, game_id={game_id}"
@@ -1014,16 +1014,16 @@ def create_team(request: Request) -> Response:
         
         existing_team = TeamMembership.objects.filter(
             user=request.user,
-            team__game_id=game_id,
-            team__organization__isnull=True,  # Independent teams only
-            team__status='ACTIVE',
+            game_id=game_id,
             status='ACTIVE',
-            role__in=['OWNER', 'MANAGER']  # Either role counts as "owning"
+        ).filter(
+            team__status='ACTIVE',
         ).select_related('team').first()
         
         if existing_team:
+            existing_mode = 'independent' if existing_team.team.organization_id is None else 'organization'
             logger.warning(
-                f"create_team: User {request.user.id} already owns team '{existing_team.team.name}' (id={existing_team.team.id}) for game {game_id}",
+                f"create_team: User {request.user.id} already on team '{existing_team.team.name}' (id={existing_team.team.id}, mode={existing_mode}) for game {game_id}",
                 extra={
                     'event_type': 'team_limit_pre_check_failed',
                     'user_id': request.user.id,
@@ -1036,10 +1036,10 @@ def create_team(request: Request) -> Response:
                 {
                     'ok': False,
                     'error_code': 'team_limit_reached',
-                    'message': f'You already own "{existing_team.team.name}" for this game.',
-                    'safe_message': 'You can only own one active independent team per game.',
+                    'message': f'You are already a member of "{existing_team.team.name}" for this game.',
+                    'safe_message': 'You must leave your current team for this game before creating a new one.',
                     'field_errors': {
-                        'name': f'You already own "{existing_team.team.name}" for this game. Please manage your existing team instead.'
+                        'name': f'You are already a member of "{existing_team.team.name}" for this game. Leave that team first.'
                     },
                     'existing_team': {
                         'id': existing_team.team.id,

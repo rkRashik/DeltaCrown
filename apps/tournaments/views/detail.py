@@ -724,6 +724,7 @@ class TournamentDetailView(DetailView):
 
             matches_list.append({
                 'id': match.id,
+                'match_number': match.match_number,
                 'participant1_name': p1_name,
                 'participant2_name': p2_name,
                 'participant1_score': match.participant1_score if show_scores else 0,

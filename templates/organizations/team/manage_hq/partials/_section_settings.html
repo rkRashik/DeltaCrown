@@ -5,7 +5,140 @@ Settings auto-save via AJAX.
 {% endcomment %}
 <section id="settings" class="hq-section space-y-4">
 
-    {# ── Visibility ── #}
+    {# ── Your Membership (visible to ALL members) ── #}
+    <div class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.03] to-transparent shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
+            <i data-lucide="id-card" class="w-4 h-4 text-cyan-400"></i>
+            Your Membership
+        </h2>
+        <p class="text-xs text-white/40 mb-4">Your role and status within this team.</p>
+
+        <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div class="h-14 w-14 rounded-2xl grid place-items-center shrink-0
+                {% if user_role == 'OWNER' %}bg-amber-500/15 border border-amber-500/25
+                {% elif user_role == 'MANAGER' %}bg-violet-500/15 border border-violet-500/25
+                {% elif user_role == 'COACH' %}bg-sky-500/15 border border-sky-500/25
+                {% elif user_role == 'PLAYER' %}bg-emerald-500/15 border border-emerald-500/25
+                {% elif user_role == 'SUBSTITUTE' %}bg-teal-500/15 border border-teal-500/25
+                {% elif user_role == 'ANALYST' %}bg-pink-500/15 border border-pink-500/25
+                {% elif user_role == 'SCOUT' %}bg-orange-500/15 border border-orange-500/25
+                {% else %}bg-white/10 border border-white/15{% endif %}">
+                {% if user_role == 'OWNER' %}<i data-lucide="crown" class="w-6 h-6 text-amber-400"></i>
+                {% elif user_role == 'MANAGER' %}<i data-lucide="shield" class="w-6 h-6 text-violet-400"></i>
+                {% elif user_role == 'COACH' %}<i data-lucide="megaphone" class="w-6 h-6 text-sky-400"></i>
+                {% elif user_role == 'PLAYER' %}<i data-lucide="gamepad-2" class="w-6 h-6 text-emerald-400"></i>
+                {% elif user_role == 'SUBSTITUTE' %}<i data-lucide="user-check" class="w-6 h-6 text-teal-400"></i>
+                {% elif user_role == 'ANALYST' %}<i data-lucide="bar-chart-3" class="w-6 h-6 text-pink-400"></i>
+                {% elif user_role == 'SCOUT' %}<i data-lucide="search" class="w-6 h-6 text-orange-400"></i>
+                {% else %}<i data-lucide="user" class="w-6 h-6 text-white/40"></i>{% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="text-base font-bold truncate">{{ request.user.username }}</p>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider
+                        {% if user_role == 'OWNER' %}bg-amber-500/15 text-amber-400
+                        {% elif user_role == 'MANAGER' %}bg-violet-500/15 text-violet-400
+                        {% elif user_role == 'COACH' %}bg-sky-500/15 text-sky-400
+                        {% elif user_role == 'PLAYER' %}bg-emerald-500/15 text-emerald-400
+                        {% elif user_role == 'SUBSTITUTE' %}bg-teal-500/15 text-teal-400
+                        {% elif user_role == 'ANALYST' %}bg-pink-500/15 text-pink-400
+                        {% elif user_role == 'SCOUT' %}bg-orange-500/15 text-orange-400
+                        {% else %}bg-white/10 text-white/40{% endif %}">
+                        {{ user_role|default:"Member" }}
+                    </span>
+                </div>
+                {% if user_membership %}
+                <p class="text-xs text-white/40 mt-0.5">Member since {{ user_membership.joined_at|date:"M j, Y" }}</p>
+                {% endif %}
+            </div>
+            {% if is_owner %}
+            <div class="text-right shrink-0">
+                <p class="text-[10px] text-amber-400/70 font-medium">Team Owner</p>
+                <p class="text-[10px] text-white/30">Transfer or disband below</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Leave Team (Non-Owners) — Prominent Position ── #}
+    {% if not is_owner %}
+    <div id="leave-team-section" class="rounded-3xl border border-amber-500/15 bg-gradient-to-br from-amber-500/[0.03] to-transparent shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
+            <i data-lucide="log-out" class="w-4 h-4 text-amber-400"></i>
+            Leave Team
+        </h2>
+        <p class="text-xs text-white/40 mb-4">Voluntarily leave <strong class="text-white/60">{{ team.name }}</strong> and free your roster spot.</p>
+
+        <div class="space-y-2 mb-5">
+            <div class="flex items-start gap-2.5">
+                <i data-lucide="x-circle" class="w-3.5 h-3.5 text-amber-400/60 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-white/50">You will be removed from the active roster immediately</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+                <i data-lucide="x-circle" class="w-3.5 h-3.5 text-amber-400/60 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-white/50">You will lose access to team channels and private content</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+                <i data-lucide="x-circle" class="w-3.5 h-3.5 text-amber-400/60 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-white/50">Active tournament registrations with this team may be affected</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-sky-400/60 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-white/50">Your match history and stats will be preserved</p>
+            </div>
+        </div>
+
+        <div id="leave-initial">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] text-white/25">This action cannot be undone</span>
+                <button onclick="document.getElementById('leave-initial').classList.add('hidden');document.getElementById('leave-confirm').classList.remove('hidden')"
+                    class="px-5 py-2.5 text-sm rounded-xl border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition font-medium">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5 inline mr-1.5"></i>I want to leave
+                </button>
+            </div>
+        </div>
+        <div id="leave-confirm" class="hidden">
+            <div class="p-5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+                    <p class="text-sm font-bold text-amber-300">Confirm Departure</p>
+                </div>
+                <p class="text-xs text-white/50 mb-4">
+                    Type <strong class="text-white font-semibold">"{{ team.name }}"</strong> below to confirm you want to leave this team.
+                </p>
+                <input type="text" id="leave-confirm-input" autocomplete="off" spellcheck="false"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/25 focus:border-amber-500/50 focus:outline-none mb-1 transition"
+                    placeholder="{{ team.name }}">
+                <p id="leave-confirm-error" class="text-[10px] text-red-400 mb-3 hidden"></p>
+                <div class="flex items-center gap-3 mt-3">
+                    <button onclick="document.getElementById('leave-confirm').classList.add('hidden');document.getElementById('leave-initial').classList.remove('hidden');document.getElementById('leave-confirm-input').value=''"
+                        class="flex-1 px-4 py-2.5 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition font-medium">
+                        Cancel
+                    </button>
+                    <button id="leave-submit-btn" onclick="ManageHQ.leaveTeam()"
+                        class="flex-1 px-4 py-2.5 text-sm rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-lg disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                        <i data-lucide="log-out" class="w-3.5 h-3.5 inline mr-1.5"></i>Leave Team
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        const input = document.getElementById('leave-confirm-input');
+        const btn = document.getElementById('leave-submit-btn');
+        const teamName = "{{ team.name|escapejs }}";
+        if (input && btn) {
+            input.addEventListener('input', function() {
+                btn.disabled = input.value.trim() !== teamName;
+            });
+        }
+    })();
+    </script>
+    {% endif %}
+
+    {# ── Visibility (admin/owner only) ── #}
+    {% if is_admin or is_owner %}
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
         <h2 class="text-base font-bold mb-1 flex items-center gap-2">
             <i data-lucide="eye" class="w-4 h-4 text-blue-400"></i>
@@ -38,6 +171,8 @@ Settings auto-save via AJAX.
             {% endfor %}
         </div>
     </div>
+
+    {% endif %}
 
     {# ── Team Status ── #}
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
@@ -74,6 +209,7 @@ Settings auto-save via AJAX.
             </span>
         </div>
 
+        {% if is_admin or is_owner %}
         {# ── Temporary Team Toggle ── #}
         <div class="mt-4">
             {% include "organizations/team/manage_hq/partials/_toggle.html" with field="is_temporary" label="Temporary Team" desc="Mark this team as temporary (e.g., created for a specific tournament). Temporary teams may be auto-cleaned." checked=team.is_temporary %}
@@ -83,9 +219,11 @@ Settings auto-save via AJAX.
         <div class="mt-4">
             {% include "organizations/team/manage_hq/partials/_toggle.html" with field="is_recruiting" label="Recruiting" desc="When enabled, players can discover and apply to join your team. Turn off to stop accepting new applications." checked=team.is_recruiting %}
         </div>
+        {% endif %}
     </div>
 
-    {# ── Team Identity & Platform ── #}
+    {# ── Team Identity & Platform (admin/owner only) ── #}
+    {% if is_admin or is_owner %}
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
         <h2 class="text-base font-bold mb-1 flex items-center gap-2">
             <i data-lucide="gamepad-2" class="w-4 h-4 text-sky-400"></i>
@@ -250,6 +388,7 @@ Settings auto-save via AJAX.
         populateSelect('hq-field-playfocus', config.focus, currentVals.playfocus);
     })();
     </script>
+    {% endif %}
 
     {# ── Owner Privacy ── #}
     {% if is_owner %}
@@ -281,27 +420,6 @@ Settings auto-save via AJAX.
                     after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all
                     peer-checked:bg-violet-500"></div>
             </label>
-        </div>
-    </div>
-    {% endif %}
-
-    {# ── Leave Team (Non-Owners) ── #}
-    {% if not is_owner %}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
-            <i data-lucide="log-out" class="w-4 h-4 text-amber-400"></i>
-            Leave Team
-        </h2>
-        <p class="text-xs text-white/40 mb-4">You can voluntarily leave this team at any time. This will remove you from the roster.</p>
-        <div class="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-            <div>
-                <p class="text-sm font-medium text-white/80">Leave {{ team.name }}</p>
-                <p class="text-xs text-white/40">You will lose access to this team's private content and roster</p>
-            </div>
-            <button onclick="ManageHQ.leaveTeam()"
-                class="px-4 py-2 text-xs rounded-lg border border-amber-500/40 text-amber-400 hover:bg-amber-500/15 transition font-medium">
-                <i data-lucide="log-out" class="w-3 h-3 inline mr-1"></i>Leave
-            </button>
         </div>
     </div>
     {% endif %}
@@ -545,7 +663,7 @@ Settings auto-save via AJAX.
             <select id="transfer-member-select" required
                 class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white focus:border-white/30 focus:outline-none mb-3">
                 <option value="">Select a member…</option>
-                {% for m in active_memberships %}
+                {% for m in members %}
                     {% if m.user.id != team.created_by_id %}
                     <option value="{{ m.id }}">{{ m.user.username }} ({{ m.get_role_display }})</option>
                     {% endif %}

@@ -166,21 +166,32 @@
 
         <div class="lg:col-span-8">
             
-            <!-- Warning Banner: User Already Owns Team (shown dynamically) -->
-            <div id="existingTeamWarning" class="hidden mb-8 p-6 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-xl">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle text-yellow-400 text-2xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-yellow-400 mb-2">You Already Own a Team for This Game</h3>
-                        <p class="text-slate-300 mb-4" id="existingTeamMessage">
-                            You can only own one active independent team per game. Manage your existing team or disband it to create a new one.
-                        </p>
-                        <a href="#" id="existingTeamLink" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-300 font-bold transition-all">
-                            <i class="fas fa-arrow-right"></i>
-                            <span>Manage Existing Team</span>
-                        </a>
+            <!-- Warning Banner: User Already Has Team (shown dynamically) -->
+            <div id="existingTeamWarning" class="hidden mb-8 overflow-hidden rounded-2xl border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent">
+                <div class="flex items-stretch">
+                    <div class="w-1.5 bg-amber-500 shrink-0"></div>
+                    <div class="flex-1 p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 border border-amber-500/25">
+                                <i class="fas fa-shield-alt text-amber-400 text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-base font-cyber font-bold text-amber-400 uppercase tracking-wide mb-1">Team Membership Detected</h3>
+                                <p class="text-sm text-slate-300 mb-4" id="existingTeamMessage">
+                                    You are already a member of a team for this game.
+                                </p>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <a href="#" id="existingTeamLink" class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-xl text-amber-300 font-bold text-sm transition-all">
+                                        <i class="fas fa-cog"></i>
+                                        <span>Manage Existing Team</span>
+                                    </a>
+                                    <div class="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400">
+                                        <i class="fas fa-info-circle text-slate-500"></i>
+                                        <span>Leave your current team first to create a new independent team</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -259,30 +270,43 @@
                         <p class="text-sm text-slate-500 mt-1">Establish your command structure and team handle.</p>
                     </div>
 
-                    <div class="space-y-8">
+                    <div class="space-y-10">
 
                         <div>
                             <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Command Structure <span class="text-delta-danger">*</span></label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <label class="cursor-pointer group">
+                                <label class="cursor-pointer group" id="independent-label">
                                     <input type="radio" name="org_status" value="independent" class="peer hidden" checked>
-                                    <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-electric/50 peer-checked:border-delta-electric peer-checked:bg-delta-electric/5 transition-all flex flex-col gap-3 relative overflow-hidden">
+                                    <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-electric/50 peer-checked:border-delta-electric peer-checked:bg-delta-electric/5 transition-all relative overflow-hidden">
                                         <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
                                             <i class="fas fa-check-circle text-delta-electric text-xl"></i>
                                         </div>
-                                        <div class="w-12 h-12 rounded-lg bg-delta-electric/10 flex items-center justify-center text-delta-electric text-2xl border border-delta-electric/20 mb-2">
-                                            <i class="fas fa-user-astronaut"></i>
+                                        <div class="independent-card-content flex flex-col gap-3">
+                                            <div class="w-12 h-12 rounded-lg bg-delta-electric/10 flex items-center justify-center text-delta-electric text-2xl border border-delta-electric/20 mb-2">
+                                                <i class="fas fa-user-astronaut"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-cyber font-bold text-white text-sm uppercase">Independent Unit</h4>
+                                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">You are the sole owner. Best for casual squads or new competitive teams.</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 class="font-cyber font-bold text-white text-sm uppercase">Independent Unit</h4>
-                                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">You are the sole owner. Best for casual squads or new competitive teams.</p>
+                                        {# Blocked overlay - shown dynamically by JS #}
+                                        <div id="independent-blocked" class="hidden mt-4 pt-3 border-t border-amber-500/15">
+                                            <div class="flex items-start gap-2">
+                                                <i class="fas fa-lock text-amber-400 text-xs mt-0.5 shrink-0"></i>
+                                                <div>
+                                                    <p class="text-[11px] font-bold text-amber-300">Unavailable</p>
+                                                    <p id="independent-blocked-desc" class="text-[11px] text-white/40 mt-0.5 leading-relaxed"></p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </label>
 
+                                {% if user_organizations %}
                                 <label class="cursor-pointer group">
                                     <input type="radio" name="org_status" value="organization" class="peer hidden">
-                                    <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-gold/50 peer-checked:border-delta-gold peer-checked:bg-delta-gold/5 transition-all flex flex-col gap-3 relative overflow-hidden">
+                                    <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-gold/50 peer-checked:border-delta-gold peer-checked:bg-delta-gold/5 peer-checked:shadow-[0_0_30px_rgba(255,215,0,0.08)] transition-all flex flex-col gap-3 relative overflow-hidden">
                                         <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
                                             <i class="fas fa-check-circle text-delta-gold text-xl"></i>
                                         </div>
@@ -295,22 +319,44 @@
                                         </div>
                                     </div>
                                 </label>
+                                {% else %}
+                                <div class="relative">
+                                    <div class="h-full p-6 bg-delta-surface border-2 border-white/5 rounded-xl opacity-40 cursor-not-allowed flex flex-col gap-3 relative overflow-hidden">
+                                        <div class="absolute top-3 right-3">
+                                            <i class="fas fa-lock text-slate-500 text-sm"></i>
+                                        </div>
+                                        <div class="w-12 h-12 rounded-lg bg-delta-gold/5 flex items-center justify-center text-slate-500 text-2xl border border-white/5 mb-2">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-cyber font-bold text-slate-500 text-sm uppercase">Organization Division</h4>
+                                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Owned by an Empire. Shared finances, verified status, and staff management.</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 p-3 bg-[#0e0f14] border border-white/5 rounded-lg">
+                                        <p class="text-xs text-slate-400 flex items-start gap-2">
+                                            <i class="fas fa-info-circle text-slate-500 mt-0.5 shrink-0"></i>
+                                            <span>You need an organization to create a division team. <a href="/orgs/create/" class="text-delta-gold hover:text-delta-gold/80 underline font-medium">Create an Organization &rarr;</a></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 
                         <div id="orgSelectorPanel" class="hidden animate-slide-up">
-                            <div class="p-6 bg-delta-gold/5 border border-delta-gold/20 rounded-xl space-y-4 relative overflow-hidden">
-                                <div class="absolute -right-6 -top-6 p-4 opacity-5 text-delta-gold text-9xl rotate-12 pointer-events-none">
+                            <div class="p-6 bg-[#0e0f14] border border-delta-gold/20 rounded-xl space-y-5 relative overflow-hidden">
+                                <div class="absolute -right-6 -top-6 p-4 opacity-[0.03] text-delta-gold text-9xl rotate-12 pointer-events-none">
                                     <i class="fas fa-crown"></i>
                                 </div>
                                 <div class="relative z-10">
-                                    <label class="block text-xs font-bold text-delta-gold uppercase tracking-widest mb-2">Select Parent Organization</label>
+                                    <label class="block text-xs font-bold text-delta-gold uppercase tracking-widest mb-3">Select Parent Organization</label>
                                     <div class="relative">
-                                        <select id="orgSelect" class="w-full bg-black/80 border border-delta-gold/30 rounded-lg py-3 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-delta-gold appearance-none cursor-pointer hover:bg-black/60 transition-colors">
+                                        <select id="orgSelect" class="w-full bg-[#0a0a10] border border-delta-gold/25 rounded-xl py-3.5 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-delta-gold focus:ring-1 focus:ring-delta-gold/20 appearance-none cursor-pointer hover:border-delta-gold/40 transition-colors">
                                             {% if user_organizations %}
                                                 <option value="" disabled selected>Choose from your organizations...</option>
                                                 {% for org in user_organizations %}
-                                                <option value="{{ org.id }}" data-slug="{{ org.slug }}">
+                                                <option value="{{ org.id }}" data-slug="{{ org.slug }}" data-name="{{ org.name }}">
                                                     {{ org.name }}{% if org.is_verified %} (Verified){% endif %}
                                                 </option>
                                                 {% endfor %}
@@ -318,50 +364,83 @@
                                                 <option value="" disabled selected>You haven't created or joined any organizations yet.</option>
                                             {% endif %}
                                         </select>
-                                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-delta-gold text-xs pointer-events-none"></i>
+                                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-delta-gold/60 text-xs pointer-events-none"></i>
                                     </div>
                                 </div>
-                                <div class="relative z-10 pt-2 border-t border-white/5">
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="inheritBranding" class="w-4 h-4 rounded border-delta-gold/50 bg-black text-delta-gold focus:ring-0">
-                                        <span class="text-sm text-slate-300">Inherit Organization Branding (Logo & Banner)</span>
+                                <div class="relative z-10">
+                                    <label class="block text-xs font-bold text-delta-gold/80 uppercase tracking-widest mb-3">Division Type</label>
+                                    <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">How esports organizations structure multiple teams &mdash; like T1 &amp; T1 Academy, Fnatic &amp; Fnatic Rising.</p>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="divisionTypeGrid">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="division_type" value="main" class="peer sr-only" checked>
+                                            <div class="px-3 py-2.5 rounded-lg border border-white/10 bg-[#0a0a10] text-center text-xs font-medium text-slate-400 peer-checked:border-delta-gold/50 peer-checked:bg-delta-gold/10 peer-checked:text-delta-gold transition-all hover:border-white/20">
+                                                Main
+                                            </div>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="division_type" value="Academy" class="peer sr-only">
+                                            <div class="px-3 py-2.5 rounded-lg border border-white/10 bg-[#0a0a10] text-center text-xs font-medium text-slate-400 peer-checked:border-delta-gold/50 peer-checked:bg-delta-gold/10 peer-checked:text-delta-gold transition-all hover:border-white/20">
+                                                Academy
+                                            </div>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="division_type" value="Rising" class="peer sr-only">
+                                            <div class="px-3 py-2.5 rounded-lg border border-white/10 bg-[#0a0a10] text-center text-xs font-medium text-slate-400 peer-checked:border-delta-gold/50 peer-checked:bg-delta-gold/10 peer-checked:text-delta-gold transition-all hover:border-white/20">
+                                                Rising
+                                            </div>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="division_type" value="Challengers" class="peer sr-only">
+                                            <div class="px-3 py-2.5 rounded-lg border border-white/10 bg-[#0a0a10] text-center text-xs font-medium text-slate-400 peer-checked:border-delta-gold/50 peer-checked:bg-delta-gold/10 peer-checked:text-delta-gold transition-all hover:border-white/20">
+                                                Challengers
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <p id="divisionNamePreview" class="text-[10px] text-white/30 mt-2 hidden">
+                                        Team name will be: <span id="divisionNameValue" class="text-delta-gold font-semibold"></span>
+                                    </p>
+                                </div>
+                                <div class="relative z-10 pt-3 border-t border-white/5">
+                                    <label class="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" id="inheritBranding" class="peer sr-only">
+                                        <div class="w-5 h-5 rounded border border-white/20 bg-[#0a0a10] peer-checked:bg-delta-gold peer-checked:border-delta-gold transition-all flex items-center justify-center shrink-0">
+                                            <svg class="w-2.5 h-2.5 text-black opacity-0 peer-checked:opacity-100" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </div>
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Inherit Organization Branding (Logo & Banner)</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-6 pt-4 border-t border-white/5">
+                        <div class="space-y-6 pt-6 border-t border-white/5">
                             <div class="group">
                                 <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Squad Name <span class="text-delta-danger">*</span></label>
-                                <div class="relative">
-                                    <input type="text" id="inputName" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white font-ui focus:outline-none focus:border-delta-electric focus:shadow-glow-electric transition-all placeholder-slate-600" placeholder="e.g. Protocol V">
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 status-icon transition-colors duration-300">
-                                        <i class="fas fa-asterisk text-[10px]"></i>
-                                    </div>
+                                <input type="text" id="inputName" class="w-full bg-[#0e0f14] border border-white/10 rounded-xl py-4 px-4 text-white font-ui focus:outline-none focus:border-delta-electric focus:ring-1 focus:ring-delta-electric/30 transition-all placeholder-slate-600" placeholder="e.g. Protocol V">
+                                <div id="nameValidationWrapper" class="mt-2">
+                                    <p class="text-[10px] text-slate-400 flex justify-between font-ui">
+                                        <span id="nameValidationMsg">Must be unique within the game.</span>
+                                        <span id="nameCount" class="font-mono">0/20</span>
+                                    </p>
                                 </div>
-                                <p class="text-[10px] text-slate-400 mt-2 flex justify-between font-ui">
-                                    <span id="nameValidationMsg">Must be unique within the game.</span>
-                                    <span id="nameCount" class="font-mono">0/20</span>
-                                </p>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="md:col-span-1">
                                     <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Tag <span class="text-delta-danger">*</span></label>
                                     <div class="relative">
-                                        <input type="text" id="inputTag" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-white font-cyber uppercase tracking-widest focus:outline-none focus:border-delta-gold focus:shadow-glow-gold transition-all placeholder-slate-600" placeholder="PRV" maxlength="5">
+                                        <input type="text" id="inputTag" class="w-full bg-[#0e0f14] border border-white/10 rounded-xl py-4 pl-4 text-white font-cyber uppercase tracking-widest focus:outline-none focus:border-delta-gold focus:ring-1 focus:ring-delta-gold/30 transition-all placeholder-slate-600" placeholder="PRV" maxlength="5">
                                     </div>
                                     <p id="tagValidationMsg" class="text-[10px] text-slate-400 mt-2">Max 5 chars.</p>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">Motto (Optional)</label>
-                                    <input type="text" id="inputTagline" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600" placeholder="e.g. Silence is Golden">
+                                    <input type="text" id="inputTagline" class="w-full bg-[#0e0f14] border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet focus:ring-1 focus:ring-delta-violet/30 transition-all placeholder-slate-600" placeholder="e.g. Silence is Golden">
                                 </div>
                             </div>
 
                             <div>
                                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">Description (Optional)</label>
-                                <textarea id="inputDesc" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600 h-24 resize-none" placeholder="Tell us about your team's history or goals..."></textarea>
+                                <textarea id="inputDesc" class="w-full bg-[#0e0f14] border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet focus:ring-1 focus:ring-delta-violet/30 transition-all placeholder-slate-600 h-24 resize-none" placeholder="Tell us about your team's history or goals..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -1054,6 +1133,87 @@
         console.log('[TeamCreate] Schema normalized:', { input: data, output: result });
         return result;
     }
+
+    // ========================================================================
+    // DIVISION NAME HELPER
+    // ========================================================================
+
+    /**
+     * Auto-populate the Squad Name input based on org name + division type.
+     * Only applies when in Organization Division mode with an org selected.
+     */
+    function applyDivisionName() {
+        const orgSelect = document.getElementById('orgSelect');
+        const nameInput = document.getElementById('inputName');
+        const preview = document.getElementById('divisionNamePreview');
+        const previewValue = document.getElementById('divisionNameValue');
+        if (!orgSelect || !nameInput) return;
+
+        const selectedOption = orgSelect.options[orgSelect.selectedIndex];
+        const orgName = selectedOption ? (selectedOption.dataset.name || '').trim() : '';
+        const divisionType = document.querySelector('input[name="division_type"]:checked')?.value || 'main';
+
+        if (!orgName) {
+            if (preview) preview.classList.add('hidden');
+            return;
+        }
+
+        const fullName = divisionType === 'main' ? orgName : `${orgName} ${divisionType}`;
+
+        // Update preview text
+        if (preview && previewValue) {
+            previewValue.textContent = fullName;
+            preview.classList.remove('hidden');
+        }
+
+        // Auto-fill name input and trigger validation
+        nameInput.value = fullName;
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    /**
+     * Update the name validation display with styled states.
+     * @param {'default'|'checking'|'success'|'error'} type
+     * @param {string} message
+     * @param {Object|null} existingTeam - optional team link data
+     */
+    function setNameStatus(type, message, existingTeam) {
+        const wrapper = document.getElementById('nameValidationWrapper');
+        const msgSpan = document.getElementById('nameValidationMsg');
+        if (!wrapper || !msgSpan) return;
+        
+        // Remove any previous alert
+        const prev = wrapper.querySelector('.name-alert');
+        if (prev) prev.remove();
+        
+        if (type === 'error') {
+            // Hide the default message row
+            msgSpan.parentElement.style.display = 'none';
+            // Build styled alert
+            const alert = document.createElement('div');
+            alert.className = 'name-alert flex items-start gap-2.5 p-3 rounded-lg border-l-[3px] border-red-500 bg-red-500/[0.07]';
+            let html = '<i class="fas fa-exclamation-triangle text-red-400 text-xs mt-0.5 shrink-0"></i>';
+            html += `<div class="flex-1"><p class="text-xs text-red-300 font-medium leading-relaxed">${message.replace(/</g, '&lt;')}</p>`;
+            if (existingTeam && existingTeam.url && existingTeam.name) {
+                html += `<a href="${existingTeam.url}" class="inline-flex items-center gap-1.5 mt-2 text-[11px] text-delta-electric hover:text-white font-medium transition"><i class="fas fa-external-link-alt text-[9px]"></i>Manage "${existingTeam.name}"</a>`;
+            }
+            html += '</div>';
+            alert.innerHTML = html;
+            wrapper.appendChild(alert);
+        } else if (type === 'success') {
+            msgSpan.parentElement.style.display = '';
+            msgSpan.textContent = message;
+            msgSpan.className = 'text-delta-success font-bold mt-1';
+        } else if (type === 'checking') {
+            msgSpan.parentElement.style.display = '';
+            msgSpan.textContent = message;
+            msgSpan.className = 'text-slate-400 font-bold mt-1';
+        } else {
+            msgSpan.parentElement.style.display = '';
+            msgSpan.textContent = message;
+            msgSpan.className = 'text-[10px] text-slate-400';
+        }
+    }
     
     function debounce(func, wait) {
         let timeout;
@@ -1308,10 +1468,10 @@
         const link = document.getElementById('existingTeamLink');
         
         if (warning && message && link) {
-            const msg = reasonMessage || 'You can only own one active independent team per game.';
-            message.textContent = `You already own "${team.name}" for this game. ${msg}`;
+            message.textContent = `You are already a member of "${team.name}" for this game. Only one active independent team per game is allowed.`;
             link.href = team.url;
-            link.textContent = `Manage "${team.name}"`;
+            const linkSpan = link.querySelector('span');
+            if (linkSpan) linkSpan.textContent = `Manage "${team.name}"`;
             warning.classList.remove('hidden');
         }
     }
@@ -1327,26 +1487,44 @@
     function disableIndependentMode(existingTeam) {
         const independentRadio = document.querySelector('input[name="org_status"][value="independent"]');
         const orgRadio = document.querySelector('input[name="org_status"][value="organization"]');
+        const label = document.getElementById('independent-label');
+        const blockedDiv = document.getElementById('independent-blocked');
+        const blockedDesc = document.getElementById('independent-blocked-desc');
         
         if (independentRadio) {
             independentRadio.disabled = true;
+        }
+        
+        if (label) {
+            label.style.cursor = 'not-allowed';
+            label.classList.add('pointer-events-none');
             
-            // Add visual indicator
-            const label = independentRadio.closest('label');
-            if (label) {
-                label.style.opacity = '0.5';
-                label.style.cursor = 'not-allowed';
-                label.title = `You already own "${existingTeam.name}" for this game`;
-            }
+            // Dim the card content
+            const content = label.querySelector('.independent-card-content');
+            if (content) content.style.opacity = '0.35';
             
-            // If currently selected, switch to organization mode
-            if (independentRadio.checked && orgRadio) {
-                orgRadio.checked = true;
-                state.formData.mode = 'organization';
-                // Trigger mode change handler
-                const event = new Event('change', { bubbles: true });
-                orgRadio.dispatchEvent(event);
+            // Uncheck visual
+            const card = label.querySelector('div');
+            if (card) {
+                card.style.borderColor = 'rgba(255,255,255,0.05)';
+                card.style.background = 'rgba(10,10,15,0.8)';
             }
+        }
+        
+        // Show the in-card blocked overlay
+        if (blockedDiv) {
+            blockedDiv.classList.remove('hidden');
+        }
+        if (blockedDesc) {
+            blockedDesc.textContent = `You are already on "${existingTeam.name}" for this game. Leave that team first to create a new independent unit.`;
+        }
+        
+        // If currently selected, switch to organization mode
+        if (independentRadio && independentRadio.checked && orgRadio && !orgRadio.disabled) {
+            orgRadio.checked = true;
+            state.formData.mode = 'organization';
+            const event = new Event('change', { bubbles: true });
+            orgRadio.dispatchEvent(event);
         }
         
         console.log('[TeamCreate] Independent mode disabled');
@@ -1354,17 +1532,29 @@
     
     function enableIndependentMode() {
         const independentRadio = document.querySelector('input[name="org_status"][value="independent"]');
+        const label = document.getElementById('independent-label');
+        const blockedDiv = document.getElementById('independent-blocked');
         
         if (independentRadio) {
             independentRadio.disabled = false;
+        }
+        
+        if (label) {
+            label.style.cursor = '';
+            label.classList.remove('pointer-events-none');
             
-            // Remove visual indicator
-            const label = independentRadio.closest('label');
-            if (label) {
-                label.style.opacity = '1';
-                label.style.cursor = 'pointer';
-                label.title = '';
+            const content = label.querySelector('.independent-card-content');
+            if (content) content.style.opacity = '';
+            
+            const card = label.querySelector('div');
+            if (card) {
+                card.style.borderColor = '';
+                card.style.background = '';
             }
+        }
+        
+        if (blockedDiv) {
+            blockedDiv.classList.add('hidden');
         }
         
         console.log('[TeamCreate] Independent mode enabled');
@@ -1385,10 +1575,7 @@
             state.validation.name.valid = false;
             state.validation.name.checking = false;
             state.validation.name.message = 'Must be at least 3 characters.';
-            if (msgSpan) {
-                msgSpan.textContent = 'Must be at least 3 characters.';
-                msgSpan.className = 'text-delta-danger font-bold mt-1';
-            }
+            setNameStatus('default', 'Must be at least 3 characters.');
             updateSubmitButton();
             return;
         }
@@ -1398,10 +1585,7 @@
             state.validation.name.valid = false;
             state.validation.name.checking = false;
             state.validation.name.message = 'Please select a game first.';
-            if (msgSpan) {
-                msgSpan.textContent = 'Please select a game first.';
-                msgSpan.className = 'text-delta-danger font-bold mt-1';
-            }
+            setNameStatus('default', 'Please select a game first.');
             updateSubmitButton();
             return;
         }
@@ -1417,10 +1601,7 @@
         
         // Show checking state
         state.validation.name.checking = true;
-        if (msgSpan) {
-            msgSpan.textContent = 'Checking availability...';
-            msgSpan.className = 'text-slate-400 font-bold mt-1';
-        }
+        setNameStatus('checking', 'Checking availability...');
         updateSubmitButton();
         
         try {
@@ -1475,10 +1656,7 @@
                 // Name is available
                 state.validation.name.valid = true;
                 state.validation.name.message = '✓ Name is available!';
-                if (msgSpan) {
-                    msgSpan.textContent = '✓ Name is available!';
-                    msgSpan.className = 'text-delta-success font-bold mt-1';
-                }
+                setNameStatus('success', '✓ Name is available!');
                 input.classList.remove('border-delta-danger');
                 input.classList.add('border-delta-success');
             } else if (normalized.available === false) {
@@ -1486,14 +1664,10 @@
                 const errorMsg = normalized.fieldErrors.name || normalized.message || 'Name not available.';
                 state.validation.name.valid = false;
                 state.validation.name.message = errorMsg;
-                if (msgSpan) {
-                    msgSpan.textContent = errorMsg;
-                    msgSpan.className = 'text-delta-danger font-bold mt-1';
-                    
-                    // Show link to existing team if provided
-                    if (data.existing_team) {
-                        msgSpan.innerHTML = `${errorMsg} <a href="${data.existing_team.url}" class="underline hover:text-delta-electric">Manage "${data.existing_team.name}"</a>`;
-                    }
+                if (data.existing_team) {
+                    setNameStatus('error', errorMsg, data.existing_team);
+                } else {
+                    setNameStatus('error', errorMsg);
                 }
                 input.classList.remove('border-delta-success');
                 input.classList.add('border-delta-danger');
@@ -1501,10 +1675,7 @@
                 // Unable to determine availability (null)
                 state.validation.name.valid = false;
                 state.validation.name.message = 'Unable to validate name. Please try again.';
-                if (msgSpan) {
-                    msgSpan.textContent = 'Unable to validate name. Please try again.';
-                    msgSpan.className = 'text-delta-danger font-bold mt-1';
-                }
+                setNameStatus('error', 'Unable to validate name. Please try again.');
                 input.classList.remove('border-delta-success', 'border-delta-danger');
             }
         } catch (error) {
@@ -1524,10 +1695,7 @@
             
             state.validation.name.valid = false;
             state.validation.name.message = errorMsg;
-            if (msgSpan) {
-                msgSpan.textContent = errorMsg;
-                msgSpan.className = 'text-delta-danger mt-1';
-            }
+            setNameStatus('error', errorMsg);
         } finally {
             state.validation.name.checking = false;
             updateSubmitButton();
@@ -2128,11 +2296,19 @@
         const orgSelect = document.getElementById('orgSelect');
         if (orgSelect) {
             orgSelect.addEventListener('change', () => {
-                // Update state with selected org ID
                 state.formData.organizationId = orgSelect.value || null;
+                applyDivisionName();
                 updatePreview();
             });
         }
+
+        // Division type radios
+        document.querySelectorAll('input[name="division_type"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                applyDivisionName();
+                updatePreview();
+            });
+        });
         
         // Inherit branding checkbox
         const inheritBranding = document.getElementById('inheritBranding');
