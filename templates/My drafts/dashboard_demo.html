@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en" class="dark antialiased bg-black selection:bg-indigo-500 selection:text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown | Premium Command Center</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        dc: {
+                            bg: '#000000',
+                            surface: '#08080A',
+                            panel: '#101014',
+                            border: 'rgba(255, 255, 255, 0.08)',
+                            borderHover: 'rgba(255, 255, 255, 0.15)',
+                            textMain: '#F8F8F8',
+                            textMuted: '#A1A1AA',
+                            accent: '#6366F1',
+                            accentGlow: 'rgba(99, 102, 241, 0.15)',
+                            success: '#10B981',
+                            danger: '#F43F5E',
+                            warning: '#F59E0B',
+                            valRed: '#FF4655',
+                            efBlue: '#0052CC'
+                        }
+                    },
+                    boxShadow: {
+                        'premium': '0 4px 24px -8px rgba(0, 0, 0, 0.5)',
+                        'premium-hover': '0 8px 32px -8px rgba(0, 0, 0, 0.8)',
+                        'glow-accent': '0 0 20px -5px rgba(99, 102, 241, 0.4)',
+                        'glow-danger': '0 0 24px -4px rgba(244, 63, 94, 0.4)',
+                        'glow-warning': '0 0 24px -4px rgba(245, 158, 11, 0.3)',
+                        'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(15px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shimmer: {
+                            from: { backgroundPosition: '200% 0' },
+                            to: { backgroundPosition: '-200% 0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525B; }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .premium-card {
+            background: linear-gradient(180deg, rgba(16, 16, 20, 0.8) 0%, rgba(12, 12, 16, 0.9) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--tw-colors-dc-border);
+            box-shadow: var(--tw-shadow-inner-light), var(--tw-shadow-premium);
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .premium-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            z-index: 10;
+        }
+
+        .premium-card:hover {
+            border-color: var(--tw-colors-dc-borderHover);
+            box-shadow: var(--tw-shadow-inner-light), var(--tw-shadow-premium-hover);
+        }
+
+        .ambient-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-color: #000000;
+            background-image:
+                radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 85% 20%, rgba(244, 63, 94, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
+            background-attachment: fixed;
+            pointer-events: none;
+        }
+
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+            color: #F8F8F8;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .stagger-1 { animation-delay: 50ms; }
+        .stagger-2 { animation-delay: 100ms; }
+        .stagger-3 { animation-delay: 150ms; }
+        .stagger-4 { animation-delay: 200ms; }
+        .stagger-5 { animation-delay: 250ms; }
+    </style>
+</head>
+
+<body class="text-dc-textMain font-sans overflow-x-hidden" x-data="dashboardEngine()">
+
+    <div class="ambient-mesh"></div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('dashboardEngine', () => ({
+                user: {
+                    name: 'Redwan Ul Rashik',
+                    level: 42,
+                    rank: 'Diamond II',
+                    location: 'Sirajganj, BD',
+                    device: 'iPhone 14 Pro',
+                    avatar: 'https://ui-avatars.com/api/?name=Redwan+Ul+Rashik&background=6366F1&color=fff&bold=true&size=200',
+                    isVerified: true
+                },
+
+                wallet: {
+                    balance: 14500,
+                    pending: 2500,
+                    currency: 'DC',
+                    bdtEquiv: 1450,
+                    linkedAccount: '***4589'
+                },
+
+                actionItems: [
+                    {
+                        id: 'act-1',
+                        type: 'danger',
+                        title: 'Match Report Overdue',
+                        description: 'Submit results for Delta Pro Series Quarterfinals vs Wraith RNG.',
+                        icon: 'fa-solid fa-triangle-exclamation',
+                        btnText: 'Submit Score',
+                        timeRemaining: '14 mins',
+                        game: 'Valorant'
+                    },
+                    {
+                        id: 'act-2',
+                        type: 'warning',
+                        title: 'Tournament Check-in',
+                        description: 'Check-in is now open for eFootball Weekly Cash Cup.',
+                        icon: 'fa-solid fa-ticket',
+                        btnText: 'Check In Now',
+                        timeRemaining: 'Closes in 45m',
+                        game: 'eFootball 2026'
+                    }
+                ],
+
+                // Organizations managed by the user
+                myOrgs: [
+                    {
+                        id: 'org-1',
+                        name: 'Syndicate Esports',
+                        role: 'Founder',
+                        cp: '12.4K',
+                        verified: true
+                    }
+                ],
+
+                // User's active rosters (can belong to different orgs or be independent)
+                teams: [
+                    {
+                        id: 't1',
+                        name: 'Phoenix Syndicate',
+                        org: { name: 'Syndicate Esports', verified: true },
+                        game: 'Valorant',
+                        gameCode: 'val',
+                        role: 'IGL',
+                        winRate: '68.5%',
+                        matches: 142,
+                        tier: 'Platinum',
+                        roster: [
+                            { name: 'You', isCaptain: true, avatar: 'https://ui-avatars.com/api/?name=R+U&background=000&color=fff' },
+                            { name: 'Shadow', isCaptain: false, avatar: 'https://ui-avatars.com/api/?name=S+H&background=222&color=fff' },
+                            { name: 'Viper', isCaptain: false, avatar: 'https://ui-avatars.com/api/?name=V+P&background=222&color=fff' },
+                            { name: 'Jettx', isCaptain: false, avatar: 'https://ui-avatars.com/api/?name=J+T&background=222&color=fff' },
+                            { name: 'Omen', isCaptain: false, avatar: 'https://ui-avatars.com/api/?name=O+M&background=222&color=fff' }
+                        ]
+                    },
+                    {
+                        id: 't2',
+                        name: 'Delta Strikers',
+                        org: null, // Independent team
+                        game: 'eFootball 2026',
+                        gameCode: 'ef',
+                        role: 'Captain',
+                        winRate: '82.1%',
+                        matches: 89,
+                        tier: 'Diamond',
+                        roster: [
+                            { name: 'You', isCaptain: true, avatar: 'https://ui-avatars.com/api/?name=R+U&background=000&color=fff' },
+                            { name: 'MessiGoat', isCaptain: false, avatar: 'https://ui-avatars.com/api/?name=M+G&background=222&color=fff' }
+                        ]
+                    }
+                ],
+
+                tournaments: [
+                    {
+                        id: 'tourney-1',
+                        name: 'Delta Pro Series: Quarterfinals',
+                        game: 'Valorant',
+                        status: 'Live Match',
+                        opponent: 'Wraith RNG',
+                        prizePool: '500K DC',
+                        progress: 'Round of 8',
+                        isLive: true
+                    },
+                    {
+                        id: 'tourney-2',
+                        name: 'Weekly Cash Cup #42',
+                        game: 'eFootball 2026',
+                        status: 'Check-in Open',
+                        opponent: 'TBD',
+                        prizePool: '50K DC',
+                        progress: 'Registration',
+                        isLive: false
+                    }
+                ],
+
+                inbox: [
+                    {
+                        id: 'msg1',
+                        category: 'INVITE',
+                        color: 'text-dc-accent border-dc-accent/30 bg-dc-accent/10',
+                        sender: 'Neon Titans',
+                        avatar: 'https://ui-avatars.com/api/?name=N+T&background=6366F1&color=fff',
+                        text: 'Invited you to join their active Valorant roster.',
+                        time: '10m ago',
+                        unread: true,
+                        hasAction: true
+                    },
+                    {
+                        id: 'msg2',
+                        category: 'SYSTEM',
+                        color: 'text-dc-success border-dc-success/30 bg-dc-success/10',
+                        sender: 'DeltaCrown Admin',
+                        avatar: 'https://ui-avatars.com/api/?name=D+C&background=10B981&color=fff',
+                        text: 'Your KYC Verification has been approved successfully.',
+                        time: '2h ago',
+                        unread: false,
+                        hasAction: false
+                    },
+                    {
+                        id: 'msg3',
+                        category: 'FINANCE',
+                        color: 'text-dc-warning border-dc-warning/30 bg-dc-warning/10',
+                        sender: 'Vault',
+                        avatar: 'https://ui-avatars.com/api/?name=V+L&background=F59E0B&color=fff',
+                        text: 'Tournament payout of 2,500 DC has been credited.',
+                        time: '1d ago',
+                        unread: false,
+                        hasAction: false
+                    }
+                ],
+
+                // Competitive Ledger
+                activeTab: 'all',
+                matches: [
+                    { id: 'M-1042', date: 'Today, 14:30', game: 'Valorant', type: 'Pro Series QF', opponent: 'Team Enigma', result: 'W', score: '13-9', rating: '+24 LP', hasVod: true, status: 'Verified' },
+                    { id: 'M-1041', date: 'Yesterday, 20:00', game: 'eFootball 2026', type: 'Weekly Cup', opponent: 'Dhaka FC', result: 'L', score: '1-3', rating: '-12 LP', hasVod: false, status: 'Verified' },
+                    { id: 'M-1040', date: 'Feb 26, 18:15', game: 'Valorant', type: 'Scrim', opponent: 'Neon Titans', result: 'W', score: '13-11', rating: '+0 LP', hasVod: true, status: 'Verified' },
+                    { id: 'M-1039', date: 'Feb 25, 21:00', game: 'eFootball 2026', type: 'Wager Match', opponent: 'KingSlayer', result: 'W', score: '2-1', rating: '+150 DC', hasVod: true, status: 'Disputed' },
+                    { id: 'M-1038', date: 'Feb 24, 19:30', game: 'Valorant', type: 'Ranked Synced', opponent: 'Matchmaking', result: 'D', score: '15-15', rating: '+2 LP', hasVod: false, status: 'Verified' }
+                ],
+
+                dismissAction(id) {
+                    this.actionItems = this.actionItems.filter(item => item.id !== id);
+                },
+                markRead(id) {
+                    const msg = this.inbox.find(m => m.id === id);
+                    if(msg) msg.unread = false;
+                }
+            }))
+        })
+    </script>
+
+    <nav class="fixed top-0 w-full z-50 bg-[#000000]/60 backdrop-blur-2xl border-b border-white/[0.04] transition-all duration-300 h-16 sm:h-20">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+
+            <div class="flex items-center gap-8 xl:gap-12">
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-dc-accent to-purple-600 p-[1px] shadow-[0_0_15px_rgba(99,102,241,0.2)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all duration-300">
+                        <div class="w-full h-full bg-[#050505] rounded-xl flex items-center justify-center relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <i class="fa-solid fa-crown text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 text-sm sm:text-base"></i>
+                        </div>
+                    </div>
+                    <span class="text-white font-extrabold tracking-tighter text-xl sm:text-2xl hidden md:block">
+                        DELTA<span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">CROWN</span>
+                    </span>
+                </a>
+
+                <div class="hidden lg:flex items-center p-1 bg-white/[0.02] border border-white/[0.04] rounded-xl backdrop-blur-md">
+                    <a href="#" class="px-5 py-2 rounded-lg bg-white/[0.08] text-white font-semibold text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-all">Command Center</a>
+                    <a href="#" class="px-5 py-2 rounded-lg text-dc-textMuted hover:text-white hover:bg-white/[0.04] font-medium text-sm transition-all">Tournaments</a>
+                    <a href="#" class="px-5 py-2 rounded-lg text-dc-textMuted hover:text-white hover:bg-white/[0.04] font-medium text-sm transition-all">My Teams</a>
+                    <a href="#" class="px-5 py-2 rounded-lg text-dc-textMuted hover:text-white hover:bg-white/[0.04] font-medium text-sm transition-all">Crown Store</a>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-5">
+
+                <button class="hidden xl:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black border border-white/[0.08] hover:border-white/[0.2] transition-colors w-72 text-left group shadow-inner-light">
+                    <i class="fa-solid fa-magnifying-glass text-dc-textMuted group-hover:text-dc-accent transition-colors text-sm"></i>
+                    <span class="text-sm text-dc-textMuted group-hover:text-gray-300 transition-colors flex-1 font-medium">Search players, tags...</span>
+                    <kbd class="font-mono text-[10px] text-gray-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.1]">⌘K</kbd>
+                </button>
+
+                <div class="hidden sm:block w-px h-6 bg-white/[0.08]"></div>
+
+                <div class="hidden sm:flex items-center gap-2.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 hover:border-amber-500/40 cursor-pointer transition-all group">
+                    <i class="fa-solid fa-coins text-dc-warning text-sm group-hover:animate-pulse"></i>
+                    <div class="flex items-baseline gap-1">
+                        <span class="font-mono font-bold text-white text-sm" x-text="wallet.balance.toLocaleString()"></span>
+                        <span class="text-[10px] font-bold text-amber-500/80">DC</span>
+                    </div>
+                </div>
+
+                <button class="relative w-10 h-10 rounded-xl btn-glass flex items-center justify-center text-dc-textMuted hover:text-white group transition-all">
+                    <i class="fa-regular fa-bell text-lg group-hover:rotate-12 transition-transform duration-300"></i>
+                    <span class="absolute top-2 right-2 flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-danger opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-dc-danger border border-[#000]"></span>
+                    </span>
+                </button>
+
+                <button class="flex items-center gap-3 pl-1 sm:pl-2 group">
+                    <div class="hidden md:block text-right">
+                        <div class="text-sm font-bold text-white leading-tight flex items-center justify-end gap-1.5">
+                            <span x-text="user.name.split(' ')[0]"></span>
+                            <i x-show="user.isVerified" class="fa-solid fa-certificate text-dc-accent text-[10px]" title="Verified KYC"></i>
+                        </div>
+                        <div class="text-[10px] font-mono text-dc-textMuted">Lvl <span x-text="user.level"></span> • <span x-text="user.rank"></span></div>
+                    </div>
+                    <div class="relative">
+                        <img :src="user.avatar" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover border border-white/[0.1] group-hover:border-dc-accent transition-colors p-[2px] bg-black" alt="Profile">
+                        <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-dc-success rounded-full border-2 border-[#000]"></div>
+                    </div>
+                </button>
+
+                <button class="hidden w-10 h-10 rounded-xl btn-glass items-center justify-center text-white ml-1">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 sm:pt-32 pb-24 md:pb-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+
+        <header class="mb-6 sm:mb-8 animate-slide-up stagger-1">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex items-center gap-2 px-2.5 py-1 rounded-md bg-dc-success/10 border border-dc-success/20 backdrop-blur-sm">
+                            <div class="w-1.5 h-1.5 bg-dc-success rounded-full animate-pulse-slow shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                            <span class="text-[10px] font-mono font-bold text-dc-success uppercase tracking-wider">Network Stable</span>
+                        </div>
+                        <span class="text-xs text-dc-textMuted font-mono flex items-center gap-1.5 bg-white/[0.03] px-2 py-1 rounded border border-white/[0.05]">
+                            <i class="fa-solid fa-location-dot text-[10px]"></i> <span x-text="user.location"></span>
+                        </span>
+                        <span class="text-xs text-dc-textMuted font-mono flex items-center gap-1.5 bg-white/[0.03] px-2 py-1 rounded border border-white/[0.05] hidden sm:flex">
+                            <i class="fa-solid fa-mobile-screen text-[10px]"></i> <span x-text="user.device"></span>
+                        </span>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-2">
+                        Command Center
+                    </h1>
+                    <p class="text-dc-textMuted text-sm sm:text-base font-medium">Overview of your competitive infrastructure and assets.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <button class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-trophy text-dc-warning"></i> Browse Events
+                    </button>
+                    <button class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-user-tag text-dc-accent"></i> LFP/LFT
+                    </button>
+                    <button class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm hidden sm:flex">
+                        <i class="fa-solid fa-magnifying-glass-location text-dc-textMuted"></i> Find Scrims
+                    </button>
+                    <button class="bg-white text-black hover:bg-gray-200 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> New Team
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-8 animate-slide-up stagger-2" x-show="actionItems.length > 0" x-transition>
+            <div class="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+
+                <template x-for="item in actionItems" :key="item.id">
+                    <div class="snap-start shrink-0 w-[340px] sm:w-[400px] premium-card p-5 relative group"
+                         :class="{
+                            'border-dc-danger/30 hover:border-dc-danger/60': item.type === 'danger',
+                            'border-dc-warning/30 hover:border-dc-warning/60': item.type === 'warning',
+                            'border-dc-success/30 hover:border-dc-success/60': item.type === 'success'
+                         }">
+
+                        <div class="absolute inset-0 opacity-[0.03] pointer-events-none transition-opacity group-hover:opacity-[0.08]"
+                             :class="{
+                                'bg-dc-danger': item.type === 'danger',
+                                'bg-dc-warning': item.type === 'warning',
+                                'bg-dc-success': item.type === 'success'
+                             }"></div>
+
+                        <div class="flex justify-between items-start mb-3 relative z-10">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner-light"
+                                     :class="{
+                                        'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': item.type === 'danger',
+                                        'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': item.type === 'warning',
+                                        'bg-dc-success/10 text-dc-success border border-dc-success/20': item.type === 'success'
+                                     }">
+                                    <i :class="item.icon"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-white text-sm" x-text="item.title"></h3>
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="{'bg-dc-danger animate-pulse': item.type === 'danger', 'bg-dc-warning': item.type === 'warning'}"></span>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-dc-textMuted uppercase tracking-wider" x-text="item.game"></span>
+                                </div>
+                            </div>
+                            <button @click="dismissAction(item.id)" class="text-dc-textMuted hover:text-white transition-colors p-1">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-400 mb-4 relative z-10 leading-relaxed" x-text="item.description"></p>
+
+                        <div class="flex items-center justify-between relative z-10 border-t border-white/[0.05] pt-4">
+                            <span class="text-[11px] font-mono font-medium"
+                                  :class="{
+                                     'text-dc-danger': item.type === 'danger',
+                                     'text-dc-warning': item.type === 'warning',
+                                     'text-dc-success': item.type === 'success'
+                                  }">
+                                <i class="fa-regular fa-clock mr-1"></i> <span x-text="item.timeRemaining"></span>
+                            </span>
+
+                            <button class="px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shadow-premium"
+                                    :class="{
+                                        'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger': item.type === 'danger',
+                                        'bg-dc-warning hover:bg-amber-600 text-black shadow-glow-warning': item.type === 'warning',
+                                        'bg-dc-success/20 text-dc-success hover:bg-dc-success hover:text-white border border-dc-success/30': item.type === 'success'
+                                    }">
+                                <span x-text="item.btnText"></span> <i class="fa-solid fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <div class="lg:col-span-8 space-y-6">
+
+                <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-3">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-trophy text-dc-warning"></i> Tournament Control
+                            </h2>
+                            <p class="text-sm text-dc-textMuted mt-1">Your active brackets and upcoming matches.</p>
+                        </div>
+                        <button class="text-xs font-bold text-dc-textMuted hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1">
+                            Browse All <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div x-show="tournaments.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
+                                <i class="fa-solid fa-trophy text-2xl text-dc-textMuted"></i>
+                            </div>
+                            <h4 class="font-bold text-white text-sm mb-1">No Active Tournaments</h4>
+                            <p class="text-[11px] text-dc-textMuted mb-5 max-w-[240px]">You're not registered in any brackets yet. Join your first event and compete.</p>
+                            <button class="bg-dc-accent hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl active:scale-[0.98] transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)]">
+                                <i class="fa-solid fa-search mr-2"></i> Discover Your First Event
+                            </button>
+                        </div>
+                        <template x-for="tourney in tournaments" :key="tourney.id" x-show="tournaments.length > 0">
+                            <div class="p-5 rounded-2xl bg-black/40 border transition-all group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                 :class="tourney.isLive ? 'border-dc-danger/40 hover:border-dc-danger/80' : 'border-white/[0.06] hover:border-white/[0.15]'">
+
+                                <div x-show="tourney.isLive" class="absolute inset-0 bg-dc-danger/5 animate-pulse-slow pointer-events-none"></div>
+
+                                <div class="relative z-10 flex-1">
+                                    <div class="flex items-center gap-2 mb-1.5">
+                                        <span x-show="tourney.isLive" class="bg-dc-danger text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-glow-danger">Live Now</span>
+                                        <span x-show="!tourney.isLive" class="bg-white/[0.1] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest" x-text="tourney.status"></span>
+                                        <span class="text-[10px] font-mono text-dc-textMuted" x-text="tourney.game"></span>
+                                    </div>
+                                    <h3 class="font-bold text-white text-lg group-hover:text-gray-200 transition-colors" x-text="tourney.name"></h3>
+                                    <div class="flex items-center gap-3 mt-2 text-xs">
+                                        <span class="text-gray-400 font-medium"><i class="fa-solid fa-sitemap text-dc-textMuted mr-1"></i> <span x-text="tourney.progress"></span></span>
+                                        <span class="w-1 h-1 bg-white/[0.1] rounded-full"></span>
+                                        <span class="text-dc-warning font-bold"><i class="fa-solid fa-coins mr-1"></i> <span x-text="tourney.prizePool"></span></span>
+                                    </div>
+                                </div>
+
+                                <div class="relative z-10 flex items-center gap-4 border-t sm:border-t-0 sm:border-l border-white/[0.08] pt-4 sm:pt-0 sm:pl-4">
+                                    <div class="text-left sm:text-right flex-1 sm:flex-none">
+                                        <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Opponent</div>
+                                        <div class="text-sm font-bold text-white font-mono" x-text="tourney.opponent"></div>
+                                    </div>
+                                    <button class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-premium shrink-0"
+                                            :class="tourney.isLive ? 'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger' : 'bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white'">
+                                        <span x-text="tourney.isLive ? 'Enter Room' : 'Manage'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-4 relative overflow-hidden">
+
+                    <div class="mb-6 pb-6 border-b border-white/[0.08]">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold text-dc-textMuted uppercase tracking-wider">My Organizations</span>
+                            <button class="text-[10px] text-white bg-white/[0.1] hover:bg-white/[0.2] px-2 py-1 rounded transition-colors">+ Register Org</button>
+                        </div>
+                        <div class="flex gap-3" x-show="myOrgs.length > 0">
+                            <template x-for="org in myOrgs" :key="org.id">
+                                <button class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-dc-accent/50 hover:bg-white/[0.05] transition-all group">
+                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center">
+                                        <i class="fa-solid fa-building-shield text-white text-xs"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-sm font-bold text-white group-hover:text-dc-accent transition-colors" x-text="org.name"></div>
+                                        <div class="text-[10px] text-gray-400 font-mono"><span x-text="org.cp"></span> CP</div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                        <div x-show="myOrgs.length === 0" class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08]">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                                    <i class="fa-solid fa-building-shield text-dc-textMuted text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-white">No Organization Yet</p>
+                                    <p class="text-[10px] text-dc-textMuted">Register your org to unlock team infrastructure.</p>
+                                </div>
+                            </div>
+                            <button class="text-[10px] font-bold text-dc-accent hover:text-white bg-dc-accent/10 hover:bg-dc-accent/20 border border-dc-accent/20 px-3 py-1.5 rounded-lg transition-all active:scale-[0.98]">Register</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-users text-dc-textMuted"></i> Active Rosters
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                        <template x-for="team in teams" :key="team.id">
+                            <div class="bg-black/40 border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.15] hover:bg-black/60 transition-all group flex flex-col h-full relative">
+
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg border border-white/[0.1] flex items-center justify-center shadow-inner-light"
+                                             :class="team.gameCode === 'val' ? 'bg-red-900/20' : 'bg-blue-900/20'">
+                                            <i class="text-lg" :class="team.gameCode === 'val' ? 'fa-solid fa-crosshairs text-dc-valRed' : 'fa-solid fa-futbol text-blue-400'"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-white text-base leading-tight group-hover:text-gray-200 transition-colors" x-text="team.name"></h3>
+                                            <div class="mt-1">
+                                                <template x-if="team.org">
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.1] text-gray-300">
+                                                        <i class="fa-solid fa-shield-halved text-dc-textMuted"></i> <span x-text="team.org.name"></span>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!team.org">
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.02] border border-white/[0.05] text-gray-500">
+                                                        Independent
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.1] text-white" x-text="team.role"></span>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2 mb-5">
+                                    <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                                        <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Tier</div>
+                                        <div class="font-mono text-xs font-bold text-white" x-text="team.tier"></div>
+                                    </div>
+                                    <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                                        <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Win Rate</div>
+                                        <div class="font-mono text-xs font-bold text-dc-success" x-text="team.winRate"></div>
+                                    </div>
+                                    <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                                        <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Matches</div>
+                                        <div class="font-mono text-xs font-bold text-white" x-text="team.matches"></div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-auto pt-4 border-t border-white/[0.05] flex items-center justify-between">
+                                    <div class="flex -space-x-1.5">
+                                        <template x-for="(player, idx) in team.roster.slice(0,4)" :key="idx">
+                                            <img :src="player.avatar" class="w-7 h-7 rounded-md border border-[#101014] object-cover hover:z-10 relative">
+                                        </template>
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button class="bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+                                            Team Hub <i class="fa-solid fa-arrow-right"></i>
+                                        </button>
+                                        <button class="bg-white/[0.02] hover:bg-white/[0.08] text-dc-textMuted hover:text-white px-2 py-1.5 rounded-lg transition-colors">
+                                            <i class="fa-solid fa-gear text-[10px]"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <button class="border border-dashed border-white/[0.1] bg-transparent rounded-xl p-4 hover:border-white/[0.3] hover:bg-white/[0.02] transition-all flex flex-col items-center justify-center text-dc-textMuted hover:text-white min-h-[200px]">
+                            <div class="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center mb-2">
+                                <i class="fa-solid fa-plus text-sm"></i>
+                            </div>
+                            <span class="font-bold text-sm">Create New Roster</span>
+                            <span class="text-[10px] mt-1 text-center">Form a new independent team.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="premium-card p-5 animate-slide-up stagger-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip text-dc-textMuted"></i> Game Passports
+                        </h3>
+                        <button class="text-xs font-medium text-dc-accent hover:text-white transition-colors">Manage Links</button>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <div class="px-3 py-2 rounded-lg bg-black/40 border border-white/[0.06] flex items-center gap-3">
+                            <div class="w-6 h-6 bg-dc-valRed rounded-[3px] flex items-center justify-center text-white text-[10px] font-black">V</div>
+                            <span class="text-xs font-mono text-gray-300">Redwan#DC26</span>
+                            <i class="fa-solid fa-circle-check text-dc-success text-[10px] ml-2"></i>
+                        </div>
+                        <div class="px-3 py-2 rounded-lg bg-black/40 border border-white/[0.06] flex items-center gap-3">
+                            <i class="fa-brands fa-playstation text-lg text-[#0070D1]"></i>
+                            <span class="text-xs font-mono text-gray-300">rashik_bd99</span>
+                            <i class="fa-solid fa-circle-check text-dc-success text-[10px] ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 flex flex-col space-y-6">
+
+                <div class="premium-card p-6 animate-slide-up stagger-3 relative overflow-hidden group">
+                    <div class="absolute -right-16 -top-16 w-48 h-48 bg-dc-warning/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-dc-warning/20 transition-all"></div>
+
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-vault text-dc-warning"></i> Crown Vault
+                            </h3>
+                            <button class="text-dc-textMuted hover:text-white transition-colors">
+                                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                            </button>
+                        </div>
+
+                        <div class="mb-6">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter" x-text="wallet.balance.toLocaleString()"></span>
+                                <span class="text-dc-warning font-bold text-lg">DC</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-xs text-dc-textMuted font-medium">≈ <span x-text="wallet.bdtEquiv.toLocaleString()"></span> BDT Value</p>
+                                <span class="w-1 h-1 bg-white/[0.2] rounded-full"></span>
+                                <p class="text-xs text-dc-success font-medium">+<span x-text="wallet.pending"></span> Pending</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-5">
+                            <button class="bg-dc-warning hover:bg-amber-400 text-black font-bold text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] shadow-glow-warning flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Add Funds
+                            </button>
+                            <button class="btn-glass font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+                                <i class="fa-solid fa-money-bill-transfer"></i> Withdraw
+                            </button>
+                        </div>
+
+                        <div class="pt-4 border-t border-white/[0.08]">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-black/40 border border-white/[0.05]">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded bg-[#E2136E] flex items-center justify-center">
+                                        <i class="fa-solid fa-b text-white text-[10px] font-black"></i>
+                                    </div>
+                                    <div class="text-xs font-mono text-gray-300">bKash <span x-text="wallet.linkedAccount"></span></div>
+                                </div>
+                                <span class="text-[10px] font-bold text-dc-success bg-dc-success/10 border border-dc-success/20 px-2 py-0.5 rounded uppercase tracking-wider">Verified</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-card flex flex-col flex-1 min-h-[380px] animate-slide-up stagger-4">
+                    <div class="p-5 border-b border-white/[0.08] flex justify-between items-center bg-white/[0.01]">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-inbox text-dc-textMuted"></i> Communications
+                        </h3>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-white bg-dc-accent px-2 py-0.5 rounded shadow-[0_0_10px_rgba(99,102,241,0.5)]">3 NEW</span>
+                            <button class="text-dc-textMuted hover:text-white transition-colors"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-3 hide-scrollbar space-y-2">
+                        <template x-for="msg in inbox" :key="msg.id">
+                            <div class="p-4 rounded-xl transition-all cursor-pointer group relative border-l-2"
+                                 :class="msg.unread
+                                    ? 'bg-white/[0.05] border-l-dc-accent hover:bg-white/[0.08] border border-dc-accent/40 border-l-2 shadow-[inset_2px_0_12px_rgba(99,102,241,0.08)]'
+                                    : 'bg-transparent border-l-transparent hover:bg-white/[0.03] border border-white/[0.04]'"
+                                 @click="markRead(msg.id)">
+
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest" :class="msg.color" x-text="msg.category"></span>
+                                    <span class="text-[10px] font-mono text-dc-textMuted" x-text="msg.time"></span>
+                                </div>
+
+                                <div class="flex items-start gap-3">
+                                    <img :src="msg.avatar" class="w-8 h-8 rounded-lg border border-white/[0.1] shrink-0 object-cover mt-0.5">
+                                    <div class="flex-1">
+                                        <span class="text-xs font-bold text-white block mb-0.5" x-text="msg.sender"></span>
+                                        <p class="text-[11px] text-gray-400 leading-relaxed" :class="msg.unread ? 'text-gray-200 font-medium' : ''" x-text="msg.text"></p>
+
+                                        <div x-show="msg.hasAction" class="flex gap-2 mt-3" @click.stop>
+                                            <button class="bg-white text-black text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-gray-200 shadow-sm">Accept</button>
+                                            <button class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Decline</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <button class="p-3 border-t border-white/[0.08] bg-black/40 text-center w-full text-xs font-bold text-dc-textMuted hover:text-white hover:bg-white/[0.05] transition-colors">
+                        Open Full Inbox
+                    </button>
+                </div>
+
+                <div class="premium-card p-5 animate-slide-up stagger-5">
+                    <h3 class="text-sm font-bold text-white mb-4">Command Deck</h3>
+
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group">
+                            <i class="fa-solid fa-flag text-lg text-dc-textMuted group-hover:text-dc-danger transition-colors"></i>
+                            <span class="text-[10px] font-bold text-gray-300">Dispute Match</span>
+                        </button>
+                        <button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group">
+                            <i class="fa-solid fa-cart-shopping text-lg text-dc-textMuted group-hover:text-dc-accent transition-colors"></i>
+                            <span class="text-[10px] font-bold text-gray-300">Crown Store</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-1">
+                        <a href="#" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group">
+                            <div class="flex items-center gap-3 text-xs">
+                                <i class="fa-solid fa-book-open text-dc-textMuted w-4 text-center"></i>
+                                <span class="text-gray-400 group-hover:text-white transition-colors">Platform Rulebook</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-[8px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </a>
+                        <a href="#" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group">
+                            <div class="flex items-center gap-3 text-xs">
+                                <i class="fa-brands fa-discord text-dc-textMuted w-4 text-center"></i>
+                                <span class="text-gray-400 group-hover:text-[#5865F2] transition-colors">Community Discord</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-[8px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </a>
+                        <a href="#" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group">
+                            <div class="flex items-center gap-3 text-xs">
+                                <i class="fa-solid fa-headset text-dc-textMuted w-4 text-center"></i>
+                                <span class="text-gray-400 group-hover:text-dc-success transition-colors">24/7 Live Support</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-[8px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <div class="mt-6 sm:mt-8 animate-slide-up stagger-5">
+            <div class="premium-card p-0 flex flex-col overflow-hidden">
+
+                <div class="p-6 border-b border-white/[0.08] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-simple text-dc-textMuted"></i> Competitive Ledger
+                        </h2>
+                        <p class="text-xs text-dc-textMuted mt-1">Immutable record of your recent matches, wagers, and scrims.</p>
+                    </div>
+
+                    <div class="flex items-center p-1 bg-black/60 border border-white/[0.08] rounded-lg backdrop-blur-md overflow-x-auto max-w-full hide-scrollbar">
+                        <button @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap">All Matches</button>
+                        <button @click="activeTab = 'val'" :class="activeTab === 'val' ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap">Valorant</button>
+                        <button @click="activeTab = 'ef'" :class="activeTab === 'ef' ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap">eFootball</button>
+                        <button @click="activeTab = 'wager'" :class="activeTab === 'wager' ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap">Wagers</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/[0.05] bg-black/20 text-[10px] uppercase tracking-widest text-dc-textMuted font-bold">
+                                <th class="p-4 pl-6 font-medium">Match ID / Date</th>
+                                <th class="p-4 font-medium">Context</th>
+                                <th class="p-4 font-medium">Opponent</th>
+                                <th class="p-4 font-medium">Result</th>
+                                <th class="p-4 font-medium">Impact</th>
+                                <th class="p-4 pr-6 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-white/[0.03]">
+
+                            <template x-for="match in matches" :key="match.id">
+                                <tr class="hover:bg-white/[0.02] transition-colors group">
+                                    <td class="p-4 pl-6">
+                                        <div class="font-mono text-white text-xs" x-text="match.id"></div>
+                                        <div class="text-[10px] text-gray-500 mt-0.5" x-text="match.date"></div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-5 h-5 rounded flex items-center justify-center border border-white/[0.1]" :class="match.game === 'Valorant' ? 'bg-red-900/20' : 'bg-blue-900/20'">
+                                                <i class="text-[10px]" :class="match.game === 'Valorant' ? 'fa-solid fa-crosshairs text-dc-valRed' : 'fa-solid fa-futbol text-blue-400'"></i>
+                                            </div>
+                                            <span class="font-semibold text-gray-300 text-xs" x-text="match.type"></span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="font-bold text-white text-xs" x-text="match.opponent"></span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded flex items-center justify-center font-black text-[10px]"
+                                                  :class="{
+                                                    'bg-dc-success/20 text-dc-success border border-dc-success/30': match.result === 'W',
+                                                    'bg-dc-danger/20 text-dc-danger border border-dc-danger/30': match.result === 'L',
+                                                    'bg-gray-700/30 text-gray-400 border border-gray-600/50': match.result === 'D'
+                                                  }" x-text="match.result"></span>
+                                            <span class="font-mono text-white font-bold tracking-wide" x-text="match.score"></span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="font-mono text-xs font-bold"
+                                              :class="{
+                                                'text-dc-success': match.rating.startsWith('+') && match.rating.includes('LP'),
+                                                'text-dc-warning': match.rating.includes('DC'),
+                                                'text-dc-danger': match.rating.startsWith('-'),
+                                                'text-gray-400': match.rating === '+0 LP'
+                                              }" x-text="match.rating"></span>
+                                    </td>
+                                    <td class="p-4 pr-6 flex items-center justify-end gap-3">
+                                        <div x-show="match.status === 'Disputed'" class="px-2 py-1 rounded bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                                            Disputed
+                                        </div>
+                                        <button x-show="match.hasVod" class="text-dc-textMuted hover:text-white transition-colors" title="Watch VOD">
+                                            <i class="fa-solid fa-video text-xs"></i>
+                                        </button>
+                                        <button class="text-dc-textMuted hover:text-white transition-colors">
+                                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 border-t border-white/[0.05] bg-black/40 text-center">
+                    <a href="#" class="text-xs font-bold text-dc-textMuted hover:text-white transition-colors">Load More Records</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+            <div class="lg:col-span-5 premium-card p-6 flex flex-col h-full animate-slide-up stagger-1 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-32 h-32 bg-dc-accent/5 rounded-bl-full pointer-events-none group-hover:bg-dc-accent/10 transition-colors"></div>
+
+                <div class="flex justify-between items-center mb-5 relative z-10">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-satellite-dish text-dc-accent"></i> Community Radar
+                    </h3>
+                    <a href="#" class="text-[10px] font-bold text-dc-textMuted hover:text-white uppercase tracking-wider">Feed <i class="fa-solid fa-arrow-right ml-1"></i></a>
+                </div>
+
+                <div class="space-y-3 flex-1 relative z-10">
+                    <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <img src="https://ui-avatars.com/api/?name=O+G&background=222&color=fff" class="w-6 h-6 rounded-md">
+                                <span class="text-xs font-bold text-white">OmenGod</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-dc-success/10 text-dc-success border border-dc-success/20">LFT</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400">Ascendant Controller main looking for a dedicated org for the upcoming Pro Series. Can IGL.</p>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-md bg-dc-accent/20 flex items-center justify-center">
+                                    <i class="fa-solid fa-trophy text-[10px] text-dc-accent"></i>
+                                </div>
+                                <span class="text-xs font-bold text-white">DeltaCrown Official</span>
+                            </div>
+                            <span class="text-[10px] text-dc-textMuted font-mono">1h ago</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400"><span class="text-white font-bold">Wraith RNG</span> takes the eFootball Weekend Cup! Check out the VODs and final bracket.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 premium-card p-6 flex flex-col justify-center items-center text-center animate-slide-up stagger-2 relative overflow-hidden">
+
+                <div class="flex justify-between items-center w-full mb-4 absolute top-6 px-6">
+                    <h3 class="text-sm font-bold text-white">Trust Matrix</h3>
+                    <i class="fa-solid fa-shield-check text-dc-success"></i>
+                </div>
+
+                <div class="relative w-32 h-32 mt-8 mb-4 flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="0"></circle>
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#10B981" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="5.6" class="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]"></circle>
+                    </svg>
+                    <div class="relative z-10 flex flex-col items-center">
+                        <span class="text-3xl font-black text-white tracking-tighter">98</span>
+                        <span class="text-[10px] text-dc-textMuted uppercase font-bold tracking-widest mt-0.5">Score</span>
+                    </div>
+                </div>
+
+                <h4 class="text-base font-bold text-dc-success">Exemplary Standing</h4>
+                <p class="text-[11px] text-gray-400 mt-2 px-4 leading-relaxed">Your account is in excellent standing. You have priority access to high-tier tournaments and immediate withdrawals.</p>
+            </div>
+
+            <div class="lg:col-span-3 premium-card p-0 flex flex-col h-full animate-slide-up stagger-3 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
+                <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')] bg-cover bg-center opacity-30 group-hover:scale-105 transition-transform duration-700"></div>
+
+                <div class="relative z-20 p-6 flex flex-col h-full justify-end">
+                    <div class="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/[0.1] text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+                        <i class="fa-solid fa-cart-shopping text-dc-warning"></i> Store
+                    </div>
+
+                    <span class="text-dc-warning text-[10px] font-black uppercase tracking-widest mb-1">Featured Drop</span>
+                    <h3 class="text-lg font-bold text-white leading-tight mb-2">Delta Series<br>Pro Jersey '26</h3>
+
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-sm font-black text-white">4,500</span>
+                            <span class="text-[10px] font-bold text-dc-warning">DC</span>
+                        </div>
+                        <button class="bg-white/[0.15] hover:bg-white text-white hover:text-black border border-white/[0.2] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                            View Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="border-t border-white/[0.05] bg-[#000000] pt-12 pb-8 mt-12 relative z-10">
+        <div class="max-w-[1920px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+
+                <div class="md:col-span-1">
+                    <a href="#" class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-accent to-purple-600 p-[1px]">
+                            <div class="w-full h-full bg-[#050505] rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-crown text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <span class="text-white font-extrabold tracking-tighter text-lg">
+                            DELTA<span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">CROWN</span>
+                        </span>
+                    </a>
+                    <p class="text-xs text-dc-textMuted leading-relaxed max-w-xs">
+                        South Asia's premier esports ecosystem. Where champions rise from the delta to the crown.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="text-white text-xs font-bold uppercase tracking-widest mb-4">Platform</h4>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Tournaments</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Leaderboards</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Crown Store</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">DeltaCoin Economy</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white text-xs font-bold uppercase tracking-widest mb-4">Support</h4>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Dispute Resolution</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Rulebook & Guidelines</a></li>
+                        <li><a href="#" class="text-xs text-gray-400 hover:text-white transition-colors">Contact Admin</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white text-xs font-bold uppercase tracking-widest mb-4">System</h4>
+                    <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-white/[0.03] border border-white/[0.05] rounded-lg w-max">
+                        <div class="w-2 h-2 bg-dc-success rounded-full animate-pulse-slow"></div>
+                        <span class="text-xs font-mono text-gray-300">All Systems Operational</span>
+                    </div>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="fa-brands fa-discord"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-white/[0.05] pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-[10px] text-dc-textMuted font-mono">
+                    &copy; 2026 DeltaCrown Esports. Built in Bangladesh. Version 4.0.
+                </p>
+                <div class="flex gap-4">
+                    <a href="#" class="text-[10px] text-dc-textMuted hover:text-white transition-colors">Terms of Service</a>
+                    <a href="#" class="text-[10px] text-dc-textMuted hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" class="text-[10px] text-dc-textMuted hover:text-white transition-colors">KYC Information</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- Mobile Bottom App Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 bg-black/80 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2 safe-area-pb">
+        <a href="#" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-white group">
+            <i class="fa-solid fa-house text-lg group-hover:text-dc-accent transition-colors"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-dc-accent">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group">
+            <i class="fa-solid fa-trophy text-lg group-hover:text-dc-warning transition-colors"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-warning transition-colors">Events</span>
+        </a>
+        <!-- Center Action FAB -->
+        <button class="relative -mt-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-dc-accent to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)] active:scale-[0.94] transition-transform border border-white/[0.15]">
+            <i class="fa-solid fa-plus text-white text-xl"></i>
+        </button>
+        <a href="#" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group">
+            <i class="fa-solid fa-users text-lg group-hover:text-dc-success transition-colors"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-success transition-colors">Teams</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group">
+            <i class="fa-regular fa-user text-lg group-hover:text-white transition-colors"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-white transition-colors">Profile</span>
+        </a>
+    </nav>
+
+</body>
+</html>
+
+

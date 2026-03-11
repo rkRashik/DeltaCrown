@@ -1,708 +1,1067 @@
 {% extends "base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static humanize %}
 
-{% block title %}Dashboard — DeltaCrown{% endblock %}
+{% block title %}Command Center — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script defer src="{% static 'siteui/js/command-center.js' %}"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"},
+          delta: { base:'#020204', surface:'#0A0A0F', highlight:'#12121A', gold:'#FFD700', violet:'#6C00FF', electric:'#00E5FF', success:'#10B981', danger:'#EF4444' },
+          dc: {
+            bg: '#000000', surface: '#08080A', panel: '#101014',
+            border: 'rgba(255, 255, 255, 0.08)', borderHover: 'rgba(255, 255, 255, 0.15)',
+            textMain: '#F8F8F8', textMuted: '#A1A1AA',
+            accent: '#6366F1', accentGlow: 'rgba(99, 102, 241, 0.15)',
+            success: '#10B981', danger: '#F43F5E', warning: '#F59E0B',
+            valRed: '#FF4655', efBlue: '#0052CC',
+          },
+        },
+        boxShadow: {
+          'premium': '0 4px 24px -8px rgba(0, 0, 0, 0.5)',
+          'premium-hover': '0 8px 32px -8px rgba(0, 0, 0, 0.8)',
+          'glow-accent': '0 0 20px -5px rgba(99, 102, 241, 0.4)',
+          'glow-danger': '0 0 24px -4px rgba(244, 63, 94, 0.4)',
+          'glow-warning': '0 0 24px -4px rgba(245, 158, 11, 0.3)',
+          'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+        },
+        animation: {
+          'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          'fade-in': 'fadeIn 0.5s ease-out forwards',
+          'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        },
+        keyframes: {
+          fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+          slideUp: { '0%': { opacity: '0', transform: 'translateY(15px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        },
+      }
+    }
+  };
+</script>
+{% endblock %}
 
 {% block extra_css %}
 <style>
-  /* ─── BENTO DASHBOARD DESIGN SYSTEM ─── */
+  #dc-bottom-nav { display: none !important; }
+  [x-cloak] { display: none !important; }
+
   :root {
-    --b-surface: rgba(255,255,255,0.025);
-    --b-border: rgba(255,255,255,0.06);
-    --b-hover: rgba(255,255,255,0.08);
-    --b-radius: 1.25rem;
+    --dc-border: rgba(255, 255, 255, 0.08);
+    --dc-border-hover: rgba(255, 255, 255, 0.15);
+    --shadow-premium: 0 4px 24px -8px rgba(0, 0, 0, 0.5);
+    --shadow-premium-hover: 0 8px 32px -8px rgba(0, 0, 0, 0.8);
   }
 
-  /* Bento tile base */
-  .bt {
-    background: var(--b-surface);
-    border: 1px solid var(--b-border);
-    border-radius: var(--b-radius);
-    transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .premium-card {
+    background: linear-gradient(180deg, rgba(16, 16, 20, 0.8) 0%, rgba(12, 12, 16, 0.9) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--dc-border);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), var(--shadow-premium);
+    border-radius: 20px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
     overflow: hidden;
   }
-  .bt:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
-
-  /* Glow accents */
-  .glow-cyan:hover   { box-shadow: 0 8px 32px rgba(6,182,212,0.08); }
-  .glow-amber:hover  { box-shadow: 0 8px 32px rgba(234,179,8,0.08); }
-  .glow-purple:hover { box-shadow: 0 8px 32px rgba(168,85,247,0.08); }
-  .glow-green:hover  { box-shadow: 0 8px 32px rgba(16,185,129,0.08); }
-  .glow-blue:hover   { box-shadow: 0 8px 32px rgba(59,130,246,0.08); }
-  .glow-rose:hover   { box-shadow: 0 8px 32px rgba(244,63,94,0.08); }
-  .glow-indigo:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.08); }
-
-  /* Bento grid — 12-col asymmetric */
-  .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 16px;
-  }
-  @media (max-width: 1023px) {
-    .bento-grid { grid-template-columns: repeat(6, 1fr); }
-  }
-  @media (max-width: 639px) {
-    .bento-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-  }
-
-  /* Span helpers */
-  .span-3 { grid-column: span 3; }
-  .span-4 { grid-column: span 4; }
-  .span-5 { grid-column: span 5; }
-  .span-6 { grid-column: span 6; }
-  .span-7 { grid-column: span 7; }
-  .span-8 { grid-column: span 8; }
-  .span-12 { grid-column: span 12; }
-  @media (max-width: 1023px) {
-    .span-3, .span-4, .span-5 { grid-column: span 3; }
-    .span-7, .span-8 { grid-column: span 6; }
-    .span-12 { grid-column: span 6; }
-  }
-  @media (max-width: 639px) {
-    .span-3, .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 { grid-column: span 2; }
-    .stat-tile { grid-column: span 1; }
-  }
-
-  /* Tile label */
-  .tile-label {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-  }
-  .tile-icon {
-    width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-  }
-  .tile-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.75); letter-spacing: 0.01em; }
-
-  /* Stat mini tile */
-  .stat-tile .stat-value { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
-  .stat-tile .stat-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.08em; }
-
-  /* Invite urgent card */
-  .invite-card {
-    background: linear-gradient(135deg, rgba(234,179,8,0.04) 0%, rgba(234,179,8,0.01) 100%);
-    border-color: rgba(234,179,8,0.15);
-  }
-  .invite-card:hover { border-color: rgba(234,179,8,0.3); }
-
-  /* Match result badges */
-  .badge-win  { background: rgba(16,185,129,0.15); color: #34d399; }
-  .badge-loss { background: rgba(239,68,68,0.15); color: #f87171; }
-  .badge-draw { background: rgba(234,179,8,0.15); color: #fbbf24; }
-
-  /* Quick action pill */
-  .qa-pill {
-    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-    border-radius: 10px; background: var(--b-surface); border: 1px solid var(--b-border);
-    transition: all 0.25s; text-decoration: none; font-size: 12px; font-weight: 600;
-    color: rgba(255,255,255,0.55); white-space: nowrap;
-  }
-  .qa-pill:hover { border-color: rgba(6,182,212,0.3); color: #06b6d4; background: rgba(6,182,212,0.05); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6,182,212,0.1); }
-
-  /* Scrollbar */
-  .dash-scroll::-webkit-scrollbar { width: 4px; }
-  .dash-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-  .dash-scroll::-webkit-scrollbar-track { background: transparent; }
-
-  /* Fade-in */
-  @keyframes bfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .bf { animation: bfade 0.4s ease-out both; }
-  .bf1 { animation-delay: 30ms; } .bf2 { animation-delay: 60ms; }
-  .bf3 { animation-delay: 90ms; } .bf4 { animation-delay: 120ms; }
-  .bf5 { animation-delay: 150ms; } .bf6 { animation-delay: 180ms; }
-  .bf7 { animation-delay: 210ms; } .bf8 { animation-delay: 240ms; }
-
-  /* Empty state */
-  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; min-height: 120px; }
-
-  /* Ambient header glow */
-  .dash-ambient { position: relative; }
-  .dash-ambient::before {
+  .premium-card::before {
     content: '';
-    position: absolute; top: -100px; left: 30%; width: 40%; height: 250px;
-    background: radial-gradient(ellipse, rgba(6,182,212,.04) 0%, transparent 70%);
-    pointer-events: none; z-index: 0;
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    z-index: 10;
   }
+  .premium-card:hover {
+    border-color: var(--dc-border-hover);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), var(--shadow-premium-hover);
+  }
+
+  .ambient-mesh {
+    position: fixed; inset: 0; z-index: -1;
+    background-color: #000000;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(244, 63, 94, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
+    background-attachment: fixed;
+    pointer-events: none;
+  }
+
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    color: #F8F8F8; font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .game-icon { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
+  .game-icon-sm { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; }
+  .game-icon-lg { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
+
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+
+  .tournament-card-bg {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .tournament-card-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 50%, rgba(0,0,0,0.72) 100%);
+    z-index: 1;
+  }
+
+  .rarity-common { color: #9CA3AF; }
+  .rarity-rare { color: #3B82F6; }
+  .rarity-epic { color: #8B5CF6; }
+  .rarity-legendary { color: #F59E0B; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-[#020005] via-[#080818] to-[#020005] dash-ambient">
-  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+<div x-data="dashboardEngine()" x-cloak class="text-dc-textMain font-sans overflow-x-hidden">
 
-    {# HEADER #}
-    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 bf">
-      <div class="flex items-center gap-4">
-        {% if profile.avatar_url %}
-          <img src="{{ profile.avatar_url }}" alt="" class="w-12 h-12 rounded-2xl object-cover border-2 border-white/10 shadow-lg">
-        {% else %}
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 grid place-items-center border-2 border-white/10">
-            <span class="text-lg font-bold text-cyan-300">{{ profile.display_name|truncatechars:1 }}</span>
-          </div>
-        {% endif %}
+  <div class="ambient-mesh"></div>
+
+  <div class="pt-4 sm:pt-6 pb-24 md:pb-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+
+    {# ═══════════════ HEADER ═══════════════ #}
+    <header class="mb-6 sm:mb-8 animate-slide-up stagger-1">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 class="text-xl lg:text-2xl font-bold text-white tracking-tight">
-            Welcome back, <span class="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{{ profile.display_name }}</span>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2">
+            Command Center
           </h1>
-          <p class="text-xs text-white/35 mt-0.5">@{{ request.user.username }}</p>
+          <p class="text-dc-textMuted text-sm sm:text-base font-medium">Overview of your competitive infrastructure and assets.</p>
         </div>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <a href="/notifications/" class="qa-pill">
-          <i class="fa-regular fa-bell text-[10px]"></i>
-          {% if unread_notif_count > 0 %}
-            <span class="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 min-w-[16px] text-center leading-[16px]">{{ unread_notif_count }}</span>
-          {% endif %}
-        </a>
-        <a href="/crownstore/" class="qa-pill"><i class="fa-solid fa-store text-[10px]"></i> Store</a>
-        <a href="{% url 'user_profile:settings' %}" class="qa-pill"><i class="fa-solid fa-gear text-[10px]"></i></a>
+
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <a :href="actionItems.length > 0 ? (actionItems[0].btnUrl || '/tournaments/') : '/tournaments/'" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform no-underline relative">
+            <template x-if="actionItems.length > 0">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-dc-warning animate-pulse"></i>
+                <span x-text="actionItems[0].title.length > 18 ? actionItems[0].title.substring(0,18) + '…' : actionItems[0].title"></span>
+                <span x-show="actionItems.length > 1" class="ml-0.5 w-4 h-4 bg-dc-danger rounded-full text-[9px] font-black flex items-center justify-center" x-text="actionItems.length"></span>
+              </span>
+            </template>
+            <template x-if="actionItems.length === 0">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-compass text-dc-accent"></i> Explore Events
+              </span>
+            </template>
+          </a>
+          <a href="{% url 'tournaments:my_tournaments' %}" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform no-underline">
+            <i class="fa-solid fa-calendar-check text-dc-accent"></i> My Tournaments
+          </a>
+          <button @click="showLFT = !showLFT" class="btn-glass px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm active:scale-[0.98] transition-transform relative">
+            <i class="fa-solid fa-user-tag text-purple-400"></i> LFT / LFP
+            <span x-show="lfpPositions.length > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-dc-accent rounded-full text-[10px] font-bold flex items-center justify-center" x-text="lfpPositions.length"></span>
+          </button>
+          <a href="{% url 'organizations:team_create' %}" class="bg-white text-black hover:bg-gray-200 px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2 no-underline">
+            <i class="fa-solid fa-plus"></i> New Team
+          </a>
+        </div>
       </div>
     </header>
 
-    {# PENDING INVITES BANNER #}
-    {% if pending_invites %}
-    <div class="mb-5 bf bf1">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="tile-icon bg-amber-500/15"><i class="fa-solid fa-envelope-open-text text-amber-400 text-[10px]"></i></div>
-        <span class="tile-title text-amber-300">Pending Invites</span>
-        <span class="bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-full px-1.5 py-0.5">{{ invite_count }}</span>
+    {# ═══════════════ LFT / LFP PANEL (slide-down) ═══════════════ #}
+    <div x-show="showLFT" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-4" class="mb-6 premium-card p-6 animate-slide-up">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-bullhorn text-purple-400"></i> Recruitment Board
+        </h3>
+        <button @click="showLFT = false" class="text-dc-textMuted hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="flex gap-3 overflow-x-auto pb-2 dash-scroll">
-        {% for inv in pending_invites %}
-        <div id="dash-invite-{{ inv.id }}" class="bt invite-card p-4 min-w-[260px] max-w-[300px] flex-shrink-0">
-          <div class="flex items-center gap-3 mb-3">
-            {% if inv.team_logo %}
-              <img src="{{ inv.team_logo }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-amber-500/20">
-            {% else %}
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 grid place-items-center border border-amber-500/20">
-                <i class="fa-solid fa-users text-amber-300 text-xs"></i>
-              </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-              <a href="/teams/{{ inv.team_slug }}/" class="text-sm font-bold text-white hover:text-amber-300 transition truncate block">{{ inv.team_name }}</a>
-              <div class="text-[10px] text-white/40">
-                by <span class="text-amber-300/80">{{ inv.inviter }}</span> · <span class="text-cyan-400/70">{{ inv.role }}</span>
-              </div>
-            </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {# LFT Status #}
+        <div>
+          <h4 class="text-xs font-bold text-dc-textMuted uppercase tracking-wider mb-3">Your LFT Status</h4>
+          <div class="flex gap-2 mb-4">
+            <button @click="user.lftStatus = 'NOT_LOOKING'" :class="user.lftStatus === 'NOT_LOOKING' ? 'bg-white/[0.1] text-white border-white/[0.2]' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Not Looking</button>
+            <button @click="user.lftStatus = 'LFT_TEAM'" :class="user.lftStatus === 'LFT_TEAM' ? 'bg-dc-success/20 text-dc-success border-dc-success/40' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Looking for Team</button>
+            <button @click="user.lftStatus = 'LFT_SCRIMS'" :class="user.lftStatus === 'LFT_SCRIMS' ? 'bg-dc-warning/20 text-dc-warning border-dc-warning/40' : 'text-dc-textMuted border-white/[0.06]'" class="px-3 py-2 rounded-lg text-xs font-bold border transition-all">Looking for Scrims</button>
           </div>
-          <div class="flex gap-2">
-            <button onclick="dashInvite({{ inv.id }},'accept')"
-                    class="flex-1 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs font-bold hover:bg-emerald-500/25 transition flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-check text-[10px]"></i> Accept
-            </button>
-            <button onclick="dashInvite({{ inv.id }},'decline')"
-                    class="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-white/35 text-xs font-bold hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-xmark text-[10px]"></i> Decline
-            </button>
+          <p class="text-[11px] text-dc-textMuted">Toggle your availability. Teams searching for players will see your profile.</p>
+        </div>
+
+        {# Open Positions (LFP) #}
+        <div>
+          <h4 class="text-xs font-bold text-dc-textMuted uppercase tracking-wider mb-3">Your Open Positions</h4>
+          <template x-if="lfpPositions.length === 0">
+            <div class="p-4 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08] text-center">
+              <p class="text-xs text-dc-textMuted mb-2">No open recruitment positions.</p>
+              <p class="text-[10px] text-dc-textMuted">Go to your Team Hub to create recruitment listings.</p>
+            </div>
+          </template>
+          <div class="space-y-2">
+            <template x-for="pos in lfpPositions" :key="pos.id">
+              <a :href="'/teams/' + pos.teamSlug + '/'" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all no-underline group">
+                <img :src="pos.teamLogo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(pos.team) + '&background=222&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" :alt="pos.team">
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-bold text-white truncate group-hover:text-dc-accent transition-colors" x-text="pos.title"></div>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <img x-show="pos.gameIcon" :src="pos.gameIcon" class="game-icon-sm">
+                    <span class="text-[10px] text-dc-textMuted" x-text="pos.team + ' · ' + pos.role"></span>
+                  </div>
+                </div>
+                <i class="fa-solid fa-arrow-right text-xs text-dc-textMuted group-hover:text-white transition-colors"></i>
+              </a>
+            </template>
           </div>
         </div>
-        {% endfor %}
       </div>
     </div>
-    {% endif %}
 
-    {# BENTO GRID #}
-    <div class="bento-grid">
+    {# ═══════════════ SMART ACTION DECK (fully dynamic) ═══════════════ #}
+    <div class="mb-8 animate-slide-up stagger-2" x-show="actionItems.length > 0" x-transition>
+      <div class="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+        <template x-for="item in actionItems" :key="item.id">
+          <div class="snap-start shrink-0 w-[340px] sm:w-[400px] premium-card p-5 relative group"
+               :class="{
+                 'border-dc-danger/30 hover:border-dc-danger/60': item.type === 'danger',
+                 'border-dc-warning/30 hover:border-dc-warning/60': item.type === 'warning',
+                 'border-dc-success/30 hover:border-dc-success/60': item.type === 'success',
+                 'border-dc-accent/30 hover:border-dc-accent/60': item.type === 'info'
+               }">
+            <div class="absolute inset-0 opacity-[0.03] pointer-events-none transition-opacity group-hover:opacity-[0.08]"
+                 :class="{ 'bg-dc-danger': item.type === 'danger', 'bg-dc-warning': item.type === 'warning', 'bg-dc-success': item.type === 'success', 'bg-dc-accent': item.type === 'info' }"></div>
 
-      {# ── ROW 1: STAT TILES (4 mini stats) ── #}
-      <div class="span-3 bt p-5 stat-tile bf bf1 glow-cyan">
-        <div class="flex items-center justify-between mb-3">
-          <div class="tile-icon bg-cyan-500/10"><i class="fa-solid fa-users text-cyan-400 text-[11px]"></i></div>
-        </div>
-        <div class="stat-value">{{ team_count }}</div>
-        <div class="stat-label">Teams</div>
-      </div>
-
-      <div class="span-3 bt p-5 stat-tile bf bf2 glow-green">
-        <div class="flex items-center justify-between mb-3">
-          <div class="tile-icon bg-emerald-500/10"><i class="fa-solid fa-trophy text-emerald-400 text-[11px]"></i></div>
-        </div>
-        <div class="stat-value text-emerald-400">{{ match_stats.win_rate }}%</div>
-        <div class="stat-label">Win Rate</div>
-      </div>
-
-      <div class="span-3 bt p-5 stat-tile bf bf3 glow-purple">
-        <div class="flex items-center justify-between mb-3">
-          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-crown text-purple-400 text-[11px]"></i></div>
-        </div>
-        <div class="stat-value">{{ tournament_count }}</div>
-        <div class="stat-label">Tournaments</div>
-      </div>
-
-      <div class="span-3 bt p-5 stat-tile bf bf4 glow-amber">
-        <div class="flex items-center justify-between mb-3">
-          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-coins text-amber-400 text-[11px]"></i></div>
-        </div>
-        <div class="stat-value text-amber-400">{{ wallet.balance|floatformat:0 }}</div>
-        <div class="stat-label">DC Coins</div>
-      </div>
-
-      {# ── ROW 2: MY TEAMS (wide) + PROFILE CARD (narrow) ── #}
-      <div class="span-8 bt p-5 bf bf5 glow-cyan">
-        <div class="tile-label">
-          <div class="tile-icon bg-cyan-500/10"><i class="fa-solid fa-users text-cyan-400 text-[11px]"></i></div>
-          <span class="tile-title">My Teams</span>
-          <a href="/teams/" class="ml-auto text-[10px] text-cyan-400/50 hover:text-cyan-300 transition font-semibold">View All →</a>
-        </div>
-        {% if my_teams %}
-        <div class="grid sm:grid-cols-2 gap-2.5">
-          {% for team in my_teams %}
-          <a href="/teams/{{ team.slug }}/" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all group relative">
-            {% if team.pending_jr_count > 0 %}
-            <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white grid place-items-center ring-2 ring-[#0a0a0f]">{{ team.pending_jr_count }}</span>
-            {% endif %}
-            {% if team.logo_url %}
-              <img src="{{ team.logo_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-cyan-500/30 transition">
-            {% else %}
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/15 to-blue-600/15 grid place-items-center border border-white/10 group-hover:border-cyan-500/30 transition">
-                <span class="text-xs font-bold text-cyan-300">{{ team.name|truncatechars:2 }}</span>
+            <div class="flex justify-between items-start mb-3 relative z-10">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner-light"
+                     :class="{
+                       'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': item.type === 'danger',
+                       'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': item.type === 'warning',
+                       'bg-dc-success/10 text-dc-success border border-dc-success/20': item.type === 'success',
+                       'bg-dc-accent/10 text-dc-accent border border-dc-accent/20': item.type === 'info'
+                     }">
+                  <i :class="item.icon"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-white text-sm" x-text="item.title"></h3>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <img x-show="item.gameIcon" :src="item.gameIcon" class="game-icon-sm">
+                    <span class="text-[10px] font-mono text-dc-textMuted uppercase tracking-wider" x-text="item.game"></span>
+                  </div>
+                </div>
               </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-bold text-white group-hover:text-cyan-300 transition truncate">
-                {{ team.name }}
-                {% if team.tag %}<span class="text-white/20 text-[10px] ml-0.5">[{{ team.tag }}]</span>{% endif %}
-              </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-[10px]">
-                <span class="text-cyan-400/60 font-semibold">{{ team.role }}</span>
-                {% if team.game_name %}<span class="text-white/15">·</span><span class="text-white/35">{{ team.game_name }}</span>{% endif %}
-                <span class="text-white/15">·</span>
-                <span class="text-white/30"><i class="fa-solid fa-users text-[8px]"></i> {{ team.member_count }}</span>
-              </div>
+              <button @click="dismissAction(item.id)" class="text-dc-textMuted hover:text-white transition-colors p-1">
+                <i class="fa-solid fa-xmark text-xs"></i>
+              </button>
             </div>
-            <i class="fa-solid fa-chevron-right text-[10px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty">
-          <i class="fa-solid fa-users text-lg text-cyan-400/20 mb-2"></i>
-          <p class="text-white/45 text-sm font-semibold mb-1">No teams yet</p>
-          <p class="text-[10px] text-white/30 mb-3">Create or join a team to start competing.</p>
-          <a href="/teams/create/" class="qa-pill"><i class="fa-solid fa-plus text-[10px]"></i> Create Team</a>
-        </div>
-        {% endif %}
-      </div>
 
-      <div class="span-4 bt p-5 bf bf5">
-        <div class="tile-label">
-          <div class="tile-icon bg-indigo-500/10"><i class="fa-solid fa-user text-indigo-400 text-[11px]"></i></div>
-          <span class="tile-title">Profile</span>
-        </div>
-        <div class="flex items-center gap-3 mb-4">
-          {% if profile.avatar_url %}
-            <img src="{{ profile.avatar_url }}" alt="" class="w-14 h-14 rounded-2xl object-cover border border-white/10">
-          {% else %}
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-blue-600/15 grid place-items-center border border-white/10">
-              <span class="text-lg font-bold text-cyan-300">{{ profile.display_name|truncatechars:1 }}</span>
-            </div>
-          {% endif %}
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-bold text-white truncate">{{ profile.display_name }}</div>
-            <div class="text-[10px] text-white/30">@{{ request.user.username }}</div>
-          </div>
-        </div>
-        <div class="grid grid-cols-3 gap-2 text-center mb-3">
-          <div class="p-2.5 rounded-lg bg-white/[0.02]">
-            <div class="text-sm font-bold text-white">{{ team_count }}</div>
-            <div class="text-[10px] text-white/30 font-semibold">Teams</div>
-          </div>
-          <div class="p-2.5 rounded-lg bg-white/[0.02]">
-            <div class="text-sm font-bold text-white">{{ social_stats.followers }}</div>
-            <div class="text-[10px] text-white/30 font-semibold">Followers</div>
-          </div>
-          <div class="p-2.5 rounded-lg bg-white/[0.02]">
-            <div class="text-sm font-bold text-white">{{ social_stats.following }}</div>
-            <div class="text-[10px] text-white/30 font-semibold">Following</div>
-          </div>
-        </div>
-        {% if profile.lft_status %}
-        <div class="px-3 py-2 rounded-lg bg-emerald-500/8 border border-emerald-500/15 text-center">
-          <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-signal mr-1"></i> LFT: {{ profile.lft_status }}</span>
-        </div>
-        {% endif %}
-        <a href="{% url 'user_profile:public_profile' request.user.username %}"
-           class="mt-3 block w-full text-center py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] text-white/40 font-semibold hover:text-white hover:border-white/15 transition">
-          View Public Profile →
-        </a>
-      </div>
+            <p class="text-xs text-gray-400 mb-4 relative z-10 leading-relaxed" x-text="item.description"></p>
 
-      {# ── ROW 3: MATCH RECORD (small) + RECENT MATCHES (medium) + WALLET (small) ── #}
-      <div class="span-3 bt p-5 bf bf6 glow-blue">
-        <div class="tile-label">
-          <div class="tile-icon bg-blue-500/10"><i class="fa-solid fa-gamepad text-blue-400 text-[11px]"></i></div>
-          <span class="tile-title">Record</span>
-        </div>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] text-white/40 font-semibold">Wins</span>
-            <span class="text-lg font-black text-emerald-400">{{ match_stats.wins }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] text-white/40 font-semibold">Losses</span>
-            <span class="text-lg font-black text-red-400">{{ match_stats.losses }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] text-white/40 font-semibold">Draws</span>
-            <span class="text-lg font-black text-amber-400">{{ match_stats.draws }}</span>
-          </div>
-          <div class="border-t border-white/5 pt-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] text-white/40 font-semibold">Total</span>
-              <span class="text-sm font-bold text-white">{{ match_stats.total }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="span-5 bt p-5 bf bf6 glow-blue">
-        <div class="tile-label">
-          <div class="tile-icon bg-blue-500/10"><i class="fa-solid fa-swords text-blue-400 text-[11px]"></i></div>
-          <span class="tile-title">Recent Matches</span>
-          <a href="/competition/" class="ml-auto text-[10px] text-blue-400/50 hover:text-blue-300 transition font-semibold">All →</a>
-        </div>
-        {% if recent_matches %}
-        <div class="space-y-2 max-h-[200px] overflow-y-auto dash-scroll pr-1">
-          {% for m in recent_matches %}
-          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03]">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 text-xs">
-                <span class="font-bold text-white truncate">{{ m.team1_name }}</span>
-                {% if m.score_team1 is not None and m.score_team2 is not None %}
-                  <span class="text-white/50 font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5">{{ m.score_team1 }}-{{ m.score_team2 }}</span>
-                {% else %}
-                  <span class="text-white/15 text-[10px]">vs</span>
-                {% endif %}
-                <span class="font-bold text-white truncate">{{ m.team2_name }}</span>
-              </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-[10px] text-white/30">
-                {% if m.game_name %}<span>{{ m.game_name }}</span>{% endif %}
-                <span>{{ m.created_at|timesince }} ago</span>
-              </div>
-            </div>
-            {% if m.result %}
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {% if m.result == 'WIN' %}badge-win{% elif m.result == 'LOSS' %}badge-loss{% else %}badge-draw{% endif %}">{{ m.result }}</span>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty" style="min-height:100px;">
-          <i class="fa-solid fa-gamepad text-base text-blue-400/20 mb-1.5"></i>
-          <p class="text-white/40 text-xs font-medium">No matches yet</p>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="span-4 bt p-5 bf bf6 glow-amber">
-        <div class="tile-label">
-          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-wallet text-amber-400 text-[11px]"></i></div>
-          <span class="tile-title">Wallet</span>
-        </div>
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <div class="text-2xl font-black text-white">{{ wallet.balance|floatformat:0 }} <span class="text-sm text-amber-400 font-bold">DC</span></div>
-            <div class="text-[10px] text-white/30">DeltaCrown Coins</div>
-          </div>
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/15 to-orange-500/15 grid place-items-center">
-            <i class="fa-solid fa-coins text-amber-400 text-sm"></i>
-          </div>
-        </div>
-        {% if wallet.recent_txns %}
-        <div class="space-y-1.5 border-t border-white/5 pt-3">
-          {% for txn in wallet.recent_txns|slice:":3" %}
-          <div class="flex items-center justify-between text-[10px]">
-            <span class="text-white/40 truncate flex-1 mr-2">{{ txn.reason }}</span>
-            <span class="font-bold {% if txn.amount > 0 %}text-emerald-400{% else %}text-red-400{% endif %} flex-shrink-0">
-              {% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }}
-            </span>
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-
-      {# ── NEXT MATCH CTA (appears if user has an upcoming/live match) ── #}
-      {% if next_match_info %}
-      <div class="span-12 bt p-4 {% if next_match_info.is_live %}glow-rose{% else %}glow-cyan{% endif %}"
-           style="{% if next_match_info.is_live %}border-color: rgba(239,68,68,0.25); background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.02) 100%);{% else %}border-color: rgba(6,182,212,0.15);{% endif %}">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl {% if next_match_info.is_live %}bg-red-500/15{% else %}bg-cyan-500/10{% endif %} grid place-items-center flex-shrink-0">
-              {% if next_match_info.is_live %}
-              <i class="fa-solid fa-bolt text-red-400 text-sm animate-pulse"></i>
-              {% else %}
-              <i class="fa-solid fa-swords text-cyan-400 text-sm"></i>
-              {% endif %}
-            </div>
-            <div>
-              <div class="text-xs font-bold text-white">
-                {% if next_match_info.is_live %}🔴 Your match is LIVE!{% else %}⚔️ Next Match{% endif %}
-              </div>
-              <div class="text-[10px] text-white/40">
-                vs <span class="text-white/70 font-semibold">{{ next_match_info.opponent_name|default:"TBD" }}</span>
-                <span class="text-white/15 mx-1">·</span>
-                {{ next_match_info.tournament_name }}
-                {% if next_match_info.scheduled_time and not next_match_info.is_live %}
-                <span class="text-white/15 mx-1">·</span>
-                {{ next_match_info.scheduled_time|date:"M d, g:i A" }}
-                {% endif %}
-              </div>
-            </div>
-          </div>
-          <a href="/tournaments/{{ next_match_info.tournament_slug }}/matches/{{ next_match_info.match_id }}/room/"
-             class="px-4 py-2 rounded-lg {% if next_match_info.is_live %}bg-red-500 hover:bg-red-600{% else %}bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/20{% endif %} text-white text-xs font-bold transition flex items-center gap-1.5 no-underline flex-shrink-0">
-            {% if next_match_info.is_live %}<i class="fa-solid fa-arrow-right"></i> Enter Match Room{% else %}<i class="fa-solid fa-door-open"></i> Match Room{% endif %}
-          </a>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ── ROW 4: TOURNAMENTS (wide) + ORGANIZATIONS (medium) ── #}
-      <div class="span-7 bt p-5 bf bf7 glow-purple">
-        <div class="tile-label">
-          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-crown text-purple-400 text-[11px]"></i></div>
-          <span class="tile-title">Tournament Activity</span>
-          <a href="/tournaments/" class="ml-auto text-[10px] text-purple-400/50 hover:text-purple-300 transition font-semibold">Browse →</a>
-        </div>
-        {% if active_tournaments %}
-        <div class="grid sm:grid-cols-2 gap-2.5 max-h-[210px] overflow-y-auto dash-scroll pr-1">
-          {% for t in active_tournaments %}
-          <a href="{% if t.is_live %}/tournaments/{{ t.slug }}/hub/{% else %}/tournaments/{{ t.slug }}/{% endif %}" class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-purple-500/15 transition block no-underline group">
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="text-xs font-bold text-white group-hover:text-purple-300 transition truncate flex-1 mr-2">{{ t.name }}</div>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0
-                {% if t.is_live %}bg-red-500/15 text-red-400 animate-pulse
-                {% elif t.status == 'registration_open' %}bg-cyan-500/15 text-cyan-400
-                {% elif t.status == 'completed' %}bg-emerald-500/15 text-emerald-400
-                {% else %}bg-white/5 text-white/30{% endif %}">
-                {% if t.is_live %}LIVE{% else %}{{ t.status|upper|truncatechars:12 }}{% endif %}
+            <div class="flex items-center justify-between relative z-10 border-t border-white/[0.05] pt-4">
+              <span class="text-[11px] font-mono font-medium"
+                    :class="{ 'text-dc-danger': item.type === 'danger', 'text-dc-warning': item.type === 'warning', 'text-dc-success': item.type === 'success', 'text-dc-accent': item.type === 'info' }">
+                <i class="fa-regular fa-clock mr-1"></i> <span x-text="item.timeRemaining"></span>
               </span>
-            </div>
-              <div class="flex items-center gap-2 text-[10px] text-white/30">
-              {% if t.game_icon %}<img src="{{ t.game_icon }}" alt="" class="w-3.5 h-3.5 rounded object-cover">{% endif %}
-              {% if t.game_name %}<span>{{ t.game_name }}</span>{% endif %}
-              {% if t.prize_pool %}<span class="text-amber-400/60"><i class="fa-solid fa-coins"></i> {{ t.prize_pool }}</span>{% endif %}
-              {% if t.tournament_start %}<span>{{ t.tournament_start|date:"M d" }}</span>{% endif %}
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty" style="min-height:100px;">
-          <i class="fa-solid fa-crown text-base text-purple-400/20 mb-1.5"></i>
-          <p class="text-white/40 text-xs font-medium">No tournament activity</p>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="span-5 bt p-5 bf bf7 glow-indigo">
-        <div class="tile-label">
-          <div class="tile-icon bg-indigo-500/10"><i class="fa-solid fa-building text-indigo-400 text-[11px]"></i></div>
-          <span class="tile-title">Organizations</span>
-        </div>
-        {% if my_organizations %}
-        <div class="space-y-2.5">
-          {% for org in my_organizations %}
-          <a href="/orgs/{{ org.slug }}/" class="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-indigo-500/20 transition group block">
-            {% if org.logo_url %}
-              <img src="{{ org.logo_url }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-white/10">
-            {% else %}
-              <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/15 grid place-items-center border border-white/10">
-                <span class="text-[10px] font-bold text-indigo-300">{{ org.name|truncatechars:2 }}</span>
-              </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">
-                {{ org.name }}
-                {% if org.is_verified %}<i class="fa-solid fa-circle-check text-[10px] text-blue-400 ml-0.5"></i>{% endif %}
-              </div>
-              <div class="text-[10px] text-white/30">
-                <span class="text-indigo-400/60 font-semibold">{{ org.role }}</span>
-                <span class="text-white/15">·</span>
-                <span>{{ org.team_count }} team{{ org.team_count|pluralize }}</span>
-              </div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty" style="min-height:100px;">
-          <i class="fa-solid fa-building text-base text-indigo-400/20 mb-1.5"></i>
-          <p class="text-white/40 text-xs font-medium">No organization</p>
-          <p class="text-[10px] text-white/25 mt-0.5">Join or create an organization</p>
-        </div>
-        {% endif %}
-      </div>
-
-      {# ── ROW 5: NOTIFICATIONS (medium) + LEADERBOARD + BADGES ── #}
-      <div class="span-4 bt p-5 bf bf8">
-        <div class="tile-label">
-          <div class="tile-icon bg-rose-500/10"><i class="fa-solid fa-bell text-rose-400 text-[11px]"></i></div>
-          <span class="tile-title">Notifications</span>
-          <a href="/notifications/" class="ml-auto text-[10px] text-rose-400/50 hover:text-rose-300 transition font-semibold">All →</a>
-        </div>
-        {% if recent_notifications %}
-        <div class="space-y-1.5 max-h-[200px] overflow-y-auto dash-scroll pr-1">
-          {% for n in recent_notifications|slice:":6" %}
-          <a href="{{ n.url|default:'/notifications/' }}"
-             class="flex items-start gap-2 p-2 rounded-lg hover:bg-white/[0.03] transition group block {% if not n.is_read %}border-l-2 border-l-cyan-400{% endif %}">
-            <div class="w-6 h-6 rounded-md grid place-items-center shrink-0 mt-0.5
-              {% if n.type == 'invite_sent' %}bg-amber-500/10{% elif n.type == 'invite_accepted' %}bg-emerald-500/10{% elif n.type == 'match_result' %}bg-blue-500/10{% else %}bg-white/5{% endif %}">
-              {% if n.type == 'invite_sent' %}<i class="fa-solid fa-envelope text-amber-400 text-[8px]"></i>
-              {% elif n.type == 'invite_accepted' %}<i class="fa-solid fa-user-check text-emerald-400 text-[8px]"></i>
-              {% elif n.type == 'match_result' %}<i class="fa-solid fa-flag-checkered text-blue-400 text-[8px]"></i>
-              {% else %}<i class="fa-solid fa-bell text-white/20 text-[8px]"></i>{% endif %}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-[11px] font-semibold text-white/60 group-hover:text-white/90 transition truncate">{{ n.title }}</div>
-              <div class="text-[10px] text-white/25 mt-0.5">{{ n.created_at|timesince }} ago</div>
-            </div>
-            {% if not n.is_read %}<span class="w-1.5 h-1.5 bg-cyan-400 rounded-full shrink-0 mt-2"></span>{% endif %}
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty" style="min-height:80px;">
-          <p class="text-[10px] text-white/30">No notifications</p>
-        </div>
-        {% endif %}
-      </div>
-
-      {% if leaderboard_data %}
-      <div class="span-4 bt p-5 bf bf8 glow-amber">
-        <div class="tile-label">
-          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-ranking-star text-amber-400 text-[11px]"></i></div>
-          <span class="tile-title">Rankings</span>
-        </div>
-        <div class="space-y-2.5">
-          {% for lb in leaderboard_data %}
-          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
-            <div class="text-2xl font-black text-amber-400">#{{ lb.rank }}</div>
-            <div class="text-[10px] text-white/45 font-semibold">{{ lb.leaderboard_type|title }}</div>
-            {% if lb.game_name %}<div class="text-[10px] text-white/15">{{ lb.game_name }}</div>{% endif %}
-            <div class="flex justify-center gap-2 mt-1.5 text-[10px]">
-              <span class="text-white/35">{{ lb.points }} pts</span>
-              <span class="text-emerald-400/50">{{ lb.wins }}W</span>
-              <span class="text-red-400/50">{{ lb.losses }}L</span>
+              <button @click="navigateAction(item)" class="px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shadow-premium"
+                      :class="{
+                        'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger': item.type === 'danger',
+                        'bg-dc-warning hover:bg-amber-600 text-black shadow-glow-warning': item.type === 'warning',
+                        'bg-dc-success/20 text-dc-success hover:bg-dc-success hover:text-white border border-dc-success/30': item.type === 'success',
+                        'bg-dc-accent/20 text-dc-accent hover:bg-dc-accent hover:text-white border border-dc-accent/30': item.type === 'info'
+                      }">
+                <span x-text="item.btnText"></span> <i class="fa-solid fa-arrow-right ml-1"></i>
+              </button>
             </div>
           </div>
-          {% endfor %}
-        </div>
+        </template>
       </div>
-      {% endif %}
+    </div>
 
-      {% if badges %}
-      <div class="{% if leaderboard_data %}span-4{% else %}span-8{% endif %} bt p-5 bf bf8">
-        <div class="tile-label">
-          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-medal text-purple-400 text-[11px]"></i></div>
-          <span class="tile-title">Badges</span>
-        </div>
-        <div class="grid grid-cols-3 gap-2">
-          {% for b in badges %}
-          <div class="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center group" title="{{ b.description }}">
-            {% if b.icon %}
-              <img src="{{ b.icon }}" alt="" class="w-7 h-7 mx-auto mb-1 group-hover:scale-110 transition">
-            {% else %}
-              <div class="w-7 h-7 mx-auto mb-1 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/15 grid place-items-center">
-                <i class="fa-solid fa-medal text-indigo-400 text-[10px]"></i>
+    {# ═══════════════ MAIN 12-COL GRID ═══════════════ #}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      {# ── LEFT COLUMN (8 cols) ── #}
+      <div class="lg:col-span-8 space-y-6">
+
+        {# ── Tournament Control (redesigned with images) ── #}
+        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-3">
+          <div class="flex justify-between items-end mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-dc-warning"></i> Tournament Control
+              </h2>
+              <p class="text-sm text-dc-textMuted mt-1">Your active brackets and upcoming matches.</p>
+            </div>
+            <div class="flex gap-2">
+              <a href="{% url 'tournaments:my_tournaments' %}" class="text-xs font-bold text-dc-textMuted hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1 no-underline">
+                My Events <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div x-show="tournaments.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+              <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
+                <i class="fa-solid fa-trophy text-2xl text-dc-textMuted"></i>
               </div>
-            {% endif %}
-            <div class="text-[10px] text-white/40 font-semibold truncate">{{ b.name }}</div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
-      {# ── ROW 6: QUICK ACTIONS (full width) ── #}
-      <div class="span-12 bf bf8">
-        <div class="tile-label mb-0">
-          <div class="tile-icon bg-white/5"><i class="fa-solid fa-bolt text-cyan-400 text-[11px]"></i></div>
-          <span class="tile-title">Quick Actions</span>
-        </div>
-        <div class="flex gap-2 flex-wrap mt-3">
-          <a href="/teams/create/" class="qa-pill"><i class="fa-solid fa-plus text-cyan-400 text-[10px]"></i> Create Team</a>
-          <a href="/teams/" class="qa-pill"><i class="fa-solid fa-users text-blue-400 text-[10px]"></i> My Teams</a>
-          <a href="/tournaments/" class="qa-pill"><i class="fa-solid fa-crown text-purple-400 text-[10px]"></i> Tournaments</a>
-          <a href="/competition/" class="qa-pill"><i class="fa-solid fa-swords text-emerald-400 text-[10px]"></i> Report Match</a>
-          <a href="/crownstore/" class="qa-pill"><i class="fa-solid fa-store text-amber-400 text-[10px]"></i> Crown Store</a>
-          <a href="/search/" class="qa-pill"><i class="fa-solid fa-magnifying-glass text-rose-400 text-[10px]"></i> Find Players</a>
-          <a href="/spectator/" class="qa-pill"><i class="fa-solid fa-eye text-white/30 text-[10px]"></i> Spectator</a>
-          <a href="{% url 'user_profile:public_profile' request.user.username %}" class="qa-pill"><i class="fa-solid fa-user text-indigo-400 text-[10px]"></i> My Profile</a>
-          <a href="{% url 'user_profile:settings' %}" class="qa-pill"><i class="fa-solid fa-gear text-white/30 text-[10px]"></i> Settings</a>
-        </div>
-      </div>
-
-      {# ── ROW 7: RECENT ORDERS (if any) ── #}
-      {% if recent_orders %}
-      <div class="span-12 bt p-5 bf bf8">
-        <div class="tile-label">
-          <div class="tile-icon bg-rose-500/10"><i class="fa-solid fa-bag-shopping text-rose-400 text-[11px]"></i></div>
-          <span class="tile-title">Recent Orders</span>
-          <a href="/crownstore/" class="ml-auto text-[10px] text-rose-400/50 hover:text-rose-300 transition font-semibold">Store →</a>
-        </div>
-        <div class="flex gap-3 overflow-x-auto dash-scroll pb-1">
-          {% for o in recent_orders %}
-          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] min-w-[180px] flex-shrink-0">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-semibold text-white/60">Order #{{ o.id }}</span>
-              <span class="text-sm font-bold text-white">{{ o.total|floatformat:0 }} DC</span>
+              <h4 class="font-bold text-white text-sm mb-1">No Active Tournaments</h4>
+              <p class="text-[11px] text-dc-textMuted mb-5 max-w-[240px]">You're not registered in any brackets yet. Join your first event.</p>
+              <a href="{% url 'tournaments:list' %}" class="bg-dc-accent hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl active:scale-[0.98] transition-all shadow-glow-accent no-underline">
+                <i class="fa-solid fa-search mr-2"></i> Discover Events
+              </a>
             </div>
-            <div class="flex items-center justify-between mt-1">
-              <span class="text-[10px] text-white/30">{{ o.created_at|timesince }} ago</span>
-              <span class="text-[10px] font-bold
-                {% if o.status == 'COMPLETED' %}text-emerald-400{% elif o.status == 'PENDING' %}text-amber-400{% else %}text-white/25{% endif %}">{{ o.status }}</span>
+
+            <template x-for="tourney in tournaments" :key="tourney.id">
+              <a :href="'/tournaments/' + tourney.slug + '/'" class="block rounded-2xl overflow-hidden transition-all group relative no-underline"
+                 :class="tourney.isLive ? 'ring-1 ring-dc-danger/50' : 'ring-1 ring-white/[0.06] hover:ring-white/[0.15]'">
+                <div class="tournament-card-bg flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6"
+                     :style="tourney.banner ? 'background-image: url(' + tourney.banner + ')' : 'background: linear-gradient(135deg, rgba(16,16,20,0.95), rgba(12,12,16,0.98))'">
+
+                  <div x-show="tourney.isLive" class="absolute inset-0 bg-dc-danger/5 animate-pulse-slow pointer-events-none z-[2]"></div>
+
+                  <div class="relative z-10 flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                      <span x-show="tourney.isLive" class="bg-dc-danger text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-glow-danger flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live
+                      </span>
+                      <span x-show="!tourney.isLive" class="bg-white/[0.1] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest" x-text="tourney.status"></span>
+                      <span class="flex items-center gap-1.5 text-[10px] font-mono text-dc-textMuted">
+                        <img x-show="tourney.gameIcon" :src="tourney.gameIcon" class="game-icon-sm">
+                        <span x-text="tourney.game"></span>
+                      </span>
+                    </div>
+                    <h3 class="font-bold text-white text-lg group-hover:text-gray-200 transition-colors truncate" x-text="tourney.name"></h3>
+                    <div class="flex items-center gap-3 mt-2 text-xs flex-wrap">
+                      <span class="text-gray-400 font-medium"><i class="fa-solid fa-sitemap text-dc-textMuted mr-1"></i> <span x-text="tourney.format"></span></span>
+                      <span class="w-1 h-1 bg-white/[0.1] rounded-full"></span>
+                      <span class="text-dc-warning font-bold"><i class="fa-solid fa-coins mr-1"></i> <span x-text="tourney.prizePool"></span></span>
+                      <template x-if="tourney.startDate">
+                        <span class="text-gray-400 font-medium"><i class="fa-regular fa-clock mr-1"></i> <span x-text="tourney.startDate"></span></span>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div class="relative z-10 flex items-center gap-4 border-t sm:border-t-0 sm:border-l border-white/[0.08] pt-4 sm:pt-0 sm:pl-6 shrink-0">
+                    <div class="text-left sm:text-right">
+                      <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Opponent</div>
+                      <div class="text-sm font-bold text-white font-mono" x-text="tourney.opponent"></div>
+                    </div>
+                    <div class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-premium shrink-0"
+                       :class="tourney.isLive ? 'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger' : 'bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white'">
+                      <span x-text="tourney.isLive ? 'Enter Room' : 'Manage'"></span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </template>
+          </div>
+        </div>
+
+        {# ── Organization & Active Rosters ── #}
+        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-4 relative overflow-hidden">
+
+          {# Organizations #}
+          <div class="mb-6 pb-6 border-b border-white/[0.08]">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-bold text-dc-textMuted uppercase tracking-wider">My Organizations</span>
+              <a href="{% url 'organizations:org_create' %}" class="text-[10px] text-white bg-white/[0.1] hover:bg-white/[0.2] px-2 py-1 rounded transition-colors no-underline">+ Register Org</a>
+            </div>
+            <div class="flex gap-3 flex-wrap" x-show="myOrgs.length > 0">
+              <template x-for="org in myOrgs" :key="org.id">
+                <a :href="'/orgs/' + org.slug + '/'" class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-dc-accent/50 hover:bg-white/[0.05] transition-all group no-underline">
+                  <img :src="org.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(org.name) + '&background=1a1a2e&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover">
+                  <div class="text-left">
+                    <div class="flex items-center gap-1.5">
+                      <div class="text-sm font-bold text-white group-hover:text-dc-accent transition-colors" x-text="org.name"></div>
+                      <i x-show="org.verified" class="fa-solid fa-circle-check text-dc-accent text-[10px]"></i>
+                    </div>
+                    <div class="text-[10px] text-gray-400 font-mono" x-text="org.role + ' · ' + org.cp"></div>
+                  </div>
+                </a>
+              </template>
+            </div>
+            <div x-show="myOrgs.length === 0" class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08]">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                  <i class="fa-solid fa-building-shield text-dc-textMuted text-sm"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white">No Organization Yet</p>
+                  <p class="text-[10px] text-dc-textMuted">Register your org to unlock team infrastructure.</p>
+                </div>
+              </div>
+              <a href="{% url 'organizations:org_create' %}" class="text-[10px] font-bold text-dc-accent hover:text-white bg-dc-accent/10 hover:bg-dc-accent/20 border border-dc-accent/20 px-3 py-1.5 rounded-lg transition-all active:scale-[0.98] no-underline">Register</a>
             </div>
           </div>
-          {% endfor %}
+
+          {# Active Rosters #}
+          <div class="flex justify-between items-center mb-5">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-users text-dc-textMuted"></i> Active Rosters
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+            <template x-for="team in teams" :key="team.id">
+              <div class="bg-black/40 border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.15] hover:bg-black/60 transition-all group flex flex-col h-full relative">
+
+                <div class="flex justify-between items-start mb-4">
+                  <div class="flex items-center gap-3">
+                    <img :src="team.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(team.name) + '&background=1a1a2e&color=fff&size=80&bold=true'" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-white text-base leading-tight group-hover:text-gray-200 transition-colors" x-text="team.name"></h3>
+                        <span x-show="team.tag" class="text-[10px] font-mono text-dc-textMuted bg-white/[0.05] px-1.5 py-0.5 rounded" x-text="'[' + team.tag + ']'"></span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1 flex-wrap">
+                        <span class="flex items-center gap-1.5">
+                          <img x-show="team.gameIcon" :src="team.gameIcon" class="game-icon-sm">
+                          <span class="text-[10px] text-dc-textMuted font-medium" x-text="team.game"></span>
+                        </span>
+                        <span class="text-white/[0.15]">&middot;</span>
+                        <template x-if="team.org">
+                          <a :href="'/orgs/' + team.org.slug + '/'" class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-dc-accent transition-colors no-underline" @click.stop>
+                            <img x-show="team.org.logo" :src="team.org.logo" class="w-3.5 h-3.5 rounded object-cover">
+                            <span x-text="team.org.name"></span>
+                            <i x-show="team.org.verified" class="fa-solid fa-circle-check text-dc-accent text-[8px]"></i>
+                          </a>
+                        </template>
+                        <template x-if="!team.org">
+                          <span class="text-[10px] font-bold text-gray-500">Independent</span>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-end gap-1">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.1] text-white" x-text="team.role"></span>
+                    <span x-show="team.pendingJR > 0" class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-warning/10 border border-dc-warning/20 text-dc-warning" x-text="team.pendingJR + ' pending'"></span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 mb-5">
+                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Tier</div>
+                    <div class="font-mono text-xs font-bold text-white" x-text="team.tier"></div>
+                  </div>
+                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Win Rate</div>
+                    <div class="font-mono text-xs font-bold text-dc-success" x-text="team.winRate"></div>
+                  </div>
+                  <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
+                    <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Matches</div>
+                    <div class="font-mono text-xs font-bold text-white" x-text="team.matches"></div>
+                  </div>
+                </div>
+
+                <div class="mt-auto pt-4 border-t border-white/[0.05] flex items-center justify-between">
+                  <div class="flex -space-x-1.5">
+                    <template x-for="(player, idx) in team.roster.slice(0,5)" :key="idx">
+                      <div class="relative group/avatar">
+                        <img :src="player.avatar" class="w-7 h-7 rounded-full border-2 border-[#101014] object-cover hover:z-10 relative transition-transform hover:scale-110" :alt="player.name" :title="player.name">
+                        <div x-show="player.isCaptain" class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-dc-warning rounded-full flex items-center justify-center z-20">
+                          <i class="fa-solid fa-crown text-[6px] text-black"></i>
+                        </div>
+                      </div>
+                    </template>
+                    <div x-show="team.memberCount > 5" class="w-7 h-7 rounded-full border-2 border-[#101014] bg-white/[0.05] flex items-center justify-center text-[10px] font-bold text-dc-textMuted relative">
+                      +<span x-text="team.memberCount - 5"></span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <a :href="'/teams/' + team.slug + '/'" class="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-dc-accent/20 border border-white/[0.1] hover:border-dc-accent/30 flex items-center justify-center transition-all no-underline" title="Message Team" @click.stop>
+                      <i class="fa-solid fa-message text-[10px] text-dc-textMuted hover:text-dc-accent"></i>
+                    </a>
+                    <a :href="'/teams/' + team.slug + '/'" class="bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 no-underline">
+                      Team Hub <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <a href="{% url 'organizations:team_create' %}" class="border border-dashed border-white/[0.1] bg-transparent rounded-xl p-4 hover:border-white/[0.3] hover:bg-white/[0.02] transition-all flex flex-col items-center justify-center text-dc-textMuted hover:text-white min-h-[200px] no-underline">
+              <div class="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center mb-2">
+                <i class="fa-solid fa-plus text-sm"></i>
+              </div>
+              <span class="font-bold text-sm">Create New Roster</span>
+              <span class="text-[10px] mt-1 text-center">Form a new independent team.</span>
+            </a>
+          </div>
+        </div>
+
+        {# ── Game Passports (modernized linked accounts) ── #}
+        <div class="premium-card p-6 animate-slide-up stagger-5">
+          <div class="flex justify-between items-center mb-5">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-id-card-clip text-dc-accent"></i> Game Passports
+            </h3>
+            <a href="{% url 'user_profile:profile_settings' %}" class="text-xs font-medium text-dc-accent hover:text-white transition-colors no-underline">Manage Links <i class="fa-solid fa-arrow-right ml-1"></i></a>
+          </div>
+
+          <template x-if="gamePassports.length === 0">
+            <div class="p-6 rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08] text-center">
+              <i class="fa-solid fa-link-slash text-2xl text-dc-textMuted mb-3"></i>
+              <h4 class="text-sm font-bold text-white mb-1">No Game Accounts Linked</h4>
+              <p class="text-[11px] text-dc-textMuted mb-4">Link your game accounts to auto-verify tournament eligibility.</p>
+              <a href="{% url 'user_profile:profile_settings' %}" class="bg-dc-accent/20 text-dc-accent hover:bg-dc-accent hover:text-white text-xs font-bold px-4 py-2 rounded-lg transition-all border border-dc-accent/30 no-underline">
+                <i class="fa-solid fa-link mr-1.5"></i> Link Game Account
+              </a>
+            </div>
+          </template>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="gamePassports.length > 0">
+            <template x-for="gp in gamePassports" :key="gp.id">
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner-light shrink-0 border border-white/[0.1]"
+                     :style="'background: ' + gp.gameColor + '15'">
+                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="game-icon-lg">
+                  <i x-show="!gp.gameIcon" class="fa-solid fa-gamepad text-dc-textMuted"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5" x-text="gp.game"></div>
+                  <div x-show="gp.isLinked" class="text-sm font-mono font-bold text-white truncate" x-text="gp.ign"></div>
+                  <div x-show="!gp.isLinked" class="text-sm font-medium text-dc-textMuted italic">Not linked</div>
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                  <template x-if="gp.isLinked">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-success/10 text-dc-success border border-dc-success/20">Linked</span>
+                  </template>
+                  <template x-if="!gp.isLinked">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white/[0.05] text-dc-textMuted border border-white/[0.06]">Unlinked</span>
+                  </template>
+                  <template x-if="gp.isLft">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-dc-success/10 text-dc-success border border-dc-success/20">LFT</span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        {# ── Challenges & Bounties ── #}
+        <div class="premium-card p-6 sm:p-8 animate-slide-up stagger-5">
+          <div class="flex justify-between items-end mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-crosshairs text-dc-danger"></i> Challenges & Bounties
+              </h2>
+              <p class="text-sm text-dc-textMuted mt-1">Active wagers, scrims, and bounty hunts.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span x-show="activeChallengeCount + activeBountyCount > 0" class="text-[10px] font-bold text-white bg-dc-danger px-2 py-0.5 rounded shadow-glow-danger" x-text="(activeChallengeCount + activeBountyCount) + ' ACTIVE'"></span>
+            </div>
+          </div>
+
+          {# Challenges #}
+          <div x-show="challenges.length > 0" class="mb-6">
+            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Challenges</div>
+            <div class="space-y-3">
+              <template x-for="ch in challenges" :key="ch.id">
+                <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                       :class="{
+                         'bg-dc-warning/10 border-dc-warning/20': ch.type === 'WAGER',
+                         'bg-dc-danger/10 border-dc-danger/20': ch.type === 'BOUNTY',
+                         'bg-dc-accent/10 border-dc-accent/20': ch.type === 'SCRIM',
+                         'bg-purple-400/10 border-purple-400/20': ch.type === 'DUEL'
+                       }">
+                    <i :class="ch.typeIcon + ' ' + ch.typeColor"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="text-sm font-bold text-white truncate" x-text="ch.title"></span>
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                            :class="{
+                              'bg-dc-success/10 text-dc-success border border-dc-success/20': ch.statusRaw === 'OPEN',
+                              'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': ch.statusRaw === 'ACCEPTED',
+                              'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': ch.statusRaw === 'IN_PROGRESS',
+                              'bg-gray-700/30 text-gray-400 border border-gray-600/30': !['OPEN','ACCEPTED','IN_PROGRESS'].includes(ch.statusRaw)
+                            }" x-text="ch.status"></span>
+                    </div>
+                    <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
+                      <span class="flex items-center gap-1">
+                        <img x-show="ch.gameIcon" :src="ch.gameIcon" class="game-icon-sm">
+                        <span x-text="ch.game || ch.type"></span>
+                      </span>
+                      <span x-text="ch.format"></span>
+                      <span class="text-white/[0.15]">&middot;</span>
+                      <span>vs <span class="text-white font-medium" x-text="ch.opponent"></span></span>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div x-show="ch.prize > 0" class="text-sm font-mono font-bold text-dc-warning" x-text="ch.prize.toLocaleString() + ' ' + ch.currency"></div>
+                    <div class="text-[10px] text-dc-textMuted" x-text="ch.time"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          {# Bounties #}
+          <div x-show="bounties.length > 0" class="mb-4">
+            <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-3">Bounties</div>
+            <div class="space-y-3">
+              <template x-for="b in bounties" :key="b.id">
+                <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
+                  <div class="w-10 h-10 rounded-xl bg-dc-danger/10 border border-dc-danger/20 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-crosshairs text-dc-danger"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="text-sm font-bold text-white truncate" x-text="b.title"></span>
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                            :class="{
+                              'bg-dc-success/10 text-dc-success border border-dc-success/20': b.statusRaw === 'OPEN',
+                              'bg-dc-warning/10 text-dc-warning border border-dc-warning/20': b.statusRaw === 'ACCEPTED',
+                              'bg-dc-danger/10 text-dc-danger border border-dc-danger/20': b.statusRaw === 'IN_PROGRESS',
+                              'bg-purple-400/10 text-purple-400 border border-purple-400/20': b.statusRaw === 'PENDING_RESULT',
+                              'bg-gray-700/30 text-gray-400 border border-gray-600/30': !['OPEN','ACCEPTED','IN_PROGRESS','PENDING_RESULT'].includes(b.statusRaw)
+                            }" x-text="b.status"></span>
+                    </div>
+                    <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
+                      <span class="flex items-center gap-1">
+                        <img x-show="b.gameIcon" :src="b.gameIcon" class="game-icon-sm">
+                        <span x-text="b.game"></span>
+                      </span>
+                      <span class="text-white/[0.15]">&middot;</span>
+                      <span x-text="b.isMine ? 'Created by you' : 'By ' + b.creator"></span>
+                      <span class="text-white/[0.15]">&middot;</span>
+                      <span>vs <span class="text-white font-medium" x-text="b.opponent"></span></span>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-mono font-bold text-dc-warning" x-text="b.stake.toLocaleString() + ' DC'"></div>
+                    <div class="text-[10px] text-dc-success" x-text="'Payout: ' + b.payout.toLocaleString() + ' DC'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          {# Empty state #}
+          <div x-show="challenges.length === 0 && bounties.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
+              <i class="fa-solid fa-crosshairs text-2xl text-dc-textMuted"></i>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-1">No Active Challenges</h4>
+            <p class="text-[11px] text-dc-textMuted mb-5 max-w-[260px]">Challenge opponents to wagers, scrims, or bounties to prove your skill.</p>
+          </div>
         </div>
       </div>
-      {% endif %}
 
-    </div>{# /bento-grid #}
+      {# ── RIGHT COLUMN (4 cols) ── #}
+      <div class="lg:col-span-4 flex flex-col space-y-6">
+
+        {# ── Crown Vault ── #}
+        <div class="premium-card p-6 animate-slide-up stagger-3 relative overflow-hidden group">
+          <div class="absolute -right-16 -top-16 w-48 h-48 bg-dc-warning/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-dc-warning/20 transition-all"></div>
+          <div class="relative z-10">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-vault text-dc-warning"></i> Crown Vault
+              </h3>
+              <a href="{% url 'economy:transaction_history' %}" class="text-dc-textMuted hover:text-white transition-colors no-underline">
+                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+              </a>
+            </div>
+            <div class="mb-6">
+              <div class="flex items-baseline gap-2">
+                <span class="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter" x-text="wallet.balance.toLocaleString()"></span>
+                <span class="text-dc-warning font-bold text-lg">DC</span>
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <p class="text-xs text-dc-textMuted font-medium">≈ <span x-text="wallet.bdtEquiv.toLocaleString()"></span> BDT Value</p>
+                <span x-show="wallet.pending > 0" class="w-1 h-1 bg-white/[0.2] rounded-full"></span>
+                <p class="text-xs text-dc-success font-medium" x-show="wallet.pending > 0">+<span x-text="wallet.pending"></span> Pending</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <a href="{% url 'economy:deposit' %}" class="p-3.5 rounded-xl bg-dc-success/10 border border-dc-success/30 hover:bg-dc-success hover:text-black text-dc-success font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
+                <div class="w-9 h-9 rounded-full bg-dc-success/20 flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
+                  <i class="fa-solid fa-plus text-base"></i>
+                </div>
+                <span class="uppercase text-xs tracking-wider font-bold">Top Up</span>
+              </a>
+              <a href="{% url 'economy:withdraw' %}" class="p-3.5 rounded-xl bg-white/[0.05] border border-white/[0.1] hover:bg-white hover:text-black text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 no-underline group">
+                <div class="w-9 h-9 rounded-full bg-white/[0.1] flex items-center justify-center group-hover:bg-black/20 transition shrink-0">
+                  <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
+                </div>
+                <span class="uppercase text-xs tracking-wider font-bold">Cash Out</span>
+              </a>
+            </div>
+
+            {# Recent Transactions #}
+            <div class="pt-4 border-t border-white/[0.08]" x-show="wallet.recentTxns.length > 0">
+              <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-2">Recent Activity</div>
+              <div class="space-y-1.5">
+                <template x-for="(txn, idx) in wallet.recentTxns.slice(0,3)" :key="idx">
+                  <div class="flex items-center justify-between py-1.5 text-xs">
+                    <div class="flex items-center gap-2">
+                      <div class="w-5 h-5 rounded flex items-center justify-center" :class="txn.amount > 0 ? 'bg-dc-success/10 text-dc-success' : 'bg-dc-danger/10 text-dc-danger'">
+                        <i :class="txn.amount > 0 ? 'fa-solid fa-arrow-down' : 'fa-solid fa-arrow-up'" class="text-[8px]"></i>
+                      </div>
+                      <span class="text-gray-300 font-medium" x-text="txn.reason"></span>
+                    </div>
+                    <span class="font-mono font-bold" :class="txn.amount > 0 ? 'text-dc-success' : 'text-dc-danger'" x-text="(txn.amount > 0 ? '+' : '') + txn.amount + ' DC'"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-white/[0.08] mt-4" x-show="wallet.hasWallet">
+              <div class="flex items-center justify-between p-3 rounded-lg bg-black/40 border border-white/[0.05]">
+                <div class="flex items-center gap-3">
+                  <div class="w-6 h-6 rounded bg-dc-success flex items-center justify-center">
+                    <i class="fa-solid fa-wallet text-white text-[10px] font-black"></i>
+                  </div>
+                  <div class="text-xs font-mono text-gray-300">DeltaCrown Wallet</div>
+                </div>
+                <span class="text-[10px] font-bold text-dc-success bg-dc-success/10 border border-dc-success/20 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Communications Inbox (with filters) ── #}
+        <div class="premium-card flex flex-col flex-1 min-h-[380px] animate-slide-up stagger-4">
+          <div class="p-5 border-b border-white/[0.08] bg-white/[0.01]">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-inbox text-dc-textMuted"></i> Communications
+              </h3>
+              <div class="flex items-center gap-3">
+                <span x-show="unreadNotifCount > 0" class="text-[10px] font-bold text-white bg-dc-accent px-2 py-0.5 rounded shadow-glow-accent" x-text="unreadNotifCount + ' NEW'"></span>
+              </div>
+            </div>
+            {# Filter tabs #}
+            <div class="flex gap-1 overflow-x-auto hide-scrollbar p-0.5 bg-black/40 rounded-lg border border-white/[0.06]">
+              <template x-for="tab in ['all', 'INVITE', 'MATCH', 'TOURNAMENT', 'SOCIAL', 'SYSTEM']" :key="tab">
+                <button @click="inboxFilter = tab"
+                        :class="inboxFilter === tab ? 'bg-white/[0.1] text-white shadow-inner-light' : 'text-dc-textMuted hover:text-white'"
+                        class="px-3 py-1.5 rounded-md text-[10px] font-bold transition-all whitespace-nowrap capitalize"
+                        x-text="tab === 'all' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()">
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-3 hide-scrollbar space-y-2">
+            <template x-for="msg in filteredInbox.slice(0,7)" :key="msg.id">
+              <div class="p-4 rounded-xl transition-all cursor-pointer group relative border-l-2"
+                   :class="msg.unread
+                     ? 'bg-white/[0.05] border-l-dc-accent hover:bg-white/[0.08] border border-dc-accent/40 border-l-2 shadow-[inset_2px_0_12px_rgba(99,102,241,0.08)]'
+                     : 'bg-transparent border-l-transparent hover:bg-white/[0.03] border border-white/[0.04]'"
+                   @click="msg.url ? window.location.href = msg.url : markRead(msg.id)">
+
+                <div class="flex justify-between items-center mb-3">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest" :class="msg.color" x-text="msg.category"></span>
+                  <span class="text-[10px] font-mono text-dc-textMuted" x-text="msg.time"></span>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] overflow-hidden"
+                       :class="msg.avatar ? '' : 'bg-white/[0.05]'">
+                    <img x-show="msg.avatar" :src="msg.avatar" class="w-full h-full object-cover">
+                    <i x-show="!msg.avatar" class="fa-solid fa-bell text-dc-textMuted text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <span class="text-xs font-bold text-white block mb-0.5" x-text="msg.sender"></span>
+                    <p class="text-[11px] text-gray-400 leading-relaxed" :class="msg.unread ? 'text-gray-200 font-medium' : ''" x-text="msg.text"></p>
+
+                    <div x-show="msg.hasAction" class="flex gap-2 mt-3" @click.stop>
+                      <button @click="handleInvite(msg.inviteId, 'accept')" class="bg-white text-black text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-gray-200 shadow-sm">Accept</button>
+                      <button @click="handleInvite(msg.inviteId, 'decline')" class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Decline</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="filteredInbox.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+              <i class="fa-solid fa-inbox text-2xl text-dc-textMuted mb-3"></i>
+              <p class="text-xs text-dc-textMuted">No messages in this category.</p>
+            </div>
+          </div>
+
+          <a href="{% url 'notifications:list' %}" class="p-3 border-t border-white/[0.08] bg-black/40 text-center w-full text-xs font-bold text-dc-textMuted hover:text-white hover:bg-white/[0.05] transition-colors block no-underline">
+            Open Full Inbox
+          </a>
+        </div>
+
+        {# ── Command Deck (functional links) ── #}
+        <div class="premium-card p-5 animate-slide-up stagger-5">
+          <h3 class="text-sm font-bold text-white mb-4">Command Deck</h3>
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <a href="{% url 'economy:wallet_dashboard' %}" class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group no-underline">
+              <i class="fa-solid fa-wallet text-lg text-dc-textMuted group-hover:text-dc-warning transition-colors"></i>
+              <span class="text-[10px] font-bold text-gray-300">Wallet</span>
+            </a>
+            <a href="{% url 'tournaments:my_matches' %}" class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group no-underline">
+              <i class="fa-solid fa-swords text-lg text-dc-textMuted group-hover:text-dc-danger transition-colors"></i>
+              <span class="text-[10px] font-bold text-gray-300">My Matches</span>
+            </a>
+          </div>
+          <div class="space-y-1">
+            <a href="/@{{ user.username }}/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
+              <div class="flex items-center gap-3 text-xs">
+                <i class="fa-solid fa-user text-dc-textMuted w-4 text-center"></i>
+                <span class="text-gray-400 group-hover:text-white transition-colors">My Profile</span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </a>
+            <a href="{% url 'user_profile:profile_settings' %}" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
+              <div class="flex items-center gap-3 text-xs">
+                <i class="fa-solid fa-gear text-dc-textMuted w-4 text-center"></i>
+                <span class="text-gray-400 group-hover:text-white transition-colors">Settings</span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </a>
+            <a href="/support/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
+              <div class="flex items-center gap-3 text-xs">
+                <i class="fa-solid fa-headset text-dc-textMuted w-4 text-center"></i>
+                <span class="text-gray-400 group-hover:text-dc-success transition-colors">Support</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span x-show="supportTickets.length > 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-dc-warning/10 text-dc-warning border border-dc-warning/20" x-text="supportTickets.length + ' open'"></span>
+                <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </a>
+            <a href="/store/" class="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.05] transition-colors group no-underline">
+              <div class="flex items-center gap-3 text-xs">
+                <i class="fa-solid fa-cart-shopping text-dc-textMuted w-4 text-center"></i>
+                <span class="text-gray-400 group-hover:text-dc-accent transition-colors">Crown Store</span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-[10px] text-dc-textMuted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ═══════════════ COMPETITIVE LEDGER ═══════════════ #}
+    <div class="mt-6 sm:mt-8 animate-slide-up stagger-5" x-show="matches.length > 0" x-transition>
+      <div class="premium-card p-0 flex flex-col overflow-hidden">
+
+        <div class="p-6 border-b border-white/[0.08] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-chart-simple text-dc-textMuted"></i> Competitive Ledger
+            </h2>
+            <p class="text-xs text-dc-textMuted mt-1">Record of your recent matches and results.</p>
+          </div>
+          <a href="{% url 'tournaments:my_matches' %}" class="text-xs font-bold text-dc-textMuted hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1 no-underline">
+            All Matches <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-white/[0.05] bg-black/20 text-[10px] uppercase tracking-widest text-dc-textMuted font-bold">
+                <th class="p-4 pl-6 font-medium">Match / Date</th>
+                <th class="p-4 font-medium">Game</th>
+                <th class="p-4 font-medium">Opponent</th>
+                <th class="p-4 font-medium">Result</th>
+                <th class="p-4 pr-6 font-medium text-right">Score</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm divide-y divide-white/[0.03]">
+              <template x-for="match in matches" :key="match.id">
+                <tr class="hover:bg-white/[0.02] transition-colors group">
+                  <td class="p-4 pl-6">
+                    <div class="font-mono text-white text-xs" x-text="match.id"></div>
+                    <div class="text-[10px] text-gray-500 mt-0.5" x-text="match.date"></div>
+                  </td>
+                  <td class="p-4">
+                    <div class="flex items-center gap-2">
+                      <img x-show="match.gameIcon" :src="match.gameIcon" class="game-icon">
+                      <div x-show="!match.gameIcon" class="w-5 h-5 rounded flex items-center justify-center bg-white/[0.05] border border-white/[0.1]">
+                        <i class="fa-solid fa-gamepad text-[10px] text-dc-textMuted"></i>
+                      </div>
+                      <span class="font-semibold text-gray-300 text-xs" x-text="match.game"></span>
+                    </div>
+                  </td>
+                  <td class="p-4">
+                    <span class="font-bold text-white text-xs" x-text="match.opponent"></span>
+                  </td>
+                  <td class="p-4">
+                    <span class="w-6 h-6 rounded flex items-center justify-center font-black text-[10px] inline-flex"
+                          :class="{
+                            'bg-dc-success/20 text-dc-success border border-dc-success/30': match.result === 'W',
+                            'bg-dc-danger/20 text-dc-danger border border-dc-danger/30': match.result === 'L',
+                            'bg-gray-700/30 text-gray-400 border border-gray-600/50': match.result === 'D'
+                          }" x-text="match.result"></span>
+                  </td>
+                  <td class="p-4 pr-6 text-right">
+                    <span class="font-mono text-white font-bold tracking-wide" x-text="match.score"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# ═══════════════ BOTTOM WIDGETS ROW ═══════════════ #}
+    <div class="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+      {# Badges & Achievements #}
+      <div class="lg:col-span-4 premium-card p-6 flex flex-col h-full animate-slide-up stagger-1 relative overflow-hidden">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-medal text-dc-warning"></i> Badges & Achievements
+          </h3>
+        </div>
+        <template x-if="badges.length === 0">
+          <div class="flex-1 flex flex-col items-center justify-center text-center py-6">
+            <i class="fa-solid fa-trophy text-2xl text-dc-textMuted mb-3"></i>
+            <p class="text-xs text-dc-textMuted">No badges earned yet. Compete to unlock achievements.</p>
+          </div>
+        </template>
+        <div class="grid grid-cols-3 gap-3" x-show="badges.length > 0">
+          <template x-for="badge in badges" :key="badge.name">
+            <div class="flex flex-col items-center p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] transition-colors text-center group">
+              <span class="text-2xl mb-1.5" x-text="badge.icon || '🏆'"></span>
+              <span class="text-[10px] font-bold text-white truncate w-full" x-text="badge.name"></span>
+              <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5" :class="'rarity-' + badge.rarity" x-text="badge.rarity"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      {# Trust & Reputation #}
+      <div class="lg:col-span-4 premium-card p-6 flex flex-col justify-center items-center text-center animate-slide-up stagger-2 relative overflow-hidden">
+        <div class="flex justify-between items-center w-full mb-4">
+          <h3 class="text-sm font-bold text-white">Trust & Reputation</h3>
+          <i class="fa-solid fa-shield-check text-dc-success"></i>
+        </div>
+        <div class="relative w-28 h-28 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="0"></circle>
+            <circle cx="50" cy="50" r="45" fill="none" stroke-width="8" stroke-dasharray="283"
+                    :stroke-dashoffset="283 - (283 * (user.reputation / 100))"
+                    :stroke="user.reputation >= 80 ? '#10B981' : user.reputation >= 50 ? '#F59E0B' : '#F43F5E'"
+                    :class="user.reputation >= 80 ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]' : ''"></circle>
+          </svg>
+          <div class="relative z-10 flex flex-col items-center">
+            <span class="text-3xl font-black text-white tracking-tighter" x-text="user.reputation"></span>
+            <span class="text-[10px] text-dc-textMuted uppercase font-bold tracking-widest mt-0.5">Score</span>
+          </div>
+        </div>
+        <h4 class="text-base font-bold" :class="user.reputation >= 80 ? 'text-dc-success' : user.reputation >= 50 ? 'text-dc-warning' : 'text-dc-danger'"
+            x-text="user.reputation >= 80 ? 'Exemplary Standing' : user.reputation >= 50 ? 'Good Standing' : 'Needs Improvement'"></h4>
+        <p class="text-[11px] text-gray-400 mt-2 px-4 leading-relaxed"
+           x-text="user.reputation >= 80 ? 'Your account is in excellent standing with priority tournament access.' : 'Maintain good sportsmanship to unlock premium features.'"></p>
+        <div class="flex items-center gap-4 mt-4 pt-4 border-t border-white/[0.06] w-full justify-center">
+          <div class="text-center">
+            <div class="text-sm font-bold text-white" x-text="'Lv.' + user.level"></div>
+            <div class="text-[10px] text-dc-textMuted">Level</div>
+          </div>
+          <div class="w-px h-6 bg-white/[0.08]"></div>
+          <div class="text-center">
+            <div class="text-sm font-bold text-white" x-text="user.xp.toLocaleString()"></div>
+            <div class="text-[10px] text-dc-textMuted">XP</div>
+          </div>
+          <div class="w-px h-6 bg-white/[0.08]"></div>
+          <div class="text-center">
+            <div class="text-sm font-bold text-white" x-text="user.isVerified ? 'Verified' : 'Unverified'"></div>
+            <div class="text-[10px] text-dc-textMuted">KYC</div>
+          </div>
+        </div>
+      </div>
+
+      {# Featured Store Item #}
+      <div class="lg:col-span-4 premium-card p-0 flex flex-col h-full animate-slide-up stagger-3 relative overflow-hidden group min-h-[280px]">
+        <template x-if="featuredProduct">
+          <div class="flex flex-col h-full">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
+            <img x-show="featuredProduct.image" :src="featuredProduct.image" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700">
+            <div class="absolute inset-0 bg-gradient-to-br from-dc-accent/20 to-dc-danger/10 opacity-30 group-hover:opacity-50 transition-opacity duration-700" x-show="!featuredProduct.image"></div>
+            <div class="relative z-20 p-6 flex flex-col h-full justify-end">
+              <div class="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/[0.1] text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+                <i class="fa-solid fa-cart-shopping text-dc-warning"></i> Store
+              </div>
+              <span x-show="featuredProduct.is_limited" class="text-dc-danger text-[10px] font-black uppercase tracking-widest mb-1">Limited Edition</span>
+              <span x-show="!featuredProduct.is_limited" class="text-dc-warning text-[10px] font-black uppercase tracking-widest mb-1">Featured</span>
+              <h3 class="text-lg font-bold text-white leading-tight mb-2" x-text="featuredProduct.name"></h3>
+              <div class="flex items-center justify-between mt-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-black text-white" x-text="featuredProduct.price.toLocaleString()"></span>
+                  <span class="text-[10px] font-bold text-dc-warning">DC</span>
+                  <span x-show="featuredProduct.original_price > featuredProduct.price" class="text-[10px] text-dc-textMuted line-through" x-text="featuredProduct.original_price.toLocaleString()"></span>
+                </div>
+                <a :href="'/store/'" class="bg-white/[0.15] hover:bg-white text-white hover:text-black border border-white/[0.2] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors active:scale-[0.98] no-underline">
+                  View Item
+                </a>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="!featuredProduct">
+          <div class="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div class="absolute inset-0 bg-gradient-to-br from-dc-accent/10 to-dc-danger/5 opacity-30"></div>
+            <div class="relative z-10">
+              <i class="fa-solid fa-cart-shopping text-3xl text-dc-textMuted mb-3"></i>
+              <h4 class="text-sm font-bold text-white mb-1">Crown Store</h4>
+              <p class="text-[11px] text-dc-textMuted mb-4">Browse exclusive gear, jerseys, and digital items.</p>
+              <a href="/store/" class="bg-white/[0.1] hover:bg-white/[0.2] text-white text-xs font-bold px-4 py-2 rounded-lg border border-white/[0.1] transition-all no-underline">
+                <i class="fa-solid fa-arrow-right mr-1.5"></i> Visit Store
+              </a>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
 
   </div>
+
+  {# ═══════════════ MOBILE BOTTOM APP BAR ═══════════════ #}
+  <nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden h-16 bg-black/80 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2">
+    <a href="{% url 'dashboard:index' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-white group no-underline">
+      <i class="fa-solid fa-house text-lg group-hover:text-dc-accent transition-colors"></i>
+      <span class="text-[10px] font-bold uppercase tracking-widest text-dc-accent">Home</span>
+    </a>
+    <a href="{% url 'tournaments:list' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
+      <i class="fa-solid fa-trophy text-lg group-hover:text-dc-warning transition-colors"></i>
+      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-warning transition-colors">Events</span>
+    </a>
+    <a href="{% url 'organizations:team_create' %}" class="relative -mt-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-dc-accent to-purple-600 flex items-center justify-center shadow-glow-accent active:scale-[0.94] transition-transform border border-white/[0.15] no-underline">
+      <i class="fa-solid fa-plus text-white text-xl"></i>
+    </a>
+    <a href="{% url 'organizations:vnext_hub' %}" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
+      <i class="fa-solid fa-users text-lg group-hover:text-dc-success transition-colors"></i>
+      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-dc-success transition-colors">Teams</span>
+    </a>
+    <a :href="'/@' + user.username + '/'" class="flex flex-col items-center justify-center gap-1 w-14 py-1 text-dc-textMuted group no-underline">
+      <i class="fa-regular fa-user text-lg group-hover:text-white transition-colors"></i>
+      <span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-white transition-colors">Profile</span>
+    </a>
+  </nav>
+
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-  function _csrf() {
-    let v = null;
-    document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10)); });
-    return v;
-  }
-
-  async function dashInvite(id, action) {
-    const card = document.getElementById(`dash-invite-${id}`);
-    if (!card) return;
-    const btns = card.querySelectorAll('button');
-    btns.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'pointer-events-none'); });
-
-    try {
-      const res = await fetch(`/notifications/api/team-invite/${id}/${action}/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': _csrf(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin',
-      });
-      const data = await res.json();
-      if (data.success) {
-        card.style.transition = 'all 0.3s';
-        card.style.opacity = '0';
-        card.style.transform = 'scale(0.95) translateY(-8px)';
-        setTimeout(() => card.remove(), 300);
-      } else {
-        btns.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'pointer-events-none'); });
-        const errEl = document.createElement('div');
-        errEl.className = 'text-[10px] text-red-400 mt-2 font-medium text-center';
-        errEl.textContent = data.error || 'Action failed.';
-        card.appendChild(errEl);
-        setTimeout(() => errEl.remove(), 5000);
-      }
-    } catch (err) {
-      console.error('[Dashboard]', err);
-      btns.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'pointer-events-none'); });
-    }
-  }
-</script>
+{{ cc_data|json_script:"cc-data" }}
 {% endblock %}
