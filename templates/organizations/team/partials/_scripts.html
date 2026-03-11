@@ -181,34 +181,139 @@ document.addEventListener("DOMContentLoaded", () => {
   adjustSidebarPosition();
   window.addEventListener("resize", adjustSidebarPosition);
 
-  // ── APPLY BUTTON (Join Request) ───────────────────────────────────────
+  // ── APPLY MODAL — Request to Join ──────────────────────────────────────
+  const applyModal = document.getElementById("dc-apply-modal");
+  const applyMessageEl = document.getElementById("dc-apply-message");
+  const applyPositionEl = document.getElementById("dc-apply-position");
+  const applyCharcount = document.getElementById("dc-apply-charcount");
+  const applySubmitBtn = document.getElementById("dc-apply-submit");
+
+  // Open modal from hero button or sidebar button
+  document.querySelectorAll(".dc-open-apply-modal").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (applyModal) {
+        applyModal.classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+        if (applyMessageEl) applyMessageEl.focus();
+      }
+    });
+  });
+
+  // Also bind old dc-apply-btn class to open modal (backward compat)
   document.querySelectorAll(".dc-apply-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (applyModal) {
+        applyModal.classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+        if (applyMessageEl) applyMessageEl.focus();
+      }
+    });
+  });
+
+  // Close modal
+  document.querySelectorAll(".dc-apply-modal-close").forEach(el => {
+    el.addEventListener("click", () => {
+      if (applyModal) {
+        applyModal.classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+    });
+  });
+  // Close on Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && applyModal && !applyModal.classList.contains("hidden")) {
+      applyModal.classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+  });
+
+  // Char count
+  if (applyMessageEl && applyCharcount) {
+    applyMessageEl.addEventListener("input", () => {
+      applyCharcount.textContent = applyMessageEl.value.length;
+    });
+  }
+
+  // Submit application
+  if (applySubmitBtn) {
+    applySubmitBtn.addEventListener("click", async () => {
+      const slug = applySubmitBtn.dataset.teamSlug;
+      if (!slug) return;
+
+      applySubmitBtn.disabled = true;
+      const origHTML = applySubmitBtn.innerHTML;
+      applySubmitBtn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Sending...`;
+
+      try {
+        const body = {
+          message: (applyMessageEl ? applyMessageEl.value : "").trim(),
+          position: (applyPositionEl ? applyPositionEl.value : "").trim(),
+        };
+        const resp = await fetch(`/api/vnext/teams/${encodeURIComponent(slug)}/apply/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          // Success: show confirmation, then reload
+          applySubmitBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Request Sent!`;
+          applySubmitBtn.classList.remove("bg-emerald-500", "hover:bg-emerald-400");
+          applySubmitBtn.classList.add("bg-emerald-600/30", "text-emerald-400");
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          applySubmitBtn.innerHTML = origHTML;
+          applySubmitBtn.disabled = false;
+          // Show inline error
+          const errDiv = document.createElement("div");
+          errDiv.className = "text-red-400 text-xs text-center mt-2 px-4";
+          errDiv.textContent = data.error || "Something went wrong. Please try again.";
+          applySubmitBtn.parentNode.appendChild(errDiv);
+          setTimeout(() => errDiv.remove(), 4000);
+        }
+      } catch {
+        applySubmitBtn.innerHTML = origHTML;
+        applySubmitBtn.disabled = false;
+        const errDiv = document.createElement("div");
+        errDiv.className = "text-red-400 text-xs text-center mt-2 px-4";
+        errDiv.textContent = "Network error. Check your connection.";
+        applySubmitBtn.parentNode.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 4000);
+      }
+    });
+  }
+
+  // ── WITHDRAW APPLICATION ──────────────────────────────────────────────
+  document.querySelectorAll(".dc-withdraw-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to withdraw your application?")) return;
       const slug = btn.dataset.teamSlug;
       if (!slug) return;
       btn.disabled = true;
-      btn.textContent = "SENDING…";
+      btn.textContent = "WITHDRAWING…";
 
       try {
-        const resp = await fetch(`/api/vnext/teams/${slug}/apply/`, {
+        const resp = await fetch(`/api/vnext/teams/${encodeURIComponent(slug)}/apply/withdraw/`, {
           method: "POST",
           headers: {
             "X-CSRFToken": getCookie("csrftoken"),
             "Content-Type": "application/json",
           },
         });
-        const data = await resp.json();
         if (resp.ok) {
-          btn.textContent = "APPLICATION SENT";
-          btn.classList.remove("bg-white", "text-black");
-          btn.classList.add("bg-white/10", "text-slate-400");
+          btn.textContent = "WITHDRAWN";
+          setTimeout(() => window.location.reload(), 1000);
         } else {
-          btn.textContent = data.error || data.detail || "Error";
-          setTimeout(() => { btn.textContent = "APPLY FOR TRYOUTS"; btn.disabled = false; }, 3000);
+          const data = await resp.json();
+          btn.textContent = data.error || "Error";
+          setTimeout(() => { btn.textContent = "WITHDRAW APPLICATION"; btn.disabled = false; }, 3000);
         }
       } catch {
         btn.textContent = "NETWORK ERROR";
-        setTimeout(() => { btn.textContent = "APPLY FOR TRYOUTS"; btn.disabled = false; }, 3000);
+        setTimeout(() => { btn.textContent = "WITHDRAW APPLICATION"; btn.disabled = false; }, 3000);
       }
     });
   });
@@ -464,7 +569,7 @@ function dcOpenPlayerPopup(cardEl) {
     profileLink.href = profileUrl;
     profileLink.style.display = "";
   } else if (username) {
-    profileLink.href = `/profile/${username}/`;
+    profileLink.href = `/@${username}/`;
     profileLink.style.display = "";
   } else {
     profileLink.style.display = "none";
@@ -492,4 +597,103 @@ function dcClosePlayerPopup() {
     document.body.style.overflow = "";
   }, 200);
 }
+
+// ── Share Button ────────────────────────────────────────────────────────
+(function() {
+  const shareBtn = document.getElementById('dc-share-btn');
+  if (!shareBtn) return;
+
+  shareBtn.addEventListener('click', async function() {
+    const teamName = document.querySelector('h1')?.textContent?.trim() || 'Team';
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: teamName, url: url });
+      } catch (_) { /* user cancelled */ }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (_) {
+      // fallback for insecure contexts
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    // Flash confirmation
+    const orig = shareBtn.innerHTML;
+    shareBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Copied!`;
+    setTimeout(() => { shareBtn.innerHTML = orig; }, 2000);
+  });
+})();
+
+// ── Follow / Unfollow Button ────────────────────────────────────────────
+(function() {
+  const followBtn = document.getElementById('dc-follow-btn');
+  if (!followBtn) return;
+
+  function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function setFollowState(isFollowing, count) {
+    followBtn.dataset.following = isFollowing ? 'true' : 'false';
+    followBtn.title = isFollowing ? 'Unfollow this team' : 'Follow this team';
+    followBtn.querySelector('.dc-follow-label').textContent = isFollowing ? 'Following' : 'Follow';
+    followBtn.querySelector('.dc-follow-icon-plus').style.display = isFollowing ? 'none' : '';
+    followBtn.querySelector('.dc-follow-icon-check').style.display = isFollowing ? '' : 'none';
+    const countEl = followBtn.querySelector('.dc-follow-count');
+    if (count > 0) {
+      if (countEl) {
+        countEl.textContent = count;
+      } else {
+        const span = document.createElement('span');
+        span.className = 'dc-follow-count text-xs opacity-70';
+        span.textContent = count;
+        followBtn.appendChild(span);
+      }
+    } else if (countEl) {
+      countEl.remove();
+    }
+  }
+
+  followBtn.addEventListener('click', async function() {
+    const slug = followBtn.dataset.teamSlug;
+    if (!slug) return;
+    followBtn.disabled = true;
+
+    try {
+      const resp = await fetch(`/api/vnext/teams/${slug}/follow/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCsrfToken(),
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+      });
+      if (resp.status === 401) {
+        window.location.href = '/accounts/login/?next=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      const data = await resp.json();
+      if (data.success) {
+        setFollowState(data.is_following, data.follower_count);
+      }
+    } catch (_) { /* network error */ }
+    finally {
+      followBtn.disabled = false;
+    }
+  });
+})();
 </script>

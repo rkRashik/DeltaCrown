@@ -549,15 +549,17 @@ class FollowSystemV2 {
 // ============================================
 
 window.openFollowersModal = function(username) {
+    if (!window.followSystemV2) _initFollowSystemV2();
     window.followSystemV2.openFollowersModal(username);
 };
 
 window.openFollowingModal = function(username) {
+    if (!window.followSystemV2) _initFollowSystemV2();
     window.followSystemV2.openFollowingModal(username);
 };
 
 window.closeFollowModal = function() {
-    window.followSystemV2.closeModal();
+    if (window.followSystemV2) window.followSystemV2.closeModal();
 };
 
 // ============================================

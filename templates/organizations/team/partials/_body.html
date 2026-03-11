@@ -14,14 +14,14 @@
 <div class="relative z-10">
 
 {# ── IMMERSIVE HUB — Hero Section ──────────────────────────────────────── #}
-<div class="relative w-full pt-16 flex flex-col justify-end">
+<div class="relative w-full">
 
-  {# ── Cinematic Banner ──────────────────────────────────────────────────── #}
+  {# ── Cinematic Banner — fixed-height absolute positioned (demo layout) ─ #}
   <div class="absolute inset-0 h-[450px] lg:h-[550px] top-0 z-0">
     {% if team.banner_url %}
     <img src="{{ team.banner_url }}"
          alt="{{ team.name }} banner"
-         class="w-full h-full object-cover object-top opacity-80" />
+         class="w-full h-full object-cover object-center opacity-80" />
     {% else %}
     <div class="w-full h-full"
          style="background: linear-gradient(135deg, rgba(10,10,15,1) 0%, color-mix(in srgb, var(--team-primary) 20%, black) 100%)"></div>
@@ -32,7 +32,7 @@
   {# ── Ambient Team Glow ─────────────────────────────────────────────────── #}
   <div class="ambient-glow"></div>
 
-  {# ── Hero Content ──────────────────────────────────────────────────────── #}
+  {# ── Hero Content (overlaid on banner with padding-top) ──────────────── #}
   <div class="relative z-20 w-full max-w-[1400px] mx-auto px-6 lg:px-12 pt-[180px] lg:pt-[240px] pb-8">
     <div class="flex flex-col lg:flex-row lg:items-end gap-8 lg:gap-10">
 
@@ -101,14 +101,14 @@
         </div>
 
         {# Team Name + Tag #}
-        <h1 class="font-gaming font-black text-4xl sm:text-5xl lg:text-7xl text-white leading-none tracking-tight drop-shadow-lg flex items-center justify-center lg:justify-start gap-3">
+        <h1 class="font-gaming font-black text-4xl sm:text-5xl lg:text-7xl text-white leading-none tracking-tight flex items-center justify-center lg:justify-start gap-3" style="text-shadow: 0 2px 12px rgba(0,0,0,0.7);">
           {{ team.name|upper }}
           {% if team.tag %}<span class="text-xl lg:text-3xl text-[var(--team-primary)] font-light opacity-80">[{{ team.tag }}]</span>{% endif %}
         </h1>
 
         {# Tagline / Motto #}
         {% if team.tagline %}
-        <p id="dc-team-motto" class="text-sm text-gray-400 max-w-xl leading-relaxed mt-3 font-medium mx-auto lg:mx-0" data-max="120">
+        <p id="dc-team-motto" class="text-sm text-gray-400 max-w-xl leading-relaxed mt-3 font-medium mx-auto lg:mx-0" data-max="120" style="text-shadow: 0 1px 6px rgba(0,0,0,0.6);">
           "{{ team.tagline }}"
         </p>
         {% endif %}
@@ -171,6 +171,7 @@
 
           {# PUBLIC: Share button #}
           <button type="button" data-role-show="PUBLIC"
+                  id="dc-share-btn"
                   class="glass-panel text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition flex items-center gap-2"
                   title="Share team profile">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,13 +182,41 @@
 
           {# PUBLIC: Follow button #}
           <button type="button" data-role-show="PUBLIC"
+                  id="dc-follow-btn"
                   class="btn-follow text-white px-7 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-                  title="Follow this team">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  data-team-slug="{{ team.slug }}"
+                  data-following="{{ follow.is_following|yesno:'true,false' }}"
+                  title="{% if follow.is_following %}Unfollow this team{% else %}Follow this team{% endif %}">
+            <svg class="w-4 h-4 dc-follow-icon-plus" fill="none" stroke="currentColor" viewBox="0 0 24 24" {% if follow.is_following %}style="display:none"{% endif %}>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
-            Follow
+            <svg class="w-4 h-4 dc-follow-icon-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" {% if not follow.is_following %}style="display:none"{% endif %}>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span class="dc-follow-label">{% if follow.is_following %}Following{% else %}Follow{% endif %}</span>
+            {% if follow.follower_count %}
+            <span class="dc-follow-count text-xs opacity-70">{{ follow.follower_count }}</span>
+            {% endif %}
           </button>
+
+          {# PUBLIC: Request to Join button (only when recruiting) #}
+          {% if team.is_recruiting %}
+          {% if pending_actions.can_request_to_join %}
+          <button type="button" data-role-show="PUBLIC"
+                  class="bg-emerald-500 text-black px-7 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(16,185,129,0.2)] dc-open-apply-modal"
+                  data-team-slug="{{ team.slug }}"
+                  title="Request to join this team">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Join Team
+          </button>
+          {% elif pending_actions.has_pending_request %}
+          <div data-role-show="PUBLIC"
+               class="bg-white/10 text-slate-400 px-7 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-default">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Pending
+          </div>
+          {% endif %}
+          {% endif %}
 
           {# MEMBER/STAFF/OWNER: Team Chat link #}
           <a href="{% url 'organizations:team_manage' team.slug %}#discord" data-role-show="TEAM"
@@ -200,26 +229,35 @@
 
           {# MEMBER: Team HQ button #}
           <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="MEMBER"
-             class="glass-panel text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition flex items-center gap-2"
+             class="glass-panel text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition flex items-center gap-2 relative"
              title="Team Headquarters">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             Team HQ
+            {% if pending_actions.pending_join_request_count > 0 %}
+            <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white grid place-items-center ring-2 ring-[#0a0a0f] animate-pulse">{{ pending_actions.pending_join_request_count }}</span>
+            {% endif %}
           </a>
 
           {# STAFF: Team HQ with staff accent #}
           <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="STAFF"
-             class="glass-panel text-indigo-300 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition flex items-center gap-2 border-indigo-500/30"
+             class="glass-panel text-indigo-300 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition flex items-center gap-2 border-indigo-500/30 relative"
              title="Team HQ — Staff Access">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             Team HQ
+            {% if pending_actions.pending_join_request_count > 0 %}
+            <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white grid place-items-center ring-2 ring-[#0a0a0f] animate-pulse">{{ pending_actions.pending_join_request_count }}</span>
+            {% endif %}
           </a>
 
           {# OWNER: Manage (primary) #}
           <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="OWNER"
-             class="btn-follow text-white px-7 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+             class="btn-follow text-white px-7 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 relative"
              title="Open control plane">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             Manage
+            {% if pending_actions.pending_join_request_count > 0 %}
+            <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white grid place-items-center ring-2 ring-[#0a0a0f] animate-pulse">{{ pending_actions.pending_join_request_count }}</span>
+            {% endif %}
           </a>
 
           {# OWNER: Quick access dropdown #}
@@ -400,7 +438,7 @@
                data-player-captain="{% if member.is_captain %}1{% endif %}"
                data-player-ign="{{ member.game_passport.ign|default:'' }}"
                data-player-rank="{{ member.game_passport.rank|default:'' }}"
-               data-player-profile-url="{{ member.profile_url|default:'' }}"
+               data-player-profile-url="{{ member.user_profile_url|default:'' }}"
                onclick="dcOpenPlayerPopup(this)">
             {% if member.avatar_url %}
             <img src="{{ member.avatar_url }}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="{{ member.display_name }}" loading="lazy">
@@ -1237,13 +1275,48 @@
         </div>
       </div>
       {% elif team.is_recruiting and viewer.role == 'PUBLIC' %}
-      {# Recruiting but no positions defined yet — simple card (public only) #}
-      <div class="rounded-3xl bg-[#0A0A0F] border border-emerald-500/20 p-5 text-center">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 grid place-items-center mx-auto mb-3">
-          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+      {# Recruiting but no positions defined yet — card with apply button #}
+      <div class="relative group bg-[#0A0A0F] border border-emerald-500/20 hover:border-emerald-500/40 rounded-3xl p-6 transition-all overflow-hidden">
+        <div class="absolute -right-4 -bottom-4 opacity-10 text-emerald-400 transform -rotate-12 group-hover:scale-110 transition-transform">
+          <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
         </div>
-        <h4 class="text-white font-bold text-sm mb-1">We're Recruiting!</h4>
-        <p class="text-[10px] text-slate-400">{{ team.name }} is looking for new talent.</p>
+        <div class="relative z-10">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-white font-display font-bold text-lg">Join the Team</h4>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-widest animate-pulse">Recruiting</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed mb-5">{{ team.name }} is looking for new talent. Send a request to join and the team admin will review your application.</p>
+
+          {% if pending_actions.can_request_to_join %}
+          <button class="w-full py-3 rounded-xl bg-emerald-500 text-black font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] dc-open-apply-modal"
+                  data-team-slug="{{ team.slug }}">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Request to Join
+          </button>
+          {% elif pending_actions.has_pending_request %}
+          <div class="w-full py-3 rounded-xl bg-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-widest text-center">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Application Pending
+          </div>
+          <button class="w-full mt-2 py-2 rounded-lg bg-transparent border border-white/10 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:border-red-500/30 hover:text-red-400 transition dc-withdraw-btn"
+                  data-team-slug="{{ team.slug }}">
+            Withdraw Application
+          </button>
+          {% elif pending_actions.has_pending_invite %}
+          <div class="flex gap-2">
+            <button class="flex-1 py-3 rounded-xl bg-emerald-500 text-black font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-400 transition dc-invite-accept"
+                    data-invite-id="{{ pending_actions.pending_invite_id }}">Accept Invite</button>
+            <button class="flex-1 py-3 rounded-xl bg-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:bg-white/20 transition dc-invite-decline"
+                    data-invite-id="{{ pending_actions.pending_invite_id }}">Decline</button>
+          </div>
+          {% elif not user.is_authenticated %}
+          <a href="{% url 'account_login' %}?next={{ request.path }}"
+             class="w-full py-3 rounded-xl bg-emerald-500 text-black font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-400 transition text-center block">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Sign In to Apply
+          </a>
+          {% endif %}
+        </div>
       </div>
       {% endif %}
 
@@ -1547,3 +1620,83 @@
 {% endif %}
 
 </div>{# /relative z-10 #}
+
+{# ── APPLY MODAL — Request to Join ─────────────────────────────────────── #}
+{% if team.is_recruiting and pending_actions.can_request_to_join %}
+<div id="dc-apply-modal" class="fixed inset-0 z-[9999] hidden">
+  {# Backdrop #}
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm dc-apply-modal-close" style="cursor:pointer"></div>
+
+  {# Dialog #}
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="relative bg-[#0d0d14] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-[fadeInUp_0.25s_ease-out]">
+      {# Header #}
+      <div class="px-6 pt-6 pb-4 border-b border-white/5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            {% if team.logo_url %}
+            <img src="{{ team.logo_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-white/10" />
+            {% else %}
+            <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white/30" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            {% endif %}
+            <div>
+              <h3 class="text-white font-bold text-base leading-tight">Request to Join</h3>
+              <p class="text-xs text-slate-500">{{ team.name }}</p>
+            </div>
+          </div>
+          <button class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-500 hover:text-white transition dc-apply-modal-close">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {# Body #}
+      <div class="px-6 py-5 space-y-4">
+        {# Message field #}
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+            Introduce yourself <span class="text-slate-600">(optional)</span>
+          </label>
+          <textarea id="dc-apply-message" 
+                    class="w-full bg-white/3 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 resize-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition"
+                    rows="3" maxlength="500"
+                    placeholder="Tell the team why you'd like to join, your experience, preferred role..."></textarea>
+          <p class="text-right text-[10px] text-slate-600 mt-1"><span id="dc-apply-charcount">0</span>/500</p>
+        </div>
+
+        {# Position field #}
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+            Preferred Role <span class="text-slate-600">(optional)</span>
+          </label>
+          <input type="text" id="dc-apply-position"
+                 class="w-full bg-white/3 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition"
+                 placeholder="e.g. Duelist, Support, IGL, Flex..."
+                 maxlength="60" />
+        </div>
+
+        {# Info note #}
+        <div class="flex items-start gap-2 p-3 rounded-lg bg-white/3 border border-white/5">
+          <svg class="w-4 h-4 text-slate-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-[11px] text-slate-500 leading-relaxed">The team admin will be notified and can accept, schedule a tryout, or decline your request. You'll be notified of their decision.</p>
+        </div>
+      </div>
+
+      {# Footer #}
+      <div class="px-6 py-4 border-t border-white/5 flex items-center justify-end gap-3">
+        <button class="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-white/10 transition dc-apply-modal-close">
+          Cancel
+        </button>
+        <button id="dc-apply-submit" 
+                class="px-6 py-2.5 rounded-xl bg-emerald-500 text-black text-xs font-bold uppercase tracking-wider hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center gap-2"
+                data-team-slug="{{ team.slug }}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          Send Request
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

@@ -82,7 +82,12 @@
   }
 
   html, body { height: 100%; }
-  body { background: #000; color: #E2E8F0; overflow-x: hidden; }
+  body { background: var(--bg-base); color: #E2E8F0; overflow-x: hidden; }
+
+  /* Banner fade — dissolves into body bg */
+  .fade-bottom {
+    background: linear-gradient(to top, var(--bg-base) 0%, rgba(2,2,4,0.98) 15%, rgba(2,2,4,0.6) 50%, transparent 100%);
+  }
 
   /* Glass */
   .liquid-glass {
@@ -136,11 +141,6 @@
   /* Immersive Hub — Gaming font */
   .font-gaming { font-family: 'Outfit', sans-serif; }
 
-  /* Cinematic fade for hero banner */
-  .fade-bottom {
-    background: linear-gradient(to top, var(--bg-base) 0%, rgba(2, 2, 4, 0.98) 15%, rgba(2, 2, 4, 0.4) 50%, transparent 100%);
-  }
-
   /* Ambient Team Glow */
   .ambient-glow {
     position: absolute;
@@ -189,6 +189,12 @@
     background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%), rgba(var(--team-color-rgb), 0.25);
     border-color: rgba(var(--team-color-rgb), 0.8);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(var(--team-color-rgb), 0.4);
+  }
+
+  /* Modal animation */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
   /* Tab System */

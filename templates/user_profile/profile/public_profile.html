@@ -975,38 +975,38 @@ const csrfToken = '{{ csrf_token }}';
 
 console.log('[ACTIVE_JS] followers-following v=PHASE4_STEP4_2', location.pathname);
 
+// Delegates to follow-modal-system.js V2 (loaded below).
+// Guard ensures the system is initialised even if called early.
+function _ensureFollowV2() {
+    if (!window.followSystemV2 && typeof FollowSystemV2 === 'function') {
+        window.followSystemV2 = new FollowSystemV2();
+    }
+}
+
 // Open Followers Modal
-window.openFollowersModal = function() {
-    const modal = document.getElementById('followersModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        loadFollowersList();
+window.openFollowersModal = function(username) {
+    _ensureFollowV2();
+    if (window.followSystemV2) {
+        window.followSystemV2.openFollowersModal(username || currentUsername);
     }
 };
 
 // Open Following Modal
-window.openFollowingModal = function() {
-    const modal = document.getElementById('followingModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        loadFollowingList();
+window.openFollowingModal = function(username) {
+    _ensureFollowV2();
+    if (window.followSystemV2) {
+        window.followSystemV2.openFollowingModal(username || currentUsername);
     }
 };
 
-// Close Followers Modal
+// Close modals
 window.closeFollowersModal = function() {
-    const modal = document.getElementById('followersModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
+    if (window.followSystemV2) window.followSystemV2.closeModal();
+    else { const m = document.getElementById('followersModal'); if (m) m.classList.add('hidden'); }
 };
-
-// Close Following Modal
 window.closeFollowingModal = function() {
-    const modal = document.getElementById('followingModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
+    if (window.followSystemV2) window.followSystemV2.closeModal();
+    else { const m = document.getElementById('followingModal'); if (m) m.classList.add('hidden'); }
 };
 
 // Followers/Following functions removed (2026-01-22) - using external follow-modal-system.js instead

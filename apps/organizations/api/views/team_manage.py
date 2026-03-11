@@ -2592,12 +2592,43 @@ def apply_to_team(request, slug):
         data = {}
 
     msg = (data.get('message') or '').strip()[:500]
+    position = (data.get('position') or '').strip()[:60]
 
     jr = TeamJoinRequest.objects.create(
         team=team,
         user=request.user,
         message=msg,
+        applied_position=position,
     )
+
+    # Notify team owner and managers
+    try:
+        from apps.notifications.models import Notification
+        from apps.organizations.models import TeamMembership
+
+        admin_memberships = TeamMembership.objects.filter(
+            team=team,
+            status='ACTIVE',
+            role__in=['OWNER', 'MANAGER'],
+        ).select_related('user')
+
+        applicant_name = request.user.username
+        for membership in admin_memberships:
+            Notification.objects.create(
+                recipient=membership.user,
+                type=Notification.Type.JOIN_REQUEST_RECEIVED,
+                title=f"New join request from @{applicant_name}",
+                body=f"@{applicant_name} wants to join {team.name}." + (f" Position: {position}" if position else ""),
+                url=f"/teams/{team.slug}/manage/#join-requests",
+                action_label="Review",
+                action_url=f"/teams/{team.slug}/manage/#join-requests",
+                category="team",
+                message=msg[:200] if msg else "",
+                action_object_id=jr.pk,
+                action_type="join_request",
+            )
+    except Exception:
+        pass  # Non-critical: don't fail the apply if notification fails
 
     return JsonResponse({
         'success': True,
@@ -2716,12 +2747,30 @@ def review_join_request(request, slug, request_id):
             user=jr.user,
             role=MembershipRole.PLAYER,
             status='ACTIVE',
-            invited_by=request.user,
         )
         jr.status = 'ACCEPTED'
         jr.reviewed_by = request.user
         jr.reviewed_at = timezone.now()
         jr.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+
+        # Notify applicant of acceptance
+        try:
+            from apps.notifications.models import Notification
+            Notification.objects.create(
+                recipient=jr.user,
+                type=Notification.Type.JOIN_REQUEST_ACCEPTED,
+                title=f"Welcome to {team.name}!",
+                body=f"Your request to join {team.name} has been accepted. You are now a team member!",
+                url=f"/teams/{team.slug}/",
+                action_label="View Team",
+                action_url=f"/teams/{team.slug}/",
+                category="team",
+                action_object_id=jr.pk,
+                action_type="join_request",
+            )
+        except Exception:
+            pass
+
         return JsonResponse({'success': True, 'message': f'{jr.user.username} has been added to the team!'})
 
     else:  # decline
@@ -2729,6 +2778,25 @@ def review_join_request(request, slug, request_id):
         jr.reviewed_by = request.user
         jr.reviewed_at = timezone.now()
         jr.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+
+        # Notify applicant of decline
+        try:
+            from apps.notifications.models import Notification
+            Notification.objects.create(
+                recipient=jr.user,
+                type=Notification.Type.JOIN_REQUEST_DECLINED,
+                title=f"Application update from {team.name}",
+                body=f"Your request to join {team.name} was not accepted at this time.",
+                url=f"/teams/{team.slug}/",
+                action_label="View Team",
+                action_url=f"/teams/{team.slug}/",
+                category="team",
+                action_object_id=jr.pk,
+                action_type="join_request",
+            )
+        except Exception:
+            pass
+
         return JsonResponse({'success': True, 'message': 'Application declined.'})
 
 
@@ -3548,3 +3616,27 @@ def dismiss_journey_suggestion(request, slug):
     team.save(update_fields=['metadata'])
 
     return JsonResponse({'success': True, 'message': 'Suggestion dismissed.'})
+
+
+# ── Team Follow / Unfollow ──────────────────────────────────────────────
+
+@require_http_methods(["POST"])
+@api_login_required
+def toggle_team_follow(request, slug):
+    """Toggle follow/unfollow for a team. Returns new state and count."""
+    from apps.organizations.models import Team
+    from apps.organizations.models.team_follower import TeamFollower
+
+    team = get_object_or_404(Team, slug=slug)
+    follower, created = TeamFollower.objects.get_or_create(
+        team=team, user=request.user,
+    )
+    if not created:
+        follower.delete()
+
+    count = TeamFollower.objects.filter(team=team).count()
+    return JsonResponse({
+        'success': True,
+        'is_following': created,
+        'follower_count': count,
+    })

@@ -328,6 +328,13 @@
                 const pending = data.requests.filter(r => r.status === 'PENDING').length;
                 const tryouts = data.requests.filter(r => ['TRYOUT_SCHEDULED','TRYOUT_COMPLETED','OFFER_SENT'].includes(r.status)).length;
 
+                // Update sidebar notification badge
+                const sidebarBadge = document.getElementById("sidebar-jr-badge");
+                if (sidebarBadge) {
+                    if (data.count > 0) { sidebarBadge.textContent = data.count; sidebarBadge.classList.remove("hidden"); }
+                    else { sidebarBadge.classList.add("hidden"); }
+                }
+
                 const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
                 el("jr-stat-total", data.total_count || 0);
                 el("jr-stat-pending", pending);
@@ -465,7 +472,8 @@
                 method: "POST", headers: HEADERS,
                 body: JSON.stringify({ action }),
             });
-            const data = await resp.json();
+            let data;
+            try { data = await resp.json(); } catch { data = { error: `Server error (${resp.status})` }; }
             if (resp.ok && data.success) {
                 const card = document.getElementById(`jr-card-${id}`);
                 const isAccept = action === "accept";
@@ -638,16 +646,26 @@
 
     window.ScoutingGrounds = ScoutingGrounds;
 
-    // Auto-load when section becomes visible
+    // Auto-load when section becomes visible (re-triggers on each navigation)
     const observer = new MutationObserver(() => {
         const section = document.getElementById('join-requests');
         if (section && section.classList.contains('is-active')) {
             ScoutingGrounds.refresh();
-            observer.disconnect();
         }
     });
     const section = document.getElementById('join-requests');
     if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
+
+    // Load sidebar badge count immediately on page load
+    (async function loadSidebarBadge() {
+        try {
+            const resp = await fetch(`${API_BASE}/join-requests/`, { headers: { "X-CSRFToken": CSRF } });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const sidebarBadge = document.getElementById("sidebar-jr-badge");
+            if (sidebarBadge && data.count > 0) { sidebarBadge.textContent = data.count; sidebarBadge.classList.remove("hidden"); }
+        } catch {}
+    })();
 })();
 </script>
 {% endif %}

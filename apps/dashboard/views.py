@@ -153,6 +153,17 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
             member_ct = _safe_int(
                 lambda: TeamMembership.objects.filter(team=t, status=MembershipStatus.ACTIVE).count()
             )
+            # Pending join request count for admins/owners
+            jr_count = 0
+            if m.role in ('OWNER', 'MANAGER'):
+                try:
+                    from apps.organizations.models.join_request import TeamJoinRequest
+                    jr_count = TeamJoinRequest.objects.filter(
+                        team=t,
+                        status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
+                    ).count()
+                except Exception:
+                    pass
             my_teams.append({
                 "id": t.id, "name": t.name, "slug": t.slug,
                 "logo_url": _logo_url(t),
@@ -161,6 +172,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 "member_count": member_ct,
                 "tag": getattr(t, "tag", "") or "",
                 "status": getattr(t, "status", ""),
+                "pending_jr_count": jr_count,
             })
     except Exception:
         logger.debug("Dashboard: teams query failed", exc_info=True)

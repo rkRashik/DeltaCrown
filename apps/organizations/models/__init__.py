@@ -28,6 +28,7 @@ from .migration import TeamMigrationMap
 from .activity import TeamActivityLog
 from .announcement import TeamAnnouncement
 from .team_media import TeamMedia, TeamHighlight
+from .team_follower import TeamFollower
 from .discord_sync import DiscordChatMessage
 from .join_request import TeamJoinRequest
 from .recruitment import RecruitmentPosition, RecruitmentRequirement

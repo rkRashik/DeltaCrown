@@ -96,6 +96,7 @@ def get_team_detail_context(
         # 7-Point Overhaul — recruitment & sponsors
         'recruitment': _build_recruitment_context(team, is_private_restricted),
         'sponsors': _build_sponsors_context(team, is_private_restricted),
+        'follow': _build_follow_context(team, viewer),
     }
     
     return context
@@ -347,11 +348,21 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         from apps.organizations.choices import MembershipStatus
         
         # Fetch active memberships with user data (use vnext_memberships related name)
+        # Order: captain first, then starters, then substitutes, then rest
+        from django.db.models import Case, When, Value, IntegerField
         memberships = team.vnext_memberships.select_related(
             'user', 'user__profile'  # vNext FK to User + profile for avatar
         ).filter(
             status=MembershipStatus.ACTIVE
-        ).order_by('-joined_at')[:20]  # Limit to 20
+        ).annotate(
+            _sort_order=Case(
+                When(is_tournament_captain=True, then=Value(0)),
+                When(roster_slot='STARTER', then=Value(1)),
+                When(roster_slot='SUBSTITUTE', then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            )
+        ).order_by('_sort_order', 'joined_at')[:20]  # Limit to 20
         
         # Prefetch game passport data for all roster members
         game_passports = {}
@@ -407,7 +418,7 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
                 'status': getattr(member, 'status', 'ACTIVE'),
                 'joined_date': _safe_date(getattr(member, 'joined_at', None)),
                 'is_captain': getattr(member, 'is_tournament_captain', False),
-                'user_profile_url': f'/u/{username}/',
+                'user_profile_url': f'/@{username}/',
                 'user_id': user.id,
                 'country': getattr(profile, 'country', '') if profile else '',
                 'bio': (getattr(profile, 'bio', '') or '')[:120] if profile else '',
@@ -765,12 +776,26 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
         not team.roster_locked
     )
     
+    # Count pending join requests for admins/owners
+    pending_jr_count = 0
+    if is_authorized and viewer and viewer.is_authenticated:
+        from apps.organizations.models import TeamMembership
+        membership = TeamMembership.objects.filter(
+            team=team, user=viewer, status='ACTIVE',
+        ).first()
+        if membership and membership.role in ('OWNER', 'MANAGER'):
+            from apps.organizations.models.join_request import TeamJoinRequest
+            pending_jr_count = TeamJoinRequest.objects.filter(
+                team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
+            ).count()
+
     return {
         'can_request_to_join': can_request,
         'has_pending_invite': pending_invite is not None,
         'has_pending_request': pending_request is not None,
         'pending_invite_id': pending_invite.id if pending_invite else None,
         'pending_request_id': pending_request.id if pending_request else None,
+        'pending_join_request_count': pending_jr_count,
     }
 
 
@@ -1510,3 +1535,17 @@ def _check_team_accessibility(team: Team, viewer: Optional[User]) -> bool:
     
     # Public or unlisted teams are accessible
     return True
+
+
+def _build_follow_context(team: Team, viewer) -> Dict[str, Any]:
+    """Build follow state for the current viewer."""
+    from apps.organizations.models.team_follower import TeamFollower
+
+    count = TeamFollower.objects.filter(team=team).count()
+    is_following = False
+    if viewer and viewer.is_authenticated:
+        is_following = TeamFollower.objects.filter(team=team, user=viewer).exists()
+    return {
+        'is_following': is_following,
+        'follower_count': count,
+    }

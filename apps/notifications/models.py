@@ -34,6 +34,10 @@ class Notification(models.Model):
         MENTION = "mention", "Mentioned in post"
         FOLLOW_REQUEST_APPROVED = "follow_request_approved", "Follow request approved"
         FOLLOW_REQUEST_REJECTED = "follow_request_rejected", "Follow request rejected"
+        # Team Join Request Notifications
+        JOIN_REQUEST_RECEIVED = "join_request_received", "Join request received"
+        JOIN_REQUEST_ACCEPTED = "join_request_accepted", "Join request accepted"
+        JOIN_REQUEST_DECLINED = "join_request_declined", "Join request declined"
 
     event = models.CharField(max_length=64, db_index=True, default="generic")
     type = models.CharField(max_length=40, choices=Type.choices, db_index=True, default=Type.GENERIC)

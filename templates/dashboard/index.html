@@ -246,7 +246,10 @@
         {% if my_teams %}
         <div class="grid sm:grid-cols-2 gap-2.5">
           {% for team in my_teams %}
-          <a href="/teams/{{ team.slug }}/" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all group">
+          <a href="/teams/{{ team.slug }}/" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all group relative">
+            {% if team.pending_jr_count > 0 %}
+            <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white grid place-items-center ring-2 ring-[#0a0a0f]">{{ team.pending_jr_count }}</span>
+            {% endif %}
             {% if team.logo_url %}
               <img src="{{ team.logo_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-cyan-500/30 transition">
             {% else %}
