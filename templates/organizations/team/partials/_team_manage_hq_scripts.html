@@ -733,8 +733,14 @@
         });
     }
 
-    // CSRF token helper
+    // CSRF token helper — reads from meta tag first (CSRF_COOKIE_HTTPONLY=True)
     function getCookie(name) {
+        if (name === 'csrftoken') {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.content) return meta.content;
+            const el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el && el.value) return el.value;
+        }
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');

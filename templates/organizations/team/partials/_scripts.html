@@ -366,13 +366,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── CSRF COOKIE HELPER ────────────────────────────────────────────────
+  // CSRF_COOKIE_HTTPONLY=True means JS can't read the cookie.
+  // Read from <meta name="csrf-token"> (set in base.html) first.
   function getCookie(name) {
-    const cookies = document.cookie.split(";");
-    for (const c of cookies) {
-      const [k, v] = c.trim().split("=");
-      if (k === name) return decodeURIComponent(v);
+    if (name === 'csrftoken') {
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta && meta.content) return meta.content;
+      const el = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (el && el.value) return el.value;
     }
-    return "";
+    let v = null;
+    if (document.cookie) {
+      document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '='))
+          v = decodeURIComponent(c.substring(name.length + 1));
+      });
+    }
+    return v;
   }
 
   // ── MENU DROPDOWN TOGGLE ──────────────────────────────────────────────

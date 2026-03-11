@@ -183,8 +183,14 @@
 <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
 <script>
-// Get CSRF token
+// Get CSRF token — reads from meta tag first (CSRF_COOKIE_HTTPONLY=True)
 function getCookie(name) {
+  if (name === 'csrftoken') {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content) return meta.content;
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el && el.value) return el.value;
+  }
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
