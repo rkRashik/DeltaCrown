@@ -23,10 +23,11 @@ python manage.py migrate --noinput
 # concurrency=1 + 150 MB memory cap keeps the worker inside Free-Tier limits.
 echo "[render] Starting Celery worker…"
 celery -A deltacrown worker \
-    --loglevel=info \
+    --loglevel=warning \
     --concurrency=1 \
     --max-tasks-per-child=50 \
     --max-memory-per-child=150000 \
+    --without-heartbeat \
     &
 CELERY_PID=$!
 

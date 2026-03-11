@@ -35,5 +35,9 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: "deltacrown.xyz,.deltacrown.xyz,.onrender.com"
-    healthCheckPath: /
+      # Celery Beat — set to "1" to enable heavy periodic tasks
+      # Leave unset or "0" on Free/Starter tier to save memory
+      - key: ENABLE_CELERY_BEAT
+        value: "0"
+    healthCheckPath: /healthz/
     autoDeploy: false
