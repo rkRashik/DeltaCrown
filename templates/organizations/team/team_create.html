@@ -67,6 +67,11 @@
     ::-webkit-scrollbar-track { background: #050508; }
     ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6C00FF, #00E5FF); border-radius: 4px; }
 
+    /* TOGGLE SWITCH */
+    .toggle-checkbox { left: 0; transition: right 0.2s ease, left 0.2s ease, border-color 0.2s ease; }
+    .toggle-checkbox:checked { left: auto; right: 0; border-color: #00E5FF; }
+    .toggle-checkbox:checked + .toggle-label { background-color: rgba(0, 229, 255, 0.4); }
+
     /* GLASSMORPHISM */
     .glass-panel {
         background: rgba(8, 8, 16, 0.7);
@@ -265,7 +270,10 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         {% for game in games %}
                         <label class="cursor-pointer group relative">
-                            <input type="radio" name="game" value="{{ game.slug }}" class="game-radio hidden">
+                            <input type="radio" name="game" value="{{ game.slug }}" class="game-radio hidden"
+                                   data-max-roster="{{ game.roster_config.max_roster_size|default:10 }}"
+                                   data-max-team="{{ game.roster_config.max_team_size|default:5 }}"
+                                   data-max-subs="{{ game.roster_config.max_substitutes|default:2 }}">
                             <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-electric/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
                                 <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-electric rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
                                 <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-electric/10 transition-colors">
@@ -276,6 +284,10 @@
                                     {% endif %}
                                 </div>
                                 <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10 transition-colors">{{ game.display_name }}</span>
+                                <!-- Roster hint badge -->
+                                <span class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-slate-600 font-bold z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {{ game.roster_config.max_team_size|default:5 }}v{{ game.roster_config.max_team_size|default:5 }}
+                                </span>
                                 <div class="absolute inset-0 bg-gradient-to-t from-delta-electric/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
                             </div>
                         </label>
@@ -497,13 +509,13 @@
                             <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Regional Identity (Smart Detect)</label>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-transparent hover:ring-delta-electric/50" data-region-code="BD" data-region-name="Bangladesh">
+                                <div id="regionDetectCard" class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-delta-electric" data-region-code="BD" data-region-name="Bangladesh">
                                     <div class="w-12 h-8 rounded overflow-hidden border border-white/10 shadow-lg">
-                                        <img src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover">
+                                        <img id="regionDetectFlag" src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover">
                                     </div>
                                     <div>
                                         <span class="text-[10px] font-bold text-delta-electric uppercase tracking-wider block">Detected Location</span>
-                                        <span class="text-white font-bold text-lg">Bangladesh</span>
+                                        <span id="regionDetectName" class="text-white font-bold text-lg">Bangladesh</span>
                                     </div>
                                     <div class="absolute right-4 text-delta-electric opacity-100">
                                         <i class="fas fa-check-circle text-xl"></i>
@@ -565,26 +577,66 @@
                             </div>
                         </div>
 
-                        <div class="bg-white/5 rounded-xl p-4 border border-white/5">
-                            <label class="flex items-center justify-between cursor-pointer mb-2">
-                                <span class="text-sm font-bold text-white uppercase tracking-wider">Recruit Members Now?</span>
-                                <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" name="recruit_now" id="toggleRecruitInvite" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-delta-electric"/>
-                                    <label for="toggleRecruitInvite" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-800 cursor-pointer peer-checked:bg-delta-electric/50"></label>
+                        <div class="bg-gradient-to-br from-white/[.04] to-transparent rounded-xl p-5 border border-white/[.06]">
+                            <label class="flex items-center justify-between cursor-pointer group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-delta-electric/10 border border-delta-electric/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <i class="fas fa-user-plus text-delta-electric text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-bold text-white block leading-tight">Recruit Members</span>
+                                        <span class="text-[10px] text-slate-500">Send invites right after team creation</span>
+                                    </div>
                                 </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" name="recruit_now" id="toggleRecruitInvite" class="z-toggle-input">
+                                    <span class="z-toggle-slider"></span>
+                                </label>
                             </label>
-                            <p class="text-xs text-slate-500 mb-3">Send invites to players immediately after creation.</p>
 
-                            <div id="memberInviteArea" class="hidden space-y-2">
-                                <div class="text-[10px] text-slate-500">Enter email(s) or DeltaCrown ID (e.g. DC-25-000042). Separate multiple with commas.</div>
-                                <div class="flex gap-2 member-invite-row">
-                                    <input type="text" class="member-invite-input flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaCrown ID">
-                                    <button type="button" class="member-invite-add bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition" title="Add another invite"><i class="fas fa-plus"></i></button>
+                            <div id="memberInviteArea" class="hidden mt-4 space-y-3 pt-4 border-t border-white/[.06]">
+                                <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mb-1">
+                                    <i class="fas fa-info-circle text-delta-electric/40"></i>
+                                    Search by username, or type an email / DC-ID and click <strong class="text-slate-300">Add</strong>.
                                 </div>
-                                <div class="flex gap-2 member-invite-row">
-                                    <input type="text" class="member-invite-input flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaCrown ID">
-                                    <button type="button" class="member-invite-add bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition" title="Add another invite"><i class="fas fa-plus"></i></button>
+
+                                <!-- Search input with autocomplete -->
+                                <div class="relative">
+                                    <div class="flex gap-2 items-stretch">
+                                        <div class="relative flex-1">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none z-10">
+                                                <i class="fas fa-search text-xs"></i>
+                                            </span>
+                                            <input type="text" id="recruitSearchInput" class="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:border-delta-electric/50 focus:ring-1 focus:ring-delta-electric/20 focus:outline-none transition-all" placeholder="Search players..." autocomplete="off">
+                                            <div id="recruitSearchSpinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+                                                <i class="fas fa-spinner fa-spin text-delta-electric text-xs"></i>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="recruitAddManualBtn" class="bg-delta-electric/15 hover:bg-delta-electric/30 text-delta-electric rounded-xl px-5 text-xs font-bold transition-all border border-delta-electric/25 hover:border-delta-electric/50 whitespace-nowrap flex items-center gap-1.5" title="Add manually (email or DC-ID)">
+                                            <i class="fas fa-plus text-[10px]"></i> Add
+                                        </button>
+                                    </div>
+
+                                    <!-- Autocomplete dropdown -->
+                                    <div id="recruitSearchResults" class="hidden absolute left-0 right-0 top-full mt-1 bg-[#0c0c18] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 max-h-60 overflow-y-auto"></div>
                                 </div>
+
+                                <!-- Counter badge (dynamic max from game roster config) -->
+                                <div id="recruitCounter" class="hidden flex items-center gap-2 text-[10px]">
+                                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-delta-electric/10 border border-delta-electric/20 text-delta-electric font-bold">
+                                        <i class="fas fa-users text-[9px]"></i>
+                                        <span id="recruitCountText">0</span>/<span id="recruitMaxCount">10</span>
+                                    </div>
+                                    <span class="text-slate-500">members selected</span>
+                                </div>
+
+                                <!-- Selected members list -->
+                                <div id="recruitSelectedList" class="space-y-1.5"></div>
+
+                                <p class="text-[10px] text-slate-500 flex items-center gap-1.5 mt-2">
+                                    <i class="fas fa-shield-halved text-delta-electric/30 text-[9px]"></i>
+                                    Players will receive an invitation they can accept or decline.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -781,7 +833,7 @@
                     </div>
 
                     <div class="h-40 bg-delta-panel relative overflow-hidden" id="previewBannerBg">
-                        <img id="realBannerPreview" class="absolute inset-0 w-full h-full object-cover hidden transition-transform duration-700 group-hover:scale-110">
+                        <img id="realBannerPreview" class="absolute inset-0 w-full h-full object-cover hidden transition-transform duration-700 group-hover:scale-110 z-[1]">
                         <div class="absolute inset-0 bg-cyber-grid opacity-30"></div>
                         <div class="absolute inset-0 bg-gradient-to-t from-delta-panel via-delta-panel/50 to-transparent"></div>
                         <div class="absolute top-8 right-3 bg-black/80 backdrop-blur-md border border-white/10 px-2 py-1 rounded flex items-center gap-2">
@@ -793,7 +845,7 @@
                         <div class="flex items-end justify-between mb-4">
                             <div class="w-24 h-24 rounded-2xl border-4 border-delta-panel bg-delta-panel shadow-2xl flex items-center justify-center overflow-hidden relative group-hover:border-delta-electric transition-colors duration-300">
                                 <div class="absolute inset-0 bg-crown-gradient opacity-20"></div>
-                                <img id="realLogoPreview" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <img id="realLogoPreview" class="absolute inset-0 w-full h-full object-cover hidden z-20">
                                 <span class="font-cyber font-bold text-xl text-white z-10" id="previewTagPlaceholder">TAG</span>
                             </div>
                             <div class="mb-1 text-right">
@@ -1104,12 +1156,13 @@
     // ========================================================================
     
     function getCsrfToken() {
-        // 1. Read from hidden input rendered by {% csrf_token %}
+        // 1. Best source: <meta name="csrf-token"> (set in base.html, works with CSRF_COOKIE_HTTPONLY=True)
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content) return meta.content;
+        // 2. Fallback: hidden input rendered by {% csrf_token %}
         const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (hiddenInput && hiddenInput.value) {
-            return hiddenInput.value;
-        }
-        // 2. Fallback: read from cookie (may fail if CSRF_COOKIE_HTTPONLY=True)
+        if (hiddenInput && hiddenInput.value) return hiddenInput.value;
+        // 3. Last resort: cookie (works when HTTPONLY is off)
         const name = 'csrftoken';
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -1407,6 +1460,15 @@
         state.validation.game.message = '';
         state.formData.game = gameRadio.value;
         if (errorEl) errorEl.classList.add('hidden');
+        
+        // Reset mode to independent on game change so ownership check runs fresh
+        state.formData.mode = 'independent';
+        const independentRadio = document.querySelector('input[name="org_status"][value="independent"]');
+        if (independentRadio) independentRadio.checked = true;
+        enableIndependentMode();
+        state.validation.ownership.blocked = false;
+        state.validation.ownership.existingTeam = null;
+        hideOwnershipWarning();
         
         // Trigger ownership check when game changes
         await checkOwnership();
@@ -2159,29 +2221,8 @@
     }
 
     function collectMemberInvites() {
-        const area = document.getElementById('memberInviteArea');
-        if (!area) return [];
-
-        const invites = [];
-        const seen = new Set();
-        const inputs = area.querySelectorAll('input.member-invite-input');
-
-        inputs.forEach((input) => {
-            const raw = (input.value || '').trim();
-            if (!raw) return;
-
-            // Allow comma-separated values in a single field
-            raw.split(',').forEach((part) => {
-                const value = (part || '').trim();
-                if (!value) return;
-                const key = value.toLowerCase();
-                if (seen.has(key)) return;
-                seen.add(key);
-                invites.push(value);
-            });
-        });
-
-        return invites;
+        // Collect from the new recruiter search system
+        return recruitedMembers.map(m => m.identifier);
     }
     
     async function handleSubmit(event) {
@@ -2393,10 +2434,211 @@
         const manualRegion = document.getElementById('manualRegion');
         if (manualRegion) {
             manualRegion.value = code;
+            // Visual feedback on detect cards
+            document.querySelectorAll('[data-region-code]').forEach(card => {
+                const isSelected = card.dataset.regionCode === code;
+                card.classList.toggle('ring-delta-electric', isSelected);
+                card.classList.toggle('border-delta-electric/30', isSelected);
+                card.classList.toggle('ring-transparent', !isSelected);
+                card.classList.toggle('border-white/10', !isSelected);
+                const icon = card.querySelector('.fa-check-circle');
+                if (icon) icon.parentElement.classList.toggle('opacity-100', isSelected);
+                if (icon) icon.parentElement.classList.toggle('opacity-0', !isSelected);
+            });
+            // Dispatch change event so preview updates
+            manualRegion.dispatchEvent(new Event('change'));
             updatePreview();
         }
     }
     
+    // ========================================================================
+    // RECRUIT MEMBER SEARCH (autocomplete)
+    // ========================================================================
+    const recruitedMembers = [];
+    let maxRecruitSlots = 10;  // Default, updated dynamically on game select
+
+    function getMaxRosterFromGame() {
+        const gameRadio = document.querySelector('input[name="game"]:checked');
+        if (gameRadio) {
+            const max = parseInt(gameRadio.dataset.maxRoster, 10);
+            return (!isNaN(max) && max > 0) ? max : 10;
+        }
+        return 10;
+    }
+
+    function updateRecruitSlots() {
+        maxRecruitSlots = getMaxRosterFromGame();
+        const maxEl = document.getElementById('recruitMaxCount');
+        if (maxEl) maxEl.textContent = maxRecruitSlots;
+    }
+
+    function initRecruitSearch() {
+        const searchInput = document.getElementById('recruitSearchInput');
+        const resultsPanel = document.getElementById('recruitSearchResults');
+        const addManualBtn = document.getElementById('recruitAddManualBtn');
+        if (!searchInput || !resultsPanel) return;
+
+        let searchTimeout = null;
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const q = searchInput.value.trim();
+            if (q.length < 2) { resultsPanel.classList.add('hidden'); return; }
+            document.getElementById('recruitSearchSpinner')?.classList.remove('hidden');
+            searchTimeout = setTimeout(() => recruitSearch(q), 350);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') resultsPanel.classList.add('hidden');
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#recruitSearchInput') && !e.target.closest('#recruitSearchResults')) {
+                resultsPanel.classList.add('hidden');
+            }
+        });
+
+        // Manual add button (for email / DC-ID)
+        if (addManualBtn) {
+            addManualBtn.addEventListener('click', () => {
+                const val = searchInput.value.trim();
+                if (!val) return;
+                if (recruitedMembers.length >= maxRecruitSlots) {
+                    showToast(`Max ${maxRecruitSlots} invites allowed for this game.`, 'warning');
+                    return;
+                }
+                addRecruitedMember({ identifier: val, display: val, type: 'manual' });
+                searchInput.value = '';
+                resultsPanel.classList.add('hidden');
+            });
+        }
+
+        // Event delegation for remove buttons (fixes remove button not working)
+        const selectedList = document.getElementById('recruitSelectedList');
+        if (selectedList) {
+            selectedList.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('[data-remove-recruit]');
+                if (removeBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const identifier = removeBtn.dataset.removeRecruit;
+                    if (identifier) removeRecruitedMember(identifier);
+                }
+            });
+        }
+
+        // Update slots when game changes
+        document.querySelectorAll('input[name="game"]').forEach(radio => {
+            radio.addEventListener('change', () => updateRecruitSlots());
+        });
+        // Set initial value
+        updateRecruitSlots();
+    }
+
+    async function recruitSearch(query) {
+        const resultsPanel = document.getElementById('recruitSearchResults');
+        const spinner = document.getElementById('recruitSearchSpinner');
+        try {
+            const url = `/api/vnext/system/teams/search/?q=${encodeURIComponent(query)}&filter=players&limit=8`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('Search failed');
+            const data = await resp.json();
+            const players = (data.data && data.data.players) || data.players || [];
+
+            if (players.length === 0) {
+                resultsPanel.innerHTML = `
+                    <div class="p-4 text-center text-xs text-slate-500">
+                        <i class="fas fa-user-slash mr-1"></i> No players found for "${query}"
+                        <div class="mt-2 text-[10px]">Try email or DC-ID and click <strong>Add</strong></div>
+                    </div>`;
+            } else {
+                resultsPanel.innerHTML = players.map(p => {
+                    const already = recruitedMembers.some(m => m.identifier === p.username);
+                    return `
+                    <div class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 last:border-0 ${already ? 'opacity-40 pointer-events-none' : ''}"
+                         data-username="${p.username}" data-display="${p.username}" data-avatar="${p.avatar || ''}">
+                        <div class="w-8 h-8 rounded-full bg-delta-panel border border-white/10 overflow-hidden shrink-0">
+                            ${p.avatar ? `<img src="${p.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">${(p.username || '?')[0].toUpperCase()}</div>`}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-white truncate">${p.username}</div>
+                            ${p.team ? `<div class="text-[10px] text-slate-500 truncate"><i class="fas fa-users mr-1"></i>${p.team}</div>` : '<div class="text-[10px] text-delta-electric">Free Agent</div>'}
+                        </div>
+                        ${already ? '<span class="text-[10px] text-slate-500">Added</span>' : '<i class="fas fa-plus text-delta-electric text-xs"></i>'}
+                    </div>`;
+                }).join('');
+
+                // Click-to-select
+                resultsPanel.querySelectorAll('[data-username]').forEach(el => {
+                    el.addEventListener('click', () => {
+                        if (recruitedMembers.length >= maxRecruitSlots) { showToast(`Max ${maxRecruitSlots} invites for this game.`, 'warning'); return; }
+                        addRecruitedMember({
+                            identifier: el.dataset.username,
+                            display: el.dataset.display,
+                            avatar: el.dataset.avatar,
+                            type: 'username'
+                        });
+                        document.getElementById('recruitSearchInput').value = '';
+                        resultsPanel.classList.add('hidden');
+                    });
+                });
+            }
+            resultsPanel.classList.remove('hidden');
+        } catch (err) {
+            console.error('[RecruitSearch]', err);
+            resultsPanel.innerHTML = `<div class="p-3 text-xs text-red-400 text-center">Search error. Try email/DC-ID instead.</div>`;
+            resultsPanel.classList.remove('hidden');
+        } finally {
+            spinner?.classList.add('hidden');
+        }
+    }
+
+    function addRecruitedMember(member) {
+        if (recruitedMembers.some(m => m.identifier === member.identifier)) return;
+        recruitedMembers.push(member);
+        renderRecruitedList();
+    }
+
+    function removeRecruitedMember(identifier) {
+        const idx = recruitedMembers.findIndex(m => m.identifier === identifier);
+        if (idx !== -1) recruitedMembers.splice(idx, 1);
+        renderRecruitedList();
+    }
+
+    function renderRecruitedList() {
+        const list = document.getElementById('recruitSelectedList');
+        const counter = document.getElementById('recruitCounter');
+        const countText = document.getElementById('recruitCountText');
+        const maxEl = document.getElementById('recruitMaxCount');
+        if (!list) return;
+
+        // Update counter
+        if (counter && countText) {
+            countText.textContent = recruitedMembers.length;
+            if (maxEl) maxEl.textContent = maxRecruitSlots;
+            counter.classList.toggle('hidden', recruitedMembers.length === 0);
+        }
+
+        if (recruitedMembers.length === 0) {
+            list.innerHTML = '';
+            return;
+        }
+        list.innerHTML = recruitedMembers.map((m, i) => `
+            <div class="flex items-center gap-3 bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 group hover:border-delta-electric/20 transition-all">
+                <span class="text-[10px] text-slate-600 font-mono w-4">${i + 1}.</span>
+                <div class="w-7 h-7 rounded-full bg-delta-panel border border-white/10 overflow-hidden shrink-0">
+                    ${m.avatar ? `<img src="${m.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px] font-bold text-delta-electric">${m.display[0].toUpperCase()}</div>`}
+                </div>
+                <span class="text-xs font-bold text-white flex-1 truncate">${m.display}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded ${m.type === 'username' ? 'bg-delta-electric/10 text-delta-electric border border-delta-electric/20' : 'bg-white/5 text-slate-400 border border-white/5'}">${m.type === 'username' ? 'Player' : 'Manual'}</span>
+                <button type="button" class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors text-xs" data-remove-recruit="${m.identifier.replace(/"/g, '&quot;')}" aria-label="Remove ${m.display}">
+                    <i class="fas fa-times pointer-events-none"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
     function previewImage(input, previewId) {
         const preview = document.getElementById(previewId);
         if (input.files && input.files[0] && preview) {
@@ -2443,6 +2685,14 @@
         
         // Attach event listeners
         attachEventListeners();
+        
+        // Auto-select detected region on load
+        const detectCard = document.getElementById('regionDetectCard');
+        if (detectCard) {
+            const code = detectCard.dataset.regionCode;
+            const name = detectCard.dataset.regionName;
+            if (code) selectRegion(code, name);
+        }
         
         console.log('[TeamCreate] ✅ App initialized successfully');
     }
@@ -2562,36 +2812,20 @@
             });
         }
 
-        // Recruit members: add-row buttons
-        const memberInviteArea = document.getElementById('memberInviteArea');
-        if (memberInviteArea) {
-            memberInviteArea.addEventListener('click', (e) => {
-                const addBtn = e.target.closest('.member-invite-add');
-                if (!addBtn) return;
-
-                const rows = memberInviteArea.querySelectorAll('.member-invite-row');
-                if (rows.length >= 10) {
-                    alert('You can invite up to 10 members during team creation.');
-                    return;
-                }
-
-                const row = addBtn.closest('.member-invite-row');
-                if (!row) return;
-
-                const clone = row.cloneNode(true);
-                const input = clone.querySelector('input.member-invite-input');
-                if (input) input.value = '';
-
-                memberInviteArea.appendChild(clone);
-                if (input) input.focus();
-            });
-        }
+        // Recruit members: autocomplete search
+        initRecruitSearch();
         
         // File uploads
         const logoUpload = document.getElementById('logoUpload');
         if (logoUpload) {
             logoUpload.addEventListener('change', () => {
                 previewImage(logoUpload, 'realLogoPreview');
+                previewImage(logoUpload, 'previewLogoImg');
+                // Hide tag placeholder when logo is shown
+                const tagPlaceholder = document.getElementById('previewTagPlaceholder');
+                if (tagPlaceholder && logoUpload.files && logoUpload.files[0]) {
+                    tagPlaceholder.classList.add('opacity-0');
+                }
                 updatePreview();
             });
         }
@@ -2600,6 +2834,7 @@
         if (bannerUpload) {
             bannerUpload.addEventListener('change', () => {
                 previewImage(bannerUpload, 'realBannerPreview');
+                previewImage(bannerUpload, 'previewBannerImg');
                 updatePreview();
             });
         }

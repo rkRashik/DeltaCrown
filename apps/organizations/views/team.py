@@ -91,8 +91,8 @@ def team_create(request):
     from apps.organizations.models import Organization
     from apps.organizations.constants import TEAM_COUNTRIES
     
-    # B1.1: Get active games
-    games = GameService.list_active_games()
+    # B1.1: Get active games (prefetch roster_config for dynamic slot sizing)
+    games = GameService.list_active_games().select_related('roster_config')
     
     # B1.2: Get user's organizations (where they have CEO or MANAGER role)
     # The owner (ceo field) has all powers by default and doesn't need explicit membership

@@ -1,0 +1,254 @@
+<div class="space-y-8 animate-fade-in">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         GEAR HEADER
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="glass-panel rounded-2xl overflow-hidden relative">
+        <div class="absolute -top-16 -right-16 w-48 h-48 bg-z-purple/10 rounded-full blur-[80px] pointer-events-none"></div>
+        <div class="relative z-10 p-6 md:p-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-z-purple/10 border border-z-purple/30 flex items-center justify-center">
+                    <i class="fa-solid fa-microchip text-z-purple text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-display font-bold text-white leading-none">Pro Loadout</h3>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Competitive Gear Setup</p>
+                </div>
+            </div>
+            {% if relationship_ctx.is_owner %}
+            <a href="{% url 'user_profile:profile_settings' %}#tab-loadout" class="flex items-center gap-1.5 text-[10px] font-bold uppercase text-z-cyan hover:text-white bg-z-cyan/10 hover:bg-z-cyan/20 border border-z-cyan/20 px-3 py-1.5 rounded-lg transition">
+                <i class="fa-solid fa-pen-to-square text-[9px]"></i> Edit Gear
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if has_loadout or hardware_loadout.mouse_brand or hardware_loadout.keyboard_brand %}
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DESK SETUP — Peripherals
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div>
+        <div class="flex items-center gap-3 mb-5">
+            <div class="h-px flex-1 bg-gradient-to-r from-z-cyan/30 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-display text-gray-500 text-xs"></i> Desk Setup
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-z-cyan/30 to-transparent"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if hardware_loadout.mouse_brand %}
+            <div class="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-cyan/30 transition-all duration-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-z-cyan/10 border border-z-cyan/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-computer-mouse text-z-cyan"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Mouse</div>
+                        <div class="text-white font-bold text-sm truncate">{{ hardware_loadout.mouse_brand }}</div>
+                    </div>
+                    {% if hardware_loadout.mouse_dpi %}
+                    <span class="px-2.5 py-1 rounded-md bg-z-cyan/10 text-z-cyan border border-z-cyan/20 text-[10px] font-black tabular-nums">{{ hardware_loadout.mouse_dpi }} DPI</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if hardware_loadout.keyboard_brand %}
+            <div class="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-purple/30 transition-all duration-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-z-purple/10 border border-z-purple/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-keyboard text-z-purple"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Keyboard</div>
+                        <div class="text-white font-bold text-sm truncate">{{ hardware_loadout.keyboard_brand }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if hardware_loadout.headset_brand %}
+            <div class="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-gold/30 transition-all duration-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-z-gold/10 border border-z-gold/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-headphones text-z-gold"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Headset</div>
+                        <div class="text-white font-bold text-sm truncate">{{ hardware_loadout.headset_brand }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if hardware_loadout.monitor_brand %}
+            <div class="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-green-500/30 transition-all duration-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-desktop text-green-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Monitor</div>
+                        <div class="text-white font-bold text-sm truncate">{{ hardware_loadout.monitor_brand }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         IN-GAME TUNING — DPI / Sensitivity / eDPI
+         ═══════════════════════════════════════════════════════════════════ -->
+    {% if hardware_loadout.sensitivity or hardware_loadout.mouse_dpi %}
+    <div>
+        <div class="flex items-center gap-3 mb-5">
+            <div class="h-px flex-1 bg-gradient-to-r from-z-gold/30 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-sliders text-gray-500 text-xs"></i> In-Game Tuning
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-z-gold/30 to-transparent"></div>
+        </div>
+
+        <div class="glass-panel rounded-2xl overflow-hidden">
+            <div class="grid grid-cols-3 divide-x divide-white/[.06]">
+                {% if hardware_loadout.mouse_dpi %}
+                <div class="p-5 text-center group hover:bg-white/[.02] transition">
+                    <div class="text-3xl font-display font-black text-white leading-none">{{ hardware_loadout.mouse_dpi }}</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mt-2 tracking-wider">DPI</div>
+                </div>
+                {% endif %}
+                {% if hardware_loadout.sensitivity %}
+                <div class="p-5 text-center group hover:bg-white/[.02] transition">
+                    <div class="text-3xl font-display font-black text-white leading-none">{{ hardware_loadout.sensitivity }}</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mt-2 tracking-wider">Sensitivity</div>
+                </div>
+                {% endif %}
+                {% if hardware_loadout.mouse_dpi and hardware_loadout.sensitivity %}
+                <div class="p-5 text-center bg-z-cyan/[.04] group hover:bg-z-cyan/[.06] transition">
+                    <div class="text-3xl font-display font-black text-z-cyan leading-none" id="gear-edpi">—</div>
+                    <div class="text-[10px] text-z-cyan/60 uppercase font-bold mt-2 tracking-wider">eDPI</div>
+                </div>
+                <script>
+                    (function(){
+                        const dpi = {{ hardware_loadout.mouse_dpi|default:"0" }};
+                        const sens = parseFloat("{{ hardware_loadout.sensitivity|default:'0' }}");
+                        const el = document.getElementById('gear-edpi');
+                        if (el && dpi > 0 && sens > 0) el.textContent = Math.round(dpi * sens * 100) / 100;
+                    })();
+                </script>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ADVANCED — Detailed Specs (HardwareGear model)
+         ═══════════════════════════════════════════════════════════════════ -->
+    {% if hardware_gear.mouse or hardware_gear.keyboard or hardware_gear.headset or hardware_gear.monitor or hardware_gear.mousepad %}
+    <div>
+        <div class="flex items-center gap-3 mb-5">
+            <div class="h-px flex-1 bg-gradient-to-r from-gray-700/50 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-gray-500 text-xs"></i> Detailed Specs
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-gray-700/50 to-transparent"></div>
+        </div>
+
+        <div class="space-y-2">
+            {% for key, item in hardware_gear.items %}
+            {% if item %}
+            <div class="group relative rounded-xl overflow-hidden hover:bg-white/[.03] transition-all duration-300">
+                <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-full
+                    {% if key == 'mouse' %}bg-z-cyan
+                    {% elif key == 'keyboard' %}bg-z-purple
+                    {% elif key == 'headset' %}bg-z-gold
+                    {% elif key == 'monitor' %}bg-green-400
+                    {% else %}bg-gray-500{% endif %}"></div>
+                <div class="flex items-center gap-4 pl-5 pr-4 py-3.5">
+                    <div class="w-9 h-9 rounded-lg bg-white/[.04] border border-white/[.06] flex items-center justify-center shrink-0">
+                        {% if key == 'mouse' %}<i class="fa-solid fa-computer-mouse text-z-cyan text-sm"></i>
+                        {% elif key == 'keyboard' %}<i class="fa-solid fa-keyboard text-z-purple text-sm"></i>
+                        {% elif key == 'headset' %}<i class="fa-solid fa-headphones text-z-gold text-sm"></i>
+                        {% elif key == 'monitor' %}<i class="fa-solid fa-desktop text-green-400 text-sm"></i>
+                        {% elif key == 'mousepad' %}<i class="fa-solid fa-table-cells text-gray-400 text-sm"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-bold text-white">{{ item.brand }} {{ item.model }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{{ key }}</div>
+                    </div>
+                    {% if item.specs %}
+                    <div class="flex gap-1.5 flex-wrap justify-end">
+                        {% for spec_key, spec_val in item.specs.items %}
+                        <span class="px-2 py-0.5 rounded-md bg-white/[.04] text-[9px] text-gray-400 font-mono border border-white/[.06]">{{ spec_key }}: {{ spec_val }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         GAME CONFIGS
+         ═══════════════════════════════════════════════════════════════════ -->
+    {% if game_configs %}
+    <div>
+        <div class="flex items-center gap-3 mb-5">
+            <div class="h-px flex-1 bg-gradient-to-r from-gray-700/50 to-transparent"></div>
+            <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-gamepad text-gray-500 text-xs"></i> Game Configs
+            </h4>
+            <div class="h-px flex-1 bg-gradient-to-l from-gray-700/50 to-transparent"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for config in game_configs %}
+            <div class="glass-panel p-5 rounded-2xl group hover:bg-white/[.03] transition">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-bold text-white text-sm">{{ config.game }}</span>
+                    {% if config.notes %}
+                    <span class="text-[9px] text-gray-500 italic truncate max-w-[120px]">{{ config.notes }}</span>
+                    {% endif %}
+                </div>
+                {% if config.settings %}
+                <div class="grid grid-cols-2 gap-2">
+                    {% for key, val in config.settings.items %}
+                    <div class="flex justify-between items-center bg-black/30 rounded-lg px-3 py-1.5">
+                        <span class="text-[10px] text-gray-400 capitalize">{{ key }}</span>
+                        <span class="text-[10px] text-white font-bold font-mono">{{ val }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+
+    <!-- Empty State -->
+    <div class="glass-panel p-10 rounded-2xl text-center">
+        <i class="fa-solid fa-microchip text-4xl text-gray-600 mb-3"></i>
+        <p class="text-gray-400 font-bold text-sm">No gear configured yet</p>
+        <p class="text-gray-500 text-xs mt-1">
+            {% if relationship_ctx.is_owner %}
+            <a href="{% url 'user_profile:profile_settings' %}#tab-loadout" class="text-z-cyan hover:text-white transition">Set up your loadout</a> to show your competitive setup
+            {% else %}
+            This player hasn't shared their gear setup yet
+            {% endif %}
+        </p>
+    </div>
+
+    {% endif %}
+
+</div>

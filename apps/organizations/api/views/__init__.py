@@ -55,6 +55,7 @@ from apps.organizations.services.exceptions import (
     ValidationError as ServiceValidationError,
     ConflictError,
     TeamValidationError,
+    OrganizationNotFoundError,
 )
 from apps.organizations.models import (
     Organization,

@@ -633,6 +633,7 @@
                 <button onclick="switchTab('career')" data-tab="career" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
                 <button onclick="switchTab('highlights')" data-tab="highlights" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
                 <button onclick="switchTab('bounty')" data-tab="bounty" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Bounty</button>
+                <button onclick="switchTab('gear')" data-tab="gear" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Gear</button>
                 <button onclick="switchTab('inventory')" data-tab="inventory" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
                 {% if relationship_ctx.is_owner %}
                 <button onclick="switchTab('economy')" data-tab="economy" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
@@ -658,6 +659,10 @@
 
             <div id="tab-bounty" class="tab-content hidden">
                 {% include "user_profile/profile/tabs/_tab_bounty.html" %}
+            </div>
+
+            <div id="tab-gear" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_gear.html" %}
             </div>
 
             <div id="tab-inventory" class="tab-content hidden">
@@ -1012,17 +1017,30 @@ window.closeFollowingModal = function() {
 // Followers/Following functions removed (2026-01-22) - using external follow-modal-system.js instead
 
 // Bounty Modal Functions
-window.openBountyModal = function(title, reward) {
+window.openBountyModal = function(title, reward, challengeType) {
     const modal = document.getElementById('modal-bounty-challenge');
     const modalContent = document.getElementById('modal-bounty-content');
     
     if (!modal || !modalContent) return;
     
     document.getElementById('modal-bounty-title').innerText = title || 'Contract';
-    document.getElementById('modal-bounty-reward').innerText = (reward || 0) + ' DC';
+    document.getElementById('modal-bounty-reward').innerText = 'Đ ' + ((reward || 0).toLocaleString());
+    
+    // Challenge type badge
+    const typeBadge = document.getElementById('modal-challenge-type');
+    if (typeBadge) {
+        const cType = challengeType || 'solo';
+        if (cType === 'team') {
+            typeBadge.classList.remove('hidden');
+            document.getElementById('modal-challenge-type-badge').className = 'flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold bg-z-purple/[.08] border border-z-purple/15 text-z-purple';
+            document.getElementById('modal-challenge-type-icon').className = 'fa-solid fa-users text-[9px]';
+            document.getElementById('modal-challenge-type-label').innerText = 'Team vs Team Challenge — All roster members share the outcome';
+        } else {
+            typeBadge.classList.add('hidden');
+        }
+    }
     
     modal.classList.remove('hidden');
-    // Slight delay for animation
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         modalContent.classList.remove('scale-95');

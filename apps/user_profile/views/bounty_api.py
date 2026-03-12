@@ -20,7 +20,7 @@ import json
 
 from apps.user_profile.services import bounty_service
 from apps.core.models import Game
-from apps.user_profile.models import Bounty, BountyStatus
+from apps.user_profile.models import Bounty, BountyStatus, BountyType
 
 
 @login_required
@@ -38,7 +38,10 @@ def create_bounty(request):
         "description": "First to 100k in Gridshot wins",
         "stake_amount": 500,
         "expires_in_hours": 72,
-        "mode": "1v1"  # Optional
+        "mode": "1v1",
+        "challenge_type": "solo",
+        "creator_team_id": null,
+        "target_team_id": null
     }
     
     Returns:
@@ -59,6 +62,9 @@ def create_bounty(request):
     stake_amount = data.get("stake_amount")
     expires_in_hours = data.get("expires_in_hours", 72)
     mode = data.get("mode", "1v1")
+    challenge_type = data.get("challenge_type", BountyType.SOLO)
+    creator_team_id = data.get("creator_team_id")
+    target_team_id = data.get("target_team_id")
     
     # Validate required fields
     if not title:
@@ -86,6 +92,23 @@ def create_bounty(request):
     except Game.DoesNotExist:
         return JsonResponse({"error": "Game not found"}, status=400)
     
+    # Resolve team references for team bounties
+    creator_team = None
+    target_team = None
+    if challenge_type == BountyType.TEAM:
+        if not creator_team_id:
+            return JsonResponse({"error": "creator_team_id is required for team bounties"}, status=400)
+        from apps.organizations.models import Team
+        try:
+            creator_team = Team.objects.get(pk=creator_team_id)
+        except Team.DoesNotExist:
+            return JsonResponse({"error": "Creator team not found"}, status=404)
+        if target_team_id:
+            try:
+                target_team = Team.objects.get(pk=target_team_id)
+            except Team.DoesNotExist:
+                return JsonResponse({"error": "Target team not found"}, status=404)
+    
     # Validate expiry
     try:
         expires_in_hours = int(expires_in_hours)
@@ -104,6 +127,9 @@ def create_bounty(request):
             game=game,
             stake_amount=stake_amount,
             description=description,
+            challenge_type=challenge_type,
+            creator_team=creator_team,
+            target_team=target_team,
             expires_in_hours=expires_in_hours,
             ip_address=request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT'),
@@ -152,11 +178,28 @@ def accept_bounty(request, bounty_id):
     except Bounty.DoesNotExist:
         return JsonResponse({"error": "Bounty not found"}, status=404)
     
+    # Parse optional team for team bounties
+    acceptor_team = None
+    if bounty.challenge_type == BountyType.TEAM:
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except json.JSONDecodeError:
+            data = {}
+        acceptor_team_id = data.get("acceptor_team_id")
+        if not acceptor_team_id:
+            return JsonResponse({"error": "acceptor_team_id is required for team bounties"}, status=400)
+        from apps.organizations.models import Team
+        try:
+            acceptor_team = Team.objects.get(pk=acceptor_team_id)
+        except Team.DoesNotExist:
+            return JsonResponse({"error": "Acceptor team not found"}, status=404)
+    
     # Accept bounty via service
     try:
         acceptance = bounty_service.accept_bounty(
             bounty_id=bounty_id,
             acceptor=request.user,
+            acceptor_team=acceptor_team,
             ip_address=request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT'),
         )

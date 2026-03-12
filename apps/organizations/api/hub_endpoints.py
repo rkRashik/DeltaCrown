@@ -472,7 +472,7 @@ def team_search(request):
                         pass
                     try:
                         membership = p.team_memberships.filter(
-                            status='active'
+                            status='ACTIVE'
                         ).select_related('team').first()
                         if membership:
                             team_name = membership.team.name

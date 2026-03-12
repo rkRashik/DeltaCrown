@@ -1217,23 +1217,21 @@ BRACKETS_USE_UNIVERSAL_ENGINE = os.getenv('BRACKETS_USE_UNIVERSAL_ENGINE', 'Fals
 #   - ROUTING_MODE = "auto" (gradual rollout mode)
 #
 # Production Defaults (DEBUG=False, no env override):
-#   - ADAPTER_ENABLED = False (vNext disabled)
+#   - ADAPTER_ENABLED = True (vNext fully migrated, legacy retired)
 #   - FORCE_LEGACY = False (normal operation)
-#   - ROUTING_MODE = "legacy_only" (100% legacy traffic)
+#   - ROUTING_MODE = "vnext_only" (100% vNext traffic)
 #
 TEAM_VNEXT_FORCE_LEGACY = os.getenv('TEAM_VNEXT_FORCE_LEGACY', 'False').lower() == 'true'
 
-# Enable adapter in dev mode by default, disabled in production
-_dev_default_adapter = 'True' if DEBUG else 'False'
-TEAM_VNEXT_ADAPTER_ENABLED = os.getenv('TEAM_VNEXT_ADAPTER_ENABLED', _dev_default_adapter).lower() == 'true'
+# vNext adapter — enabled by default (legacy migration complete)
+TEAM_VNEXT_ADAPTER_ENABLED = os.getenv('TEAM_VNEXT_ADAPTER_ENABLED', 'True').lower() == 'true'
 
 # Routing mode: Controls which backend to use
-# Options: "legacy_only" (default), "vnext_only", "auto"
-# - legacy_only: All traffic to legacy (safe default)
-# - vnext_only: All traffic to vNext (aggressive rollout)
-# - auto: Use allowlist for gradual rollout (recommended for dev)
-_dev_default_routing = 'auto' if DEBUG else 'legacy_only'
-TEAM_VNEXT_ROUTING_MODE = os.getenv('TEAM_VNEXT_ROUTING_MODE', _dev_default_routing)
+# Options: "legacy_only", "vnext_only" (default), "auto"
+# - legacy_only: All traffic to legacy (emergency rollback only)
+# - vnext_only: All traffic to vNext (production default)
+# - auto: Use allowlist for gradual rollout
+TEAM_VNEXT_ROUTING_MODE = os.getenv('TEAM_VNEXT_ROUTING_MODE', 'vnext_only')
 
 # Allowlist: Team IDs that can use vNext in auto mode
 # Default: [] (empty, no teams use vNext)

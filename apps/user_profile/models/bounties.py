@@ -21,6 +21,12 @@ from datetime import timedelta
 User = get_user_model()
 
 
+class BountyType(models.TextChoices):
+    """Challenge format type."""
+    SOLO = 'solo', 'Player vs Player'
+    TEAM = 'team', 'Team vs Team'
+
+
 class BountyStatus(models.TextChoices):
     """Bounty state machine."""
     OPEN = 'open', 'Open'
@@ -102,6 +108,39 @@ class Bounty(models.Model):
         help_text="Game for this challenge"
     )
     
+    # Challenge Type & Team Support
+    challenge_type = models.CharField(
+        max_length=10,
+        choices=BountyType.choices,
+        default=BountyType.SOLO,
+        db_index=True,
+        help_text="Solo (1v1) or Team (roster vs roster)"
+    )
+    creator_team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.SET_NULL,
+        related_name='created_bounties',
+        null=True,
+        blank=True,
+        help_text="Creator's team (required for team bounties)"
+    )
+    acceptor_team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.SET_NULL,
+        related_name='accepted_bounties',
+        null=True,
+        blank=True,
+        help_text="Acceptor's team (set on accept for team bounties)"
+    )
+    target_team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.SET_NULL,
+        related_name='targeted_bounties',
+        null=True,
+        blank=True,
+        help_text="If set, only this team can accept (private team challenge)"
+    )
+    
     # Financial
     stake_amount = models.IntegerField(
         help_text="DeltaCoins locked in escrow (creator's stake)"
@@ -162,11 +201,14 @@ class Bounty(models.Model):
             models.Index(fields=['creator', 'status']),
             models.Index(fields=['acceptor', 'status']),
             models.Index(fields=['game', 'status']),
+            models.Index(fields=['challenge_type', 'status']),
+            models.Index(fields=['creator_team', 'status']),
         ]
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Bounty #{self.id}: {self.title} ({self.stake_amount} DC)"
+        tag = "Team" if self.challenge_type == BountyType.TEAM else "1v1"
+        return f"Bounty #{self.id}: {self.title} [{tag}] ({self.stake_amount} DC)"
     
     def clean(self):
         """Validate bounty constraints."""
@@ -190,6 +232,25 @@ class Bounty(models.Model):
         if self.winner:
             if self.winner not in [self.creator, self.acceptor]:
                 raise ValidationError("Winner must be creator or acceptor")
+        
+        # Team bounty validation
+        if self.challenge_type == BountyType.TEAM:
+            if not self.creator_team:
+                raise ValidationError("Team bounties require a creator team")
+            # Validate game supports team play
+            roster_config = getattr(self.game, 'roster_config', None)
+            if roster_config and roster_config.max_team_size <= 1:
+                raise ValidationError(
+                    f"{self.game.display_name} is a solo game and does not support team bounties"
+                )
+            # Prevent self-challenge (same team)
+            if self.acceptor_team and self.creator_team == self.acceptor_team:
+                raise ValidationError("Cannot challenge your own team")
+        
+        # Solo bounty: ensure no team fields set
+        if self.challenge_type == BountyType.SOLO:
+            if self.creator_team or self.acceptor_team or self.target_team:
+                raise ValidationError("Solo bounties cannot have team assignments")
     
     def save(self, *args, **kwargs):
         # Set expiry time on creation if not set

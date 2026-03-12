@@ -932,6 +932,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['user_stats'] = {
             'total_matches': stats.matches_played,
             'total_wins': stats.matches_won,
+            'total_losses': max(stats.matches_played - stats.matches_won, 0),
             'win_rate': round((stats.matches_won / stats.matches_played * 100) if stats.matches_played > 0 else 0, 1),
             'tournaments_played': stats.tournaments_played,
             'tournaments_won': stats.tournaments_won,
@@ -946,6 +947,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['user_stats'] = {
             'total_matches': 0,
             'total_wins': 0,
+            'total_losses': 0,
             'win_rate': 0,
             'tournaments_played': 0,
             'tournaments_won': 0,
@@ -1227,6 +1229,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'expires_at': bounty.expires_at,
             'is_expired': bounty.is_expired,
             'can_dispute': bounty.can_dispute if hasattr(bounty, 'can_dispute') else False,
+            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
+            'creator_team': str(bounty.creator_team) if getattr(bounty, 'creator_team', None) else None,
         }
         for bounty in active_bounties[:10]
     ]
@@ -1243,6 +1247,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'winner': bounty.winner.username if bounty.winner else None,
             'completed_at': bounty.completed_at,
             'was_winner': bounty.winner_id == profile_user.id if bounty.winner_id else False,
+            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
         }
         for bounty in completed_bounties[:5]
     ]
@@ -1521,6 +1526,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['user_stats'] = {
             'total_matches': 0,
             'total_wins': 0,
+            'total_losses': 0,
             'win_rate': 0,
             'tournaments_played': 0,
             'tournaments_won': 0,
@@ -1997,6 +2003,16 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     context['contract_type_choices'] = CONTRACT_TYPE_CHOICES
     context['recruiter_visibility_choices'] = RECRUITER_VISIBILITY_CHOICES
     
+    # Bounty stats for settings dashboard
+    from apps.user_profile.services import bounty_service
+    bounty_stats_data = bounty_service.get_user_bounty_stats(request.user)
+    context['bounty_stats'] = {
+        'total_completed': bounty_stats_data.get('won_count', 0),
+        'total_earned': bounty_stats_data.get('total_earnings', 0),
+        'win_rate': bounty_stats_data.get('win_rate', 0),
+        'active_count': bounty_stats_data.get('created_count', 0) - bounty_stats_data.get('won_count', 0) - bounty_stats_data.get('lost_count', 0),
+    }
+    
     # Role choices for career settings
     ROLE_CHOICES = [
         'IGL',
@@ -2107,6 +2123,13 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         'headset': serialize_hardware(loadout_data['hardware'].get('HEADSET')),
         'monitor': serialize_hardware(loadout_data['hardware'].get('MONITOR')),
     }
+    
+    # Phase 4B: Simple HardwareLoadout for settings form
+    from apps.user_profile.models import HardwareLoadout
+    hardware_loadout, _ = HardwareLoadout.objects.get_or_create(
+        user_profile=UserProfile.objects.get(user=request.user)
+    )
+    context['hardware_loadout'] = hardware_loadout
     
     # Phase 4C.3: Initialize form for GET request to provide field choices
     from apps.user_profile.forms import UserProfileSettingsForm

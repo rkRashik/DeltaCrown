@@ -312,6 +312,25 @@ class HardwareLoadout(models.Model):
         help_text="Monitor brand/model (e.g., 'BenQ Zowie XL2546K 240Hz')"
     )
     
+    # ===== IN-GAME SETTINGS =====
+    mouse_dpi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Mouse DPI setting (e.g., 800)"
+    )
+    
+    sensitivity = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="In-game sensitivity (e.g., '0.45')"
+    )
+    
+    loadout_public = models.BooleanField(
+        default=True,
+        help_text="Show loadout on public profile"
+    )
+    
     # ===== METADATA =====
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

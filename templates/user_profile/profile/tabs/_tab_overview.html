@@ -1,7 +1,10 @@
 <!-- UP.4 TACTICAL ABOUT SECTION (v4.0) -->
 {% include "user_profile/profile/partials/_about_tactical_v4.html" %}
 
-<div class="glass-panel p-6 rounded-2xl">
+<div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+    <!-- Ambient glow -->
+    <div class="absolute -top-12 -right-12 w-40 h-40 bg-z-cyan/8 rounded-full blur-[60px] pointer-events-none"></div>
+
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
             <i class="fa-solid fa-chart-pie text-z-cyan"></i> Performance Analytics
@@ -13,29 +16,63 @@
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">K/D Ratio</div>
-            <div class="text-2xl font-black text-white">{{ stats_ctx.kd_ratio|default:"0.00" }}</div>
-            <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_kills|default:0 }} K / {{ stats_ctx.total_deaths|default:0 }} D</div>
-            <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-green to-transparent opacity-50"></div>
+        <!-- K/D Ratio -->
+        <div class="relative p-4 rounded-xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-green-500/30 transition-all duration-300 group/stat">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px] shadow-green-400/60"></div>
+                <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">K/D Ratio</span>
+            </div>
+            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.kd_ratio|default:"0.00" }}</div>
+            <div class="text-[10px] text-gray-500 mt-2">{{ stats_ctx.total_kills|default:0 }}K / {{ stats_ctx.total_deaths|default:0 }}D</div>
+            <!-- Progress bar: KD visualized as percentage (capped via widthratio) -->
+            <div class="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full rounded-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-1000" style="width: {% widthratio stats_ctx.kd_ratio 5 100 %}%"></div>
+            </div>
         </div>
-        <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Win Rate</div>
-            <div class="text-2xl font-black text-white">{{ stats_ctx.win_rate|default:0 }}%</div>
-            <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_wins|default:0 }} W / {{ stats_ctx.total_matches|default:0 }} M</div>
-             <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-cyan to-transparent opacity-50"></div>
+        <!-- Win Rate -->
+        <div class="relative p-4 rounded-xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-cyan/30 transition-all duration-300 group/stat">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 rounded-full bg-z-cyan shadow-[0_0_6px] shadow-z-cyan/60"></div>
+                <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Win Rate</span>
+            </div>
+            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.win_rate|default:0 }}<span class="text-lg text-gray-500">%</span></div>
+            <div class="text-[10px] text-gray-500 mt-2">{{ stats_ctx.total_wins|default:0 }}W / {{ stats_ctx.total_matches|default:0 }}M</div>
+            <div class="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full rounded-full bg-gradient-to-r from-z-cyan to-z-purple transition-all duration-1000" style="width: {{ stats_ctx.win_rate|default:0 }}%"></div>
+            </div>
         </div>
-        <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Matches</div>
-            <div class="text-2xl font-black text-white">{{ stats_ctx.total_matches|default:0 }}</div>
-            <div class="text-[10px] text-gray-400 mt-1">Played</div>
-             <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-purple to-transparent opacity-50"></div>
+        <!-- Matches Played -->
+        <div class="relative p-4 rounded-xl bg-gradient-to-br from-white/[.04] to-transparent border border-white/[.06] hover:border-z-purple/30 transition-all duration-300 group/stat">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 rounded-full bg-z-purple shadow-[0_0_6px] shadow-z-purple/60"></div>
+                <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Matches</span>
+            </div>
+            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.total_matches|default:0 }}</div>
+            <div class="text-[10px] text-gray-500 mt-2">Total Played</div>
+            <div class="mt-3 flex gap-0.5">
+                <div class="flex-1 h-1.5 rounded-full bg-green-500/30" title="Wins: {{ stats_ctx.total_wins|default:0 }}">
+                    <div class="h-full rounded-full bg-green-400" style="width: {% if stats_ctx.total_matches %}{% widthratio stats_ctx.total_wins stats_ctx.total_matches 100 %}{% else %}0{% endif %}%"></div>
+                </div>
+                <div class="flex-1 h-1.5 rounded-full bg-red-500/30" title="Losses">
+                    <div class="h-full rounded-full bg-red-400" style="width: {% if stats_ctx.total_matches %}{% widthratio stats_ctx.total_wins stats_ctx.total_matches 100 %}{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+            <div class="flex justify-between mt-1">
+                <span class="text-[9px] text-green-400 font-bold">{{ stats_ctx.total_wins|default:0 }}W</span>
+                <span class="text-[9px] text-red-400 font-bold">{{ stats_ctx.total_losses|default:0 }}L</span>
+            </div>
         </div>
-        <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Tournaments</div>
-            <div class="text-2xl font-black text-white">{{ stats_ctx.tournaments_won|default:0 }}</div>
-            <div class="text-[10px] text-gray-400 mt-1">Won / {{ stats_ctx.tournaments_played|default:0 }} Played</div>
-             <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-gold to-transparent opacity-50"></div>
+        <!-- Tournaments -->
+        <div class="relative p-4 rounded-xl bg-gradient-to-br from-z-gold/[.06] to-transparent border border-z-gold/15 hover:border-z-gold/40 transition-all duration-300 group/stat">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 rounded-full bg-z-gold shadow-[0_0_6px] shadow-z-gold/60"></div>
+                <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Tournaments</span>
+            </div>
+            <div class="text-3xl font-display font-black text-white leading-none">{{ stats_ctx.tournaments_won|default:0 }}</div>
+            <div class="text-[10px] text-gray-500 mt-2">Won / {{ stats_ctx.tournaments_played|default:0 }} Played</div>
+            <div class="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full rounded-full bg-gradient-to-r from-z-gold to-yellow-500 transition-all duration-1000" style="width: {% if stats_ctx.tournaments_played %}{% widthratio stats_ctx.tournaments_won stats_ctx.tournaments_played 100 %}{% else %}0{% endif %}%"></div>
+            </div>
         </div>
     </div>
 </div>

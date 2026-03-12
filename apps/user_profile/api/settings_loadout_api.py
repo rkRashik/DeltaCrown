@@ -43,6 +43,9 @@ def loadout_settings_get(request):
                 'keyboard_brand': loadout.keyboard_brand or '',
                 'headset_brand': loadout.headset_brand or '',
                 'monitor_brand': loadout.monitor_brand or '',
+                'mouse_dpi': loadout.mouse_dpi,
+                'sensitivity': loadout.sensitivity or '',
+                'loadout_public': loadout.loadout_public,
             }
         })
         
@@ -85,6 +88,15 @@ def loadout_settings_save(request):
             loadout.headset_brand = (data['headset_brand'] or '').strip()[:100]
         if 'monitor_brand' in data:
             loadout.monitor_brand = (data['monitor_brand'] or '').strip()[:100]
+        
+        # Extended fields (DPI, sensitivity)
+        if 'mouse_dpi' in data:
+            val = data['mouse_dpi']
+            loadout.mouse_dpi = int(val) if val is not None else None
+        if 'sensitivity' in data:
+            loadout.sensitivity = (data['sensitivity'] or '').strip()[:20]
+        if 'loadout_public' in data:
+            loadout.loadout_public = bool(data['loadout_public'])
         
         loadout.save()
         

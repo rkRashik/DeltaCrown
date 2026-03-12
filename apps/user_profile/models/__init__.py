@@ -28,6 +28,7 @@ from apps.user_profile.models.bounties import (  # P0 Bounties
     BountyProof,
     BountyDispute,
     BountyStatus,
+    BountyType,
     DisputeStatus,
 )
 from apps.user_profile.models.delete_otp import GamePassportDeleteOTP  # Phase 9A-27
@@ -115,6 +116,7 @@ __all__ = [
     'BountyProof',
     'BountyDispute',
     'BountyStatus',
+    'BountyType',
     'DisputeStatus',
     
     # Existing models

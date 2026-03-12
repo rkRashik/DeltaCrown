@@ -334,10 +334,9 @@ class TeamMembership(models.Model):
         - organization_id: Distinguishes independent vs org teams
         """
         if self.team_id:
-            # Auto-populate game_id and organization_id from team
-            if not self.game_id:
-                self.game_id = self.team.game_id
-            # Always sync organization_id (could change if team transferred)
+            # Always sync game_id and organization_id from team
+            # (game_id has default=1 from migration, so 'if not' would skip updates)
+            self.game_id = self.team.game_id
             self.organization_id = self.team.organization_id
         super().save(*args, **kwargs)
 

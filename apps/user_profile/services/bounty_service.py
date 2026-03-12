@@ -28,6 +28,7 @@ from apps.user_profile.models import (
     BountyProof,
     BountyDispute,
     BountyStatus,
+    BountyType,
     DisputeStatus,
 )
 from apps.economy import services as economy_services
@@ -50,6 +51,9 @@ def create_bounty(
     stake_amount: int,
     description: str = "",
     target_user: Optional[User] = None,
+    challenge_type: str = "solo",
+    creator_team=None,
+    target_team=None,
     expires_in_hours: int = 72,
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
@@ -57,11 +61,14 @@ def create_bounty(
     """
     Create bounty and lock stake in escrow.
     
+    Supports both solo (1v1) and team bounties.
+    
     Process:
     1. Validate creator has sufficient available balance
-    2. Create Bounty record with status=OPEN
-    3. Lock funds: Debit cached_balance, increment pending_balance
-    4. Set expiry timestamp
+    2. Validate game supports the challenge type (team games for team bounties)
+    3. Create Bounty record with status=OPEN
+    4. Lock funds: Debit cached_balance, increment pending_balance
+    5. Set expiry timestamp
     
     Args:
         creator: User creating the bounty
@@ -69,7 +76,10 @@ def create_bounty(
         game: Game for challenge
         stake_amount: DeltaCoins to lock in escrow
         description: Optional detailed requirements
-        target_user: Optional private challenge target
+        target_user: Optional private 1v1 challenge target
+        challenge_type: 'solo' or 'team'
+        creator_team: Team instance (required for team bounties)
+        target_team: Optional private team challenge target
         expires_in_hours: Hours until auto-refund (default 72)
         ip_address: Creator's IP for audit
         user_agent: Creator's user agent
@@ -78,7 +88,7 @@ def create_bounty(
         Bounty instance
     
     Raises:
-        ValidationError: Invalid stake amount or parameters
+        ValidationError: Invalid stake amount, game format mismatch, or parameters
         PermissionDenied: Insufficient balance or rate limit exceeded
     """
     
@@ -91,6 +101,27 @@ def create_bounty(
     # Validate target user
     if target_user and target_user == creator:
         raise ValidationError("Cannot challenge yourself")
+    
+    # Validate team bounty requirements
+    if challenge_type == BountyType.TEAM:
+        if not creator_team:
+            raise ValidationError("Team bounties require a creator team")
+        # Validate game supports team play
+        roster_config = getattr(game, 'roster_config', None)
+        if roster_config and roster_config.max_team_size <= 1:
+            raise ValidationError(
+                f"{game.display_name} is solo-only and does not support team bounties"
+            )
+        # Verify creator is a member of the team
+        from apps.organizations.models import TeamMembership
+        is_member = TeamMembership.objects.filter(
+            user=creator, team=creator_team, status='ACTIVE'
+        ).exists()
+        if not is_member:
+            raise PermissionDenied("You must be an active member of the team to create a team bounty")
+        # Self-challenge guard
+        if target_team and creator_team == target_team:
+            raise ValidationError("Cannot challenge your own team")
     
     # Check rate limit (10 bounties per 24 hours)
     recent_bounties = Bounty.objects.filter(
@@ -121,6 +152,9 @@ def create_bounty(
         description=description,
         game=game,
         stake_amount=stake_amount,
+        challenge_type=challenge_type,
+        creator_team=creator_team if challenge_type == BountyType.TEAM else None,
+        target_team=target_team if challenge_type == BountyType.TEAM else None,
         target_user=target_user,
         status=BountyStatus.OPEN,
         expires_at=expires_at,
@@ -173,6 +207,7 @@ def _lock_bounty_escrow(bounty: Bounty) -> Dict[str, Any]:
 def accept_bounty(
     bounty_id: int,
     acceptor: User,
+    acceptor_team=None,
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
 ) -> BountyAcceptance:
@@ -182,7 +217,7 @@ def accept_bounty(
     Process:
     1. Lock bounty row with select_for_update()
     2. Validate bounty is OPEN and not expired
-    3. Validate acceptor eligibility
+    3. Validate acceptor eligibility (and team membership for team bounties)
     4. Create BountyAcceptance record
     5. Transition bounty to ACCEPTED state
     6. Clear expires_at (no longer applicable)
@@ -190,6 +225,7 @@ def accept_bounty(
     Args:
         bounty_id: Bounty to accept
         acceptor: User accepting challenge
+        acceptor_team: Team accepting (required for team bounties)
         ip_address: Acceptor's IP
         user_agent: Acceptor's user agent
     
@@ -222,6 +258,22 @@ def accept_bounty(
     if bounty.target_user and acceptor != bounty.target_user:
         raise PermissionDenied("This is a private challenge for another user")
     
+    # Team bounty validation
+    if bounty.challenge_type == BountyType.TEAM:
+        if not acceptor_team:
+            raise ValidationError("Team bounties require an accepting team")
+        if bounty.target_team and acceptor_team != bounty.target_team:
+            raise PermissionDenied("This is a private team challenge for another team")
+        if acceptor_team == bounty.creator_team:
+            raise ValidationError("Cannot accept your own team's bounty")
+        # Verify acceptor is a member
+        from apps.organizations.models import TeamMembership
+        is_member = TeamMembership.objects.filter(
+            user=acceptor, team=acceptor_team, status='ACTIVE'
+        ).exists()
+        if not is_member:
+            raise PermissionDenied("You must be an active member of the accepting team")
+    
     # Check active bounties limit (3 max)
     active_count = Bounty.objects.filter(
         acceptor=acceptor,
@@ -244,7 +296,11 @@ def accept_bounty(
     bounty.status = BountyStatus.ACCEPTED
     bounty.accepted_at = timezone.now()
     bounty.expires_at = None  # No longer applicable
-    bounty.save(update_fields=['acceptor', 'status', 'accepted_at', 'expires_at'])
+    update_fields = ['acceptor', 'status', 'accepted_at', 'expires_at']
+    if bounty.challenge_type == BountyType.TEAM and acceptor_team:
+        bounty.acceptor_team = acceptor_team
+        update_fields.append('acceptor_team')
+    bounty.save(update_fields=update_fields)
     
     return acceptance
 
