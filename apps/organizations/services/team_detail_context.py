@@ -28,7 +28,8 @@ def get_team_detail_context(
     *,
     team_slug: str,
     viewer: Optional[User] = None,
-    request=None
+    request=None,
+    team: Optional[Team] = None,
 ) -> Dict[str, Any]:
     """
     Build complete context for team detail page.
@@ -40,6 +41,7 @@ def get_team_detail_context(
         team_slug: Team URL slug identifier
         viewer: Current user (None for anonymous)
         request: HTTP request object (optional, for URL building)
+        team: Pre-fetched Team instance (skips duplicate DB query if provided)
         
     Returns:
         dict: Complete context matching contract specification
@@ -47,56 +49,64 @@ def get_team_detail_context(
     Raises:
         Team.DoesNotExist: If team_slug is invalid
     """
-    # Fetch team with optimizations (guard against missing relationships)
-    # Note: vNext Team model has organization FK (nullable), game_id FK (not CharField)
-    # Phase 3A-A: Legacy TeamRanking removed. Ranking data now from apps/competition/
-    try:
-        team = Team.objects.select_related('organization', 'organization__ranking').get(slug=team_slug)
-    except Team.DoesNotExist:
-        raise
+    # Use pre-fetched team from the view, or fetch if not provided
+    if team is None:
+        try:
+            team = Team.objects.select_related(
+                'organization', 'organization__ranking'
+            ).get(slug=team_slug)
+        except Team.DoesNotExist:
+            raise
     
-    # Check privacy and accessibility using schema-resilient logic
-    can_view = _check_team_accessibility(team, viewer)
-    is_authorized = can_view or _is_team_member_or_staff(team, viewer)
-    
-    # Determine viewer role
+    # Compute viewer role once (avoids redundant TeamMembership queries)
     viewer_role = _get_viewer_role(team, viewer)
-    
-    # Build permissions dict
-    permissions = _build_permissions(team, viewer, viewer_role)
+    is_authorized = viewer_role != 'PUBLIC'
     
     # Privacy gate: restrict data for unauthorized viewers of private teams
     is_private_restricted = _is_private_team(team) and not is_authorized
     
-    # Build context sections
+    # Build permissions from already-computed role (no extra query)
+    permissions = _build_permissions(team, viewer, viewer_role)
+    
+    # ── Cached public context (team-specific, 60s TTL) ──
+    # These sections are viewer-independent and expensive to compute.
+    cache_variant = 'restricted' if is_private_restricted else 'full'
+    cache_key = f'team_detail:{team.slug}:{cache_variant}'
+    public_ctx = cache.get(cache_key)
+    if public_ctx is None:
+        public_ctx = {
+            'team': _build_team_context(team, is_private_restricted),
+            'organization': _build_organization_context(team),
+            'roster': _build_roster_context(team, is_private_restricted),
+            'stats': _build_stats_context(team, is_private_restricted),
+            'leaderboard_stats': _build_leaderboard_stats_context(team, is_private_restricted),
+            'streams': _build_streams_context(team, is_private_restricted),
+            'partners': _build_partners_context(team, is_private_restricted),
+            'merch': _build_merch_context(team, is_private_restricted),
+            'journey': _build_journey_context(team, is_private_restricted),
+            'announcements': _build_announcements_context(team, is_private_restricted),
+            'upcoming_matches': _build_upcoming_matches_context(team, is_private_restricted),
+            'trophy_cabinet': _build_trophy_cabinet_context(team, is_private_restricted),
+            'media_highlights': _build_media_highlights_context(team, is_private_restricted),
+            'challenges': _build_challenges_context(team, is_private_restricted),
+            'match_history': _build_match_history_context(team, is_private_restricted),
+            'operations_log': _build_operations_log_context(team, is_private_restricted),
+            'recruitment': _build_recruitment_context(team, is_private_restricted),
+            'sponsors': _build_sponsors_context(team, is_private_restricted),
+        }
+        cache.set(cache_key, public_ctx, 60)
+    
+    # ── Live viewer-specific context (cheap queries, never cached) ──
     context = {
-        'team': _build_team_context(team, is_private_restricted),
-        'organization': _build_organization_context(team),
+        **public_ctx,
         'viewer': _build_viewer_context(viewer, viewer_role),
         'permissions': permissions,
         'ui': _build_ui_context(team, viewer_role),
-        'roster': _build_roster_context(team, is_private_restricted),
-        'stats': _build_stats_context(team, is_private_restricted),
-        'leaderboard_stats': _build_leaderboard_stats_context(team, is_private_restricted),
-        'streams': _build_streams_context(team, is_private_restricted),
-        'partners': _build_partners_context(team, is_private_restricted),
-        'merch': _build_merch_context(team, is_private_restricted),
-        'pending_actions': _build_pending_actions_context(team, viewer, is_authorized),
-        'page': _build_page_context(team, request),
-        # P6-P15 context
-        'journey': _build_journey_context(team, is_private_restricted),
-        'announcements': _build_announcements_context(team, is_private_restricted),
-        'upcoming_matches': _build_upcoming_matches_context(team, is_private_restricted),
-        'trophy_cabinet': _build_trophy_cabinet_context(team, is_private_restricted),
-        'media_highlights': _build_media_highlights_context(team, is_private_restricted),
-        'challenges': _build_challenges_context(team, is_private_restricted),
-        'match_history': _build_match_history_context(team, is_private_restricted),
-        # Operations log — tournament participation + match results
-        'operations_log': _build_operations_log_context(team, is_private_restricted),
-        # 7-Point Overhaul — recruitment & sponsors
-        'recruitment': _build_recruitment_context(team, is_private_restricted),
-        'sponsors': _build_sponsors_context(team, is_private_restricted),
+        'pending_actions': _build_pending_actions_context(
+            team, viewer, is_authorized, viewer_role=viewer_role,
+        ),
         'follow': _build_follow_context(team, viewer),
+        'page': _build_page_context(team, request),
     }
     
     return context
@@ -724,12 +734,14 @@ def _build_sponsors_context(team: Team, is_restricted: bool) -> List[Dict[str, A
     return meta.get('sponsors', [])
 
 
-def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> Dict[str, Any]:
+def _build_pending_actions_context(
+    team: Team, viewer, is_authorized: bool, *, viewer_role: str = 'PUBLIC',
+) -> Dict[str, Any]:
     """
     Build pending actions awareness flags for authenticated viewers.
     
     Checks for pending invites and join requests for the viewing user.
-    Returns dict with flags indicating available actions.
+    Uses pre-computed viewer_role to avoid redundant TeamMembership queries.
     
     Privacy: Returns all-false for anonymous or unauthorized viewers.
     """
@@ -740,19 +752,13 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
             'has_pending_request': False,
             'pending_invite_id': None,
             'pending_request_id': None,
+            'pending_join_request_count': 0,
         }
     
-    # Check if user is already a member
-    # vNext TeamMembership has 'user' FK (User), not 'profile' FK
-    from apps.organizations.models import TeamMembership, TeamInvite
-    from apps.organizations.choices import MembershipStatus
+    # Derive membership from pre-computed viewer_role (no extra query)
+    is_member = viewer_role != 'PUBLIC'
     
-    # vNext: Query by user directly (not profile)
-    is_member = TeamMembership.objects.filter(
-        team=team,
-        user=viewer,
-        status=MembershipStatus.ACTIVE
-    ).exists()
+    from apps.organizations.models import TeamInvite
     
     # Check for pending invite (vNext TeamInvite.invited_user is User FK)
     pending_invite = TeamInvite.objects.filter(
@@ -776,18 +782,12 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
         not team.roster_locked
     )
     
-    # Count pending join requests for admins/owners
+    # Count pending join requests for admins/owners (use pre-computed role)
     pending_jr_count = 0
-    if is_authorized and viewer and viewer.is_authenticated:
-        from apps.organizations.models import TeamMembership
-        membership = TeamMembership.objects.filter(
-            team=team, user=viewer, status='ACTIVE',
-        ).first()
-        if membership and membership.role in ('OWNER', 'MANAGER'):
-            from apps.organizations.models.join_request import TeamJoinRequest
-            pending_jr_count = TeamJoinRequest.objects.filter(
-                team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
-            ).count()
+    if viewer_role in ('OWNER', 'MANAGER'):
+        pending_jr_count = TeamJoinRequest.objects.filter(
+            team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
+        ).count()
 
     return {
         'can_request_to_join': can_request,
@@ -1170,22 +1170,30 @@ def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[s
         from django.db.models import Q
         from django.utils import timezone
 
-        qs = Match.objects.filter(
-            Q(participant1_id=team.id) | Q(participant2_id=team.id),
-            state__in=['COMPLETED', 'completed', 'DONE', 'done'],
-        ).select_related('tournament').order_by('-updated_at')[:5]
+        match_list = list(
+            Match.objects.filter(
+                Q(participant1_id=team.id) | Q(participant2_id=team.id),
+                state__in=['COMPLETED', 'completed', 'DONE', 'done'],
+            ).select_related('tournament').order_by('-updated_at')[:5]
+        )
 
-        for m in qs:
+        # Batch-fetch opponent team names (eliminates N+1)
+        opponent_ids = set()
+        for m in match_list:
+            opp_id = m.participant2_id if m.participant1_id == team.id else m.participant1_id
+            if opp_id:
+                opponent_ids.add(opp_id)
+        opponent_map = {}
+        if opponent_ids:
+            opponent_map = {
+                t.id: t.name
+                for t in Team.objects.filter(id__in=opponent_ids).only('id', 'name')
+            }
+
+        for m in match_list:
             is_p1 = (m.participant1_id == team.id)
             opponent_id = m.participant2_id if is_p1 else m.participant1_id
-            opponent_name = f'Team #{opponent_id}' if opponent_id else 'TBD'
-
-            # Try to resolve opponent name
-            try:
-                opp_team = Team.objects.only('name', 'tag').get(id=opponent_id)
-                opponent_name = opp_team.name
-            except Team.DoesNotExist:
-                pass
+            opponent_name = opponent_map.get(opponent_id, f'Team #{opponent_id}') if opponent_id else 'TBD'
 
             # Determine result
             winner_id = getattr(m, 'winner_id', None)

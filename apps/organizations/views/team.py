@@ -579,10 +579,12 @@ def team_detail(request, team_slug, org_slug=None):
             # Continue normally for independent team
         
         # Build complete context using new contract-based builder
+        # Pass pre-fetched team to avoid duplicate DB query
         context = get_team_detail_context(
             team_slug=team_slug,
             viewer=request.user if request.user.is_authenticated else None,
-            request=request
+            request=request,
+            team=team,
         )
         
         logger.info(
