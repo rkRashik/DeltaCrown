@@ -1,7 +1,7 @@
 /**
  * Command Center — Alpine.js State Engine v3
  * Reads Django-serialized JSON data, provides reactive UI methods,
- * and connects to SSE for real-time dashboard updates.
+ * and polls lightweight notification counts for near-real-time updates.
  */
 document.addEventListener('alpine:init', () => {
   Alpine.data('dashboardEngine', () => {
@@ -37,16 +37,15 @@ document.addEventListener('alpine:init', () => {
       challenges:     raw.challenges     || [],
       bounties:       raw.bounties       || [],
 
-      // SSE state
-      _sseSource: null,
-      _sseRetryTimer: null,
+      // Polling state
+      _notifPollTimer: null,
 
       init() {
-        this._startSSE();
+        this._startNotifPolling();
       },
 
       destroy() {
-        this._stopSSE();
+        this._stopNotifPolling();
       },
 
       // ── Computed ──
@@ -149,40 +148,34 @@ document.addEventListener('alpine:init', () => {
         }
       },
 
-      // ── SSE Real-time Updates ──
+      // ── Live Count Polling ──
 
-      _startSSE() {
-        if (typeof EventSource === 'undefined') return;
+      async _pollUnreadCount() {
         try {
-          this._sseSource = new EventSource('/notifications/stream/');
-          this._sseSource.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (typeof data.unread_notifications === 'number') {
-                this.unreadNotifCount = data.unread_notifications;
-              }
-            } catch (e) {
-              // ignore parse errors
-            }
-          };
-          this._sseSource.onerror = () => {
-            this._stopSSE();
-            // Reconnect after 30s
-            this._sseRetryTimer = setTimeout(() => this._startSSE(), 30000);
-          };
+          const res = await fetch('/notifications/api/unread-count/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (typeof data.count === 'number') {
+            this.unreadNotifCount = data.count;
+          }
         } catch (e) {
-          console.warn('[CC] SSE init failed', e);
+          console.warn('[CC] unread count poll failed', e);
         }
       },
 
-      _stopSSE() {
-        if (this._sseSource) {
-          this._sseSource.close();
-          this._sseSource = null;
-        }
-        if (this._sseRetryTimer) {
-          clearTimeout(this._sseRetryTimer);
-          this._sseRetryTimer = null;
+      _startNotifPolling() {
+        this._stopNotifPolling();
+        this._pollUnreadCount();
+        this._notifPollTimer = setInterval(() => this._pollUnreadCount(), 15000);
+      },
+
+      _stopNotifPolling() {
+        if (this._notifPollTimer) {
+          clearInterval(this._notifPollTimer);
+          this._notifPollTimer = null;
         }
       },
 

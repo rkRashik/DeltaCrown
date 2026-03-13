@@ -2932,6 +2932,15 @@ def accept_membership_invite(request: Request, membership_id: int) -> Response:
         })
     
     except InviteNotFoundError as e:
+        logger.warning(
+            f"Membership invite not found/invalid for user {request.user.id}: {membership_id}",
+            extra={
+                'event_type': 'membership_invite_not_found',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+                'error_code': e.error_code,
+            }
+        )
         return Response(
             {
                 'ok': False,
@@ -2942,6 +2951,15 @@ def accept_membership_invite(request: Request, membership_id: int) -> Response:
         )
     
     except InviteForbiddenError as e:
+        logger.warning(
+            f"Forbidden membership invite action by user {request.user.id}: {membership_id}",
+            extra={
+                'event_type': 'membership_invite_forbidden',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+                'error_code': e.error_code,
+            }
+        )
         return Response(
             {
                 'ok': False,
@@ -3119,6 +3137,15 @@ def accept_email_invite(request: Request, token: str) -> Response:
         })
     
     except InviteNotFoundError as e:
+        logger.warning(
+            f"Email invite not found/invalid for user {request.user.id}: {token}",
+            extra={
+                'event_type': 'email_invite_not_found',
+                'user_id': request.user.id,
+                'token': str(token),
+                'error_code': e.error_code,
+            }
+        )
         return Response(
             {
                 'ok': False,
@@ -3129,6 +3156,15 @@ def accept_email_invite(request: Request, token: str) -> Response:
         )
     
     except InviteForbiddenError as e:
+        logger.warning(
+            f"Forbidden email invite action by user {request.user.id}: {token}",
+            extra={
+                'event_type': 'email_invite_forbidden',
+                'user_id': request.user.id,
+                'token': str(token),
+                'error_code': e.error_code,
+            }
+        )
         return Response(
             {
                 'ok': False,

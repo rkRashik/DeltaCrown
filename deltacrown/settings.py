@@ -838,6 +838,9 @@ TEST_RUNNER = 'deltacrown.test_runner.CustomTestRunner'
 
 # notifications
 NOTIFICATIONS_EMAIL_ENABLED = False  # set True to email in addition to in-app
+# Disable long-lived SSE by default on Daphne/Render to avoid request timeout churn.
+# Frontends use polling as the primary live update mechanism.
+NOTIFICATIONS_SSE_ENABLED = os.getenv("NOTIFICATIONS_SSE_ENABLED", "0") == "1"
 
 
 

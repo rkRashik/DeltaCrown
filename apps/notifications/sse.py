@@ -5,8 +5,9 @@ Streams notification counts to keep UI updated without refresh.
 import json
 import time
 import logging
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from apps.notifications.models import Notification
 from apps.user_profile.models_main import FollowRequest
@@ -29,6 +30,10 @@ def notification_stream(request):
         "pending_follow_requests": 2
     }
     """
+    if not getattr(settings, "NOTIFICATIONS_SSE_ENABLED", False):
+        # 204 is a terminal response for EventSource clients (no reconnect loop).
+        return HttpResponse(status=204)
+
     def event_stream():
         """Generator that yields SSE events"""
         try:

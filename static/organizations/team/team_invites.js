@@ -35,7 +35,12 @@ function formatTimeAgo(isoDate) {
     return `${days}d ago`;
 }
 
-function showToast(message, type = 'success') {
+function showInviteToast(message, type = 'success') {
+    if (window.showToast && typeof window.showToast === 'function') {
+        window.showToast({ type, message });
+        return;
+    }
+
     const host = document.getElementById('inviteToastHost');
     if (!host) {
         alert(message);
@@ -64,6 +69,38 @@ function setCardBusy(card, busy) {
     });
 }
 
+async function parseApiResponse(response) {
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/json')) {
+        try {
+            return await response.json();
+        } catch (err) {
+            return {};
+        }
+    }
+
+    try {
+        const text = await response.text();
+        return { raw_text: text };
+    } catch (err) {
+        return {};
+    }
+}
+
+function apiErrorMessage(response, data, fallback) {
+    const detail = data?.safe_message || data?.error || data?.message || data?.detail;
+    if (detail) {
+        if (response.status === 403) {
+            return `Access denied (403): ${detail}`;
+        }
+        return detail;
+    }
+    if (response.status === 401) return 'Please sign in again and retry.';
+    if (response.status === 403) return 'Permission denied. Refresh the page and try again.';
+    if (response.status >= 500) return 'Server error. Please try again in a moment.';
+    return fallback;
+}
+
 // Get URL from config or fallback to hardcoded
 function getConfig() {
     return window.VNEXT_INVITES_CONFIG || {
@@ -90,6 +127,16 @@ function switchTab(tab) {
 }
 
 function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content) {
+        return meta.content;
+    }
+
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) {
+        return input.value;
+    }
+
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
@@ -280,25 +327,27 @@ async function acceptMembershipInvite(id) {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'Content-Type': 'application/json',
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin'
         });
         
-        const data = await response.json();
-        
-        if (data.ok) {
-            showToast('Invite accepted. Redirecting to team hub.', 'success');
+        const data = await parseApiResponse(response);
+
+        if (response.ok && data.ok) {
+            showInviteToast('Invite accepted. Redirecting to team hub.', 'success');
             card.classList.add('fade-out');
             setTimeout(() => {
                 // Redirect to team page
                 window.location.href = data.data.team_url;
             }, 500);
         } else {
-            showToast(data.safe_message || 'Failed to accept invitation', 'error');
+            showInviteToast(apiErrorMessage(response, data, 'Failed to accept invitation'), 'error');
             setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Accept error:', error);
-        showToast('Network error. Please try again.', 'error');
+        showInviteToast('Network error. Please try again.', 'error');
         setCardBusy(card, false);
     }
 }
@@ -319,13 +368,15 @@ async function declineMembershipInvite(id) {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'Content-Type': 'application/json',
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin'
         });
         
-        const data = await response.json();
-        
-        if (data.ok) {
-            showToast('Invite declined.', 'info');
+        const data = await parseApiResponse(response);
+
+        if (response.ok && data.ok) {
+            showInviteToast('Invite declined.', 'info');
             card.classList.add('fade-out');
             setTimeout(() => {
                 card.remove();
@@ -338,12 +389,12 @@ async function declineMembershipInvite(id) {
                 }
             }, 500);
         } else {
-            showToast(data.safe_message || 'Failed to decline invitation', 'error');
+            showInviteToast(apiErrorMessage(response, data, 'Failed to decline invitation'), 'error');
             setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Decline error:', error);
-        showToast('Network error. Please try again.', 'error');
+        showInviteToast('Network error. Please try again.', 'error');
         setCardBusy(card, false);
     }
 }
@@ -360,24 +411,26 @@ async function acceptEmailInvite(token) {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'Content-Type': 'application/json',
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin'
         });
         
-        const data = await response.json();
-        
-        if (data.ok) {
-            showToast('Invite accepted. Redirecting to team hub.', 'success');
+        const data = await parseApiResponse(response);
+
+        if (response.ok && data.ok) {
+            showInviteToast('Invite accepted. Redirecting to team hub.', 'success');
             card.classList.add('fade-out');
             setTimeout(() => {
                 window.location.href = data.data.team_url;
             }, 500);
         } else {
-            showToast(data.safe_message || 'Failed to accept invitation', 'error');
+            showInviteToast(apiErrorMessage(response, data, 'Failed to accept invitation'), 'error');
             setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Accept error:', error);
-        showToast('Network error. Please try again.', 'error');
+        showInviteToast('Network error. Please try again.', 'error');
         setCardBusy(card, false);
     }
 }
@@ -398,13 +451,15 @@ async function declineEmailInvite(token) {
             headers: {
                 'X-CSRFToken': getCsrfToken(),
                 'Content-Type': 'application/json',
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin'
         });
         
-        const data = await response.json();
-        
-        if (data.ok) {
-            showToast('Invite declined.', 'info');
+        const data = await parseApiResponse(response);
+
+        if (response.ok && data.ok) {
+            showInviteToast('Invite declined.', 'info');
             card.classList.add('fade-out');
             setTimeout(() => {
                 card.remove();
@@ -416,12 +471,12 @@ async function declineEmailInvite(token) {
                 }
             }, 500);
         } else {
-            showToast(data.safe_message || 'Failed to decline invitation', 'error');
+            showInviteToast(apiErrorMessage(response, data, 'Failed to decline invitation'), 'error');
             setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Decline error:', error);
-        showToast('Network error. Please try again.', 'error');
+        showInviteToast('Network error. Please try again.', 'error');
         setCardBusy(card, false);
     }
 }
@@ -433,7 +488,7 @@ function escapeHtml(text) {
 }
 
 function showError(message) {
-    showToast(message, 'error');
+    showInviteToast(message, 'error');
 }
 
 // Load invites on page load

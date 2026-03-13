@@ -3,6 +3,7 @@ from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.apps import apps
 from django.contrib import messages
@@ -131,6 +132,44 @@ def _attach_notification_ui(items):
                 n.ui_show_invite_actions = meta['is_pending']
 
 
+def _build_invite_details(items):
+    """Build invite metadata map for bell dropdown invite cards."""
+    invite_ids = [
+        n.action_object_id
+        for n in items
+        if n.type == 'invite_sent'
+        and getattr(n, 'action_type', '') == 'team_invite'
+        and n.action_object_id
+    ]
+
+    details = {}
+    if not invite_ids:
+        return details
+
+    try:
+        TeamInvite = apps.get_model("organizations", "TeamInvite")
+        Game = apps.get_model("games", "Game")
+        game_map = {g.id: g.name for g in Game.objects.all().only("id", "name")}
+
+        invites = TeamInvite.objects.filter(id__in=invite_ids).select_related("team", "inviter")
+        for inv in invites:
+            team_name = inv.team.name if inv.team else 'Team'
+            details[inv.id] = {
+                "team_name": team_name,
+                "team_slug": inv.team.slug if inv.team else "",
+                "team_logo": _safe_media_url(inv.team, "logo") or _avatar_fallback(team_name, '1e293b'),
+                "team_tag": getattr(inv.team, "tag", "") if inv.team else "",
+                "game_name": game_map.get(getattr(inv.team, "game_id", None), "") if inv.team else "",
+                "role": inv.role,
+                "inviter": inv.inviter.username if inv.inviter else "Unknown",
+                "status": inv.status,
+            }
+    except Exception as e:
+        logger.warning("Failed to build invite_details for bell: %s", e)
+
+    return details
+
+
 @login_required
 def list_view(request):
     u = _user(request.user)
@@ -229,7 +268,7 @@ def nav_preview(request):
     
     try:
         # Get recent notifications (limit 10 for dropdown)
-        notifications = Notification.objects.filter(recipient=u).order_by("-created_at")[:10]
+        notifications = list(Notification.objects.filter(recipient=u).order_by("-created_at")[:10])
         
         # Count unread
         unread_count = Notification.objects.filter(recipient=u, is_read=False).count()
@@ -270,12 +309,24 @@ def nav_preview(request):
                 item["invite_id"] = n.action_object_id
                 item["action_type"] = getattr(n, 'action_type', '') or ''
             items.append(item)
+
+        invite_details = _build_invite_details(notifications)
+        html = render_to_string(
+            "notifications/_bell.html",
+            {
+                "items": notifications,
+                "unread_count": unread_count,
+                "invite_details": invite_details,
+            },
+            request=request,
+        )
         
         return JsonResponse({
             "success": True,
             "unread_count": unread_count,
             "pending_follow_requests": pending_follow_requests,
-            "items": items
+            "items": items,
+            "html": html,
         })
     except Exception as e:
         return JsonResponse({

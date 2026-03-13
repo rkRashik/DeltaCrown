@@ -955,8 +955,8 @@ class ProfileLocation(models.Model):
         return f"Location for {self.user_profile.user.username}"
 
 
-def kyc_document_path(instance, filename):
-    """Upload path for KYC documents"""
+def verification_kyc_document_path(instance, filename):
+    """Upload path for VerificationRecord KYC documents."""
     return f"kyc_documents/{instance.user_profile.user_id}/{filename}"
 
 
@@ -1214,19 +1214,19 @@ class VerificationRecord(models.Model):
     
     # ===== VERIFICATION DOCUMENTS =====
     id_document_front = models.ImageField(
-        upload_to=kyc_document_path,
+        upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
         help_text="Front side of government-issued ID (NID, Passport, Driver's License)"
     )
     id_document_back = models.ImageField(
-        upload_to=kyc_document_path,
+        upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
         help_text="Back side of government-issued ID"
     )
     selfie_with_id = models.ImageField(
-        upload_to=kyc_document_path,
+        upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
         help_text="Selfie holding the ID document for liveness verification"

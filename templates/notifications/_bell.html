@@ -171,6 +171,11 @@
 
   <script>
     function _bellGetCsrf() {
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta && meta.content) return meta.content;
+      const input = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (input && input.value) return input.value;
+
       let v = null;
       document.cookie.split(';').forEach(c => {
         c = c.trim();
