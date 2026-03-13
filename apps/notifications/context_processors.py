@@ -1,5 +1,7 @@
 ﻿from django.apps import apps
 
+from deltacrown.middleware.bot_probe import is_bot_probe_path
+
 
 def _get_unread_count_for_user(user) -> int:
     """
@@ -19,8 +21,18 @@ def notification_counts(request):
     # Skip on admin pages — admin has its own notification system
     if request.path.startswith('/admin/'):
         return {'notif_unread': 0, 'unread_notifications_count': 0}
+
+    # Skip bot probe paths to keep 404 handling cheap.
+    if is_bot_probe_path(request.path):
+        return {'notif_unread': 0, 'unread_notifications_count': 0}
+
+    if hasattr(request, '_cached_notif_unread'):
+        cached = int(request._cached_notif_unread)
+        return {'notif_unread': cached, 'unread_notifications_count': cached}
+
     user = getattr(request, "user", None)
     count = _get_unread_count_for_user(user)
+    request._cached_notif_unread = count
     return {"notif_unread": count, "unread_notifications_count": count}
 
 

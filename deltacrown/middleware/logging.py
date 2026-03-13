@@ -12,6 +12,8 @@ from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http import Http404
 from django.utils.deprecation import MiddlewareMixin
 
+from deltacrown.middleware.bot_probe import is_bot_probe_path
+
 logger = logging.getLogger('deltacrown.requests')
 
 # Paths handled by MediaProxyMiddleware — suppress noisy 404 logs
@@ -43,28 +45,39 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             return response
         
         duration = time.time() - request.start_time
+        duration_ms = round(duration * 1000, 2)
+        is_probe = is_bot_probe_path(request.path)
+        slow_threshold_ms = int(getattr(settings, 'REQUEST_LOG_SLOW_MS', 1200))
         
         log_data = {
             'correlation_id': getattr(request, 'correlation_id', None),
             'method': request.method,
             'path': request.path,
             'status_code': response.status_code,
-            'duration_ms': round(duration * 1000, 2),
+            'duration_ms': duration_ms,
             'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
             'remote_addr': _get_client_ip(request),
         }
         
         # Add query params (excluding sensitive data)
-        if request.GET:
+        if request.GET and not is_probe:
             log_data['query_params'] = {k: v for k, v in request.GET.items() if k not in ['password', 'token', 'secret']}
         
         # Log based on status code
         if response.status_code >= 500:
             logger.error(f"Request failed: {request.method} {request.path}", extra=log_data)
         elif response.status_code >= 400:
-            logger.warning(f"Client error: {request.method} {request.path}", extra=log_data)
+            if response.status_code == 404 and is_probe:
+                logger.debug(f"Probe 404: {request.method} {request.path}", extra=log_data)
+            else:
+                logger.warning(f"Client error: {request.method} {request.path}", extra=log_data)
         else:
-            logger.info(f"Request completed: {request.method} {request.path}", extra=log_data)
+            # Keep success logging quiet by default to reduce log I/O overhead.
+            # Promote only slow successful requests to INFO.
+            if duration_ms >= slow_threshold_ms:
+                logger.info(f"Slow request: {request.method} {request.path}", extra=log_data)
+            else:
+                logger.debug(f"Request completed: {request.method} {request.path}", extra=log_data)
         
         # Add correlation ID to response headers
         response['X-Correlation-ID'] = log_data['correlation_id']

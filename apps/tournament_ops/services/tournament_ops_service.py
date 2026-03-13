@@ -91,6 +91,7 @@ class TournamentOpsService:
         self._payment_service = payment_service
         self._lifecycle_service = lifecycle_service
         self._result_submission_service = result_submission_service
+        self._match_service = None
 
         # Adapters (lazy initialization if None)
         self._team_adapter = team_adapter
@@ -153,6 +154,20 @@ class TournamentOpsService:
                 dispute_adapter=DisputeAdapter(),
             )
         return self._result_submission_service
+
+    @property
+    def match_service(self):
+        """Lazy initialization of MatchService (Phase 4, Epic 4.3)."""
+        if self._match_service is None:
+            from apps.tournament_ops.services.match_service import MatchService
+            from apps.tournament_ops.adapters import MatchAdapter
+            self._match_service = MatchService(
+                team_adapter=self.team_adapter,
+                user_adapter=self.user_adapter,
+                game_adapter=self.game_adapter,
+                match_adapter=MatchAdapter(),
+            )
+        return self._match_service
 
     @property
     def dispute_service(self):

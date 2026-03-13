@@ -154,6 +154,35 @@ class ReviewInboxAdapter:
     Reference: Phase 6, Epic 6.3 - Review Inbox Adapter
     """
     
+    def _to_submission_dto(self, sub) -> MatchResultSubmissionDTO:
+        """Normalize MatchResultSubmission ORM rows into DTO shape used by ops services."""
+        match = getattr(sub, 'match', None)
+        tournament_id = getattr(match, 'tournament_id', 0) or 0
+        stage_id = getattr(match, 'stage_id', None)
+        updated_at = sub.finalized_at or sub.confirmed_at or sub.submitted_at
+
+        return MatchResultSubmissionDTO(
+            id=sub.id,
+            match_id=sub.match_id,
+            tournament_id=tournament_id,
+            stage_id=stage_id,
+            submitted_by_user_id=sub.submitted_by_user_id,
+            submitted_by_team_id=sub.submitted_by_team_id,
+            raw_result_payload=sub.raw_result_payload,
+            proof_screenshot_url=sub.proof_screenshot_url,
+            submitter_notes=sub.submitter_notes,
+            organizer_notes=sub.organizer_notes,
+            status=sub.status,
+            submitted_at=sub.submitted_at,
+            confirmed_at=sub.confirmed_at,
+            finalized_at=sub.finalized_at,
+            confirmed_by_user_id=sub.confirmed_by_user_id,
+            auto_confirmed=(sub.status == 'auto_confirmed'),
+            auto_confirm_deadline=sub.auto_confirm_deadline,
+            created_at=sub.submitted_at,
+            updated_at=updated_at,
+        )
+
     def get_pending_submissions(
         self,
         tournament_id: Optional[int] = None,
@@ -164,10 +193,10 @@ class ReviewInboxAdapter:
         from apps.tournaments.models import MatchResultSubmission
         
         # Build query
-        queryset = MatchResultSubmission.objects.filter(status='pending')
+        queryset = MatchResultSubmission.objects.filter(status='pending').select_related('match')
         
         if tournament_id is not None:
-            queryset = queryset.filter(tournament_id=tournament_id)
+            queryset = queryset.filter(match__tournament_id=tournament_id)
         
         if since is not None:
             queryset = queryset.filter(submitted_at__gte=since)
@@ -176,26 +205,7 @@ class ReviewInboxAdapter:
         queryset = queryset.order_by('submitted_at')
         
         # Convert to DTOs
-        return [
-            MatchResultSubmissionDTO(
-                id=sub.id,
-                match_id=sub.match_id,
-                tournament_id=sub.tournament_id,
-                stage_id=sub.stage_id,
-                submitted_by_user_id=sub.submitted_by_user_id,
-                submitted_by_team_id=sub.submitted_by_team_id,
-                raw_result_payload=sub.raw_result_payload,
-                proof_screenshot_url=sub.proof_screenshot_url,
-                submitter_notes=sub.submitter_notes,
-                status=sub.status,
-                submitted_at=sub.submitted_at,
-                confirmed_at=sub.confirmed_at,
-                confirmed_by_user_id=sub.confirmed_by_user_id,
-                auto_confirmed=sub.auto_confirmed,
-                auto_confirm_deadline=sub.auto_confirm_deadline,
-            )
-            for sub in queryset
-        ]
+        return [self._to_submission_dto(sub) for sub in queryset]
     
     def get_disputed_submissions(
         self,
@@ -210,10 +220,10 @@ class ReviewInboxAdapter:
         # Join MatchResultSubmission with DisputeRecord
         queryset = MatchResultSubmission.objects.filter(
             status='disputed'
-        ).select_related('disputerecord')
+        ).select_related('match')
         
         if tournament_id is not None:
-            queryset = queryset.filter(tournament_id=tournament_id)
+            queryset = queryset.filter(match__tournament_id=tournament_id)
         
         if since is not None:
             queryset = queryset.filter(submitted_at__gte=since)
@@ -232,23 +242,7 @@ class ReviewInboxAdapter:
                 ).first()
                 
                 if dispute:
-                    submission_dto = MatchResultSubmissionDTO(
-                        id=sub.id,
-                        match_id=sub.match_id,
-                        tournament_id=sub.tournament_id,
-                        stage_id=sub.stage_id,
-                        submitted_by_user_id=sub.submitted_by_user_id,
-                        submitted_by_team_id=sub.submitted_by_team_id,
-                        raw_result_payload=sub.raw_result_payload,
-                        proof_screenshot_url=sub.proof_screenshot_url,
-                        submitter_notes=sub.submitter_notes,
-                        status=sub.status,
-                        submitted_at=sub.submitted_at,
-                        confirmed_at=sub.confirmed_at,
-                        confirmed_by_user_id=sub.confirmed_by_user_id,
-                        auto_confirmed=sub.auto_confirmed,
-                        auto_confirm_deadline=sub.auto_confirm_deadline,
-                    )
+                    submission_dto = self._to_submission_dto(sub)
                     
                     dispute_dto = DisputeDTO(
                         id=dispute.id,
@@ -288,35 +282,16 @@ class ReviewInboxAdapter:
         queryset = MatchResultSubmission.objects.filter(
             status='pending',
             auto_confirm_deadline__lt=now,
-        )
+        ).select_related('match')
         
         if tournament_id is not None:
-            queryset = queryset.filter(tournament_id=tournament_id)
+            queryset = queryset.filter(match__tournament_id=tournament_id)
         
         # Order by deadline (most overdue first)
         queryset = queryset.order_by('auto_confirm_deadline')
         
         # Convert to DTOs
-        return [
-            MatchResultSubmissionDTO(
-                id=sub.id,
-                match_id=sub.match_id,
-                tournament_id=sub.tournament_id,
-                stage_id=sub.stage_id,
-                submitted_by_user_id=sub.submitted_by_user_id,
-                submitted_by_team_id=sub.submitted_by_team_id,
-                raw_result_payload=sub.raw_result_payload,
-                proof_screenshot_url=sub.proof_screenshot_url,
-                submitter_notes=sub.submitter_notes,
-                status=sub.status,
-                submitted_at=sub.submitted_at,
-                confirmed_at=sub.confirmed_at,
-                confirmed_by_user_id=sub.confirmed_by_user_id,
-                auto_confirmed=sub.auto_confirmed,
-                auto_confirm_deadline=sub.auto_confirm_deadline,
-            )
-            for sub in queryset
-        ]
+        return [self._to_submission_dto(sub) for sub in queryset]
     
     def get_ready_for_finalization(
         self,
@@ -327,35 +302,16 @@ class ReviewInboxAdapter:
         from apps.tournaments.models import MatchResultSubmission
         
         # Build query
-        queryset = MatchResultSubmission.objects.filter(status='confirmed')
+        queryset = MatchResultSubmission.objects.filter(status='confirmed').select_related('match')
         
         if tournament_id is not None:
-            queryset = queryset.filter(tournament_id=tournament_id)
+            queryset = queryset.filter(match__tournament_id=tournament_id)
         
         # Order by confirmed_at (oldest first)
         queryset = queryset.order_by('confirmed_at')
         
         # Convert to DTOs
-        return [
-            MatchResultSubmissionDTO(
-                id=sub.id,
-                match_id=sub.match_id,
-                tournament_id=sub.tournament_id,
-                stage_id=sub.stage_id,
-                submitted_by_user_id=sub.submitted_by_user_id,
-                submitted_by_team_id=sub.submitted_by_team_id,
-                raw_result_payload=sub.raw_result_payload,
-                proof_screenshot_url=sub.proof_screenshot_url,
-                submitter_notes=sub.submitter_notes,
-                status=sub.status,
-                submitted_at=sub.submitted_at,
-                confirmed_at=sub.confirmed_at,
-                confirmed_by_user_id=sub.confirmed_by_user_id,
-                auto_confirmed=sub.auto_confirmed,
-                auto_confirm_deadline=sub.auto_confirm_deadline,
-            )
-            for sub in queryset
-        ]
+        return [self._to_submission_dto(sub) for sub in queryset]
     
     def get_recent_items_for_organizer(
         self,
@@ -377,9 +333,9 @@ class ReviewInboxAdapter:
         
         # Build query
         queryset = MatchResultSubmission.objects.filter(
-            tournament_id__in=tournament_ids,
+            match__tournament_id__in=tournament_ids,
             status__in=['pending', 'disputed', 'confirmed'],
-        )
+        ).select_related('match')
         
         if since is not None:
             queryset = queryset.filter(submitted_at__gte=since)
@@ -388,26 +344,7 @@ class ReviewInboxAdapter:
         queryset = queryset.order_by('-submitted_at')
         
         # Convert to DTOs
-        return [
-            MatchResultSubmissionDTO(
-                id=sub.id,
-                match_id=sub.match_id,
-                tournament_id=sub.tournament_id,
-                stage_id=sub.stage_id,
-                submitted_by_user_id=sub.submitted_by_user_id,
-                submitted_by_team_id=sub.submitted_by_team_id,
-                raw_result_payload=sub.raw_result_payload,
-                proof_screenshot_url=sub.proof_screenshot_url,
-                submitter_notes=sub.submitter_notes,
-                status=sub.status,
-                submitted_at=sub.submitted_at,
-                confirmed_at=sub.confirmed_at,
-                confirmed_by_user_id=sub.confirmed_by_user_id,
-                auto_confirmed=sub.auto_confirmed,
-                auto_confirm_deadline=sub.auto_confirm_deadline,
-            )
-            for sub in queryset
-        ]
+        return [self._to_submission_dto(sub) for sub in queryset]
     
     def get_review_items_by_filters(
         self,
@@ -425,18 +362,18 @@ class ReviewInboxAdapter:
         filters.validate()
         
         # Build base query
-        queryset = MatchResultSubmission.objects.all()
+        queryset = MatchResultSubmission.objects.all().select_related('match')
         
         # Filter by tournament_id
         if filters.tournament_id is not None:
-            queryset = queryset.filter(tournament_id=filters.tournament_id)
+            queryset = queryset.filter(match__tournament_id=filters.tournament_id)
         
         # Filter by organizer_user_id (via tournament)
         if filters.organizer_user_id is not None:
             tournament_ids = Tournament.objects.filter(
                 organizer_id=filters.organizer_user_id
             ).values_list('id', flat=True)
-            queryset = queryset.filter(tournament_id__in=tournament_ids)
+            queryset = queryset.filter(match__tournament_id__in=tournament_ids)
         
         # Filter by status
         if filters.status:
@@ -461,23 +398,4 @@ class ReviewInboxAdapter:
         queryset = queryset.order_by('-submitted_at')
         
         # Convert to DTOs
-        return [
-            MatchResultSubmissionDTO(
-                id=sub.id,
-                match_id=sub.match_id,
-                tournament_id=sub.tournament_id,
-                stage_id=sub.stage_id,
-                submitted_by_user_id=sub.submitted_by_user_id,
-                submitted_by_team_id=sub.submitted_by_team_id,
-                raw_result_payload=sub.raw_result_payload,
-                proof_screenshot_url=sub.proof_screenshot_url,
-                submitter_notes=sub.submitter_notes,
-                status=sub.status,
-                submitted_at=sub.submitted_at,
-                confirmed_at=sub.confirmed_at,
-                confirmed_by_user_id=sub.confirmed_by_user_id,
-                auto_confirmed=sub.auto_confirmed,
-                auto_confirm_deadline=sub.auto_confirm_deadline,
-            )
-            for sub in queryset
-        ]
+        return [self._to_submission_dto(sub) for sub in queryset]

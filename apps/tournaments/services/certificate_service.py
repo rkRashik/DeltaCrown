@@ -145,16 +145,19 @@ class CertificateService:
             bool: True if font registered successfully, False otherwise
         """
         try:
-            # Check if font file exists
+            candidates = []
+
             if settings.STATIC_ROOT:
-                font_path = Path(settings.STATIC_ROOT) / 'fonts' / 'NotoSansBengali-Regular.ttf'
-            else:
-                # Fallback to staticfiles directory during development
-                font_path = Path(settings.BASE_DIR) / 'static' / 'fonts' / 'NotoSansBengali-Regular.ttf'
-            
-            if not font_path.exists():
+                candidates.append(Path(settings.STATIC_ROOT) / 'fonts' / 'NotoSansBengali-Regular.ttf')
+
+            # Development/source fallback before collectstatic runs.
+            candidates.append(Path(settings.BASE_DIR) / 'static' / 'fonts' / 'NotoSansBengali-Regular.ttf')
+
+            font_path = next((p for p in candidates if p.exists()), None)
+
+            if font_path is None:
                 logger.warning(
-                    f"Bengali font not found at {font_path}. "
+                    f"Bengali font not found in any expected path: {candidates}. "
                     "Bengali text will fall back to standard font. "
                     "See static/fonts/README.md for installation instructions."
                 )
@@ -162,7 +165,7 @@ class CertificateService:
             
             # Register font with ReportLab
             pdfmetrics.registerFont(TTFont('NotoSansBengali', str(font_path)))
-            logger.info(f"Successfully registered Bengali font from {font_path}")
+            logger.debug(f"Successfully registered Bengali font from {font_path}")
             return True
             
         except Exception as e:

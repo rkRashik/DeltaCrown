@@ -18,20 +18,30 @@ Modern, dynamic context processor for the cyberpunk-themed homepage.
 All configuration in one place for easy updates.
 """
 
-from django.conf import settings
 from django.utils import timezone
 from django.apps import apps
+from django.core.cache import cache
 from datetime import timedelta
-from apps.common.game_assets import GAMES
+
+from deltacrown.middleware.bot_probe import is_bot_probe_path
 
 
 def homepage_context(request):
     """
     Comprehensive homepage context with live data and static content.
     """
-    # Skip on admin pages — none of this data is used there
-    if request.path.startswith('/admin/'):
+    # This context is homepage-only. Returning early for all other paths
+    # avoids repeated heavy queries in global context processing.
+    if request.path != '/':
         return {}
+
+    # Skip on admin and scanner probe pages.
+    if request.path.startswith('/admin/') or is_bot_probe_path(request.path):
+        return {}
+
+    cached = cache.get('common:homepage_context:v1')
+    if cached is not None:
+        return cached
     
     # ================================================================
     # HERO SECTION - Dynamic Tournament Feature
@@ -226,7 +236,7 @@ def homepage_context(request):
     # RETURN COMPLETE CONTEXT
     # ================================================================
     
-    return {
+    payload = {
         'homepage': {
             'hero': hero,
             'games': games,
@@ -237,6 +247,9 @@ def homepage_context(request):
             'cta': cta,
         }
     }
+
+    cache.set('common:homepage_context:v1', payload, 60)
+    return payload
 
 
 # =======================================================================

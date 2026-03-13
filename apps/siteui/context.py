@@ -1,15 +1,23 @@
 # apps/siteui/context.py
 from .site_content import SITE_CONTENT
 from . import services
+from django.core.cache import cache
+
+from deltacrown.middleware.bot_probe import is_bot_probe_path
 
 def site_settings(request):
     """
     Inject SITE defaults + dynamic featured/stats/spotlight/timeline.
     Safe-by-default: never raise if sources are missing.
     """
-    # Skip expensive queries on admin pages
-    if request.path.startswith('/admin/'):
+    # Skip expensive queries on admin and scanner probe pages.
+    if request.path.startswith('/admin/') or is_bot_probe_path(request.path):
         return {'SITE': dict(SITE_CONTENT)}
+
+    cached = cache.get('siteui:site_settings:v1')
+    if cached is not None:
+        return cached
+
     site = dict(SITE_CONTENT)
 
     # Featured
@@ -41,16 +49,18 @@ def site_settings(request):
     except Exception:
         timeline_entries = []
 
-    return {
+    payload = {
         "SITE": site,
         "featured": featured,
         "spotlight_items": spotlight_items,
         "timeline_entries": timeline_entries,
     }
 
+    cache.set('siteui:site_settings:v1', payload, 60)
+    return payload
 
 
-from django.core.cache import cache
+
 from django.apps import apps
 from django.db.models import Q
 

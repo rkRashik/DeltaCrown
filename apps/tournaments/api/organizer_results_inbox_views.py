@@ -22,8 +22,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date
+from django.utils import timezone
 from typing import Dict, Any, List, Optional
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
@@ -95,10 +98,13 @@ class OrganizerResultsInboxView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'results_inbox_read'
     pagination_class = ResultsInboxPagination
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.service = TournamentOpsService()
     
     @extend_schema(
         tags=["Results Inbox"],
@@ -117,9 +123,6 @@ class OrganizerResultsInboxView(APIView):
         ],
         responses={200: OrganizerReviewItemAPISerializer(many=True), 400: None, 403: None},
     )
-    def get(self, request):
-        self.service = TournamentOpsService()
-    
     def get(self, request):
         """
         List results inbox items with filters.
@@ -191,11 +194,27 @@ class OrganizerResultsInboxView(APIView):
         # Date range filters
         if 'date_from' in query_params:
             date_from = parse_datetime(query_params['date_from'])
+            if date_from is None:
+                parsed_date = parse_date(query_params['date_from'])
+                if parsed_date is not None:
+                    date_from = timezone.make_aware(
+                        timezone.datetime.combine(parsed_date, timezone.datetime.min.time())
+                    )
+            elif timezone.is_naive(date_from):
+                date_from = timezone.make_aware(date_from)
             if date_from:
                 filters['date_from'] = date_from
         
         if 'date_to' in query_params:
             date_to = parse_datetime(query_params['date_to'])
+            if date_to is None:
+                parsed_date = parse_date(query_params['date_to'])
+                if parsed_date is not None:
+                    date_to = timezone.make_aware(
+                        timezone.datetime.combine(parsed_date, timezone.datetime.max.time())
+                    )
+            elif timezone.is_naive(date_to):
+                date_to = timezone.make_aware(date_to)
             if date_to:
                 filters['date_to'] = date_to
         
@@ -281,6 +300,8 @@ class OrganizerResultsInboxBulkActionView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'results_inbox_write'
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

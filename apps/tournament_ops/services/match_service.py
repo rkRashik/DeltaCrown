@@ -71,6 +71,10 @@ class MatchService:
         self.match_adapter = match_adapter
         self.event_bus = get_event_bus()
 
+    def get_match(self, match_id: int) -> MatchDTO:
+        """Fetch a match DTO by id."""
+        return self.match_adapter.get_match(match_id)
+
     def schedule_match(
         self, match_id: int, scheduled_time: Optional[datetime] = None
     ) -> MatchDTO:
@@ -233,7 +237,15 @@ class MatchService:
 
         return updated_match
 
-    def accept_match_result(self, match_id: int, approved_by_user_id: int) -> MatchDTO:
+    def accept_match_result(
+        self,
+        match_id: int,
+        approved_by_user_id: Optional[int] = None,
+        winner_team_id: Optional[int] = None,
+        loser_team_id: Optional[int] = None,
+        result_payload: Optional[Dict[str, Any]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> MatchDTO:
         """
         Manually accept a match result (admin/organizer action or auto-acceptance).
 
@@ -247,6 +259,10 @@ class MatchService:
         Args:
             match_id: ID of the match to accept.
             approved_by_user_id: ID of user approving the result.
+            winner_team_id: Optional explicit winner id (verification flow).
+            loser_team_id: Optional explicit loser id (verification flow).
+            result_payload: Optional raw payload carrying score fields.
+            metadata: Optional additional metadata saved alongside result.
 
         Returns:
             Updated MatchDTO.
@@ -262,8 +278,8 @@ class MatchService:
         # Get current match state
         match = self.match_adapter.get_match(match_id)
 
-        # Validate match is in pending_result state
-        valid_states = ["in_progress"]  # DTO state for PENDING_RESULT
+        # Validate match is in pending_result or already completed state.
+        valid_states = ["in_progress", "completed"]  # DTO state for PENDING_RESULT/COMPLETED
         if match.state not in valid_states:
             raise InvalidMatchStateError(
                 f"Cannot accept result for match {match_id} with state '{match.state}'. "
@@ -275,15 +291,59 @@ class MatchService:
         # For now, we need to extract proposed result from somewhere
         # Since we don't have result storage yet, we'll require result in the match DTO
 
-        if not match.result:
-            raise MatchLifecycleError(
-                f"Cannot accept match result for match {match_id}. No result data found."
+        if winner_team_id is None or loser_team_id is None:
+            if not match.result:
+                raise MatchLifecycleError(
+                    f"Cannot accept match result for match {match_id}. No result data found."
+                )
+            winner_id = match.result.get("winner_id")
+            loser_id = match.result.get("loser_id")
+            participant1_score = int(match.result.get("participant1_score", 0) or 0)
+            participant2_score = int(match.result.get("participant2_score", 0) or 0)
+            if winner_id == match.team_a_id:
+                winner_score = participant1_score
+                loser_score = participant2_score
+            else:
+                winner_score = participant2_score
+                loser_score = participant1_score
+        else:
+            winner_id = winner_team_id
+            loser_id = loser_team_id
+            calculated_scores = (metadata or {}).get("calculated_scores") or {}
+            winner_score = int(
+                calculated_scores.get("winner_score")
+                or (result_payload or {}).get("winner_score")
+                or (result_payload or {}).get("participant1_score")
+                or 0
+            )
+            loser_score = int(
+                calculated_scores.get("loser_score")
+                or (result_payload or {}).get("loser_score")
+                or (result_payload or {}).get("participant2_score")
+                or 0
             )
 
-        winner_id = match.result.get("winner_id")
-        loser_id = match.result.get("loser_id")
-        winner_score = match.result.get("participant1_score", 0)
-        loser_score = match.result.get("participant2_score", 0)
+        if not winner_id or not loser_id:
+            raise MatchLifecycleError(
+                f"Cannot accept match result for match {match_id}. Missing winner/loser identifiers."
+            )
+
+        if winner_id == loser_id:
+            raise MatchLifecycleError("Winner and loser cannot be the same participant")
+
+        self.match_adapter.update_match_result(
+            match_id=match_id,
+            winner_id=winner_id,
+            loser_id=loser_id,
+            winner_score=winner_score,
+            loser_score=loser_score,
+            result_metadata={
+                "source": "match_service.accept_match_result",
+                "approved_by_user_id": approved_by_user_id,
+                "result_payload": result_payload or {},
+                "metadata": metadata or {},
+            },
+        )
 
         # NOTE: For Phase 4, we'll accept results as-is
         # Phase 6 will add full validation and dispute resolution

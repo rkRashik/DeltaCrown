@@ -19,7 +19,7 @@ class AccountsConfig(AppConfig):
         try:
             from .events import register_accounts_event_handlers
             register_accounts_event_handlers()
-            logger.info("✅ Accounts event handlers registered")
+            logger.debug("Accounts event handlers registered")
         except Exception as e:
             logger.error(f"❌ Failed to register accounts event handlers: {e}")
         

@@ -77,7 +77,7 @@ class EventBus:
         if self._initialized:
             return
         
-        logger.info("🚀 Initializing Event Bus")
+        logger.debug("Initializing Event Bus")
         self._initialized = True
     
     def subscribe(
@@ -113,7 +113,7 @@ class EventBus:
         # Sort by priority
         self._handlers[event_type].sort(key=lambda h: h.priority)
         
-        logger.info(f"📝 Subscribed: {handler_name} → {event_type} (priority: {priority})")
+        logger.debug(f"Subscribed: {handler_name} -> {event_type} (priority: {priority})")
     
     def unsubscribe(self, event_type: str, handler_name: str):
         """Unsubscribe a handler from an event type"""
@@ -122,7 +122,7 @@ class EventBus:
                 h for h in self._handlers[event_type]
                 if h.name != handler_name
             ]
-            logger.info(f"❌ Unsubscribed: {handler_name} from {event_type}")
+            logger.debug(f"Unsubscribed: {handler_name} from {event_type}")
     
     def publish(self, event: Event, sync: bool = False):
         """
@@ -149,7 +149,7 @@ class EventBus:
             logger.debug(f"📭 No handlers for event: {event.event_type}")
             return
         
-        logger.info(f"📢 Publishing event: {event.event_type} ({len(handlers)} handlers)")
+        logger.debug(f"Publishing event: {event.event_type} ({len(handlers)} handlers)")
         
         # Execute handlers
         for handler in handlers:
@@ -190,14 +190,14 @@ class EventBus:
         for handler in self._handlers.get(event_type, []):
             if handler.name == handler_name:
                 handler.enabled = True
-                logger.info(f"✅ Enabled handler: {handler_name} for {event_type}")
+                logger.debug(f"Enabled handler: {handler_name} for {event_type}")
     
     def disable_handler(self, event_type: str, handler_name: str):
         """Disable a specific handler"""
         for handler in self._handlers.get(event_type, []):
             if handler.name == handler_name:
                 handler.enabled = False
-                logger.info(f"⏸️ Disabled handler: {handler_name} for {event_type}")
+                logger.debug(f"Disabled handler: {handler_name} for {event_type}")
     
     def get_handlers(self, event_type: str) -> List[EventHandler]:
         """Get all handlers for an event type"""

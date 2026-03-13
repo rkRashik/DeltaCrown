@@ -18,13 +18,13 @@ class UserProfileConfig(AppConfig):
         try:
             from .events import register_user_profile_event_handlers
             register_user_profile_event_handlers()
-            logger.info("✅ User profile event handlers registered")
+            logger.debug("User profile event handlers registered")
         except Exception as e:
             logger.error(f"❌ Failed to register user profile event handlers: {e}")
         
         # LEGACY: Keep old signals during migration
         try:
             import apps.user_profile.signals  # noqa
-            logger.info("✅ User profile signals registered")
+            logger.debug("User profile signals registered")
         except Exception as e:
             logger.error(f"❌ Failed to register signals: {e}")

@@ -16,6 +16,7 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime, timedelta, timezone
 from django.contrib.auth import get_user_model
+from django.utils import timezone as django_timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 
@@ -205,6 +206,26 @@ class TestOrganizerResultsInboxAPI:
         call_args = mock_list_inbox.call_args
         assert 'date_from' in call_args[1]['filters']
         assert 'date_to' in call_args[1]['filters']
+
+    @patch('apps.tournament_ops.services.tournament_ops_service.TournamentOpsService.list_results_inbox_for_organizer')
+    def test_get_results_inbox_date_only_filters_are_timezone_aware(
+        self,
+        mock_list_inbox,
+        authenticated_client,
+    ):
+        """Date-only query params should be converted to aware datetimes under USE_TZ."""
+        mock_list_inbox.return_value = []
+
+        response = authenticated_client.get(
+            '/api/tournaments/v1/organizer/results-inbox/?date_from=2026-03-01&date_to=2026-03-13'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        call_args = mock_list_inbox.call_args
+        parsed_from = call_args[1]['filters']['date_from']
+        parsed_to = call_args[1]['filters']['date_to']
+        assert django_timezone.is_aware(parsed_from)
+        assert django_timezone.is_aware(parsed_to)
 
     @patch('apps.tournament_ops.services.tournament_ops_service.TournamentOpsService.list_results_inbox_for_organizer')
     def test_get_results_inbox_uses_priority_ordering_by_default(

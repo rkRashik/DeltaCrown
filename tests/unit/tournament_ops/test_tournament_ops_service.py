@@ -401,6 +401,18 @@ def test_lazy_initialization_of_adapters(mock_event_bus):
                     # Assert - no exceptions raised
 
 
+def test_match_service_lazy_initializes_and_is_cached(mock_event_bus):
+    """TournamentOpsService should expose a cached match service facade."""
+    service = TournamentOpsService()
+
+    first = service.match_service
+    second = service.match_service
+
+    assert first is second
+    assert hasattr(first, "get_match")
+    assert hasattr(first, "accept_match_result")
+
+
 # =============================================================================
 # Future Epic Placeholders (Not Implemented in Phase 4)
 # =============================================================================

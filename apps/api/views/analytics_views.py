@@ -9,6 +9,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import ScopedRateThrottle
+from django.conf import settings
+from django.core.cache import cache
 from django.http import Http404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
@@ -37,6 +40,8 @@ class UserAnalyticsView(APIView):
     """
     
     permission_classes = [AllowAny]  # Public analytics
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics_read'
     
     @extend_schema(
         tags=["Analytics"],
@@ -106,6 +111,12 @@ class UserAnalyticsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        cache_key = f"api:analytics:user:{user_id}:{game_slug.lower()}"
+        cache_ttl = max(0, int(getattr(settings, 'ANALYTICS_API_CACHE_TTL', 60)))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         try:
             service = get_tournament_ops_service()
             analytics_dto = service.get_user_analytics(user_id, game_slug)
@@ -117,7 +128,10 @@ class UserAnalyticsView(APIView):
                 )
             
             serializer = UserAnalyticsSerializer(analytics_dto.to_dict())
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            payload = serializer.data
+            if cache_ttl > 0:
+                cache.set(cache_key, payload, cache_ttl)
+            return Response(payload, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
@@ -141,6 +155,8 @@ class TeamAnalyticsView(APIView):
     """
     
     permission_classes = [AllowAny]  # Public analytics
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics_read'
     
     @extend_schema(
         tags=["Analytics"],
@@ -205,6 +221,12 @@ class TeamAnalyticsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        cache_key = f"api:analytics:team:{team_id}:{game_slug.lower()}"
+        cache_ttl = max(0, int(getattr(settings, 'ANALYTICS_API_CACHE_TTL', 60)))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         try:
             service = get_tournament_ops_service()
             analytics_dto = service.get_team_analytics(team_id, game_slug)
@@ -216,7 +238,10 @@ class TeamAnalyticsView(APIView):
                 )
             
             serializer = TeamAnalyticsSerializer(analytics_dto.to_dict())
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            payload = serializer.data
+            if cache_ttl > 0:
+                cache.set(cache_key, payload, cache_ttl)
+            return Response(payload, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
@@ -234,6 +259,8 @@ class LeaderboardView(APIView):
     """
     
     permission_classes = [AllowAny]  # Public leaderboards
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'leaderboard_read'
     
     @extend_schema(
         tags=["Leaderboards"],
@@ -321,13 +348,26 @@ class LeaderboardView(APIView):
         """Get leaderboard entries."""
         game_slug = request.query_params.get('game_slug')
         season_id = request.query_params.get('season_id')
-        limit = int(request.query_params.get('limit', 100))
+        raw_limit = request.query_params.get('limit', 100)
+        try:
+            limit = int(raw_limit)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "limit must be an integer"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Validate limit
         if limit > 1000:
             limit = 1000
         elif limit < 1:
             limit = 100
+
+        cache_key = f"api:analytics:leaderboard:{leaderboard_type}:{game_slug or '-'}:{season_id or '-'}:{limit}"
+        cache_ttl = max(0, int(getattr(settings, 'LEADERBOARD_API_CACHE_TTL', 30)))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
         
         try:
             service = get_tournament_ops_service()
@@ -342,14 +382,18 @@ class LeaderboardView(APIView):
             entries_data = [entry.to_dict() for entry in entries]
             
             serializer = LeaderboardEntrySerializer(entries_data, many=True)
-            
-            return Response({
+
+            payload = {
                 "leaderboard_type": leaderboard_type,
                 "game_slug": game_slug,
                 "season_id": season_id,
                 "count": len(entries),
                 "entries": serializer.data
-            }, status=status.HTTP_200_OK)
+            }
+            if cache_ttl > 0:
+                cache.set(cache_key, payload, cache_ttl)
+
+            return Response(payload, status=status.HTTP_200_OK)
             
         except ValueError as ve:
             return Response(
@@ -448,6 +492,8 @@ class CurrentSeasonView(APIView):
     """
     
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics_read'
     
     @extend_schema(
         tags=["Seasons"],
@@ -482,6 +528,16 @@ class CurrentSeasonView(APIView):
     )
     def get(self, request):
         """Get current active season."""
+        cache_key = "api:analytics:seasons:current"
+        miss_cache_key = "api:analytics:seasons:current:missing"
+        cache_ttl = max(0, int(getattr(settings, 'ANALYTICS_API_CACHE_TTL', 60)))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+        cached_missing = cache.get(miss_cache_key)
+        if cached_missing is not None:
+            return Response(cached_missing, status=status.HTTP_404_NOT_FOUND)
+
         try:
             from apps.tournament_ops.adapters import AnalyticsAdapter
             
@@ -489,13 +545,20 @@ class CurrentSeasonView(APIView):
             season_dto = adapter.get_current_season()
             
             if not season_dto:
+                payload = {"error": "No active season found"}
+                if cache_ttl > 0:
+                    # Cache negative lookups briefly to reduce repeated DB hits.
+                    cache.set(miss_cache_key, payload, min(cache_ttl, 30))
                 return Response(
-                    {"error": "No active season found"},
+                    payload,
                     status=status.HTTP_404_NOT_FOUND
                 )
             
             serializer = SeasonSerializer(season_dto.to_dict())
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            payload = serializer.data
+            if cache_ttl > 0:
+                cache.set(cache_key, payload, cache_ttl)
+            return Response(payload, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
@@ -512,6 +575,8 @@ class SeasonsListView(APIView):
     """
     
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics_read'
     
     @extend_schema(
         tags=["Seasons"],
@@ -561,6 +626,12 @@ class SeasonsListView(APIView):
     def get(self, request):
         """List all seasons."""
         include_inactive = request.query_params.get('include_inactive', 'false').lower() == 'true'
+
+        cache_key = f"api:analytics:seasons:list:{int(include_inactive)}"
+        cache_ttl = max(0, int(getattr(settings, 'ANALYTICS_API_CACHE_TTL', 60)))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
         
         try:
             from apps.tournament_ops.adapters import AnalyticsAdapter
@@ -572,11 +643,15 @@ class SeasonsListView(APIView):
             seasons_data = [season.to_dict() for season in seasons]
             
             serializer = SeasonSerializer(seasons_data, many=True)
-            
-            return Response({
+
+            payload = {
                 "count": len(seasons),
                 "seasons": serializer.data
-            }, status=status.HTTP_200_OK)
+            }
+            if cache_ttl > 0:
+                cache.set(cache_key, payload, cache_ttl)
+
+            return Response(payload, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(

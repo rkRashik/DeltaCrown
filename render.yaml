@@ -39,5 +39,19 @@ services:
       # Leave unset or "0" on Free/Starter tier to save memory
       - key: ENABLE_CELERY_BEAT
         value: "0"
+      # Startup process controls (safe defaults for Starter/free-tier)
+      - key: ENABLE_CELERY_WORKER
+        value: "1"
+      - key: ENABLE_DISCORD_BOT
+        value: "0"
+      - key: ENABLE_MIGRATIONS_ON_START
+        value: "1"
+      - key: DAPHNE_ACCESS_LOG
+        value: "0"
+      - key: DAPHNE_HTTP_TIMEOUT
+        value: "60"
+      # Keep embedded server/access logs quieter by default
+      - key: DJANGO_SERVER_LOG_LEVEL
+        value: "WARNING"
     healthCheckPath: /healthz/
     autoDeploy: false

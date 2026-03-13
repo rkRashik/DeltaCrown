@@ -19,6 +19,6 @@ class SiteUIConfig(AppConfig):
         try:
             from .events import register_siteui_event_handlers
             register_siteui_event_handlers()
-            logger.info("✅ Site UI event handlers registered")
+            logger.debug("Site UI event handlers registered")
         except Exception as e:
             logger.error(f"❌ Failed to register site UI event handlers: {e}")

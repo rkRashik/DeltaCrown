@@ -20,12 +20,12 @@ class CoreConfig(AppConfig):
         """Initialize core infrastructure when Django starts"""
         # Skip initialization during migrations
         if 'migrate' in sys.argv:
-            logger.info("⏭️  Skipping core initialization during migrations")
+            logger.debug("Skipping core initialization during migrations")
             return
         
         # Skip initialization during makemigrations
         if 'makemigrations' in sys.argv:
-            logger.info("⏭️  Skipping core initialization during makemigrations")
+            logger.debug("Skipping core initialization during makemigrations")
             return
         
         # Import here to avoid AppRegistryNotReady
@@ -58,7 +58,7 @@ class CoreConfig(AppConfig):
                 description='Game configuration provider (current system)'
             )
             
-            logger.info("✅ Registered tournament and game config providers")
+            logger.debug("Registered tournament and game config providers")
         except (ProgrammingError, OperationalError) as e:
             # DB tables don't exist yet (e.g., during test database setup)
             # This is expected and safe - providers will work once tables are created
@@ -66,4 +66,4 @@ class CoreConfig(AppConfig):
         except Exception as e:
             logger.error(f"❌ Failed to register providers: {e}", exc_info=True)
         
-        logger.info("DeltaCrown Core Infrastructure initialized")
+        logger.debug("DeltaCrown Core Infrastructure initialized")

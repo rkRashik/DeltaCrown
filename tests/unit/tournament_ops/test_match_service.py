@@ -444,6 +444,106 @@ def test_accept_match_result_raises_if_match_pending(
     assert "Cannot accept result" in str(exc_info.value)
 
 
+def test_get_match_delegates_to_adapter(match_service, mock_match_adapter, sample_match_dto):
+    """Test get_match facade method delegates directly to adapter."""
+    mock_match_adapter.get_match.return_value = sample_match_dto
+
+    result = match_service.get_match(match_id=1)
+
+    assert result == sample_match_dto
+    mock_match_adapter.get_match.assert_called_once_with(1)
+
+
+def test_accept_match_result_verification_style_kwargs(
+    match_service, mock_match_adapter, mock_event_bus, sample_match_dto
+):
+    """Test verification-style kwargs are accepted and persisted via adapter."""
+    sample_match_dto.state = "in_progress"
+    mock_match_adapter.get_match.return_value = sample_match_dto
+
+    completed_match = MatchDTO(
+        id=1,
+        tournament_id=100,
+        team_a_id=10,
+        team_b_id=20,
+        round_number=1,
+        stage="round_1",
+        state="completed",
+        scheduled_time=None,
+        result={"winner_id": 10, "loser_id": 20, "participant1_score": 2, "participant2_score": 1},
+    )
+    mock_match_adapter.update_match_state.return_value = completed_match
+
+    result = match_service.accept_match_result(
+        match_id=1,
+        winner_team_id=10,
+        loser_team_id=20,
+        result_payload={"winner_score": 2, "loser_score": 1},
+        metadata={"calculated_scores": {"winner_score": 2, "loser_score": 1}},
+    )
+
+    assert result.state == "completed"
+    mock_match_adapter.update_match_result.assert_called_once_with(
+        match_id=1,
+        winner_id=10,
+        loser_id=20,
+        winner_score=2,
+        loser_score=1,
+        result_metadata={
+            "source": "match_service.accept_match_result",
+            "approved_by_user_id": None,
+            "result_payload": {"winner_score": 2, "loser_score": 1},
+            "metadata": {"calculated_scores": {"winner_score": 2, "loser_score": 1}},
+        },
+    )
+    mock_event_bus.publish.assert_called_once()
+
+
+def test_accept_match_result_legacy_payload_normalizes_winner_scores(
+    match_service, mock_match_adapter, sample_match_dto
+):
+    """Test legacy participant scores are normalized when team_b is winner."""
+    sample_match_dto.state = "in_progress"
+    sample_match_dto.team_a_id = 10
+    sample_match_dto.team_b_id = 20
+    sample_match_dto.result = {
+        "winner_id": 20,
+        "loser_id": 10,
+        "participant1_score": 7,
+        "participant2_score": 13,
+    }
+    mock_match_adapter.get_match.return_value = sample_match_dto
+
+    completed_match = MatchDTO(
+        id=1,
+        tournament_id=100,
+        team_a_id=10,
+        team_b_id=20,
+        round_number=1,
+        stage="round_1",
+        state="completed",
+        scheduled_time=None,
+        result={"winner_id": 20, "loser_id": 10, "participant1_score": 7, "participant2_score": 13},
+    )
+    mock_match_adapter.update_match_state.return_value = completed_match
+
+    match_service.accept_match_result(match_id=1, approved_by_user_id=99)
+
+    mock_match_adapter.update_match_result.assert_called_once_with(
+        match_id=1,
+        winner_id=20,
+        loser_id=10,
+        winner_score=13,
+        loser_score=7,
+        result_metadata={
+            "source": "match_service.accept_match_result",
+            "approved_by_user_id": 99,
+            "result_payload": {},
+            "metadata": {},
+        },
+    )
+
+
 # ==============================================================================
 # void_match_result() Tests
 # ==============================================================================

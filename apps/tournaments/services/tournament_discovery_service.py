@@ -616,11 +616,14 @@ class TournamentDiscoveryService:
             'organizer',
         )
         
-        # Annotate with participant count (for sorting/filtering)
-        # Note: Depends on Registration model being available (future module)
-        # queryset = queryset.annotate(
-        #     participant_count=Count('registrations', distinct=True)
-        # )
+        # Annotate participant counts once to prevent N+1 count queries in list serializers.
+        queryset = queryset.annotate(
+            participant_count=Count(
+                'registrations',
+                filter=Q(registrations__status='confirmed'),
+                distinct=True,
+            )
+        )
         
         return queryset
     

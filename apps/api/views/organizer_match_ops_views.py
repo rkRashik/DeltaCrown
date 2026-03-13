@@ -12,9 +12,10 @@ Reference: Phase 7, Epic 7.4 - Match Operations API
 """
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.tournament_ops.services import TournamentOpsService
 from apps.api.serializers.organizer_match_ops_serializers import (
@@ -34,8 +35,17 @@ from apps.api.serializers.organizer_match_ops_serializers import (
 tournament_ops = TournamentOpsService()
 
 
+class MatchOpsReadThrottle(ScopedRateThrottle):
+    scope = 'match_ops_read'
+
+
+class MatchOpsWriteThrottle(ScopedRateThrottle):
+    scope = 'match_ops_write'
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def mark_match_live(request):
     """
     Mark a match as LIVE (in progress).
@@ -84,6 +94,7 @@ def mark_match_live(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def pause_match(request):
     """
     Pause a live match.
@@ -134,6 +145,7 @@ def pause_match(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def resume_match(request):
     """
     Resume a paused match.
@@ -182,6 +194,7 @@ def resume_match(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def force_complete_match(request):
     """
     Force-complete a match (admin action).
@@ -234,6 +247,7 @@ def force_complete_match(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def add_match_note(request):
     """
     Add a moderator note to a match.
@@ -284,6 +298,7 @@ def add_match_note(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsReadThrottle])
 def get_match_timeline(request, match_id):
     """
     Get aggregated timeline of match events.
@@ -298,7 +313,14 @@ def get_match_timeline(request, match_id):
     
     Reference: Phase 7, Epic 7.4 - Match Timeline
     """
-    limit = int(request.query_params.get('limit', 50))
+    try:
+        limit = int(request.query_params.get('limit', 50))
+    except (TypeError, ValueError):
+        return Response(
+            {'error': 'limit must be an integer'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    limit = max(1, min(limit, 200))
     
     try:
         timeline = tournament_ops.get_match_timeline(
@@ -318,6 +340,7 @@ def get_match_timeline(request, match_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsWriteThrottle])
 def override_match_result(request):
     """
     Override match result (admin action).
@@ -370,6 +393,7 @@ def override_match_result(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MatchOpsReadThrottle])
 def view_operations_dashboard(request, tournament_id):
     """
     Get match operations dashboard for tournament.

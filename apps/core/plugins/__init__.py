@@ -119,7 +119,7 @@ class PluginRegistry:
         if self._initialized:
             return
         
-        logger.info("🔍 Discovering game plugins...")
+        logger.debug("Discovering game plugins...")
         
         # Look for game_* apps
         for app_config in apps.get_app_configs():
@@ -141,7 +141,7 @@ class PluginRegistry:
                             # Instantiate and register
                             plugin_instance = attr()
                             self.register(plugin_instance)
-                            logger.info(f"✅ Discovered plugin: {plugin_instance.name}")
+                            logger.debug(f"Discovered plugin: {plugin_instance.name}")
                 
                 except ImportError:
                     logger.debug(f"No plugin found in {app_config.name}")
@@ -149,7 +149,7 @@ class PluginRegistry:
                     logger.error(f"❌ Error loading plugin from {app_config.name}: {e}")
         
         self._initialized = True
-        logger.info(f"🎮 Plugin discovery complete: {len(self._plugins)} plugins loaded")
+        logger.debug(f"Plugin discovery complete: {len(self._plugins)} plugins loaded")
     
     def register(self, plugin: GamePlugin):
         """Register a game plugin"""
@@ -165,13 +165,13 @@ class PluginRegistry:
         )
         
         self._plugins[plugin.name] = registration
-        logger.info(f"📝 Registered plugin: {plugin.display_name} ({plugin.name})")
+        logger.debug(f"Registered plugin: {plugin.display_name} ({plugin.name})")
     
     def unregister(self, name: str):
         """Unregister a plugin"""
         if name in self._plugins:
             del self._plugins[name]
-            logger.info(f"❌ Unregistered plugin: {name}")
+            logger.debug(f"Unregistered plugin: {name}")
     
     def get(self, name: str) -> Optional[GamePlugin]:
         """
@@ -196,13 +196,13 @@ class PluginRegistry:
         """Enable a plugin"""
         if name in self._plugins:
             self._plugins[name].enabled = True
-            logger.info(f"✅ Enabled plugin: {name}")
+            logger.debug(f"Enabled plugin: {name}")
     
     def disable_plugin(self, name: str):
         """Disable a plugin"""
         if name in self._plugins:
             self._plugins[name].enabled = False
-            logger.info(f"⏸️ Disabled plugin: {name}")
+            logger.debug(f"Disabled plugin: {name}")
     
     def list_plugins(self, enabled_only: bool = False) -> Dict[str, GamePlugin]:
         """

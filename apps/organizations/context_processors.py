@@ -34,7 +34,10 @@ def vnext_feature_flags(request):
         'LEGACY_TEAMS_ENABLED': getattr(settings, 'LEGACY_TEAMS_ENABLED', False),
         'COMPETITION_APP_ENABLED': getattr(settings, 'COMPETITION_APP_ENABLED', False),
     }
-    # Force logging to see if this is being called
-    logger.warning(f"[DEBUG] CONTEXT PROCESSOR CALLED for {request.path}: {result}")
-    # Removed print() to avoid Unicode errors in Windows terminal
+
+    # Optional troubleshooting toggle. Keep disabled in production to avoid
+    # noisy logs from bot probes and 404 paths.
+    if getattr(settings, 'VNEXT_FLAGS_CONTEXT_DEBUG', False):
+        logger.debug("vNext flags context on %s: %s", request.path, result)
+
     return result

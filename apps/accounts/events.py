@@ -180,7 +180,7 @@ def register_accounts_event_handlers():
         priority=10
     )
     
-    logger.info("📢 Registered accounts event handlers")
+    logger.debug("Registered accounts event handlers")
 
 
 __all__ = [

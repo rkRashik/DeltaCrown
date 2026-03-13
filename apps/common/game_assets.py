@@ -24,7 +24,7 @@ For template tags, use the game_registry template tags instead of game_assets.
 
 """
 
-from django.conf import settings
+from django.apps import apps as django_apps
 from django.templatetags.static import static
 from django.db.utils import ProgrammingError, OperationalError
 from apps.games.services.game_service import game_service
@@ -37,6 +37,10 @@ from apps.games.services.game_service import game_service
 
 def _build_legacy_games_dict():
     """Build GAMES dict from GameService for backwards compatibility."""
+    # Avoid DB access during Django app initialization.
+    if not django_apps.ready:
+        return {}
+
     try:
         games = {}
         for game in game_service.list_active_games():
@@ -57,8 +61,20 @@ def _build_legacy_games_dict():
         # Return empty dict if database table doesn't exist yet (during migration)
         return {}
 
-# Legacy GAMES constant (lazy-loaded from GameService)
-GAMES = _build_legacy_games_dict()
+# Legacy GAMES cache (dynamic entries are loaded lazily post-startup)
+GAMES = {}
+_DYNAMIC_GAMES_LOADED = False
+
+
+def _ensure_dynamic_games_loaded():
+    global _DYNAMIC_GAMES_LOADED
+    if _DYNAMIC_GAMES_LOADED:
+        return
+    if not django_apps.ready:
+        return
+
+    GAMES.update(_build_legacy_games_dict())
+    _DYNAMIC_GAMES_LOADED = True
 
 # Recreate old GAMES structure for complete backwards compatibility
 _LEGACY_GAMES_COMPAT = {
@@ -301,6 +317,7 @@ def get_game_data(game_code):
         }
     except (KeyError, Exception):
         # Fallback to legacy dict lookup
+        _ensure_dynamic_games_loaded()
         return GAMES.get(game_code.upper(), DEFAULT_GAME.copy())
 
 def get_game_logo(game_code, use_static=True):
@@ -498,6 +515,7 @@ def get_games_by_category(category):
     Returns:
         dict: Dictionary of games in the specified category
     """
+    _ensure_dynamic_games_loaded()
     return {
         code: data for code, data in GAMES.items() 
         if data['category'].upper() == category.upper()
@@ -513,6 +531,7 @@ def get_games_by_platform(platform):
     Returns:
         dict: Dictionary of games available on the specified platform
     """
+    _ensure_dynamic_games_loaded()
     return {
         code: data for code, data in GAMES.items() 
         if platform in data['platform']

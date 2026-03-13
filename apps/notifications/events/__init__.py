@@ -526,7 +526,7 @@ def register_notification_event_handlers():
         priority=50
     )
     
-    logger.info("📢 Registered notification event handlers")
+    logger.debug("Registered notification event handlers")
 
 
 # Export handlers for testing

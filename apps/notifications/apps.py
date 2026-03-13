@@ -19,7 +19,7 @@ class NotificationsConfig(AppConfig):
         try:
             from .events import register_notification_event_handlers
             register_notification_event_handlers()
-            logger.info("✅ Notification event handlers registered")
+            logger.debug("Notification event handlers registered")
         except Exception as e:
             logger.error(f"❌ Failed to register notification event handlers: {e}")
         

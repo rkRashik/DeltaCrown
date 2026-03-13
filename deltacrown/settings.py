@@ -117,6 +117,29 @@ def get_sanitized_db_info():
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 
+# Runtime tier controls safe defaults for connection/caching limits.
+DEPLOYMENT_TIER = os.getenv("DEPLOYMENT_TIER", "starter").strip().lower()
+if DEPLOYMENT_TIER not in {"free", "starter", "pro"}:
+    DEPLOYMENT_TIER = "starter"
+
+_TIER_CACHE_MAX_CONNECTIONS = {
+    "free": 80,
+    "starter": 200,
+    "pro": 400,
+}[DEPLOYMENT_TIER]
+
+_TIER_DB_CONN_MAX_AGE_NEON = {
+    "free": 180,
+    "starter": 300,
+    "pro": 600,
+}[DEPLOYMENT_TIER]
+
+_TIER_DB_CONN_MAX_AGE_DEFAULT = {
+    "free": 300,
+    "starter": 600,
+    "pro": 900,
+}[DEPLOYMENT_TIER]
+
 # Safety: refuse to run with the placeholder secret key in production
 if not DEBUG and SECRET_KEY == "dev-insecure-secret-key-change-me":
     raise ImproperlyConfigured(
@@ -316,6 +339,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
     "deltacrown.middleware.media_proxy.MediaProxyMiddleware",  # Dev: proxy missing media to production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
+    "deltacrown.middleware.bot_probe.BotProbeShieldMiddleware",  # Fast-fail scanner probes
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -375,16 +399,40 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
 # Cache: Redis in production (shared across workers), local memory for dev
 _CACHE_REDIS = os.getenv("REDIS_URL")
 if _CACHE_REDIS and not DEBUG:
+    # Keep Redis cache IO fail-fast to avoid long request stalls on free-tier networking jitter.
+    _cache_socket_timeout = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "2.0"))
+    _cache_connect_timeout = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "2.0"))
+    _cache_max_connections = int(
+        os.getenv("CACHE_REDIS_MAX_CONNECTIONS", str(_TIER_CACHE_MAX_CONNECTIONS))
+    )
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": _CACHE_REDIS,
+            "OPTIONS": {
+                "socket_timeout": _cache_socket_timeout,
+                "socket_connect_timeout": _cache_connect_timeout,
+                "retry_on_timeout": True,
+                "health_check_interval": 30,
+                "max_connections": _cache_max_connections,
+            },
         }
     }
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+    SESSION_CACHE_ALIAS = "default"
 else:
     CACHES = {
-        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "deltacrown-local",
+            "TIMEOUT": 300,
+            "OPTIONS": {
+                "MAX_ENTRIES": 1000,
+                "CULL_FREQUENCY": 3,
+            },
+        }
     }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
@@ -419,16 +467,20 @@ if not db_config:
 # seconds.  CONN_MAX_AGE=300 lets Django reuse connections within that window,
 # and CONN_HEALTH_CHECKS validates them before reuse (catches stale sockets).
 if "neon.tech" in database_url:
-    db_config['CONN_MAX_AGE'] = 300          # reuse for up to 5 min
+    db_config['CONN_MAX_AGE'] = int(
+        os.getenv('DB_CONN_MAX_AGE_NEON', str(_TIER_DB_CONN_MAX_AGE_NEON))
+    )
 else:
-    db_config['CONN_MAX_AGE'] = 600
-db_config['CONN_HEALTH_CHECKS'] = True       # SELECT 1 before reusing
+    db_config['CONN_MAX_AGE'] = int(
+        os.getenv('DB_CONN_MAX_AGE_DEFAULT', str(_TIER_DB_CONN_MAX_AGE_DEFAULT))
+    )
+db_config['CONN_HEALTH_CHECKS'] = os.getenv('DB_CONN_HEALTH_CHECKS', 'True').lower() == 'true'
 
 # Connection hardening for Neon (handles cold-start EOF / timeout)
 if "neon.tech" in database_url:
     db_config.setdefault('OPTIONS', {}).update({
         'sslmode': 'require',
-        'connect_timeout': 30,               # wait up to 30 s for cold-start
+        'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),  # fail fast on pooler/cold-start stalls
         'keepalives': 1,                      # enable TCP keepalives
         'keepalives_idle': 30,                # idle seconds before first probe
         'keepalives_interval': 10,            # seconds between probes
@@ -518,10 +570,19 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/hour",
-        "user": "1000/hour",
+        "anon": os.getenv("THROTTLE_ANON_RATE", "100/hour"),
+        "user": os.getenv("THROTTLE_USER_RATE", "1000/hour"),
+        "discovery_read": os.getenv("THROTTLE_DISCOVERY_READ_RATE", "240/min"),
+        "analytics_read": os.getenv("THROTTLE_ANALYTICS_READ_RATE", "180/min"),
+        "leaderboard_read": os.getenv("THROTTLE_LEADERBOARD_READ_RATE", "120/min"),
+        "registration_write": os.getenv("THROTTLE_REGISTRATION_WRITE_RATE", "90/min"),
+        "results_inbox_read": os.getenv("THROTTLE_RESULTS_INBOX_READ_RATE", "180/min"),
+        "results_inbox_write": os.getenv("THROTTLE_RESULTS_INBOX_WRITE_RATE", "60/min"),
+        "match_ops_read": os.getenv("THROTTLE_MATCH_OPS_READ_RATE", "180/min"),
+        "match_ops_write": os.getenv("THROTTLE_MATCH_OPS_WRITE_RATE", "90/min"),
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
@@ -1061,18 +1122,94 @@ LOGGING = {
         },
         'django.server': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': os.getenv('DJANGO_SERVER_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('DJANGO_REQUEST_LOG_LEVEL', 'ERROR'),
+            'propagate': False,
+        },
+        'deltacrown.requests': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('REQUEST_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        # Startup/bootstrap loggers (free-tier noise reduction)
+        'apps.core.events': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.core.registry': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.core.plugins': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.core.apps': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.accounts.apps': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.accounts.events': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.notifications.apps': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.notifications.events': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.siteui.apps': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.siteui.events': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.user_profile.apps': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'apps.user_profile.events': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         # Tournament app logging (Phase 2)
         'apps.tournaments': {
             'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
-            'level': 'DEBUG',
+            'level': os.getenv('TOURNAMENTS_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
         'apps.tournaments.realtime': {
             'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
-            'level': 'DEBUG',
+            'level': os.getenv('TOURNAMENTS_REALTIME_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'apps.tournaments.services.certificate_service': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('CERTIFICATE_SERVICE_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         # Celery logging
@@ -1083,6 +1220,15 @@ LOGGING = {
         },
     },
 }
+
+# Free-tier runtime hardening toggles
+BOT_PROBE_SHIELD_ENABLED = os.getenv('BOT_PROBE_SHIELD_ENABLED', 'True').lower() == 'true'
+REQUEST_LOG_SLOW_MS = int(os.getenv('REQUEST_LOG_SLOW_MS', '1200'))
+VNEXT_FLAGS_CONTEXT_DEBUG = os.getenv('VNEXT_FLAGS_CONTEXT_DEBUG', 'False').lower() == 'true'
+STARTUP_LOG_LEVEL = os.getenv('STARTUP_LOG_LEVEL', 'WARNING')
+DISCOVERY_API_CACHE_TTL = int(os.getenv('DISCOVERY_API_CACHE_TTL', '45'))
+ANALYTICS_API_CACHE_TTL = int(os.getenv('ANALYTICS_API_CACHE_TTL', '60'))
+LEADERBOARD_API_CACHE_TTL = int(os.getenv('LEADERBOARD_API_CACHE_TTL', '30'))
 
 # -----------------------------------------------------------------------------
 # Security Settings (Phase 2: Production Hardening)

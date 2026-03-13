@@ -67,7 +67,7 @@ class ServiceRegistry:
         if self._initialized:
             return
         
-        logger.info("🚀 Initializing Service Registry")
+        logger.debug("Initializing Service Registry")
         self._initialized = True
     
     def register(
@@ -100,13 +100,13 @@ class ServiceRegistry:
         )
         
         self._services[name] = registration
-        logger.info(f"📝 Registered service: {name} v{version} ({app_name})")
+        logger.debug(f"Registered service: {name} v{version} ({app_name})")
     
     def unregister(self, name: str):
         """Unregister a service"""
         if name in self._services:
             del self._services[name]
-            logger.info(f"❌ Unregistered service: {name}")
+            logger.debug(f"Unregistered service: {name}")
     
     def get(self, name: str) -> Optional[Any]:
         """
@@ -135,13 +135,13 @@ class ServiceRegistry:
         """Enable a service"""
         if name in self._services:
             self._services[name].enabled = True
-            logger.info(f"✅ Enabled service: {name}")
+            logger.debug(f"Enabled service: {name}")
     
     def disable_service(self, name: str):
         """Disable a service"""
         if name in self._services:
             self._services[name].enabled = False
-            logger.info(f"⏸️ Disabled service: {name}")
+            logger.debug(f"Disabled service: {name}")
     
     def list_services(self, app_name: Optional[str] = None) -> Dict[str, ServiceRegistration]:
         """

@@ -100,7 +100,7 @@ def ensure_user_profile(event):
         
         UserProfile.objects.get_or_create(user=user, defaults=defaults)
         
-        logger.info(f"✅ Ensured profile for user: {user.username}")
+        logger.debug(f"Ensured profile for user: {user.username}")
     
     except Exception as e:
         logger.error(f"❌ Failed to ensure user profile: {e}", exc_info=True)
@@ -123,7 +123,7 @@ def register_user_profile_event_handlers():
         priority=10
     )
     
-    logger.info("📢 Registered user profile event handlers")
+    logger.debug("Registered user profile event handlers")
 
 
 __all__ = ['ensure_user_profile', 'register_user_profile_event_handlers']

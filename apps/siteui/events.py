@@ -185,7 +185,7 @@ def register_siteui_event_handlers():
         priority=20
     )
     
-    logger.info("📢 Registered site UI event handlers")
+    logger.debug("Registered site UI event handlers")
 
 
 __all__ = [

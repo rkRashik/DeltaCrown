@@ -51,6 +51,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.throttling import ScopedRateThrottle
+from django.conf import settings
+from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ValidationError
 
@@ -86,7 +89,29 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
     """
     
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'discovery_read'
     pagination_class = TournamentDiscoveryPagination
+
+    def _get_cache_ttl(self) -> int:
+        return max(0, int(getattr(settings, 'DISCOVERY_API_CACHE_TTL', 45)))
+
+    def _anonymous_cache_key(self, request, bucket: str) -> str | None:
+        if getattr(request, 'user', None) and request.user.is_authenticated:
+            return None
+        query = request.META.get('QUERY_STRING', '')
+        return f"api:tournaments:discovery:{bucket}:{query}"
+
+    def _cached_payload(self, cache_key: str | None):
+        if not cache_key:
+            return None
+        return cache.get(cache_key)
+
+    def _store_payload(self, cache_key: str | None, payload) -> None:
+        ttl = self._get_cache_ttl()
+        if not cache_key or ttl <= 0:
+            return
+        cache.set(cache_key, payload, ttl)
     
     @property
     def paginator(self):
@@ -153,6 +178,11 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
             ]
         }
         """
+        cache_key = self._anonymous_cache_key(request, 'list')
+        cached = self._cached_payload(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         # Extract query parameters
         search_query = request.query_params.get('search', '').strip()
         game_id = request.query_params.get('game')
@@ -283,10 +313,13 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         page = self.paginator.paginate_queryset(queryset, request)
         if page is not None:
             serializer = TournamentListSerializer(page, many=True)
-            return self.paginator.get_paginated_response(serializer.data)
+            response = self.paginator.get_paginated_response(serializer.data)
+            self._store_payload(cache_key, response.data)
+            return response
         
         # Fallback (no pagination)
         serializer = TournamentListSerializer(queryset, many=True)
+        self._store_payload(cache_key, serializer.data)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='upcoming')
@@ -305,6 +338,11 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         - 200: Paginated list of upcoming tournaments
         - 400: Invalid days parameter
         """
+        cache_key = self._anonymous_cache_key(request, 'upcoming')
+        cached = self._cached_payload(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         days_param = request.query_params.get('days', '30')
         try:
             days_ahead = int(days_param)
@@ -329,9 +367,12 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         page = self.paginator.paginate_queryset(queryset, request)
         if page is not None:
             serializer = TournamentListSerializer(page, many=True)
-            return self.paginator.get_paginated_response(serializer.data)
+            response = self.paginator.get_paginated_response(serializer.data)
+            self._store_payload(cache_key, response.data)
+            return response
         
         serializer = TournamentListSerializer(queryset, many=True)
+        self._store_payload(cache_key, serializer.data)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='live')
@@ -348,6 +389,11 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         Returns:
         - 200: Paginated list of live tournaments
         """
+        cache_key = self._anonymous_cache_key(request, 'live')
+        cached = self._cached_payload(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         # Get live tournaments from service
         queryset = TournamentDiscoveryService.get_live_tournaments(
             user=request.user if request.user.is_authenticated else None
@@ -357,9 +403,12 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         page = self.paginator.paginate_queryset(queryset, request)
         if page is not None:
             serializer = TournamentListSerializer(page, many=True)
-            return self.paginator.get_paginated_response(serializer.data)
+            response = self.paginator.get_paginated_response(serializer.data)
+            self._store_payload(cache_key, response.data)
+            return response
         
         serializer = TournamentListSerializer(queryset, many=True)
+        self._store_payload(cache_key, serializer.data)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='featured')
@@ -377,6 +426,11 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         
         Note: Featured tournaments are NOT paginated (small, curated list).
         """
+        cache_key = self._anonymous_cache_key(request, 'featured')
+        cached = self._cached_payload(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         limit_param = request.query_params.get('limit', '6')
         try:
             limit = int(limit_param)
@@ -399,6 +453,7 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         
         # Serialize without pagination (small, curated list)
         serializer = TournamentListSerializer(queryset, many=True)
+        self._store_payload(cache_key, serializer.data)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='by-game/(?P<game_id>[0-9]+)')
@@ -420,6 +475,11 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         - 200: Paginated list of tournaments for the game
         - 404: Game not found
         """
+        cache_key = self._anonymous_cache_key(request, f'by_game:{game_id}')
+        cached = self._cached_payload(cache_key)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
         include_draft = request.query_params.get('include_draft', 'false').lower() in ('true', '1', 'yes')
         
         # Get tournaments by game from service
@@ -444,7 +504,10 @@ class TournamentDiscoveryViewSet(viewsets.ViewSet):
         page = self.paginator.paginate_queryset(queryset, request)
         if page is not None:
             serializer = TournamentListSerializer(page, many=True)
-            return self.paginator.get_paginated_response(serializer.data)
+            response = self.paginator.get_paginated_response(serializer.data)
+            self._store_payload(cache_key, response.data)
+            return response
         
         serializer = TournamentListSerializer(queryset, many=True)
+        self._store_payload(cache_key, serializer.data)
         return Response(serializer.data)

@@ -7,6 +7,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from django.db import transaction
 
 from apps.tournaments.models import Registration, Tournament, PaymentVerification
@@ -46,7 +47,7 @@ class SoloRegistrationSerializer(serializers.Serializer):
     def validate_tournament_id(self, value):
         """Validate tournament exists and is open."""
         try:
-            tournament = Tournament.objects.get(pk=value)
+            tournament = Tournament.objects.only('id', 'status').get(pk=value)
         except Tournament.DoesNotExist:
             raise serializers.ValidationError("Tournament not found.")
         
@@ -113,7 +114,7 @@ class TeamRegistrationSerializer(serializers.Serializer):
     def validate_tournament_id(self, value):
         """Validate tournament exists and is open."""
         try:
-            tournament = Tournament.objects.get(pk=value)
+            tournament = Tournament.objects.only('id', 'status').get(pk=value)
         except Tournament.DoesNotExist:
             raise serializers.ValidationError("Tournament not found.")
         
@@ -126,13 +127,15 @@ class TeamRegistrationSerializer(serializers.Serializer):
         """Validate team exists and caller is captain."""
         from apps.organizations.models import Team
         try:
-            team = Team.objects.get(pk=value)
+            team = Team.objects.only('id', 'created_by_id').get(pk=value)
         except Team.DoesNotExist:
             raise serializers.ValidationError("Team not found.")
         
         user = self.context['request'].user
-        # Check if user is team captain
-        if team.captain != user and (not hasattr(team, 'captain_id') or team.captain_id != user.id):
+        # Support both legacy and vNext ownership fields without extra queries.
+        owner_id = getattr(team, 'created_by_id', None) or getattr(team, 'owner_id', None)
+        captain_id = getattr(team, 'captain_id', None)
+        if owner_id != user.id and captain_id != user.id:
             raise serializers.ValidationError("Only team captains can register teams.")
         
         return value
@@ -207,6 +210,8 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     ).all()
     serializer_class = RegistrationSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'registration_write'
     
     @action(detail=False, methods=['post'], url_path='solo')
     def create_solo(self, request):
@@ -216,6 +221,7 @@ class RegistrationViewSet(viewsets.GenericViewSet):
         registration = serializer.save()
         
         # Return full registration with payment verification
+        registration = self.get_queryset().get(pk=registration.pk)
         response_serializer = RegistrationSerializer(registration)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
@@ -227,6 +233,7 @@ class RegistrationViewSet(viewsets.GenericViewSet):
         registration = serializer.save()
         
         # Return full registration with payment verification
+        registration = self.get_queryset().get(pk=registration.pk)
         response_serializer = RegistrationSerializer(registration)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
