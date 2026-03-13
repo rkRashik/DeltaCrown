@@ -1,4 +1,5 @@
 ﻿import logging
+from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
@@ -6,6 +7,7 @@ from django.urls import reverse
 from django.apps import apps
 from django.contrib import messages
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from .decorators import require_auth_json
@@ -21,11 +23,120 @@ def _user(user):
     return user
 
 
+def _safe_media_url(obj, field='avatar'):
+    """Best-effort resolver for image field URLs."""
+    try:
+        media = getattr(obj, field, None)
+        return media.url if media else ''
+    except Exception:
+        return ''
+
+
+def _avatar_fallback(name: str, bg: str = '1f2937') -> str:
+    """Stable fallback avatar URL for users/teams without uploaded images."""
+    label = quote((name or 'DeltaCrown')[:40])
+    return f'https://ui-avatars.com/api/?name={label}&background={bg}&color=fff&size=96&bold=true'
+
+
+def _attach_notification_ui(items):
+    """Attach dynamic UI metadata to notification model instances."""
+    if not items:
+        return
+
+    icon_map = {
+        'follow_request': 'fa-solid fa-user-clock',
+        'follow_request_approved': 'fa-solid fa-user-check',
+        'follow_request_rejected': 'fa-solid fa-user-minus',
+        'invite_sent': 'fa-solid fa-user-plus',
+        'invite_accepted': 'fa-solid fa-circle-check',
+        'match_scheduled': 'fa-solid fa-calendar-check',
+        'match_result': 'fa-solid fa-bolt',
+        'achievement_earned': 'fa-solid fa-trophy',
+        'payment_verified': 'fa-solid fa-wallet',
+        'payout_received': 'fa-solid fa-coins',
+        'join_request_received': 'fa-solid fa-user-group',
+        'join_request_accepted': 'fa-solid fa-user-group',
+        'ranking_changed': 'fa-solid fa-chart-line',
+        'user_followed': 'fa-solid fa-user-check',
+    }
+
+    follow_request_ids = [
+        n.action_object_id
+        for n in items
+        if n.type == 'follow_request' and n.action_object_id
+    ]
+    invite_ids = [
+        n.action_object_id
+        for n in items
+        if n.type == 'invite_sent' and getattr(n, 'action_type', '') == 'team_invite' and n.action_object_id
+    ]
+
+    follow_meta = {}
+    if follow_request_ids:
+        try:
+            FollowRequest = apps.get_model("user_profile", "FollowRequest")
+            for req in FollowRequest.objects.filter(id__in=follow_request_ids).select_related('requester', 'requester__user'):
+                requester_name = getattr(req.requester, 'display_name', '') or req.requester.user.username
+                follow_meta[req.id] = {
+                    'name': requester_name,
+                    'avatar': _safe_media_url(req.requester, 'avatar') or _avatar_fallback(requester_name, '0f3460'),
+                    'is_pending': req.status == FollowRequest.STATUS_PENDING,
+                }
+        except Exception as e:
+            logger.warning("Failed to enrich follow-request notification UI: %s", e)
+
+    invite_meta = {}
+    if invite_ids:
+        try:
+            TeamInvite = apps.get_model("organizations", "TeamInvite")
+            for inv in TeamInvite.objects.filter(id__in=invite_ids).select_related('team', 'inviter'):
+                team_name = inv.team.name if inv.team else 'Team'
+                invite_meta[inv.id] = {
+                    'team_name': team_name,
+                    'team_logo': _safe_media_url(inv.team, 'logo') or _avatar_fallback(team_name, '1e293b'),
+                    'role': inv.role,
+                    'inviter_name': inv.inviter.username if inv.inviter else '',
+                    'is_pending': inv.status == 'PENDING' and (not inv.expires_at or inv.expires_at > timezone.now()),
+                }
+        except Exception as e:
+            logger.warning("Failed to enrich team-invite notification UI: %s", e)
+
+    for n in items:
+        n.ui_icon = icon_map.get(n.type, 'fa-solid fa-bell')
+        n.ui_avatar = ''
+        n.ui_actor_name = ''
+        n.ui_team_name = ''
+        n.ui_role = ''
+        n.ui_follow_request_id = None
+        n.ui_invite_id = None
+        n.ui_show_follow_actions = False
+        n.ui_show_invite_actions = False
+
+        if n.type == 'follow_request' and n.action_object_id:
+            meta = follow_meta.get(n.action_object_id)
+            if meta:
+                n.ui_avatar = meta['avatar']
+                n.ui_actor_name = meta['name']
+                n.ui_follow_request_id = n.action_object_id
+                n.ui_show_follow_actions = meta['is_pending']
+
+        if n.type == 'invite_sent' and getattr(n, 'action_type', '') == 'team_invite' and n.action_object_id:
+            meta = invite_meta.get(n.action_object_id)
+            if meta:
+                n.ui_avatar = meta['team_logo']
+                n.ui_team_name = meta['team_name']
+                n.ui_role = meta['role']
+                n.ui_actor_name = meta['inviter_name']
+                n.ui_invite_id = n.action_object_id
+                n.ui_show_invite_actions = meta['is_pending']
+
+
 @login_required
 def list_view(request):
     u = _user(request.user)
     qs = Notification.objects.filter(recipient=u).order_by("-created_at")
     page = Paginator(qs, 15).get_page(request.GET.get("page"))
+    _attach_notification_ui(list(page.object_list))
     return render(request, "notifications/list_modern.html", {"page": page})
 
 

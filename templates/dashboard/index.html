@@ -769,30 +769,41 @@
 
           <div class="flex-1 overflow-y-auto p-3 hide-scrollbar space-y-2">
             <template x-for="msg in filteredInbox.slice(0,7)" :key="msg.id">
-              <div class="p-4 rounded-xl transition-all cursor-pointer group relative border-l-2"
+              <div class="p-4 rounded-xl transition-all cursor-pointer group relative border"
                    :class="msg.unread
-                     ? 'bg-white/[0.05] border-l-dc-accent hover:bg-white/[0.08] border border-dc-accent/40 border-l-2 shadow-[inset_2px_0_12px_rgba(99,102,241,0.08)]'
-                     : 'bg-transparent border-l-transparent hover:bg-white/[0.03] border border-white/[0.04]'"
+                     ? 'bg-white/[0.05] border-dc-accent/35 hover:bg-white/[0.08] shadow-[inset_0_0_0_1px_rgba(99,102,241,0.18)]'
+                     : 'bg-transparent border-white/[0.04] hover:bg-white/[0.03]'"
                    @click="msg.url ? window.location.href = msg.url : markRead(msg.id)">
 
                 <div class="flex justify-between items-center mb-3">
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest" :class="msg.color" x-text="msg.category"></span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest inline-flex items-center gap-1.5" :class="msg.color">
+                    <i :class="msg.icon || 'fa-solid fa-bell'"></i>
+                    <span x-text="msg.category"></span>
+                  </span>
                   <span class="text-[10px] font-mono text-dc-textMuted" x-text="msg.time"></span>
                 </div>
 
                 <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] overflow-hidden"
+                  <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] overflow-hidden"
                        :class="msg.avatar ? '' : 'bg-white/[0.05]'">
                     <img x-show="msg.avatar" :src="msg.avatar" class="w-full h-full object-cover">
-                    <i x-show="!msg.avatar" class="fa-solid fa-bell text-dc-textMuted text-sm"></i>
+                    <i x-show="!msg.avatar" :class="(msg.icon || 'fa-solid fa-bell') + ' text-dc-textMuted text-sm'"></i>
                   </div>
                   <div class="flex-1">
-                    <span class="text-xs font-bold text-white block mb-0.5" x-text="msg.sender"></span>
-                    <p class="text-[11px] text-gray-400 leading-relaxed" :class="msg.unread ? 'text-gray-200 font-medium' : ''" x-text="msg.text"></p>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-white block mb-0.5" x-text="msg.sender"></span>
+                      <span x-show="msg.unread" class="w-1.5 h-1.5 rounded-full bg-dc-accent"></span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed" :class="msg.unread ? 'text-gray-200 font-medium' : 'text-gray-400'" x-text="msg.text"></p>
 
-                    <div x-show="msg.hasAction" class="flex gap-2 mt-3" @click.stop>
+                    <div x-show="msg.hasAction && msg.actionKind === 'team_invite'" class="flex gap-2 mt-3" @click.stop>
                       <button @click="handleInvite(msg.inviteId, 'accept')" class="bg-white text-black text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-gray-200 shadow-sm">Accept</button>
                       <button @click="handleInvite(msg.inviteId, 'decline')" class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Decline</button>
+                    </div>
+
+                    <div x-show="msg.hasAction && msg.actionKind === 'follow_request'" class="flex gap-2 mt-3" @click.stop>
+                      <button @click="handleFollowRequest(msg.followRequestId, 'accept')" class="bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-success hover:text-white">Accept</button>
+                      <button @click="handleFollowRequest(msg.followRequestId, 'reject')" class="bg-white/[0.05] border border-white/[0.1] text-white text-[10px] font-medium px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] hover:bg-dc-danger hover:border-dc-danger hover:text-white">Reject</button>
                     </div>
                   </div>
                 </div>

@@ -24,6 +24,11 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 
+try:
+    from apps.notifications.sse import notification_stream as notifications_stream_alias
+except Exception:
+    notifications_stream_alias = None
+
 # Import competition admin status view (safe - no model queries)
 from apps.competition.admin import competition_admin_status
 
@@ -145,6 +150,7 @@ urlpatterns = [
     # Backwards-compatibility legacy redirects kept below.
 
     # Optional extras mounted if present
+    path("api/notifications/stream/", notifications_stream_alias, name="api_notifications_stream") if notifications_stream_alias else None,
     path("notifications/", include("apps.notifications.urls")) if import_module else None,
     path("", include("apps.dashboard.urls")),
     path("crownstore/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),

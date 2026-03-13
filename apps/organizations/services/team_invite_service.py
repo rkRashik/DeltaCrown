@@ -29,7 +29,9 @@ class MembershipInviteDTO:
     team_id: int
     team_name: str
     team_slug: str
+    team_logo: Optional[str]
     game_name: str
+    game_icon: Optional[str]
     role: str
     inviter_name: Optional[str]
     created_at: str
@@ -43,7 +45,9 @@ class EmailInviteDTO:
     team_id: int
     team_name: str
     team_slug: str
+    team_logo: Optional[str]
     game_name: str
+    game_icon: Optional[str]
     role: str
     invited_email: str
     inviter_name: Optional[str]
@@ -119,6 +123,15 @@ class InviteAlreadyAcceptedError(InviteServiceError):
 
 class TeamInviteService:
     """Service for managing team invitations."""
+
+    @staticmethod
+    def _image_url(obj, field: str = 'logo') -> Optional[str]:
+        """Safely extract image URL from a model field."""
+        try:
+            image = getattr(obj, field, None)
+            return image.url if image else None
+        except Exception:
+            return None
     
     @staticmethod
     def list_user_invites(user_id: int) -> InvitesListDTO:
@@ -138,8 +151,8 @@ class TeamInviteService:
         Query Budget: ≤5 queries (optimized with prefetch_related)
         """
         from apps.games.models import Game
-        
-        user = User.objects.select_related().get(id=user_id)
+
+        user = User.objects.get(id=user_id)
         
         # 1. Membership invites (status=INVITED)
         membership_invites_qs = TeamMembership.objects.filter(
@@ -164,19 +177,30 @@ class TeamInviteService:
         all_team_ids.extend(m.team_id for m in membership_invites_qs)
         all_team_ids.extend(e.team_id for e in email_invites_qs)
         
-        # Build game lookup dict (single query)
+        # Build game lookups in two compact queries.
         game_lookup = {}
+        game_icon_lookup = {}
         if all_team_ids:
-            from apps.organizations.models import Team
             teams_with_games = Team.objects.filter(
                 id__in=all_team_ids
-            ).select_related('game_id')
-            
+            ).only('id', 'game_id')
+
+            game_ids = set()
             for team in teams_with_games:
                 if team.game_id:
-                    game_lookup[team.id] = team.game_id.name
+                    game_ids.add(team.game_id)
+                    game_lookup[team.id] = "Unknown Game"
                 else:
                     game_lookup[team.id] = "Unknown Game"
+
+            if game_ids:
+                games = Game.objects.filter(id__in=game_ids).only('id', 'name', 'icon')
+                game_map = {g.id: g for g in games}
+                for team in teams_with_games:
+                    game = game_map.get(team.game_id)
+                    if game:
+                        game_lookup[team.id] = game.name
+                        game_icon_lookup[team.id] = TeamInviteService._image_url(game, 'icon')
         
         # Convert membership invites
         membership_invites = []
@@ -195,7 +219,9 @@ class TeamInviteService:
                 team_id=invite.team.id,
                 team_name=invite.team.name,
                 team_slug=invite.team.slug,
+                team_logo=TeamInviteService._image_url(invite.team, 'logo'),
                 game_name=game_name,
+                game_icon=game_icon_lookup.get(invite.team_id),
                 role=invite.role,
                 inviter_name=inviter_name,
                 created_at=invite.joined_at.isoformat() if invite.joined_at else timezone.now().isoformat(),
@@ -218,7 +244,9 @@ class TeamInviteService:
                 team_id=invite.team.id,
                 team_name=invite.team.name,
                 team_slug=invite.team.slug,
+                team_logo=TeamInviteService._image_url(invite.team, 'logo'),
                 game_name=game_name,
+                game_icon=game_icon_lookup.get(invite.team_id),
                 role=invite.role,
                 invited_email=invite.invited_email,
                 inviter_name=inviter_name,
@@ -278,6 +306,8 @@ class TeamInviteService:
         # Accept: change status to ACTIVE
         membership.status = MembershipStatus.ACTIVE
         membership.save(update_fields=['status'])
+
+        team = membership.team
         
         # Create JOINED event for audit trail
         TeamMembershipEvent.objects.create(
@@ -292,7 +322,6 @@ class TeamInviteService:
         )
         
         # Return team details
-        team = membership.team
         team_url = team.get_absolute_url()
         
         return {

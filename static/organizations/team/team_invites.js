@@ -10,6 +10,60 @@
 let currentTab = 'membership';
 let invitesData = null;
 
+function initialsFrom(name) {
+    const text = (name || '').trim();
+    if (!text) return 'TM';
+    return text
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+}
+
+function formatTimeAgo(isoDate) {
+    if (!isoDate) return '';
+    const time = new Date(isoDate).getTime();
+    if (!time) return '';
+
+    const seconds = Math.max(1, Math.floor((Date.now() - time) / 1000));
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
+function showToast(message, type = 'success') {
+    const host = document.getElementById('inviteToastHost');
+    if (!host) {
+        alert(message);
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'invite-toast invite-toast-' + type;
+    toast.textContent = message;
+    host.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 220);
+    }, 2600);
+}
+
+function setCardBusy(card, busy) {
+    if (!card) return;
+    const buttons = card.querySelectorAll('button');
+    buttons.forEach((btn) => {
+        btn.disabled = busy;
+        btn.classList.toggle('opacity-60', busy);
+        btn.classList.toggle('cursor-not-allowed', busy);
+    });
+}
+
 // Get URL from config or fallback to hardcoded
 function getConfig() {
     return window.VNEXT_INVITES_CONFIG || {
@@ -111,31 +165,46 @@ function renderEmailInvites(invites) {
 
 function createMembershipCard(invite) {
     const createdDate = new Date(invite.created_at).toLocaleDateString();
+    const teamInitials = initialsFrom(invite.team_name);
+    const teamLogo = invite.team_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(teamInitials)}&background=151530&color=E5E7EB&size=88&bold=true`;
+    const gameLine = invite.game_name ? `
+                        <div class="inline-flex items-center gap-2 rounded-full bg-white/5 px-2.5 py-1 border border-white/10 text-[11px] text-gray-300">
+                            ${invite.game_icon ? `<img src="${escapeHtml(invite.game_icon)}" class="w-3.5 h-3.5 rounded" alt="${escapeHtml(invite.game_name)}">` : '<i class="fas fa-gamepad text-[10px] text-cyan-300"></i>'}
+                            <span>${escapeHtml(invite.game_name)}</span>
+                        </div>` : '';
     
     return `
-        <div class="invite-card glass-panel rounded-xl p-5" id="membership-${invite.id}">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                        <h3 class="text-xl font-bold text-white">${escapeHtml(invite.team_name)}</h3>
-                        <span class="badge badge-pending">${escapeHtml(invite.role)}</span>
+        <div class="invite-card glass-panel rounded-2xl p-5" id="membership-${invite.id}">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start gap-4">
+                        <img src="${teamLogo}" alt="${escapeHtml(invite.team_name)}" class="w-14 h-14 rounded-xl object-cover border border-white/15 bg-black/30 shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 class="text-xl font-bold text-white truncate">${escapeHtml(invite.team_name)}</h3>
+                                <span class="badge badge-pending">${escapeHtml(invite.role)}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2.5 text-sm text-gray-400">
+                                ${gameLine}
+                                ${invite.inviter_name ? `<span class="inline-flex items-center gap-1.5"><i class="fas fa-user text-[11px] text-cyan-300"></i> Invited by <strong class="text-gray-200 font-semibold">${escapeHtml(invite.inviter_name)}</strong></span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div class="space-y-1 text-sm text-gray-400">
-                        <p><i class="fas fa-gamepad mr-2"></i>${escapeHtml(invite.game_name)}</p>
-                        ${invite.inviter_name ? `<p><i class="fas fa-user mr-2"></i>Invited by ${escapeHtml(invite.inviter_name)}</p>` : ''}
-                        <p><i class="fas fa-calendar mr-2"></i>Invited on ${createdDate}</p>
+                    <div class="mt-3 text-xs text-gray-500 flex items-center gap-2">
+                        <i class="far fa-clock text-[11px]"></i>
+                        <span>${formatTimeAgo(invite.created_at)} · ${createdDate}</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex items-center gap-2 md:pt-1">
                     <button 
                         onclick="acceptMembershipInvite(${invite.id})"
-                        class="px-4 py-2 bg-gradient-to-r from-[#6C00FF] to-[#00E5FF] text-white rounded-lg hover:opacity-90 transition"
+                        class="action-btn action-btn-primary px-4 py-2 rounded-lg"
                     >
-                        <i class="fas fa-check mr-2"></i>Accept
+                        <i class="fas fa-check mr-2"></i>Accept Invite
                     </button>
                     <button 
                         onclick="declineMembershipInvite(${invite.id})"
-                        class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                        class="action-btn action-btn-ghost px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-times mr-2"></i>Decline
                     </button>
@@ -148,33 +217,48 @@ function createMembershipCard(invite) {
 function createEmailCard(invite) {
     const createdDate = new Date(invite.created_at).toLocaleDateString();
     const expiresDate = invite.expires_at ? new Date(invite.expires_at).toLocaleDateString() : null;
+    const teamInitials = initialsFrom(invite.team_name);
+    const teamLogo = invite.team_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(teamInitials)}&background=25182f&color=E5E7EB&size=88&bold=true`;
+    const gameLine = invite.game_name ? `
+                        <div class="inline-flex items-center gap-2 rounded-full bg-white/5 px-2.5 py-1 border border-white/10 text-[11px] text-gray-300">
+                            ${invite.game_icon ? `<img src="${escapeHtml(invite.game_icon)}" class="w-3.5 h-3.5 rounded" alt="${escapeHtml(invite.game_name)}">` : '<i class="fas fa-gamepad text-[10px] text-pink-300"></i>'}
+                            <span>${escapeHtml(invite.game_name)}</span>
+                        </div>` : '';
     
     return `
-        <div class="invite-card glass-panel rounded-xl p-5" id="email-${invite.token}">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                        <h3 class="text-xl font-bold text-white">${escapeHtml(invite.team_name)}</h3>
-                        <span class="badge badge-pending">${escapeHtml(invite.role)}</span>
-                    </div>
-                    <div class="space-y-1 text-sm text-gray-400">
-                        <p><i class="fas fa-gamepad mr-2"></i>${escapeHtml(invite.game_name)}</p>
-                        <p><i class="fas fa-envelope mr-2"></i>${escapeHtml(invite.invited_email)}</p>
-                        ${invite.inviter_name ? `<p><i class="fas fa-user mr-2"></i>Invited by ${escapeHtml(invite.inviter_name)}</p>` : ''}
-                        <p><i class="fas fa-calendar mr-2"></i>Invited on ${createdDate}</p>
-                        ${expiresDate ? `<p><i class="fas fa-clock mr-2"></i>Expires on ${expiresDate}</p>` : ''}
+        <div class="invite-card glass-panel rounded-2xl p-5" id="email-${invite.token}">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start gap-4">
+                        <img src="${teamLogo}" alt="${escapeHtml(invite.team_name)}" class="w-14 h-14 rounded-xl object-cover border border-white/15 bg-black/30 shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 class="text-xl font-bold text-white truncate">${escapeHtml(invite.team_name)}</h3>
+                                <span class="badge badge-pending">${escapeHtml(invite.role)}</span>
+                                <span class="badge badge-email">Email Invite</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2.5 text-sm text-gray-400 mb-2">
+                                ${gameLine}
+                                <span class="inline-flex items-center gap-1.5"><i class="fas fa-envelope text-[11px] text-pink-300"></i> ${escapeHtml(invite.invited_email)}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                ${invite.inviter_name ? `<span><i class="fas fa-user mr-1"></i>Invited by ${escapeHtml(invite.inviter_name)}</span>` : ''}
+                                <span><i class="far fa-clock mr-1"></i>${formatTimeAgo(invite.created_at)} · ${createdDate}</span>
+                                ${expiresDate ? `<span class="text-amber-300"><i class="fas fa-hourglass-half mr-1"></i>Expires ${expiresDate}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex items-center gap-2 md:pt-1">
                     <button 
                         onclick="acceptEmailInvite('${invite.token}')"
-                        class="px-4 py-2 bg-gradient-to-r from-[#6C00FF] to-[#00E5FF] text-white rounded-lg hover:opacity-90 transition"
+                        class="action-btn action-btn-primary px-4 py-2 rounded-lg"
                     >
-                        <i class="fas fa-check mr-2"></i>Accept
+                        <i class="fas fa-check mr-2"></i>Accept Invite
                     </button>
                     <button 
                         onclick="declineEmailInvite('${invite.token}')"
-                        class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                        class="action-btn action-btn-ghost px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-times mr-2"></i>Decline
                     </button>
@@ -187,8 +271,7 @@ function createEmailCard(invite) {
 async function acceptMembershipInvite(id) {
     const config = getConfig();
     const card = document.getElementById(`membership-${id}`);
-    const buttons = card.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
+    setCardBusy(card, true);
     
     try {
         const url = config.acceptMembershipUrlTemplate.replace('{id}', id);
@@ -203,19 +286,20 @@ async function acceptMembershipInvite(id) {
         const data = await response.json();
         
         if (data.ok) {
+            showToast('Invite accepted. Redirecting to team hub.', 'success');
             card.classList.add('fade-out');
             setTimeout(() => {
                 // Redirect to team page
                 window.location.href = data.data.team_url;
             }, 500);
         } else {
-            alert(data.safe_message || 'Failed to accept invitation');
-            buttons.forEach(btn => btn.disabled = false);
+            showToast(data.safe_message || 'Failed to accept invitation', 'error');
+            setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Accept error:', error);
-        alert('Network error. Please try again.');
-        buttons.forEach(btn => btn.disabled = false);
+        showToast('Network error. Please try again.', 'error');
+        setCardBusy(card, false);
     }
 }
 
@@ -226,8 +310,7 @@ async function declineMembershipInvite(id) {
     
     const config = getConfig();
     const card = document.getElementById(`membership-${id}`);
-    const buttons = card.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
+    setCardBusy(card, true);
     
     try {
         const url = config.declineMembershipUrlTemplate.replace('{id}', id);
@@ -242,11 +325,12 @@ async function declineMembershipInvite(id) {
         const data = await response.json();
         
         if (data.ok) {
+            showToast('Invite declined.', 'info');
             card.classList.add('fade-out');
             setTimeout(() => {
                 card.remove();
                 // Update count
-                const count = document.querySelectorAll('#membershipList .invite-card').length - 1;
+                const count = document.querySelectorAll('#membershipList .invite-card').length;
                 document.getElementById('membershipCount').textContent = count;
                 if (count === 0) {
                     document.getElementById('membershipEmpty').classList.remove('hidden');
@@ -254,21 +338,20 @@ async function declineMembershipInvite(id) {
                 }
             }, 500);
         } else {
-            alert(data.safe_message || 'Failed to decline invitation');
-            buttons.forEach(btn => btn.disabled = false);
+            showToast(data.safe_message || 'Failed to decline invitation', 'error');
+            setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Decline error:', error);
-        alert('Network error. Please try again.');
-        buttons.forEach(btn => btn.disabled = false);
+        showToast('Network error. Please try again.', 'error');
+        setCardBusy(card, false);
     }
 }
 
 async function acceptEmailInvite(token) {
     const config = getConfig();
     const card = document.getElementById(`email-${token}`);
-    const buttons = card.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
+    setCardBusy(card, true);
     
     try {
         const url = config.acceptEmailUrlTemplate.replace('{token}', token);
@@ -283,18 +366,19 @@ async function acceptEmailInvite(token) {
         const data = await response.json();
         
         if (data.ok) {
+            showToast('Invite accepted. Redirecting to team hub.', 'success');
             card.classList.add('fade-out');
             setTimeout(() => {
                 window.location.href = data.data.team_url;
             }, 500);
         } else {
-            alert(data.safe_message || 'Failed to accept invitation');
-            buttons.forEach(btn => btn.disabled = false);
+            showToast(data.safe_message || 'Failed to accept invitation', 'error');
+            setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Accept error:', error);
-        alert('Network error. Please try again.');
-        buttons.forEach(btn => btn.disabled = false);
+        showToast('Network error. Please try again.', 'error');
+        setCardBusy(card, false);
     }
 }
 
@@ -305,8 +389,7 @@ async function declineEmailInvite(token) {
     
     const config = getConfig();
     const card = document.getElementById(`email-${token}`);
-    const buttons = card.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
+    setCardBusy(card, true);
     
     try {
         const url = config.declineEmailUrlTemplate.replace('{token}', token);
@@ -321,10 +404,11 @@ async function declineEmailInvite(token) {
         const data = await response.json();
         
         if (data.ok) {
+            showToast('Invite declined.', 'info');
             card.classList.add('fade-out');
             setTimeout(() => {
                 card.remove();
-                const count = document.querySelectorAll('#emailList .invite-card').length - 1;
+                const count = document.querySelectorAll('#emailList .invite-card').length;
                 document.getElementById('emailCount').textContent = count;
                 if (count === 0) {
                     document.getElementById('emailEmpty').classList.remove('hidden');
@@ -332,13 +416,13 @@ async function declineEmailInvite(token) {
                 }
             }, 500);
         } else {
-            alert(data.safe_message || 'Failed to decline invitation');
-            buttons.forEach(btn => btn.disabled = false);
+            showToast(data.safe_message || 'Failed to decline invitation', 'error');
+            setCardBusy(card, false);
         }
     } catch (error) {
         console.error('Decline error:', error);
-        alert('Network error. Please try again.');
-        buttons.forEach(btn => btn.disabled = false);
+        showToast('Network error. Please try again.', 'error');
+        setCardBusy(card, false);
     }
 }
 
@@ -349,7 +433,7 @@ function escapeHtml(text) {
 }
 
 function showError(message) {
-    alert(message);
+    showToast(message, 'error');
 }
 
 // Load invites on page load

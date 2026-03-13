@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 def notification_stream(request):
     """
     SSE endpoint that streams notification counts to client.
-    
-    GET /api/notifications/stream/
+
+    Primary route: GET /notifications/stream/
+    Backward-compatible alias: GET /api/notifications/stream/
     
     Streams JSON events every 5 seconds:
     {

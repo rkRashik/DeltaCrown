@@ -114,6 +114,35 @@ document.addEventListener('alpine:init', () => {
         }
       },
 
+      async handleFollowRequest(requestId, action) {
+        try {
+          const res = await fetch('/notifications/api/follow-request/' + requestId + '/' + action + '/', {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': this._csrf(),
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+          });
+          const data = await res.json();
+          if (data.success) {
+            this.inbox = this.inbox.filter(m => m.followRequestId != requestId);
+            if (window.showToast) {
+              const verb = action === 'accept' ? 'accepted' : 'rejected';
+              window.showToast({ type: 'success', message: 'Follow request ' + verb + '.' });
+            }
+          } else if (window.showToast) {
+            window.showToast({ type: 'error', message: data.error || 'Action failed.' });
+          }
+        } catch (err) {
+          console.error('[CC] handleFollowRequest error:', err);
+          if (window.showToast) {
+            window.showToast({ type: 'error', message: 'Network error. Please try again.' });
+          }
+        }
+      },
+
       navigateAction(item) {
         if (item.btnUrl) {
           window.location.href = item.btnUrl;
@@ -125,7 +154,7 @@ document.addEventListener('alpine:init', () => {
       _startSSE() {
         if (typeof EventSource === 'undefined') return;
         try {
-          this._sseSource = new EventSource('/api/notifications/stream/');
+          this._sseSource = new EventSource('/notifications/stream/');
           this._sseSource.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);

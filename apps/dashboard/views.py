@@ -1,6 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
+from urllib.parse import quote
 
 from django.apps import apps
 from django.contrib.auth.decorators import login_required
@@ -103,6 +104,12 @@ def _img_url(obj, field="logo"):
         return f.url if f else None
     except Exception:
         return None
+
+
+def _avatar_fallback(name: str, background: str = '222222') -> str:
+    """Build a stable UI avatar fallback URL."""
+    display = quote((name or 'User')[:40])
+    return f'https://ui-avatars.com/api/?name={display}&background={background}&color=fff&size=96'
 
 
 def _build_cc_data(context, user, now):
@@ -251,12 +258,14 @@ def _build_cc_data(context, user, now):
             'id': 'inv-%s' % inv['id'],
             'category': 'INVITE',
             'color': 'text-dc-accent border-dc-accent/30 bg-dc-accent/10',
+            'icon': 'fa-solid fa-user-plus',
             'sender': inv['team_name'],
             'avatar': inv.get('team_logo') or 'https://ui-avatars.com/api/?name=%s&background=6366F1&color=fff' % initials,
             'text': '%s invited you to join as %s.' % (inv['inviter'], inv['role']),
             'time': _ts(inv.get('created_at'), now),
             'unread': True,
             'hasAction': True,
+            'actionKind': 'team_invite',
             'inviteId': inv['id'],
             'url': '/teams/invites/',
         })
@@ -285,19 +294,49 @@ def _build_cc_data(context, user, now):
         'order': ('ORDER', 'text-dc-warning border-dc-warning/30 bg-dc-warning/10'),
         'wallet': ('FINANCE', 'text-dc-warning border-dc-warning/30 bg-dc-warning/10'),
     }
+    icon_map = {
+        'team_invite': 'fa-solid fa-user-plus',
+        'invite_sent': 'fa-solid fa-user-plus',
+        'invite_accepted': 'fa-solid fa-circle-check',
+        'match_scheduled': 'fa-solid fa-calendar-check',
+        'match_result': 'fa-solid fa-bolt',
+        'bracket_ready': 'fa-solid fa-diagram-project',
+        'checkin_open': 'fa-solid fa-ticket',
+        'result_verified': 'fa-solid fa-shield-check',
+        'reg_confirmed': 'fa-solid fa-flag-checkered',
+        'tournament_registered': 'fa-solid fa-flag-checkered',
+        'payment_verified': 'fa-solid fa-wallet',
+        'payout_received': 'fa-solid fa-coins',
+        'achievement_earned': 'fa-solid fa-trophy',
+        'user_followed': 'fa-solid fa-user-check',
+        'follow_request': 'fa-solid fa-user-clock',
+        'follow_request_approved': 'fa-solid fa-user-check',
+        'follow_request_rejected': 'fa-solid fa-user-minus',
+        'roster_changed': 'fa-solid fa-users',
+        'join_request_received': 'fa-solid fa-user-group',
+        'join_request_accepted': 'fa-solid fa-user-group',
+        'ranking_changed': 'fa-solid fa-chart-line',
+        'system': 'fa-solid fa-bell',
+        'order': 'fa-solid fa-bag-shopping',
+        'wallet': 'fa-solid fa-wallet',
+    }
     for n in context.get('recent_notifications', [])[:8]:
         ntype = n.get('type', '')
         cat, color = cat_map.get(ntype, ('SYSTEM', 'text-gray-400 border-gray-400/30 bg-gray-400/10'))
+        is_follow_request = ntype == 'follow_request' and bool(n.get('follow_request_pending')) and bool(n.get('action_object_id'))
         inbox.append({
             'id': 'notif-%s' % n['id'],
             'category': cat,
             'color': color,
-            'sender': n.get('title', 'DeltaCrown'),
-            'avatar': '',
+            'icon': icon_map.get(ntype, 'fa-solid fa-bell'),
+            'sender': n.get('actor_name') or n.get('title', 'DeltaCrown'),
+            'avatar': n.get('actor_avatar', ''),
             'text': n.get('body', ''),
             'time': _ts(n.get('created_at'), now),
             'unread': not n.get('is_read', True),
-            'hasAction': False,
+            'hasAction': is_follow_request,
+            'actionKind': 'follow_request' if is_follow_request else '',
+            'followRequestId': n.get('action_object_id') if is_follow_request else None,
             'notifId': n.get('id'),
             'url': n.get('url', ''),
         })
@@ -905,7 +944,26 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     unread_notif_count = 0
     try:
         notifs = Notification.objects.filter(recipient=user).order_by("-created_at")[:8]
+
+        follow_request_meta = {}
+        follow_request_ids = [
+            n.action_object_id
+            for n in notifs
+            if n.type == 'follow_request' and getattr(n, 'action_object_id', None)
+        ]
+        if follow_request_ids:
+            FollowRequest = _safe_model("user_profile.FollowRequest")
+            if FollowRequest:
+                for req in FollowRequest.objects.filter(id__in=follow_request_ids).select_related("requester", "requester__user"):
+                    requester_name = getattr(req.requester, 'display_name', '') or req.requester.user.username
+                    follow_request_meta[req.id] = {
+                        'actor_name': requester_name,
+                        'actor_avatar': _img_url(req.requester, 'avatar') or _avatar_fallback(requester_name, '0f3460'),
+                        'is_pending': req.status == FollowRequest.STATUS_PENDING,
+                    }
+
         for n in notifs:
+            follow_meta = follow_request_meta.get(getattr(n, 'action_object_id', None), {}) if n.type == 'follow_request' else {}
             recent_notifications.append({
                 "id": n.id,
                 "type": n.type,
@@ -916,6 +974,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 "created_at": n.created_at,
                 "action_type": getattr(n, "action_type", ""),
                 "action_object_id": getattr(n, "action_object_id", None),
+                "actor_name": follow_meta.get('actor_name', ''),
+                "actor_avatar": follow_meta.get('actor_avatar', ''),
+                "follow_request_pending": follow_meta.get('is_pending', False),
             })
         unread_notif_count = _safe_int(
             lambda: Notification.objects.filter(recipient=user, is_read=False).count()
