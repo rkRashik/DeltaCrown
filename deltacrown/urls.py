@@ -5,6 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
+from django.http import HttpResponse
 from django.urls import include, path
 from .views import healthz, readiness, test_game_assets
 from django.views.generic import TemplateView
@@ -63,6 +64,7 @@ urlpatterns = [
     path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + "img/favicon/favicon.ico", permanent=False)),
 
     # Crawlers / SEO
+    path("riot.txt", lambda request: HttpResponse("5bb2f796-8590-4124-9f85-f070879a7cd0", content_type="text/plain")),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
     path("sitemap.xml", TemplateView.as_view(template_name="sitemap.xml", content_type="application/xml")),
 
