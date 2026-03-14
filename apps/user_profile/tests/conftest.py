@@ -4,6 +4,8 @@ Pytest fixtures for user_profile tests in apps/user_profile/tests/
 This conftest is specifically for tests in the apps/ directory tree.
 Separate from tests/user_profile/conftest.py which is for root-level tests.
 """
+import os
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
@@ -48,7 +50,11 @@ def ensure_common_games(request, db):
     Tests can then call: GamePassportService.create_passport(game='valorant', ...)
     """
     from apps.games.models import Game
-    from apps.user_profile.models.game_passport_schema import GamePassportSchema
+
+    minimal_test_mode = os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1"
+    GamePassportSchema = None
+    if not minimal_test_mode:
+        from apps.user_profile.models.game_passport_schema import GamePassportSchema
     
     games_config = [
         {
@@ -158,11 +164,11 @@ def ensure_common_games(request, db):
             }
         )
         
-        # Create GamePassportSchema
-        GamePassportSchema.objects.get_or_create(
-            game=game,
-            defaults=config['schema']
-        )
+        if GamePassportSchema is not None:
+            GamePassportSchema.objects.get_or_create(
+                game=game,
+                defaults=config['schema']
+            )
 
 
 @pytest.fixture

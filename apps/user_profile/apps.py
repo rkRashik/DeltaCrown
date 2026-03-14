@@ -1,4 +1,5 @@
 import logging
+import os
 from django.apps import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,9 @@ class UserProfileConfig(AppConfig):
     name = "apps.user_profile"
 
     def ready(self):
+        if os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1":
+            return
+
         # Skip during migrations
         import sys
         if 'migrate' in sys.argv or 'makemigrations' in sys.argv:

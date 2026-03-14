@@ -765,6 +765,28 @@ GOOGLE_OAUTH_CLIENT_SECRET = (
     or os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
 )
 
+# Riot OAuth Client (RSO)
+# Required env vars for Riot Sign-On flow:
+# - RIOT_CLIENT_ID
+# - RIOT_CLIENT_SECRET
+# - RIOT_REDIRECT_URI
+RIOT_CLIENT_ID = os.getenv("RIOT_CLIENT_ID", "").strip()
+RIOT_CLIENT_SECRET = os.getenv("RIOT_CLIENT_SECRET", "").strip()
+RIOT_REDIRECT_URI = os.getenv("RIOT_REDIRECT_URI", "").strip()
+RIOT_API_KEY = os.getenv("RIOT_API_KEY", "").strip()
+STEAM_API_KEY = os.getenv("STEAM_API_KEY", "").strip()
+EPIC_CLIENT_ID = os.getenv("EPIC_CLIENT_ID", "").strip()
+EPIC_CLIENT_SECRET = os.getenv("EPIC_CLIENT_SECRET", "").strip()
+
+# Optional Riot OAuth tuning
+RIOT_OAUTH_SCOPES = os.getenv("RIOT_OAUTH_SCOPES", "openid offline_access").strip() or "openid offline_access"
+RIOT_OAUTH_TIMEOUT_SECONDS = int(os.getenv("RIOT_OAUTH_TIMEOUT_SECONDS", "10"))
+RIOT_ACCOUNT_API_CLUSTERS = [
+    cluster.strip().lower()
+    for cluster in os.getenv("RIOT_ACCOUNT_API_CLUSTERS", "americas,asia,europe").split(",")
+    if cluster.strip()
+]
+
 
 # --- Email ---
 # Priority: Resend (production) > Gmail SMTP (dev/LAN) > console (CI/tests)

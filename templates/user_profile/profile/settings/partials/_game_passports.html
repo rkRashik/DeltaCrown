@@ -17,8 +17,10 @@ API Contract:
 - POST create/update/delete → respects lock
 {% endcomment %}
 
+{% with gp_identity_lock_days=game_passport_identity_lock_days|default:30 gp_readd_cooldown_days=game_passport_readd_cooldown_days|default:90 %}
+
 <!-- Game Passports Section -->
-<div id="tab-passports" class="tab-section">
+<div id="tab-passports" class="tab-section" data-policy-identity-lock-days="{{ gp_identity_lock_days }}" data-policy-readd-cooldown-days="{{ gp_readd_cooldown_days }}">
     
     <!-- Clean Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8 border-b border-white/5 pb-6">
@@ -40,6 +42,105 @@ API Contract:
             <i class="fa-solid fa-link"></i> Link New Game
         </button>
     </div>
+
+    <!-- OAuth Linked Accounts (Phase 7) -->
+    <section id="oauth-linked-passports" class="mb-8 rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-[#0a0d1f] via-[#111427] to-[#180f2b] p-5 lg:p-6 shadow-[0_0_40px_rgba(0,240,255,0.08)]">
+        <div class="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-[11px] font-black uppercase tracking-[0.22em] text-cyan-300/80">Connected Accounts</p>
+                <h3 class="font-display text-2xl font-bold text-white">Linked Game Passports</h3>
+                <p class="mt-1 text-sm text-gray-400">Instant verification for PC esports titles. Mobile titles remain manual entry for now.</p>
+            </div>
+            <span class="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-fuchsia-200">
+                <i class="fa-solid fa-bolt"></i> OAuth Auto-Link
+            </span>
+        </div>
+
+        <div id="oauth-auto-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <article class="oauth-passport-card rounded-xl border border-red-400/20 bg-black/30 p-4 backdrop-blur-sm" data-oauth-game="valorant">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-red-300">Riot Games</p>
+                        <h4 class="mt-1 text-lg font-extrabold text-white">Valorant</h4>
+                        <p class="mt-2 text-xs text-gray-400" data-oauth-account>Not connected</p>
+                    </div>
+                    <span class="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold uppercase text-red-300">Automated</span>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-gray-300" data-oauth-state-badge>Not Connected</span>
+                    <button type="button" class="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-white" data-oauth-action="connect" data-oauth-route="/api/oauth/riot/login/">Connect</button>
+                </div>
+            </article>
+
+            <article class="oauth-passport-card rounded-xl border border-sky-400/20 bg-black/30 p-4 backdrop-blur-sm" data-oauth-game="cs2">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Steam OpenID</p>
+                        <h4 class="mt-1 text-lg font-extrabold text-white">Counter-Strike 2</h4>
+                        <p class="mt-2 text-xs text-gray-400" data-oauth-account>Not connected</p>
+                    </div>
+                    <span class="rounded-lg bg-sky-500/15 px-2 py-1 text-[10px] font-bold uppercase text-sky-300">Automated</span>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-gray-300" data-oauth-state-badge>Not Connected</span>
+                    <button type="button" class="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-white" data-oauth-action="connect" data-oauth-route="/profile/api/oauth/steam/login/?game=cs2">Connect</button>
+                </div>
+            </article>
+
+            <article class="oauth-passport-card rounded-xl border border-emerald-400/20 bg-black/30 p-4 backdrop-blur-sm" data-oauth-game="dota2">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Steam OpenID</p>
+                        <h4 class="mt-1 text-lg font-extrabold text-white">Dota 2</h4>
+                        <p class="mt-2 text-xs text-gray-400" data-oauth-account>Not connected</p>
+                    </div>
+                    <span class="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold uppercase text-emerald-300">Automated</span>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-gray-300" data-oauth-state-badge>Not Connected</span>
+                    <button type="button" class="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-white" data-oauth-action="connect" data-oauth-route="/profile/api/oauth/steam/login/?game=dota2">Connect</button>
+                </div>
+            </article>
+
+            <article class="oauth-passport-card rounded-xl border border-orange-400/20 bg-black/30 p-4 backdrop-blur-sm" data-oauth-game="rocketleague">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-orange-300">Epic Games</p>
+                        <h4 class="mt-1 text-lg font-extrabold text-white">Rocket League</h4>
+                        <p class="mt-2 text-xs text-gray-400" data-oauth-account>Not connected</p>
+                    </div>
+                    <span class="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold uppercase text-orange-300">Automated</span>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-gray-300" data-oauth-state-badge>Not Connected</span>
+                    <button type="button" class="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-white" data-oauth-action="connect" data-oauth-route="/api/oauth/epic/login/">Connect</button>
+                </div>
+            </article>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <article class="manual-passport-card rounded-xl border border-white/10 bg-black/20 p-4 cursor-pointer transition hover:border-cyan-400/40 hover:bg-black/30" data-manual-game="efootball" role="button" tabindex="0">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Manual Entry</p>
+                        <h4 class="mt-1 text-base font-bold text-white">eFootball</h4>
+                        <p class="mt-2 text-xs text-gray-400">Connect is not available yet. Click to open the builder and enter your game ID.</p>
+                    </div>
+                    <span class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase text-gray-300">Manual</span>
+                </div>
+            </article>
+            <article class="manual-passport-card rounded-xl border border-white/10 bg-black/20 p-4 cursor-pointer transition hover:border-cyan-400/40 hover:bg-black/30" data-manual-game="pubgmobile" role="button" tabindex="0">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Manual Entry</p>
+                        <h4 class="mt-1 text-base font-bold text-white">PUBG Mobile</h4>
+                        <p class="mt-2 text-xs text-gray-400">Connect is not available yet. Click to open the builder for UID and region entry.</p>
+                    </div>
+                    <span class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase text-gray-300">Manual</span>
+                </div>
+            </article>
+        </div>
+    </section>
 
     <!-- Passports Grid -->
     <div id="gp-passports-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
@@ -124,7 +225,7 @@ API Contract:
                                 <div id="gp-learn-more-content" class="hidden mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/10">
                                     <div class="space-y-4 text-sm text-gray-300">
                                         <p><strong class="text-white">Why needed?</strong> Links skill ratings to real accounts, prevents smurf/fake abuse. Required for tournaments and team rosters.</p>
-                                        <p><strong class="text-white">Identity lock:</strong> Core identity fields (IGN, Riot ID, etc.) are locked after linking to prevent smurf switching. Lock duration varies by game (typically 30-90 days). You can update competitive stats but not core ID.</p>
+                                        <p><strong class="text-white">Identity lock:</strong> Core identity fields (IGN, Riot ID, etc.) are locked after linking to prevent smurf switching. Lock duration varies by game (typically {{ gp_identity_lock_days }}-{{ gp_readd_cooldown_days }} days). You can update competitive stats but not core ID.</p>
                                         <p><strong class="text-white">Verification:</strong> PENDING → admin review → VERIFIED (full access). FLAGGED = under investigation.</p>
                                         <p><strong class="text-red-400">Game bans:</strong> Official anti-cheat bans (VAC/Riot/PUBG) = immediate platform suspension.</p>
                                     </div>
@@ -280,9 +381,9 @@ API Contract:
                 <div class="p-3 bg-black/20 rounded-lg">
                     <div class="flex items-center gap-2 mb-1">
                         <i class="fa-solid fa-lock text-yellow-500"></i>
-                        <strong class="text-white">30-Day Identity Lock</strong>
+                        <strong class="text-white">{{ gp_identity_lock_days }}-Day Identity Lock</strong>
                     </div>
-                    <p class="text-xs text-gray-400">Core identity fields locked for 30 days after creation to prevent abuse. You can update competitive info but not core ID.</p>
+                    <p class="text-xs text-gray-400">Core identity fields locked for {{ gp_identity_lock_days }} days after creation to prevent abuse. You can update competitive info but not core ID.</p>
                 </div>
                 <div class="p-3 bg-black/20 rounded-lg">
                     <div class="flex items-center gap-2 mb-1">
@@ -747,14 +848,15 @@ API Contract:
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-    @apply transition-all duration-200;
+    transition: all 0.2s ease;
 }
 
 /* Task 4: Only show valid state if field is touched AND valid AND NOT being checked for duplicates */
 input.touched:valid:not(:placeholder-shown):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([data-duplicate]):not(.checking),
 select.touched:valid:not([disabled]):not([data-duplicate]):not(.checking),
 textarea.touched:valid:not(:placeholder-shown):not([disabled]):not([data-duplicate]):not(.checking) {
-    @apply border-green-500/50 bg-green-500/5;
+    border-color: rgba(34, 197, 94, 0.5);
+    background-color: rgba(34, 197, 94, 0.05);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2310b981'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
@@ -766,12 +868,16 @@ textarea.touched:valid:not(:placeholder-shown):not([disabled]):not([data-duplica
 input.touched:invalid:not([type="checkbox"]):not([type="radio"]),
 select.touched:invalid,
 textarea.touched:invalid {
-    @apply border-red-500 ring-2 ring-red-500/20 bg-red-500/5;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    background-color: rgba(239, 68, 68, 0.05);
 }
 
 /* Phase 9A-26: Optional empty fields show NO state even if touched */
 input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type="radio"]) {
-    @apply border-slate-600 ring-0 bg-transparent;
+    border-color: #475569;
+    box-shadow: none;
+    background-color: transparent;
     background-image: none;
     padding-right: 12px !important;
 }
@@ -785,7 +891,8 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
 .field-invalid-shake {
     animation: shake 0.5s ease-in-out;
-    @apply border-red-500 ring-2 ring-red-500/30;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3) !important;
 }
 
 /* Checking indicator (for duplicate ID check) */
@@ -809,16 +916,23 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
 /* Field error messages */
 .field-error {
-    @apply text-red-400 text-xs mt-1 flex items-center gap-1.5;
+    color: #f87171;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
 }
 
 .field-error i {
-    @apply text-sm;
+    font-size: 0.875rem;
 }
 
 /* Duplicate error styling */
 .duplicate-error {
-    @apply border-red-500 ring-2 ring-red-500/30 bg-red-500/5;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3) !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
 }
 
 /* Phase 9A-28: Validation UX - No validation on load, only after user interaction */
@@ -832,14 +946,22 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 .gp-field-group input.touched:user-valid:not([data-duplicate]),
 .gp-field-group select.touched:user-valid,
 .gp-field-group textarea.touched:user-valid {
-    @apply border-green-500/40 focus:border-green-500;
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.gp-field-group input.touched:user-valid:not([data-duplicate]):focus,
+.gp-field-group select.touched:user-valid:focus,
+.gp-field-group textarea.touched:user-valid:focus {
+    border-color: #22c55e;
 }
 
 /* Phase 9A-28: Invalid styling (red ring) only after blur */
 .gp-field-group input.touched:user-invalid,
 .gp-field-group select.touched:user-invalid,
 .gp-field-group textarea.touched:user-invalid {
-    @apply border-red-500 ring-2 ring-red-500/30 bg-red-500/5;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.05);
 }
 
 /* Phase 9A-28: Shake animation on submit failure */
@@ -856,7 +978,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 /* Phase 9A-28: Optional empty field - NO green checkmark */
 .gp-field-group input:not([required]):placeholder-shown {
     /* Don't show valid indicator for empty optional fields */
-    @apply border-gray-600;
+    border-color: #4b5563;
 }
 
 /* Modern OTP Digit Input Styles */
@@ -927,6 +1049,120 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         saveBtn: document.getElementById('gp-save-btn'),
         saveText: document.getElementById('gp-save-text')
     };
+
+    const rootEl = document.getElementById('tab-passports');
+    const parsePolicyInt = (value, fallback) => {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    };
+    const policy = {
+        identityLockDays: parsePolicyInt(rootEl?.dataset.policyIdentityLockDays, 30),
+        readdCooldownDays: parsePolicyInt(rootEl?.dataset.policyReaddCooldownDays, 90)
+    };
+
+    const MANUAL_GAME_ALIASES = {
+        efootball: ['efootball', 'e-football', 'efootball2024', 'efootball-2024'],
+        pubgmobile: ['pubgmobile', 'pubg-mobile', 'pubgm', 'pubg-m'],
+    };
+
+    function normalizeSlug(value) {
+        return String(value || '').trim().toLowerCase().replace(/\s+/g, '').replace(/_/g, '-');
+    }
+
+    function getGameAliases(slugHint) {
+        const normalized = normalizeSlug(slugHint);
+        return MANUAL_GAME_ALIASES[normalized] || [normalized];
+    }
+
+    function getPassportSlug(passport) {
+        return normalizeSlug(
+            passport?.game?.slug ||
+            passport?.game_slug ||
+            passport?.game_display_name ||
+            passport?.game?.name ||
+            ''
+        );
+    }
+
+    function getGameSlug(game) {
+        return normalizeSlug(game?.slug || game?.name || game?.display_name || '');
+    }
+
+    function getPassportLockState(passport) {
+        const defaultState = {
+            kind: 'open',
+            isDeleteBlocked: false,
+            daysRemaining: 0,
+            shortLabel: '',
+            title: '',
+            message: '',
+        };
+
+        if (!passport) {
+            return defaultState;
+        }
+
+        if (passport.verification_status === 'VERIFIED') {
+            return {
+                kind: 'verified',
+                isDeleteBlocked: true,
+                daysRemaining: 0,
+                shortLabel: 'Verified lock',
+                title: 'Verified Passport',
+                message: 'Verified passports cannot be deleted. Contact support if needed.',
+            };
+        }
+
+        const cooldownActive = Boolean(passport.cooldown?.is_active);
+        if (cooldownActive) {
+            const daysRemaining = Number(passport.cooldown?.days_remaining || 0);
+            return {
+                kind: 'cooldown',
+                isDeleteBlocked: true,
+                daysRemaining,
+                shortLabel: daysRemaining > 0 ? `Cooldown ${daysRemaining}d` : 'Cooldown',
+                title: 'Deletion Locked',
+                message: `Protected by the ${policy.identityLockDays}-Day Fair Play Protocol. Available for deletion in ${daysRemaining} days.`,
+            };
+        }
+
+        if (passport.is_locked) {
+            const daysRemaining = Number(passport.days_locked || 0);
+            return {
+                kind: 'locked',
+                isDeleteBlocked: true,
+                daysRemaining,
+                shortLabel: daysRemaining > 0 ? `Locked ${daysRemaining}d` : 'Locked',
+                title: 'Deletion Locked',
+                message: `Protected by the ${policy.identityLockDays}-Day Fair Play Protocol. Available for deletion in ${daysRemaining} days.`,
+            };
+        }
+
+        return defaultState;
+    }
+
+    function getDeleteBlockCopy(passport) {
+        const lockState = getPassportLockState(passport);
+        if (!lockState.isDeleteBlocked) {
+            return null;
+        }
+
+        return {
+            title: lockState.title,
+            message: lockState.message,
+            shortLabel: lockState.shortLabel,
+            daysRemaining: lockState.daysRemaining,
+        };
+    }
+
+    function showDeletionBlockedMessage(title, message, kind = 'locked') {
+        showToast({
+            type: kind === 'verified' ? 'error' : 'warning',
+            title: title,
+            message: message,
+            duration: 6000,
+        });
+    }
 
     // ========== UTILITY FUNCTIONS ==========
     
@@ -1271,6 +1507,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
     }
 
     // ========== INITIALIZATION ==========
+    let isInitialized = false;
     
     async function init() {
         // Phase 9A-14: Improved caching with schema_version for proper invalidation
@@ -1351,6 +1588,14 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             </div>`;
         }
     }
+
+    function ensureInitialized() {
+        if (isInitialized) {
+            return;
+        }
+        isInitialized = true;
+        init();
+    }
     
     // Phase 9A-10: Skeleton loading state (fast paint, no blocking)
     function renderSkeletonPassports() {
@@ -1405,28 +1650,34 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 <h4>No Game Passports</h4>
                 <p>Link your first game account to start competing</p>
             </div>`;
+            window.dispatchEvent(new CustomEvent('game-passports:data-updated', {
+                detail: { passports: [] }
+            }));
             return;
         }
 
         els.grid.innerHTML = state.passports.map(p => {
             const game = state.games.find(g => g.id === p.game_id) || p.game;
             const color = game?.primary_color || '#7c3aed';
+            const lockState = getPassportLockState(p);
             
             const primaryId = p.metadata ? Object.values(p.metadata)[0] : (p.ign || 'N/A');
             const region = p.region || p.metadata?.region || '';
             
             let badge = '';
-            if (p.is_locked) {
-                badge = `<div class="status-badge locked"><i class="fa-solid fa-lock"></i> Locked (${p.days_locked}d)</div>`;
-            } else if (p.verification_status === 'VERIFIED') {
+            if (p.verification_status === 'VERIFIED') {
                 badge = `<div class="status-badge verified"><i class="fa-solid fa-circle-check"></i> Verified</div>`;
+            } else if (lockState.kind === 'cooldown' || lockState.kind === 'locked') {
+                badge = `<div class="status-badge locked"><i class="fa-solid fa-lock"></i> ${lockState.shortLabel}</div>`;
             } else if (p.verification_status === 'FLAGGED') {
                 badge = `<div class="status-badge flagged"><i class="fa-solid fa-flag"></i> Flagged</div>`;
             } else {
                 badge = `<div class="status-badge pending"><i class="fa-solid fa-clock"></i> Pending</div>`;
             }
 
-            const editDisabled = p.is_locked ? 'disabled title="Locked for ' + p.days_locked + ' days"' : '';
+            const editDisabled = (lockState.kind === 'cooldown' || lockState.kind === 'locked')
+                ? `disabled title="${escapeHtml(lockState.shortLabel)}"`
+                : '';
 
             // Task 3: Cooldown hidden from main card (shown in edit modal)
             // Task 5: Build metadata pills for region, role, etc.
@@ -1454,7 +1705,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 : `background: linear-gradient(135deg, ${color}15 0%, ${color}05 100%);`;
 
             return `
-                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}" 
+                 <div class="gp-passport-card ${(lockState.kind === 'cooldown' || lockState.kind === 'locked') ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}" 
                      id="passport-card-${p.id}"
                      style="${cardStyle}">
                     <div class="flex items-start justify-between mb-4">
@@ -1535,6 +1786,10 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 </div>
             `;
         }).join('');
+
+        window.dispatchEvent(new CustomEvent('game-passports:data-updated', {
+            detail: { passports: state.passports }
+        }));
     }
 
     function renderGamesGrid() {
@@ -1853,6 +2108,51 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
     }
 
     // ========== INLINE BUILDER CONTROLS (Phase 9A-18) ==========
+
+    function findGameBySlugHint(slugHint) {
+        const aliases = getGameAliases(slugHint);
+        return state.games.find((game) => aliases.includes(getGameSlug(game))) || null;
+    }
+
+    function findPassportBySlugHint(slugHint) {
+        const aliases = getGameAliases(slugHint);
+        return state.passports.find((passport) => aliases.includes(getPassportSlug(passport))) || null;
+    }
+
+    function openBuilderForGameSlug(slugHint) {
+        if (!state.games.length) {
+            showToast({
+                type: 'info',
+                title: 'Loading Games',
+                message: 'Game schema is still loading. Please try again in a moment.'
+            });
+            return;
+        }
+
+        const existingPassport = findPassportBySlugHint(slugHint);
+        if (existingPassport) {
+            showToast({
+                type: 'info',
+                title: 'Already Linked',
+                message: 'This game already has a linked passport. Opening edit mode.'
+            });
+            editPassport(existingPassport.id);
+            return;
+        }
+
+        const game = findGameBySlugHint(slugHint);
+        if (!game) {
+            showToast({
+                type: 'error',
+                title: 'Game Unavailable',
+                message: 'This manual game is not currently configured in the passport schema.'
+            });
+            return;
+        }
+
+        openBuilder();
+        selectGame(game.id);
+    }
     
     function openBuilder() {
         state.editingPassport = null;
@@ -2170,27 +2470,22 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         // Modern Danger Zone UI in edit modal
         const editActionsContainer = document.getElementById('gp-edit-actions');
         if (editActionsContainer) {
-            let cooldownHtml = '';
-            if (passport.cooldown && passport.cooldown.is_active) {
-                cooldownHtml = `
-                    <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-3">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="fa-solid fa-clock text-yellow-400"></i>
-                            <strong class="text-yellow-400 text-sm">Cooldown Active</strong>
-                        </div>
-                        <p class="text-xs text-gray-300">You can change this passport in <strong>${passport.cooldown.days_remaining} days</strong></p>
-                        <a href="mailto:support@deltacrown.gg?subject=Passport%20Cooldown%20Override%20Request" class="text-xs text-cyan-400 hover:text-cyan-300 underline">Contact Support</a>
-                    </div>
-                `;
-            }
-            
-            const isLocked = passport.is_locked || (passport.cooldown && passport.cooldown.is_active);
-            const deleteDisabled = isLocked || passport.verification_status === 'VERIFIED';
-            const daysRemaining = passport.days_locked || passport.cooldown?.days_remaining || 0;
+            const lockState = getPassportLockState(passport);
             
             let dangerZone = '';
             
-            if (isLocked) {
+            if (lockState.kind === 'verified') {
+                // Show verified warning
+                dangerZone = `
+                    <div class="border-2 border-blue-500/30 rounded-lg p-4 bg-blue-500/5 mt-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                            <h4 class="text-blue-400 font-bold text-sm">${escapeHtml(lockState.title)}</h4>
+                        </div>
+                        <p class="text-xs text-gray-300">${escapeHtml(lockState.message)}</p>
+                    </div>
+                `;
+            } else if (lockState.isDeleteBlocked) {
                 // Show lock warning instead of delete button
                 dangerZone = `
                     <div class="border-2 border-red-500 rounded-lg p-4 bg-red-500/10 mt-4">
@@ -2199,27 +2494,17 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                                 <i class="fa-solid fa-ban text-red-400 text-xl"></i>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-red-400 font-bold text-sm mb-1">🚫 Deletion Currently Locked</h4>
+                                <h4 class="text-red-400 font-bold text-sm mb-1">🚫 ${escapeHtml(lockState.title)}</h4>
                                 <p class="text-xs text-gray-300 mb-2">
-                                    Protected by the 30-Day Fair Play Protocol to prevent rapid identity switching.
+                                    ${escapeHtml(lockState.message)}
                                 </p>
                                 <div class="flex items-center gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs">
                                     <i class="fa-solid fa-clock text-yellow-400"></i>
-                                    <span class="text-white">Available for deletion in <strong>${daysRemaining} days</strong></span>
+                                    <span class="text-white">Available for deletion in <strong>${lockState.daysRemaining} days</strong></span>
                                 </div>
+                                <a href="mailto:support@deltacrown.gg?subject=Passport%20Cooldown%20Override%20Request" class="text-xs text-cyan-400 hover:text-cyan-300 underline mt-2 inline-block">Contact Support</a>
                             </div>
                         </div>
-                    </div>
-                `;
-            } else if (passport.verification_status === 'VERIFIED') {
-                // Show verified warning
-                dangerZone = `
-                    <div class="border-2 border-blue-500/30 rounded-lg p-4 bg-blue-500/5 mt-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-shield-halved text-blue-400"></i>
-                            <h4 class="text-blue-400 font-bold text-sm">Verified Passport</h4>
-                        </div>
-                        <p class="text-xs text-gray-300">This passport has been verified and cannot be deleted through the standard process. Contact support for assistance.</p>
                     </div>
                 `;
             } else {
@@ -2241,7 +2526,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 `;
             }
             
-            editActionsContainer.innerHTML = cooldownHtml + dangerZone;
+            editActionsContainer.innerHTML = dangerZone;
         }
         
         // Scroll to builder
@@ -2466,20 +2751,10 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             return;
         }
 
-        // Frontend validation: Check verification status
-        if (passport.verification_status === 'VERIFIED') {
-            showToast({
-                type: 'error',
-                title: 'Cannot Delete',
-                message: 'Verified passports cannot be deleted. Contact support if needed.',
-                duration: 5000
-            });
-            return;
-        }
+        const lockState = getPassportLockState(passport);
 
-        // CRITICAL CHECK: Fair Play Protocol Lock
-        if (passport.is_locked || passport.cooldown?.is_active) {
-            const daysRemaining = passport.days_locked || passport.cooldown?.days_remaining || 0;
+        // CRITICAL CHECK: Canonical lock/verification policy
+        if (lockState.isDeleteBlocked) {
             
             // Show red warning banner instead of OTP screen
             const editActionsContainer = document.getElementById('gp-edit-actions');
@@ -2491,17 +2766,10 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                                 <i class="fa-solid fa-ban text-red-400 text-2xl"></i>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-red-400 font-bold text-base mb-2">🚫 Deletion Locked</h4>
+                                <h4 class="text-red-400 font-bold text-base mb-2">🚫 ${escapeHtml(lockState.title)}</h4>
                                 <p class="text-sm text-gray-300 mb-3">
-                                    This passport is protected by the <strong>30-Day Fair Play Protocol</strong>. 
-                                    This prevents rapid identity switching and maintains competitive integrity.
+                                    ${escapeHtml(lockState.message)}
                                 </p>
-                                <div class="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded">
-                                    <i class="fa-solid fa-clock text-yellow-400"></i>
-                                    <p class="text-sm text-white">
-                                        <strong>You can delete this passport in ${daysRemaining} days.</strong>
-                                    </p>
-                                </div>
                                 <p class="text-xs text-gray-400 mt-3">
                                     Need immediate deletion? Contact <a href="mailto:support@deltacrown.gg" class="text-cyan-400 hover:text-cyan-300 underline">support@deltacrown.gg</a>
                                 </p>
@@ -2512,9 +2780,9 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             }
             
             showToast({
-                type: 'warning',
-                title: 'Passport Locked',
-                message: `Protected by Fair Play Protocol. Available for deletion in ${daysRemaining} days.`,
+                type: lockState.kind === 'verified' ? 'error' : 'warning',
+                title: lockState.title,
+                message: lockState.message,
                 duration: 6000
             });
             return;
@@ -2668,7 +2936,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 const gameName = game?.display_name || 'Game';
 
                 // Phase 9A-29: Enhanced success message with cooldown explanation
-                const cooldownMsg = response.cooldown_message || `You can re-add ${gameName} after 90 days. Contact support@deltacrown.gg if you need assistance.`;
+                const cooldownMsg = response.cooldown_message || `You can re-add ${gameName} after ${policy.readdCooldownDays} days. Contact support@deltacrown.gg if you need assistance.`;
                 
                 showToast({
                     type: 'success',
@@ -2985,22 +3253,54 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         els.optionalIcon.classList.toggle('rotate-180');
     });
 
+    document.querySelectorAll('[data-manual-game]').forEach((cardEl) => {
+        const openManualBuilder = () => openBuilderForGameSlug(cardEl.dataset.manualGame || '');
+
+        cardEl.addEventListener('click', openManualBuilder);
+        cardEl.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openManualBuilder();
+            }
+        });
+    });
+
     // ========== EXPOSE PUBLIC API ==========
     
     window.gamePassports = {
         init,
+        ensureInitialized,
         selectGame,
         editPassport,
         copyId,
+        getPolicy: () => ({ ...policy }),
+        getCurrentPassports: () => [...state.passports],
+        getPassportLockState,
+        getDeleteBlockCopy,
+        showDeletionBlockedMessage,
         openInfo: openInfoDrawer,
         // Phase 9A-28: OTP Delete Functions
         initiateOTPDelete,
         confirmOTPDelete,
         resendOTP,
-        cancelOTPDelete
+        cancelOTPDelete,
+        get _initialized() {
+            return isInitialized;
+        },
+        set _initialized(value) {
+            if (value) {
+                ensureInitialized();
+            } else {
+                isInitialized = false;
+            }
+        }
     };
 
     // DO NOT auto-init - init() called by switchTab() when 'passports' tab activated (Phase 9A-1 fix)
 
 })();
 </script>
+
+<script src="{% static 'user_profile/js/oauth_linked_accounts.js' %}"></script>
+
+{% endwith %}

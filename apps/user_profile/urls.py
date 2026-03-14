@@ -38,7 +38,7 @@ from .views.followers_following_views import (
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
-    toggle_lft, set_visibility, pin_passport, reorder_passports, delete_passport
+    toggle_lft, set_visibility, pin_passport, reorder_passports
 )
 # UP-SETTINGS-MVP-01: Settings API endpoints
 from .views.settings_api import (
@@ -110,8 +110,11 @@ from .views.social_links_api import (
 from .views.game_passports_api import (
     list_game_passports_api, create_game_passport_api,
     update_game_passport_api, delete_game_passport_api,
-    check_identity_availability_api
+    check_identity_availability_api, delete_game_passport_legacy_api
 )
+from .views.oauth_riot_api import RiotCallbackView, RiotLoginRedirectView
+from .views.oauth_epic_api import EpicCallbackView, EpicLoginRedirectView
+from .views.oauth_steam_api import SteamCallbackView, SteamLoginRedirectView
 # Phase 9A-27: OTP Delete Confirmation API
 from .views.game_passports_delete import (
     request_delete_otp, confirm_delete
@@ -122,9 +125,6 @@ from .views.game_passport_admin import (
     game_passport_verify, game_passport_flag, game_passport_reset,
     game_passport_unlock, game_passport_override_cooldown
 )
-# UP-PASSPORT-CREATE-01: Passport creation endpoint
-from .views.passport_create import create_passport
-
 # PHASE1 CLEANUP: Removed duplicate follow imports (follow_user_v2, unfollow_user_v2, get_followers, get_following from follower_api)
 # Canonical: follow_user_hero_api, unfollow_user_hero_api from api/follow_api.py
 # Canonical: get_followers_list, get_following_list from api/follow_lists_api.py
@@ -315,8 +315,8 @@ urlpatterns = [
     path("api/passports/set-visibility/", set_visibility, name="passport_set_visibility"),
     path("api/passports/pin/", pin_passport, name="passport_pin"),
     path("api/passports/reorder/", reorder_passports, name="passport_reorder"),
-    path("api/passports/create/", create_passport, name="passport_create"),
-    path("api/passports/<int:passport_id>/delete/", delete_passport, name="passport_delete"),
+    path("api/passports/create/", create_game_passport_api, name="passport_create"),
+    path("api/passports/<int:passport_id>/delete/", delete_game_passport_legacy_api, name="passport_delete"),
     
     # UP-SETTINGS-MVP-01: Additional settings API
     path("api/social-links/", social_links_list_api, name="social_links_list_api"),  # UP-PHASE15: New list API
@@ -331,6 +331,12 @@ urlpatterns = [
     path("api/game-passports/update/", update_game_passport_api, name="update_game_passport_api"),
     path("api/game-passports/delete/", delete_game_passport_api, name="delete_game_passport_api"),
     path("api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_api"),
+    path("api/oauth/riot/login/", RiotLoginRedirectView.as_view(), name="riot_oauth_login"),
+    path("api/oauth/riot/callback/", RiotCallbackView.as_view(), name="riot_oauth_callback"),
+    path("api/oauth/epic/login/", EpicLoginRedirectView.as_view(), name="epic_oauth_login"),
+    path("api/oauth/epic/callback/", EpicCallbackView.as_view(), name="epic_oauth_callback"),
+    path("api/oauth/steam/login/", SteamLoginRedirectView.as_view(), name="steam_openid_login"),
+    path("api/oauth/steam/callback/", SteamCallbackView.as_view(), name="steam_openid_callback"),
     path("api/game-passports/request-delete-otp/", request_delete_otp, name="request_delete_otp"),  # Phase 9A-27
     path("api/game-passports/confirm-delete/", confirm_delete, name="confirm_delete"),  # Phase 9A-27
     # Frontend compatibility aliases (template expects /profile/api/game-passports/)
@@ -339,6 +345,12 @@ urlpatterns = [
     path("profile/api/game-passports/update/", update_game_passport_api, name="game_passports_update_alias"),
     path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
     path("profile/api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_alias"),
+    path("profile/api/oauth/riot/login/", RiotLoginRedirectView.as_view(), name="riot_oauth_login_alias"),
+    path("profile/api/oauth/riot/callback/", RiotCallbackView.as_view(), name="riot_oauth_callback_alias"),
+    path("profile/api/oauth/epic/login/", EpicLoginRedirectView.as_view(), name="epic_oauth_login_alias"),
+    path("profile/api/oauth/epic/callback/", EpicCallbackView.as_view(), name="epic_oauth_callback_alias"),
+    path("profile/api/oauth/steam/login/", SteamLoginRedirectView.as_view(), name="steam_openid_login_alias"),
+    path("profile/api/oauth/steam/callback/", SteamCallbackView.as_view(), name="steam_openid_callback_alias"),
     path("profile/api/game-passports/request-delete-otp/", request_delete_otp, name="request_delete_otp_alias"),  # Phase 9A-27
     path("profile/api/game-passports/confirm-delete/", confirm_delete, name="confirm_delete_alias"),  # Phase 9A-27
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),

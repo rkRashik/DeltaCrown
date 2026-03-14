@@ -23,6 +23,7 @@ from apps.common.api_responses import (
     error_response, success_response, validation_error_response,
     locked_error_response, duplicate_error_response, not_found_error_response
 )
+from apps.user_profile.serializers import GameProfileSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -178,12 +179,8 @@ def list_game_passports_api(request):
         # Phase 9A-28: Import cooldown model
         from apps.user_profile.models.cooldown import GamePassportCooldown
         
-        passports_list = []
+        cooldown_map = {}
         for passport in passports:
-            # Calculate lock status
-            is_locked = passport.locked_until and passport.locked_until > timezone.now()
-            days_left = (passport.locked_until - timezone.now()).days + 1 if is_locked else 0
-            
             # Phase 9A-28: Check for active cooldown
             cooldown_data = None
             has_cooldown, cooldown_obj = GamePassportCooldown.check_cooldown(
@@ -199,35 +196,17 @@ def list_game_passports_api(request):
                     'days_remaining': cooldown_obj.days_remaining(),
                     'reason': cooldown_obj.reason
                 }
-            
-            passports_list.append({
-                'id': passport.id,
-                'game_id': passport.game.id,
-                'game': {
-                    'id': passport.game.id,
-                    'name': passport.game.name,
-                    'slug': passport.game.slug,
-                    'icon': safe_image_url(passport.game.icon),
-                },
-                'ign': passport.ign,
-                'region': passport.region,
-                'rank_name': passport.rank_name,
-                'is_pinned': passport.is_pinned,
-                'passport_data': passport.metadata or {},
-                'metadata': passport.metadata or {},  # Backward compatibility
-                # Phase 8B/9A-4: Lock and verification status
-                'locked_until': passport.locked_until.isoformat() if passport.locked_until else None,
-                'is_locked': is_locked,
-                'days_locked': days_left if is_locked else 0,
-                'verification_status': getattr(passport, 'verification_status', 'PENDING'),
-                'is_verified': passport.is_verified,
-                # Phase 9A-4: Visibility
-                'visibility': passport.visibility,
-                # Phase 9A-28: Cooldown data
-                'cooldown': cooldown_data,
-            })
-        
-        return success_response({'passports': passports_list})
+
+            if cooldown_data:
+                cooldown_map[passport.id] = cooldown_data
+
+        passports_data = GameProfileSerializer(
+            passports,
+            many=True,
+            context={'cooldown_map': cooldown_map},
+        ).data
+
+        return success_response({'passports': passports_data})
     
     except Exception as e:
         logger.error(f"Error listing game passports: {e}", exc_info=True)
@@ -599,21 +578,7 @@ def create_game_passport_api(request):
             return JsonResponse(error_data, status=500)
         
         return success_response({
-            'passport': {
-                'id': passport.id,
-                'game': {
-                    'id': game.id,
-                    'name': game.name,
-                    'slug': game.slug,
-                    'icon': safe_image_url(game.icon),
-                },
-                'ign': passport.ign,
-                'region': passport.region,
-                'rank': passport.rank_name,
-                'pinned': passport.is_pinned,
-                'visibility': passport.visibility,
-                'passport_data': passport.metadata or {},
-            },
+            'passport': GameProfileSerializer(passport).data,
             'message': 'Passport created successfully'
         })
     
@@ -785,23 +750,7 @@ def update_game_passport_api(request):
         passport.metadata = metadata
         passport.save()
         
-        return success_response({
-            'passport': {
-                'id': passport.id,
-                'game': {
-                    'id': passport.game.id,
-                    'name': passport.game.name,
-                    'slug': passport.game.slug,
-                    'icon': safe_image_url(passport.game.icon),
-                },
-                'ign': passport.ign,
-                'region': passport.region,
-                'rank': passport.rank_name,
-                'pinned': passport.is_pinned,
-                'visibility': passport.visibility,
-                'passport_data': passport.metadata or {},
-            }
-        })
+        return success_response({'passport': GameProfileSerializer(passport).data})
     
     except Exception as e:
         # Phase 9A-15: Only unexpected exceptions reach here
@@ -828,7 +777,8 @@ def delete_game_passport_api(request):
     
     Body (JSON):
     {
-        "id": 123
+        "id": 123,
+        "otp_code": "123456"
     }
     
     Phase 9A-4: Never returns 500 - always structured JSON with proper error codes
@@ -842,7 +792,6 @@ def delete_game_passport_api(request):
     Returns:
         JSON: {success: true} or {success: false, error: CODE, message: string}
     """
-    from apps.user_profile.models import GameProfile
     from django.conf import settings
     
     # Phase 9A-15: Generate request_id for tracing
@@ -861,36 +810,160 @@ def delete_game_passport_api(request):
         
         # Phase 9A-15: Extract and validate payload
         passport_id = data.get('id')
+        otp_code = str(data.get('otp_code', '')).strip()
         
         if not passport_id:
             return validation_error_response(
                 field_errors={'id': 'Passport ID is required'},
                 message='Passport ID is required'
             )
-        
-        # Get passport (must belong to user)
-        try:
-            passport = GameProfile.objects.get(id=passport_id, user=request.user)
-        except GameProfile.DoesNotExist:
-            return not_found_error_response(
-                resource_type='game passport',
-                resource_id=passport_id
+
+        if not otp_code:
+            return validation_error_response(
+                field_errors={'otp_code': 'OTP code is required'},
+                message='OTP code is required to delete passport'
             )
-        
-        # Phase 8B/9A-4: Enforce locks (Fair Play Protocol + Verification)
-        is_locked, lock_response = check_passport_locked(passport, request.user)
-        if is_locked:
-            return lock_response
-        
-        # Delete passport
-        passport.delete()
-        logger.info(f"[GP DELETE] [{request_id}] SUCCESS PassportID={passport_id}")
-        
-        return success_response({'message': 'Passport deleted successfully'})
-    
+
+        return _delete_game_passport_with_policy(
+            request=request,
+            passport_id=passport_id,
+            otp_code=otp_code,
+            request_id=request_id,
+        )
+
     except Exception as e:
         # Phase 9A-15: Only unexpected exceptions reach here
         logger.error(f"[GP DELETE] [{request_id}] Unexpected error: {e}", exc_info=True)
+        error_data = {
+            'error_code': 'SERVER_ERROR',
+            'message': 'An unexpected error occurred',
+            'request_id': request_id
+        }
+        if settings.DEBUG:
+            error_data['traceback'] = tb.format_exc()
+            error_data['exception_type'] = type(e).__name__
+            error_data['exception_message'] = str(e)
+        return JsonResponse(error_data, status=500)
+
+
+def _delete_game_passport_with_policy(request, passport_id, otp_code, request_id):
+    """Shared delete flow used by primary and legacy endpoints."""
+    from apps.user_profile.models import GameProfile
+    from apps.user_profile.models.delete_otp import GamePassportDeleteOTP
+    from apps.user_profile.models.cooldown import GamePassportCooldown
+    from apps.organizations.models import TeamMembership
+    from apps.tournaments.models import Registration
+
+    # Get passport (must belong to user)
+    try:
+        passport = GameProfile.objects.select_related('game').get(id=passport_id, user=request.user)
+    except GameProfile.DoesNotExist:
+        return not_found_error_response(
+            resource_type='game passport',
+            resource_id=passport_id
+        )
+
+    # Enforce verification and time locks
+    is_locked, lock_response = check_passport_locked(passport, request.user)
+    if is_locked:
+        return lock_response
+
+    # Team membership block
+    team_membership = TeamMembership.objects.filter(
+        user=request.user,
+        team__game_id=passport.game_id,
+        status=TeamMembership.Status.ACTIVE,
+    ).select_related('team').first()
+    if team_membership:
+        return error_response(
+            'TEAM_MEMBERSHIP_BLOCK',
+            f'You must leave your team "{team_membership.team.name}" before deleting this passport.',
+            status=403,
+            metadata={
+                'team_name': team_membership.team.name,
+                'team_id': team_membership.team.id,
+            },
+        )
+
+    # Tournament participation block
+    active_registration = Registration.objects.filter(
+        user=request.user,
+        tournament__game__slug=passport.game.slug,
+        status__in=['pending', 'confirmed', 'payment_submitted', 'submitted', 'auto_approved', 'needs_review'],
+        tournament__tournament_end__gte=timezone.now(),
+    ).select_related('tournament').first()
+    if active_registration:
+        return error_response(
+            'TOURNAMENT_LOCK_BLOCK',
+            f'You are registered for "{active_registration.tournament.name}". Withdraw before deleting this passport.',
+            status=403,
+            metadata={
+                'tournament_name': active_registration.tournament.name,
+                'tournament_id': active_registration.tournament.id,
+            },
+        )
+
+    # OTP verification
+    valid, result = GamePassportDeleteOTP.verify_code(request.user, passport, otp_code)
+    if not valid:
+        return error_response('INVALID_OTP', result, status=400)
+
+    otp = result
+    otp.mark_used()
+
+    # Create post-delete cooldown then delete
+    GamePassportCooldown.create_post_delete_cooldown(
+        user=request.user,
+        game=passport.game,
+        days=90,
+    )
+
+    game_name = passport.game.display_name
+    passport.delete()
+
+    logger.info(f"[GP DELETE] [{request_id}] SUCCESS PassportID={passport_id}")
+    return success_response({
+        'message': f'{game_name} passport deleted successfully',
+        'cooldown_days': 90,
+        'cooldown_message': f'You can re-add {game_name} after 90 days.',
+    })
+
+
+@login_required
+@require_http_methods(["DELETE", "POST"])
+def delete_game_passport_legacy_api(request, passport_id):
+    """
+    Legacy endpoint wrapper for /api/passports/<id>/delete/.
+    Requires the same OTP policy as the primary delete endpoint.
+    """
+    request_id = str(uuid.uuid4())
+
+    try:
+        payload = {}
+        if request.body:
+            try:
+                payload = json.loads(request.body)
+            except json.JSONDecodeError:
+                payload = {}
+
+        otp_code = str(payload.get('otp_code', request.POST.get('otp_code', ''))).strip()
+        if not otp_code:
+            return validation_error_response(
+                field_errors={'otp_code': 'OTP code is required'},
+                message='OTP code is required to delete passport',
+            )
+
+        response = _delete_game_passport_with_policy(
+            request=request,
+            passport_id=passport_id,
+            otp_code=otp_code,
+            request_id=request_id,
+        )
+        response['X-Deprecated-Endpoint'] = 'Use /api/game-passports/delete/'
+        return response
+        
+    except Exception as e:
+        logger.error(f"[GP DELETE LEGACY] [{request_id}] Unexpected error: {e}", exc_info=True)
         error_data = {
             'error_code': 'SERVER_ERROR',
             'message': 'An unexpected error occurred',

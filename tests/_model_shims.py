@@ -6,6 +6,8 @@ the current (refactored) models.  Imported from the ROOT conftest.py
 so that patches apply to tests in ALL directories (tests/, apps/, etc.).
 """
 
+import os
+
 # ---------------------------------------------------------------------------
 # Game model compatibility shim
 # ---------------------------------------------------------------------------
@@ -978,22 +980,33 @@ def _patch_match_model():
 # ---------------------------------------------------------------------------
 def apply_all_patches():
     """Apply all model compatibility shims. Call from root conftest.py."""
-    _patch_game_model()
-    _patch_bracket_model()
-    _patch_team_model()
-    _patch_org_team_model()
-    _patch_registration_model()
-    _patch_tournament_model()
-    _patch_organization_model()
-    _patch_profile_create()
-    _patch_user_profile_alias()
-    _patch_user_init()
-    _patch_global_ranking_snapshot()
-    _patch_team_membership_model()
-    _patch_game_scoring_rule()
-    _patch_team_ranking_model()
-    _patch_leaderboard_team_ranking()
-    _patch_payment_model()
-    _patch_help_service()
-    _patch_apiclient_force_auth()
-    _patch_match_model()
+    if os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1":
+        return
+
+    patchers = [
+        _patch_game_model,
+        _patch_bracket_model,
+        _patch_team_model,
+        _patch_org_team_model,
+        _patch_registration_model,
+        _patch_tournament_model,
+        _patch_organization_model,
+        _patch_profile_create,
+        _patch_user_profile_alias,
+        _patch_user_init,
+        _patch_global_ranking_snapshot,
+        _patch_team_membership_model,
+        _patch_game_scoring_rule,
+        _patch_team_ranking_model,
+        _patch_leaderboard_team_ranking,
+        _patch_payment_model,
+        _patch_help_service,
+        _patch_apiclient_force_auth,
+        _patch_match_model,
+    ]
+
+    for patcher in patchers:
+        try:
+            patcher()
+        except (ImportError, LookupError, RuntimeError):
+            continue

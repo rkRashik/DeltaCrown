@@ -12,3 +12,6 @@ from apps.user_profile.signals.activity_signals import *  # noqa
 
 # Follow notification signals (PHASE 9: Follow System Completion)
 from apps.user_profile.signals.follow_signals import *  # noqa
+
+# Game passport cleanup signals
+from apps.user_profile.signals.passport_cleanup_signals import *  # noqa

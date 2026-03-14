@@ -17,57 +17,50 @@ Database Tables Created:
 HARD RULE: Do NOT import from apps.teams.models in this app.
 """
 
+import os
+
 from .organization import Organization, OrganizationMembership
-from .organization_profile import OrganizationProfile
-from .team import Team  # vNext Team model (Phase 5 - write-enabled)
-from .membership import TeamMembership
-from .membership_event import TeamMembershipEvent
-from .team_invite import TeamInvite
-from .ranking import TeamRanking, OrganizationRanking
-from .migration import TeamMigrationMap
-from .activity import TeamActivityLog
-from .announcement import TeamAnnouncement
-from .team_media import TeamMedia, TeamHighlight
-from .team_follower import TeamFollower
-from .discord_sync import DiscordChatMessage
-from .join_request import TeamJoinRequest
-from .recruitment import RecruitmentPosition, RecruitmentRequirement
-from .journey import TeamJourneyMilestone
+from .team import Team
+
+_MINIMAL_TEST_APPS = os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1"
 
 __all__ = [
-    # Organization models
     'Organization',
     'OrganizationMembership',
-    'OrganizationProfile',
-    
-    # Team models
-    'Team',  # Re-exported from apps.teams.models (legacy)
-    'TeamMembership',
-    'TeamMembershipEvent',
-    'TeamInvite',
-    
-    # Ranking models
-    'TeamRanking',
-    'OrganizationRanking',
-    
-    # Migration bridge
-    'TeamMigrationMap',
-    
-    # Audit logging
-    'TeamActivityLog',
-
-    # Community
-    'TeamAnnouncement',
-    'TeamMedia',
-    'TeamHighlight',
-
-    # Discord integration
-    'DiscordChatMessage',
-
-    # Recruitment
-    'RecruitmentPosition',
-    'RecruitmentRequirement',
-
-    # Journey
-    'TeamJourneyMilestone',
+    'Team',
 ]
+
+if not _MINIMAL_TEST_APPS:
+    from .organization_profile import OrganizationProfile
+    from .membership import TeamMembership
+    from .membership_event import TeamMembershipEvent
+    from .team_invite import TeamInvite
+    from .ranking import TeamRanking, OrganizationRanking
+    from .migration import TeamMigrationMap
+    from .activity import TeamActivityLog
+    from .announcement import TeamAnnouncement
+    from .team_media import TeamMedia, TeamHighlight
+    from .team_follower import TeamFollower
+    from .discord_sync import DiscordChatMessage
+    from .join_request import TeamJoinRequest
+    from .recruitment import RecruitmentPosition, RecruitmentRequirement
+    from .journey import TeamJourneyMilestone
+
+    __all__.extend([
+        'OrganizationProfile',
+        'TeamMembership',
+        'TeamMembershipEvent',
+        'TeamInvite',
+        'TeamRanking',
+        'OrganizationRanking',
+        'TeamMigrationMap',
+        'TeamActivityLog',
+        'TeamAnnouncement',
+        'TeamMedia',
+        'TeamHighlight',
+        'DiscordChatMessage',
+        'TeamJoinRequest',
+        'RecruitmentPosition',
+        'RecruitmentRequirement',
+        'TeamJourneyMilestone',
+    ])

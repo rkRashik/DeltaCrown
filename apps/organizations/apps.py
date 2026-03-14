@@ -5,6 +5,8 @@ This app replaces the legacy apps/teams system with a modern,
 organization-first architecture supporting professional esports workflows.
 """
 
+import os
+
 from django.apps import AppConfig
 
 
@@ -25,6 +27,9 @@ class OrganizationsConfig(AppConfig):
     verbose_name = 'Organizations (vNext)'
     
     def ready(self):
+        if os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1":
+            return
+
         """
         Import signal handlers when app is ready.
         
