@@ -96,7 +96,7 @@ def dispute(db, match):
     return Dispute.objects.create(
         match=match,
         initiated_by_id=101,
-        reason='wrong_score',
+        reason='score_mismatch',
         description='Score reported incorrectly',
         status='open'
     )
@@ -139,8 +139,8 @@ class TestMatchServiceSubmitScore:
         MatchService.organizer_submit_score(match, 10, 5)
         
         match.refresh_from_db()
-        assert match.score1 == 10
-        assert match.score2 == 5
+        assert match.participant1_score == 10
+        assert match.participant2_score == 5
         assert match.winner_id == match.participant1_id
         assert match.loser_id == match.participant2_id
         assert match.state == 'completed'
@@ -164,8 +164,18 @@ class TestPaymentServiceOrganizerActions:
         reg1 = Registration.objects.create(tournament=tournament, user=user1, status='pending')
         reg2 = Registration.objects.create(tournament=tournament, user=user2, status='pending')
         
-        payment1 = Payment.objects.create(registration=reg1, amount=Decimal('10.00'), status='submitted')
-        payment2 = Payment.objects.create(registration=reg2, amount=Decimal('10.00'), status='submitted')
+        payment1 = Payment.objects.create(
+            registration=reg1,
+            amount=Decimal('10.00'),
+            status='submitted',
+            payment_method='bkash',
+        )
+        payment2 = Payment.objects.create(
+            registration=reg2,
+            amount=Decimal('10.00'),
+            status='submitted',
+            payment_method='bkash',
+        )
         
         updated = PaymentService.organizer_bulk_verify(
             [payment1.id, payment2.id],
@@ -183,7 +193,14 @@ class TestPaymentServiceOrganizerActions:
         """Test processing refund"""
         user = User.objects.create_user(username='user3', password='pass')
         reg = Registration.objects.create(tournament=tournament, user=user, status='confirmed')
-        payment = Payment.objects.create(registration=reg, amount=Decimal('20.00'), status='verified')
+        payment = Payment.objects.create(
+            registration=reg,
+            amount=Decimal('20.00'),
+            status='verified',
+            payment_method='bkash',
+            verified_by=organizer_user,
+            verified_at=timezone.now(),
+        )
         
         PaymentService.organizer_process_refund(
             payment,
@@ -195,6 +212,6 @@ class TestPaymentServiceOrganizerActions:
         
         payment.refresh_from_db()
         assert payment.status == 'refunded'
-        assert 'refund' in payment.metadata
-        assert payment.metadata['refund']['reason'] == 'Tournament cancelled'
-        assert payment.metadata['refund']['amount'] == '20.00'
+        assert 'refund' in payment.notes
+        assert payment.notes['refund']['reason'] == 'Tournament cancelled'
+        assert payment.notes['refund']['amount'] == '20.00'

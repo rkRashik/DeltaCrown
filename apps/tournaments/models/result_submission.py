@@ -49,6 +49,17 @@ class MatchResultSubmission(models.Model):
         (STATUS_FINALIZED, 'Finalized by Organizer'),
         (STATUS_REJECTED, 'Rejected by Organizer'),
     ]
+
+    # Submission source choices
+    SOURCE_MANUAL = 'manual'
+    SOURCE_RIOT_API = 'riot_api'
+    SOURCE_ADMIN_OVERRIDE = 'admin_override'
+
+    SOURCE_CHOICES = [
+        (SOURCE_MANUAL, 'Manual Submission'),
+        (SOURCE_RIOT_API, 'Riot API Ingestion'),
+        (SOURCE_ADMIN_OVERRIDE, 'Admin Override'),
+    ]
     
     # Core foreign keys
     match = models.ForeignKey(
@@ -98,6 +109,29 @@ class MatchResultSubmission(models.Model):
         default=STATUS_PENDING,
         db_index=True,
         help_text='Current submission status'
+    )
+
+    source = models.CharField(
+        max_length=32,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_MANUAL,
+        db_index=True,
+        help_text='Submission source for canonical ingestion provenance'
+    )
+
+    ingestion_fingerprint = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text='Deterministic dedupe key for automated ingestion sources'
+    )
+
+    ingested_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When an automated source ingested this submission'
     )
     
     # Timestamps
@@ -150,6 +184,31 @@ class MatchResultSubmission(models.Model):
             models.Index(fields=['submitted_at'], name='idx_submission_submitted_at'),
             models.Index(fields=['auto_confirm_deadline'], name='idx_submission_deadline'),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(
+                    status__in=[
+                        'pending',
+                        'confirmed',
+                        'disputed',
+                        'auto_confirmed',
+                        'finalized',
+                        'rejected',
+                    ]
+                ),
+                name='chk_submission_status_valid',
+            ),
+            models.CheckConstraint(
+                check=models.Q(
+                    source__in=[
+                        'manual',
+                        'riot_api',
+                        'admin_override',
+                    ]
+                ),
+                name='chk_submission_source_valid',
+            ),
+        ]
         ordering = ['-submitted_at']
     
     def __str__(self):
@@ -163,6 +222,20 @@ class MatchResultSubmission(models.Model):
             # For creation before submitted_at is set
             self.auto_confirm_deadline = timezone.now() + timedelta(hours=24)
         super().save(*args, **kwargs)
+
+    @property
+    def tournament_id(self) -> int:
+        """Expose tournament_id for DTO compatibility without ORM coupling leaks."""
+        if not self.match_id:
+            return 0
+        return getattr(self.match, 'tournament_id', 0) or 0
+
+    @property
+    def stage_id(self):
+        """Expose stage_id when available on related match models."""
+        if not self.match_id:
+            return None
+        return getattr(self.match, 'stage_id', None)
 
 
 class ResultVerificationLog(models.Model):

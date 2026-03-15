@@ -51,7 +51,7 @@ class OrganizerInboxFilterDTO:
         if self.dispute_status:
             valid_dispute_statuses = (
                 'open', 'under_review', 'escalated',
-                'resolved_for_submitter', 'resolved_for_opponent', 'cancelled', 'dismissed'
+                'resolved_for_submitter', 'resolved_for_opponent', 'resolved_custom', 'dismissed'
             )
             for dispute_status in self.dispute_status:
                 if dispute_status not in valid_dispute_statuses:
@@ -92,7 +92,7 @@ class OrganizerReviewItemDTO:
     submitted_by_user_id: int
     status: str  # pending, disputed, confirmed, finalized, rejected
     dispute_id: Optional[int]
-    dispute_status: Optional[str]  # open, under_review, escalated, resolved_*, cancelled
+    dispute_status: Optional[str]  # open, under_review, escalated, resolved_*, resolved_custom, dismissed
     auto_confirm_deadline: datetime
     created_at: datetime  # Submission creation time
     opened_at: Optional[datetime]  # Dispute opened_at if disputed
@@ -214,7 +214,7 @@ class OrganizerReviewItemDTO:
         if self.dispute_status is not None:
             valid_dispute_statuses = (
                 'open', 'under_review', 'escalated',
-                'resolved_for_submitter', 'resolved_for_opponent', 'cancelled'
+                'resolved_for_submitter', 'resolved_for_opponent', 'resolved_custom', 'dismissed'
             )
             if self.dispute_status not in valid_dispute_statuses:
                 raise ValueError(f"Invalid dispute_status: {self.dispute_status}")

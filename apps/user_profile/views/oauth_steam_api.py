@@ -8,12 +8,12 @@ from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 
-from apps.common.api_responses import error_response, success_response, validation_error_response
+from apps.common.api_responses import error_response, success_response
 from apps.user_profile.services.oauth_steam_service import (
     SteamOpenIDError,
     build_steam_openid_redirect_url,
@@ -28,13 +28,53 @@ logger = logging.getLogger(__name__)
 STATE_CACHE_PREFIX = "steam_openid_state:"
 STATE_TTL_SECONDS = 600
 
+VALID_RESPONSE_MODES = {"json", "redirect", "auto"}
+VALID_CALLBACK_MODES = {"json", "redirect"}
+
+
+def _wants_json_response(request: HttpRequest, explicit_mode: str = "auto") -> bool:
+    mode = (explicit_mode or "auto").strip().lower()
+    if mode == "json":
+        return True
+    if mode == "redirect":
+        return False
+
+    # Auto-mode: API callers usually send application/json while normal browser
+    # navigation carries text/html in the Accept header.
+    accept = (request.headers.get("Accept") or "").lower()
+    return "application/json" in accept and "text/html" not in accept
+
+
+def _build_settings_return_url(*, game_slug: str, status: str, message: str = "", error_code: str = "") -> str:
+    base_path = reverse("user_profile:settings")
+    query = {
+        "tab": "passports",
+        "oauth_provider": "steam",
+        "oauth_status": status,
+        "oauth_game": game_slug,
+    }
+    if message:
+        query["oauth_message"] = message
+    if error_code:
+        query["oauth_error"] = error_code
+    return f"{base_path}?{urlencode(query)}"
+
 
 @method_decorator(login_required, name="dispatch")
 class SteamLoginRedirectView(View):
     """Return the Steam OpenID redirect URL for frontend redirect."""
 
-    def get(self, request: HttpRequest) -> JsonResponse:
+    def get(self, request: HttpRequest) -> HttpResponse:
         game_slug = request.GET.get("game")
+        response_mode = str(request.GET.get("response_mode", "json") or "json").strip().lower()
+        raw_callback_mode = str(request.GET.get("callback_mode", "") or "").strip().lower()
+
+        if response_mode not in VALID_RESPONSE_MODES:
+            response_mode = "auto"
+
+        wants_json = _wants_json_response(request, explicit_mode=response_mode)
+        callback_mode = raw_callback_mode if raw_callback_mode in VALID_CALLBACK_MODES else ("json" if wants_json else "redirect")
+
         try:
             game_slug = validate_game_slug(game_slug)
         except SteamOpenIDError as exc:
@@ -43,7 +83,11 @@ class SteamLoginRedirectView(View):
         state = secrets.token_urlsafe(32)
         cache.set(
             f"{STATE_CACHE_PREFIX}{state}",
-            {"user_id": request.user.id, "game_slug": game_slug},
+            {
+                "user_id": request.user.id,
+                "game_slug": game_slug,
+                "callback_mode": callback_mode,
+            },
             timeout=STATE_TTL_SECONDS,
         )
 
@@ -51,6 +95,9 @@ class SteamLoginRedirectView(View):
         return_to = f"{callback_url}?{urlencode({'state': state, 'game': game_slug})}"
         realm = f"{request.scheme}://{request.get_host()}"
         authorization_url = build_steam_openid_redirect_url(return_to=return_to, realm=realm)
+
+        if not wants_json:
+            return HttpResponseRedirect(authorization_url)
 
         return success_response(
             {
@@ -66,30 +113,60 @@ class SteamLoginRedirectView(View):
 class SteamCallbackView(View):
     """Verify Steam OpenID callback and connect a Steam game passport."""
 
-    def get(self, request: HttpRequest) -> JsonResponse:
+    def get(self, request: HttpRequest) -> HttpResponse:
         state = str(request.GET.get("state", "")).strip()
         game_slug = request.GET.get("game")
+        callback_mode = str(request.GET.get("callback_mode", "") or "").strip().lower()
+
+        def _resolve_callback_mode(cached_data):
+            if callback_mode in VALID_CALLBACK_MODES:
+                return callback_mode
+            if cached_data and cached_data.get("callback_mode") in VALID_CALLBACK_MODES:
+                return cached_data.get("callback_mode")
+            return "json"
+
+        def _error_response_or_redirect(*, error_code: str, message: str, status: int = 400, metadata=None, cached_data=None):
+            resolved_mode = _resolve_callback_mode(cached_data)
+            if resolved_mode == "redirect":
+                target_slug = game_slug or (cached_data or {}).get("game_slug") or "cs2"
+                return HttpResponseRedirect(
+                    _build_settings_return_url(
+                        game_slug=target_slug,
+                        status="failed",
+                        message=message,
+                        error_code=error_code,
+                    )
+                )
+            return error_response(error_code=error_code, message=message, status=status, metadata=metadata)
 
         if not state:
-            return validation_error_response(
-                field_errors={"state": "state is required"},
+            return _error_response_or_redirect(
+                error_code="MISSING_OPENID_STATE",
                 message="Missing OpenID state",
+                status=400,
+                metadata={"field_errors": {"state": "state is required"}},
             )
 
         try:
             game_slug = validate_game_slug(game_slug)
         except SteamOpenIDError as exc:
-            return error_response(exc.error_code, exc.message, status=exc.status_code, metadata=exc.metadata)
+            return _error_response_or_redirect(
+                error_code=exc.error_code,
+                message=exc.message,
+                status=exc.status_code,
+                metadata=exc.metadata,
+            )
 
         cache_key = f"{STATE_CACHE_PREFIX}{state}"
         cached = cache.get(cache_key)
         cache.delete(cache_key)
 
         if not cached or cached.get("user_id") != request.user.id or cached.get("game_slug") != game_slug:
-            return error_response(
+            return _error_response_or_redirect(
                 error_code="INVALID_OPENID_STATE",
                 message="Steam OpenID state is invalid or has expired",
                 status=400,
+                cached_data=cached,
             )
 
         try:
@@ -101,18 +178,30 @@ class SteamCallbackView(View):
                 summary=summary,
             )
         except SteamOpenIDError as exc:
-            return error_response(
+            return _error_response_or_redirect(
                 error_code=exc.error_code,
                 message=exc.message,
                 status=exc.status_code,
                 metadata=exc.metadata,
+                cached_data=cached,
             )
         except Exception as exc:
             logger.exception("Unexpected Steam OpenID callback failure: %s", exc)
-            return error_response(
+            return _error_response_or_redirect(
                 error_code="SERVER_ERROR",
                 message="Unexpected error while processing Steam callback",
                 status=500,
+                cached_data=cached,
+            )
+
+        resolved_mode = _resolve_callback_mode(cached)
+        if resolved_mode == "redirect":
+            return HttpResponseRedirect(
+                _build_settings_return_url(
+                    game_slug=game_slug,
+                    status="connected",
+                    message="Steam account connected successfully",
+                )
             )
 
         return success_response(

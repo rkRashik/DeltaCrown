@@ -68,14 +68,14 @@ class TournamentAdminStabilityTest(TestCase):
     
     def test_game_admin_list_loads(self):
         """Test that game admin list page loads"""
-        url = reverse('admin:tournaments_game_changelist')
+        url = reverse('admin:games_game_changelist')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
     
     def test_game_admin_detail_loads(self):
         """Test that game admin detail page loads"""
-        url = reverse('admin:tournaments_game_change', args=[self.game.id])
+        url = reverse('admin:games_game_change', args=[self.game.id])
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)

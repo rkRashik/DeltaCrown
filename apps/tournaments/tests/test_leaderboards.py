@@ -336,9 +336,9 @@ class TournamentLeaderboardViewTests(TestCase):
         
         self.assertEqual(response.status_code, 200)
         
-        # Should use empty state template
-        self.assertTemplateUsed(response, 'tournaments/public/leaderboard/_empty_state.html')
+        # Should show empty-state messaging
         self.assertContains(response, 'No Standings Yet')
+        self.assertContains(response, 'Leaderboard will populate once matches are completed.')
         
         # standings should be empty or all participants have 0 games
         standings = response.context['standings']
@@ -380,10 +380,11 @@ class TournamentLeaderboardViewTests(TestCase):
         url = reverse('tournaments:leaderboard', kwargs={'slug': self.tournament.slug})
         response = self.client.get(url)
         
-        # Check for medal emojis in response (from _leaderboard_row.html)
-        self.assertContains(response, '🥇')  # Gold medal for 1st place
-        self.assertContains(response, '🥈')  # Silver medal for 2nd place
-        self.assertContains(response, '🥉')  # Bronze medal for 3rd place
+        # Top-3 are now shown via rank badge classes and a crown icon for rank 1
+        self.assertContains(response, 'rank-badge rank-1')
+        self.assertContains(response, 'rank-badge rank-2')
+        self.assertContains(response, 'rank-badge rank-3')
+        self.assertContains(response, 'data-lucide="crown"')
     
     def test_leaderboard_empty_state(self):
         """Test that empty state is displayed when standings list is truly empty."""
@@ -413,10 +414,9 @@ class TournamentLeaderboardViewTests(TestCase):
         standings = response.context['standings']
         self.assertEqual(len(standings), 0)
         
-        # Should show empty state
-        self.assertTemplateUsed(response, 'tournaments/public/leaderboard/_empty_state.html')
+        # Should show empty-state messaging
         self.assertContains(response, 'No Standings Yet')
-        self.assertContains(response, 'The leaderboard will be available once matches begin')
+        self.assertContains(response, 'Leaderboard will populate once matches are completed.')
     
     def test_leaderboard_handles_tied_participants(self):
         """Test that tied participants are sorted by games played and registration ID."""
@@ -561,7 +561,7 @@ class TournamentLeaderboardMobileTests(TestCase):
         response = self.client.get(url)
         
         # Check for mobile-responsive elements in template
-        self.assertContains(response, 'table-scroll-wrapper')  # Horizontal scroll wrapper
-        self.assertContains(response, 'tabindex="0"')  # Keyboard scroll support
-        self.assertContains(response, 'role="region"')  # ARIA region for accessibility
-        self.assertContains(response, '@media (max-width: 768px)')  # Mobile media query in CSS
+        self.assertContains(response, 'lb-mobile-stats')
+        self.assertContains(response, 'lb-desktop')
+        self.assertContains(response, '@media (max-width: 640px)')
+        self.assertContains(response, '@media (min-width: 641px)')

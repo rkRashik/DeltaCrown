@@ -19,6 +19,8 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Registration, Match, Game
@@ -577,8 +579,9 @@ class DashboardWidgetTests(TestCase):
         
         # Assert - should only show 5 tournaments in widget
         self.assertEqual(response.status_code, 200)
-        self.assertIn('user_tournaments', response.context)
-        self.assertEqual(len(response.context['user_tournaments']), 5)
+        self.assertIn('active_tournaments', response.context)
+        self.assertEqual(len(response.context['active_tournaments']), 8)
+        self.assertEqual(response.context['tournament_count'], 10)
     
     def test_dashboard_widget_empty_state(self):
         """Test dashboard shows empty state when no tournaments"""
@@ -588,8 +591,9 @@ class DashboardWidgetTests(TestCase):
         
         # Assert - should show empty list
         self.assertEqual(response.status_code, 200)
-        self.assertIn('user_tournaments', response.context)
-        self.assertEqual(len(response.context['user_tournaments']), 0)
+        self.assertIn('active_tournaments', response.context)
+        self.assertEqual(len(response.context['active_tournaments']), 0)
+        self.assertEqual(response.context['tournament_count'], 0)
     
     def test_dashboard_widget_has_view_all_link(self):
         """Test that dashboard widget includes link to full page"""
@@ -682,9 +686,9 @@ class PlayerDashboardQueryOptimizationTests(TestCase):
         # Login
         self.client.login(username='testplayer', password='testpass123')
         
-        # Query count should be minimal (not N+1)
-        # Note: Dashboard loads featured tournament + notifications, so count is higher
-        with self.assertNumQueries(42):  # Actual count from test run
+        # Query count should remain bounded (avoid N+1 growth).
+        # The exact count varies with middleware/context processors.
+        with CaptureQueriesContext(connection) as queries:
             response = self.client.get(self.my_tournaments_url)
             
             # Access related objects in template simulation
@@ -692,4 +696,10 @@ class PlayerDashboardQueryOptimizationTests(TestCase):
                 _ = reg.tournament.name
                 _ = reg.tournament.game.name if reg.tournament.game else None
                 _ = reg.tournament.organizer.username
+
+        self.assertLessEqual(
+            len(queries),
+            30,
+            f"Too many queries ({len(queries)}). Expected <= 30 to avoid N+1 regressions.",
+        )
 

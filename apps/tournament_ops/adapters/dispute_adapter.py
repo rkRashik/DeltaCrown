@@ -97,7 +97,7 @@ class DisputeAdapterProtocol(Protocol):
         
         Args:
             dispute_id: Dispute ID
-            status: New status (under_review, resolved_*, cancelled, escalated)
+            status: New status (under_review, escalated, resolved_*, resolved_custom, dismissed)
             resolved_by_user_id: User making the resolution (optional)
             resolution_notes: Internal notes about resolution (optional)
             
@@ -279,7 +279,8 @@ class DisputeAdapter:
         resolved_statuses = [
             DisputeRecord.RESOLVED_FOR_SUBMITTER,
             DisputeRecord.RESOLVED_FOR_OPPONENT,
-            DisputeRecord.CANCELLED,
+            DisputeRecord.RESOLVED_CUSTOM,
+            DisputeRecord.DISMISSED,
         ]
         
         if status in resolved_statuses and not dispute.resolved_at:

@@ -52,6 +52,12 @@ from apps.tournaments.models import (
 from apps.tournaments.realtime.utils import broadcast_bracket_updated
 from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpers
 
+try:
+    # Module-scope import keeps backward-compatible patch targets for tests.
+    from apps.tournament_ops.services.bracket_engine_service import BracketEngineService
+except Exception:  # pragma: no cover - fail-soft for partial app bootstraps
+    BracketEngineService = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -200,10 +206,12 @@ class BracketService:
         - Match advancement wiring: TODO Epic 3.3 (StageTransitionService)
         - Bracket editing support: TODO Epic 3.4 (BracketEditorService)
         """
-        from apps.tournament_ops.services.bracket_engine_service import BracketEngineService
         from apps.tournament_ops.dtos.tournament import TournamentDTO
         from apps.tournament_ops.dtos.stage import StageDTO
         from apps.tournament_ops.dtos.team import TeamDTO
+
+        if BracketEngineService is None:
+            raise ValidationError("BracketEngineService is unavailable")
         
         # TODO (Epic 3.4): Replace with TournamentAdapter.get_tournament() when available
         # For now, fetch directly (ORM usage acceptable in tournaments domain)
@@ -231,21 +239,29 @@ class BracketService:
         tournament_dto = TournamentDTO(
             id=tournament.id,
             name=tournament.name,
-            format=bracket_format,
-            game_slug=tournament.game.slug if tournament.game else None,
-            metadata={
+            game_slug=tournament.game.slug if tournament.game else "",
+            stage="bracket",
+            team_size=int(getattr(tournament, 'team_size', 0) or 1),
+            max_teams=int(getattr(tournament, 'max_teams', 0) or getattr(tournament, 'max_participants', 0) or len(seeded_participants)),
+            status=tournament.status or Tournament.DRAFT,
+            start_time=getattr(tournament, 'tournament_start', None) or timezone.now(),
+            ruleset={
                 "seeding_method": seeding_method,
                 "original_format": tournament.format,
-            }
+                "format": bracket_format,
+            },
         )
         
         # Create stage DTO (represents single-stage tournament for now)
         # TODO (Epic 3.3): Support multi-stage tournaments via StageTransitionService
         stage_dto = StageDTO(
             id=1,  # Placeholder: actual stage model doesn't exist yet
-            tournament_id=tournament.id,
+            name="Main Stage",
             type=bracket_format,
-            third_place_match=(tournament.config or {}).get('bracket_settings', {}).get('third_place_match', False),
+            order=1,
+            config={
+                "third_place_match": (tournament.config or {}).get('bracket_settings', {}).get('third_place_match', False),
+            },
             metadata={
                 "is_single_stage": True,
             }
@@ -256,8 +272,13 @@ class BracketService:
             TeamDTO(
                 id=int(p["id"]),
                 name=p["name"],
-                tag=p.get("tag", ""),
-                metadata={"seed": p.get("seed", idx + 1)}
+                captain_id=int(p["id"]),
+                captain_name=p["name"],
+                member_ids=[int(p["id"])],
+                member_names=[p["name"]],
+                game=tournament.game.slug if tournament.game else "",
+                is_verified=True,
+                logo_url=None,
             )
             for idx, p in enumerate(seeded_participants)
         ]
@@ -274,30 +295,34 @@ class BracketService:
             f"Universal engine generated {len(match_dtos)} matches for "
             f"tournament {tournament_id}, format '{bracket_format}'"
         )
+
+        total_rounds = max((m.round_number for m in match_dtos), default=0)
         
         # Create Bracket model
         bracket = Bracket.objects.create(
             tournament=tournament,
             format=bracket_format,
-            participant_count=len(seeded_participants),
+            total_rounds=total_rounds,
+            total_matches=len(match_dtos),
+            bracket_structure={
+                "generated_by": "universal_engine",
+                "participant_count": len(seeded_participants),
+            },
             seeding_method=seeding_method,
             is_finalized=False,
         )
         
         # Convert MatchDTOs to BracketNode models
         created_nodes = []
-        for match_dto in match_dtos:
+        for idx, match_dto in enumerate(match_dtos, start=1):
             node = BracketNode.objects.create(
                 bracket=bracket,
+                position=idx,
                 round_number=match_dto.round_number,
-                match_number=match_dto.match_number,
-                team1_id=match_dto.team1_id,
-                team2_id=match_dto.team2_id,
-                metadata={
-                    "stage_type": match_dto.stage_type,
-                    "generated_by": "universal_engine",
-                    "bracket_type": match_dto.metadata.get("bracket_type") if match_dto.metadata else None,
-                }
+                match_number_in_round=match_dto.match_number or 1,
+                participant1_id=match_dto.team_a_id,
+                participant2_id=match_dto.team_b_id,
+                bracket_type=match_dto.stage_type or BracketNode.MAIN,
             )
             created_nodes.append(node)
         

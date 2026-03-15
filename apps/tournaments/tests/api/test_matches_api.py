@@ -1,5 +1,6 @@
 # apps/tournaments/tests/api/test_matches_api.py
 import pytest
+from uuid import uuid4
 from decimal import Decimal
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -9,12 +10,17 @@ from apps.tournaments.models import Match, Tournament, Bracket, Dispute
 User = get_user_model()
 
 
+def _uniq(prefix: str) -> str:
+    return f"{prefix}_{uuid4().hex[:8]}"
+
+
 @pytest.fixture
 def participant1_user(db):
     """Create participant 1 user."""
+    uname = _uniq("participant1")
     return User.objects.create_user(
-        username="participant1",
-        email="p1@test.com",
+        username=uname,
+        email=f"{uname}@test.com",
         password="pass123"
     )
 
@@ -22,9 +28,10 @@ def participant1_user(db):
 @pytest.fixture
 def participant2_user(db):
     """Create participant 2 user."""
+    uname = _uniq("participant2")
     return User.objects.create_user(
-        username="participant2",
-        email="p2@test.com",
+        username=uname,
+        email=f"{uname}@test.com",
         password="pass123"
     )
 
@@ -32,9 +39,10 @@ def participant2_user(db):
 @pytest.fixture
 def staff_user(db):
     """Create staff user."""
+    uname = _uniq("staff")
     user = User.objects.create_superuser(
-        username="staff",
-        email="staff@test.com",
+        username=uname,
+        email=f"{uname}@test.com",
         password="pass123"
     )
     user.refresh_from_db()
@@ -45,9 +53,10 @@ def staff_user(db):
 @pytest.fixture
 def other_user(db):
     """Create non-participant user."""
+    uname = _uniq("other")
     return User.objects.create_user(
-        username="other",
-        email="other@test.com",
+        username=uname,
+        email=f"{uname}@test.com",
         password="pass123"
     )
 

@@ -296,7 +296,13 @@ class MatchDetailView(DetailView):
         if tournament.format == 'double_elimination' and match.round_number:
             context['round_label'] = DOUBLE_ELIM_LABELS.get(match.round_number, f'Round {match.round_number}')
         else:
-            context['round_label'] = match.round_name or f'Round {match.round_number}'
+            round_label = None
+            if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
+                try:
+                    round_label = match.bracket.get_round_name(match.round_number)
+                except Exception:
+                    round_label = None
+            context['round_label'] = round_label or f'Round {match.round_number}'
 
         # ── Team info (for team tournaments) ──
         team1 = self._get_team(match.participant1_id)
@@ -326,9 +332,14 @@ class MatchDetailView(DetailView):
         # ── Per-player stats (MatchPlayerStat + MatchMapPlayerStat) ──
         try:
             from apps.tournaments.models.match_player_stats import MatchPlayerStat, MatchMapPlayerStat
-            player_stats_qs = MatchPlayerStat.objects.filter(
-                match=match, is_deleted=False
-            ).order_by('-acs')
+            has_match_stat_soft_delete = any(
+                f.name == 'is_deleted' for f in MatchPlayerStat._meta.get_fields()
+            )
+
+            player_stats_qs = MatchPlayerStat.objects.filter(match=match)
+            if has_match_stat_soft_delete:
+                player_stats_qs = player_stats_qs.filter(is_deleted=False)
+            player_stats_qs = player_stats_qs.order_by('-acs')
 
             team1_stats = []
             team2_stats = []
@@ -390,9 +401,16 @@ class MatchDetailView(DetailView):
             context['team2_stats'] = sorted(team2_stats, key=lambda x: -x['acs'])
 
             # Per-map stats
-            map_stats_qs = MatchMapPlayerStat.objects.filter(
-                match_stat__match=match, match_stat__is_deleted=False
-            ).select_related('match_stat').order_by('map_number', '-kills')
+            map_stat_field_names = {f.name for f in MatchMapPlayerStat._meta.get_fields()}
+            uses_match_stat_relation = 'match_stat' in map_stat_field_names
+
+            if uses_match_stat_relation:
+                map_stats_qs = MatchMapPlayerStat.objects.filter(match_stat__match=match)
+                if has_match_stat_soft_delete:
+                    map_stats_qs = map_stats_qs.filter(match_stat__is_deleted=False)
+                map_stats_qs = map_stats_qs.select_related('match_stat').order_by('map_number', '-kills')
+            else:
+                map_stats_qs = MatchMapPlayerStat.objects.filter(match=match).select_related('player').order_by('map_number', '-kills')
 
             map_player_stats = {}
             for mps in map_stats_qs:
@@ -403,9 +421,17 @@ class MatchDetailView(DetailView):
                         'map_name': maps[mn - 1]['map_name'] if mn <= len(maps) else f'Map {mn}',
                         'players': [],
                     }
+
+                if uses_match_stat_relation:
+                    player_name = mps.match_stat.display_name or mps.match_stat.player_name
+                    team_id = mps.match_stat.team_id
+                else:
+                    player_name = mps.player.username if getattr(mps, 'player', None) else ''
+                    team_id = getattr(mps, 'team_id', None)
+
                 map_player_stats[mn]['players'].append({
-                    'player_name': mps.match_stat.display_name or mps.match_stat.player_name,
-                    'team_id': mps.match_stat.team_id,
+                    'player_name': player_name,
+                    'team_id': team_id,
                     'kills': mps.kills or 0, 'deaths': mps.deaths or 0, 'assists': mps.assists or 0,
                     'acs': float(mps.acs) if mps.acs else 0.0,
                     'adr': float(mps.adr) if mps.adr else 0.0,

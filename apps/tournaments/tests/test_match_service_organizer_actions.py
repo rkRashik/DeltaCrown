@@ -15,6 +15,21 @@ from apps.tournaments.services.match_service import MatchService
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def disable_discord_match_result_queue(monkeypatch):
+    """Avoid Redis/Celery backend retries when match-completion signals dispatch Discord tasks."""
+    class _NoOpDiscordTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            return None
+
+    monkeypatch.setattr(
+        'apps.organizations.tasks.discord_sync.send_match_result_to_discord',
+        _NoOpDiscordTask(),
+        raising=False,
+    )
+
+
 @pytest.fixture
 def game(db):
     """Create a test game."""
@@ -39,6 +54,17 @@ def organizer_user(db):
 
 
 @pytest.fixture
+def participant_users(db):
+    """Create real participant users so signal-side activity writes have valid FKs."""
+    return {
+        'a': User.objects.create_user(username='team_a_user', email='team_a@example.com', password='testpass123'),
+        'b': User.objects.create_user(username='team_b_user', email='team_b@example.com', password='testpass123'),
+        'c': User.objects.create_user(username='team_c_user', email='team_c@example.com', password='testpass123'),
+        'd': User.objects.create_user(username='team_d_user', email='team_d@example.com', password='testpass123'),
+    }
+
+
+@pytest.fixture
 def tournament(db, game, organizer_user):
     """Create a test tournament."""
     return Tournament.objects.create(
@@ -60,15 +86,18 @@ def bracket(db, tournament):
     """Create a test bracket."""
     return Bracket.objects.create(
         tournament=tournament,
-        name='Main Bracket',
-        bracket_type='single_elimination',
-        size=8,
-        current_round=1
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        total_matches=7,
+        bracket_structure={
+            'format': Bracket.SINGLE_ELIMINATION,
+            'total_participants': 8,
+        },
     )
 
 
 @pytest.fixture
-def scheduled_match(db, tournament, bracket):
+def scheduled_match(db, tournament, bracket, participant_users):
     """Create a scheduled match."""
     scheduled_time = timezone.now() + timedelta(days=7)
     return Match.objects.create(
@@ -78,17 +107,17 @@ def scheduled_match(db, tournament, bracket):
         match_number=1,
         state='scheduled',
         scheduled_time=scheduled_time,
-        participant1_id=101,
+        participant1_id=participant_users['a'].id,
         participant1_name='Team A',
-        participant2_id=102,
+        participant2_id=participant_users['b'].id,
         participant2_name='Team B',
-        score1=0,
-        score2=0
+        participant1_score=0,
+        participant2_score=0,
     )
 
 
 @pytest.fixture
-def live_match(db, tournament, bracket):
+def live_match(db, tournament, bracket, participant_users):
     """Create a live match."""
     return Match.objects.create(
         tournament=tournament,
@@ -96,12 +125,12 @@ def live_match(db, tournament, bracket):
         round_number=1,
         match_number=2,
         state='live',
-        participant1_id=103,
+        participant1_id=participant_users['c'].id,
         participant1_name='Team C',
-        participant2_id=104,
+        participant2_id=participant_users['d'].id,
         participant2_name='Team D',
-        score1=5,
-        score2=3
+        participant1_score=5,
+        participant2_score=3,
     )
 
 
@@ -169,8 +198,8 @@ class TestMatchServiceForfeit:
         assert result.winner_id == scheduled_match.participant2_id
         assert scheduled_match.winner_id == scheduled_match.participant2_id
         assert scheduled_match.loser_id == scheduled_match.participant1_id
-        assert scheduled_match.score1 == 0
-        assert scheduled_match.score2 == 1
+        assert scheduled_match.participant1_score == 0
+        assert scheduled_match.participant2_score == 1
         assert scheduled_match.state == 'completed'
         assert 'forfeit' in scheduled_match.lobby_info
         assert scheduled_match.lobby_info['forfeit']['forfeiting_participant'] == 1
@@ -194,8 +223,8 @@ class TestMatchServiceForfeit:
         assert result.winner_id == scheduled_match.participant1_id
         assert scheduled_match.winner_id == scheduled_match.participant1_id
         assert scheduled_match.loser_id == scheduled_match.participant2_id
-        assert scheduled_match.score1 == 1
-        assert scheduled_match.score2 == 0
+        assert scheduled_match.participant1_score == 1
+        assert scheduled_match.participant2_score == 0
 
 
 @pytest.mark.django_db
@@ -209,8 +238,8 @@ class TestMatchServiceOverrideScore:
     ):
         """Test overriding score updates scores and sets correct winner"""
         # Before
-        old_score1 = live_match.score1
-        old_score2 = live_match.score2
+        old_score1 = live_match.participant1_score
+        old_score2 = live_match.participant2_score
         assert old_score1 == 5
         assert old_score2 == 3
         
@@ -225,10 +254,10 @@ class TestMatchServiceOverrideScore:
         
         # After
         live_match.refresh_from_db()
-        assert result.score1 == 10
-        assert result.score2 == 15
-        assert live_match.score1 == 10
-        assert live_match.score2 == 15
+        assert result.participant1_score == 10
+        assert result.participant2_score == 15
+        assert live_match.participant1_score == 10
+        assert live_match.participant2_score == 15
         assert live_match.winner_id == live_match.participant2_id
         assert live_match.loser_id == live_match.participant1_id
         assert live_match.state == 'completed'

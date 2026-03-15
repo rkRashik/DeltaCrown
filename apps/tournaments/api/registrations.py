@@ -125,15 +125,24 @@ class TeamRegistrationSerializer(serializers.Serializer):
     
     def validate_team_id(self, value):
         """Validate team exists and caller is captain."""
-        from apps.organizations.models import Team
+        from apps.organizations.models import Team as OrgTeam
+        from apps.teams.models import Team as LegacyTeam
+
+        team = None
+        owner_id = None
         try:
-            team = Team.objects.only('id', 'created_by_id').get(pk=value)
-        except Team.DoesNotExist:
-            raise serializers.ValidationError("Team not found.")
+            team = OrgTeam.objects.only('id', 'created_by_id').get(pk=value)
+            # Support both legacy and vNext ownership fields without extra queries.
+            owner_id = getattr(team, 'created_by_id', None) or getattr(team, 'owner_id', None)
+        except OrgTeam.DoesNotExist:
+            try:
+                team = LegacyTeam.objects.get(pk=value)
+                captain_profile = getattr(team, 'captain', None)
+                owner_id = getattr(captain_profile, 'user_id', None)
+            except LegacyTeam.DoesNotExist:
+                raise serializers.ValidationError("Team not found.")
         
         user = self.context['request'].user
-        # Support both legacy and vNext ownership fields without extra queries.
-        owner_id = getattr(team, 'created_by_id', None) or getattr(team, 'owner_id', None)
         captain_id = getattr(team, 'captain_id', None)
         if owner_id != user.id and captain_id != user.id:
             raise serializers.ValidationError("Only team captains can register teams.")
@@ -205,7 +214,6 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     queryset = Registration.objects.select_related(
         'tournament',
         'user',
-        'team',
         'payment_verification'
     ).all()
     serializer_class = RegistrationSerializer

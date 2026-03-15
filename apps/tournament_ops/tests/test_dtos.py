@@ -316,7 +316,7 @@ def test_match_dto_validation_success():
         team_b_id=20,
         round_number=1,
         stage="semifinals",
-        state="pending",
+        state="scheduled",
         scheduled_time=datetime(2025, 6, 1, 14, 0),
         result=None,
     )
@@ -360,7 +360,7 @@ def test_match_dto_validation_completed_without_result():
     )
 
     errors = dto.validate()
-    assert "Completed match must have result" in errors
+    assert "Completed/forfeit match must have result" in errors
 
 
 # =============================================================================

@@ -65,7 +65,7 @@ class TestTournamentListView:
         
         assert response.status_code == 200
         template_names = [t.name for t in response.templates]
-        assert 'tournaments/public/browse/list.html' in template_names
+        assert 'tournaments/list.html' in template_names
     
     def test_list_view_shows_published_tournaments(self, client, published_tournament):
         """List view should display published tournaments."""
@@ -96,7 +96,7 @@ class TestTournamentDetailView:
         
         assert response.status_code == 200
         template_names = [t.name for t in response.templates]
-        assert 'tournaments/public/detail/overview.html' in template_names
+        assert 'tournaments/detailPages/detail_registration.html' in template_names
     
     def test_detail_view_shows_tournament_info(self, client, published_tournament):
         """Detail view should show tournament information."""
@@ -105,7 +105,9 @@ class TestTournamentDetailView:
         
         assert response.status_code == 200
         assert response.context['tournament'] == published_tournament
-        assert 'cta_state' in response.context
+        assert 'can_register' in response.context
+        assert 'registration_action_url' in response.context
+        assert 'registration_action_label' in response.context
         assert 'slots_filled' in response.context
     
     def test_detail_view_shows_registration_cta(self, client, published_tournament):
@@ -114,5 +116,6 @@ class TestTournamentDetailView:
         response = client.get(url)
         
         assert response.status_code == 200
-        # Anonymous users should see login_required state
-        assert response.context['cta_state'] in ['login_required', 'open', 'closed']
+        # Anonymous users should receive not_authenticated eligibility state
+        assert response.context['eligibility_status'] == 'not_authenticated'
+        assert response.context['can_register'] is False

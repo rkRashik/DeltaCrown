@@ -84,6 +84,18 @@ def on_match_completed(sender, instance, created, **kwargs):
         return
     
     try:
+        # Team matches may store team IDs in winner_id/loser_id. Activity events
+        # are user-scoped, so skip if these IDs are not real users.
+        from django.contrib.auth import get_user_model
+
+        UserModel = get_user_model()
+        if not UserModel.objects.filter(id=instance.winner_id).exists() or not UserModel.objects.filter(id=instance.loser_id).exists():
+            logger.debug(
+                "Skipping match activity for match %s: winner/loser are not user IDs",
+                instance.id,
+            )
+            return
+
         # Extract scores if available
         winner_score = None
         loser_score = None

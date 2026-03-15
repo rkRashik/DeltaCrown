@@ -26,7 +26,9 @@ def admin_site():
 @pytest.fixture
 def tournament_admin(admin_site):
     """Create TournamentAdmin instance."""
-    return TournamentAdmin(Tournament, admin_site)
+    admin_instance = TournamentAdmin(Tournament, admin_site)
+    admin_instance.message_user = lambda *args, **kwargs: None
+    return admin_instance
 
 
 @pytest.fixture

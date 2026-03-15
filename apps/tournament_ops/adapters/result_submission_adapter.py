@@ -36,6 +36,8 @@ class ResultSubmissionAdapterProtocol(Protocol):
         raw_result_payload: dict,
         proof_screenshot_url: Optional[str],
         submitter_notes: str = "",
+        source: str = 'manual',
+        ingestion_fingerprint: Optional[str] = None,
     ) -> MatchResultSubmissionDTO:
         """
         Create new result submission.
@@ -47,6 +49,8 @@ class ResultSubmissionAdapterProtocol(Protocol):
             raw_result_payload: Game-specific result data
             proof_screenshot_url: URL to proof screenshot
             submitter_notes: Optional notes from submitter
+            source: Submission source (manual, riot_api, admin_override)
+            ingestion_fingerprint: Optional deterministic dedupe key for automated ingestions
             
         Returns:
             MatchResultSubmissionDTO
@@ -192,6 +196,8 @@ class ResultSubmissionAdapter:
         raw_result_payload: dict,
         proof_screenshot_url: Optional[str],
         submitter_notes: str = "",
+        source: str = 'manual',
+        ingestion_fingerprint: Optional[str] = None,
     ) -> MatchResultSubmissionDTO:
         """Create new result submission."""
         from apps.tournaments.models import MatchResultSubmission
@@ -206,6 +212,9 @@ class ResultSubmissionAdapter:
                 proof_screenshot_url=proof_screenshot_url or "",
                 submitter_notes=submitter_notes,
                 status=MatchResultSubmission.STATUS_PENDING,
+                source=source,
+                ingestion_fingerprint=ingestion_fingerprint or None,
+                ingested_at=timezone.now() if source != MatchResultSubmission.SOURCE_MANUAL else None,
                 auto_confirm_deadline=timezone.now() + timedelta(hours=24),
             )
             return MatchResultSubmissionDTO.from_model(submission)

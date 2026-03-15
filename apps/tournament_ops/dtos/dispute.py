@@ -30,7 +30,7 @@ class DisputeDTO(DTOBase):
         submission_id: ID of the disputed MatchResultSubmission
         opened_by_user_id: User who opened the dispute
         opened_by_team_id: Team representing the disputer (optional)
-        status: Dispute status (open, under_review, resolved_*, cancelled, escalated)
+        status: Dispute status (open, under_review, escalated, resolved_*, resolved_custom, dismissed)
         reason_code: Categorized reason (score_mismatch, wrong_winner, etc.)
         description: Detailed description from opponent
         resolution_notes: Internal notes explaining resolution decision
@@ -83,7 +83,7 @@ class DisputeDTO(DTOBase):
         )
     
     def is_open(self) -> bool:
-        """Check if dispute is still open (not resolved/cancelled)."""
+        """Check if dispute is still open (not resolved/dismissed)."""
         return self.status in ('open', 'under_review', 'escalated')
     
     def is_resolved(self) -> bool:
@@ -91,7 +91,8 @@ class DisputeDTO(DTOBase):
         return self.status in (
             'resolved_for_submitter',
             'resolved_for_opponent',
-            'cancelled'
+            'resolved_custom',
+            'dismissed',
         )
     
     def validate(self) -> None:
@@ -105,10 +106,11 @@ class DisputeDTO(DTOBase):
         valid_statuses = (
             'open',
             'under_review',
+            'escalated',
             'resolved_for_submitter',
             'resolved_for_opponent',
-            'cancelled',
-            'escalated'
+            'resolved_custom',
+            'dismissed',
         )
         if self.status not in valid_statuses:
             raise ValueError(f"Invalid status: {self.status}")

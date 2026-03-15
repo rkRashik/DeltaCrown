@@ -1,5 +1,6 @@
 import json
 from unittest.mock import Mock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from django.urls import reverse
@@ -258,6 +259,67 @@ def test_steam_same_id_can_link_cs2_and_dota2_for_same_user(authenticated_client
         provider_account_id="76561198012345678",
     )
     assert steam_links.count() == 2
+
+
+@pytest.mark.django_db
+def test_steam_login_redirect_mode_returns_provider_redirect(authenticated_client):
+    response = authenticated_client.get(
+        reverse("user_profile:steam_openid_login"),
+        {"game": "cs2", "response_mode": "redirect", "callback_mode": "redirect"},
+    )
+
+    assert response.status_code == 302
+    assert "steamcommunity.com/openid/login" in response["Location"]
+
+
+@pytest.mark.django_db
+def test_steam_callback_redirect_mode_returns_to_settings_passports_tab(authenticated_client, settings):
+    settings.STEAM_API_KEY = "steam-api-key"
+
+    login_response = authenticated_client.get(
+        reverse("user_profile:steam_openid_login"),
+        {"game": "cs2", "response_mode": "json", "callback_mode": "redirect"},
+    )
+    assert login_response.status_code == 200
+    state = login_response.json()["data"]["state"]
+
+    verification_response = _mock_response(text="ns:http://specs.openid.net/auth/2.0\nis_valid:true\n")
+    summary_response = _mock_response(
+        json_data={
+            "response": {
+                "players": [
+                    {
+                        "steamid": "76561198012345678",
+                        "personaname": "SteamUser",
+                        "avatar": "https://cdn.example/avatar.jpg",
+                        "avatarmedium": "https://cdn.example/avatar_medium.jpg",
+                        "avatarfull": "https://cdn.example/avatar_full.jpg",
+                        "profileurl": "https://steamcommunity.com/id/steamuser/",
+                    }
+                ]
+            }
+        }
+    )
+
+    with patch("apps.user_profile.services.oauth_steam_service.requests.post", return_value=verification_response):
+        with patch("apps.user_profile.services.oauth_steam_service.requests.get", return_value=summary_response):
+            callback_response = authenticated_client.get(
+                reverse("user_profile:steam_openid_callback"),
+                {
+                    "state": state,
+                    "game": "cs2",
+                    "openid.claimed_id": "https://steamcommunity.com/openid/id/76561198012345678",
+                },
+            )
+
+    assert callback_response.status_code == 302
+    parsed = urlparse(callback_response["Location"])
+    query = parse_qs(parsed.query)
+    assert parsed.path == reverse("user_profile:settings")
+    assert query.get("tab") == ["passports"]
+    assert query.get("oauth_provider") == ["steam"]
+    assert query.get("oauth_status") == ["connected"]
+    assert query.get("oauth_game") == ["cs2"]
 
 
 @pytest.mark.django_db

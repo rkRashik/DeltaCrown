@@ -113,6 +113,16 @@ _heavy_schedule = {
         },
     },
 
+    # Phase 10: Sync Riot-backed Valorant passport stats
+    'sync-all-active-riot-passports': {
+        'task': 'user_profile.sync_all_active_riot_passports',
+        'schedule': crontab(minute=os.getenv('RIOT_SYNC_SCHEDULE_MINUTE', '*/20')),
+        'options': {
+            # Prevent overlaps when queues are congested.
+            'expires': int(os.getenv('RIOT_SYNC_TASK_EXPIRES_SECONDS', '900')),
+        },
+    },
+
     # ========================================================================
     # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)
     # ========================================================================

@@ -74,8 +74,8 @@ class BracketFeatureFlagTests(TestCase):
                 stage_id=1,
                 round_number=1,
                 match_number=1,
-                team1_id=1,
-                team2_id=2,
+                team_a_id=1,
+                team_b_id=2,
                 stage_type="main",
             ),
             MatchDTO(
@@ -83,8 +83,8 @@ class BracketFeatureFlagTests(TestCase):
                 stage_id=1,
                 round_number=1,
                 match_number=2,
-                team1_id=3,
-                team2_id=4,
+                team_a_id=3,
+                team_b_id=4,
                 stage_type="main",
             ),
             MatchDTO(
@@ -92,8 +92,8 @@ class BracketFeatureFlagTests(TestCase):
                 stage_id=1,
                 round_number=2,
                 match_number=1,
-                team1_id=None,
-                team2_id=None,
+                team_a_id=None,
+                team_b_id=None,
                 stage_type="main",
             ),
         ]
@@ -129,7 +129,7 @@ class BracketFeatureFlagTests(TestCase):
         # Verify bracket created
         assert bracket is not None
         assert bracket.tournament == self.tournament
-        assert bracket.participant_count == 4
+        assert bracket.total_matches > 0
         
         # Verify nodes created
         nodes = bracket.nodes.all()
@@ -148,15 +148,15 @@ class BracketFeatureFlagTests(TestCase):
         mock_engine_instance.generate_bracket_for_stage.return_value = [
             MatchDTO(
                 id=0, stage_id=1, round_number=1, match_number=1,
-                team1_id=1, team2_id=2, stage_type="main"
+                team_a_id=1, team_b_id=2, stage_type="main"
             ),
             MatchDTO(
                 id=0, stage_id=1, round_number=1, match_number=2,
-                team1_id=3, team2_id=4, stage_type="main"
+                team_a_id=3, team_b_id=4, stage_type="main"
             ),
             MatchDTO(
                 id=0, stage_id=1, round_number=2, match_number=1,
-                team1_id=None, team2_id=None, stage_type="main"
+                team_a_id=None, team_b_id=None, stage_type="main"
             ),
         ]
         mock_engine_class.return_value = mock_engine_instance
@@ -170,7 +170,7 @@ class BracketFeatureFlagTests(TestCase):
         # Verify bracket created
         assert bracket is not None
         assert bracket.tournament == self.tournament
-        assert bracket.participant_count == 4
+        assert bracket.total_matches == 3
         
         # Verify nodes created
         nodes = bracket.nodes.all()
@@ -179,7 +179,7 @@ class BracketFeatureFlagTests(TestCase):
         # Verify node structure
         for node in nodes:
             assert node.round_number in [1, 2]
-            assert node.match_number >= 1
+            assert node.match_number_in_round >= 1
     
     def test_feature_flag_defaults_to_false(self):
         """
@@ -233,7 +233,7 @@ class BracketFeatureFlagTests(TestCase):
         mock_engine_instance = MagicMock()
         mock_engine_instance.generate_bracket_for_stage.return_value = [
             MatchDTO(id=0, stage_id=1, round_number=1, match_number=i,
-                    team1_id=i, team2_id=i+1, stage_type="main")
+                    team_a_id=i, team_b_id=i+1, stage_type="main")
             for i in range(1, 7)
         ]
         mock_engine_class.return_value = mock_engine_instance

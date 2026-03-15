@@ -26,7 +26,7 @@ class MatchDTO(DTOBase):
         team_b_id: ID of the second team (None for TBD matches).
         round_number: Round number in the tournament bracket.
         stage: Stage label (e.g., "Round 1", "Third Place").
-        state: Match state (pending, in_progress, completed, disputed).
+        state: Canonical match state (scheduled, check_in, ready, live, pending_result, completed, disputed, forfeit, cancelled).
 
     Extended fields (used by bracket generators):
         stage_id: FK to Stage record.
@@ -43,7 +43,7 @@ class MatchDTO(DTOBase):
     team_b_id: Optional[int] = None
     round_number: int = 1
     stage: str = ""
-    state: str = "pending"
+    state: str = "scheduled"
     scheduled_time: Optional[datetime] = None
     result: Optional[Dict[str, Any]] = None
 
@@ -76,7 +76,7 @@ class MatchDTO(DTOBase):
             team_b_id=_get("team_b_id", 0),
             round_number=_get("round_number", 1),
             stage=_get("stage", ""),
-            state=_get("state", "pending"),
+            state=_get("state", "scheduled"),
             scheduled_time=_get("scheduled_time"),
             result=_get("result"),
         )
@@ -106,11 +106,21 @@ class MatchDTO(DTOBase):
         ):
             errors.append("team_a_id and team_b_id must be different")
 
-        valid_states = {"pending", "in_progress", "completed", "disputed"}
+        valid_states = {
+            "scheduled",
+            "check_in",
+            "ready",
+            "live",
+            "pending_result",
+            "completed",
+            "disputed",
+            "forfeit",
+            "cancelled",
+        }
         if self.state not in valid_states:
             errors.append(f"state must be one of {valid_states}")
 
-        if self.state == "completed" and not self.result:
-            errors.append("Completed match must have result")
+        if self.state in {"completed", "forfeit"} and not self.result:
+            errors.append("Completed/forfeit match must have result")
 
         return errors

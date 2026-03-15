@@ -157,10 +157,12 @@
                     <button type="button" onclick="recalculatePoints()" class="button" style="margin-right: 10px;">
                         🔄 Recalculate Points
                     </button>
-                    <a href="{% url 'admin:teams_teamrankinghistory_changelist' %}?team__id__exact={{ original.pk }}" 
-                       class="button">
-                        📋 View Full History
-                    </a>
+                    {% url 'admin:teams_teamrankinghistory_changelist' as team_ranking_history_url %}
+                    {% if team_ranking_history_url %}
+                        <a href="{{ team_ranking_history_url }}?team__id__exact={{ original.pk }}" class="button">
+                            📋 View Full History
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </fieldset>

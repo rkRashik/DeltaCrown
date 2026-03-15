@@ -160,8 +160,9 @@ def _maybe_create_payment(method: Optional[str], ref: Optional[str], amount_bdt:
 def register_valorant_team(data: TeamRegistrationInput):
     Tournament = _get_model("tournaments", "Tournament")
     Registration = _get_model("tournaments", "Registration")
-    Team = _get_model("organizations", "Team")
-    if not (Tournament and Registration and Team):
+    OrgTeam = _get_model("organizations", "Team")
+    LegacyTeam = _get_model("teams", "Team")
+    if not (Tournament and Registration and (OrgTeam or LegacyTeam)):
         raise ValidationError("Required models are not available.")
 
     tournament = Tournament.objects.select_for_update().get(pk=data.tournament_id)
@@ -171,7 +172,13 @@ def register_valorant_team(data: TeamRegistrationInput):
     
     _check_slot_availability(tournament)
 
-    team = Team.objects.get(pk=data.team_id)
+    team = None
+    if OrgTeam:
+        team = OrgTeam.objects.filter(pk=data.team_id).first()
+    if team is None and LegacyTeam:
+        team = LegacyTeam.objects.filter(pk=data.team_id).first()
+    if team is None:
+        raise ValidationError("Team not found.")
     # Registration model uses team_id (IntegerField) not team (ForeignKey)
     reg = Registration.objects.create(tournament=tournament, team_id=team.id)
 

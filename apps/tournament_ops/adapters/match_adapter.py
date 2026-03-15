@@ -216,8 +216,8 @@ class MatchAdapter:
         return MatchDTO(
             id=match.id,
             tournament_id=match.tournament_id,
-            team_a_id=match.participant1_id or 0,
-            team_b_id=match.participant2_id or 0,
+            team_a_id=match.participant1_id,
+            team_b_id=match.participant2_id,
             round_number=match.round_number,
             stage=f"round_{match.round_number}",  # Simple stage identifier
             state=self._map_state(match.state),
@@ -229,7 +229,7 @@ class MatchAdapter:
                 "participant2_score": match.participant2_score,
                 "lobby_info": match.lobby_info,
             }
-            if match.state == "completed"
+            if match.state in {"pending_result", "disputed", "completed", "forfeit"}
             else None,
         )
 
@@ -243,17 +243,16 @@ class MatchAdapter:
         Returns:
             DTO state string.
         """
-        # Match model states: scheduled, check_in, ready, live, pending_result, completed, disputed, forfeit, cancelled
-        # DTO states: pending, in_progress, completed, disputed
-        state_map = {
-            "scheduled": "pending",
-            "check_in": "pending",
-            "ready": "pending",
-            "live": "in_progress",
-            "pending_result": "in_progress",
-            "completed": "completed",
-            "disputed": "disputed",
-            "forfeit": "completed",
-            "cancelled": "pending",
+        # Keep states canonical and lossless so DTO/service validation remains aligned with ORM.
+        valid_states = {
+            "scheduled",
+            "check_in",
+            "ready",
+            "live",
+            "pending_result",
+            "completed",
+            "disputed",
+            "forfeit",
+            "cancelled",
         }
-        return state_map.get(orm_state, "pending")
+        return orm_state if orm_state in valid_states else "scheduled"

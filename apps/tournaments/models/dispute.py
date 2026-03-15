@@ -23,14 +23,15 @@ class DisputeRecord(models.Model):
     Workflow:
     1. Opponent disputes a MatchResultSubmission → DisputeRecord created (status='open')
     2. Organizer reviews → status='under_review'
-    3. Resolution:
-       - Submitter wins → status='resolved_for_submitter'
-       - Opponent wins → status='resolved_for_opponent'
-       - Cancelled → status='cancelled'
-       - Escalated → status='escalated' (e.g., to higher-tier support)
+     3. Resolution:
+         - Submitter wins → status='resolved_for_submitter'
+         - Opponent wins → status='resolved_for_opponent'
+         - Organizer custom ruling → status='resolved_custom'
+         - Dismissed as invalid → status='dismissed'
+         - Escalated → status='escalated' (e.g., to higher-tier support)
     
     State Machine:
-    - open → under_review → resolved_* / cancelled / escalated
+    - open → under_review → resolved_* / resolved_custom / dismissed / escalated
     - Only one open dispute per submission at a time
     
     Relationships:
@@ -45,18 +46,23 @@ class DisputeRecord(models.Model):
     # Status choices
     OPEN = 'open'
     UNDER_REVIEW = 'under_review'
+    ESCALATED = 'escalated'
     RESOLVED_FOR_SUBMITTER = 'resolved_for_submitter'
     RESOLVED_FOR_OPPONENT = 'resolved_for_opponent'
-    CANCELLED = 'cancelled'
-    ESCALATED = 'escalated'
+    RESOLVED_CUSTOM = 'resolved_custom'
+    DISMISSED = 'dismissed'
+
+    # Backward-compatible alias: persisted value remains canonical 'dismissed'.
+    CANCELLED = DISMISSED
     
     STATUS_CHOICES = [
         (OPEN, 'Open'),
         (UNDER_REVIEW, 'Under Review'),
+        (ESCALATED, 'Escalated'),
         (RESOLVED_FOR_SUBMITTER, 'Resolved - Submitter Wins'),
         (RESOLVED_FOR_OPPONENT, 'Resolved - Opponent Wins'),
-        (CANCELLED, 'Cancelled'),
-        (ESCALATED, 'Escalated'),
+        (RESOLVED_CUSTOM, 'Resolved - Custom Organizer Ruling'),
+        (DISMISSED, 'Dismissed'),
     ]
     
     # Reason code choices (extensible via config in future)
@@ -169,12 +175,28 @@ class DisputeRecord(models.Model):
             models.Index(fields=['resolved_at'], name='idx_dispute_resolved_at'),
             models.Index(fields=['status'], name='idx_dispute_status'),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(
+                    status__in=[
+                        'open',
+                        'under_review',
+                        'escalated',
+                        'resolved_for_submitter',
+                        'resolved_for_opponent',
+                        'resolved_custom',
+                        'dismissed',
+                    ]
+                ),
+                name='chk_dispute_record_status_valid',
+            ),
+        ]
     
     def __str__(self):
         return f"Dispute #{self.id} - {self.get_status_display()} (Submission #{self.submission_id})"
     
     def is_open(self):
-        """Check if dispute is still open (not resolved/cancelled)."""
+        """Check if dispute is still open (not resolved/dismissed)."""
         return self.status in (self.OPEN, self.UNDER_REVIEW, self.ESCALATED)
     
     def is_resolved(self):
@@ -182,7 +204,8 @@ class DisputeRecord(models.Model):
         return self.status in (
             self.RESOLVED_FOR_SUBMITTER,
             self.RESOLVED_FOR_OPPONENT,
-            self.CANCELLED
+            self.RESOLVED_CUSTOM,
+            self.DISMISSED,
         )
 
 

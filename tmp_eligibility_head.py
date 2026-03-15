@@ -262,70 +262,41 @@ class RegistrationEligibilityService:
             combined_team_ids = set(user_teams.values_list('id', flat=True)) | set(org_teams.values_list('id', flat=True))
             all_teams = Team.objects.filter(id__in=combined_team_ids) if combined_team_ids else Team.objects.none()
             
-            # Check if user has permission to register any team.
-            # Prefer vNext organizations team graph, then fall back to legacy teams graph.
+            if not all_teams.exists():
+                return {
+                    'eligible': False,
+                    'reason': f'You need to join a {tournament.game.name} team to register.',
+                    'status': 'no_team',
+                    'action_url': '/teams/create/',
+                    'action_label': 'Create Team',
+                }
+            
+            # Check if user has permission to register any team
+            can_register_team = False
             team_with_permission = None
-
-            if all_teams.exists():
-                for team in all_teams:
-                    membership = TeamMembership.objects.filter(
-                        team=team,
-                        user=user_profile.user,
-                        status=TeamMembership.Status.ACTIVE
-                    ).first()
-
-                    is_ceo = team.organization_id and team.organization_id in ceo_org_ids
-                    is_creator = team.created_by_id == user.id
-                    is_org_staff = team.organization_id and team.organization_id in all_org_ids
-
-                    if is_creator or is_ceo or is_org_staff or (membership and (
-                        membership.role in [
-                            TeamMembership.Role.OWNER,
-                            TeamMembership.Role.MANAGER,
-                        ] or membership.has_permission('register_tournaments')
-                    )):
-                        team_with_permission = team
-                        break
-            else:
-                try:
-                    from apps.teams.models import Team as LegacyTeam
-                    from apps.teams.models import TeamMembership as LegacyTeamMembership
-
-                    legacy_teams = LegacyTeam.objects.filter(
-                        game=getattr(tournament.game, 'slug', ''),
-                        memberships__profile=user_profile,
-                        memberships__status=LegacyTeamMembership.Status.ACTIVE,
-                        is_active=True,
-                    ).distinct()
-
-                    for team in legacy_teams:
-                        legacy_membership = LegacyTeamMembership.objects.filter(
-                            team=team,
-                            profile=user_profile,
-                            status=LegacyTeamMembership.Status.ACTIVE,
-                        ).first()
-
-                        if legacy_membership and (
-                            legacy_membership.role in [
-                                LegacyTeamMembership.Role.OWNER,
-                                LegacyTeamMembership.Role.MANAGER,
-                                LegacyTeamMembership.Role.CAPTAIN,
-                            ] or getattr(legacy_membership, 'can_register_tournaments', False)
-                        ):
-                            team_with_permission = team
-                            break
-                except Exception:
-                    team_with_permission = None
-
-            if not team_with_permission:
-                if not all_teams.exists():
-                    return {
-                        'eligible': False,
-                        'reason': f'You need to join a {tournament.game.name} team to register.',
-                        'status': 'no_team',
-                        'action_url': '/teams/create/',
-                        'action_label': 'Create Team',
-                    }
+            
+            for team in all_teams:
+                membership = TeamMembership.objects.filter(
+                    team=team,
+                    user=user_profile.user,
+                    status=TeamMembership.Status.ACTIVE
+                ).first()
+                
+                is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+                is_creator = team.created_by_id == user.id
+                is_org_staff = team.organization_id and team.organization_id in all_org_ids
+                
+                if is_creator or is_ceo or is_org_staff or (membership and (
+                    membership.role in [
+                        TeamMembership.Role.OWNER,
+                        TeamMembership.Role.MANAGER,
+                    ] or membership.has_permission('register_tournaments')
+                )):
+                    can_register_team = True
+                    team_with_permission = team
+                    break
+            
+            if not can_register_team:
                 return {
                     'eligible': False,
                     'reason': 'You don\'t have permission to register any of your teams.',
@@ -357,87 +328,59 @@ class RegistrationEligibilityService:
             # ADAPTER MIGRATION POINT (P3-T3): Roster validation now uses TeamAdapter
             # This routes to either legacy teams or vNext organizations based on flags
             # ============================================================================
-            from apps.organizations.adapters import team_adapter as team_adapter_module
-            from apps.organizations.adapters.flags import should_use_vnext_routing
-
-            use_vnext_roster = should_use_vnext_routing(team_with_permission.id)
-
-            if use_vnext_roster:
-                from apps.organizations.adapters.team_adapter import TeamAdapter
-
-                try:
-                    adapter = TeamAdapter()
-                    validation_result = adapter.validate_roster(
-                        team_id=team_with_permission.id,
-                        tournament_id=tournament.id,
-                        game_id=tournament.game.id if hasattr(tournament, 'game') else None,
-                    )
-
-                    # Adapter returns: {'is_valid': bool, 'errors': [], 'warnings': [], 'roster_data': {}}
-                    if not validation_result['is_valid']:
-                        # Convert technical adapter errors to user-friendly messages
-                        roster_data = validation_result.get('roster_data', {})
-                        active_count = roster_data.get('active_count', 0)
-                        raw_error = validation_result['errors'][0] if validation_result['errors'] else ''
-
-                        if 'below minimum' in raw_error.lower() or 'roster size' in raw_error.lower():
-                            # Extract min from roster_data or parse from error
-                            import re
-                            min_match = re.search(r'minimum\s*\((\d+)\)', raw_error)
-                            min_size = int(min_match.group(1)) if min_match else 1
-                            if active_count == 0:
-                                error_msg = (
-                                    f'Your team "{team_with_permission.name}" has no active members. '
-                                    f'You need at least {min_size} member(s) to register.'
-                                )
-                            else:
-                                error_msg = (
-                                    f'Your team "{team_with_permission.name}" needs at least {min_size} '
-                                    f'active members ({active_count} currently).'
-                                )
-                        else:
-                            error_msg = raw_error or 'Team roster does not meet requirements.'
-
-                        return {
-                            'eligible': False,
-                            'reason': error_msg,
-                            'status': 'roster_invalid',
-                            'action_url': f'/teams/{team_with_permission.slug}/',
-                            'action_label': 'Manage Team',
-                        }
-
-                except Exception:
-                    # Fallback if adapter/vNext services fail.
-                    team_members = TeamMembership.objects.filter(
-                        team=team_with_permission,
-                        status=TeamMembership.Status.ACTIVE
-                    )
-
-                    min_team_size = getattr(tournament.game, 'min_team_size', 5)
-                    if team_members.count() < min_team_size:
-                        return {
-                            'eligible': False,
-                            'reason': f'Your team needs at least {min_team_size} members.',
-                            'status': 'roster_too_small',
-                            'action_url': f'/teams/{team_with_permission.slug}/',
-                            'action_label': 'Manage Team',
-                        }
-            else:
-                # Legacy routing path: record routing decision without invoking adapter.
-                team_adapter_module.record_routing_decision(
-                    team_with_permission.id,
-                    'legacy',
-                    team_adapter_module.get_routing_reason(team_with_permission.id),
-                    0.0,
+            from apps.organizations.adapters.team_adapter import TeamAdapter
+            
+            try:
+                adapter = TeamAdapter()
+                validation_result = adapter.validate_roster(
+                    team_id=team_with_permission.id,
+                    tournament_id=tournament.id,
+                    game_id=tournament.game.id if hasattr(tournament, 'game') else None,
                 )
+                
+                # Adapter returns: {'is_valid': bool, 'errors': [], 'warnings': [], 'roster_data': {}}
+                if not validation_result['is_valid']:
+                    # Convert technical adapter errors to user-friendly messages
+                    roster_data = validation_result.get('roster_data', {})
+                    active_count = roster_data.get('active_count', 0)
+                    raw_error = validation_result['errors'][0] if validation_result['errors'] else ''
 
-                if hasattr(team_with_permission, 'vnext_memberships'):
-                    active_count = team_with_permission.vnext_memberships.filter(status='ACTIVE').count()
-                else:
-                    active_count = team_with_permission.memberships.filter(status='ACTIVE').count()
+                    if 'below minimum' in raw_error.lower() or 'roster size' in raw_error.lower():
+                        # Extract min from roster_data or parse from error
+                        import re
+                        min_match = re.search(r'minimum\s*\((\d+)\)', raw_error)
+                        min_size = int(min_match.group(1)) if min_match else 1
+                        if active_count == 0:
+                            error_msg = (
+                                f'Your team "{team_with_permission.name}" has no active members. '
+                                f'You need at least {min_size} member(s) to register.'
+                            )
+                        else:
+                            error_msg = (
+                                f'Your team "{team_with_permission.name}" needs at least {min_size} '
+                                f'active members ({active_count} currently).'
+                            )
+                    else:
+                        error_msg = raw_error or 'Team roster does not meet requirements.'
 
+                    return {
+                        'eligible': False,
+                        'reason': error_msg,
+                        'status': 'roster_invalid',
+                        'action_url': f'/teams/{team_with_permission.slug}/',
+                        'action_label': 'Manage Team',
+                    }
+                
+            except Exception as e:
+                # Fallback to legacy validation if adapter fails (fail-safe)
+                # This preserves existing behavior even if adapter has issues
+                team_members = TeamMembership.objects.filter(
+                    team=team_with_permission,
+                    status=TeamMembership.Status.ACTIVE
+                )
+                
                 min_team_size = getattr(tournament.game, 'min_team_size', 5)
-                if active_count < min_team_size:
+                if team_members.count() < min_team_size:
                     return {
                         'eligible': False,
                         'reason': f'Your team needs at least {min_team_size} members.',

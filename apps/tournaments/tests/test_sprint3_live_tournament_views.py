@@ -16,6 +16,8 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Match, Registration, Game
@@ -578,12 +580,16 @@ class QueryOptimizationTests(TestCase):
         """Test that bracket view uses prefetch_related for matches."""
         url = reverse('tournaments:bracket', kwargs={'slug': self.tournament.slug})
         
-        # Use assertNumQueries to verify query optimization
-        # Note: Includes ~25 queries from sidebar context processor (game stats, tournaments lists, etc.)
-        with self.assertNumQueries(27):  # Tournament+bracket+matches (3-5) + ~25 sidebar queries
+        # Verify query count stays bounded (avoid regressions/N+1).
+        with CaptureQueriesContext(connection) as queries:
             response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(
+            len(queries),
+            12,
+            f"Too many bracket view queries ({len(queries)}). Expected <= 12.",
+        )
 
     def test_match_detail_uses_select_related(self):
         """Test that match detail view uses select_related."""
@@ -593,12 +599,16 @@ class QueryOptimizationTests(TestCase):
             'match_id': match.id
         })
         
-        # Query count should be minimal due to select_related
-        # Note: Includes ~6 queries from sidebar context processor
-        with self.assertNumQueries(28):  # Match query + 2 participant queries + ~25 base template sidebar queries
+        # Query count should remain bounded while rendering detail and context.
+        with CaptureQueriesContext(connection) as queries:
             response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(
+            len(queries),
+            20,
+            f"Too many match detail queries ({len(queries)}). Expected <= 20.",
+        )
 
 
 class URLValidationTests(TestCase):

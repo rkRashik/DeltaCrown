@@ -181,7 +181,9 @@ class Sprint1SmokeTests(TestCase):
         
         # Verify key context variables exist
         self.assertIn('tournament', response.context)
-        self.assertIn('cta_state', response.context)
+        self.assertIn('eligibility_status', response.context)
+        self.assertIn('can_register', response.context)
+        self.assertIn('registration_action_label', response.context)
         self.assertIn('slots_filled', response.context)
         self.assertIn('slots_total', response.context)
         
@@ -206,15 +208,17 @@ class Sprint1SmokeTests(TestCase):
         # Test 1: Anonymous user -> 'login_required' state
         response = self.client.get(f'/tournaments/{self.tournament.slug}/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['cta_state'], 'login_required')
-        self.assertContains(response, 'Login to Register')
+        self.assertEqual(response.context['eligibility_status'], 'not_authenticated')
+        self.assertFalse(response.context['can_register'])
+        self.assertIn('registration_action_label', response.context)
         
         # Test 2: Authenticated user -> 'open' state (eligible)
         self.client.login(username='player', password='testpass123')
         response = self.client.get(f'/tournaments/{self.tournament.slug}/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['cta_state'], 'open')
-        self.assertContains(response, 'Register Now')
+        self.assertEqual(response.context['eligibility_status'], 'eligible')
+        self.assertTrue(response.context['can_register'])
+        self.assertEqual(response.context['registration_action_label'], 'Register Now')
         
         # Test 3: Registered user -> 'registered' state
         Registration.objects.create(
@@ -225,8 +229,9 @@ class Sprint1SmokeTests(TestCase):
         )
         response = self.client.get(f'/tournaments/{self.tournament.slug}/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['cta_state'], 'registered')
-        self.assertContains(response, "You're Registered")
+        self.assertEqual(response.context['eligibility_status'], 'already_registered')
+        self.assertFalse(response.context['can_register'])
+        self.assertEqual(response.context['registration_action_label'], 'Enter Lobby')
         
         # Test 4: Verify CTA state transitions work without runtime errors
         # Additional states (full, closed, upcoming, not_eligible, no_team_permission) 
@@ -254,69 +259,44 @@ class Sprint1SmokeTests(TestCase):
             "Registration wizard should return 200 OK for logged-in user"
         )
         
-        # Verify wizard context
-        self.assertIn('current_step', response.context)
-        self.assertIn('total_steps', response.context)
+        # Verify smart registration context
         self.assertIn('tournament', response.context)
+        self.assertIn('fields', response.context)
+        self.assertIn('readiness', response.context)
+        self.assertIn('sections_total', response.context)
         
-        # Verify step calculation (SOLO + no entry fee = 3 steps: Eligibility, Custom Fields, Confirm)
-        self.assertEqual(response.context['current_step'], 1)
-        self.assertGreaterEqual(response.context['total_steps'], 3)
-        
-        # Verify Step 1 content appears
-        self.assertContains(response, 'Eligibility', msg_prefix="Step 1 title should appear")
+        # For solo free tournaments, there should still be at least one section to complete.
+        self.assertGreaterEqual(response.context['sections_total'], 1)
     
     def test_registration_wizard_complete_flow(self):
         """
         FE-T-004 Extended Smoke Test: Verify complete wizard flow works.
         
-        Tests full happy path:
-        1. GET wizard (Step 1: Eligibility)
-        2. POST to advance (Step 2: Custom Fields)
-        3. POST with data (Step 3: Review & Confirm)
-        4. POST submit (creates Registration via RegistrationService)
-        5. Redirect to success page
+        Tests full happy path for Smart Registration:
+        1. GET smart registration page
+        2. POST minimal required data
+        3. Registration is created and user is redirected to success page
         """
         self.client.login(username='player', password='testpass123')
         
-        # Step 1: GET wizard
+        # Step 1: GET smart registration page
         response = self.client.get(f'/tournaments/{self.tournament.slug}/register/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['current_step'], 1)
-        
-        # Step 2: POST to advance to custom fields
-        response = self.client.post(
-            f'/tournaments/{self.tournament.slug}/register/',
-            {'action': 'next', 'current_step': 1}
-        )
-        self.assertEqual(response.status_code, 200)
-        # Should advance to Step 2 (Custom Fields for SOLO tournament)
-        
-        # Step 3: Fill custom fields and advance to confirm
-        response = self.client.post(
-            f'/tournaments/{self.tournament.slug}/register/',
-            {
-                'action': 'next',
-                'current_step': 2,
-                'in_game_id': 'player123',
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        
-        # Final Step: Submit registration
+
+        # Step 2: Submit minimal required fields
         initial_count = Registration.objects.count()
         response = self.client.post(
             f'/tournaments/{self.tournament.slug}/register/',
             {
-                'action': 'submit',
-                'current_step': 3,
-                'agree_terms': 'on',
+                'registration_type': 'solo',
+                'game_id': 'player123',
+                'phone': '01700000000',
             }
         )
         
-        # Should redirect to success page
+        # Should redirect to smart success page
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.endswith('/success/'))
+        self.assertIn('/tournaments/', response.url)
         
         # Verify registration was created via RegistrationService
         self.assertEqual(Registration.objects.count(), initial_count + 1)

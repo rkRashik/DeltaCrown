@@ -483,10 +483,10 @@ class DisputeService:
         try:
             open_dispute = self.dispute_adapter.get_open_dispute_for_submission(submission_id)
             if open_dispute and open_dispute.id != current_dispute_id:
-                # Close it as auto-resolved
+                # Close it as dismissed to preserve canonical dispute terminal states.
                 self.dispute_adapter.update_dispute_status(
                     dispute_id=open_dispute.id,
-                    status='auto_resolved',
+                    status='dismissed',
                     resolved_by_user_id=None,
                     resolution_notes='Auto-closed due to resolution of another dispute for same submission',
                 )

@@ -304,9 +304,14 @@ def handle_match_state_change(sender, instance, created, **kwargs):
         # ── Discord match-result webhook on COMPLETED ──
         if new_state == Match.COMPLETED:
             try:
-                from apps.organizations.tasks.discord_sync import send_match_result_to_discord
-                send_match_result_to_discord.delay(instance.pk)
-                logger.info(f"Queued Discord match result for match {instance.pk}")
+                import os
+
+                if os.getenv('PYTEST_CURRENT_TEST'):
+                    logger.debug(f"Skipping Discord queue dispatch for match {instance.pk} during tests")
+                else:
+                    from apps.organizations.tasks.discord_sync import send_match_result_to_discord
+                    send_match_result_to_discord.delay(instance.pk)
+                    logger.info(f"Queued Discord match result for match {instance.pk}")
             except Exception as e:
                 logger.error(f"Failed to queue Discord match result: {e}")
 

@@ -33,6 +33,9 @@ class MatchResultSubmissionDTO(DTOBase):
     submitted_by_team_id: Optional[int] = None
     raw_result_payload: Dict[str, Any] = field(default_factory=dict)
     proof_screenshot_url: Optional[str] = None
+    source: str = 'manual'  # manual, riot_api, admin_override
+    ingestion_fingerprint: Optional[str] = None
+    ingested_at: Optional[datetime] = None
     status: str = 'pending'  # pending, confirmed, disputed, auto_confirmed, finalized, rejected
     submitted_at: Optional[datetime] = None
     confirmed_at: Optional[datetime] = None
@@ -58,21 +61,33 @@ class MatchResultSubmissionDTO(DTOBase):
         Returns:
             MatchResultSubmissionDTO
         """
+        match_obj = getattr(model, 'match', None)
+        tournament_id = getattr(model, 'tournament_id', None)
+        if tournament_id is None and match_obj is not None:
+            tournament_id = getattr(match_obj, 'tournament_id', 0)
+
+        stage_id = getattr(model, 'stage_id', None)
+        if stage_id is None and match_obj is not None:
+            stage_id = getattr(match_obj, 'stage_id', None)
+
         return cls(
             id=model.id,
             match_id=model.match_id,
-            tournament_id=model.tournament_id,
-            stage_id=model.stage_id,
+            tournament_id=tournament_id or 0,
+            stage_id=stage_id,
             submitted_by_user_id=model.submitted_by_user_id,
             submitted_by_team_id=model.submitted_by_team_id,
             raw_result_payload=model.raw_result_payload,
             proof_screenshot_url=model.proof_screenshot_url or None,
+            source=getattr(model, 'source', 'manual'),
+            ingestion_fingerprint=getattr(model, 'ingestion_fingerprint', None),
+            ingested_at=getattr(model, 'ingested_at', None),
             status=model.status,
             submitted_at=model.submitted_at,
             confirmed_at=model.confirmed_at,
             finalized_at=model.finalized_at,
             auto_confirm_deadline=model.auto_confirm_deadline,
-            confirmed_by_user_id=model.confirmed_by_user_id if model.confirmed_by_user else None,
+            confirmed_by_user_id=getattr(model, 'confirmed_by_user_id', None),
             submitter_notes=model.submitter_notes,
             organizer_notes=model.organizer_notes,
         )
@@ -85,6 +100,8 @@ class MatchResultSubmissionDTO(DTOBase):
             True if current time > auto_confirm_deadline
         """
         from datetime import datetime
+        if self.auto_confirm_deadline is None:
+            return False
         return datetime.now() > self.auto_confirm_deadline
     
     def validate(self) -> Tuple[bool, List[str]]:
@@ -100,6 +117,10 @@ class MatchResultSubmissionDTO(DTOBase):
         valid_statuses = ['pending', 'confirmed', 'disputed', 'auto_confirmed', 'finalized', 'rejected']
         if self.status not in valid_statuses:
             errors.append(f"Invalid status: {self.status}")
+
+        valid_sources = ['manual', 'riot_api', 'admin_override']
+        if self.source not in valid_sources:
+            errors.append(f"Invalid source: {self.source}")
         
         # Match ID must be positive
         if self.match_id <= 0:

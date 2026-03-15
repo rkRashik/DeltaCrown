@@ -105,8 +105,8 @@ class MatchService:
         # Get current match state
         match = self.match_adapter.get_match(match_id)
 
-        # Validate match is in pending state (scheduled, check_in, ready, cancelled)
-        valid_states = ["pending"]
+        # Validate match can be (re)scheduled from pre-live canonical states.
+        valid_states = ["scheduled", "check_in", "ready"]
         if match.state not in valid_states:
             raise InvalidMatchStateError(
                 f"Cannot schedule match {match_id} with state '{match.state}'. "
@@ -172,8 +172,8 @@ class MatchService:
         # Get current match state
         match = self.match_adapter.get_match(match_id)
 
-        # Validate match is in scheduled or live state
-        valid_states = ["pending", "in_progress"]
+        # Validate match is in an active canonical state where result reporting is allowed.
+        valid_states = ["live", "pending_result"]
         if match.state not in valid_states:
             raise InvalidMatchStateError(
                 f"Cannot report result for match {match_id} with state '{match.state}'. "
@@ -279,7 +279,7 @@ class MatchService:
         match = self.match_adapter.get_match(match_id)
 
         # Validate match is in pending_result or already completed state.
-        valid_states = ["in_progress", "completed"]  # DTO state for PENDING_RESULT/COMPLETED
+        valid_states = ["live", "pending_result", "disputed", "completed", "forfeit"]
         if match.state not in valid_states:
             raise InvalidMatchStateError(
                 f"Cannot accept result for match {match_id} with state '{match.state}'. "
@@ -401,8 +401,8 @@ class MatchService:
         # Get current match state
         match = self.match_adapter.get_match(match_id)
 
-        # Validate match has a result to void (pending_result, completed, or disputed)
-        voidable_states = ["in_progress", "completed", "disputed"]
+        # Validate match has a result to void (pending_result, completed, forfeit, or disputed)
+        voidable_states = ["pending_result", "completed", "forfeit", "disputed"]
         if match.state not in voidable_states:
             raise InvalidMatchStateError(
                 f"Cannot void result for match {match_id} with state '{match.state}'. "

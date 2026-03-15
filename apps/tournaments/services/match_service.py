@@ -1237,13 +1237,13 @@ class MatchService:
         if forfeiting_participant == 1:
             match.winner_id = match.participant2_id
             match.loser_id = match.participant1_id
-            match.score1 = 0
-            match.score2 = 1  # Forfeit score
+            match.participant1_score = 0
+            match.participant2_score = 1  # Forfeit score
         else:
             match.winner_id = match.participant1_id
             match.loser_id = match.participant2_id
-            match.score1 = 1  # Forfeit score
-            match.score2 = 0
+            match.participant1_score = 1  # Forfeit score
+            match.participant2_score = 0
         
         match.state = 'completed'
         
@@ -1284,12 +1284,12 @@ class MatchService:
             Updated Match instance
         """
         # Store old scores for audit
-        old_score1 = match.score1
-        old_score2 = match.score2
+        old_score1 = match.participant1_score
+        old_score2 = match.participant2_score
         
         # Update match
-        match.score1 = score1
-        match.score2 = score2
+        match.participant1_score = score1
+        match.participant2_score = score2
         
         # Determine winner
         if score1 > score2:
@@ -1383,8 +1383,8 @@ class MatchService:
             raise ValidationError('Scores cannot be tied')
         
         # Update match
-        match.score1 = score1
-        match.score2 = score2
+        match.participant1_score = score1
+        match.participant2_score = score2
         match.state = 'completed'
         
         # Determine winner

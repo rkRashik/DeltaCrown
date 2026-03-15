@@ -223,7 +223,7 @@ class ResultVerificationService:
             )
         
         # Apply scores to match via MatchService
-        self._apply_final_scores_to_match(
+        match_dto = self._apply_final_scores_to_match(
             match_id=submission.match_id,
             winner_team_id=winner_team_id,
             loser_team_id=loser_team_id,
@@ -276,6 +276,25 @@ class ResultVerificationService:
                 'dispute_resolved': dispute_resolved is not None,
             }
         ))
+
+        # Update user-profile tournament projections only after canonical finalization succeeds.
+        try:
+            from apps.user_profile.integrations.tournaments import on_match_finalized
+
+            on_match_finalized(
+                match_id=submission.match_id,
+                tournament_id=getattr(match_dto, 'tournament_id', 0),
+                winner_id=winner_team_id,
+                loser_id=loser_team_id,
+                winner_user_ids=[winner_team_id],
+                loser_user_ids=[loser_team_id],
+            )
+        except Exception as exc:  # pragma: no cover - projection hook must not break finalization
+            logger.warning(
+                "Post-finalization profile projection failed for submission %s: %s",
+                submission_id,
+                exc,
+            )
         
         return submission
     
