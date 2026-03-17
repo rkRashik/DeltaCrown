@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("leaderboards", "0002_initial"),
-        ("teams", "0001_initial"),
+        ("organizations", "0001_initial"),
         ("tournaments", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="leaderboard_snapshots",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddIndex(
@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="analytics_snapshots",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddField(
@@ -86,7 +86,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="match_history",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddField(
@@ -104,7 +104,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="team_rankings",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddField(
@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="team_stats",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddField(

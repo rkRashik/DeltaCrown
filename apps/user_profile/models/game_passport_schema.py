@@ -1,16 +1,18 @@
 # apps/user_profile/models/game_passport_schema.py
 """
-Game Passport Schema Model
+Game Choice Config Model (formerly GamePassportSchema)
 
-Defines per-game identity field requirements, region/rank/role choices,
-and normalization rules. This model serves as the configuration layer
-that makes Game Passports dynamic based on the selected game.
+Stores per-game dropdown choices (region, rank, role, platform, server,
+mode, premier_rating, division), identity format templates, and
+normalization rules.
+
+Companion to ``games.GamePlayerIdentityConfig`` which stores per-field
+definitions (field_name, type, regex, required, placeholder).
 
 Architecture:
-- One schema per Game (ForeignKey to apps.games.models.Game)
-- Stores identity field names (e.g., riot_name + tagline for Valorant)
-- Stores allowed region/rank/role choices as JSON
-- Defines normalization rules (case folding, stripping, etc.)
+- One config per Game (OneToOneField to apps.games.models.Game)
+- Stores allowed region/rank/role/platform choices as JSON
+- Defines identity format templates and normalization rules
 """
 
 from django.db import models
@@ -18,12 +20,13 @@ from django.core.exceptions import ValidationError
 import json
 
 
-class GamePassportSchema(models.Model):
+class GameChoiceConfig(models.Model):
     """
-    Per-game passport field schema and validation rules.
-    
-    This model defines what fields are required for each game's
-    passport and what choices are available for regions/ranks/roles.
+    Per-game dropdown choices, format templates, and normalization rules.
+
+    Stores the *choice-level* configuration for each game (regions, ranks,
+    roles, platforms, etc.) while ``games.GamePlayerIdentityConfig`` stores
+    the *field-level* definitions (name, type, regex, required).
     """
     
     # Link to Game (source of truth)
@@ -183,12 +186,13 @@ class GamePassportSchema(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Game Passport Schema"
-        verbose_name_plural = "Game Passport Schemas"
+        db_table = 'user_profile_gamepassportschema'   # preserve existing table
+        verbose_name = "Game Choice Config"
+        verbose_name_plural = "Game Choice Configs"
         ordering = ['game__name']
     
     def __str__(self):
-        return f"Schema: {self.game.name}"
+        return f"ChoiceConfig: {self.game.name}"
     
     def get_identity_field_names(self):
         """Get list of identity field names"""
@@ -343,3 +347,7 @@ class GamePassportSchema(models.Model):
         if not self.rank_choices:
             return []
         return [(choice['value'], choice['label']) for choice in self.rank_choices]
+
+
+# Backward-compat alias — allows existing imports / migrations to keep working
+GamePassportSchema = GameChoiceConfig

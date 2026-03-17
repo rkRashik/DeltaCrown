@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("teams", "0001_initial"),
+        ("organizations", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -795,7 +795,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="disputes",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (
@@ -1265,7 +1265,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="group_standings",
-                        to="teams.team",
+                        to="organizations.team",
                         verbose_name="Team",
                     ),
                 ),
@@ -2042,7 +2042,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="submitted_results",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (
@@ -3434,7 +3434,7 @@ class Migration(migrations.Migration):
                         help_text="Team for which permission is requested",
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="registration_permission_requests",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (
@@ -4076,7 +4076,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="tournament_check_ins",
-                        to="teams.team",
+                        to="organizations.team",
                         verbose_name="Team",
                     ),
                 ),
@@ -5241,7 +5241,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="form_tournament_registrations",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (

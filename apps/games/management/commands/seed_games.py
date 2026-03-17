@@ -17,7 +17,7 @@ from apps.games.models import (
     GamePlayerIdentityConfig,
     GameTournamentConfig
 )
-from apps.user_profile.models import GamePassportSchema
+from apps.user_profile.models import GameChoiceConfig
 
 
 class Command(BaseCommand):
@@ -1168,10 +1168,10 @@ class Command(BaseCommand):
             id_action = "Created" if id_created else "Updated"
             self.stdout.write(f"✓ {id_action} Player Identity: {identity.display_name}")
 
-        # Create or update GamePassportSchema (dropdown options)
+        # Create or update GameChoiceConfig (dropdown options)
         if 'dropdown_choices' in game_data:
             choices_data = game_data['dropdown_choices']
-            schema, schema_created = GamePassportSchema.objects.update_or_create(
+            schema, schema_created = GameChoiceConfig.objects.update_or_create(
                 game=game,
                 defaults={
                     'region_choices': choices_data.get('region_choices', []),
@@ -1186,7 +1186,7 @@ class Command(BaseCommand):
             )
             schema_action = "Created" if schema_created else "Updated"
             choice_types = [k.replace('_choices', '') for k in choices_data.keys()]
-            self.stdout.write(f"✓ {schema_action} GamePassportSchema ({', '.join(choice_types)} options)")
+            self.stdout.write(f"✓ {schema_action} GameChoiceConfig ({', '.join(choice_types)} options)")
 
         # Create or update Tournament Config
         if 'tournament_config' in game_data:

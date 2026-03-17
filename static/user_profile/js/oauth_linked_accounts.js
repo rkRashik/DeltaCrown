@@ -12,7 +12,7 @@
         valorant: '/api/oauth/riot/login/',
         cs2: '/profile/api/oauth/steam/login/?game=cs2&response_mode=json&callback_mode=redirect',
         dota2: '/profile/api/oauth/steam/login/?game=dota2&response_mode=json&callback_mode=redirect',
-        rocketleague: '/api/oauth/epic/login/'
+        rocketleague: '/profile/api/oauth/epic/login/?response_mode=json&callback_mode=redirect'
     };
 
     const SLUG_ALIASES = {
@@ -235,8 +235,31 @@
         return '';
     }
 
-    async function startDirectConnect(slug, route) {
+    function setButtonLoading(button, isLoading, loadingText) {
+        if (!button) return;
+
+        if (isLoading) {
+            if (!button.dataset.originalLabel) {
+                button.dataset.originalLabel = button.innerHTML;
+            }
+            button.disabled = true;
+            button.classList.add('opacity-70', 'cursor-wait');
+            button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + escapeHtml(loadingText || 'Connecting...');
+            return;
+        }
+
+        button.disabled = false;
+        button.classList.remove('opacity-70', 'cursor-wait');
+        if (button.dataset.originalLabel) {
+            button.innerHTML = button.dataset.originalLabel;
+            delete button.dataset.originalLabel;
+        }
+    }
+
+    async function startDirectConnect(slug, route, button) {
         const providerLabel = getProviderLabel(slug);
+        setButtonLoading(button, true, 'Connecting...');
+
         showOAuthHandoff(
             'Preparing ' + providerLabel + ' sign-in',
             'Securing handoff from Player Hub...'
@@ -254,11 +277,10 @@
                 'Redirecting to secure authentication...'
             );
 
-            setTimeout(function () {
-                window.location.assign(authorizationUrl);
-            }, 220);
+            window.location.href = authorizationUrl;
         } catch (error) {
             hideOAuthHandoff();
+            setButtonLoading(button, false);
             showToast(error.message || ('Could not start ' + providerLabel + ' login.'), 'error');
         }
     }
@@ -501,6 +523,20 @@
         );
     }
 
+    function isLiveStatsSnapshot(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return false;
+        }
+
+        return !!(
+            value.recent_kd_ratio !== undefined ||
+            value.recent_win_rate_pct !== undefined ||
+            value.sample_size !== undefined ||
+            value.most_played_role !== undefined ||
+            value.synced_at !== undefined
+        );
+    }
+
     function asNumber(value) {
         if (value === null || value === undefined || value === '') return null;
         const parsed = Number(value);
@@ -596,6 +632,12 @@
         });
 
         if (!snapshot) {
+            if (isLiveStatsSnapshot(map)) {
+                snapshot = map;
+            }
+        }
+
+        if (!snapshot) {
             Object.keys(map).some(function (key) {
                 const candidate = map[key];
                 if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
@@ -639,15 +681,24 @@
                 kdRatio !== null ||
                 winRate !== null ||
                 (matchesPlayed || 0) > 0 ||
-                String(payload.main_role || '').trim()
+                String(payload.main_role || (snapshot && snapshot.most_played_role) || (passport && passport.main_role) || '').trim()
             ),
         };
 
         return merged;
     }
 
+    function shouldRenderLivePerformance(passport, game) {
+        if (isApiSyncedPassport(passport, game)) {
+            return true;
+        }
+
+        const perf = getLivePerformance(passport, game);
+        return !!perf.hasStats;
+    }
+
     function renderLivePerformance(passport, game) {
-        if (!isApiSyncedPassport(passport, game)) {
+        if (!shouldRenderLivePerformance(passport, game)) {
             return '';
         }
 
@@ -662,7 +713,7 @@
                     '<div class="gp-live-syncing-body">' +
                         '<i class="fa-solid fa-arrows-rotate fa-spin"></i>' +
                         '<div>' +
-                            '<p class="gp-live-syncing-copy">Syncing stats...</p>' +
+                            '<p class="gp-live-syncing-copy gp-live-syncing-pulse">Fetching live stats...</p>' +
                             '<p class="gp-live-syncing-sub">K/D, win rate, and role projection will appear after the next sync cycle.</p>' +
                         '</div>' +
                     '</div>' +
@@ -804,7 +855,7 @@
             const icon = getGameIconMarkup(game, title);
             const tags = collectMetaTags(passport, game);
             const canEdit = !isApiSyncedPassport(passport, game);
-            const isApiSynced = isApiSyncedPassport(passport, game);
+            const isApiSynced = isApiSyncedPassport(passport, game) || shouldRenderLivePerformance(passport, game);
             const isLocked = lockState.isDeleteBlocked;
             const livePerformanceMarkup = renderLivePerformance(passport, game);
 
@@ -1405,7 +1456,13 @@
             startResendTimer(60);
             showToast('A new code has been sent.', 'success');
         } catch (error) {
-            showDisconnectError(error.message || 'Could not resend the code.');
+            const details = (error.payload && error.payload.metadata) || {};
+            if (error.status === 429 && Number(details.seconds_remaining || 0) > 0) {
+                startResendTimer(Number(details.seconds_remaining));
+            }
+            const message = error.message || 'Could not resend the code.';
+            showDisconnectError(message);
+            showToast(message, 'error');
         }
     }
 
@@ -1437,7 +1494,9 @@
             await refreshData();
             showToast('Game disconnected.', 'success');
         } catch (error) {
-            showDisconnectError(error.message || 'Could not disconnect this game.');
+            const message = error.message || 'Could not disconnect this game.';
+            showDisconnectError(message);
+            showToast(message, 'error');
         } finally {
             if (confirmBtn) {
                 confirmBtn.disabled = false;
@@ -1446,7 +1505,7 @@
         }
     }
 
-    async function initiateOTPDelete(passportId) {
+    async function initiateOTPDelete(passportId, triggerButton) {
         const passport = state.passports.find(function (item) {
             return Number(item.id) === Number(passportId);
         });
@@ -1462,12 +1521,19 @@
             return;
         }
 
+        setButtonLoading(triggerButton, true, 'Sending Code...');
         try {
             await requestDeleteOtp(passport.id);
             openDisconnectModal(passport);
             showToast('Confirmation code sent.', 'success');
         } catch (error) {
+            const details = (error.payload && error.payload.metadata) || {};
+            if (error.status === 429 && Number(details.seconds_remaining || 0) > 0) {
+                startResendTimer(Number(details.seconds_remaining));
+            }
             showToast(error.message || 'Could not start disconnect flow.', 'error');
+        } finally {
+            setButtonLoading(triggerButton, false);
         }
     }
 
@@ -1482,12 +1548,7 @@
             const route = DIRECT_CONNECT_ROUTES[slug];
 
             if (route) {
-                const isSteamRoute = slug === 'cs2' || slug === 'dota2';
-                if (isSteamRoute) {
-                    await startDirectConnect(slug, route);
-                } else {
-                    window.location.href = route;
-                }
+                await startDirectConnect(slug, route, actionBtn);
                 return;
             }
 
@@ -1525,11 +1586,11 @@
             if (!passportId) return;
 
             if (window.gamePassports && typeof window.gamePassports.initiateOTPDelete === 'function') {
-                window.gamePassports.initiateOTPDelete(passportId);
+                window.gamePassports.initiateOTPDelete(passportId, actionBtn);
                 return;
             }
 
-            initiateOTPDelete(passportId);
+            initiateOTPDelete(passportId, actionBtn);
         }
     }
 

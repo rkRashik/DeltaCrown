@@ -39,7 +39,7 @@ from tests.websocket_test_middleware import TestJWTAuthMiddleware
 
 # Import WebSocket routing
 from apps.tournaments.realtime.routing import websocket_urlpatterns as tournament_ws_urls
-from apps.teams.realtime.routing import websocket_urlpatterns as team_ws_urls
+from apps.organizations.realtime.routing import websocket_urlpatterns as team_ws_urls
 
 # Import echo consumer for wiring tests
 from tests.test_echo_consumer import EchoConsumer

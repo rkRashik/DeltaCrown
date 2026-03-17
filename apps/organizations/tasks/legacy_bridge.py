@@ -21,9 +21,14 @@ logger = logging.getLogger(__name__)
     default_retry_delay=300,
 )
 def recompute_team_rankings(self, tournament_id=None):
-    """Legacy alias → recalculate_team_rankings."""
+    """Legacy alias → recalculate_team_rankings.
+
+    Calls the ranking function directly instead of dispatching a child task,
+    which would deadlock with concurrency=1 (the worker blocks waiting for a
+    result that it cannot process because it is already occupied).
+    """
     from apps.organizations.tasks.rankings import recalculate_team_rankings
-    return recalculate_team_rankings.apply(kwargs={}).get(timeout=600)
+    return recalculate_team_rankings()
 
 
 @shared_task(

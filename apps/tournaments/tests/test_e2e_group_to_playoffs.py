@@ -18,7 +18,7 @@ from apps.tournaments.models import (
     Match,
     Game,
 )
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.tournaments.services.group_stage_service import GroupStageService
 from apps.tournaments.services.stage_transition_service import StageTransitionService
 

@@ -31,8 +31,7 @@ from apps.user_profile.models_main import UserProfile, GameProfile
 from apps.tournaments.models import (
     Tournament, Registration, Match, Group, GroupStanding, Bracket,
 )
-from apps.teams.models._legacy import Team as LegacyTeam
-from apps.teams.mixins import legacy_write_bypass
+from apps.organizations.models import Team
 
 try:
     from apps.tournaments.models.stage import TournamentStage
@@ -355,7 +354,6 @@ class Command(BaseCommand):
         self.user_map = {}   # username -> User
         self.team_map = {}   # team_name -> Team (vNext)
         self.org_map = {}    # org_slug -> Organization
-        self.legacy_map = {}  # team_name -> LegacyTeam
 
         # Track which user is assigned to which game's team
         self.user_game_assignments = {}  # (username, game_display_name) -> team_name
@@ -437,8 +435,6 @@ class Command(BaseCommand):
         # Delete teams
         team_slugs = [slugify(t[0]) for t in TEAMS]
         Team.objects.filter(slug__in=team_slugs).delete()
-        with legacy_write_bypass(reason="seed_clear"):
-            LegacyTeam.objects.filter(slug__in=team_slugs).delete()
 
         # Delete orgs
         Organization.objects.filter(slug__in=["titan-esports", "eclipse-gaming", "crown-dynasty"]).delete()
@@ -572,19 +568,6 @@ class Command(BaseCommand):
                 }
             )
             self.team_map[name] = team
-
-            # Create legacy team for GroupStanding FK compat
-            with legacy_write_bypass(reason="seed_legacy"):
-                lt, _ = LegacyTeam.objects.get_or_create(
-                    slug=team_slug,
-                    defaults={
-                        "name": name,
-                        "tag": tag or name[:3].upper(),
-                        "game": game.slug,
-                        "region": "BD",
-                    }
-                )
-                self.legacy_map[name] = lt
 
             # Owner membership
             self._add_membership(team, owner, game, "OWNER", "STARTER", True, org)

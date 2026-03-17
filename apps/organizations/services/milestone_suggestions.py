@@ -113,38 +113,13 @@ def _suggest_tournament_placements(team) -> List[Dict[str, Any]]:
 
 
 def _suggest_ranking_milestones(team) -> List[Dict[str, Any]]:
-    """Find significant ranking point gains in last 60 days."""
-    from apps.teams.models.ranking import TeamRankingHistory
+    """Find significant ranking point gains in last 60 days.
 
-    cutoff = timezone.now() - timedelta(days=60)
-    results = []
-
-    # Big positive point changes (>= 100 points from tournament wins/placements)
-    big_gains = TeamRankingHistory.objects.filter(
-        team_id=team.id,
-        created_at__gte=cutoff,
-        points_change__gte=100,
-        source__in=['tournament_winner', 'tournament_runner_up', 'tournament_top_4', 'achievement'],
-    ).order_by('-points_change')[:3]
-
-    for h in big_gains:
-        source_labels = {
-            'tournament_winner': 'Tournament Victory',
-            'tournament_runner_up': 'Runner-Up Finish',
-            'tournament_top_4': 'Top 4 Finish',
-            'achievement': 'Achievement Unlocked',
-        }
-        label = source_labels.get(h.source, 'Ranking Milestone')
-        results.append({
-            'key': f'rank-{h.pk}',
-            'title': f'{label}: +{h.points_change} pts',
-            'description': h.reason or f'Ranking points increased from {h.points_before} to {h.points_after}',
-            'date': h.created_at.date().isoformat(),
-            'milestone_type': 'RANK_UP',
-            'icon': '📈',
-        })
-
-    return results
+    Legacy TeamRankingHistory (apps.teams) has been removed.
+    This hook returns an empty list until a vNext ranking history
+    model is introduced.
+    """
+    return []
 
 
 def _suggest_team_founded(team) -> List[Dict[str, Any]]:

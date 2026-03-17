@@ -1298,7 +1298,7 @@ class TestTeamDetailQueryBudget(TestCase):
     6. TeamInvite/TeamJoinRequest check (pending_actions)
     """
     
-@unittest.skip("Phase 3: TeamSponsor FK points to legacy teams.Team, not vNext Team")
+@unittest.skip("TeamSponsor model removed with apps.teams (TASK-015)")
 class TestTeamDetailQueryBudget(TestCase):
     """Test query count budget for team detail context generation."""
     

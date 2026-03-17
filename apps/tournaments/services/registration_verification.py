@@ -197,8 +197,8 @@ class RegistrationVerificationService:
             team_discord = rd.get('discord_url', '') or rd.get('comms_url', '')
             if not team_discord and reg.team_id:
                 try:
-                    from apps.teams.models import OrgTeam
-                    org_team = OrgTeam.objects.filter(id=reg.team_id).first()
+                    from apps.organizations.models import Team
+                    org_team = Team.objects.filter(id=reg.team_id).first()
                     if org_team:
                         team_discord = getattr(org_team, 'discord_url', '') or ''
                 except Exception:
@@ -252,8 +252,8 @@ class RegistrationVerificationService:
             pname = (reg.registration_data or {}).get('display_name', '') or ''
             if not pname and reg.team_id:
                 try:
-                    from apps.teams.models import OrgTeam
-                    ot = OrgTeam.objects.filter(id=reg.team_id).values_list('name', flat=True).first()
+                    from apps.organizations.models import Team
+                    ot = Team.objects.filter(id=reg.team_id).values_list('name', flat=True).first()
                     pname = ot or ''
                 except Exception:
                     pass

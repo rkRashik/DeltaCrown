@@ -2,7 +2,7 @@
 Test Game Passport Service Schema Enforcement (GP-1 Task 5)
 
 Tests that GamePassportService enforces the same schema validation rules as the admin form.
-All validation is driven by GamePassportSchema (single source of truth).
+All validation is driven by GameChoiceConfig (single source of truth).
 
 Test Coverage:
 1. Required identity fields per game
@@ -26,7 +26,7 @@ from apps.user_profile.models import (
     GameProfile,
     GameProfileAlias,
     GameProfileConfig,
-    GamePassportSchema
+    GameChoiceConfig
 )
 from apps.games.models import Game
 from apps.user_profile.services.game_passport_service import GamePassportService
@@ -63,7 +63,7 @@ class TestServiceCreateValidation:
         if not hasattr(self.valorant, 'passport_schema'):
             call_command('seed_game_passport_schemas')
         
-        self.schema = GamePassportSchema.objects.get(game=self.valorant)
+        self.schema = GameChoiceConfig.objects.get(game=self.valorant)
     
     def test_service_create_valorant_requires_riot_name_and_tagline(self):
         """Service should reject Valorant passport without riot_name+tagline"""

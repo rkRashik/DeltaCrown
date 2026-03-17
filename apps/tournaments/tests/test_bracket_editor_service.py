@@ -25,7 +25,7 @@ from apps.tournaments.models import (
     TournamentStage,
     BracketEditLog,
 )
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.tournaments.services.bracket_editor_service import (
     BracketEditorService,
     ValidationResult,

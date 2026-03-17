@@ -39,7 +39,6 @@ from apps.organizations.models import (
     TeamMigrationMap,
     TeamActivityLog,
 )
-from apps.teams.models import Team as LegacyTeam
 from apps.organizations.choices import (
     TeamStatus,
     MembershipStatus,
@@ -207,10 +206,10 @@ class TeamMembershipFactory(DjangoModelFactory):
 
 
 class LegacyTeamFactory(DjangoModelFactory):
-    """Factory for legacy teams.Team – used by TeamRanking FK."""
+    """Factory for Team — alias kept for backward-compat with test_ranking tests."""
 
     class Meta:
-        model = LegacyTeam
+        model = Team
 
     name = factory.Sequence(lambda n: f"Legacy Team {n}")
     tag = factory.Sequence(lambda n: f"LT{n:04d}")

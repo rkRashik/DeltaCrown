@@ -86,7 +86,7 @@ class TestLegacyDefaultSafety:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         team = Team.objects.create(
             name="Test Team",
             slug="test-team",
@@ -162,7 +162,7 @@ class TestLegacyDefaultSafety:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         team = Team.objects.create(
             name="Test Team",
             slug="test-team",
@@ -209,7 +209,7 @@ class TestVNextAllowlistRouting:
         TEAM_VNEXT_ROUTING_MODE="auto",
         TEAM_VNEXT_TEAM_ALLOWLIST=[999],  # Allowlist team ID 999
     )
-    @patch('apps.organizations.adapters.team_adapter.VNextTeam')
+    @patch('apps.organizations.adapters.team_adapter.Team')
     @patch('apps.organizations.adapters.team_adapter.TeamService')
     def test_allowlisted_team_uses_vnext_path(
         self, mock_service, mock_vnext_team, db
@@ -242,7 +242,7 @@ class TestVNextAllowlistRouting:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         
         # Create team with ID 999 (allowlisted)
         team = Team.objects.create(
@@ -294,7 +294,7 @@ class TestVNextAllowlistRouting:
         TEAM_VNEXT_ROUTING_MODE="auto",
         TEAM_VNEXT_TEAM_ALLOWLIST=[999],
     )
-    @patch('apps.organizations.adapters.team_adapter.VNextTeam')
+    @patch('apps.organizations.adapters.team_adapter.Team')
     @patch('apps.organizations.adapters.team_adapter.TeamService')
     def test_non_allowlisted_team_uses_legacy_path(
         self, mock_service, mock_vnext_team, db
@@ -320,7 +320,7 @@ class TestVNextAllowlistRouting:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         
         # Create team with ID 888 (NOT in allowlist)
         team = Team.objects.create(
@@ -370,7 +370,7 @@ class TestEmergencyRollback:
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
         TEAM_VNEXT_TEAM_ALLOWLIST=[999],
     )
-    @patch('apps.organizations.adapters.team_adapter.VNextTeam')
+    @patch('apps.organizations.adapters.team_adapter.Team')
     @patch('apps.organizations.adapters.team_adapter.TeamService')
     def test_force_legacy_overrides_all_settings(
         self, mock_service, mock_vnext_team, db
@@ -402,7 +402,7 @@ class TestEmergencyRollback:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         
         # Create team with ID 999 (allowlisted, but FORCE_LEGACY is active)
         team = Team.objects.create(
@@ -484,7 +484,7 @@ class TestQueryCountPerformance(TransactionTestCase):
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         team = Team.objects.create(
             name="Test Team",
             slug="test-team",
@@ -531,7 +531,7 @@ class TestQueryCountPerformance(TransactionTestCase):
         TEAM_VNEXT_ROUTING_MODE="auto",
         TEAM_VNEXT_TEAM_ALLOWLIST=[999],
     )
-    @patch('apps.organizations.adapters.team_adapter.VNextTeam')
+    @patch('apps.organizations.adapters.team_adapter.Team')
     @patch('apps.organizations.adapters.team_adapter.TeamService')
     def test_vnext_path_query_count(self, mock_service, mock_vnext_team):
         """
@@ -565,7 +565,7 @@ class TestQueryCountPerformance(TransactionTestCase):
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.create(user=user)
         
-        from apps.teams.models import Team, TeamMembership
+        from apps.organizations.models import Team, TeamMembership
         team = Team.objects.create(
             id=999,
             name="vNext Team",

@@ -268,7 +268,7 @@ def award_placements(tournament) -> List[DeltaCrownTransaction]:
                     continue
                 loser_id = m.participant2_id if m.winner_id == m.participant1_id else m.participant1_id
                 # Look up Team object for captain_profile()
-                from apps.teams.models import Team
+                from apps.organizations.models import Team
                 try:
                     loser_team = Team.objects.get(pk=loser_id)
                 except Team.DoesNotExist:

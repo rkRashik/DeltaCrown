@@ -731,3 +731,213 @@ def sync_all_active_riot_passports(self) -> dict[str, Any]:
     )
 
     return summary
+
+
+@shared_task(bind=True, name="user_profile.sync_all_active_steam_passports")
+def sync_all_active_steam_passports(self) -> dict[str, Any]:
+    """Periodic sync: refresh Steam persona name and avatar for linked passports."""
+    from apps.user_profile.services.oauth_steam_service import fetch_player_summary, SteamOpenIDError
+
+    started_at = timezone.now()
+    per_conn_delay = float(getattr(settings, "STEAM_SYNC_DELAY_SECONDS", 0.5))
+
+    queryset = (
+        GameOAuthConnection.objects
+        .filter(provider=GameOAuthConnection.Provider.STEAM)
+        .select_related("passport", "passport__game")
+        .exclude(provider_account_id="")
+    )
+    total = queryset.count()
+
+    summary: dict[str, Any] = {
+        "started_at": started_at.isoformat(),
+        "total_candidates": total,
+        "synced": 0,
+        "failed": 0,
+        "errors": [],
+    }
+
+    if total == 0:
+        summary["finished_at"] = timezone.now().isoformat()
+        return summary
+
+    for conn in queryset.iterator(chunk_size=25):
+        steam_id = conn.provider_account_id
+        try:
+            player = fetch_player_summary(steam_id)
+        except SteamOpenIDError as exc:
+            summary["failed"] += 1
+            if len(summary["errors"]) < 25:
+                summary["errors"].append({
+                    "connection_id": conn.id,
+                    "steam_id": steam_id,
+                    "error_code": exc.error_code,
+                    "message": exc.message,
+                })
+            logger.warning(
+                "Steam sync failed for connection %s (steam_id=%s): %s",
+                conn.id, steam_id, exc.message,
+            )
+            _sleep(per_conn_delay)
+            continue
+        except Exception:
+            summary["failed"] += 1
+            if len(summary["errors"]) < 25:
+                summary["errors"].append({
+                    "connection_id": conn.id,
+                    "steam_id": steam_id,
+                    "error_code": "UNEXPECTED_ERROR",
+                })
+            logger.exception("Unexpected Steam sync error for connection %s", conn.id)
+            _sleep(per_conn_delay)
+            continue
+
+        passport = conn.passport
+        metadata = passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
+        metadata.update({
+            "steam_persona_name": player.personaname,
+            "steam_avatar": player.avatar,
+            "steam_avatar_medium": player.avatar_medium,
+            "steam_avatar_full": player.avatar_full,
+            "steam_profile_url": player.profile_url,
+        })
+
+        # Fetch CS2 aggregate stats for CS2 passports (best-effort; non-fatal)
+        game_slug = getattr(getattr(conn, "passport", None), "game", None)
+        game_slug = getattr(game_slug, "slug", "").lower() if game_slug else ""
+        cs2_stats = None
+        if game_slug == "cs2":
+            try:
+                from apps.user_profile.services.steam_cs2_stats_service import fetch_cs2_stats, CS2StatsError
+                cs2_stats = fetch_cs2_stats(steam_id)
+                metadata["cs2_stats"] = cs2_stats
+            except Exception:
+                pass  # Stats are best-effort; persona sync still succeeds
+
+        passport.ign = player.personaname
+        passport.in_game_name = player.personaname
+        passport.metadata = metadata
+        if cs2_stats is not None:
+            passport.kd_ratio = cs2_stats.get("kd_ratio")
+            passport.win_rate = int(round(cs2_stats.get("win_rate", 0)))
+            secs = cs2_stats.get("total_time_played_seconds") or 0
+            passport.hours_played = (secs // 3600) or None
+        update_fields = ["ign", "in_game_name", "metadata", "updated_at"]
+        if cs2_stats is not None:
+            update_fields += ["kd_ratio", "win_rate", "hours_played"]
+        passport.save(update_fields=update_fields)
+
+        conn.last_synced_at = timezone.now()
+        conn.save(update_fields=["last_synced_at"])
+
+        summary["synced"] += 1
+        _sleep(per_conn_delay)
+
+    finished_at = timezone.now()
+    summary["finished_at"] = finished_at.isoformat()
+    summary["duration_seconds"] = round((finished_at - started_at).total_seconds(), 2)
+    logger.info(
+        "Steam passport sync finished: candidates=%s synced=%s failed=%s duration=%.2fs",
+        summary["total_candidates"], summary["synced"], summary["failed"], summary["duration_seconds"],
+    )
+    return summary
+
+
+@shared_task(bind=True, name="user_profile.sync_all_active_epic_passports")
+def sync_all_active_epic_passports(self) -> dict[str, Any]:
+    """Periodic sync: proactively refresh Epic OAuth tokens before they expire."""
+    from apps.user_profile.services.oauth_epic_service import refresh_epic_access_token, EpicOAuthError
+
+    started_at = timezone.now()
+    refresh_window_minutes = int(getattr(settings, "EPIC_TOKEN_REFRESH_WINDOW_MINUTES", 30))
+    per_conn_delay = float(getattr(settings, "EPIC_SYNC_DELAY_SECONDS", 0.3))
+    refresh_before = timezone.now() + timedelta(minutes=refresh_window_minutes)
+
+    # Process connections expiring within the refresh window OR with unknown expiry
+    queryset = (
+        GameOAuthConnection.objects
+        .filter(provider=GameOAuthConnection.Provider.EPIC)
+        .filter(
+            Q(expires_at__isnull=False, expires_at__lte=refresh_before)
+            | Q(expires_at__isnull=True)
+        )
+        .select_related("passport")
+        .exclude(refresh_token="")
+    )
+    total = queryset.count()
+
+    summary: dict[str, Any] = {
+        "started_at": started_at.isoformat(),
+        "total_candidates": total,
+        "refreshed": 0,
+        "failed": 0,
+        "requires_reauth": [],
+        "errors": [],
+    }
+
+    if total == 0:
+        summary["finished_at"] = timezone.now().isoformat()
+        return summary
+
+    for conn in queryset.iterator(chunk_size=25):
+        try:
+            conn = refresh_epic_access_token(conn)
+            summary["refreshed"] += 1
+
+            # Best-effort: refresh Epic display name via userinfo endpoint
+            try:
+                from apps.user_profile.services.epic_rl_stats_service import fetch_epic_profile
+                profile = fetch_epic_profile(conn)
+                display_name = profile.get("display_name", "")
+                if display_name:
+                    passport = conn.passport
+                    metadata = passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
+                    metadata["epic_display_name"] = display_name
+                    passport.ign = display_name
+                    passport.in_game_name = display_name
+                    passport.metadata = metadata
+                    passport.save(update_fields=["ign", "in_game_name", "metadata", "updated_at"])
+            except Exception:
+                pass  # Display name refresh is best-effort; token refresh still counted
+        except EpicOAuthError as exc:
+            if exc.status_code == 401:
+                # Refresh token invalid/expired — user must re-authenticate
+                summary["requires_reauth"].append(conn.passport_id)
+                logger.info(
+                    "Epic refresh token expired for connection %s (passport_id=%s)",
+                    conn.id, conn.passport_id,
+                )
+            else:
+                summary["failed"] += 1
+                if len(summary["errors"]) < 25:
+                    summary["errors"].append({
+                        "connection_id": conn.id,
+                        "passport_id": conn.passport_id,
+                        "error_code": exc.error_code,
+                        "message": exc.message,
+                    })
+                logger.warning(
+                    "Epic token refresh failed for connection %s: %s (%s)",
+                    conn.id, exc.message, exc.error_code,
+                )
+        except Exception:
+            summary["failed"] += 1
+            if len(summary["errors"]) < 25:
+                summary["errors"].append({
+                    "connection_id": conn.id,
+                    "passport_id": conn.passport_id,
+                    "error_code": "UNEXPECTED_ERROR",
+                })
+            logger.exception("Unexpected Epic sync error for connection %s", conn.id)
+
+        _sleep(per_conn_delay)
+
+    finished_at = timezone.now()
+    summary["finished_at"] = finished_at.isoformat()
+    summary["duration_seconds"] = round((finished_at - started_at).total_seconds(), 2)
+    logger.info(
+        "Epic passport sync finished: candidates=%s refreshed=%s reauth_needed=%s failed=%s duration=%.2fs",
+        summary["total_candidates"], summary["refreshed"], len(summary["requires_reauth"]),
+        summary["failed"], summary["duration_seconds"],
+    )
+    return summary

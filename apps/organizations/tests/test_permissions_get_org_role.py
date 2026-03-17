@@ -7,7 +7,7 @@ and permission flags for different user types.
 
 import pytest
 from django.contrib.auth import get_user_model
-from apps.organizations.models import Organization, OrganizationStaffMembership
+from apps.organizations.models import Organization, OrganizationMembership
 
 User = get_user_model()
 from apps.organizations.permissions import (
@@ -44,7 +44,7 @@ class TestGetOrgRole:
         """User with ADMIN staff membership gets ADMIN role."""
         user = User.objects.create_user("admin_user")
         org = Organization.objects.create(name="Test Org", slug="test-org")
-        OrganizationStaffMembership.objects.create(
+        OrganizationMembership.objects.create(
             organization=org,
             user=user,
             role='ADMIN'
@@ -56,7 +56,7 @@ class TestGetOrgRole:
         """User with MANAGER staff membership gets MANAGER role."""
         user = User.objects.create_user("manager_user")
         org = Organization.objects.create(name="Test Org", slug="test-org")
-        OrganizationStaffMembership.objects.create(
+        OrganizationMembership.objects.create(
             organization=org,
             user=user,
             role='MANAGER'
@@ -117,8 +117,8 @@ class TestPermissionCheckers:
         assert can_modify_governance('NONE') is False
 
     def test_can_execute_terminal_actions(self):
-        """Terminal actions (delete, transfer) only for STAFF and CEO."""
-        assert can_execute_terminal_actions('STAFF') is True
+        """Terminal actions (delete, transfer) only for CEO."""
+        assert can_execute_terminal_actions('STAFF') is False
         assert can_execute_terminal_actions('CEO') is True
         assert can_execute_terminal_actions('ADMIN') is False
         assert can_execute_terminal_actions('MANAGER') is False
@@ -148,7 +148,7 @@ class TestGetPermissionContext:
         """Manager has limited permissions."""
         user = User.objects.create_user("manager_user")
         org = Organization.objects.create(name="Test Org", slug="test-org")
-        OrganizationStaffMembership.objects.create(
+        OrganizationMembership.objects.create(
             organization=org,
             user=user,
             role='MANAGER'

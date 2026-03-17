@@ -303,8 +303,7 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.corelib",
     "apps.games",  # Phase 3: Centralized game configuration
-    "apps.teams",  # FROZEN STUB — kept only for migration history & FK resolution. No views/URLs.
-    "apps.organizations.apps.OrganizationsConfig",  # vNext — ALL team/org logic lives here
+    "apps.organizations.apps.OrganizationsConfig",  # ALL team/org logic
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
     # New Tournament Engine being built (Phase 1, Module 1.2 - November 2025)
     "apps.tournaments",
@@ -336,6 +335,7 @@ MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus timing (FIRST)
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
+    "deltacrown.middleware.security_headers.CSPMiddleware",  # Content Security Policy
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
     "deltacrown.middleware.media_proxy.MediaProxyMiddleware",  # Dev: proxy missing media to production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
@@ -396,8 +396,23 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "apps.organizations.context_processors.vnext_feature_flags",  # vNext feature flags for UI gating
 ]
 
+# -----------------------------------------------------------------------------
+# Redis DB Isolation (TASK-010)
+# DB 0 = Cache, DB 1 = Celery Broker, DB 2 = Celery Results, DB 3 = Channels
+# Uses a single REDIS_URL and appends /N for each subsystem.
+# -----------------------------------------------------------------------------
+def _redis_url_with_db(base_url: str, db: int) -> str:
+    """Append or replace the DB number on a Redis URL."""
+    if not base_url:
+        return base_url
+    # Strip trailing slash and any existing /N suffix
+    import re
+    return re.sub(r'/\d*$', '', base_url.rstrip('/')) + f'/{db}'
+
+_BASE_REDIS_URL = os.getenv("REDIS_URL", "")
+
 # Cache: Redis in production (shared across workers), local memory for dev
-_CACHE_REDIS = os.getenv("REDIS_URL")
+_CACHE_REDIS = _redis_url_with_db(_BASE_REDIS_URL, 0) if _BASE_REDIS_URL else None
 if _CACHE_REDIS and not DEBUG:
     # Keep Redis cache IO fail-fast to avoid long request stalls on free-tier networking jitter.
     _cache_socket_timeout = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "2.0"))
@@ -409,6 +424,7 @@ if _CACHE_REDIS and not DEBUG:
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": _CACHE_REDIS,
+            "KEY_PREFIX": "dc",
             "OPTIONS": {
                 "socket_timeout": _cache_socket_timeout,
                 "socket_connect_timeout": _cache_connect_timeout,
@@ -943,7 +959,7 @@ ASGI_APPLICATION = 'deltacrown.asgi.application'
 # Override dev → Redis:     set USE_REDIS_CHANNELS=1 in .env
 # -----------------------------------------------------------------------------
 _USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
-_REDIS_CHANNEL_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+_REDIS_CHANNEL_URL = _redis_url_with_db(_BASE_REDIS_URL, 3) if _BASE_REDIS_URL else 'redis://localhost:6379/3'
 
 if _USE_REDIS_CHANNELS:
     CHANNEL_LAYERS = {
@@ -951,6 +967,7 @@ if _USE_REDIS_CHANNELS:
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
                 'hosts': [_REDIS_CHANNEL_URL],
+                'prefix': 'dc-ws',
                 'capacity': 1500,
                 'expiry': 10,
             },
@@ -993,11 +1010,12 @@ WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all or
 # -----------------------------------------------------------------------------
 # Celery Configuration
 # -----------------------------------------------------------------------------
-# REDIS_URL is the single env var for external Redis (e.g. Upstash on Render).
-# CELERY_BROKER_URL / CELERY_RESULT_BACKEND override it if set explicitly.
-_REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', _REDIS_URL)
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', _REDIS_URL)
+# DB isolation: Broker=DB1, Results=DB2 (Cache=DB0, Channels=DB3).
+# CELERY_BROKER_URL / CELERY_RESULT_BACKEND env vars override if set explicitly.
+_celery_broker_default = _redis_url_with_db(_BASE_REDIS_URL, 1) if _BASE_REDIS_URL else 'redis://localhost:6379/1'
+_celery_result_default = _redis_url_with_db(_BASE_REDIS_URL, 2) if _BASE_REDIS_URL else 'redis://localhost:6379/2'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', _celery_broker_default)
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', _celery_result_default)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -1256,6 +1274,13 @@ ANALYTICS_API_CACHE_TTL = int(os.getenv('ANALYTICS_API_CACHE_TTL', '60'))
 LEADERBOARD_API_CACHE_TTL = int(os.getenv('LEADERBOARD_API_CACHE_TTL', '30'))
 
 # -----------------------------------------------------------------------------
+# Field-Level Encryption (TASK-006: OAuth tokens at rest)
+# Set FIELD_ENCRYPTION_KEY in env for production. If unset, derives from SECRET_KEY.
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# -----------------------------------------------------------------------------
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', None)
+
+# -----------------------------------------------------------------------------
 # Security Settings (Phase 2: Production Hardening)
 # -----------------------------------------------------------------------------
 if not DEBUG:
@@ -1409,88 +1434,6 @@ TEAM_VNEXT_ROUTING_MODE = os.getenv('TEAM_VNEXT_ROUTING_MODE', 'vnext_only')
 # Example: [123, 456, 789] for gradual rollout
 # Only applies when ROUTING_MODE="auto"
 TEAM_VNEXT_TEAM_ALLOWLIST = []
-
-# -----------------------------------------------------------------------------
-# Team & Organization vNext: Phase 5 Migration Settings
-# -----------------------------------------------------------------------------
-# Legacy Write Enforcement (P5-T2)
-# 
-# Purpose: Block writes to legacy apps.teams models during Phase 5 migration
-# while keeping legacy reads fully functional.
-#
-# Settings:
-#   TEAM_LEGACY_WRITE_BLOCKED (bool): If True, blocks all writes to legacy tables.
-#     Default: True (enabled during Phase 5)
-#   
-#   TEAM_LEGACY_WRITE_BYPASS_ENABLED (bool): Emergency killswitch to re-enable writes.
-#     Default: False (bypass disabled)
-#     Use case: Critical production issue requires legacy write
-#     WARNING: Should only be enabled temporarily under supervision
-#   
-#   TEAM_LEGACY_WRITE_BYPASS_TOKEN (str): Optional token for controlled bypass.
-#     Default: None (no token required)
-#     Future use: Could require token validation for bypass
-#
-# Behavior:
-#   - BLOCKED=True, BYPASS=False: All legacy writes raise LegacyWriteBlockedException
-#   - BLOCKED=True, BYPASS=True: Writes allowed but logged (emergency mode)
-#   - BLOCKED=False: No enforcement (normal operation)
-#
-# Phase Timeline:
-#   - Phase 5 start: BLOCKED=True, BYPASS=False (writes blocked)
-#   - Emergency: BYPASS=True (temporary re-enable)
-#   - Phase 8 completion: Remove enforcement (legacy system archived)
-#
-# Affected Models:
-#   - Team (teams_team)
-#   - TeamMembership (teams_membership)
-#   - TeamRankingBreakdown (teams_teamrankingbreakdown)
-#   - All other apps.teams models
-#
-# Environment Variables (optional overrides):
-#   TEAM_LEGACY_WRITE_BLOCKED=true/false
-#   TEAM_LEGACY_WRITE_BYPASS_ENABLED=true/false
-#   TEAM_LEGACY_WRITE_BYPASS_TOKEN=<secret_token>
-#
-TEAM_LEGACY_WRITE_BLOCKED = os.getenv('TEAM_LEGACY_WRITE_BLOCKED', 'True').lower() == 'true'
-TEAM_LEGACY_WRITE_BYPASS_ENABLED = os.getenv('TEAM_LEGACY_WRITE_BYPASS_ENABLED', 'False').lower() == 'true'
-TEAM_LEGACY_WRITE_BYPASS_TOKEN = os.getenv('TEAM_LEGACY_WRITE_BYPASS_TOKEN', None)
-
-# Dual-Write Sync Service (P5-T3)
-#
-# Purpose: During Phase 5-7 transition, sync vNext writes to legacy tables
-# for backward compatibility with old pages/features.
-#
-# Settings:
-#   TEAM_VNEXT_DUAL_WRITE_ENABLED (bool): Enable automatic legacy sync on vNext writes.
-#     Default: False (disabled in production, enable in staging/dev for testing)
-#   
-#   TEAM_VNEXT_DUAL_WRITE_STRICT_MODE (bool): If True, vNext write fails if legacy sync fails.
-#     Default: False (best-effort sync, log failures but don't block vNext writes)
-#
-# Behavior:
-#   - When ENABLED=True: vNext writes trigger legacy table updates via dual_write_service
-#   - When ENABLED=False: No legacy sync (vNext only)
-#   - When STRICT_MODE=True: Legacy sync errors propagate to caller (transaction rollback)
-#   - When STRICT_MODE=False: Legacy sync errors logged but vNext write succeeds
-#
-# Phase Timeline:
-#   - Phase 5 start: ENABLED=False (migration scripts only)
-#   - Phase 5 mid: ENABLED=True in staging (test dual-write)
-#   - Phase 6-7: ENABLED=True in production (parallel operation)
-#   - Phase 8: ENABLED=False (vNext only, legacy archived)
-#
-# Implementation:
-#   - Uses legacy_write_bypass() context manager (P5-T2) to write to legacy
-#   - Syncs via apps.organizations.services.dual_write_service
-#   - Called with transaction.on_commit() to avoid sync on rollback
-#
-# Environment Variables:
-#   TEAM_VNEXT_DUAL_WRITE_ENABLED=true/false
-#   TEAM_VNEXT_DUAL_WRITE_STRICT_MODE=true/false
-#
-TEAM_VNEXT_DUAL_WRITE_ENABLED = os.getenv('TEAM_VNEXT_DUAL_WRITE_ENABLED', 'False').lower() == 'true'
-TEAM_VNEXT_DUAL_WRITE_STRICT_MODE = os.getenv('TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', 'False').lower() == 'true'
 
 # -----------------------------------------------------------------------------
 # Leaderboards Feature Flags (Phase E)

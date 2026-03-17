@@ -61,10 +61,10 @@ class GamePassportValidator:
         ).order_by('order', 'id')
         
         # Cache passport schema (for dropdown options)
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         try:
-            self.passport_schema = GamePassportSchema.objects.get(game=game)
-        except GamePassportSchema.DoesNotExist:
+            self.passport_schema = GameChoiceConfig.objects.get(game=game)
+        except GameChoiceConfig.DoesNotExist:
             self.passport_schema = None
             logger.warning(f"No GamePassportSchema found for game {game.slug}")
     

@@ -9,23 +9,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("organizations", "0010_alter_teamranking_team_alter_teaminvite_team_and_more"),
-        ("teams", "0101_alter_teamjoinrequest_team_alter_teamsponsor_team"),
+        ("organizations", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="TeamAdminProxy",
-            fields=[],
-            options={
-                "verbose_name": "Team",
-                "verbose_name_plural": "Teams",
-                "proxy": True,
-                "indexes": [],
-                "constraints": [],
-            },
-            bases=("teams.team",),
-        ),
         migrations.CreateModel(
             name="Team",
             fields=[
@@ -254,5 +242,17 @@ class Migration(migrations.Migration):
                     ),
                 ],
             },
+        ),
+        migrations.CreateModel(
+            name="TeamAdminProxy",
+            fields=[],
+            options={
+                "verbose_name": "Team",
+                "verbose_name_plural": "Teams",
+                "proxy": True,
+                "indexes": [],
+                "constraints": [],
+            },
+            bases=("organizations.team",),
         ),
     ]

@@ -1,19 +1,11 @@
 """
-TeamAdapter - Routing layer for legacy and vNext team operations.
+TeamAdapter - Routing layer for team operations.
 
-This adapter provides unified access to team functionality during the migration
-period (Phases 3-7), routing requests to either the legacy system (apps.teams)
-or the vNext system (apps.organizations) based on migration state.
+Provides unified access to team functionality via organizations.Team.
+Feature flags control routing behavior for emergency rollback.
 
-Design Principles:
-- Zero breaking changes to existing behavior
-- Performance overhead: +1 query maximum for routing decision
-- Legacy behavior preserved identically (no refactoring)
-- Fail-safe: If routing is ambiguous, prefer legacy system
-- Feature flags control routing behavior (P3-T2)
-
-Feature Flags (P3-T2):
-- TEAM_VNEXT_FORCE_LEGACY: Emergency killswitch (forces all legacy)
+Feature Flags:
+- TEAM_VNEXT_FORCE_LEGACY: Emergency killswitch
 - TEAM_VNEXT_ADAPTER_ENABLED: Master switch for adapter
 - TEAM_VNEXT_ROUTING_MODE: "legacy_only" | "vnext_only" | "auto"
 - TEAM_VNEXT_TEAM_ALLOWLIST: List of team IDs for auto mode
@@ -26,37 +18,22 @@ from typing import Dict, Any, Optional
 from django.urls import reverse
 from django.db.models import Q
 
-# vNext system imports
-# from apps.organizations.models import Team as VNextTeam, TeamMembership as VNextMembership  # DISABLED: vNext Team not ready
 from apps.organizations.services.team_service import TeamService
 from apps.organizations.services.exceptions import NotFoundError
-from apps.organizations.models import TeamMembership as VNextMembership  # Only membership is ready
+from apps.organizations.models import Team, TeamMembership
 
-# Legacy system imports (for fallback behavior)
-from apps.organizations.models import Team as LegacyTeam, TeamMembership as LegacyMembership
-# Temporary: Use legacy Team as VNextTeam until vNext Team model is ready
-VNextTeam = LegacyTeam
-
-# Feature flags and metrics (P3-T2)
+# Feature flags and metrics
 from .flags import should_use_vnext_routing, get_routing_reason
 from .metrics import record_routing_decision, record_adapter_error, MetricsContext
 
 
 class TeamAdapter:
     """
-    Adapter for routing team operations to correct backend.
-    
-    Routing Logic:
-        1. Check if team_id exists in TeamMigrationMap â†’ use vNext
-        2. Otherwise check if team_id exists in organizations.Team â†’ use vNext
-        3. Otherwise â†’ use legacy system (apps.teams)
-    
-    Performance:
-        - Routing decision: 1-2 queries (cached in future phases)
-        - get_team_url: +0 queries beyond routing
-        - get_team_identity: +1-2 queries beyond routing
-        - validate_roster: +3-5 queries beyond routing
-    """
+    Adapter for routing team operations.
+
+    All operations are routed to organizations.Team.
+    Feature flags provide emergency rollback capability.
+"""
     
     def __init__(self):
         """Initialize adapter (stateless, no configuration needed)."""
@@ -117,7 +94,7 @@ class TeamAdapter:
         
         # Phase 3-4: Direct existence check in vNext system
         # Note: This is fast (PK index lookup) and safe (no false positives)
-        exists = VNextTeam.objects.filter(id=team_id).exists()
+        exists = Team.objects.filter(id=team_id).exists()
         
         # If flags said vNext but team doesn't exist, log discrepancy
         if not exists:
@@ -184,10 +161,10 @@ class TeamAdapter:
                 else:
                     # Legacy path: Use existing legacy Team model
                     try:
-                        legacy_team = LegacyTeam.objects.get(id=team_id)
+                        legacy_team = Team.objects.get(id=team_id)
                         # Use vNext URL pattern (all team URLs now in organizations app)
                         return reverse('organizations:team_detail', kwargs={'team_slug': legacy_team.slug})
-                    except LegacyTeam.DoesNotExist:
+                    except Team.DoesNotExist:
                         raise NotFoundError(
                             message=f"Team {team_id} not found in legacy system",
                             resource_type="Team",
@@ -271,7 +248,7 @@ class TeamAdapter:
                 else:
                     # Legacy path: Query legacy Team model directly
                     try:
-                        legacy_team = LegacyTeam.objects.select_related('game').get(id=team_id)
+                        legacy_team = Team.objects.select_related('game').get(id=team_id)
                         
                         # Format legacy team data to match vNext structure
                         # Note: Legacy teams do NOT have organization relationships
@@ -289,7 +266,7 @@ class TeamAdapter:
                             'organization_name': None,
                             'organization_slug': None,
                         }
-                    except LegacyTeam.DoesNotExist:
+                    except Team.DoesNotExist:
                         raise NotFoundError(
                             message=f"Team {team_id} not found in legacy system",
                             error_code="TEAM_NOT_FOUND",
@@ -422,8 +399,8 @@ class TeamAdapter:
             - Future refactoring will consolidate this into TeamService
         """
         try:
-            legacy_team = LegacyTeam.objects.get(id=team_id)
-        except LegacyTeam.DoesNotExist:
+            legacy_team = Team.objects.get(id=team_id)
+        except Team.DoesNotExist:
             raise NotFoundError(
                 message=f"Team {team_id} not found in legacy system",
                 error_code="TEAM_NOT_FOUND",
@@ -435,7 +412,7 @@ class TeamAdapter:
         roster_data = {}
         
         # Count active members
-        active_members = LegacyMembership.objects.filter(
+        active_members = TeamMembership.objects.filter(
             team=legacy_team,
             status='ACTIVE',
         ).select_related('profile__user')

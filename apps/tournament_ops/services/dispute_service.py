@@ -465,8 +465,11 @@ class DisputeService:
         )
         
         # Optional: Schedule new Celery auto-confirm task
-        # TODO (Epic 6.5): Integrate with Celery task scheduling
-        # self._schedule_auto_confirm_task(submission.id, new_deadline)
+        from apps.tournament_ops.tasks_result_submission import auto_confirm_submission_task
+        auto_confirm_submission_task.apply_async(
+            args=[submission.id],
+            eta=new_deadline,
+        )
     
     def _close_related_disputes(self, submission_id: int, current_dispute_id: int) -> None:
         """

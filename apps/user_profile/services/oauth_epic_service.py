@@ -216,6 +216,87 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
     return passport, oauth_connection, created
 
 
+def refresh_epic_access_token(conn: GameOAuthConnection) -> GameOAuthConnection:
+    """Refresh an expired Epic access token using the stored refresh_token.
+
+    Updates conn.access_token, conn.refresh_token (if rotated), conn.expires_at,
+    and conn.last_synced_at, then saves with targeted update_fields.
+
+    Raises:
+        EpicOAuthError(status_code=401): refresh token invalid/expired — user must re-auth.
+        EpicOAuthError(status_code=502/504): transient network/server failure.
+    """
+    _require_epic_settings()
+    if not conn.refresh_token:
+        raise EpicOAuthError(
+            "EPIC_NO_REFRESH_TOKEN",
+            "No refresh token stored — user must re-authenticate",
+            401,
+        )
+
+    basic = base64.b64encode(
+        f"{settings.EPIC_CLIENT_ID}:{settings.EPIC_CLIENT_SECRET}".encode("utf-8")
+    ).decode("utf-8")
+
+    try:
+        response = requests.post(
+            EPIC_TOKEN_URL,
+            data={"grant_type": "refresh_token", "refresh_token": conn.refresh_token},
+            headers={
+                "Authorization": f"Basic {basic}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+            timeout=_timeout_seconds(),
+        )
+    except requests.Timeout as exc:
+        raise EpicOAuthError("EPIC_TIMEOUT", "Epic token refresh timed out", 504) from exc
+    except requests.RequestException as exc:
+        raise EpicOAuthError("EPIC_NETWORK_ERROR", "Unable to reach Epic token endpoint", 502) from exc
+
+    payload = _safe_json(response)
+
+    if response.status_code in {400, 401}:
+        raise EpicOAuthError(
+            "EPIC_REFRESH_FAILED",
+            payload.get("error_description") or payload.get("errorMessage") or "Epic refresh token invalid or expired — user must re-authenticate",
+            401,
+            metadata={"epic_error": payload.get("error") or payload.get("errorCode")},
+        )
+
+    if response.status_code >= 400:
+        raise EpicOAuthError(
+            "EPIC_REFRESH_FAILED",
+            payload.get("error_description") or payload.get("errorMessage") or "Epic token refresh failed",
+            502,
+            metadata={"status_code": response.status_code, "epic_error": payload.get("error") or payload.get("errorCode")},
+        )
+
+    new_access = payload.get("access_token")
+    if not new_access:
+        raise EpicOAuthError("EPIC_REFRESH_INVALID_RESPONSE", "Epic token refresh missing access_token", 502)
+
+    conn.access_token = str(new_access)
+    if payload.get("refresh_token"):
+        conn.refresh_token = str(payload["refresh_token"])
+
+    expires_in = payload.get("expires_in")
+    conn.expires_at = (
+        timezone.now() + timezone.timedelta(seconds=int(expires_in))
+        if expires_in is not None
+        else None
+    )
+    conn.last_synced_at = timezone.now()
+    conn.save(update_fields=["access_token", "refresh_token", "expires_at", "last_synced_at"])
+
+    logger.info(
+        "Epic access token refreshed for connection %s (passport_id=%s)",
+        conn.pk,
+        conn.passport_id,
+    )
+    return conn
+
+
 def _safe_json(response: requests.Response) -> dict[str, Any]:
     try:
         payload = response.json()

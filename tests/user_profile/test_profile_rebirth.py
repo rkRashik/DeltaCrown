@@ -6,7 +6,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import Client
-from apps.user_profile.models import UserProfile, GamePassportSchema as GamePassport
+from apps.user_profile.models import UserProfile, GameChoiceConfig as GamePassport
 from apps.games.models import Game
 
 

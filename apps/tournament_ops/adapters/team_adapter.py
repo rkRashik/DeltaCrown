@@ -2,9 +2,7 @@
 Team service adapter for cross-domain team data access.
 
 Provides TournamentOps with access to team data and membership validation
-without direct imports from apps.teams.models.
-
-Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 1, Epic 1.1
+via apps.organizations.models.
 """
 
 from typing import Protocol, runtime_checkable, List

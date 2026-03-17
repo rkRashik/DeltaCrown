@@ -36,6 +36,7 @@ def auto_confirm_submission_task(self, submission_id: int):
         SchemaValidationAdapter,
         MatchAdapter,
         GameAdapter,
+        DisputeAdapter,
     )
     from apps.tournament_ops.exceptions import (
         ResultSubmissionNotFoundError,
@@ -43,12 +44,13 @@ def auto_confirm_submission_task(self, submission_id: int):
     )
 
     try:
-        # Instantiate service with adapters
+        # Instantiate service with adapters (DisputeAdapter required for auto-finalization)
         service = ResultSubmissionService(
             result_submission_adapter=ResultSubmissionAdapter(),
             schema_validation_adapter=SchemaValidationAdapter(),
             match_adapter=MatchAdapter(),
             game_adapter=GameAdapter(),
+            dispute_adapter=DisputeAdapter(),
         )
 
         # Auto-confirm (idempotent)

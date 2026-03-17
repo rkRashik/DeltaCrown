@@ -504,14 +504,13 @@ class TournamentDetailView(DetailView):
             # Batch-load rankings in 1 query
             rankings_map = {}
             try:
-                from apps.teams.models import TeamRankingBreakdown
-                rankings = TeamRankingBreakdown.objects.filter(
+                from apps.leaderboards.models import TeamRanking as LBTeamRanking
+                rankings = LBTeamRanking.objects.filter(
                     team_id__in=team_ids
-                ).values('team_id', 'final_total')
-                # Compute ranks: sort all by final_total desc, assign rank
-                ranked_list = sorted(rankings, key=lambda r: r['final_total'], reverse=True)
+                ).values('team_id', 'elo_rating')
+                ranked_list = sorted(rankings, key=lambda r: r['elo_rating'], reverse=True)
                 for idx, r in enumerate(ranked_list, 1):
-                    if r['final_total'] > 0:
+                    if r['elo_rating'] > 0:
                         rankings_map[r['team_id']] = idx
             except Exception:
                 pass

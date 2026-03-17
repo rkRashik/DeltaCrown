@@ -42,11 +42,10 @@ from .views.passport_api import (
 )
 # UP-SETTINGS-MVP-01: Settings API endpoints
 from .views.settings_api import (
-    upload_media, update_social_links_api, update_privacy_settings, 
+    upload_media, update_social_links_api, update_privacy_settings,
     remove_media_api, get_privacy_settings, get_social_links,
     update_platform_settings, get_platform_settings, get_profile_data,
     # UP-PHASE6-C: New settings endpoints
-    update_notification_preferences, get_notification_preferences,
     update_platform_preferences, get_platform_preferences,
     update_wallet_settings, get_wallet_settings
 )
@@ -432,8 +431,6 @@ urlpatterns = [
     path("api/profile/trophy-showcase/update/", update_trophy_showcase, name="update_trophy_showcase"),
     
     # UP-PHASE6-C: Settings redesign endpoints
-    path("me/settings/notifications/", update_notification_preferences, name="update_notification_preferences"),
-    path("api/settings/notifications/", get_notification_preferences, name="get_notification_preferences"),
     path("me/settings/platform-prefs/", update_platform_preferences, name="update_platform_preferences"),
     path("api/settings/platform-prefs/", get_platform_preferences, name="get_platform_preferences"),
     path("me/settings/wallet/", update_wallet_settings, name="update_wallet_settings"),

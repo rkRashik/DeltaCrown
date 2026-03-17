@@ -33,54 +33,56 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3)
-def refresh_analytics_hourly(self):
+def refresh_analytics_hourly(self, _jitter_done=False):
     """
     Hourly scheduled refresh of tournament analytics materialized view.
-    
+
     Module 6.2: Celery beat task for automated refresh
-    
+
     Schedule: Every hour (jittered by 0-10 minutes to avoid thundering herd)
-    
+
     Implements:
         - Full REFRESH MATERIALIZED VIEW CONCURRENTLY
+        - Non-blocking jitter via apply_async(countdown=...) instead of time.sleep()
         - Retry logic (3 attempts with exponential backoff)
         - Performance logging (duration + row counts)
-        - Jitter to distribute load across beat workers
-    
+
     Raises:
         Exception: If refresh fails after 3 retries
     """
-    try:
-        # Jitter: random delay 0-600 seconds (0-10 minutes)
+    # Jitter: re-dispatch with random countdown to avoid thundering herd.
+    # Uses apply_async instead of time.sleep to free the worker immediately.
+    if not _jitter_done:
         jitter_seconds = random.randint(0, 600)
         if jitter_seconds > 0:
-            logger.info(f"Analytics refresh: jittered delay {jitter_seconds}s")
-            import time
-            time.sleep(jitter_seconds)
-        
+            logger.info(f"Analytics refresh: non-blocking jitter {jitter_seconds}s")
+            self.apply_async(kwargs={'_jitter_done': True}, countdown=jitter_seconds)
+            return {'status': 'jitter_scheduled', 'jitter_seconds': jitter_seconds}
+
+    try:
         start_time = timezone.now()
-        
+
         # Execute full refresh via management command
         call_command('refresh_analytics', verbosity=0)
-        
+
         duration_ms = (timezone.now() - start_time).total_seconds() * 1000
-        
+
         logger.info(
             f"Analytics hourly refresh complete: {duration_ms:.2f}ms (task_id={self.request.id})"
         )
-        
+
         return {
             'status': 'success',
             'duration_ms': duration_ms,
             'task_id': str(self.request.id),
         }
-    
+
     except Exception as exc:
         logger.error(
             f"Analytics hourly refresh failed (attempt {self.request.retries + 1}/3): {exc}",
             exc_info=True
         )
-        
+
         # Retry with exponential backoff: 60s, 300s, 900s
         raise self.retry(exc=exc, countdown=60 * (5 ** self.request.retries))
 

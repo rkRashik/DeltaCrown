@@ -47,7 +47,6 @@ from rest_framework.response import Response
 from apps.organizations.adapters.flags import should_use_vnext_routing, get_routing_reason
 from apps.organizations.services.organization_service import OrganizationService
 from apps.organizations.services.team_service import TeamService
-from apps.organizations.services.dual_write_service import DualWriteSyncService
 from apps.organizations.services.exceptions import (
     TeamServiceError,
     NotFoundError,
@@ -1392,42 +1391,6 @@ def create_team(request: Request) -> Response:
             # Get team URL using TeamService
             team_url = TeamService.get_team_url(team.id)
             
-            # Schedule dual-write to legacy after commit
-            if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_ENABLED', False):
-                def _sync_team_created():
-                    try:
-                        DualWriteSyncService.sync_team_created(
-                            vnext_team_id=team.id,
-                            actor_user_id=request.user.id
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Dual-write failed for team creation: {team.id}",
-                            extra={
-                                'event_type': 'dual_write_failed',
-                                'operation': 'sync_team_created',
-                                'team_id': team.id,
-                                'user_id': request.user.id,
-                                'exception_type': type(e).__name__,
-                                'exception_message': str(e),
-                            },
-                            exc_info=True
-                        )
-                        # Re-raise in strict mode
-                        if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', False):
-                            raise
-                
-                transaction.on_commit(_sync_team_created)
-                logger.info(
-                    f"Dual-write scheduled for team creation: {team.id}",
-                    extra={
-                        'event_type': 'dual_write_scheduled',
-                        'operation': 'sync_team_created',
-                        'team_id': team.id,
-                        'user_id': request.user.id,
-                    }
-                )
-            
             # Schedule cache invalidation AFTER commit to prevent crashes from breaking transaction
             def _invalidate_caches():
                 try:
@@ -2187,44 +2150,6 @@ def add_team_member(request: Request, team_slug: str) -> Response:
             is_active=is_active
         )
         
-        # Schedule dual-write to legacy after commit
-        if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_ENABLED', False):
-            def _sync_member_added():
-                try:
-                    DualWriteSyncService.sync_team_member_added(
-                        vnext_membership_id=membership_id,
-                        actor_user_id=request.user.id
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Dual-write failed for member addition: {membership_id}",
-                        extra={
-                            'event_type': 'dual_write_failed',
-                            'operation': 'sync_team_member_added',
-                            'membership_id': membership_id,
-                            'team_slug': team_slug,
-                            'user_id': request.user.id,
-                            'exception_type': type(e).__name__,
-                            'exception_message': str(e),
-                        },
-                        exc_info=True
-                    )
-                    # Re-raise in strict mode
-                    if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', False):
-                        raise
-            
-            transaction.on_commit(_sync_member_added)
-            logger.info(
-                f"Dual-write scheduled for member addition: {membership_id}",
-                extra={
-                    'event_type': 'dual_write_scheduled',
-                    'operation': 'sync_team_member_added',
-                    'membership_id': membership_id,
-                    'team_slug': team_slug,
-                    'user_id': request.user.id,
-                }
-            )
-        
         # Get updated member list
         members = [
             {
@@ -2362,44 +2287,6 @@ def update_member_role(request: Request, team_slug: str, member_id: int) -> Resp
             updated_by_user_id=request.user.id
         )
         
-        # Schedule dual-write to legacy after commit
-        if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_ENABLED', False):
-            def _sync_member_updated():
-                try:
-                    DualWriteSyncService.sync_team_member_updated(
-                        vnext_membership_id=member_id,
-                        actor_user_id=request.user.id
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Dual-write failed for member role update: {member_id}",
-                        extra={
-                            'event_type': 'dual_write_failed',
-                            'operation': 'sync_team_member_updated',
-                            'membership_id': member_id,
-                            'team_slug': team_slug,
-                            'user_id': request.user.id,
-                            'exception_type': type(e).__name__,
-                            'exception_message': str(e),
-                        },
-                        exc_info=True
-                    )
-                    # Re-raise in strict mode
-                    if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', False):
-                        raise
-            
-            transaction.on_commit(_sync_member_updated)
-            logger.info(
-                f"Dual-write scheduled for member role update: {member_id}",
-                extra={
-                    'event_type': 'dual_write_scheduled',
-                    'operation': 'sync_team_member_updated',
-                    'membership_id': member_id,
-                    'team_slug': team_slug,
-                    'user_id': request.user.id,
-                }
-            )
-        
         logger.info(
             f"Member role updated: {team_slug}",
             extra={
@@ -2513,44 +2400,6 @@ def remove_team_member(request: Request, team_slug: str, member_id: int) -> Resp
             membership_id=member_id,
             removed_by_user_id=request.user.id
         )
-        
-        # Schedule dual-write to legacy after commit
-        if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_ENABLED', False):
-            def _sync_member_removed():
-                try:
-                    DualWriteSyncService.sync_team_member_removed(
-                        vnext_membership_id=member_id,
-                        actor_user_id=request.user.id
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Dual-write failed for member removal: {member_id}",
-                        extra={
-                            'event_type': 'dual_write_failed',
-                            'operation': 'sync_team_member_removed',
-                            'membership_id': member_id,
-                            'team_slug': team_slug,
-                            'user_id': request.user.id,
-                            'exception_type': type(e).__name__,
-                            'exception_message': str(e),
-                        },
-                        exc_info=True
-                    )
-                    # Re-raise in strict mode
-                    if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', False):
-                        raise
-            
-            transaction.on_commit(_sync_member_removed)
-            logger.info(
-                f"Dual-write scheduled for member removal: {member_id}",
-                extra={
-                    'event_type': 'dual_write_scheduled',
-                    'operation': 'sync_team_member_removed',
-                    'membership_id': member_id,
-                    'team_slug': team_slug,
-                    'user_id': request.user.id,
-                }
-            )
         
         # Get updated member list
         members = [
@@ -2684,44 +2533,6 @@ def update_team_settings(request: Request, team_slug: str) -> Response:
             description=description,
             preferred_server=preferred_server
         )
-        
-        # Schedule dual-write to legacy after commit
-        if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_ENABLED', False):
-            def _sync_settings_updated():
-                try:
-                    DualWriteSyncService.sync_team_settings_updated(
-                        vnext_team_id=team.id,
-                        actor_user_id=request.user.id
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Dual-write failed for settings update: {team.id}",
-                        extra={
-                            'event_type': 'dual_write_failed',
-                            'operation': 'sync_team_settings_updated',
-                            'team_id': team.id,
-                            'team_slug': team_slug,
-                            'user_id': request.user.id,
-                            'exception_type': type(e).__name__,
-                            'exception_message': str(e),
-                        },
-                        exc_info=True
-                    )
-                    # Re-raise in strict mode
-                    if getattr(settings, 'TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', False):
-                        raise
-            
-            transaction.on_commit(_sync_settings_updated)
-            logger.info(
-                f"Dual-write scheduled for settings update: {team.id}",
-                extra={
-                    'event_type': 'dual_write_scheduled',
-                    'operation': 'sync_team_settings_updated',
-                    'team_id': team.id,
-                    'team_slug': team_slug,
-                    'user_id': request.user.id,
-                }
-            )
         
         logger.info(
             f"Team settings updated: {team_slug}",

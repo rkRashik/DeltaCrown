@@ -158,7 +158,7 @@ class TestTeamAdapterRouting:
         TEAM_VNEXT_FORCE_LEGACY=False,
         TEAM_VNEXT_ADAPTER_ENABLED=False,
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.record_routing_decision")
     def test_adapter_disabled_skips_database_query(
         self, mock_record, mock_vnext_team
@@ -182,7 +182,7 @@ class TestTeamAdapterRouting:
         TEAM_VNEXT_ADAPTER_ENABLED=True,
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.record_routing_decision")
     @patch("apps.organizations.adapters.team_adapter.record_adapter_error")
     def test_vnext_only_mode_queries_database(
@@ -213,7 +213,7 @@ class TestTeamAdapterRouting:
         TEAM_VNEXT_ADAPTER_ENABLED=True,
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.record_adapter_error")
     def test_vnext_mode_logs_error_when_team_not_found(
         self, mock_error, mock_vnext_team
@@ -252,7 +252,7 @@ class TestAdapterMethodsWithFlags:
         TEAM_VNEXT_FORCE_LEGACY=False,
         TEAM_VNEXT_ADAPTER_ENABLED=False,
     )
-    @patch("apps.organizations.adapters.team_adapter.LegacyTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.TeamService")
     @patch("apps.organizations.adapters.team_adapter.MetricsContext")
     def test_get_team_url_uses_legacy_when_adapter_disabled(
@@ -286,7 +286,7 @@ class TestAdapterMethodsWithFlags:
         TEAM_VNEXT_ADAPTER_ENABLED=True,
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.TeamService")
     @patch("apps.organizations.adapters.team_adapter.MetricsContext")
     def test_get_team_url_uses_vnext_when_enabled(
@@ -339,7 +339,7 @@ class TestMetricsRecording:
         TEAM_VNEXT_ROUTING_MODE="auto",
         TEAM_VNEXT_TEAM_ALLOWLIST=[123],
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.record_routing_decision")
     def test_routing_decision_metrics_recorded(
         self, mock_record, mock_vnext
@@ -362,7 +362,7 @@ class TestMetricsRecording:
         TEAM_VNEXT_ADAPTER_ENABLED=True,
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.TeamService")
     @patch("apps.organizations.adapters.team_adapter.record_adapter_error")
     @patch("apps.organizations.adapters.team_adapter.record_routing_decision")
@@ -413,8 +413,8 @@ class TestEmergencyRollback:
         TEAM_VNEXT_ROUTING_MODE="vnext_only",
         TEAM_VNEXT_TEAM_ALLOWLIST=[123],
     )
-    @patch("apps.organizations.adapters.team_adapter.VNextTeam")
-    @patch("apps.organizations.adapters.team_adapter.LegacyTeam")
+    @patch("apps.organizations.adapters.team_adapter.Team")
+    @patch("apps.organizations.adapters.team_adapter.Team")
     @patch("apps.organizations.adapters.team_adapter.MetricsContext")
     def test_force_legacy_overrides_all_settings(
         self, mock_metrics, mock_legacy, mock_vnext

@@ -1,5 +1,5 @@
 """
-Management command to seed GamePassportSchema records for all supported games.
+Management command to seed GameChoiceConfig records for all supported games.
 
 Usage:
     python manage.py seed_game_passport_schemas
@@ -8,11 +8,11 @@ Usage:
 
 from django.core.management.base import BaseCommand
 from apps.games.models import Game
-from apps.user_profile.models import GamePassportSchema
+from apps.user_profile.models import GameChoiceConfig
 
 
 class Command(BaseCommand):
-    help = "Seed GamePassportSchema records for all supported games (GP-1)"
+    help = "Seed GameChoiceConfig records for all supported games (GP-1)"
     
     def add_arguments(self, parser):
         parser.add_argument(
@@ -25,8 +25,8 @@ class Command(BaseCommand):
         reset = options['reset']
         
         if reset:
-            self.stdout.write(self.style.WARNING("🗑️  Deleting all existing GamePassportSchema records..."))
-            deleted_count, _ = GamePassportSchema.objects.all().delete()
+            self.stdout.write(self.style.WARNING("🗑️  Deleting all existing GameChoiceConfig records..."))
+            deleted_count, _ = GameChoiceConfig.objects.all().delete()
             self.stdout.write(self.style.SUCCESS(f"✅ Deleted {deleted_count} schemas"))
         
         games = Game.objects.all()
@@ -484,7 +484,7 @@ class Command(BaseCommand):
             
             config = schema_configs[slug]
             
-            schema, created = GamePassportSchema.objects.update_or_create(
+            schema, created = GameChoiceConfig.objects.update_or_create(
                 game=game,
                 defaults={
                     'identity_fields': config['identity_fields'],

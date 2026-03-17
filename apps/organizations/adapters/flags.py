@@ -1,41 +1,29 @@
 """
-Feature flags for Team vNext adapter routing.
+Feature flags for Team adapter routing.
 
 This module provides a settings-based feature flag system for controlling
-routing between legacy (apps.teams) and vNext (apps.organizations) systems.
-
-Design Principles:
-- Zero-breaking: All defaults favor legacy routing (safe fallback)
-- Settings-based: No database dependencies (no Waffle)
-- Priority-based: Clear hierarchy for flag evaluation
-- Emergency override: FORCE_LEGACY takes absolute priority
+team routing behavior. Used for emergency rollback capability.
 
 Routing Priority (evaluated in order):
-1. TEAM_VNEXT_FORCE_LEGACY=True → Always legacy (emergency killswitch)
-2. TEAM_VNEXT_ADAPTER_ENABLED=False → Legacy (feature disabled)
-3. ROUTING_MODE="legacy_only" → Legacy (default safe mode)
-4. ROUTING_MODE="vnext_only" → vNext (aggressive adoption)
+1. TEAM_VNEXT_FORCE_LEGACY=True → Emergency killswitch
+2. TEAM_VNEXT_ADAPTER_ENABLED=False → Feature disabled
+3. ROUTING_MODE="legacy_only" → Fallback mode
+4. ROUTING_MODE="vnext_only" → Normal production mode
 5. ROUTING_MODE="auto" + team in allowlist → vNext
-6. ROUTING_MODE="auto" + team not in allowlist → Legacy
+6. ROUTING_MODE="auto" + team not in allowlist → Fallback
 7. Fallback: Legacy (if settings missing/invalid)
 
 Performance:
 - Zero queries (all settings cached by Django)
 - <1ms typical decision time
 
-Thread Safety:
-- Read-only access to Django settings (thread-safe)
-- No mutable shared state
-
 Example Usage:
     from apps.organizations.adapters.flags import should_use_vnext_routing
-    
+
     if should_use_vnext_routing(team_id=123):
-        # Use vNext TeamService
         result = TeamService.get_team_url(team_id)
     else:
-        # Use legacy apps.teams models
-        result = legacy_get_team_url(team_id)
+        result = fallback_get_team_url(team_id)
 
 Settings Configuration (deltacrown/settings.py):
     # Emergency killswitch (takes absolute priority)

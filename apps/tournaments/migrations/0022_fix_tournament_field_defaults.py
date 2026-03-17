@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("games", "0003_game_id_label_fields"),
-        ("teams", "0102_alter_chatreadreceipt_unique_together_and_more"),
+        ("organizations", "0001_initial"),
         ("tournaments", "0021_hub_social_fields_sponsor_prize_claim"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -1180,7 +1180,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="free_agent_assignments",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (

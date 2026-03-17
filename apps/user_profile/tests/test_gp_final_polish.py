@@ -12,7 +12,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from apps.user_profile.services.game_passport_service import GamePassportService
 from apps.user_profile.models import UserProfile, GameProfile
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 User = get_user_model()
 

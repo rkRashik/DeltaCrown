@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 
 from apps.games.models import Game, GamePlayerIdentityConfig
 from apps.user_profile.models_main import SocialLink, PrivacySettings
-from apps.user_profile.models.game_passport_schema import GamePassportSchema
+from apps.user_profile.models.game_passport_schema import GameChoiceConfig
 from django.conf import settings
 
 import logging
@@ -77,11 +77,11 @@ def get_available_games(request):
     """
     try:
         # Phase 9A-14: Calculate schema version from latest updated timestamp
-        # Version changes when any GamePlayerIdentityConfig or GamePassportSchema changes
+        # Version changes when any GamePlayerIdentityConfig or GameChoiceConfig changes
         from django.db.models import Max
         
         config_updated = GamePlayerIdentityConfig.objects.aggregate(Max('updated_at'))['updated_at__max']
-        schema_updated = GamePassportSchema.objects.aggregate(Max('updated_at'))['updated_at__max']
+        schema_updated = GameChoiceConfig.objects.aggregate(Max('updated_at'))['updated_at__max']
         
         # Use the most recent timestamp between configs and schemas
         if config_updated and schema_updated:
@@ -117,9 +117,9 @@ def get_available_games(request):
                     f"Run: python manage.py seed_games"
                 )
             
-            # Get GamePassportSchema for select field options (Phase 9A-7: all 8 choice types)
+            # Get GameChoiceConfig for select field options (Phase 9A-7: all 8 choice types)
             try:
-                game_schema = GamePassportSchema.objects.get(game=game)
+                game_schema = GameChoiceConfig.objects.get(game=game)
                 region_options = game_schema.region_choices or []
                 rank_options = game_schema.rank_choices or []
                 role_options = game_schema.role_choices or []
@@ -128,7 +128,7 @@ def get_available_games(request):
                 mode_options = game_schema.mode_choices or []
                 premier_rating_options = game_schema.premier_rating_choices or []
                 division_options = game_schema.division_choices or []
-            except GamePassportSchema.DoesNotExist:
+            except GameChoiceConfig.DoesNotExist:
                 region_options = []
                 rank_options = []
                 role_options = []
@@ -155,7 +155,7 @@ def get_available_games(request):
                     'max_length': config.max_length
                 }
                 
-                # Phase 9A-7: Add options for select fields from GamePassportSchema
+                # Phase 9A-7: Add options for select fields from GameChoiceConfig
                 if config.field_type and config.field_type.lower() == 'select':
                     # Map field name to appropriate options (2026 schema with 8 choice types)
                     if 'region' in config.field_name.lower():
@@ -508,7 +508,7 @@ def get_game_metadata(request, game_id):
     """
     try:
         from apps.games.models import Game
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         # Get game
         try:
@@ -521,8 +521,8 @@ def get_game_metadata(request, game_id):
         
         # Get schema
         try:
-            schema = GamePassportSchema.objects.get(game=game)
-        except GamePassportSchema.DoesNotExist:
+            schema = GameChoiceConfig.objects.get(game=game)
+        except GameChoiceConfig.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'message': f'No passport schema found for {game.name}'

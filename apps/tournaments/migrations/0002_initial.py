@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = False  # Changed from True - FK additions must run after initial batch
 
     dependencies = [
-        ("teams", "0002_initial"),
+        ("organizations", "0001_initial"),
         ("tournaments", "0001_initial"),
         ("user_profile", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 help_text="Team being invited",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="tournament_invitations",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AddField(

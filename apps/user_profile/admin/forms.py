@@ -9,7 +9,7 @@ Includes:
 from django import forms
 from django.core.exceptions import ValidationError
 
-from apps.user_profile.models import UserProfile, GameProfile, GamePassportSchema
+from apps.user_profile.models import UserProfile, GameProfile, GameChoiceConfig
 from apps.user_profile.admin.game_profiles_field import GameProfilesField
 from apps.games.models import Game
 from apps.user_profile.validators.schema_validator import GamePassportSchemaValidator
@@ -168,7 +168,7 @@ class GameProfileAdminForm(forms.ModelForm):
     
     def _populate_dropdown_choices(self):
         """
-        Phase 9A-15 Section E: Populate ALL dropdown choices from GamePassportSchema.
+        Phase 9A-15 Section E: Populate ALL dropdown choices from GameChoiceConfig.
         Called when editing an existing passport.
         Populates: region, rank_name, platform (based on schema field types).
         """
@@ -180,8 +180,8 @@ class GameProfileAdminForm(forms.ModelForm):
             
             # Get schema for dropdown choices
             try:
-                schema = GamePassportSchema.objects.get(game=self.instance.game)
-            except GamePassportSchema.DoesNotExist:
+                schema = GameChoiceConfig.objects.get(game=self.instance.game)
+            except GameChoiceConfig.DoesNotExist:
                 return  # No schema, keep default empty dropdowns
             
             # Get all identity configs for this game to know field types
@@ -252,8 +252,8 @@ class GameProfileAdminForm(forms.ModelForm):
             
             # Get schema for dropdown choices
             try:
-                schema = GamePassportSchema.objects.get(game=game)
-            except GamePassportSchema.DoesNotExist:
+                schema = GameChoiceConfig.objects.get(game=game)
+            except GameChoiceConfig.DoesNotExist:
                 return  # No schema, keep default empty dropdowns
             
             configs = GamePlayerIdentityConfig.objects.filter(game=game)

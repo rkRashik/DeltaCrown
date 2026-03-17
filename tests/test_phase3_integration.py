@@ -131,16 +131,6 @@ class TestTournamentProviderIntegration(TestCase):
 class TestAppDecoupling(TestCase):
     """Test that apps no longer have direct Tournament imports"""
     
-    def test_teams_app_no_direct_imports(self):
-        """Test that teams app doesn't import Tournament directly"""
-        import apps.teams.tasks
-        import apps.teams.validators
-        import apps.teams.api_views
-        
-        # If these modules load without ImportError, they're using indirect access
-        # The actual import statement check is done via grep in separate verification
-        self.assertTrue(True)  # Module loaded successfully
-    
     def test_notifications_app_no_direct_imports(self):
         """Test that notifications app doesn't import Tournament directly"""
         import apps.notifications.services

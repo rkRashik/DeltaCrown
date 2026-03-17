@@ -4,7 +4,7 @@ Provides minimal game + schema setup for comprehensive testing
 """
 import pytest
 from apps.games.models import Game
-from apps.user_profile.models import GamePassportSchema
+from apps.user_profile.models import GameChoiceConfig
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def valorant_game(db):
         is_passport_supported=True,
     )
     
-    GamePassportSchema.objects.create(
+    GameChoiceConfig.objects.create(
         game=game,
         identity_format="{riot_name}#{tagline}",
         identity_key_format="{riot_name}#{tagline}",
@@ -70,7 +70,7 @@ def cs2_game(db):
         is_passport_supported=True,
     )
     
-    GamePassportSchema.objects.create(
+    GameChoiceConfig.objects.create(
         game=game,
         identity_format="{steam_id64}",
         identity_key_format="{steam_id64}",
@@ -107,7 +107,7 @@ def mlbb_game(db):
         is_passport_supported=True,
     )
     
-    GamePassportSchema.objects.create(
+    GameChoiceConfig.objects.create(
         game=game,
         identity_format="{mlbb_id}({zone_id})",
         identity_key_format="{mlbb_id}({zone_id})",

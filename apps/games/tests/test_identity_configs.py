@@ -171,22 +171,22 @@ class TestGamePassportDropdownOptions(TestCase):
         call_command('seed_games')
     
     def test_all_games_have_passport_schemas(self):
-        """Each game must have a GamePassportSchema with dropdown options"""
-        from apps.user_profile.models import GamePassportSchema
-        
+        """Each game must have a GameChoiceConfig with dropdown options"""
+        from apps.user_profile.models import GameChoiceConfig
+
         games = Game.objects.all()
         assert games.count() == 11, "Expected 11 games"
-        
+
         for game in games:
-            schema = GamePassportSchema.objects.filter(game=game).first()
-            assert schema is not None, f"{game.name} has no GamePassportSchema"
+            schema = GameChoiceConfig.objects.filter(game=game).first()
+            assert schema is not None, f"{game.name} has no GameChoiceConfig"
     
     def test_mlbb_has_server_choices(self):
         """MLBB must have server_choices for Server Region field"""
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         game = Game.objects.get(slug='mlbb')
-        schema = GamePassportSchema.objects.get(game=game)
+        schema = GameChoiceConfig.objects.get(game=game)
         
         assert schema.server_choices is not None, "MLBB server_choices is None"
         assert len(schema.server_choices) > 0, "MLBB server_choices is empty"
@@ -199,10 +199,10 @@ class TestGamePassportDropdownOptions(TestCase):
     
     def test_ea_fc_has_platform_division_mode_choices(self):
         """EA FC must have platform_choices, division_choices, and mode_choices"""
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         game = Game.objects.get(slug='ea-fc')
-        schema = GamePassportSchema.objects.get(game=game)
+        schema = GameChoiceConfig.objects.get(game=game)
         
         # Test platform_choices
         assert schema.platform_choices is not None, "EA FC platform_choices is None"
@@ -231,10 +231,10 @@ class TestGamePassportDropdownOptions(TestCase):
     
     def test_free_fire_has_server_choices(self):
         """Free Fire must have server_choices for Server field"""
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         game = Game.objects.get(slug='freefire')
-        schema = GamePassportSchema.objects.get(game=game)
+        schema = GameChoiceConfig.objects.get(game=game)
         
         assert schema.server_choices is not None, "Free Fire server_choices is None"
         assert len(schema.server_choices) > 0, "Free Fire server_choices is empty"
@@ -242,10 +242,10 @@ class TestGamePassportDropdownOptions(TestCase):
     
     def test_valorant_has_rank_and_role_choices(self):
         """VALORANT must have rank_choices and role_choices"""
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         game = Game.objects.get(slug='valorant')
-        schema = GamePassportSchema.objects.get(game=game)
+        schema = GameChoiceConfig.objects.get(game=game)
         
         assert schema.rank_choices is not None, "VALORANT rank_choices is None"
         assert len(schema.rank_choices) > 0, "VALORANT rank_choices is empty"
@@ -257,10 +257,10 @@ class TestGamePassportDropdownOptions(TestCase):
     
     def test_cs2_has_premier_rating_choices(self):
         """CS2 must have premier_rating_choices for Premier Rating field"""
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         
         game = Game.objects.get(slug='cs2')
-        schema = GamePassportSchema.objects.get(game=game)
+        schema = GameChoiceConfig.objects.get(game=game)
         
         assert schema.premier_rating_choices is not None, "CS2 premier_rating_choices is None"
         assert len(schema.premier_rating_choices) > 0, "CS2 premier_rating_choices is empty"

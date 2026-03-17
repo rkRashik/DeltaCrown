@@ -1,6 +1,6 @@
 # apps/organizations/realtime/routing.py
 """
-Team WebSocket URL Routing — migrated from apps.teams.realtime.routing
+Team WebSocket URL Routing
 """
 from django.urls import re_path
 

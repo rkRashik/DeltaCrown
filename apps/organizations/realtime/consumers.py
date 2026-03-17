@@ -1,6 +1,6 @@
 # apps/organizations/realtime/consumers.py
 """
-Team WebSocket Consumer — migrated from apps.teams.realtime.consumers
+Team WebSocket Consumer
 
 Handles real-time team events via Django Channels.
 """

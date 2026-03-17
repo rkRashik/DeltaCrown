@@ -1,4 +1,7 @@
-import os, urllib.parse, json, urllib.request
+import urllib.parse, json, urllib.request, urllib.error
+import logging
+
+logger = logging.getLogger(__name__)
 
 AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
@@ -21,13 +24,27 @@ def build_auth_url(client_id: str, redirect_uri: str, state: str) -> str:
 def _post_json(url: str, data: dict) -> dict:
     body = urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        logger.error("Google OAuth POST %s returned %d", url, exc.code)
+        raise ValueError(f"Google OAuth request failed (HTTP {exc.code})") from exc
+    except (urllib.error.URLError, OSError) as exc:
+        logger.error("Google OAuth POST %s network error: %s", url, exc)
+        raise ValueError("Google OAuth request failed (network error)") from exc
 
 def _get_json(url: str, bearer: str) -> dict:
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {bearer}"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        logger.error("Google OAuth GET %s returned %d", url, exc.code)
+        raise ValueError(f"Google OAuth request failed (HTTP {exc.code})") from exc
+    except (urllib.error.URLError, OSError) as exc:
+        logger.error("Google OAuth GET %s network error: %s", url, exc)
+        raise ValueError("Google OAuth request failed (network error)") from exc
 
 def exchange_code_for_userinfo(*, code: str, client_id: str, client_secret: str, redirect_uri: str) -> dict:
     """

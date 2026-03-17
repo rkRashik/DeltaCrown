@@ -17,8 +17,11 @@ Flow:
 4. Or: Opponent disputes → DISPUTED (Epic 6.2)
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+
+logger = logging.getLogger(__name__)
 
 from apps.common.events.event_bus import Event, get_event_bus
 from apps.tournament_ops.dtos import (
@@ -525,20 +528,48 @@ class ResultSubmissionService:
 
     def _maybe_finalize_result(self, submission: MatchResultSubmissionDTO) -> None:
         """
-        Trigger result finalization if ready.
+        Auto-finalize a confirmed/auto-confirmed submission.
 
-        Epic 6.4 will implement full finalization workflow:
-        - Schema validation
-        - Score calculation via GameRulesEngine
-        - Match.accept_match_result() call
-        - MatchCompletedEvent publication
-        - Bracket progression
+        Instantiates ResultVerificationService using the adapters already
+        held by this service and calls finalize_submission_after_verification().
 
-        For Epic 6.1, this is a stub.
+        Errors are swallowed and logged — a failed auto-finalization leaves the
+        submission in CONFIRMED/AUTO_CONFIRMED state so the organizer inbox can
+        surface it for manual review.  Requires dispute_adapter to be present
+        (backward-compat callers that omit it skip auto-finalization entirely).
         """
-        # TODO (Epic 6.4): Call ResultVerificationService.finalize_result()
-        # For now, just log
-        pass
+        if self.dispute_adapter is None:
+            return
+
+        # Method-level imports to avoid circular dependencies
+        from apps.tournament_ops.services.result_verification_service import ResultVerificationService
+        from apps.tournament_ops.services.match_service import MatchService
+        from apps.tournament_ops.adapters import TeamAdapter, UserAdapter
+
+        match_service = MatchService(
+            team_adapter=TeamAdapter(),
+            user_adapter=UserAdapter(),
+            game_adapter=self.game_adapter,
+            match_adapter=self.match_adapter,
+        )
+        verification_service = ResultVerificationService(
+            result_submission_adapter=self.result_submission_adapter,
+            dispute_adapter=self.dispute_adapter,
+            schema_validation_adapter=self.schema_validation_adapter,
+            match_service=match_service,
+        )
+
+        try:
+            verification_service.finalize_submission_after_verification(
+                submission_id=submission.id,
+                resolved_by_user_id=0,  # 0 = system-automated
+            )
+        except Exception:
+            logger.exception(
+                "Auto-finalization failed for submission %s (status=%s) — organizer review required",
+                submission.id,
+                submission.status,
+            )
 
     def _schedule_auto_confirm_task(self, submission_id: int) -> None:
         """

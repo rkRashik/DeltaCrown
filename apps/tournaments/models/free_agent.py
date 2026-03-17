@@ -109,7 +109,7 @@ class FreeAgentRegistration(models.Model):
         help_text="Captain who drafted this FA.",
     )
     assigned_to_team = models.ForeignKey(
-        "teams.Team",
+        "organizations.Team",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

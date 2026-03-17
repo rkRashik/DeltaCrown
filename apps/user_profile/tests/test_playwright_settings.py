@@ -49,8 +49,8 @@ def page(browser):
 def test_user(db, transactional_db):
     """Test user with problematic data (quotes, newlines)"""
     from apps.games.models import Game
-    from apps.user_profile.models.game_passport_schema import GamePassportSchema
-    
+    from apps.user_profile.models.game_passport_schema import GameChoiceConfig
+
     # Create game first (needed for profile)
     valorant_game, _ = Game.objects.get_or_create(
         slug='valorant',
@@ -62,7 +62,7 @@ def test_user(db, transactional_db):
             'category': 'FPS',
         }
     )
-    GamePassportSchema.objects.get_or_create(
+    GameChoiceConfig.objects.get_or_create(
         game=valorant_game,
         defaults={
             'identity_fields': {

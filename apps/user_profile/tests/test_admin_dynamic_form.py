@@ -15,7 +15,7 @@ from django.contrib.admin.sites import AdminSite
 from django.core.management import call_command
 
 from apps.games.models import Game
-from apps.user_profile.models import GameProfile, GamePassportSchema
+from apps.user_profile.models import GameProfile, GameChoiceConfig
 from apps.user_profile.admin.game_passports import GameProfileAdmin
 from apps.user_profile.admin.forms import GameProfileAdminForm
 
@@ -46,7 +46,7 @@ class TestAdminGameChoicesLimitedToGameModel:
         if not Game.objects.exists():
             self._create_test_games()
         # Ensure schemas exist
-        if not GamePassportSchema.objects.exists():
+        if not GameChoiceConfig.objects.exists():
             call_command('seed_game_passport_schemas')
     
     def _create_test_games(self):
@@ -116,7 +116,7 @@ class TestDynamicRequiredFieldsValorant:
         # Ensure schema exists
         if not hasattr(self.valorant, 'passport_schema'):
             call_command('seed_game_passport_schemas')
-        self.schema = GamePassportSchema.objects.get(game=self.valorant)
+        self.schema = GameChoiceConfig.objects.get(game=self.valorant)
     
     def test_valorant_requires_riot_name_and_tagline(self):
         """Valorant schema requires riot_name and tagline"""
@@ -198,7 +198,7 @@ class TestDynamicRequiredFieldsMLBB:
         )
         if not hasattr(self.mlbb, 'passport_schema'):
             call_command('seed_game_passport_schemas')
-        self.schema = GamePassportSchema.objects.get(game=self.mlbb)
+        self.schema = GameChoiceConfig.objects.get(game=self.mlbb)
     
     def test_mlbb_requires_numeric_id_and_zone_id(self):
         """MLBB schema requires numeric_id and zone_id"""

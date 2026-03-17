@@ -57,7 +57,7 @@ if not _MINIMAL_TEST_APPS:
     from apps.user_profile.models.activity import UserActivity, EventType
     from apps.user_profile.models.stats import UserProfileStats
     from apps.user_profile.models.audit import UserAuditEvent
-    from apps.user_profile.models.game_passport_schema import GamePassportSchema
+    from apps.user_profile.models.game_passport_schema import GameChoiceConfig, GamePassportSchema  # noqa: F401 — alias kept for backward compat
     from apps.user_profile.models.settings import NotificationPreferences, WalletSettings
     from apps.user_profile.models.showcase import ProfileShowcase
     from apps.user_profile.models.about import ProfileAboutItem
@@ -90,7 +90,8 @@ if not _MINIMAL_TEST_APPS:
         'EventType',
         'UserProfileStats',
         'UserAuditEvent',
-        'GamePassportSchema',
+        'GameChoiceConfig',
+        'GamePassportSchema',  # backward-compat alias
         'NotificationPreferences',
         'WalletSettings',
         'ProfileShowcase',

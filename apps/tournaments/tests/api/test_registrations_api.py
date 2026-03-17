@@ -284,7 +284,7 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_registration_happy_path(self, api_client, user_with_profile, tournament):
         """Test creating team registration returns 201."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         captain_user, captain_profile = user_with_profile
         api_client.force_authenticate(user=captain_user)
@@ -316,7 +316,7 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_not_captain_returns_400(self, api_client, user_with_profile, member_with_profile, tournament):
         """Test non-captain cannot register team."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         # User1 is captain
         captain_user, captain_profile = user_with_profile
@@ -347,7 +347,7 @@ class TestTeamRegistrationAPI:
     
     def test_create_team_duplicate_returns_400(self, api_client, user_with_profile, tournament):
         """Test duplicate team registration returns 400."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         captain_user, captain_profile = user_with_profile
         api_client.force_authenticate(user=captain_user)

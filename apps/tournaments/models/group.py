@@ -378,7 +378,7 @@ class GroupStanding(TimestampedModel):
     def team(self):
         """Resolve Team object from team_id (plain IntegerField, not FK)."""
         if self.team_id:
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             try:
                 return Team.objects.get(pk=self.team_id)
             except Team.DoesNotExist:

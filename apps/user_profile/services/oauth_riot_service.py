@@ -419,6 +419,87 @@ def upsert_riot_connection(
     return passport, oauth_connection, created
 
 
+def refresh_riot_access_token(conn: GameOAuthConnection) -> GameOAuthConnection:
+    """Refresh an expired Riot access token using the stored refresh_token.
+
+    Updates conn.access_token, conn.refresh_token (if rotated), conn.expires_at,
+    and conn.last_synced_at, then saves with targeted update_fields.
+
+    Raises:
+        RiotOAuthError(status_code=401): refresh token invalid/expired — user must re-auth.
+        RiotOAuthError(status_code=502/504): transient network/server failure.
+    """
+    _require_riot_settings()
+    if not conn.refresh_token:
+        raise RiotOAuthError(
+            "RIOT_NO_REFRESH_TOKEN",
+            "No refresh token stored — user must re-authenticate",
+            401,
+        )
+
+    basic = base64.b64encode(
+        f"{settings.RIOT_CLIENT_ID}:{settings.RIOT_CLIENT_SECRET}".encode("utf-8")
+    ).decode("utf-8")
+
+    try:
+        response = requests.post(
+            RIOT_TOKEN_URL,
+            data={"grant_type": "refresh_token", "refresh_token": conn.refresh_token},
+            headers={
+                "Authorization": f"Basic {basic}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+            timeout=_oauth_timeout_seconds(),
+        )
+    except requests.Timeout as exc:
+        raise RiotOAuthError("RIOT_TIMEOUT", "Riot token refresh timed out", 504) from exc
+    except requests.RequestException as exc:
+        raise RiotOAuthError("RIOT_NETWORK_ERROR", "Unable to reach Riot token endpoint", 502) from exc
+
+    details = _safe_json(response)
+
+    if response.status_code in {400, 401}:
+        raise RiotOAuthError(
+            "RIOT_REFRESH_FAILED",
+            details.get("error_description") or "Riot refresh token invalid or expired — user must re-authenticate",
+            401,
+            metadata={"riot_error": details.get("error")},
+        )
+
+    if response.status_code >= 400:
+        raise RiotOAuthError(
+            "RIOT_REFRESH_FAILED",
+            details.get("error_description") or "Riot token refresh failed",
+            502,
+            metadata={"status_code": response.status_code, "riot_error": details.get("error")},
+        )
+
+    new_access = details.get("access_token")
+    if not new_access:
+        raise RiotOAuthError("RIOT_REFRESH_INVALID_RESPONSE", "Riot token refresh missing access_token", 502)
+
+    conn.access_token = str(new_access)
+    if details.get("refresh_token"):
+        conn.refresh_token = str(details["refresh_token"])
+
+    expires_in = details.get("expires_in")
+    conn.expires_at = (
+        timezone.now() + timezone.timedelta(seconds=int(expires_in))
+        if expires_in is not None
+        else None
+    )
+    conn.last_synced_at = timezone.now()
+    conn.save(update_fields=["access_token", "refresh_token", "expires_at", "last_synced_at"])
+
+    logger.info(
+        "Riot access token refreshed for connection %s (passport_id=%s)",
+        conn.pk,
+        conn.passport_id,
+    )
+    return conn
+
+
 def _account_clusters() -> list[str]:
     configured = getattr(settings, "RIOT_ACCOUNT_API_CLUSTERS", ["americas", "asia", "europe"])
     if isinstance(configured, str):

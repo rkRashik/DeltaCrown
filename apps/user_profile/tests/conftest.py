@@ -42,7 +42,7 @@ def auto_create_user_profiles(db):
 @pytest.fixture
 def ensure_common_games(request, db):
     """
-    Ensure common Game instances AND GamePassportSchemas exist for tests.
+    Ensure common Game instances AND GameChoiceConfigs exist for tests.
     
     NOTE: NOT autouse anymore - tests must explicitly request this fixture.
     This avoids conflicts with Playwright tests that manage their own setup.
@@ -52,9 +52,9 @@ def ensure_common_games(request, db):
     from apps.games.models import Game
 
     minimal_test_mode = os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1"
-    GamePassportSchema = None
+    GameChoiceConfig = None
     if not minimal_test_mode:
-        from apps.user_profile.models.game_passport_schema import GamePassportSchema
+        from apps.user_profile.models.game_passport_schema import GameChoiceConfig
     
     games_config = [
         {
@@ -164,8 +164,8 @@ def ensure_common_games(request, db):
             }
         )
         
-        if GamePassportSchema is not None:
-            GamePassportSchema.objects.get_or_create(
+        if GameChoiceConfig is not None:
+            GameChoiceConfig.objects.get_or_create(
                 game=game,
                 defaults=config['schema']
             )

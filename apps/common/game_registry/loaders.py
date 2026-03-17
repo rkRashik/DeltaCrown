@@ -4,7 +4,7 @@ Game Registry - Data Loaders Module
 
 Loads and merges game configuration data from multiple sources:
 1. Database Game model (apps.tournaments.models.Game) - PRIMARY SOURCE
-2. Teams roster config (apps.teams.game_config.GAME_CONFIGS)
+2. Roster configs (defined below)
 3. Asset definitions (game_registry.assets.GAME_ASSETS)
 4. CSS theme variables (static/tournaments/detailPages/css/detail_theme.css)
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # ROSTER CONFIGURATIONS
 # ============================================================================
-# Imported from apps.teams.game_config to maintain single source
+# Game roster configurations
 
 ROSTER_CONFIGS = {
     'valorant': {

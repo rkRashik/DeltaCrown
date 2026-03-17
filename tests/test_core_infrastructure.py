@@ -1,7 +1,7 @@
 """
 Core Infrastructure Tests
 
-Test suite for Event Bus, Service Registry, Plugin Framework, and API Gateway.
+Test suite for Event Bus, Service Registry, and Plugin Framework.
 """
 
 import pytest
@@ -9,7 +9,6 @@ from apps.core.events.bus import event_bus, Event, event_handler
 from apps.core.events.events import TournamentCreatedEvent, RegistrationConfirmedEvent
 from apps.core.registry.service_registry import service_registry
 from apps.core.plugins.registry import plugin_registry, GamePlugin
-from apps.core.api_gateway import api_gateway, APIRequest, APIResponse
 
 
 # ============================================================================
@@ -327,98 +326,3 @@ class TestPluginRegistry:
         choices = plugin_registry.get_plugin_choices()
         assert len(choices) == 1
         assert choices[0] == ('game1', 'Game One')
-
-
-# ============================================================================
-# API Gateway Tests
-# ============================================================================
-
-class TestAPIGateway:
-    """Test API Gateway functionality"""
-    
-    def setup_method(self):
-        """Clear gateway before each test"""
-        api_gateway._endpoints.clear()
-    
-    def test_register_and_call_endpoint(self):
-        """Test registering and calling API endpoints"""
-        def get_tournament(request: APIRequest) -> APIResponse:
-            tournament_id = request.data['tournament_id']
-            return APIResponse(
-                success=True,
-                data={'id': tournament_id, 'name': 'Test Tournament'}
-            )
-        
-        api_gateway.register_endpoint('tournaments.get', get_tournament)
-        
-        request = APIRequest(
-            endpoint='tournaments.get',
-            method='get',
-            data={'tournament_id': 123}
-        )
-        
-        response = api_gateway.call(request)
-        assert response.success
-        assert response.data['id'] == 123
-        assert response.data['name'] == 'Test Tournament'
-    
-    def test_endpoint_not_found(self):
-        """Test calling non-existent endpoint"""
-        request = APIRequest(
-            endpoint='nonexistent.endpoint',
-            method='get',
-            data={}
-        )
-        
-        response = api_gateway.call(request)
-        assert not response.success
-        assert response.status_code == 404
-    
-    def test_endpoint_versioning(self):
-        """Test API versioning"""
-        def v1_handler(request: APIRequest) -> APIResponse:
-            return APIResponse(success=True, data={'version': 1})
-        
-        def v2_handler(request: APIRequest) -> APIResponse:
-            return APIResponse(success=True, data={'version': 2})
-        
-        api_gateway.register_endpoint('test.endpoint', v1_handler, version='v1')
-        api_gateway.register_endpoint('test.endpoint', v2_handler, version='v2')
-        
-        request = APIRequest(endpoint='test.endpoint', method='get', data={})
-        
-        response_v1 = api_gateway.call(request, version='v1')
-        assert response_v1.data['version'] == 1
-        
-        response_v2 = api_gateway.call(request, version='v2')
-        assert response_v2.data['version'] == 2
-    
-    def test_error_handling(self):
-        """Test error handling in endpoints"""
-        def failing_handler(request: APIRequest) -> APIResponse:
-            raise ValueError("Test error")
-        
-        api_gateway.register_endpoint('test.failing', failing_handler)
-        
-        request = APIRequest(endpoint='test.failing', method='get', data={})
-        response = api_gateway.call(request)
-        
-        assert not response.success
-        assert response.status_code == 500
-        assert 'Test error' in response.error
-    
-    def test_list_endpoints(self):
-        """Test listing all endpoints"""
-        def handler(request):
-            return APIResponse(success=True)
-        
-        api_gateway.register_endpoint('endpoint1', handler, version='v1')
-        api_gateway.register_endpoint('endpoint1', handler, version='v2')
-        api_gateway.register_endpoint('endpoint2', handler, version='v1')
-        
-        endpoints = api_gateway.list_endpoints()
-        assert 'endpoint1' in endpoints
-        assert 'endpoint2' in endpoints
-        assert len(endpoints['endpoint1']) == 2
-        assert 'v1' in endpoints['endpoint1']
-        assert 'v2' in endpoints['endpoint1']

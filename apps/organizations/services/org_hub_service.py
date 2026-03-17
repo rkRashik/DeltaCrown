@@ -97,17 +97,9 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
                 extra={'org_slug': org_slug, 'user_id': user.id if user else None}
             )
             raise
-    
-# Get permissions (NOT cached for security - must be computed per-request)
-permissions = get_permission_context(user, organization) if (user and user.is_authenticated) else {
-    'viewer_role': 'NONE',
-    'can_access_control_plane': False,
-    'can_manage_org': False,
-    'can_view_financials': False,
-    'can_manage_staff': False,
-    'can_modify_governance': False,
-    'can_execute_terminal_actions': False,
-}
+
+        teams = list(organization.teams.all())
+
         for team in teams:
             team.roster_count = team.roster.count() if hasattr(team, 'roster') else 0
             # Query real match count from tournaments.Match
@@ -142,6 +134,17 @@ permissions = get_permission_context(user, organization) if (user and user.is_au
             extra={'org_slug': org_slug, 'cache_key': cache_key, 'ttl': ORG_HUB_CACHE_TTL}
         )
     
+    # Get permissions (NOT cached for security - must be computed per-request)
+    permissions = get_permission_context(user, organization) if (user and user.is_authenticated) else {
+        'viewer_role': 'NONE',
+        'can_access_control_plane': False,
+        'can_manage_org': False,
+        'can_view_financials': False,
+        'can_manage_staff': False,
+        'can_modify_governance': False,
+        'can_execute_terminal_actions': False,
+    }
+
     # Get members (only if user can manage) - NOT cached for security
     members = []
     if permissions['can_manage_org']:
@@ -248,14 +251,7 @@ def _get_recent_activity(organization, limit: int = 10) -> List[Dict[str, Any]]:
     activities = []
     
     # TODO PHASE 6: Add team creation activities once org-team FK activated
-    # Organizations do NOT own teams yet (Legacy Team is authoritative)
-    # Stubbing team activities until migration complete
-    except Exception as e:
-        logger.warning(
-            f"Error fetching team activities",
-            extra={'org_id': organization.id, 'error': str(e)}
-        )
-    
+
     # Add organization creation activity (REAL DATA)
     if hasattr(organization, 'created_at') and organization.created_at:
         activities.append({

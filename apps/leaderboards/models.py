@@ -53,7 +53,7 @@ class LeaderboardEntry(models.Model):
         related_name="leaderboard_entries"
     )
     team = models.ForeignKey(
-        "teams.Team",
+        "organizations.Team",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
@@ -140,7 +140,7 @@ class LeaderboardSnapshot(models.Model):
         related_name="leaderboard_snapshots"
     )
     team = models.ForeignKey(
-        "teams.Team",
+        "organizations.Team",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
@@ -277,7 +277,7 @@ class TeamStats(models.Model):
     """
     
     team = models.ForeignKey(
-        'teams.Team',
+        'organizations.Team',
         on_delete=models.CASCADE,
         related_name="team_stats"
     )
@@ -350,7 +350,7 @@ class TeamRanking(models.Model):
     """
     
     team = models.ForeignKey(
-        'teams.Team',
+        'organizations.Team',
         on_delete=models.CASCADE,
         related_name="team_rankings"
     )
@@ -537,7 +537,7 @@ class TeamMatchHistory(models.Model):
     
     # Team reference (participant in match)
     team = models.ForeignKey(
-        "teams.Team",
+        "organizations.Team",
         on_delete=models.CASCADE,
         related_name="match_history",
         db_index=True,
@@ -883,7 +883,7 @@ class TeamAnalyticsSnapshot(models.Model):
     
     # Team reference
     team = models.ForeignKey(
-        "teams.Team",
+        "organizations.Team",
         on_delete=models.CASCADE,
         related_name="analytics_snapshots",
         db_index=True,

@@ -86,14 +86,14 @@ class TestGetTeamURL:
         assert '/organizations/' in url or '/protocol-v/' in url
         assert url  # Non-empty string
     
-    @patch('apps.organizations.adapters.team_adapter.LegacyTeam')
-    def test_legacy_team_url_generation(self, mock_legacy_team):
-        """Legacy team should return teams URL pattern."""
-        # Mock legacy team
+    @patch('apps.organizations.adapters.team_adapter.Team')
+    def test_legacy_team_url_generation(self, mock_team_cls):
+        """Team URL generation with mocked Team model."""
+        # Mock team
         mock_team = Mock()
         mock_team.id = 123
         mock_team.slug = 'syntax-gaming'
-        mock_legacy_team.objects.get.return_value = mock_team
+        mock_team_cls.objects.get.return_value = mock_team
         
         adapter = TeamAdapter()
         
@@ -142,17 +142,17 @@ class TestGetTeamIdentity:
         assert identity['organization_name'] == 'Syntax Esports'
         assert identity['organization_slug'] == 'syntax-esports'
     
-    @patch('apps.organizations.adapters.team_adapter.LegacyTeam')
-    def test_legacy_team_identity_structure(self, mock_legacy_team):
-        """Legacy team identity should have same structure with nulls for org fields."""
-        # Mock legacy team
+    @patch('apps.organizations.adapters.team_adapter.Team')
+    def test_legacy_team_identity_structure(self, mock_team_cls):
+        """Team identity should have all required fields."""
+        # Mock team
         mock_team = Mock()
         mock_team.id = 123
         mock_team.name = 'Legacy Team'
         mock_team.slug = 'legacy-team'
         mock_team.logo = None
         mock_team.game = Mock(id=1, name='Valorant')
-        mock_legacy_team.objects.select_related.return_value.get.return_value = mock_team
+        mock_team_cls.objects.select_related.return_value.get.return_value = mock_team
         
         adapter = TeamAdapter()
         
@@ -207,14 +207,14 @@ class TestValidateRoster:
         assert isinstance(result['errors'], list)
         assert isinstance(result['warnings'], list)
     
-    @patch('apps.organizations.adapters.team_adapter.LegacyTeam')
-    @patch('apps.organizations.adapters.team_adapter.LegacyMembership')
-    def test_legacy_team_validation_structure(self, mock_membership, mock_legacy_team):
-        """Legacy team validation should return same structure."""
-        # Mock legacy team and memberships
+    @patch('apps.organizations.adapters.team_adapter.Team')
+    @patch('apps.organizations.adapters.team_adapter.TeamMembership')
+    def test_legacy_team_validation_structure(self, mock_membership, mock_team_cls):
+        """Team validation should return standardized structure."""
+        # Mock team and memberships
         mock_team = Mock()
         mock_team.id = 123
-        mock_legacy_team.objects.get.return_value = mock_team
+        mock_team_cls.objects.get.return_value = mock_team
         
         mock_membership.objects.filter.return_value.select_related.return_value.count.return_value = 5
         

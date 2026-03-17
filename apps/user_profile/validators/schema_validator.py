@@ -6,7 +6,7 @@ Shared validation module used by BOTH:
 - GamePassportService (service layer + API)
 
 Single source of truth for validation rules.
-All validation logic is driven by GamePassportSchema.
+All validation logic is driven by GameChoiceConfig (formerly GamePassportSchema).
 
 GP-2A: Updated to work with structured identity fields (ign/discriminator/platform/region)
        while maintaining backward compatibility with JSON identity_data input.
@@ -14,7 +14,7 @@ GP-2A: Updated to work with structured identity fields (ign/discriminator/platfo
 
 from typing import Dict, Tuple, Optional
 from django.core.exceptions import ValidationError as DjangoValidationError
-from apps.user_profile.models import GamePassportSchema, GameProfile
+from apps.user_profile.models import GameChoiceConfig, GameProfile
 from apps.games.models import Game
 
 
@@ -50,7 +50,7 @@ class GamePassportSchemaValidator:
     """
     Schema-driven validator for Game Passports (GP-1, GP-2A).
     
-    Uses GamePassportSchema to:
+    Uses GameChoiceConfig to:
     - Validate identity fields (required/optional)
     - Normalize identity data (lowercase for Riot IDs)
     - Compute identity_key (for uniqueness)
@@ -96,8 +96,8 @@ class GamePassportSchemaValidator:
         
         # 1. Get schema for game
         try:
-            schema = GamePassportSchema.objects.get(game=game)
-        except GamePassportSchema.DoesNotExist:
+            schema = GameChoiceConfig.objects.get(game=game)
+        except GameChoiceConfig.DoesNotExist:
             # FALLBACK: If no schema exists, use simple validation
             # Just check that IGN is provided
             if not ign:
@@ -376,8 +376,8 @@ class GamePassportSchemaValidator:
         
         # Get schema
         try:
-            schema = GamePassportSchema.objects.get(game=game)
-        except GamePassportSchema.DoesNotExist:
+            schema = GameChoiceConfig.objects.get(game=game)
+        except GameChoiceConfig.DoesNotExist:
             errors['game'] = f'No passport schema configured for {game.display_name}.'
             return ValidationResult(is_valid=False, errors=errors)
         

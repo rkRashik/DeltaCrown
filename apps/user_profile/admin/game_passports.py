@@ -84,7 +84,7 @@ class GameProfileAdmin(ModelAdmin):
     GP-2D Game Passport Admin with Schema-Driven Dynamic Form
     
     Features:
-    - Dynamic identity validation per game using GamePassportSchema
+    - Dynamic identity validation per game using GameChoiceConfig
     - Game dropdown limited to passport-supported games
     - Dynamic JS for labels, hide/show, region dropdown (GP-2D)
     - Server-side validation with normalization
@@ -236,7 +236,7 @@ class GameProfileAdmin(ModelAdmin):
         Provides all game schemas with identity field configs, region choices,
         and rank choices. JavaScript uses this to adapt the form dynamically.
         """
-        from apps.user_profile.models import GamePassportSchema
+        from apps.user_profile.models import GameChoiceConfig
         from django.core.cache import cache
         import json
         
@@ -250,7 +250,7 @@ class GameProfileAdmin(ModelAdmin):
         
         if not schema_matrix_json:
             # Cache miss - build from database
-            schemas = GamePassportSchema.objects.select_related('game').filter(
+            schemas = GameChoiceConfig.objects.select_related('game').filter(
                 game__is_passport_supported=True
             ).order_by('game__slug')
             

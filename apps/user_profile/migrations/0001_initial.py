@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("games", "0001_initial"),
-        ("teams", "0001_initial"),
+        ("organizations", "0001_initial"),
         ("tournaments", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -2652,7 +2652,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="primary_members",
-                        to="teams.team",
+                        to="organizations.team",
                     ),
                 ),
                 (

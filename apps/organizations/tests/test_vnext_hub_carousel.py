@@ -221,7 +221,8 @@ class TestVNextHubCarouselHotfix:
         client.force_login(test_user)
         
         # Allow reasonable query budget (15 queries)
-        with django_assert_max_num_queries(15):\n            response = client.get(reverse('organizations:vnext_hub'))
+        with django_assert_max_num_queries(15):
+            response = client.get(reverse('organizations:vnext_hub'))
             assert response.status_code == 200
 
 

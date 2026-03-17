@@ -466,8 +466,8 @@ class MatchDetailView(DetailView):
         if not participant_id:
             return None
         try:
-            from apps.teams.models import Team
-            team = Team.objects.filter(id=participant_id, is_deleted=False).first()
+            from apps.organizations.models import Team
+            team = Team.objects.filter(id=participant_id).first()
             if team:
                 return {
                     'id': team.id,

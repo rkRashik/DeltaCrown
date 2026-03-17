@@ -2,6 +2,8 @@
 
 from django.db import models
 
+from apps.user_profile.fields import EncryptedTextField
+
 
 class GameOAuthConnection(models.Model):
     """
@@ -40,8 +42,8 @@ class GameOAuthConnection(models.Model):
         help_text="Provider shard/region identifier (for example ap, euw, na)",
     )
 
-    access_token = models.TextField(blank=True, default="")
-    refresh_token = models.TextField(blank=True, default="")
+    access_token = EncryptedTextField(blank=True, default="")
+    refresh_token = EncryptedTextField(blank=True, default="")
     token_type = models.CharField(max_length=32, blank=True, default="Bearer")
     scopes = models.TextField(blank=True, default="")
     expires_at = models.DateTimeField(null=True, blank=True)

@@ -141,9 +141,9 @@ def ensure_common_games(db):
 
 @pytest.fixture
 def valorant_game(db):
-    """VALORANT Game instance with GamePassportSchema."""
+    """VALORANT Game instance with GameChoiceConfig."""
     from apps.games.models import Game
-    from apps.user_profile.models_main import GamePassportSchema
+    from apps.user_profile.models import GameChoiceConfig
     
     game, _ = Game.objects.get_or_create(
         slug='valorant',
@@ -155,7 +155,7 @@ def valorant_game(db):
     )
     
     # Create schema for passport validation
-    GamePassportSchema.objects.get_or_create(
+    GameChoiceConfig.objects.get_or_create(
         game=game,
         defaults={
             'identity_fields': {
@@ -182,9 +182,9 @@ def valorant_game(db):
 
 @pytest.fixture
 def cs2_game(db):
-    """Counter-Strike 2 Game instance with GamePassportSchema."""
+    """Counter-Strike 2 Game instance with GameChoiceConfig."""
     from apps.games.models import Game
-    from apps.user_profile.models_main import GamePassportSchema
+    from apps.user_profile.models import GameChoiceConfig
     
     game, _ = Game.objects.get_or_create(
         slug='cs2',
@@ -195,7 +195,7 @@ def cs2_game(db):
         }
     )
     
-    GamePassportSchema.objects.get_or_create(
+    GameChoiceConfig.objects.get_or_create(
         game=game,
         defaults={
             'identity_fields': {
@@ -215,9 +215,9 @@ def cs2_game(db):
 
 @pytest.fixture
 def mlbb_game(db):
-    """Mobile Legends: Bang Bang Game instance with GamePassportSchema."""
+    """Mobile Legends: Bang Bang Game instance with GameChoiceConfig."""
     from apps.games.models import Game
-    from apps.user_profile.models_main import GamePassportSchema
+    from apps.user_profile.models import GameChoiceConfig
     
     game, _ = Game.objects.get_or_create(
         slug='mlbb',
@@ -228,7 +228,7 @@ def mlbb_game(db):
         }
     )
     
-    GamePassportSchema.objects.get_or_create(
+    GameChoiceConfig.objects.get_or_create(
         game=game,
         defaults={
             'identity_fields': {

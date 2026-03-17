@@ -6,7 +6,7 @@ import pytest
 import json
 from django.test import Client
 from django.contrib.auth import get_user_model
-from apps.user_profile.models import GameProfile, GamePassportSchema
+from apps.user_profile.models import GameProfile, GameChoiceConfig
 from apps.games.models import Game
 from tests.fixtures.game_fixtures import valorant_game, cs2_game, mlbb_game, all_supported_games, unsupported_game
 
@@ -90,7 +90,7 @@ class TestRegionDropdown:
         )
         
         # Verify schema exists
-        schema = GamePassportSchema.objects.get(game=valorant_game)
+        schema = GameChoiceConfig.objects.get(game=valorant_game)
         
         assert len(schema.region_choices) == 6, "Valorant should have 6 regions"
         
@@ -126,7 +126,7 @@ class TestRegionDropdown:
             password='testpass123'
         )
         
-        schema = GamePassportSchema.objects.get(game=valorant_game)
+        schema = GameChoiceConfig.objects.get(game=valorant_game)
         
         # Try to create profile with invalid region
         valid_regions = [choice['value'] for choice in schema.region_choices]
@@ -227,7 +227,7 @@ class TestSupportedGamesOnly:
         
         # Verify each has a schema
         for game in supported_games:
-            schema = GamePassportSchema.objects.filter(game=game).first()
+            schema = GameChoiceConfig.objects.filter(game=game).first()
             assert schema is not None, f"Game {game.slug} should have schema"
 
 
@@ -265,7 +265,7 @@ class TestEndToEndPassportCreation:
             password='testpass123'
         )
         
-        schema = GamePassportSchema.objects.get(game=valorant_game)
+        schema = GameChoiceConfig.objects.get(game=valorant_game)
         
         # Get valid region from schema
         valid_region = schema.region_choices[0]['value']  # 'americas'

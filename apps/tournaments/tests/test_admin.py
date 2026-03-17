@@ -6,7 +6,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from apps.tournaments.models import Tournament, Game, Bracket, BracketNode, TournamentPaymentMethod
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from django.utils import timezone
 from datetime import timedelta
 

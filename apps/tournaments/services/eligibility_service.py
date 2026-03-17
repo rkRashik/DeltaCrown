@@ -286,36 +286,6 @@ class RegistrationEligibilityService:
                     )):
                         team_with_permission = team
                         break
-            else:
-                try:
-                    from apps.teams.models import Team as LegacyTeam
-                    from apps.teams.models import TeamMembership as LegacyTeamMembership
-
-                    legacy_teams = LegacyTeam.objects.filter(
-                        game=getattr(tournament.game, 'slug', ''),
-                        memberships__profile=user_profile,
-                        memberships__status=LegacyTeamMembership.Status.ACTIVE,
-                        is_active=True,
-                    ).distinct()
-
-                    for team in legacy_teams:
-                        legacy_membership = LegacyTeamMembership.objects.filter(
-                            team=team,
-                            profile=user_profile,
-                            status=LegacyTeamMembership.Status.ACTIVE,
-                        ).first()
-
-                        if legacy_membership and (
-                            legacy_membership.role in [
-                                LegacyTeamMembership.Role.OWNER,
-                                LegacyTeamMembership.Role.MANAGER,
-                                LegacyTeamMembership.Role.CAPTAIN,
-                            ] or getattr(legacy_membership, 'can_register_tournaments', False)
-                        ):
-                            team_with_permission = team
-                            break
-                except Exception:
-                    team_with_permission = None
 
             if not team_with_permission:
                 if not all_teams.exists():

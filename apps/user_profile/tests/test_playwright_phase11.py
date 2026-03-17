@@ -10,7 +10,10 @@ Tests verify actual browser behavior:
 import pytest
 from django.test import LiveServerTestCase
 from django.contrib.auth import get_user_model
-from playwright.sync_api import sync_playwright, expect
+
+sync_api = pytest.importorskip('playwright.sync_api')
+sync_playwright = sync_api.sync_playwright
+expect = sync_api.expect
 
 User = get_user_model()
 

@@ -1,16 +1,19 @@
 # Phase 9A-27: OTP-Based Delete Confirmation APIs
 
+import logging
+
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 from apps.user_profile.models import GameProfile
 from apps.user_profile.models.delete_otp import GamePassportDeleteOTP
 from apps.user_profile.models.cooldown import GamePassportCooldown
 from apps.common.api_responses import success_response, error_response
+
+logger = logging.getLogger(__name__)
 
 
 def get_client_ip(request):
@@ -24,6 +27,7 @@ def get_client_ip(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def request_delete_otp(request):
     """
     Request OTP code for passport deletion.
@@ -99,10 +103,20 @@ def request_delete_otp(request):
             }
         )
     
+    user_email = str(getattr(request.user, 'email', '') or '').strip()
+    if not user_email:
+        return error_response(
+            'EMAIL_REQUIRED',
+            'A verified account email is required before requesting a disconnect code.',
+            status=400,
+            metadata={'support_email': 'support@deltacrown.gg'}
+        )
+
     # Check resend cooldown (60 seconds)
     recent_otp = GamePassportDeleteOTP.objects.filter(
         user=request.user,
         passport=passport,
+        used=False,
         created_at__gte=timezone.now() - timezone.timedelta(seconds=60)
     ).first()
     
@@ -135,29 +149,28 @@ If you did not request this, please ignore this email and secure your account.
 - DeltaCrown Team
     """
     
-    # Attempt email sending with proper error handling
+    # Attempt email sending with proper error handling.
+    # If delivery fails, delete this OTP so retries don't immediately hit cooldown (429).
     try:
         send_mail(
             subject,
             message,
             settings.DEFAULT_FROM_EMAIL,
-            [request.user.email],
+            [user_email],
             fail_silently=False,
         )
     except Exception as e:
-        # Log the error for debugging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Failed to send OTP email to {request.user.email}: {str(e)}")
+        logger.exception("Failed to send OTP email to %s", user_email)
+        otp.delete()
         
         # Return structured error (HTTP 503 - Service Unavailable)
         return error_response(
             'EMAIL_NOT_CONFIGURED',
-            'Email service is not configured. Contact support@deltacrown.gg for assistance.',
+            'Email service is temporarily unavailable. Please try again in a minute.',
             status=503,
             metadata={
                 'support_email': 'support@deltacrown.gg',
-                'otp_code': otp.code if settings.DEBUG else None  # Dev fallback
+                'retryable': True,
             }
         )
     
@@ -174,6 +187,7 @@ If you did not request this, please ignore this email and secure your account.
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def confirm_delete(request):
     """
     Confirm passport deletion with OTP code.

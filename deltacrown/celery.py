@@ -29,12 +29,21 @@ _beat_enabled = os.getenv('ENABLE_CELERY_BEAT', '0') == '1'
 
 # ---------------------------------------------------------------------------
 # Lightweight tasks — always scheduled (cheap, infrequent)
+#
+# Daily tasks staggered with 30-min gaps to avoid worker contention
+# on single-concurrency Render Starter deployment:
+#   1:00 AM  legacy rankings
+#   1:30 AM  (reserved for vnext team rankings in heavy schedule)
+#   2:00 AM  (reserved for inactivity decay in heavy schedule)
+#   2:30 AM  (reserved for org rankings in heavy schedule)
+#   3:00 AM  (reserved for auto-archive in heavy schedule)
+#   8:00 AM  digest emails
 # ---------------------------------------------------------------------------
 _base_schedule = {
-    # Daily ranking recalculation at 2 AM
+    # Daily ranking recalculation at 1:00 AM (staggered from 2 AM)
     'recompute-rankings-daily': {
         'task': 'teams.recompute_team_rankings',
-        'schedule': crontab(hour=2, minute=0),
+        'schedule': crontab(hour=1, minute=0),
     },
     # Daily digest emails at 8 AM
     'send-digest-emails-daily': {
@@ -46,22 +55,16 @@ _base_schedule = {
         'task': 'teams.clean_expired_invites',
         'schedule': crontab(hour='*/6', minute=0),
     },
-    # Expire sponsors daily at 3 AM
-    'expire-sponsors-daily': {
-        'task': 'teams.expire_sponsors_task',
-        'schedule': crontab(hour=3, minute=0),
-    },
 }
 
 # ---------------------------------------------------------------------------
 # Heavy / high-frequency tasks — only when ENABLE_CELERY_BEAT=1
 # ---------------------------------------------------------------------------
 _heavy_schedule = {
-    # Process scheduled promotions hourly
-    'process-scheduled-promotions': {
-        'task': 'teams.process_scheduled_promotions_task',
-        'schedule': crontab(minute=0),  # Every hour
-    },
+    # NOTE: 'process-scheduled-promotions' removed — was a no-op stub
+    # (teams.process_scheduled_promotions_task always returns processed_count=0).
+    # Task function preserved in legacy_bridge.py for backward compat.
+
     # Tournament wrap-up check every hour
     'check-tournament-wrapup': {
         'task': 'apps.tournaments.tasks.check_tournament_wrapup',
@@ -77,10 +80,10 @@ _heavy_schedule = {
         },
     },
 
-    # Auto-archive completed/cancelled tournaments daily at 4 AM
+    # Auto-archive completed/cancelled tournaments daily at 3:00 AM (moved from 4 AM)
     'auto-archive-tournaments': {
         'task': 'apps.tournaments.tasks.auto_archive_tournaments',
-        'schedule': crontab(hour=4, minute=0),
+        'schedule': crontab(hour=3, minute=0),
         'options': {
             'expires': 3600,
         },
@@ -123,23 +126,37 @@ _heavy_schedule = {
         },
     },
 
+    # Steam persona name / avatar refresh every 4 hours (conservative — Steam API rate limits)
+    'sync-all-active-steam-passports': {
+        'task': 'user_profile.sync_all_active_steam_passports',
+        'schedule': crontab(hour='*/4', minute=10),
+        'options': {'expires': 3600},
+    },
+
+    # Epic OAuth token proactive refresh every hour (tokens expire every 4h, 30-min window)
+    'sync-all-active-epic-passports': {
+        'task': 'user_profile.sync_all_active_epic_passports',
+        'schedule': crontab(minute=50),
+        'options': {'expires': 3600},
+    },
+
     # ========================================================================
     # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)
     # ========================================================================
 
-    # Recalculate vNext team rankings nightly at 3:00 AM
+    # Recalculate vNext team rankings nightly at 1:30 AM (staggered from 3 AM)
     'vnext-recalculate-team-rankings': {
         'task': 'apps.organizations.tasks.recalculate_team_rankings',
-        'schedule': crontab(hour=3, minute=0),
+        'schedule': crontab(hour=1, minute=30),
         'options': {
             'expires': 3600,
         }
     },
 
-    # Apply inactivity decay nightly at 3:30 AM
+    # Apply inactivity decay nightly at 2:00 AM (staggered from 3:30 AM)
     'vnext-apply-inactivity-decay': {
         'task': 'apps.organizations.tasks.apply_inactivity_decay',
-        'schedule': crontab(hour=3, minute=30),
+        'schedule': crontab(hour=2, minute=0),
         'kwargs': {
             'cutoff_days': 7
         },
@@ -148,10 +165,10 @@ _heavy_schedule = {
         }
     },
 
-    # Recalculate organization rankings nightly at 4:00 AM
+    # Recalculate organization rankings nightly at 2:30 AM (staggered from 4 AM)
     'vnext-recalculate-org-rankings': {
         'task': 'apps.organizations.tasks.recalculate_organization_rankings',
-        'schedule': crontab(hour=4, minute=0),
+        'schedule': crontab(hour=2, minute=30),
         'options': {
             'expires': 3600,
         }
@@ -186,6 +203,74 @@ _heavy_schedule = {
         'options': {
             'expires': 3600,
         },
+    },
+
+    # ========================================================================
+    # Leaderboard Snapshot & Analytics Tasks (Phase F / Phase 8)
+    # Night window stagger (single-concurrency Render Starter):
+    #   03:30  all-time snapshot
+    #   04:00  mark inactive players
+    #   04:30  cold storage compaction (Sundays only)
+    #   05:00  nightly user analytics
+    #   05:30  nightly team analytics
+    # ========================================================================
+
+    # Tournament ranking snapshots every 30 min (no-op unless ENGINE_V2_ENABLED=1)
+    'snapshot-active-tournaments': {
+        'task': 'apps.leaderboards.tasks.snapshot_active_tournaments',
+        'schedule': crontab(minute='*/30'),
+        'options': {'expires': 1800},
+    },
+
+    # All-time cross-game ranking snapshot daily at 03:30 UTC
+    'snapshot-all-time-global': {
+        'task': 'apps.leaderboards.tasks.snapshot_all_time',
+        'schedule': crontab(hour=3, minute=30),
+        'args': [None],
+        'options': {'expires': 3600},
+    },
+
+    # Hourly leaderboard cache refresh at :45 each hour
+    'hourly-leaderboard-refresh': {
+        'task': 'apps.leaderboards.tasks.hourly_leaderboard_refresh',
+        'schedule': crontab(minute=45),
+        'options': {'expires': 3600},
+    },
+
+    # Mark inactive players (>30 days) daily at 04:00 UTC
+    'mark-inactive-players': {
+        'task': 'apps.leaderboards.tasks.mark_inactive_players',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {'expires': 3600},
+    },
+
+    # Weekly cold storage compaction — Sundays at 04:30 UTC, 90-day threshold
+    'compact-old-snapshots': {
+        'task': 'apps.leaderboards.tasks.compact_old_snapshots',
+        'schedule': crontab(hour=4, minute=30, day_of_week=0),
+        'args': [90],
+        'options': {'expires': 3600},
+    },
+
+    # Nightly user analytics refresh at 05:00 UTC
+    'nightly-user-analytics-refresh': {
+        'task': 'apps.leaderboards.tasks.nightly_user_analytics_refresh',
+        'schedule': crontab(hour=5, minute=0),
+        'options': {'expires': 7200},
+    },
+
+    # Nightly team analytics refresh at 05:30 UTC (staggered)
+    'nightly-team-analytics-refresh': {
+        'task': 'apps.leaderboards.tasks.nightly_team_analytics_refresh',
+        'schedule': crontab(hour=5, minute=30),
+        'options': {'expires': 7200},
+    },
+
+    # Seasonal rollover — first of each month at 00:00 UTC
+    'seasonal-rollover': {
+        'task': 'apps.leaderboards.tasks.seasonal_rollover',
+        'schedule': crontab(hour=0, minute=0, day_of_month=1),
+        'options': {'expires': 3600},
     },
 }
 

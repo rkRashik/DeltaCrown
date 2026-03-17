@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("organizations", "0009_fix_teaminvite_fk_reference"),
-        ("teams", "0101_alter_teamjoinrequest_team_alter_teamsponsor_team"),
+        ("organizations", "0001_initial"),
     ]
 
     operations = [
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 primary_key=True,
                 related_name="ranking",
                 serialize=False,
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AlterField(
@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 help_text="Team extending invitation",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="vnext_invites",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AlterField(
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 help_text="Team this membership belongs to",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="vnext_memberships",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.AlterField(
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
                 help_text="Team this activity belongs to",
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="activity_logs",
-                to="teams.team",
+                to="organizations.team",
             ),
         ),
         migrations.DeleteModel(

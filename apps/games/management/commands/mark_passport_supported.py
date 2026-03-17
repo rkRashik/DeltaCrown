@@ -51,9 +51,9 @@ class Command(BaseCommand):
 
     def mark_all_with_schemas(self):
         """Mark all games that have passport schemas as supported"""
-        from apps.user_profile.models import GamePassportSchema
-        
-        schemas = GamePassportSchema.objects.select_related('game').all()
+        from apps.user_profile.models import GameChoiceConfig
+
+        schemas = GameChoiceConfig.objects.select_related('game').all()
         
         if not schemas.exists():
             self.stdout.write(self.style.WARNING("⚠️  No passport schemas found. Run seed_game_passport_schemas first."))

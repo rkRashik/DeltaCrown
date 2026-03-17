@@ -90,10 +90,10 @@ class TestGetOrgHubContext(TestCase):
         self.assertIn('teams', context)
         self.assertIn('members', context)
         self.assertIn('recent_activity', context)
-        self.assertIn('can_manage', context)
-        
+        self.assertIn('can_manage_org', context)
+
         self.assertEqual(context['organization'].slug, 'test-org')
-        self.assertTrue(context['can_manage'])
+        self.assertTrue(context['can_manage_org'])
     
     def test_get_hub_context_org_not_found(self):
         """Test retrieving hub context for non-existent organization."""
@@ -103,22 +103,22 @@ class TestGetOrgHubContext(TestCase):
     def test_can_manage_ceo(self):
         """Test that CEO can manage organization."""
         context = get_org_hub_context('test-org', self.ceo)
-        self.assertTrue(context['can_manage'])
+        self.assertTrue(context['can_manage_org'])
     
     def test_can_manage_manager(self):
         """Test that manager can manage organization."""
         context = get_org_hub_context('test-org', self.manager)
-        self.assertTrue(context['can_manage'])
+        self.assertTrue(context['can_manage_org'])
     
     def test_cannot_manage_regular_user(self):
         """Test that regular user cannot manage organization."""
         context = get_org_hub_context('test-org', self.regular_user)
-        self.assertFalse(context['can_manage'])
+        self.assertFalse(context['can_manage_org'])
     
     def test_cannot_manage_anonymous(self):
         """Test that anonymous user cannot manage organization."""
         context = get_org_hub_context('test-org', None)
-        self.assertFalse(context['can_manage'])
+        self.assertFalse(context['can_manage_org'])
     
     def test_members_visible_only_to_managers(self):
         """Test that members list is only visible to users who can manage."""
@@ -362,15 +362,15 @@ class TestOrgHubCaching(TestCase):
         
         # CEO access
         context_ceo = get_org_hub_context('test-org', self.ceo)
-        self.assertTrue(context_ceo['can_manage'])
+        self.assertTrue(context_ceo['can_manage_org'])
         
         # Manager access
         context_manager = get_org_hub_context('test-org', manager)
-        self.assertTrue(context_manager['can_manage'])
+        self.assertTrue(context_manager['can_manage_org'])
         
         # Regular user access
         context_regular = get_org_hub_context('test-org', regular_user)
-        self.assertFalse(context_regular['can_manage'])
+        self.assertFalse(context_regular['can_manage_org'])
     
     def test_cache_ttl(self):
         """Test that cache respects TTL setting."""

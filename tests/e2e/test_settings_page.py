@@ -10,7 +10,10 @@ Tests:
 - CRUD operations work end-to-end
 """
 import pytest
-from playwright.sync_api import Page, expect
+
+sync_api = pytest.importorskip('playwright.sync_api')
+Page = sync_api.Page
+expect = sync_api.expect
 import re
 
 

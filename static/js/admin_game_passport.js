@@ -26,7 +26,7 @@
 
     /**
      * UP-PHASE15: Fetch game metadata (regions/ranks) from server
-     * No hardcoded lists - all data comes from GamePassportSchema
+     * No hardcoded lists - all data comes from GameChoiceConfig
      */
     async function fetchGameMetadata(gameId) {
         if (!gameId) {

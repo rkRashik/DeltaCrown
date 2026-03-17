@@ -152,123 +152,6 @@ def _patch_bracket_model():
     Bracket.__init__ = _compat_bracket_init
 
 
-# ---------------------------------------------------------------------------
-# Team model compatibility shim (legacy teams.Team)
-# ---------------------------------------------------------------------------
-_STALE_TEAM_KWARGS = frozenset({
-    'captain', 'owner',
-})
-
-_TEAM_PATCHED = False
-
-
-def _patch_team_model():
-    global _TEAM_PATCHED
-    if _TEAM_PATCHED:
-        return
-    _TEAM_PATCHED = True
-
-    from apps.teams.models import Team
-
-    _orig_team_init = Team.__init__
-    _orig_team_save = Team.save
-
-    def _resolve_profile(candidate):
-        """Best-effort normalize User/UserProfile-like objects to UserProfile."""
-        if candidate is None:
-            return None
-        if hasattr(candidate, 'user_id'):
-            return candidate
-        if hasattr(candidate, 'profile'):
-            return candidate.profile
-        if hasattr(candidate, 'user') and hasattr(candidate.user, 'profile'):
-            return candidate.user.profile
-        return None
-
-    def _compat_team_init(self, *args, **kwargs):
-        stale_values = {}
-        for key in _STALE_TEAM_KWARGS:
-            if key in kwargs:
-                stale_values[key] = kwargs.pop(key)
-        captain_seed = stale_values.get('captain') or stale_values.get('owner')
-        if not args and 'region' not in kwargs:
-            kwargs['region'] = 'BD'
-        result = _orig_team_init(self, *args, **kwargs)
-        profile = _resolve_profile(captain_seed)
-        if profile is not None:
-            setattr(self, '_compat_captain_profile', profile)
-        return result
-
-    def _compat_team_save(self, *args, **kwargs):
-        result = _orig_team_save(self, *args, **kwargs)
-        profile = getattr(self, '_compat_captain_profile', None)
-        if profile is not None and getattr(self, 'pk', None):
-            try:
-                from apps.teams.models import TeamMembership
-
-                TeamMembership.objects.get_or_create(
-                    team=self,
-                    profile=profile,
-                    defaults={
-                        'role': TeamMembership.Role.OWNER,
-                        'status': TeamMembership.Status.ACTIVE,
-                    },
-                )
-            except Exception:
-                pass
-            finally:
-                try:
-                    delattr(self, '_compat_captain_profile')
-                except Exception:
-                    pass
-        return result
-
-    Team.__init__ = _compat_team_init
-    Team.save = _compat_team_save
-
-    try:
-        from apps.teams.models import TeamMembership
-
-        if not hasattr(TeamMembership.Role, 'MEMBER'):
-            TeamMembership.Role.MEMBER = TeamMembership.Role.PLAYER
-
-        if not getattr(TeamMembership.objects, '_compat_create_patched', False):
-            _orig_membership_create = TeamMembership.objects.create
-
-            def _compat_membership_create(**kwargs):
-                team = kwargs.get('team')
-                profile = kwargs.get('profile')
-                team_id = kwargs.get('team_id')
-                profile_id = kwargs.get('profile_id')
-
-                lookup = {}
-                if team is not None:
-                    lookup['team'] = team
-                elif team_id is not None:
-                    lookup['team_id'] = team_id
-                if profile is not None:
-                    lookup['profile'] = profile
-                elif profile_id is not None:
-                    lookup['profile_id'] = profile_id
-
-                if 'team' in lookup or 'team_id' in lookup:
-                    if 'profile' in lookup or 'profile_id' in lookup:
-                        existing = TeamMembership.objects.filter(**lookup).first()
-                        if existing:
-                            for key, val in kwargs.items():
-                                if key in {'team', 'team_id', 'profile', 'profile_id'}:
-                                    continue
-                                setattr(existing, key, val)
-                            existing.save()
-                            return existing
-
-                return _orig_membership_create(**kwargs)
-
-            TeamMembership.objects.create = _compat_membership_create
-            TeamMembership.objects._compat_create_patched = True
-    except Exception:
-        pass
-
 
 # ---------------------------------------------------------------------------
 # Registration model compatibility shim
@@ -776,95 +659,6 @@ def _patch_game_scoring_rule():
     GameScoringRule.__init__ = _compat_scoring_init
 
 
-# ---------------------------------------------------------------------------
-# TeamRanking model compatibility shim
-# ---------------------------------------------------------------------------
-# TeamRanking.team is a FK to legacy teams.Team, but tests use
-# organizations.Team (vNext).  Auto-create a mirror legacy Team.
-_STALE_TEAM_RANKING_KWARGS = frozenset({
-    'consecutive_wins', 'consecutive_losses', 'total_matches',
-    'total_wins', 'total_losses', 'win_rate', 'peak_cp',
-})
-_TEAM_RANKING_PATCHED = False
-
-
-def _patch_team_ranking_model():
-    global _TEAM_RANKING_PATCHED
-    if _TEAM_RANKING_PATCHED:
-        return
-    _TEAM_RANKING_PATCHED = True
-
-    try:
-        from apps.organizations.models.ranking import TeamRanking
-        from apps.teams.models import Team as LegacyTeam
-        from apps.organizations.models.team import Team as OrgTeam
-    except (ImportError, Exception):
-        return
-
-    _orig_ranking_init = TeamRanking.__init__
-
-    def _compat_ranking_init(self, *args, **kwargs):
-        # Strip stale kwargs
-        for key in _STALE_TEAM_RANKING_KWARGS:
-            kwargs.pop(key, None)
-        team = kwargs.get('team')
-        if team is not None and isinstance(team, OrgTeam):
-            # Need a legacy teams.Team instead
-            try:
-                import uuid
-                legacy_name = f"mirror_{team.name}_{uuid.uuid4().hex[:6]}"
-                legacy_tag = f"M{uuid.uuid4().hex[:5].upper()}"
-                legacy_team, _ = LegacyTeam.objects.get_or_create(
-                    name=legacy_name,
-                    defaults={'tag': legacy_tag, 'region': getattr(team, 'region', 'BD') or 'BD'},
-                )
-                kwargs['team'] = legacy_team
-            except Exception:
-                pass
-        return _orig_ranking_init(self, *args, **kwargs)
-
-    TeamRanking.__init__ = _compat_ranking_init
-
-
-# ---------------------------------------------------------------------------
-# Leaderboard TeamRanking model compatibility shim
-# ---------------------------------------------------------------------------
-_LEADERBOARD_RANKING_PATCHED = False
-
-
-def _patch_leaderboard_team_ranking():
-    global _LEADERBOARD_RANKING_PATCHED
-    if _LEADERBOARD_RANKING_PATCHED:
-        return
-    _LEADERBOARD_RANKING_PATCHED = True
-
-    try:
-        from apps.leaderboards.models import TeamRanking as LBTeamRanking
-        from apps.teams.models import Team as LegacyTeam
-        from apps.organizations.models.team import Team as OrgTeam
-    except (ImportError, Exception):
-        return
-
-    _orig_lb_init = LBTeamRanking.__init__
-
-    def _compat_lb_init(self, *args, **kwargs):
-        team = kwargs.get('team')
-        if team is not None and isinstance(team, OrgTeam):
-            try:
-                import uuid
-                legacy_name = f"lb_mirror_{team.name}_{uuid.uuid4().hex[:6]}"
-                legacy_tag = f"L{uuid.uuid4().hex[:5].upper()}"
-                legacy_team, _ = LegacyTeam.objects.get_or_create(
-                    name=legacy_name,
-                    defaults={'tag': legacy_tag, 'region': getattr(team, 'region', 'BD') or 'BD'},
-                )
-                kwargs['team'] = legacy_team
-            except Exception:
-                pass
-        return _orig_lb_init(self, *args, **kwargs)
-
-    LBTeamRanking.__init__ = _compat_lb_init
-
 
 # ---------------------------------------------------------------------------
 # User.userprofile alias
@@ -1085,7 +879,6 @@ def apply_all_patches():
     patchers = [
         _patch_game_model,
         _patch_bracket_model,
-        _patch_team_model,
         _patch_org_team_model,
         _patch_registration_model,
         _patch_tournament_model,
@@ -1096,8 +889,6 @@ def apply_all_patches():
         _patch_global_ranking_snapshot,
         _patch_team_membership_model,
         _patch_game_scoring_rule,
-        _patch_team_ranking_model,
-        _patch_leaderboard_team_ranking,
         _patch_payment_model,
         _patch_help_service,
         _patch_apiclient_force_auth,

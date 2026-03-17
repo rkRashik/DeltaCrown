@@ -3,7 +3,7 @@ Management command to backfill GameProfile instances for users.
 
 This is a BACKFILL command - it creates GameProfile records for existing users
 who don't have them yet. This is different from seed_game_passport_schemas.py
-which creates per-game CONFIGURATION (GamePassportSchema).
+which creates per-game CONFIGURATION (GameChoiceConfig).
 
 Usage:
     # Dry-run to see what would be created
@@ -20,7 +20,7 @@ Usage:
 
 Requirements:
     - Games must exist (run: python manage.py seed_games first)
-    - GamePassportSchemas must exist (run: python manage.py seed_game_passport_schemas first)
+    - GameChoiceConfigs must exist (run: python manage.py seed_game_passport_schemas first)
     - Users must exist (if no users, command exits gracefully)
 
 Idempotency:
@@ -33,7 +33,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from apps.games.models import Game
-from apps.user_profile.models import GameProfile, GamePassportSchema
+from apps.user_profile.models import GameProfile, GameChoiceConfig
 
 User = get_user_model()
 
@@ -88,9 +88,9 @@ class Command(BaseCommand):
             return
 
         # Validation: Ensure schemas exist
-        if not GamePassportSchema.objects.exists():
+        if not GameChoiceConfig.objects.exists():
             self.stdout.write(self.style.ERROR(
-                "❌ No GamePassportSchema found. Run: python manage.py seed_game_passport_schemas"
+                "❌ No GameChoiceConfig found. Run: python manage.py seed_game_passport_schemas"
             ))
             return
 

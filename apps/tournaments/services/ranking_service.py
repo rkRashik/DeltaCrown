@@ -3,10 +3,10 @@
 Tournament Ranking Service (Module 4.2)
 
 Provides ranked seeding functionality for bracket generation by integrating
-with apps.teams ranking system. Handles participant sorting based on team
+with the organizations TeamRanking system. Handles participant sorting based on team
 rankings with deterministic tie-breaking.
 
-Integration Point: apps.teams.services.ranking_service (read-only)
+Integration Point: organizations.TeamRanking (read-only)
 """
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ class TournamentRankingService:
     """
     Service for ranked seeding in tournament bracket generation.
     
-    Integrates with apps.teams ranking system to provide deterministic
+    Integrates with the organizations TeamRanking system to provide deterministic
     participant ordering based on team performance rankings.
-    
-    This service is READ-ONLY for team rankings - it queries apps.teams
+
+    This service is READ-ONLY for team rankings - it queries organizations.TeamRanking
     data but does not modify it. Tournament results that affect team
     rankings are handled separately by tournament completion workflows.
     """
@@ -44,9 +44,9 @@ class TournamentRankingService:
 
     @property
     def TeamRankingBreakdown(self):
-        """Lazy-load TeamRankingBreakdown model."""
+        """Lazy-load TeamRanking model (organizations app, replaces legacy teams.TeamRankingBreakdown)."""
         if not self._team_ranking_breakdown_model:
-            self._team_ranking_breakdown_model = apps.get_model('teams', 'TeamRankingBreakdown')
+            self._team_ranking_breakdown_model = apps.get_model('organizations', 'TeamRanking')
         return self._team_ranking_breakdown_model
 
     def get_ranked_participants(
@@ -69,13 +69,13 @@ class TournamentRankingService:
             
         Algorithm:
             1. Extract team IDs from participants (skip individual players)
-            2. Fetch ranking data from apps.teams.TeamRankingBreakdown
-            3. Sort teams by final_total (DESC) with tie-breaking
+            2. Fetch ranking data from organizations.TeamRanking
+            3. Sort teams by current_cp (DESC) with tie-breaking
             4. Assign seed numbers (1-indexed)
             5. Handle missing ranks with validation error
             
         Tie-Breaking Rules (deterministic):
-            - Primary: final_total (higher is better)
+            - Primary: current_cp (higher is better)
             - Secondary: team.created_at (older teams ranked higher)
             - Tertiary: team.id (UUID lexicographic order)
         """
@@ -104,7 +104,7 @@ class TournamentRankingService:
             team_id__in=team_ids
         ).select_related('team').values(
             'team_id',
-            'final_total',
+            'current_cp',
             'team__created_at',
             'team__name'
         )
@@ -137,8 +137,8 @@ class TournamentRankingService:
             team_id = participant['participant_id']
             rank_data = ranking_map[team_id]
             
-            # Primary: final_total (higher is better â†’ negate for DESC)
-            total_points = rank_data['final_total']
+            # Primary: current_cp (higher is better → negate for DESC)
+            total_points = rank_data['current_cp']
             
             # Secondary: created_at (older teams first â†’ negate timestamp)
             created_at = rank_data['team__created_at']
@@ -160,7 +160,7 @@ class TournamentRankingService:
             # Add ranking metadata for transparency (optional)
             team_id = participant['participant_id']
             rank_data = ranking_map[team_id]
-            participant['_ranking_points'] = rank_data['final_total']
+            participant['_ranking_points'] = rank_data['current_cp']
             participant['_team_name'] = rank_data['team__name']
 
         logger.info(
