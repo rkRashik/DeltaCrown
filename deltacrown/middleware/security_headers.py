@@ -42,7 +42,7 @@ class CSPMiddleware:
 
         directives = [
             "default-src 'self'",
-            f"script-src 'self' 'unsafe-inline' {cdn} {analytics}",
+            f"script-src 'self' 'unsafe-inline' 'unsafe-eval' {cdn} {analytics}",
             f"style-src 'self' 'unsafe-inline' {cdn} {fonts}",
             f"font-src 'self' {fonts} {cdn}",
             f"img-src 'self' data: blob: https:",

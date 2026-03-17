@@ -156,7 +156,7 @@
   function openSearch() {
     if (!searchOvr) return;
     searchOvr.classList.remove('hidden');
-    searchOvr.classList.add('open');
+    searchOvr.classList.add('flex', 'open');
     requestAnimationFrame(() => searchInput?.focus());
     document.body.style.overflow = 'hidden';
   }
@@ -165,6 +165,7 @@
     if (!searchOvr) return;
     searchOvr.classList.remove('open');
     setTimeout(() => {
+      searchOvr.classList.remove('flex');
       searchOvr.classList.add('hidden');
     }, 300);
     if (searchInput) searchInput.value = '';
@@ -185,7 +186,7 @@
     /* ESC — close anything open */
     if (e.key === 'Escape') {
       if (menuOpen) { closeMenu(); return; }
-      if (searchOvr?.classList.contains('open')) { closeSearch(); return; }
+      if (searchOvr && !searchOvr.classList.contains('hidden')) { closeSearch(); return; }
       /* Close any open dropdown */
       document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
     }

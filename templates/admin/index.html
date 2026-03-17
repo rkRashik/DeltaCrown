@@ -11,10 +11,11 @@
 <div class="mb-8">
 
     {# GREETING & QUICK ACTIONS BAR                                         #}
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-6 gap-4 border-b border-base-200 dark:border-base-800">
         <div>
             <h1 class="text-2xl font-bold text-important">{{ dc_greeting }}</h1>
             <p class="text-sm text-base-500 mt-1">{{ dc_current_time }} · DeltaCrown Command Center</p>
+            {% if dc_cached_at %}<p class="text-xs text-base-400 mt-0.5">Data as of {{ dc_cached_at }} — refreshes every 60s</p>{% endif %}
         </div>
         <div class="flex flex-wrap gap-2">
             {% for action in dc_quick_actions %}
@@ -115,7 +116,7 @@
     </div>
 
     {# ROW 2: SECONDARY STATS — Completed, Recent, Economy, Organizations  #}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Completed" icon="check_circle" %}
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">
@@ -188,13 +189,17 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Tournament Status Breakdown" icon="bar_chart" %}
-            {% component "unfold/components/chart/bar.html" with data=dc_chart_status class="h-64" %}
-            {% endcomponent %}
+            <div class="relative h-64">
+                {% component "unfold/components/chart/bar.html" with data=dc_chart_status %}
+                {% endcomponent %}
+            </div>
         {% endcomponent %}
 
         {% component "unfold/components/card.html" with title="Activity Trends (8 Weeks)" icon="show_chart" %}
-            {% component "unfold/components/chart/line.html" with data=dc_chart_trends class="h-64" %}
-            {% endcomponent %}
+            <div class="relative h-64">
+                {% component "unfold/components/chart/line.html" with data=dc_chart_trends %}
+                {% endcomponent %}
+            </div>
         {% endcomponent %}
 
     </div>
@@ -282,7 +287,7 @@
                             {% elif forloop.counter == 3 %}
                                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-500 text-xs font-bold">3</span>
                             {% else %}
-                                <span class="text-base-400 text-xs font-medium pl-1.5">{{ forloop.counter }}</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-base-100 text-base-500 dark:bg-base-800 dark:text-base-400 text-xs font-medium">{{ forloop.counter }}</span>
                             {% endif %}
                         </td>
                         {% for cell in row %}
@@ -300,7 +305,5 @@
 
 </div>
 
-{# ── Standard Unfold app list + history ──────────────────────────────────── #}
-{{ block.super }}
 
 {% endblock %}

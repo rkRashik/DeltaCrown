@@ -294,20 +294,10 @@ def dashboard_callback(request, context):
         if len(t_name) > 40:
             t_name = t_name[:37] + "\u2026"
 
-        # Color-coded status badge
-        status_colors = {
-            "confirmed": "\u2705",
-            "pending": "\u23f3",
-            "submitted": "\U0001f4e8",
-            "needs_review": "\u26a0\ufe0f",
-            "rejected": "\u274c",
-            "denied": "\u274c",
-            "cancelled": "\U0001f6ab",
-        }
-        status_icon = status_colors.get(reg.status, "\u2b1c")
+        status_label = reg.status.replace("_", " ").title()
         reg_table_rows.append([
             t_name,
-            f"{status_icon} {reg.status}",
+            status_label,
             reg.created_at.strftime("%b %d, %H:%M"),
         ])
 
@@ -333,9 +323,9 @@ def dashboard_callback(request, context):
             t_name = t_name[:32] + "\u2026"
 
         status_map = {
-            "registration_open": "\U0001f7e2 Open",
-            "registration_closed": "\U0001f534 Closed",
-            "published": "\U0001f4d6 Published",
+            "registration_open": "Open",
+            "registration_closed": "Closed",
+            "published": "Published",
         }
         status_display = status_map.get(t.status, t.status)
 
@@ -501,6 +491,7 @@ def dashboard_callback(request, context):
         # ── Meta (user-specific, never cached) ───────────────────────────
         "dc_greeting": _get_greeting(request.user),
         "dc_current_time": now.strftime("%A, %B %d · %I:%M %p"),
+        "dc_cached_at": now.strftime("%H:%M"),
     })
     return context
 

@@ -65,6 +65,18 @@ def parse_database_url(url_string):
     
     return config
 
+
+def is_neon_database_url(url_string):
+    """Return True when the database host points at Neon."""
+    if not url_string:
+        return False
+
+    url_string = url_string.strip()
+    if url_string.startswith(('"', "'")) and url_string.endswith(('"', "'")):
+        url_string = url_string[1:-1]
+
+    return (urlparse(url_string).hostname or '').endswith('neon.tech')
+
 def get_database_environment():
     """
     Get database URL and environment label.
@@ -129,9 +141,13 @@ _TIER_CACHE_MAX_CONNECTIONS = {
 }[DEPLOYMENT_TIER]
 
 _TIER_DB_CONN_MAX_AGE_NEON = {
-    "free": 180,
-    "starter": 300,
-    "pro": 600,
+    # Neon suspends idle compute and silently drops connections; reusing them
+    # causes "SSL SYSCALL error: EOF detected".  CONN_MAX_AGE=0 forces Django to
+    # open a fresh connection per request — slightly slower but always reliable.
+    # Override per-deploy with the DB_CONN_MAX_AGE_NEON env var if needed.
+    "free": 0,
+    "starter": 0,
+    "pro": 0,
 }[DEPLOYMENT_TIER]
 
 _TIER_DB_CONN_MAX_AGE_DEFAULT = {
@@ -478,11 +494,13 @@ db_config = parse_database_url(database_url)
 if not db_config:
     raise ImproperlyConfigured(f"Failed to parse database URL for {db_label} environment")
 
+is_neon_database = is_neon_database_url(database_url)
+
 # Apply optimized connection settings
-# Neon free-tier suspends compute after 5 min idle; cold-start can take several
-# seconds.  CONN_MAX_AGE=300 lets Django reuse connections within that window,
-# and CONN_HEALTH_CHECKS validates them before reuse (catches stale sockets).
-if "neon.tech" in database_url:
+# Neon can suspend idle compute and close sockets from under the app. Default to
+# CONN_MAX_AGE=0 so each request/task gets a fresh connection; keep health checks
+# enabled so any explicit nonzero override still validates reused sockets first.
+if is_neon_database:
     db_config['CONN_MAX_AGE'] = int(
         os.getenv('DB_CONN_MAX_AGE_NEON', str(_TIER_DB_CONN_MAX_AGE_NEON))
     )
@@ -493,7 +511,7 @@ else:
 db_config['CONN_HEALTH_CHECKS'] = os.getenv('DB_CONN_HEALTH_CHECKS', 'True').lower() == 'true'
 
 # Connection hardening for Neon (handles cold-start EOF / timeout)
-if "neon.tech" in database_url:
+if is_neon_database:
     db_config.setdefault('OPTIONS', {}).update({
         'sslmode': 'require',
         'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),  # fail fast on pooler/cold-start stalls
@@ -502,6 +520,9 @@ if "neon.tech" in database_url:
         'keepalives_interval': 10,            # seconds between probes
         'keepalives_count': 5,                # failed probes before giving up
     })
+    db_config['DISABLE_SERVER_SIDE_CURSORS'] = (
+        os.getenv('DB_DISABLE_SERVER_SIDE_CURSORS', 'True').lower() == 'true'
+    )
 
 DATABASES = {
     'default': db_config
@@ -1012,10 +1033,50 @@ WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all or
 # -----------------------------------------------------------------------------
 # DB isolation: Broker=DB1, Results=DB2 (Cache=DB0, Channels=DB3).
 # CELERY_BROKER_URL / CELERY_RESULT_BACKEND env vars override if set explicitly.
-_celery_broker_default = _redis_url_with_db(_BASE_REDIS_URL, 1) if _BASE_REDIS_URL else 'redis://localhost:6379/1'
-_celery_result_default = _redis_url_with_db(_BASE_REDIS_URL, 2) if _BASE_REDIS_URL else 'redis://localhost:6379/2'
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', _celery_broker_default)
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', _celery_result_default)
+
+def _celery_ssl_url(url: str) -> str:
+    """
+    Celery requires ssl_cert_reqs on rediss:// (TLS Redis) URLs or it raises:
+      ValueError: A rediss:// URL must have parameter ssl_cert_reqs
+
+    This helper appends '?ssl_cert_reqs=CERT_NONE' when the URL is a TLS Redis
+    URL that doesn't already carry the parameter.  Safe no-op for plain redis://
+    or any other scheme.
+
+    Why CERT_NONE: managed Redis providers (Upstash, Render) use self-signed or
+    intermediate certs that Python's ssl module can't verify by default.
+    """
+    if not url or not url.startswith('rediss://') or 'ssl_cert_reqs' in url:
+        return url
+    sep = '&' if '?' in url else '?'
+    return url + sep + 'ssl_cert_reqs=CERT_NONE'
+
+
+def _normalized_env_url(name: str) -> str:
+    """Return a stripped env URL value, treating blank or quoted-blank as unset."""
+    value = os.getenv(name, '')
+    if not value:
+        return ''
+
+    value = value.strip()
+    if value.startswith(('"', "'")) and value.endswith(('"', "'")):
+        value = value[1:-1].strip()
+
+    return value
+
+# Build defaults: append DB number then add TLS params if needed.
+_celery_broker_default = _celery_ssl_url(
+    _redis_url_with_db(_BASE_REDIS_URL, 1) if _BASE_REDIS_URL else 'redis://localhost:6379/1'
+)
+_celery_result_default = _celery_ssl_url(
+    _redis_url_with_db(_BASE_REDIS_URL, 2) if _BASE_REDIS_URL else 'redis://localhost:6379/2'
+)
+
+# Use normalized env overrides so empty, whitespace-only, or quoted-empty
+# values still fall back to Redis defaults instead of leaving Celery with an
+# invalid broker string that can collapse to localhost AMQP defaults.
+CELERY_BROKER_URL = _celery_ssl_url(_normalized_env_url('CELERY_BROKER_URL') or _celery_broker_default)
+CELERY_RESULT_BACKEND = _celery_ssl_url(_normalized_env_url('CELERY_RESULT_BACKEND') or _celery_result_default)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

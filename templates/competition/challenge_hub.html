@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-[#080612] via-[#0F0B1E] to-[#1A0F2E] py-8 px-4">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                    <i class="fa-solid fa-swords text-red-400"></i>
+                    {{ page_title }}
+                </h1>
+                <p class="text-gray-400">Browse and accept open team challenges</p>
+            </div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'competition:match_report_form' %}"
+               class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                Report a Match
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Game Filter -->
+        {% if games %}
+        <div class="flex flex-wrap gap-2 mb-8">
+            <a href="{% url 'competition:challenge_hub' %}"
+               class="px-4 py-2 rounded-full text-sm font-semibold transition
+                      {% if not selected_game %}bg-red-600 text-white{% else %}bg-white/10 text-gray-300 hover:bg-white/20{% endif %}">
+                All Games
+            </a>
+            {% for game in games %}
+            <a href="?game={{ game.slug }}"
+               class="px-4 py-2 rounded-full text-sm font-semibold transition
+                      {% if selected_game and selected_game.slug == game.slug %}bg-red-600 text-white{% else %}bg-white/10 text-gray-300 hover:bg-white/20{% endif %}">
+                {{ game.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Challenges Grid -->
+        {% if challenges %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for challenge in challenges %}
+            <div class="bg-white/5 rounded-2xl border border-white/10 hover:border-red-500/40 transition overflow-hidden">
+                <div class="bg-gradient-to-r from-red-600/10 to-orange-600/10 px-5 py-4 border-b border-white/10">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Open Challenge</span>
+                        {% if challenge.game %}
+                        <span class="text-xs text-gray-400">{{ challenge.game.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                            <i class="fa-solid fa-shield-halved text-red-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-bold">
+                                {{ challenge.challenger_team.name|default:"Unknown Team" }}
+                            </p>
+                            <p class="text-xs text-gray-400">is looking for a challenger</p>
+                        </div>
+                    </div>
+                    {% if challenge.message %}
+                    <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ challenge.message }}</p>
+                    {% endif %}
+                    <a href="{% url 'competition:challenge_detail_page' challenge.reference_code %}"
+                       class="block w-full text-center py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition">
+                        View Challenge
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-24">
+            <i class="fa-solid fa-swords text-5xl text-gray-600 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">No Open Challenges</h3>
+            <p class="text-gray-400">
+                {% if selected_game %}
+                    No open challenges for {{ selected_game.name }} right now.
+                {% else %}
+                    There are no open challenges at the moment. Check back soon!
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

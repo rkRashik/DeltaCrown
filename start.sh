@@ -2,14 +2,22 @@
 # ─────────────────────────────────────────────────────────────────────
 # Render.com startup — memory-optimised for Starter tier (512 MB)
 #
-#   1. Celery Worker   (background, capped at 150 MB)
+#   1. Celery Worker   (background, solo pool — no subprocess fork)
 #   2. Celery Beat     (background, if ENABLE_CELERY_BEAT=1)
 #   3. Discord Bot     (background, only if token is set)
 #   4. Daphne          (foreground, binds $PORT for Render health-check)
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-echo "[render] Startup profile: migrations=${ENABLE_MIGRATIONS_ON_START:-1} celery=${ENABLE_CELERY_WORKER:-1} beat=${ENABLE_CELERY_BEAT:-0} discord=${ENABLE_DISCORD_BOT:-1} access_log=${DAPHNE_ACCESS_LOG:-0}"
+CELERY_POOL="${CELERY_POOL:-solo}"
+CELERY_CONCURRENCY="${CELERY_CONCURRENCY:-1}"
+CELERY_PREFETCH_MULTIPLIER="${CELERY_PREFETCH_MULTIPLIER:-1}"
+DAPHNE_WS_CONNECT_TIMEOUT="${DAPHNE_WEBSOCKET_CONNECT_TIMEOUT:-5}"
+DAPHNE_PING_INTERVAL="${DAPHNE_PING_INTERVAL:-20}"
+DAPHNE_PING_TIMEOUT="${DAPHNE_PING_TIMEOUT:-30}"
+DAPHNE_APP_CLOSE_TIMEOUT="${DAPHNE_APPLICATION_CLOSE_TIMEOUT:-5}"
+
+echo "[render] Startup profile: migrations=${ENABLE_MIGRATIONS_ON_START:-1} celery=${ENABLE_CELERY_WORKER:-1} beat=${ENABLE_CELERY_BEAT:-0} discord=${ENABLE_DISCORD_BOT:-1} access_log=${DAPHNE_ACCESS_LOG:-0} celery_pool=${CELERY_POOL} celery_concurrency=${CELERY_CONCURRENCY} prefetch=${CELERY_PREFETCH_MULTIPLIER}"
 
 # ── Migrations ──────────────────────────────────────────────────────
 if [ "${ENABLE_MIGRATIONS_ON_START:-1}" = "1" ]; then
@@ -20,17 +28,20 @@ else
 fi
 
 # ── Celery worker (background) ─────────────────────────────────────
-# concurrency=1           → single worker process
-# max-tasks-per-child=50  → recycle after 50 tasks (prevents leak growth)
-# max-memory-per-child    → 150 MB hard cap per worker process
+# --pool=solo avoids prefork child-process overhead on small Render plans.
+# --optimization=fair + prefetch=1 keep queue reservation pressure low.
+# gossip/mingle/heartbeat are disabled to cut broker chatter and idle memory.
 CELERY_PID=""
 if [ "${ENABLE_CELERY_WORKER:-1}" = "1" ]; then
-    echo "[render] Starting Celery worker…"
+    echo "[render] Starting Celery worker (pool=${CELERY_POOL}, concurrency=${CELERY_CONCURRENCY})…"
     celery -A deltacrown worker \
         --loglevel=warning \
-        --concurrency=1 \
-        --max-tasks-per-child=50 \
-        --max-memory-per-child=150000 \
+        --pool="${CELERY_POOL}" \
+        --concurrency="${CELERY_CONCURRENCY}" \
+        --optimization=fair \
+        --prefetch-multiplier="${CELERY_PREFETCH_MULTIPLIER}" \
+        --without-gossip \
+        --without-mingle \
         --without-heartbeat \
         &
     CELERY_PID=$!
@@ -77,20 +88,28 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 # ── Daphne (foreground) ────────────────────────────────────────────
+# Keep connection lifetimes bounded so abandoned websocket/app state does not
+# linger forever on memory-constrained plans.
 PORT="${PORT:-8000}"
 HTTP_TIMEOUT="${DAPHNE_HTTP_TIMEOUT:-60}"
-echo "[render] Starting Daphne on port $PORT (http-timeout=${HTTP_TIMEOUT}s)…"
-if [ "${DAPHNE_ACCESS_LOG:-0}" = "1" ]; then
-    exec daphne \
-        -b 0.0.0.0 \
-        -p "$PORT" \
-        --http-timeout "$HTTP_TIMEOUT" \
-        --access-log - \
-        deltacrown.asgi:application
-else
-    exec daphne \
-        -b 0.0.0.0 \
-        -p "$PORT" \
-        --http-timeout "$HTTP_TIMEOUT" \
-        deltacrown.asgi:application
+DAPHNE_ARGS=(
+    -b 0.0.0.0
+    -p "$PORT"
+    --http-timeout "$HTTP_TIMEOUT"
+    --proxy-headers
+    --websocket_connect_timeout "$DAPHNE_WS_CONNECT_TIMEOUT"
+    --ping-interval "$DAPHNE_PING_INTERVAL"
+    --ping-timeout "$DAPHNE_PING_TIMEOUT"
+    --application-close-timeout "$DAPHNE_APP_CLOSE_TIMEOUT"
+)
+
+if [ -n "${DAPHNE_WEBSOCKET_TIMEOUT:-}" ]; then
+    DAPHNE_ARGS+=(--websocket_timeout "${DAPHNE_WEBSOCKET_TIMEOUT}")
 fi
+
+echo "[render] Starting Daphne on port $PORT (http-timeout=${HTTP_TIMEOUT}s, ws_connect_timeout=${DAPHNE_WS_CONNECT_TIMEOUT}s, ping=${DAPHNE_PING_INTERVAL}/${DAPHNE_PING_TIMEOUT}s)…"
+if [ "${DAPHNE_ACCESS_LOG:-0}" = "1" ]; then
+    DAPHNE_ARGS+=(--access-log -)
+fi
+
+exec daphne "${DAPHNE_ARGS[@]}" deltacrown.asgi:application

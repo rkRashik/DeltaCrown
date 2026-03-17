@@ -697,9 +697,9 @@ def _get_recent_matches(limit=5):
         matches = Match.objects.filter(
             state='completed'
         ).select_related(
-            'team_a', 'team_b', 'tournament', 'tournament__game'
+            'tournament', 'tournament__game'
         ).order_by('-completed_at')[:limit]
-        
+
         result = []
         for match in matches:
             # Calculate how long ago
@@ -712,24 +712,32 @@ def _get_recent_matches(limit=5):
                     time_ago = f"{delta.seconds // 3600}h ago"
                 else:
                     time_ago = f"{delta.seconds // 60}m ago"
-            
+
+            p1_name = getattr(match, 'participant1_name', None) or 'TBD'
+            p2_name = getattr(match, 'participant2_name', None) or 'TBD'
+            p1_score = getattr(match, 'participant1_score', 0) or 0
+            p2_score = getattr(match, 'participant2_score', 0) or 0
+            winner_id = getattr(match, 'winner_id', None)
+            p1_id = getattr(match, 'participant1_id', None)
+            winner_name = p1_name if winner_id and winner_id == p1_id else p2_name
+
             result.append({
                 'id': match.id,
                 'team_a': {
-                    'name': match.team_a.name if match.team_a else 'TBD',
-                    'logo': match.team_a.logo.url if match.team_a and match.team_a.logo else None,
-                    'score': getattr(match, 'score_team_a', 0),
+                    'name': p1_name,
+                    'logo': None,
+                    'score': p1_score,
                 },
                 'team_b': {
-                    'name': match.team_b.name if match.team_b else 'TBD',
-                    'logo': match.team_b.logo.url if match.team_b and match.team_b.logo else None,
-                    'score': getattr(match, 'score_team_b', 0),
+                    'name': p2_name,
+                    'logo': None,
+                    'score': p2_score,
                 },
                 'tournament': {
                     'name': match.tournament.name if match.tournament else 'Unknown',
                     'game': match.tournament.game.name if match.tournament and match.tournament.game else 'N/A',
                 },
-                'winner': match.team_a.name if match.team_a and hasattr(match, 'winner') and match.winner == match.team_a else (match.team_b.name if match.team_b else None),
+                'winner': winner_name,
                 'time_ago': time_ago,
                 'url': f"/tournaments/{match.tournament.slug}/matches/{match.id}/" if match.tournament else '#',
             })

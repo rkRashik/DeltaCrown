@@ -33,7 +33,7 @@ def recompute_team_rankings(self, tournament_id=None):
 
 @shared_task(
     bind=True,
-    name='teams.clean_expired_invites',
+    name='apps.organizations.tasks.clean_expired_invites',
     max_retries=3,
     default_retry_delay=60,
 )

@@ -12,6 +12,26 @@ from celery.schedules import crontab
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
 
+
+def _normalize_celery_env_url(name: str) -> None:
+    """Remove blank broker/backend env values before Celery reads them."""
+    value = os.getenv(name)
+    if value is None:
+        return
+
+    normalized = value.strip()
+    if normalized.startswith(('"', "'")) and normalized.endswith(('"', "'")):
+        normalized = normalized[1:-1].strip()
+
+    if normalized:
+        os.environ[name] = normalized
+    else:
+        os.environ.pop(name, None)
+
+
+_normalize_celery_env_url('CELERY_BROKER_URL')
+_normalize_celery_env_url('CELERY_RESULT_BACKEND')
+
 app = Celery('deltacrown')
 
 # Load configuration from Django settings
@@ -32,8 +52,8 @@ _beat_enabled = os.getenv('ENABLE_CELERY_BEAT', '0') == '1'
 #
 # Daily tasks staggered with 30-min gaps to avoid worker contention
 # on single-concurrency Render Starter deployment:
-#   1:00 AM  legacy rankings
-#   1:30 AM  (reserved for vnext team rankings in heavy schedule)
+#   1:00 AM  team rankings recalculation (base; heavy schedule duplicates at 1:30 AM)
+#   1:30 AM  vnext team rankings (heavy schedule)
 #   2:00 AM  (reserved for inactivity decay in heavy schedule)
 #   2:30 AM  (reserved for org rankings in heavy schedule)
 #   3:00 AM  (reserved for auto-archive in heavy schedule)
@@ -42,7 +62,7 @@ _beat_enabled = os.getenv('ENABLE_CELERY_BEAT', '0') == '1'
 _base_schedule = {
     # Daily ranking recalculation at 1:00 AM (staggered from 2 AM)
     'recompute-rankings-daily': {
-        'task': 'teams.recompute_team_rankings',
+        'task': 'apps.organizations.tasks.recalculate_team_rankings',
         'schedule': crontab(hour=1, minute=0),
     },
     # Daily digest emails at 8 AM
@@ -52,7 +72,7 @@ _base_schedule = {
     },
     # Clean expired invites every 6 hours
     'clean-expired-invites': {
-        'task': 'teams.clean_expired_invites',
+        'task': 'apps.organizations.tasks.clean_expired_invites',
         'schedule': crontab(hour='*/6', minute=0),
     },
 }

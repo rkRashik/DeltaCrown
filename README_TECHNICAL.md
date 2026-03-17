@@ -80,6 +80,7 @@ def get_database_environment():
 - No migration guard (Neon is dev database)
 - Tests REFUSE to run on remote databases
 - Runtime ALWAYS uses Neon via DATABASE_URL
+- Neon runtime defaults to fresh connections (`CONN_MAX_AGE=0`), connection health checks, SSL, and TCP keepalives to avoid stale-socket EOF failures
 - Clear error messages if DATABASE_URL missing
 
 ---
