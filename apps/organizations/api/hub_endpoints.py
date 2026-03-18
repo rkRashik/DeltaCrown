@@ -423,7 +423,7 @@ def team_search(request):
             teams = Team.objects.filter(
                 name__icontains=query,
                 status='ACTIVE'
-            ).select_related('organization').order_by('name')[:limit]
+            ).select_related('organization', 'ranking').order_by('name')[:limit]
 
             game_names = cache.get('game_names_map')
             if game_names is None:
@@ -431,14 +431,14 @@ def team_search(request):
                 cache.set('game_names_map', game_names, 300)
 
             for team in teams:
-                # Safely check for ranking snapshot (vNext uses competition snapshots, not legacy ranking)
-                tier = 'UNRANKED'
+                # Read tier/cp from TeamRanking (Crown Points system)
+                tier = 'ROOKIE'
                 cp = 0
                 try:
-                    snapshot = team.global_ranking_snapshot
-                    if snapshot:
-                        tier = getattr(snapshot, 'tier', 'UNRANKED') or 'UNRANKED'
-                        cp = getattr(snapshot, 'total_cp', 0) or 0
+                    ranking = team.ranking
+                    if ranking:
+                        tier = ranking.tier or 'ROOKIE'
+                        cp = ranking.current_cp or 0
                 except Exception:
                     pass
 

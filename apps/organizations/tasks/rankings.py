@@ -175,12 +175,17 @@ def recalculate_team_rankings(
                 batch_size=100
             )
         
+        # Refresh global rank positions after tier/CP corrections
+        from apps.organizations.services.ranking_service import compute_global_ranks
+        ranks_updated = compute_global_ranks()
+        
         duration = (timezone.now() - start_time).total_seconds()
         
         result = {
             'teams_processed': teams_processed,
             'teams_updated': teams_updated,
             'tier_changes': tier_changes,
+            'ranks_refreshed': ranks_updated,
             'errors': errors,
             'duration_seconds': round(duration, 2)
         }
@@ -501,3 +506,65 @@ def recalculate_organization_rankings(
     except Exception as e:
         logger.error(f"Fatal error in organization ranking recalculation: {e}", exc_info=True)
         raise self.retry(exc=e)
+
+
+# ============================================================================
+# DAILY MATCH-COUNTER RESET (Phase 18)
+# ============================================================================
+
+@shared_task(name='apps.organizations.tasks.reset_daily_match_counters')
+def reset_daily_match_counters() -> Dict[str, Any]:
+    """
+    Reset matches_today counters and prune stale recent_opponents data.
+
+    Runs once daily at midnight UTC via Celery Beat.
+    Idempotent — uses matches_today_reset date to skip already-reset rows.
+    """
+    from datetime import date
+    today = date.today()
+    updated = TeamRanking.objects.exclude(
+        matches_today_reset=today
+    ).filter(
+        matches_today__gt=0
+    ).update(
+        matches_today=0,
+        matches_today_reset=today,
+        recent_opponents={},
+    )
+    logger.info("Daily match counter reset: %d rankings updated", updated)
+    return {'rankings_reset': updated}
+
+
+# ============================================================================
+# ACTIVITY SCORE DECAY (Phase 18)
+# ============================================================================
+
+@shared_task(name='apps.organizations.tasks.apply_activity_decay')
+def apply_activity_decay() -> Dict[str, Any]:
+    """
+    Decay activity_score by 3 points/day for teams that didn't play today.
+
+    Runs once daily (after midnight UTC) via Celery Beat.
+    """
+    from datetime import date
+    today = date.today()
+    # Teams that played today already have matches_today_reset == today
+    # Decay everyone else who actually has score to lose
+    qs = TeamRanking.objects.filter(
+        activity_score__gt=0,
+    ).exclude(
+        matches_today_reset=today,
+    )
+    decayed = 0
+    batch = []
+    for r in qs.iterator(chunk_size=500):
+        r.activity_score = max(0, r.activity_score - 3)
+        batch.append(r)
+        decayed += 1
+        if len(batch) >= 500:
+            TeamRanking.objects.bulk_update(batch, ['activity_score'], batch_size=500)
+            batch = []
+    if batch:
+        TeamRanking.objects.bulk_update(batch, ['activity_score'], batch_size=500)
+    logger.info("Activity decay applied: %d rankings decayed", decayed)
+    return {'rankings_decayed': decayed}

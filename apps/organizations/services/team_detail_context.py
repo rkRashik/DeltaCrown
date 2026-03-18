@@ -519,9 +519,11 @@ def _build_leaderboard_stats_context(team: Team, is_restricted: bool) -> Dict[st
         'tournaments_played': 0,
         'tournaments_won': 0,
         'win_rate': 0.0,
-        'elo_rating': 1200,
-        'peak_elo': 1200,
-        'tier': 'UNRANKED',
+        'elo_rating': None,      # ELO is hidden from frontend
+        'tier': 'ROOKIE',
+        'current_cp': 0,
+        'global_rank': None,
+        'activity_score': 0,
         'percentile_rank': 0.0,
         'current_streak': 0,
         'streak_type': '',       # 'W' or 'L'
@@ -560,31 +562,19 @@ def _build_leaderboard_stats_context(team: Team, is_restricted: bool) -> Dict[st
     except Exception as e:
         logger.debug(f"TeamStats lookup failed for {team.slug}: {e}")
 
-    # --- TeamRanking (ELO) ---
+    # --- Organizations TeamRanking (canonical CP + tier + rank + activity) ---
     try:
-        from apps.leaderboards.models import TeamRanking
-        tr = TeamRanking.objects.filter(team=team, game_slug=game_slug).first() if game_slug else None
-        if tr:
-            defaults['elo_rating'] = tr.elo_rating or 1200
-            defaults['peak_elo'] = tr.peak_elo or defaults['elo_rating']
+        from apps.organizations.models import TeamRanking as OrgTeamRanking
+        org_ranking = OrgTeamRanking.objects.filter(team=team).first()
+        if org_ranking:
+            defaults['tier'] = org_ranking.tier or 'ROOKIE'
+            defaults['current_cp'] = org_ranking.current_cp or 0
+            defaults['global_rank'] = org_ranking.global_rank
+            defaults['activity_score'] = org_ranking.activity_score or 0
+            defaults['current_streak'] = abs(org_ranking.streak_count or 0)
+            defaults['streak_type'] = 'W' if (org_ranking.streak_count or 0) > 0 else ('L' if (org_ranking.streak_count or 0) < 0 else '')
     except Exception as e:
-        logger.debug(f"TeamRanking lookup failed for {team.slug}: {e}")
-
-    # --- TeamAnalyticsSnapshot (tier, percentile, streaks) ---
-    try:
-        from apps.leaderboards.models import TeamAnalyticsSnapshot
-        snap = TeamAnalyticsSnapshot.objects.filter(
-            team=team, game_slug=game_slug,
-        ).order_by('-id').first() if game_slug else None
-        if snap:
-            defaults['tier'] = getattr(snap, 'tier', 'UNRANKED') or 'UNRANKED'
-            defaults['percentile_rank'] = float(getattr(snap, 'percentile_rank', 0) or 0)
-            defaults['current_streak'] = abs(getattr(snap, 'current_streak', 0) or 0)
-            streak_val = getattr(snap, 'current_streak', 0) or 0
-            defaults['streak_type'] = 'W' if streak_val > 0 else ('L' if streak_val < 0 else '')
-            defaults['longest_win_streak'] = getattr(snap, 'longest_win_streak', 0) or 0
-    except Exception as e:
-        logger.debug(f"TeamAnalyticsSnapshot lookup failed for {team.slug}: {e}")
+        logger.debug(f"Organizations TeamRanking lookup failed for {team.slug}: {e}")
 
     # --- Recent Form (last 10 matches from TeamMatchHistory) ---
     try:

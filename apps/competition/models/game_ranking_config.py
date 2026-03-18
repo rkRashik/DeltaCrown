@@ -51,8 +51,8 @@ class GameRankingConfig(models.Model):
         default=dict,
         help_text=(
             "Score thresholds for each tier. "
-            "Example: {DIAMOND: 2000, PLATINUM: 1200, GOLD: 600, "
-            "SILVER: 250, BRONZE: 100, UNRANKED: 0}"
+            "Example: {THE_CROWN: 30000, LEGEND: 8000, MASTER: 2000, "
+            "ELITE: 500, CHALLENGER: 100, ROOKIE: 0}"
         )
     )
     

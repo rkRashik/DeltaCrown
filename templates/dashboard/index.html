@@ -463,7 +463,7 @@
                 <div class="grid grid-cols-3 gap-2 mb-5">
                   <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
                     <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Tier</div>
-                    <div class="font-mono text-xs font-bold text-white" x-text="team.tier"></div>
+                    <div class="font-mono text-xs font-bold" x-text="team.tier" :class="{'text-[#ffd700]': team.tier==='THE_CROWN', 'text-[#f97316]': team.tier==='LEGEND', 'text-[#8b5cf6]': team.tier==='MASTER', 'text-[#3b82f6]': team.tier==='ELITE', 'text-[#22c55e]': team.tier==='CHALLENGER', 'text-[#9ca3af]': team.tier==='ROOKIE' || !team.tier}"></div>
                   </div>
                   <div class="text-center p-2 rounded-lg bg-white/[0.02] border border-white/[0.02]">
                     <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Win Rate</div>

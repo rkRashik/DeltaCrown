@@ -190,12 +190,12 @@ def team_detail(request, slug):
         })
     
     # Get ranking data (safe defaults: 0-point team rule)
-    ranking_data = {'score': 0, 'tier': 'UNRANKED', 'rank': None}
+    ranking_data = {'score': 0, 'tier': 'ROOKIE', 'rank': None}
     try:
         latest_snapshot = team.ranking_snapshots.latest('created_at')
         ranking_data = {
             'score': latest_snapshot.score if latest_snapshot.score is not None else 0,
-            'tier': latest_snapshot.tier if latest_snapshot.tier else 'UNRANKED',
+            'tier': latest_snapshot.tier if latest_snapshot.tier else 'ROOKIE',
             'rank': latest_snapshot.global_rank,
         }
     except Exception:

@@ -1,248 +1,281 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}How Ranking Works - DeltaCrown Competition{% endblock %}
+{% block title %}How Rankings Work · DeltaCrown{% endblock %}
+{% block og_title %}How Rankings Work · DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script>
+Object.assign(tailwind.config.theme.extend.colors, {
+  dc: { bg:'#05050A', surface:'#0f0f16', surfaceHover:'#161622', cyan:'#06b6d4',
+        border:'rgba(255,255,255,0.08)', success:'#22c55e', danger:'#ef4444',
+        warning:'#facc15', purple:'#8b5cf6', muted:'#8b93a5' },
+  tier: { crown:'#ffd700', legend:'#f97316', master:'#8b5cf6', elite:'#3b82f6',
+          challenger:'#22c55e', rookie:'#9ca3af' }
+});
+Object.assign(tailwind.config.theme.extend.fontFamily, { rajdhani:['Rajdhani','sans-serif'] });
+Object.assign(tailwind.config.theme.extend.boxShadow, {
+  'neon-cyan':'0 0 20px rgba(6,182,212,0.2)',
+  'glass':'0 8px 32px 0 rgba(0,0,0,0.37)',
+});
+</script>
+<style>
+body {
+  background-color: #05050A;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle at 50% 0%, rgba(6,182,212,0.05) 0%, transparent 60%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+.glass-panel {
+  background: linear-gradient(145deg, rgba(20,20,30,0.5) 0%, rgba(10,10,15,0.85) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px -1px rgba(0,0,0,0.4);
+}
+.tier-badge-crown      { color: #ffd700; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25); }
+.tier-badge-legend     { color: #f97316; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); }
+.tier-badge-master     { color: #8b5cf6; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); }
+.tier-badge-elite      { color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); }
+.tier-badge-challenger { color: #22c55e; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); }
+.tier-badge-rookie     { color: #9ca3af; background: rgba(156,163,175,0.1); border: 1px solid rgba(156,163,175,0.25); }
+.fade-in-up {
+  opacity: 0; transform: translateY(20px);
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+.slide-in-view {
+  opacity: 0; transform: translateY(30px);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-in-view.visible { opacity: 1; transform: translateY(0); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">
-                🏆 How DeltaCrown Ranking Works
-            </h1>
-            <p class="text-xl text-gray-300">
-                Transparent, verifiable, and fair competitive rankings
-            </p>
-        </div>
+<div class="relative min-h-screen pb-20 selection:bg-dc-cyan selection:text-black">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 lg:pt-16">
 
-        <!-- What Counts Section -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-purple-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">✅</span>
-                What Counts Toward Your Ranking
-            </h2>
-            
-            <div class="space-y-4 text-gray-200">
-                <div class="pl-12">
-                    <h3 class="text-lg font-semibold text-purple-300 mb-2">1. Verified Match Wins</h3>
-                    <p class="mb-2">Competitive matches that have been confirmed by your opponent or verified by admins.</p>
-                    <ul class="list-disc list-inside space-y-1 text-gray-300">
-                        <li><strong>Confirmed by Opponent:</strong> 100% weight (HIGH confidence)</li>
-                        <li><strong>Admin Verified:</strong> 100% weight (HIGH confidence)</li>
-                        <li><strong>Unconfirmed with Evidence:</strong> 70% weight (MEDIUM confidence)</li>
-                        <li><strong>Unconfirmed without Evidence:</strong> 30% weight (LOW confidence)</li>
-                    </ul>
-                </div>
-
-                <div class="pl-12">
-                    <h3 class="text-lg font-semibold text-purple-300 mb-2">2. Tournament Participation</h3>
-                    <p class="mb-2">Placement in official DeltaCrown tournaments contributes significantly to your ranking.</p>
-                    <ul class="list-disc list-inside space-y-1 text-gray-300">
-                        <li><strong>Tournament Win:</strong> Major score boost (typically 500+ points)</li>
-                        <li><strong>Top Placements:</strong> Scored based on position and tournament tier</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- What Does NOT Count Section -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-red-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">❌</span>
-                What Does NOT Count
-            </h2>
-            
-            <div class="space-y-2 text-gray-200 pl-12">
-                <p>• <strong>Disputed Matches:</strong> If your opponent disputes the result, it has 0% weight until admin review</p>
-                <p>• <strong>Rejected Reports:</strong> Matches marked as invalid/fraudulent by admins</p>
-                <p>• <strong>Self-Reported Matches (PENDING):</strong> Until verified, they only contribute partial weight</p>
-                <p>• <strong>Casual/Scrim Matches:</strong> Practice matches don't affect ranked standing</p>
-            </div>
-        </div>
-
-        <!-- How Scoring Works -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-blue-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">🔢</span>
-                How Scores Are Calculated
-            </h2>
-            
-            <div class="text-gray-200 space-y-4">
-                <p class="pl-12">
-                    Your ranking score is calculated per-game using this formula:
-                </p>
-                
-                <div class="bg-gray-800/50 rounded p-4 font-mono text-sm text-green-300 ml-12">
-                    Total Score = (Verified Match Wins × Weight × Confidence) + Tournament Points - Decay Penalty
-                </div>
-
-                <div class="pl-12 space-y-3">
-                    <div>
-                        <h4 class="font-semibold text-purple-300">Example (League of Legends):</h4>
-                        <ul class="list-disc list-inside space-y-1 text-gray-300 mt-2">
-                            <li>10 verified match wins × 10 points × 1.0 (HIGH) = <strong>100 points</strong></li>
-                            <li>1 tournament win × 500 points = <strong>500 points</strong></li>
-                            <li>Decay penalty (30+ days inactive) = <strong>-50 points</strong></li>
-                            <li><strong>Total Score: 550 points</strong></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 class="font-semibold text-purple-300">Per-Game vs. Global Ranking:</h4>
-                        <ul class="list-disc list-inside space-y-1 text-gray-300 mt-2">
-                            <li><strong>Per-Game Ranking:</strong> Your standing in a specific game (e.g., LOL, Valorant)</li>
-                            <li><strong>Global Ranking:</strong> Sum of all your per-game scores across all games</li>
-                            <li>Multi-game teams can climb global leaderboards faster</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ranking Tiers -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-yellow-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">🎖️</span>
-                Ranking Tiers
-            </h2>
-            
-            <div class="text-gray-200 space-y-3 pl-12">
-                <p class="mb-4">Your score determines your tier. Tier thresholds vary by game but typically follow this pattern:</p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded p-3 border border-cyan-400/30">
-                        <div class="font-bold text-cyan-300">💎 DIAMOND</div>
-                        <div class="text-sm text-gray-300">2000+ points - Elite teams</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded p-3 border border-purple-400/30">
-                        <div class="font-bold text-purple-300">🟣 PLATINUM</div>
-                        <div class="text-sm text-gray-300">1200-1999 points - Competitive teams</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded p-3 border border-yellow-400/30">
-                        <div class="font-bold text-yellow-300">🟡 GOLD</div>
-                        <div class="text-sm text-gray-300">600-1199 points - Skilled teams</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-gray-400/20 to-gray-500/20 rounded p-3 border border-gray-400/30">
-                        <div class="font-bold text-gray-300">⚪ SILVER</div>
-                        <div class="text-sm text-gray-300">250-599 points - Developing teams</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-orange-700/20 to-red-700/20 rounded p-3 border border-orange-600/30">
-                        <div class="font-bold text-orange-400">🟤 BRONZE</div>
-                        <div class="text-sm text-gray-300">100-249 points - New teams</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-gray-700/20 to-gray-800/20 rounded p-3 border border-gray-600/30">
-                        <div class="font-bold text-gray-400">⬛ UNRANKED</div>
-                        <div class="text-sm text-gray-300">0-99 points - No verified matches</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Confidence Levels -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-green-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">📊</span>
-                Confidence Levels
-            </h2>
-            
-            <div class="text-gray-200 space-y-3 pl-12">
-                <p class="mb-4">Your ranking confidence indicates how established your rating is:</p>
-                
-                <div class="space-y-3">
-                    <div class="bg-green-500/10 rounded p-3 border border-green-400/30">
-                        <div class="font-bold text-green-300">🟢 STABLE (20+ verified matches)</div>
-                        <div class="text-sm text-gray-300">Your ranking is well-established and reliable</div>
-                    </div>
-                    <div class="bg-yellow-500/10 rounded p-3 border border-yellow-400/30">
-                        <div class="font-bold text-yellow-300">🟡 ESTABLISHED (10-19 verified matches)</div>
-                        <div class="text-sm text-gray-300">Your ranking is moderately reliable</div>
-                    </div>
-                    <div class="bg-orange-500/10 rounded p-3 border border-orange-400/30">
-                        <div class="font-bold text-orange-300">🟠 PROVISIONAL (0-9 verified matches)</div>
-                        <div class="text-sm text-gray-300">Your ranking may be volatile as you play more matches</div>
-                    </div>
-                </div>
-
-                <p class="mt-4 text-sm text-gray-400">
-                    <strong>Note:</strong> Only verified matches (CONFIRMED or ADMIN_VERIFIED) count toward confidence levels. Pending matches don't increase confidence until verified.
-                </p>
-            </div>
-        </div>
-
-        <!-- Inactivity Decay -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-orange-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">⏰</span>
-                Inactivity Decay
-            </h2>
-            
-            <div class="text-gray-200 space-y-3 pl-12">
-                <p>To keep rankings current, inactive teams experience score decay:</p>
-                
-                <ul class="list-disc list-inside space-y-2 text-gray-300 mt-3">
-                    <li><strong>Threshold:</strong> 30 days without a match in a game</li>
-                    <li><strong>Decay Rate:</strong> Small penalty per day of inactivity</li>
-                    <li><strong>Prevention:</strong> Play at least one ranked match per month to stay current</li>
-                    <li><strong>Recovery:</strong> Decay stops immediately when you resume playing</li>
-                </ul>
-
-                <p class="mt-4 text-sm text-yellow-300">
-                    💡 <strong>Tip:</strong> Keep your team active with regular matches to maintain your hard-earned ranking!
-                </p>
-            </div>
-        </div>
-
-        <!-- Supported Games -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-indigo-500/30">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">🎮</span>
-                Supported Games
-            </h2>
-            
-            <div class="text-gray-200 pl-12">
-                <p class="mb-4">DeltaCrown ranking system currently supports {{ game_configs.count }} competitive games:</p>
-                
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {% for config in game_configs %}
-                    <div class="bg-gray-800/50 rounded p-3 text-center border border-gray-700/50">
-                        <div class="font-semibold text-purple-300">{{ config.game_name }}</div>
-                        <div class="text-xs text-gray-400">{{ config.game_id }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- How to Get Started -->
-        <div class="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg p-8 border border-purple-500/50">
-            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
-                <span class="text-3xl mr-3">🚀</span>
-                How to Get Started
-            </h2>
-            
-            <div class="text-gray-200 space-y-3 pl-12">
-                <ol class="list-decimal list-inside space-y-2">
-                    <li><strong>Create or Join a Team:</strong> Must be team owner or manager</li>
-                    <li><strong>Play Competitive Matches:</strong> Scrim against other teams</li>
-                    <li><strong>Report Your Results:</strong> Use the "Report Match" button on your team page</li>
-                    <li><strong>Get Verified:</strong> Opponent confirms or admin verifies your match</li>
-                    <li><strong>Climb the Ranks:</strong> Keep playing to increase your score and tier</li>
-                </ol>
-
-                <div class="mt-6 text-center">
-                    <a href="{% url 'competition:match_report_form' %}" 
-                       class="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg">
-                        Report Your First Match →
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center mt-8 text-gray-400 text-sm">
-            <p>Questions about ranking? Contact support at <a href="mailto:support@deltacrown.com" class="text-purple-400 hover:text-purple-300">support@deltacrown.com</a></p>
-        </div>
+  {# ═══════════════════ HEADER ═══════════════════ #}
+  <header class="fade-in-up text-center mb-14">
+    <div class="inline-flex items-center gap-2 bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest mb-5 shadow-neon-cyan">
+      <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan animate-pulse"></span> DCRS Ranking System
     </div>
+    <h1 class="font-rajdhani text-4xl sm:text-5xl md:text-6xl font-extrabold uppercase tracking-wide leading-none text-white drop-shadow-lg">
+      How <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan via-blue-400 to-dc-purple">Rankings</span> Work
+    </h1>
+    <p class="text-sm sm:text-base text-dc-muted mt-4 max-w-2xl mx-auto leading-relaxed font-medium">
+      Transparent, performance-based team rankings powered by Crown Points (CP) and a hidden skill rating system.
+    </p>
+  </header>
+
+  {# ═══════════════════ HOW RANKINGS WORK ═══════════════════ #}
+  <div class="fade-in-up glass-panel rounded-2xl p-6 sm:p-8 mb-6 border border-white/5" style="animation-delay:.1s">
+    <h2 class="font-rajdhani text-xl font-bold text-white uppercase tracking-widest mb-5 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-lg bg-dc-cyan/10 flex items-center justify-center"><i class="fa-solid fa-gears text-dc-cyan text-sm"></i></span>
+      How Rankings Work
+    </h2>
+    <div class="space-y-5 text-sm text-gray-300 leading-relaxed">
+      <div class="flex gap-4">
+        <div class="w-9 h-9 rounded-lg bg-dc-cyan/10 border border-dc-cyan/20 flex items-center justify-center shrink-0 mt-0.5">
+          <i class="fa-solid fa-coins text-dc-cyan text-xs"></i>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-1">Crown Points (CP)</div>
+          <p class="text-dc-muted">Every match you play earns or costs Crown Points. Win matches to gain CP, lose matches to lose CP. Your total CP determines your rank and tier.</p>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <div class="w-9 h-9 rounded-lg bg-dc-purple/10 border border-dc-purple/20 flex items-center justify-center shrink-0 mt-0.5">
+          <i class="fa-solid fa-brain text-dc-purple text-xs"></i>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-1">Skill-Based Scaling</div>
+          <p class="text-dc-muted">An invisible skill rating tracks your team's true strength. Beat a stronger team? You earn bonus CP. Lose to a weaker team? The penalty is higher.</p>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <div class="w-9 h-9 rounded-lg bg-dc-warning/10 border border-dc-warning/20 flex items-center justify-center shrink-0 mt-0.5">
+          <i class="fa-solid fa-layer-group text-dc-warning text-xs"></i>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-1">Tier Progression</div>
+          <p class="text-dc-muted">Your CP total places you into a tier. Tiers are cosmetic milestones that show your competitive level at a glance. As you earn more CP, you automatically move up.</p>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <div class="w-9 h-9 rounded-lg bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 mt-0.5">
+          <i class="fa-solid fa-heart-pulse text-dc-success text-xs"></i>
+        </div>
+        <div>
+          <div class="font-bold text-white mb-1">Activity Score</div>
+          <p class="text-dc-muted">Stay active to maintain your ranking. Teams that compete regularly maintain a high activity score, while inactive teams slowly decay. One match per month keeps you current.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ═══════════════════ TIER SYSTEM ═══════════════════ #}
+  <div class="fade-in-up glass-panel rounded-2xl p-6 sm:p-8 mb-6 border border-white/5" style="animation-delay:.2s">
+    <h2 class="font-rajdhani text-xl font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-lg bg-tier-crown/10 flex items-center justify-center"><i class="fa-solid fa-medal text-tier-crown text-sm"></i></span>
+      Ranking Tiers
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div class="p-4 rounded-xl bg-gradient-to-br from-[#ffd700]/8 to-transparent border border-[#ffd700]/15 hover:border-[#ffd700]/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-crown mb-2">
+          <i class="fa-solid fa-crown mr-1.5"></i> The Crown
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-[#ffd700]">30,000+ CP</div>
+        <p class="text-xs text-dc-muted mt-1">The absolute elite. Undisputed champions.</p>
+      </div>
+      <div class="p-4 rounded-xl bg-gradient-to-br from-orange-500/8 to-transparent border border-orange-500/15 hover:border-orange-500/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-legend mb-2">
+          <i class="fa-solid fa-fire mr-1.5"></i> Legend
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-orange-400">8,000+ CP</div>
+        <p class="text-xs text-dc-muted mt-1">Household names in competitive play.</p>
+      </div>
+      <div class="p-4 rounded-xl bg-gradient-to-br from-purple-500/8 to-transparent border border-purple-500/15 hover:border-purple-500/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-master mb-2">
+          <i class="fa-solid fa-gem mr-1.5"></i> Master
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-purple-400">2,000+ CP</div>
+        <p class="text-xs text-dc-muted mt-1">Proven teams with tournament-level skill.</p>
+      </div>
+      <div class="p-4 rounded-xl bg-gradient-to-br from-blue-500/8 to-transparent border border-blue-500/15 hover:border-blue-500/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-elite mb-2">
+          <i class="fa-solid fa-medal mr-1.5"></i> Elite
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-blue-400">500+ CP</div>
+        <p class="text-xs text-dc-muted mt-1">Skilled competitors on the rise.</p>
+      </div>
+      <div class="p-4 rounded-xl bg-gradient-to-br from-green-500/8 to-transparent border border-green-500/15 hover:border-green-500/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-challenger mb-2">
+          <i class="fa-solid fa-shield-halved mr-1.5"></i> Challenger
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-green-400">100+ CP</div>
+        <p class="text-xs text-dc-muted mt-1">Active teams building their record.</p>
+      </div>
+      <div class="p-4 rounded-xl bg-gradient-to-br from-slate-500/8 to-transparent border border-slate-500/15 hover:border-slate-500/30 transition-colors">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest tier-badge-rookie mb-2">
+          <i class="fa-solid fa-seedling mr-1.5"></i> Rookie
+        </span>
+        <div class="font-rajdhani text-2xl font-bold text-slate-400">0 &ndash; 99 CP</div>
+        <p class="text-xs text-dc-muted mt-1">New teams starting their journey.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ═══════════════════ HOW TO RANK UP ═══════════════════ #}
+  <div class="slide-in-view glass-panel rounded-2xl p-6 sm:p-8 mb-6 border border-white/5">
+    <h2 class="font-rajdhani text-xl font-bold text-white uppercase tracking-widest mb-5 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-lg bg-dc-success/10 flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up text-dc-success text-sm"></i></span>
+      How to Rank Up
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div class="flex gap-4 items-start">
+        <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">1</div>
+        <div>
+          <div class="font-bold text-white text-sm">Win Matches</div>
+          <p class="text-xs text-dc-muted mt-0.5">Every confirmed victory earns CP. More wins = higher rank.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">2</div>
+        <div>
+          <div class="font-bold text-white text-sm">Beat Stronger Teams</div>
+          <p class="text-xs text-dc-muted mt-0.5">Defeating higher-rated opponents gives bonus CP. Underdogs are rewarded.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">3</div>
+        <div>
+          <div class="font-bold text-white text-sm">Maintain Streaks</div>
+          <p class="text-xs text-dc-muted mt-0.5">Winning streaks boost your momentum and keep your activity score high.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <div class="w-9 h-9 rounded-full bg-dc-success/10 border border-dc-success/20 flex items-center justify-center shrink-0 text-sm font-bold text-dc-success font-rajdhani">4</div>
+        <div>
+          <div class="font-bold text-white text-sm">Stay Active</div>
+          <p class="text-xs text-dc-muted mt-0.5">Play regularly to maintain your activity score. Inactive teams slowly lose standing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ═══════════════════ FAIR PLAY ═══════════════════ #}
+  <div class="slide-in-view glass-panel rounded-2xl p-6 sm:p-8 mb-6 border border-white/5">
+    <h2 class="font-rajdhani text-xl font-bold text-white uppercase tracking-widest mb-5 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-lg bg-dc-danger/10 flex items-center justify-center"><i class="fa-solid fa-shield-halved text-dc-danger text-sm"></i></span>
+      Fair Play Protections
+    </h2>
+    <div class="space-y-4 text-sm text-dc-muted">
+      <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+        <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
+        <p><strong class="text-white">Daily Match Cap:</strong> There is a limit on how many ranked matches count per day, preventing CP farming.</p>
+      </div>
+      <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+        <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
+        <p><strong class="text-white">Opponent Diversity:</strong> Repeatedly playing the same team yields diminishing CP returns. Face new opponents for full rewards.</p>
+      </div>
+      <div class="flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+        <div class="w-6 h-6 rounded-full bg-dc-success/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-check text-dc-success text-[10px]"></i></div>
+        <p><strong class="text-white">Activity Decay:</strong> Inactive teams gradually lose activity score, keeping the leaderboard fresh and competitive.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ═══════════════════ CTA ═══════════════════ #}
+  <div class="slide-in-view glass-panel rounded-2xl p-8 sm:p-12 text-center border border-white/5 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/5 via-transparent to-dc-purple/5 pointer-events-none"></div>
+    <div class="relative z-10">
+      <h2 class="font-rajdhani text-3xl sm:text-4xl font-extrabold text-white uppercase tracking-wide mb-4">
+        Ready to <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan to-tier-crown">Compete</span>?
+      </h2>
+      <p class="text-sm text-dc-muted max-w-lg mx-auto mb-8 leading-relaxed">
+        Create a team, compete in matches, and watch your Crown Points grow. Every victory counts.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="{% url 'competition:rankings_global' %}" class="px-8 py-3.5 bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/25 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-dc-cyan/20 transition-all hover:-translate-y-0.5 no-underline shadow-neon-cyan">
+          <i class="fa-solid fa-trophy mr-2"></i>View Rankings
+        </a>
+        <a href="{% url 'organizations:team_create' %}" class="px-8 py-3.5 bg-white text-black text-xs font-extrabold uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all hover:-translate-y-0.5 no-underline shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+          <i class="fa-solid fa-plus mr-2"></i>Create Team
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# Footer note #}
+  <div class="text-center mt-10 mb-6 text-dc-muted text-xs">
+    <p>Questions? Contact support at <a href="mailto:support@deltacrown.com" class="text-dc-cyan hover:text-dc-cyan/80 no-underline">support@deltacrown.com</a></p>
+  </div>
+
 </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('.slide-in-view').forEach(function(el) { el.classList.add('visible'); });
+    return;
+  }
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        requestAnimationFrame(function() { entry.target.classList.add('visible'); });
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  document.querySelectorAll('.slide-in-view').forEach(function(el) { observer.observe(el); });
+})();
+</script>
 {% endblock %}

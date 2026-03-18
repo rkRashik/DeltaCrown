@@ -42,3 +42,14 @@ class OrganizationsConfig(AppConfig):
         # Import signals when implemented (Phase 2)
         # import apps.organizations.signals.handlers  # noqa: F401
         import apps.organizations.signals  # noqa: F401  — Discord announcement sync
+
+        # Subscribe to match.completed on the core EventBus so
+        # every completed match feeds into the CP ranking pipeline.
+        from apps.core.events import event_bus
+        from apps.organizations.event_handlers import handle_match_completed_for_rankings
+
+        event_bus.subscribe(
+            "match.completed",
+            handle_match_completed_for_rankings,
+            name="ranking_cp_update",
+        )

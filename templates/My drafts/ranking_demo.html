@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Global Leaderboards</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                    },
+                    colors: {
+                        dc: {
+                            bg: '#05050A',
+                            surface: '#0f0f16',
+                            surfaceHover: '#161622',
+                            cyan: '#06b6d4',
+                            border: 'rgba(255,255,255,0.08)',
+                            success: '#22c55e',
+                            danger: '#ef4444',
+                            warning: '#facc15',
+                            purple: '#8b5cf6',
+                            muted: '#8b93a5',
+                        },
+                        tier: {
+                            crown: '#ffd700',
+                            legend: '#f97316',
+                            master: '#8b5cf6',
+                            elite: '#3b82f6',
+                            challenger: '#22c55e',
+                            rookie: '#9ca3af',
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 20px rgba(6, 182, 212, 0.2)',
+                        'neon-crown': '0 0 30px rgba(255, 215, 0, 0.15)',
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base Global Styles & Hardware Acceleration */
+        body {
+            background-color: #05050A;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            background-image: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* High-Performance Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1f1f2e; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* GPU Acceleration Utility */
+        .gpu-accel {
+            transform: translateZ(0);
+            will-change: transform, opacity;
+        }
+
+        /* Core Glassmorphism Surface Architecture */
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(20, 20, 30, 0.5) 0%, rgba(10, 10, 15, 0.85) 100%);
+            border: 1px solid var(--tw-colors-dc-border);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 4px 24px -1px rgba(0,0,0,0.4);
+        }
+
+        /* Form & Performance Indicators */
+        .form-dot {
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+            box-shadow: 0 0 6px currentColor;
+            transition: transform 0.2s ease;
+        }
+        .form-dot:hover { transform: scale(1.3); }
+
+        /* Dynamic Roster Avatar Stack */
+        .avatar-stack > img, .avatar-stack > div {
+            border: 2px solid #05050A;
+            margin-left: -10px;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.3s, box-shadow 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .avatar-stack > img:first-child { margin-left: 0; }
+        .avatar-stack > img:hover {
+            transform: translateY(-4px) scale(1.15);
+            z-index: 20 !important;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.8);
+        }
+
+        /* Cinematic Rank Strip Hover Mechanics (Merged from d1) */
+        .rank-strip {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(10, 10, 15, 0.6);
+        }
+        .rank-strip:hover {
+            transform: scale(1.01) translateX(6px);
+            border-left-color: theme('colors.dc.cyan');
+            box-shadow: -4px 0 20px -5px rgba(6, 182, 212, 0.3), 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .rank-strip .bg-reveal {
+            opacity: 0;
+            transition: opacity 0.5s ease-out, transform 4s ease-out;
+            transform: scale(1);
+        }
+        .rank-strip:hover .bg-reveal {
+            opacity: 0.25;
+            transform: scale(1.05);
+        }
+
+        /* Pulsing Activity Radar */
+        @keyframes radar-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .pulse-active { animation: radar-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1); }
+
+        /* Viewport Entrance Animations */
+        .fade-in-up {
+            opacity: 0; transform: translateY(20px);
+            animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .slide-in-view {
+            opacity: 0; transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .slide-in-view.visible {
+            opacity: 1; transform: translateY(0);
+        }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body class="relative min-h-screen pb-20 selection:bg-dc-cyan selection:text-black">
+
+    <main class="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 lg:pt-12">
+
+        <header class="fade-in-up flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-10 w-full">
+            <div class="w-full xl:w-auto">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-neon-cyan gpu-accel">
+                        <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan animate-pulse"></span> Season 3 Live
+                    </span>
+                    <span class="text-xs text-dc-muted font-medium flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-md border border-white/5">
+                        <i class="fa-solid fa-hourglass-half"></i> Ends in 42 Days
+                    </span>
+                </div>
+                <h1 class="font-rajdhani text-5xl lg:text-6xl font-extrabold uppercase tracking-wide leading-none text-white drop-shadow-lg">
+                    Global <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan via-blue-400 to-dc-purple">Leaderboards</span>
+                </h1>
+                <p class="text-sm text-dc-muted mt-3 max-w-xl font-medium leading-relaxed">
+                    The absolute pinnacle of the ecosystem. Track global performance, roster form, and Crown Points (CP) progression in real-time.
+                </p>
+            </div>
+
+            <div class="flex gap-4 w-full xl:w-auto overflow-x-auto pb-4 xl:pb-0 hide-scroll snap-x">
+                <div class="glass-panel px-6 py-4 rounded-2xl min-w-[140px] snap-start border-t-2 border-t-white/10 flex flex-col justify-center">
+                    <div class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-1">Total Orgs</div>
+                    <div class="font-rajdhani text-3xl font-bold tracking-tight text-white">124</div>
+                </div>
+                <div class="glass-panel px-6 py-4 rounded-2xl min-w-[140px] snap-start border-t-2 border-t-tier-crown/40 flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 opacity-10 text-tier-crown"><i class="fa-solid fa-crown text-6xl"></i></div>
+                    <div class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-1 relative z-10">Peak CP</div>
+                    <div class="font-rajdhani text-3xl font-bold tracking-tight text-tier-crown relative z-10">34.2K</div>
+                </div>
+                <div class="glass-panel px-6 py-4 rounded-2xl min-w-[140px] snap-start border-t-2 border-t-dc-cyan/40 flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 opacity-10 text-dc-cyan"><i class="fa-solid fa-bolt text-6xl"></i></div>
+                    <div class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-1 relative z-10">Matches 24H</div>
+                    <div class="font-rajdhani text-3xl font-bold tracking-tight text-dc-cyan relative z-10">1,402</div>
+                </div>
+            </div>
+        </header>
+
+        <div id="sticky-nav" class="fade-in-up glass-panel rounded-2xl p-3 mb-12 sticky top-4 z-50 flex flex-col lg:flex-row justify-between gap-4 shadow-glass transition-all duration-300 border border-white/10" style="animation-delay: 0.15s;">
+            <div class="flex gap-2 overflow-x-auto hide-scroll w-full lg:w-auto items-center">
+                <button class="bg-dc-cyan text-black px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap shadow-neon-cyan transform hover:scale-105 transition-all">All Titles</button>
+                <button class="hover:bg-white/10 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2.5 border border-transparent hover:border-white/20 transition-all bg-white/5">
+                    <img src="https://images.unsplash.com/photo-1624696196238-175a1c3132e1?w=40&h=40&fit=crop" class="w-5 h-5 rounded object-cover shadow-sm" alt="VAL"> Valorant
+                </button>
+                <button class="hover:bg-white/10 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2.5 border border-transparent hover:border-white/20 transition-all bg-white/5">
+                    <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=40&h=40&fit=crop" class="w-5 h-5 rounded object-cover shadow-sm" alt="CS2"> CS2
+                </button>
+                <button class="hover:bg-white/10 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2.5 border border-transparent hover:border-white/20 transition-all bg-white/5">
+                    <img src="https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=40&h=40&fit=crop" class="w-5 h-5 rounded object-cover shadow-sm" alt="LOL"> League of Legends
+                </button>
+            </div>
+
+            <div class="flex gap-3 w-full lg:w-auto">
+                <div class="relative w-full lg:w-72">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-dc-muted text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Scan for team, tag, or player..." class="w-full bg-black/60 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-dc-cyan focus:ring-1 focus:ring-dc-cyan transition-all placeholder-dc-muted/50">
+                </div>
+                <div class="relative hidden sm:block">
+                    <select class="bg-black/60 border border-white/10 rounded-xl py-2.5 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-dc-cyan cursor-pointer appearance-none outline-none h-full transition-colors hover:bg-black/80">
+                        <option value="all">All Ecosystem Tiers</option>
+                        <option value="THE_CROWN">👑 THE CROWN</option>
+                        <option value="LEGEND">🔥 LEGEND</option>
+                        <option value="MASTER">💎 MASTER</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-xs text-dc-muted pointer-events-none"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="fade-in-up mb-16 relative" style="animation-delay: 0.25s;">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-1/2 bg-tier-crown/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 relative z-10" id="podium-container">
+                </div>
+        </div>
+
+        <div class="fade-in-up glass-panel rounded-2xl overflow-hidden mb-20 border border-white/5 shadow-2xl" style="animation-delay: 0.35s;">
+
+            <div class="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-black/40">
+                <div>
+                    <h2 class="font-rajdhani text-2xl font-bold uppercase tracking-widest text-white leading-none">Global Standings Matrix</h2>
+                    <p class="text-[11px] text-dc-muted mt-1.5 font-medium uppercase tracking-widest">Displaying echelon #4 and below</p>
+                </div>
+                <div class="text-[10px] font-bold text-dc-muted bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hidden sm:flex items-center gap-2">
+                    Database Sync <span class="text-dc-success flex items-center gap-1"><i class="fa-solid fa-circle text-[6px] animate-pulse"></i> OPTIMAL</span>
+                </div>
+            </div>
+
+            <div class="hidden lg:grid grid-cols-12 gap-4 px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-dc-muted border-b border-dc-border bg-black/60 shadow-inner">
+                <div class="col-span-1 text-center">Pos / Trend</div>
+                <div class="col-span-4">Organization Identity</div>
+                <div class="col-span-2 text-center">Active Roster</div>
+                <div class="col-span-2 text-center">Ecosystem Tier</div>
+                <div class="col-span-2 text-right">Accumulated CP</div>
+                <div class="col-span-1 text-right">Recent Form</div>
+            </div>
+
+            <div id="table-body" class="flex flex-col bg-black/20">
+                </div>
+
+            <div id="empty-state" class="hidden p-24 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+                <div class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-glass relative z-10">
+                    <i class="fa-solid fa-radar text-4xl text-dc-muted animate-[spin_4s_linear_infinite]"></i>
+                </div>
+                <h3 class="font-rajdhani text-3xl font-bold text-white mb-3 uppercase tracking-wide relative z-10">Zero Signatures Detected</h3>
+                <p class="text-sm text-dc-muted mb-8 max-w-md mx-auto relative z-10 leading-relaxed">The current search parameters yield no valid organizational targets within the DeltaCrown database.</p>
+                <button class="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold py-3 px-8 rounded-xl transition-colors uppercase tracking-widest text-xs relative z-10 shadow-lg backdrop-blur-sm" onclick="document.getElementById('searchInput').value=''; document.getElementById('searchInput').dispatchEvent(new Event('input'))">
+                    Re-initialize Scanners
+                </button>
+            </div>
+        </div>
+
+        <div class="slide-in-view glass-panel rounded-2xl p-8 mb-24 border border-white/5 shadow-glass relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none"></div>
+            <h3 class="font-rajdhani text-2xl font-bold mb-8 uppercase tracking-widest flex items-center gap-3">
+                <i class="fa-solid fa-chart-pie text-dc-muted"></i> Ecosystem Distribution Analytics
+            </h3>
+
+            <div class="flex h-10 rounded-xl overflow-hidden w-full gap-[2px] shadow-inner bg-black/80 p-1 relative z-10">
+                <div style="width: 8%" class="bg-tier-crown rounded-l-lg hover:opacity-80 transition-all cursor-crosshair relative group/bar border-r border-black/50" title="The Crown: Top 8%">
+                    <div class="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
+                </div>
+                <div style="width: 15%" class="bg-tier-legend hover:opacity-80 transition-all cursor-crosshair border-r border-black/50"></div>
+                <div style="width: 25%" class="bg-dc-purple hover:opacity-80 transition-all cursor-crosshair border-r border-black/50"></div>
+                <div style="width: 30%" class="bg-tier-elite hover:opacity-80 transition-all cursor-crosshair border-r border-black/50"></div>
+                <div style="width: 17%" class="bg-tier-challenger hover:opacity-80 transition-all cursor-crosshair border-r border-black/50"></div>
+                <div style="width: 5%" class="bg-tier-rookie rounded-r-lg hover:opacity-80 transition-all cursor-crosshair"></div>
+            </div>
+
+            <div class="flex flex-wrap justify-between mt-6 text-[10px] text-white font-bold uppercase tracking-widest gap-4 relative z-10 px-1">
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10"><span class="w-3 h-3 rounded-full bg-tier-crown shadow-[0_0_10px_#ffd700]"></span> Crown <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">8%</span></div>
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10"><span class="w-3 h-3 rounded-full bg-tier-legend shadow-[0_0_10px_#f97316]"></span> Legend <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">15%</span></div>
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10"><span class="w-3 h-3 rounded-full bg-dc-purple shadow-[0_0_10px_#8b5cf6]"></span> Master <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">25%</span></div>
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 hidden sm:flex"><span class="w-3 h-3 rounded-full bg-tier-elite shadow-[0_0_10px_#3b82f6]"></span> Elite <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">30%</span></div>
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 hidden md:flex"><span class="w-3 h-3 rounded-full bg-tier-challenger shadow-[0_0_10px_#22c55e]"></span> Challenger <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">17%</span></div>
+                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 hidden md:flex"><span class="w-3 h-3 rounded-full bg-tier-rookie shadow-[0_0_10px_#9ca3af]"></span> Rookie <span class="text-dc-muted font-normal ml-1 border-l border-white/20 pl-2">5%</span></div>
+            </div>
+        </div>
+
+        <div class="slide-in-view relative rounded-[2.5rem] overflow-hidden p-12 md:p-24 text-center border border-white/10 shadow-2xl group gpu-accel bg-black">
+            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-50 transition-all duration-1000 group-hover:scale-110 transform"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-dc-bg via-dc-bg/80 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-dc-cyan/20 via-transparent to-dc-purple/20 mix-blend-overlay"></div>
+
+            <div class="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
+                <span class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-8 text-white shadow-lg">
+                    <i class="fa-solid fa-satellite-dish"></i> Open Registration Network
+                </span>
+                <h2 class="font-rajdhani text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tighter uppercase text-white leading-none" style="text-shadow: 0 10px 40px rgba(0,0,0,0.9);">
+                    Establish Your <span class="text-transparent bg-clip-text bg-gradient-to-br from-tier-crown via-orange-400 to-red-500">Dynasty</span>
+                </h2>
+                <p class="text-gray-300 mb-12 text-base md:text-xl font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+                    Cease casual operations. Incorporate an official esports organization, deploy rosters, execute in tournaments, and secure Crown Points to dominate the global matrix.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-5 w-full sm:w-auto">
+                    <button class="bg-white text-black font-extrabold py-4 px-12 rounded-xl hover:bg-gray-200 transition-all uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:-translate-y-1">Initialize Organization</button>
+                    <button class="bg-black/50 backdrop-blur-xl border border-white/20 text-white font-extrabold py-4 px-12 rounded-xl hover:bg-white/10 transition-all uppercase tracking-widest text-sm hover:-translate-y-1">Scan Ecosystem</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="mt-24 border-t border-white/10 border-b-0 py-10 text-center bg-black/40">
+        <p class="text-[11px] text-dc-muted font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+            &copy; 2026 DeltaCrown Esports Infrastructure. <span class="w-1 h-1 bg-dc-success rounded-full"></span> Core Systems Nominal.
+        </p>
+    </footer>
+
+    <script>
+        /**
+         * System Mock Data Payload
+         * Includes High-Fidelity Unsplash assets for Covers & Logos, integrated Roster arrays, Form history, and real-time Trends.
+         */
+        const teams = [
+            {
+                rank: 1, trend: 0, name: "Nova Sentinels", tag: "NSN", tier: "THE_CROWN", cp: 34200, activity: 94, org: "Nova Esports",
+                cover: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=200&q=80",
+                form: ['W','W','W','W','W'], streak: "5W 🔥",
+                roster: [ "https://i.pravatar.cc/150?u=n1", "https://i.pravatar.cc/150?u=n2", "https://i.pravatar.cc/150?u=n3", "https://i.pravatar.cc/150?u=n4", "https://i.pravatar.cc/150?u=n5" ]
+            },
+            {
+                rank: 2, trend: 1, name: "Iron Wolves", tag: "IWV", tier: "LEGEND", cp: 11800, activity: 87, org: "Iron Corp",
+                cover: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?auto=format&fit=crop&w=200&q=80",
+                form: ['W','L','W','W','W'], streak: "3W",
+                roster: [ "https://i.pravatar.cc/150?u=i1", "https://i.pravatar.cc/150?u=i2", "https://i.pravatar.cc/150?u=i3", "https://i.pravatar.cc/150?u=i4", "https://i.pravatar.cc/150?u=i5" ]
+            },
+            {
+                rank: 3, trend: -1, name: "Phantom Rising", tag: "PHR", tier: "LEGEND", cp: 9100, activity: 72, org: "Independent",
+                cover: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1614680376739-414fae547902?auto=format&fit=crop&w=200&q=80",
+                form: ['L','W','L','W','L'], streak: "1L",
+                roster: [ "https://i.pravatar.cc/150?u=p1", "https://i.pravatar.cc/150?u=p2", "https://i.pravatar.cc/150?u=p3", "https://i.pravatar.cc/150?u=p4" ]
+            },
+            {
+                rank: 4, trend: 2, name: "Apex Vanguard", tag: "APX", tier: "MASTER", cp: 4500, activity: 65, org: "Apex Academy",
+                cover: "https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1534423861386-85a16f5d13fd?auto=format&fit=crop&w=150&q=80",
+                form: ['W','W','W','L','W'], streak: "1W",
+                roster: ["https://i.pravatar.cc/150?u=a1", "https://i.pravatar.cc/150?u=a2", "https://i.pravatar.cc/150?u=a3", "https://i.pravatar.cc/150?u=a4"]
+            },
+            {
+                rank: 5, trend: 0, name: "Steel Resolve", tag: "STR", tier: "MASTER", cp: 3200, activity: 58, org: "Steel Alliance",
+                cover: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&w=150&q=80",
+                form: ['W','L','L','W','W'], streak: "2W",
+                roster: ["https://i.pravatar.cc/150?u=s1", "https://i.pravatar.cc/150?u=s2", "https://i.pravatar.cc/150?u=s3", "https://i.pravatar.cc/150?u=s4", "https://i.pravatar.cc/150?u=s5"]
+            },
+            {
+                rank: 6, trend: -2, name: "Crimson Order", tag: "CRO", tier: "MASTER", cp: 2900, activity: 44, org: "Independent",
+                cover: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80",
+                form: ['L','L','W','L','L'], streak: "2L",
+                roster: ["https://i.pravatar.cc/150?u=c1", "https://i.pravatar.cc/150?u=c2", "https://i.pravatar.cc/150?u=c3"]
+            },
+            {
+                rank: 7, trend: 5, name: "Silent Storm", tag: "SLS", tier: "ELITE", cp: 1800, activity: 88, org: "Silent Corp",
+                cover: "https://images.unsplash.com/photo-1614680376408-81e91ffe3db7?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1531297122539-d31dbd33ba8d?auto=format&fit=crop&w=150&q=80",
+                form: ['W','W','W','W','L'], streak: "1L",
+                roster: ["https://i.pravatar.cc/150?u=ss1", "https://i.pravatar.cc/150?u=ss2", "https://i.pravatar.cc/150?u=ss3", "https://i.pravatar.cc/150?u=ss4"]
+            },
+            {
+                rank: 8, trend: -1, name: "Echo Protocol", tag: "EPR", tier: "ELITE", cp: 1450, activity: 61, org: "Independent",
+                cover: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+                logo: "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?auto=format&fit=crop&w=150&q=80",
+                form: ['L','W','L','W','W'], streak: "2W",
+                roster: ["https://i.pravatar.cc/150?u=e1", "https://i.pravatar.cc/150?u=e2", "https://i.pravatar.cc/150?u=e3"]
+            }
+        ];
+
+        const MAX_CP = 34200;
+
+        /** Ecosystem Tier Aesthetic Mapping */
+        const tierConfig = {
+            "THE_CROWN": { label: "👑 CROWN", color: "text-[#ffd700]", bg: "bg-[#ffd700]/10", border: "border-[#ffd700]" },
+            "LEGEND": { label: "🔥 LEGEND", color: "text-[#f97316]", bg: "bg-[#f97316]/10", border: "border-[#f97316]" },
+            "MASTER": { label: "💎 MASTER", color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/10", border: "border-[#8b5cf6]" },
+            "ELITE": { label: "🥇 ELITE", color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/10", border: "border-[#3b82f6]" }
+        };
+
+        // Utility: Number formatter (34200 -> 34,200)
+        const formatNumber = (num) => num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+        /** Generates overlapping avatar UI components for rosters */
+        const getRosterHTML = (roster) => {
+            let html = `<div class="avatar-stack flex items-center">`;
+            const maxShow = 4;
+            roster.slice(0, maxShow).forEach((img, i) => {
+                html += `<img src="${img}" class="w-8 h-8 rounded-lg object-cover bg-dc-surface relative shadow-md" style="z-index: ${maxShow-i}" alt="Player">`;
+            });
+            if(roster.length > maxShow) {
+                html += `<div class="w-8 h-8 rounded-lg bg-black/80 border-2 border-[#05050A] flex items-center justify-center text-[10px] font-bold text-white -ml-2.5 relative shadow-md" style="z-index: 0">+${roster.length - maxShow}</div>`;
+            }
+            html += `</div>`;
+            return html;
+        };
+
+        /** Generates structural HTML for the Win/Loss sequence indicators */
+        const getFormDots = (form) => {
+            return form.map(result => {
+                if(result === 'W') return `<span class="form-dot text-dc-success bg-dc-success/20 mx-[3px]" title="Victory"></span>`;
+                return `<span class="form-dot text-dc-danger bg-dc-danger/20 mx-[3px]" title="Defeat"></span>`;
+            }).join('');
+        };
+
+        /** Dynamically constructs visual trend indicators (up/down/neutral) */
+        const getTrendHTML = (trend) => {
+            if (trend > 0) return `<span class="text-dc-success text-[11px] font-bold flex items-center gap-1 bg-dc-success/10 px-1.5 rounded"><i class="fa-solid fa-caret-up"></i> ${trend}</span>`;
+            if (trend < 0) return `<span class="text-dc-danger text-[11px] font-bold flex items-center gap-1 bg-dc-danger/10 px-1.5 rounded"><i class="fa-solid fa-caret-down"></i> ${Math.abs(trend)}</span>`;
+            return `<span class="text-dc-muted text-[11px] font-bold flex items-center gap-1 bg-white/5 px-1.5 rounded"><i class="fa-solid fa-minus"></i></span>`;
+        };
+
+        /** * Core Render Engine: Section 1 - Cinematic Podium
+         * Renders Top 3 teams in a grid configuration mapped to layout aesthetics.
+         */
+        function renderPodium() {
+            const container = document.getElementById('podium-container');
+            const top3 = teams.slice(0, 3);
+
+            // Reorder the array dynamically to place Rank 1 in the center column for large screens
+            const orderedTop3 = [top3[1], top3[0], top3[2]];
+
+            let html = '';
+            orderedTop3.forEach((team) => {
+                const isFirst = team.rank === 1;
+                const config = tierConfig[team.tier];
+
+                // Dynamic class injections based on rank prestige
+                const rankColor = isFirst ? 'text-[#ffd700]' : team.rank === 2 ? 'text-gray-300' : 'text-orange-500';
+                const cardBorder = isFirst ? 'border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.15)]' : 'border-white/10 shadow-glass';
+                const structuralClasses = isFirst ? 'md:-translate-y-8 z-20 md:scale-105' : 'z-10 mt-0 md:mt-4';
+
+                html += `
+                    <div class="glass-panel rounded-[2rem] overflow-hidden flex flex-col ${cardBorder} relative group transition-all duration-500 hover:-translate-y-2 ${structuralClasses}">
+
+                        <div class="h-40 relative overflow-hidden bg-black">
+                            <img src="${team.cover}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-80 transition-all duration-700">
+                            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent"></div>
+
+                            <div class="absolute top-4 left-5 font-rajdhani text-6xl font-black opacity-30 ${rankColor} drop-shadow-xl z-10 transition-transform group-hover:scale-110">#${team.rank}</div>
+
+                            ${team.streak.includes('🔥') ? `
+                                <div class="absolute top-4 right-4 bg-orange-500/20 border border-orange-500/50 text-orange-400 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.3)] z-10">
+                                    <i class="fa-solid fa-fire animate-pulse text-xs"></i> ${team.streak}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="px-8 pb-8 pt-2 flex-1 flex flex-col relative bg-[#0a0a0f]/50">
+                            <div class="w-20 h-20 rounded-2xl object-cover border-2 border-[#0a0a0f] absolute -top-10 shadow-2xl bg-[#0a0a0f] p-1 overflow-hidden transition-transform duration-300 group-hover:-translate-y-2 z-20">
+                                <img src="${team.logo}" class="w-full h-full rounded-xl object-cover" alt="${team.tag} Logo">
+                            </div>
+
+                            <div class="mt-10 flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="font-rajdhani text-3xl font-extrabold uppercase leading-none tracking-wide text-white group-hover:text-dc-cyan transition-colors">${team.name}</h3>
+                                    <p class="text-[11px] text-dc-muted font-bold tracking-widest uppercase mt-2">${team.org}</p>
+                                </div>
+                                <div class="${config.bg} ${config.color} text-[10px] font-bold px-2.5 py-1 rounded border border-white/10 uppercase tracking-widest shadow-inner">
+                                    ${config.label}
+                                </div>
+                            </div>
+
+                            <div class="mb-6">
+                                <p class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-2 border-b border-white/10 pb-1">Active Personnel</p>
+                                ${getRosterHTML(team.roster)}
+                            </div>
+
+                            <div class="mt-auto pt-5 border-t border-white/10 flex justify-between items-end bg-[#0a0a0f]/30 -mx-8 px-8 -mb-8 pb-8 rounded-b-[2rem]">
+                                <div>
+                                    <p class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-1">Accumulated CP</p>
+                                    <div class="font-rajdhani text-3xl font-bold ${rankColor} leading-none drop-shadow-md">${formatNumber(team.cp)}</div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-dc-muted font-bold uppercase tracking-widest mb-2">Form Cycle</p>
+                                    <div class="flex gap-[2px]">${getFormDots(team.form)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        /** * Core Render Engine: Section 2 - Comprehensive Matrix
+         * Merges the List UI from d2 with the powerful Cover hover effects (bg-reveal) from d1.
+         * Employs adaptive CSS grid layout tailored for 1080p density & mobile stack fallback.
+         */
+        function renderList(dataToRender) {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            tbody.innerHTML = '';
+
+            const listData = dataToRender.filter(t => t.rank > 3);
+
+            // Handle zero-state scenarios gracefully
+            if(listData.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            listData.forEach((team, index) => {
+                const config = tierConfig[team.tier];
+
+                // Construct adaptive list strip
+                const row = document.createElement('div');
+                // The master container uses CSS Grid for Desktop and Flex Column for Mobile constraints
+                row.className = `rank-strip group relative border-b border-white/5 overflow-hidden flex flex-col lg:grid lg:grid-cols-12 gap-x-4 gap-y-3 items-center p-4 lg:p-5 slide-in-view cursor-pointer border-l-[3px] border-l-transparent`;
+                row.style.transitionDelay = `${index * 40}ms`;
+
+                row.innerHTML = `
+                    <img src="${team.cover}" class="bg-reveal absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" alt="Cover Blur">
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#05050A] via-[#05050A]/95 to-transparent z-0 pointer-events-none"></div>
+
+                    <div class="col-span-12 flex items-center justify-between lg:hidden w-full z-10 mb-1 border-b border-white/5 pb-3">
+                        <div class="flex items-center gap-3">
+                            <span class="font-rajdhani text-3xl font-extrabold text-white leading-none">#${team.rank}</span>
+                            ${getTrendHTML(team.trend)}
+                        </div>
+                        <span class="${config.color} text-[10px] font-bold uppercase tracking-widest bg-white/5 px-2.5 py-1 rounded border border-white/10">${config.label}</span>
+                    </div>
+
+                    <div class="col-span-1 hidden lg:flex flex-col items-center justify-center z-10">
+                        <span class="font-rajdhani text-2xl font-bold text-white mb-1 group-hover:scale-110 transition-transform">#${team.rank}</span>
+                        ${getTrendHTML(team.trend)}
+                    </div>
+
+                    <div class="col-span-12 lg:col-span-4 flex items-center gap-5 w-full z-10">
+                        <img src="${team.logo}" class="w-14 h-14 rounded-xl object-cover border border-white/10 shadow-lg bg-black p-0.5" alt="Logo">
+                        <div class="flex-1">
+                            <div class="font-rajdhani text-2xl font-bold uppercase tracking-wide text-white leading-none flex items-center gap-2 mb-1.5 group-hover:text-dc-cyan transition-colors">
+                                ${team.name}
+                                <span class="text-[10px] font-sans text-dc-muted bg-white/10 border border-white/5 px-1.5 py-0.5 rounded tracking-widest hidden sm:block">${team.tag}</span>
+                            </div>
+                            <div class="text-[11px] text-dc-muted font-bold uppercase tracking-widest">${team.org}</div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2 hidden lg:flex justify-center z-10 w-full">
+                        ${getRosterHTML(team.roster)}
+                    </div>
+
+                    <div class="col-span-2 hidden lg:flex justify-center z-10 w-full">
+                        <span class="${config.color} ${config.bg} text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">${config.label}</span>
+                    </div>
+
+                    <div class="col-span-12 lg:col-span-2 flex flex-row lg:flex-col justify-between lg:justify-center items-center lg:items-end w-full lg:w-auto z-10 mt-2 lg:mt-0 bg-white/5 lg:bg-transparent p-3 lg:p-0 rounded-lg lg:rounded-none border border-white/5 lg:border-transparent">
+                        <div class="lg:hidden text-[11px] text-dc-muted font-bold uppercase tracking-widest">Global Points</div>
+                        <div class="flex flex-col items-end w-full lg:w-auto">
+                            <span class="font-rajdhani text-2xl font-bold text-white leading-none mb-1.5">${formatNumber(team.cp)} <span class="text-[10px] text-dc-muted font-sans font-normal ml-0.5">CP</span></span>
+                            <div class="w-full lg:w-24 bg-black/60 h-1.5 rounded-full overflow-hidden shadow-inner border border-white/5" title="Progression to superior tier">
+                                <div class="bg-gradient-to-r from-dc-cyan to-dc-purple h-full rounded-full relative" style="width: ${(team.cp % 5000) / 50}%">
+                                    <div class="absolute inset-0 bg-white/20 w-full animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-1 hidden lg:flex justify-end z-10 w-full">
+                        <div class="flex gap-1">${getFormDots(team.form)}</div>
+                    </div>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Initialize scroll observation for newly injected DOM elements
+            observeElements();
+        }
+
+        /**
+         * System Controllers & Subroutines
+         */
+
+        // 1. Live Client-Side Data Filtering
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = teams.filter(t =>
+                t.name.toLowerCase().includes(term) ||
+                t.tag.toLowerCase().includes(term) ||
+                t.org.toLowerCase().includes(term)
+            );
+            // Re-render list subset. (Podium remains static per esports standard dashboard logic).
+            renderList(filtered);
+        });
+
+        // 2. Sticky Command Bar Morphing Logic
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('sticky-nav');
+            if (window.scrollY > 80) {
+                nav.classList.add('bg-[#0a0a0f]/95', 'backdrop-blur-2xl', 'shadow-[0_20px_40px_rgba(0,0,0,0.8)]', 'border-white/20');
+                nav.classList.remove('glass-panel', 'shadow-glass');
+            } else {
+                nav.classList.remove('bg-[#0a0a0f]/95', 'backdrop-blur-2xl', 'shadow-[0_20px_40px_rgba(0,0,0,0.8)]', 'border-white/20');
+                nav.classList.add('glass-panel', 'shadow-glass');
+            }
+        });
+
+        // 3. High-Performance Viewport Intersection Observer
+        function observeElements() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        requestAnimationFrame(() => {
+                            entry.target.classList.add('visible');
+                        });
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+            document.querySelectorAll('.slide-in-view').forEach(el => observer.observe(el));
+        }
+
+        // 4. Master Initialization Payload
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPodium();
+            renderList(teams);
+
+            // Allow DOM layout to settle before initializing observers
+            setTimeout(observeElements, 50);
+        });
+    </script>
+</body>
+</html>

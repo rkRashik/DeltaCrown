@@ -1,41 +1,78 @@
 """Leaderboard views for competition app (Phase 9 - Service Layer)."""
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from apps.competition.models import GameRankingConfig
 from apps.competition.services.competition_service import CompetitionService
 from apps.games.models import Game
 
 
-# Tier display info for the tier explainer section
+# Tier display info for the tier explainer section (Crown Points system)
 TIER_DETAILS = [
-    {'name': 'Diamond', 'icon': 'fa-gem', 'icon_color': 'text-blue-400', 'bg_class': 'bg-blue-500/10', 'threshold': '2000'},
-    {'name': 'Platinum', 'icon': 'fa-medal', 'icon_color': 'text-cyan-400', 'bg_class': 'bg-cyan-500/10', 'threshold': '1500'},
-    {'name': 'Gold', 'icon': 'fa-crown', 'icon_color': 'text-yellow-400', 'bg_class': 'bg-yellow-500/10', 'threshold': '1000'},
-    {'name': 'Silver', 'icon': 'fa-shield-alt', 'icon_color': 'text-gray-400', 'bg_class': 'bg-gray-500/10', 'threshold': '600'},
-    {'name': 'Bronze', 'icon': 'fa-dice-d6', 'icon_color': 'text-orange-400', 'bg_class': 'bg-orange-500/10', 'threshold': '300'},
-    {'name': 'Unranked', 'icon': 'fa-minus', 'icon_color': 'text-slate-500', 'bg_class': 'bg-slate-500/10', 'threshold': '0'},
+    {'name': 'The Crown', 'icon': 'fa-crown', 'icon_color': 'text-yellow-300', 'bg_class': 'bg-yellow-400/10', 'threshold': '30,000'},
+    {'name': 'Legend', 'icon': 'fa-fire', 'icon_color': 'text-red-400', 'bg_class': 'bg-red-500/10', 'threshold': '8,000'},
+    {'name': 'Master', 'icon': 'fa-gem', 'icon_color': 'text-blue-400', 'bg_class': 'bg-blue-500/10', 'threshold': '2,000'},
+    {'name': 'Elite', 'icon': 'fa-medal', 'icon_color': 'text-cyan-400', 'bg_class': 'bg-cyan-500/10', 'threshold': '500'},
+    {'name': 'Challenger', 'icon': 'fa-shield-alt', 'icon_color': 'text-orange-400', 'bg_class': 'bg-orange-500/10', 'threshold': '100'},
+    {'name': 'Rookie', 'icon': 'fa-seedling', 'icon_color': 'text-slate-400', 'bg_class': 'bg-slate-500/10', 'threshold': '0'},
 ]
 
 
 def _get_game_configs_with_colors():
-    """Get all active GameRankingConfigs enriched with game color info."""
+    """Get all active GameRankingConfigs enriched with game color and icon info."""
     configs = list(GameRankingConfig.objects.filter(is_active=True).order_by('game_name'))
-    # Try to enrich with primary_color from Game model
-    game_colors = {}
+    # Try to enrich with primary_color and icon from Game model
+    game_meta = {}
     try:
-        games = Game.objects.filter(is_active=True).values_list('short_code', 'primary_color')
-        game_colors = {code.upper(): color for code, color in games if code}
-        # Also index by slug
-        games_by_slug = Game.objects.filter(is_active=True).values_list('slug', 'primary_color')
-        for slug, color in games_by_slug:
-            if slug:
-                game_colors[slug.upper()] = color
+        for game in Game.objects.filter(is_active=True):
+            icon_url = game.icon.url if game.icon else None
+            logo_url = game.logo.url if game.logo else None
+            meta = {
+                'color': game.primary_color or '#64748b',
+                'icon_url': icon_url,
+                'logo_url': logo_url,
+                'display_name': game.display_name or game.name,
+            }
+            if game.short_code:
+                game_meta[game.short_code.upper()] = meta
+            if game.slug:
+                game_meta[game.slug.upper()] = meta
     except Exception:
         pass
 
     for config in configs:
-        config.color = game_colors.get(config.game_id.upper(), '#64748b')
+        meta = game_meta.get(config.game_id.upper(), {})
+        config.color = meta.get('color', '#64748b')
+        config.icon_url = meta.get('icon_url', None)
+        config.logo_url = meta.get('logo_url', None)
+        config.display_name = meta.get('display_name', config.game_name)
     return configs
+
+
+PAGE_SIZE = 50
+
+
+def _entries_to_json(entries):
+    """Serialize RankingEntry list to JSON-safe dicts for AJAX load-more."""
+    return [
+        {
+            'rank': e.rank,
+            'team_name': e.team_name,
+            'team_slug': e.team_slug,
+            'team_url': e.team_url,
+            'team_tag': e.team_tag or '',
+            'team_logo_url': e.team_logo_url or '',
+            'team_banner_url': e.team_banner_url or '',
+            'organization_name': e.organization_name or '',
+            'is_independent': e.is_independent,
+            'score': e.score,
+            'tier': e.tier,
+            'activity_score': e.activity_score,
+            'game_name': e.game_name or '',
+            'roster_avatars': e.roster_avatars or [],
+        }
+        for e in entries
+    ]
 
 
 def leaderboard_global(request):
@@ -46,7 +83,7 @@ def leaderboard_global(request):
     Phase 11: Redesigned with game selector tabs and premium theme.
 
     Query params:
-    - tier: Filter by tier (DIAMOND, PLATINUM, GOLD, SILVER, BRONZE, UNRANKED)
+    - tier: Filter by tier (THE_CROWN, LEGEND, MASTER, ELITE, CHALLENGER, ROOKIE)
     - verified_only: Show only teams with STABLE/ESTABLISHED confidence (1/0)
     """
     # Check if competition app is enabled
@@ -58,19 +95,34 @@ def leaderboard_global(request):
     # Get filter params
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
+    page = max(1, int(request.GET.get('page', '1') or '1'))
+    offset = (page - 1) * PAGE_SIZE
 
     # Use service layer
     response = CompetitionService.get_global_rankings(
         tier=tier_filter if tier_filter else None,
         verified_only=verified_only,
-        limit=100,
-        offset=0
+        limit=PAGE_SIZE,
+        offset=offset,
     )
 
     # Get user's team highlights if authenticated
     user_highlights = None
+    user_teams_display = []
     if request.user.is_authenticated:
         user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
+        # Enrich with logo URLs for the My Teams panel
+        if user_highlights and user_highlights.get('teams'):
+            try:
+                from apps.organizations.models import Team as OrgTeam
+                _ids = [t['team_id'] for t in user_highlights['teams']]
+                _logos = {t.id: t.logo.url if t.logo else None
+                          for t in OrgTeam.objects.filter(id__in=_ids).only('id', 'logo')}
+                for _t in user_highlights['teams']:
+                    _t['logo_url'] = _logos.get(_t['team_id'])
+                user_teams_display = user_highlights['teams']
+            except Exception:
+                pass
 
     # Compute max score for score bar width
     max_score = max((e.score for e in response.entries), default=1) or 1
@@ -78,21 +130,35 @@ def leaderboard_global(request):
     # Game configs for the game selector tabs
     game_configs = _get_game_configs_with_colors()
 
+    # AJAX load-more: return JSON
+    if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'entries': _entries_to_json(response.entries),
+            'has_next_page': (offset + PAGE_SIZE) < response.total_count,
+            'total_count': response.total_count,
+            'page': page,
+        })
+
     context = {
         'rankings': response,
         'entries': response.entries,
         'total_count': response.total_count,
         'tier_filter': tier_filter,
         'verified_only': verified_only,
-        'available_tiers': ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED'],
+        'available_tiers': ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'ROOKIE'],
         'is_global': True,
         'user_highlights': user_highlights,
+        'user_teams_display': user_teams_display,
         'query_count': response.query_count,
         'game_configs': game_configs,
         'max_score': max_score,
         'selected_game': None,
         'selected_game_name': None,
         'tier_details': TIER_DETAILS,
+        'current_page': page,
+        'has_next_page': (offset + PAGE_SIZE) < response.total_count,
+        'has_prev_page': page > 1,
+        'page_size': PAGE_SIZE,
     }
 
     return render(request, 'competition/leaderboards/leaderboard_global.html', context)
@@ -122,26 +188,49 @@ def leaderboard_game(request, game_id):
     # Get filter params
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
+    page = max(1, int(request.GET.get('page', '1') or '1'))
+    offset = (page - 1) * PAGE_SIZE
 
     # Use service layer
     response = CompetitionService.get_game_rankings(
         game_id=game_id,
         tier=tier_filter if tier_filter else None,
         verified_only=verified_only,
-        limit=100,
-        offset=0
+        limit=PAGE_SIZE,
+        offset=offset,
     )
 
     # Get user's team highlights if authenticated
     user_highlights = None
+    user_teams_display = []
     if request.user.is_authenticated:
         user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
+        if user_highlights and user_highlights.get('teams'):
+            try:
+                from apps.organizations.models import Team as OrgTeam
+                _ids = [t['team_id'] for t in user_highlights['teams']]
+                _logos = {t.id: t.logo.url if t.logo else None
+                          for t in OrgTeam.objects.filter(id__in=_ids).only('id', 'logo')}
+                for _t in user_highlights['teams']:
+                    _t['logo_url'] = _logos.get(_t['team_id'])
+                user_teams_display = user_highlights['teams']
+            except Exception:
+                pass
 
     # Compute max score for score bar width
     max_score = max((e.score for e in response.entries), default=1) or 1
 
     # Game configs for the game selector tabs
     game_configs = _get_game_configs_with_colors()
+
+    # AJAX load-more: return JSON
+    if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'entries': _entries_to_json(response.entries),
+            'has_next_page': (offset + PAGE_SIZE) < response.total_count,
+            'total_count': response.total_count,
+            'page': page,
+        })
 
     context = {
         'rankings': response,
@@ -151,15 +240,20 @@ def leaderboard_game(request, game_id):
         'game_id': game_id,
         'tier_filter': tier_filter,
         'verified_only': verified_only,
-        'available_tiers': ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED'],
+        'available_tiers': ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', 'ROOKIE'],
         'is_global': False,
         'user_highlights': user_highlights,
+        'user_teams_display': user_teams_display,
         'query_count': response.query_count,
         'game_configs': game_configs,
         'max_score': max_score,
         'selected_game': game_id,
         'selected_game_name': game_config.game_name,
         'tier_details': TIER_DETAILS,
+        'current_page': page,
+        'has_next_page': (offset + PAGE_SIZE) < response.total_count,
+        'has_prev_page': page > 1,
+        'page_size': PAGE_SIZE,
     }
 
     return render(request, 'competition/leaderboards/leaderboard_global.html', context)

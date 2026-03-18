@@ -106,23 +106,19 @@ class RankingTier(models.TextChoices):
     Crown Point ranking tiers.
     
     Tiers are calculated based on current CP thresholds:
-    - CROWN: 80,000+ CP (Top 1% globally)
-    - ASCENDANT: 40,000+ CP
-    - DIAMOND: 15,000+ CP
-    - PLATINUM: 5,000+ CP
-    - GOLD: 1,500+ CP
-    - SILVER: 500+ CP
-    - BRONZE: 50+ CP
-    - UNRANKED: <50 CP
+    - THE_CROWN: 30,000+ CP (Top 1% globally, elite professional teams)
+    - LEGEND: 8,000+ CP (Top 5%, semi-professional teams)
+    - MASTER: 2,000+ CP (Top 15%, highly competitive)
+    - ELITE: 500+ CP (Top 30%, competitive)
+    - CHALLENGER: 100+ CP (Active teams with match history)
+    - ROOKIE: <100 CP (New or inactive teams)
     """
-    UNRANKED = 'UNRANKED', 'Unranked'
-    BRONZE = 'BRONZE', 'Bronze'
-    SILVER = 'SILVER', 'Silver'
-    GOLD = 'GOLD', 'Gold'
-    PLATINUM = 'PLATINUM', 'Platinum'
-    DIAMOND = 'DIAMOND', 'Diamond'
-    ASCENDANT = 'ASCENDANT', 'Ascendant'
-    CROWN = 'CROWN', 'Crown'
+    ROOKIE = 'ROOKIE', 'Rookie'
+    CHALLENGER = 'CHALLENGER', 'Challenger'
+    ELITE = 'ELITE', 'Elite'
+    MASTER = 'MASTER', 'Master'
+    LEGEND = 'LEGEND', 'Legend'
+    THE_CROWN = 'THE_CROWN', 'The Crown'
 
 
 class ActivityActionType(models.TextChoices):

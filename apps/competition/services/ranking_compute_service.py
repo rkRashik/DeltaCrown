@@ -165,25 +165,25 @@ class RankingComputeService:
             tier_thresholds: Dict from GameRankingConfig
             
         Returns:
-            Tier name: 'DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', or 'UNRANKED'
+            Tier name: 'THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER', or 'ROOKIE'
         """
         # Default thresholds if config is empty
         default_thresholds = {
-            'DIAMOND': 2000,
-            'PLATINUM': 1200,
-            'GOLD': 600,
-            'SILVER': 250,
-            'BRONZE': 100,
+            'THE_CROWN': 30000,
+            'LEGEND': 8000,
+            'MASTER': 2000,
+            'ELITE': 500,
+            'CHALLENGER': 100,
         }
         
         thresholds = tier_thresholds or default_thresholds
         
         # Check tiers in descending order
-        for tier in ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE']:
+        for tier in ['THE_CROWN', 'LEGEND', 'MASTER', 'ELITE', 'CHALLENGER']:
             if score >= thresholds.get(tier, float('inf')):
                 return tier
         
-        return 'UNRANKED'
+        return 'ROOKIE'
     
     # --- Private helper methods ---
     

@@ -64,9 +64,9 @@
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Rank</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Team</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Tier</th>
-                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Score</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">CP</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Matches</th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-300 uppercase tracking-wider">Confidence</th>
+                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-300 uppercase tracking-wider">Activity</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-700">
@@ -100,27 +100,33 @@
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 rounded-full text-sm font-semibold
-                                    {% if entry.tier == 'DIAMOND' %}bg-blue-600 text-white
-                                    {% elif entry.tier == 'PLATINUM' %}bg-cyan-600 text-white
-                                    {% elif entry.tier == 'GOLD' %}bg-yellow-600 text-black
-                                    {% elif entry.tier == 'SILVER' %}bg-gray-400 text-black
-                                    {% elif entry.tier == 'BRONZE' %}bg-orange-700 text-white
-                                    {% else %}bg-gray-600 text-white{% endif %}">
+                                    {% if entry.tier == 'THE_CROWN' %}bg-[#ffd700] text-black
+                                    {% elif entry.tier == 'LEGEND' %}bg-[#f97316] text-black
+                                    {% elif entry.tier == 'MASTER' %}bg-[#8b5cf6] text-white
+                                    {% elif entry.tier == 'ELITE' %}bg-[#3b82f6] text-white
+                                    {% elif entry.tier == 'CHALLENGER' %}bg-[#22c55e] text-black
+                                    {% else %}bg-gray-600 text-[#9ca3af]{% endif %}">
                                     {{ entry.tier }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <span class="text-lg font-bold text-white">{{ entry.score }}</span>
+                                <span class="text-lg font-bold text-white">{{ entry.score }} <span class="text-xs text-gray-400 font-normal">CP</span></span>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="text-gray-300">—</span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="px-2 py-1 rounded text-xs font-semibold
-                                    {% if entry.confidence_level == 'STABLE' %}bg-green-600 text-white
-                                    {% elif entry.confidence_level == 'ESTABLISHED' %}bg-blue-600 text-white
-                                    {% else %}bg-yellow-600 text-black{% endif %}">
-                                    {{ entry.confidence_level }}
+                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold">
+                                    {% if entry.activity_score >= 80 %}
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    <span class="text-emerald-400">{{ entry.activity_score }}</span>
+                                    {% elif entry.activity_score >= 40 %}
+                                    <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                                    <span class="text-yellow-400">{{ entry.activity_score }}</span>
+                                    {% else %}
+                                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                    <span class="text-slate-400">{{ entry.activity_score }}</span>
+                                    {% endif %}
                                 </span>
                             </td>
                         </tr>
@@ -165,7 +171,7 @@
                             <p class="text-xl font-bold text-purple-400">#{{ team.rank }}</p>
                             <p class="text-xs text-gray-400">{{ team.tier }}</p>
                             {% else %}
-                            <p class="text-sm text-gray-400">Unranked</p>
+                            <p class="text-sm text-[#9ca3af]">Rookie</p>
                             {% endif %}
                         </div>
                     </div>

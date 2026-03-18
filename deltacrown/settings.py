@@ -111,9 +111,10 @@ def get_database_environment():
     
     return db_url, 'PROD'
 
-def get_sanitized_db_info():
+def get_sanitized_db_info(db_url=None):
     """Get sanitized database info for logging (no passwords)."""
-    db_url = os.getenv('DATABASE_URL_TEST') or os.getenv('DATABASE_URL', '')
+    if db_url is None:
+        db_url, _ = get_database_environment()
     if not db_url:
         return {'error': 'DATABASE_URL not set'}
     
@@ -533,7 +534,7 @@ DB_ENVIRONMENT = db_label
 
 # Show connection info in debug mode
 if DEBUG:
-    db_info = get_sanitized_db_info()
+    db_info = get_sanitized_db_info(database_url)
     print(f"[{db_label}] {db_info['host']}:{db_info['port']}/{db_info['database']}")
 
 # -----------------------------------------------------------------------------

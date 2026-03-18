@@ -31,7 +31,7 @@ if not _MINIMAL_TEST_APPS:
     from .membership import TeamMembership
     from .membership_event import TeamMembershipEvent
     from .team_invite import TeamInvite
-    from .ranking import OrganizationRanking, TeamRanking
+    from .ranking import OrganizationRanking, TeamRanking, TeamRankingAdjustmentLog
     from .migration import TeamMigrationMap
     from .activity import TeamActivityLog
     from .announcement import TeamAnnouncement
@@ -49,6 +49,7 @@ if not _MINIMAL_TEST_APPS:
         'TeamInvite',
         'OrganizationRanking',
         'TeamRanking',
+        'TeamRankingAdjustmentLog',
         'TeamMigrationMap',
         'TeamActivityLog',
         'TeamAnnouncement',

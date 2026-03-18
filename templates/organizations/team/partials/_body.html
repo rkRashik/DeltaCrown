@@ -396,7 +396,7 @@
             </div>
             <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
               <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Global Rank</div>
-              <div class="text-2xl font-display font-bold text-white">#{{ team.rank|default:"—" }}</div>
+              <div class="text-2xl font-display font-bold text-white">{% if leaderboard_stats.global_rank %}#{{ leaderboard_stats.global_rank }}{% else %}--{% endif %}</div>
             </div>
           </div>
         </div>
@@ -717,45 +717,40 @@
               <div class="text-[9px] text-slate-600 font-mono mt-1">Total Wins</div>
             </div>
             <div class="bg-white/[0.03] rounded-xl p-4 border border-white/5">
-              <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">ELO Rating</div>
-              <div class="text-2xl font-display font-bold text-[var(--team-primary)]">{{ leaderboard_stats.elo_rating|default:"—" }}</div>
-              <div class="text-[9px] text-slate-600 font-mono mt-1">Current</div>
-            </div>
+        <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Activity</div>
+        <div class="text-2xl font-display font-bold {% if leaderboard_stats.activity_score >= 80 %}text-emerald-400{% elif leaderboard_stats.activity_score >= 40 %}text-yellow-400{% else %}text-slate-400{% endif %}">{{ leaderboard_stats.activity_score|default:"0" }}</div>
+        <div class="text-[9px] text-slate-600 font-mono mt-1">Score</div>
+      </div>
+    </div>
+
+    {# ── RANKING CARD ── #}
+    <div class="mt-4 p-6 rounded-2xl bg-[#0A0A0F] border border-white/10">
+      <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#facc15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+        Competitive Standing
+      </h4>
+      <div class="grid grid-cols-4 gap-4">
+        <div class="text-center p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Rank</div>
+          <div class="text-2xl font-display font-bold text-white">{% if leaderboard_stats.global_rank %}#{{ leaderboard_stats.global_rank }}{% else %}--{% endif %}</div>
+        </div>
+        <div class="text-center p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Crown Points</div>
+          <div class="text-2xl font-display font-bold text-[#facc15]">{{ leaderboard_stats.current_cp|default:"0" }}</div>
+        </div>
+        <div class="text-center p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Tier</div>
+          <div class="text-sm font-bold uppercase tracking-wider mt-1.5
+            {% if leaderboard_stats.tier == 'THE_CROWN' %}text-[#ffd700]{% elif leaderboard_stats.tier == 'LEGEND' %}text-orange-400{% elif leaderboard_stats.tier == 'MASTER' %}text-purple-400{% elif leaderboard_stats.tier == 'ELITE' %}text-blue-400{% elif leaderboard_stats.tier == 'CHALLENGER' %}text-green-400{% else %}text-slate-400{% endif %}">
+            {{ leaderboard_stats.tier|default:"ROOKIE" }}
           </div>
         </div>
-
-        {# Map Pool / Hero Pool / Drop Zones — game-type dynamic label #}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {# Map Pool Strength #}
-          <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-              <h4 class="text-xs font-bold text-white uppercase tracking-wider">
-                {% if team.game.category == 'MOBA' %}Hero Pool{% elif team.game.category == 'BR' %}Drop Zones{% elif team.game.category == 'FIGHTING' %}Arena Knowledge{% elif team.game.category == 'CCG' %}Deck Matchups{% elif team.game.category == 'STRATEGY' %}Map Control{% else %}Map Pool Strength{% endif %}
-              </h4>
-              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            </div>
-            <div class="space-y-4">
-              {% if leaderboard_stats.map_pool %}
-                {% for map in leaderboard_stats.map_pool %}
-                <div>
-                  <div class="flex justify-between text-[10px] uppercase font-bold mb-1.5">
-                    <span class="text-slate-300">{{ map.name }}</span>
-                    <span class="{% if map.win_rate >= 60 %}text-[var(--team-primary)]{% elif map.win_rate >= 50 %}text-emerald-400{% else %}text-red-400{% endif %}">{{ map.win_rate }}% Win</span>
-                  </div>
-                  <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div class="h-full {% if map.win_rate >= 60 %}bg-[var(--team-primary)]{% elif map.win_rate >= 50 %}bg-emerald-400{% else %}bg-red-400{% endif %} rounded-full" style="width: {{ map.win_rate }}%"></div>
-                  </div>
-                  <div class="flex justify-between mt-1 text-[9px] font-mono text-slate-600">
-                    <span>{{ map.played }} Played</span>
-                    <span>{{ map.wins }}W - {{ map.losses }}L</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-                <p class="text-sm text-slate-500 italic">Map data not yet available</p>
-              {% endif %}
-            </div>
-          </div>
+        <div class="text-center p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Win Rate</div>
+          <div class="text-2xl font-display font-bold text-emerald-400">{{ leaderboard_stats.win_rate|default:"0" }}%</div>
+        </div>
+      </div>
+    </div>
 
           {# Comp Preference & Playstyle — game-type dynamic label #}
           <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 flex flex-col gap-4">

@@ -298,12 +298,12 @@ body::after {
 .crown-card:hover { box-shadow: 0 0 35px rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4) !important }
 
 /* ===== TIER BADGES ===== */
-.tier-crown { background: rgba(250, 204, 21, .12); color: #facc15; border: 1px solid rgba(250, 204, 21, .25) }
-.tier-ascendant { background: rgba(139, 92, 246, .12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, .25) }
-.tier-diamond { background: rgba(6, 182, 212, .12); color: #06b6d4; border: 1px solid rgba(6, 182, 212, .25) }
-.tier-platinum { background: rgba(148, 163, 184, .12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, .25) }
-.tier-gold { background: rgba(234, 179, 8, .12); color: #eab308; border: 1px solid rgba(234, 179, 8, .25) }
-.tier-silver { background: rgba(156, 163, 175, .12); color: #9ca3af; border: 1px solid rgba(156, 163, 175, .25) }
+.tier-the_crown { background: rgba(255, 215, 0, .12); color: #ffd700; border: 1px solid rgba(255, 215, 0, .25) }
+.tier-legend { background: rgba(249, 115, 22, .12); color: #f97316; border: 1px solid rgba(249, 115, 22, .25) }
+.tier-master { background: rgba(139, 92, 246, .12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, .25) }
+.tier-elite { background: rgba(59, 130, 246, .12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, .25) }
+.tier-challenger { background: rgba(34, 197, 94, .12); color: #22c55e; border: 1px solid rgba(34, 197, 94, .25) }
+.tier-rookie { background: rgba(156, 163, 175, .12); color: #9ca3af; border: 1px solid rgba(156, 163, 175, .25) }
 
 /* ===== ANIMATED PROGRESS BARS ===== */
 .progress-fill { width: 0%; transition: width 1.2s cubic-bezier(.22, 1, .36, 1) }
@@ -580,7 +580,7 @@ body::after {
     /* Mobile priority order: 1=highest */
     .mob-order-1 { order: 1; } /* Global Standings */
     .mob-order-2 { order: 2; } /* My Teams */
-    .mob-order-3 { order: 3; } /* Tournament Arena */
+    .mob-order-3 { order: 3; } /* Featured Teams */
     .mob-order-4 { order: 4; } /* Scouting Grounds */
     .mob-order-5 { order: 5; } /* Open Challenges */
     .mob-order-6 { order: 6; } /* Top Organizations */
@@ -1058,134 +1058,150 @@ body::after {
         <!-- LEFT COLUMN -->
         <div class="hub-col-left space-y-6 sm:space-y-10">
 
-            <!-- TOURNAMENT ARENA -->
+            <!-- FEATURED TEAMS -->
             <div class="reveal section-glow section-glow-cyan mob-order-3">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-5">
                     <h2 class="font-display text-2xl font-bold text-white flex items-center gap-2 neon-line">
-                        <span class="w-1.5 h-7 bg-dc-cyan rounded-full"></span>Tournament Arena
+                        <span class="w-1.5 h-7 bg-dc-cyan rounded-full"></span>Featured Teams
                     </h2>
-                    <a href="/tournaments" class="text-sm text-gray-400 hover:text-white flex items-center gap-1 transition-colors btn-arrow">View All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+                    <a href="{% url 'organizations:team_directory' %}" class="text-sm text-gray-400 hover:text-white flex items-center gap-1 transition-colors btn-arrow">Browse All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
                 </div>
-                {% if featured_tournament %}
-                <a href="/tournaments/{{ featured_tournament.slug }}/" class="glass rounded-2xl overflow-hidden relative card-shine block group/arena" style="transform:none!important; text-decoration:none; color:inherit;">
-                    {% if featured_tournament.status == 'live' %}
-                    <span class="absolute top-3 right-3 z-20 bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">LIVE NOW</span>
-                    {% elif featured_tournament.status == 'registration_open' %}
-                    <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
-                        <span class="bg-green-500/20 text-green-400 border border-green-500/40 text-xs font-bold px-2.5 py-1 rounded-full">OPEN</span>
-                        {% if featured_tournament.registration_end %}
-                        <span class="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-1 rounded-full" data-countdown="{{ featured_tournament.registration_end|date:'c' }}">
-                            Closes {{ featured_tournament.registration_end|timeuntil }} left
-                        </span>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <span class="absolute top-3 right-3 z-20 bg-dc-cyan/20 text-dc-cyan border border-dc-cyan/40 text-xs font-bold px-2.5 py-1 rounded-full">UPCOMING</span>
-                    {% endif %}
-                    <div class="grid md:grid-cols-3 h-full">
-                        <div class="relative h-44 md:h-full bg-gray-900">
-                            {% if featured_tournament.banner_image %}
-                            <img src="{{ featured_tournament.banner_image.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.name }}" loading="lazy">
-                            {% elif featured_tournament.game.card_image %}
-                            <img src="{{ featured_tournament.game.card_image.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
-                            {% elif featured_tournament.game.banner %}
-                            <img src="{{ featured_tournament.game.banner.url }}" class="w-full h-full object-cover opacity-60 group-hover/arena:opacity-80 transition-opacity duration-300" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
-                            {% else %}
-                            <div class="w-full h-full bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center">
-                                <i data-lucide="trophy" class="w-12 h-12 text-gray-700"></i>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="md:col-span-2 p-6 flex flex-col justify-between relative">
-                            <div>
-                                <div class="flex items-center gap-2 mb-2 text-xs font-bold text-dc-cyan tracking-wider uppercase">
-                                    <span>{{ featured_tournament.get_format_display|upper }}</span>
-                                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
-                                    <span>{{ featured_tournament.game.name }}</span>
-                                    {% if featured_tournament.is_featured %}
-                                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
-                                    <span class="text-dc-gold flex items-center gap-1"><i data-lucide="star" class="w-3 h-3 fill-dc-gold/50"></i> Featured</span>
-                                    {% endif %}
-                                </div>
-                                <h3 class="text-2xl font-display font-black text-white mb-1 group-hover/arena:text-dc-cyan transition-colors">{{ featured_tournament.name }}</h3>
-                                <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ featured_tournament.description|striptags|truncatewords:30 }}</p>
-                                <div class="flex items-center gap-6 text-sm">
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase">Prize</p>
-                                        <p class="font-bold text-white">৳{{ featured_tournament.prize_pool|intcomma }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase">Slots</p>
-                                        <p class="font-bold text-white">{{ featured_tournament.total_registrations|default:"0" }}<span class="text-gray-400 text-xs font-normal">/{{ featured_tournament.max_participants }}</span></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase">Entry</p>
-                                        {% if featured_tournament.has_entry_fee %}
-                                        <p class="font-bold text-dc-gold">৳{{ featured_tournament.entry_fee_amount|intcomma }}</p>
-                                        {% else %}
-                                        <p class="font-bold text-green-400">FREE</p>
-                                        {% endif %}
-                                    </div>
-                                    {% if featured_tournament.status == 'registration_open' and featured_tournament.registration_end %}
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase">Closes In</p>
-                                        <p class="font-bold text-amber-400 text-xs">{{ featured_tournament.registration_end|timeuntil }}</p>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="flex gap-2 mt-4" onclick="event.stopPropagation();">
-                                {% if featured_tournament.status == 'live' %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/#matches" class="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all text-sm text-center flex items-center justify-center gap-2">
-                                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span> Watch Live
-                                </a>
-                                {% elif featured_tournament.status == 'registration_open' %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/register/{% if featured_tournament.participation_type == 'team' %}team/{% endif %}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all text-sm text-center">Register Now</a>
-                                {% elif featured_tournament.status == 'completed' %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 btn-cta-gold btn-cta-sm text-center rounded-lg text-sm font-bold">View Results</a>
-                                {% else %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 btn-cta-primary btn-cta-sm text-center rounded-lg text-sm">View Tournament</a>
-                                {% endif %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors" title="Tournament Details">
-                                    <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-                {% else %}
-                <!-- No Featured Tournament — Empty State -->
-                <div class="glass rounded-2xl p-10 text-center" style="transform:none!important">
-                    <i data-lucide="trophy" class="w-8 h-8 text-gray-700 mx-auto mb-3"></i>
-                    <p class="text-base text-gray-400 mb-1">No active tournaments right now</p>
-                    <p class="text-sm text-gray-500">Check back soon or browse all tournaments</p>
-                    <a href="/tournaments" class="mt-3 inline-block text-sm text-dc-cyan hover:underline">Browse Tournaments →</a>
-                </div>
-                {% endif %}
 
-                {% if upcoming_tournament %}
-                <a href="/tournaments/{{ upcoming_tournament.slug }}/" class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer hover:bg-white/5 hover:border-white/20 block group/upcoming" style="transition: background .3s, border-color .3s; transform:none!important; text-decoration:none;">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center overflow-hidden">
-                            {% if upcoming_tournament.game.icon %}
-                            <img src="{{ upcoming_tournament.game.icon.url }}" class="w-full h-full object-cover" alt="{{ upcoming_tournament.game.display_name }}" loading="lazy">
+                {% if featured_ranked_teams %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {% for team in featured_ranked_teams %}
+                    <a href="{% url 'organizations:team_detail' team.slug %}" class="group relative glass rounded-2xl overflow-hidden hover:border-dc-cyan/30 transition-all duration-500 block hover:-translate-y-1" style="text-decoration:none; color:inherit;">
+
+                        {# ── Cinematic banner header ── #}
+                        <div class="h-36 relative overflow-hidden">
+                            {% if team.banner %}
+                            <img src="{{ team.banner.url }}" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700" alt="" loading="lazy">
                             {% else %}
-                            <i data-lucide="trophy" class="w-4 h-4 text-dc-purple"></i>
+                            <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/10 via-dc-purple/10 to-transparent"></div>
+                            {% endif %}
+                            {# Dark gradient overlay #}
+                            <div class="absolute inset-0 bg-gradient-to-t from-dc-dark via-dc-dark/50 to-transparent"></div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-dc-dark/60 via-transparent to-transparent"></div>
+
+                            {# ⭐ FEATURED badge – top left #}
+                            <div class="absolute top-3 left-3 z-10">
+                                <span class="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider backdrop-blur-md shadow-lg">
+                                    ⭐ {% if team.featured_label %}{{ team.featured_label }}{% else %}Featured{% endif %}
+                                </span>
+                            </div>
+
+                            {# Game badge – top right #}
+                            <div class="absolute top-3 right-3 z-10">
+                                <span class="inline-flex items-center gap-1 bg-black/60 text-gray-300 border border-white/10 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider backdrop-blur-md">
+                                    <i data-lucide="gamepad-2" class="w-3 h-3 text-dc-cyan"></i>
+                                    {{ team.get_game_display }}
+                                </span>
+                            </div>
+
+                            {# Recruiting badge – bottom left #}
+                            {% if team.is_recruiting %}
+                            <div class="absolute bottom-3 left-3 z-10">
+                                <span class="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Recruiting
+                                </span>
+                            </div>
+                            {% endif %}
+
+                            {# Organization logo overlay – bottom right on banner #}
+                            {% if team.organization and team.organization.logo %}
+                            <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2 py-1">
+                                <img src="{{ team.organization.logo.url }}" class="w-4 h-4 rounded object-cover" alt="{{ team.organization.name }}" loading="lazy">
+                                <span class="text-[9px] text-gray-300 font-semibold truncate max-w-[80px]">{{ team.organization.name }}</span>
+                            </div>
                             {% endif %}
                         </div>
-                        <div>
-                            <h4 class="font-bold text-white text-sm group-hover/upcoming:text-dc-cyan transition-colors">{{ upcoming_tournament.name }}</h4>
-                            <p class="text-xs text-gray-400">
-                                {{ upcoming_tournament.get_participation_type_display }} · ৳{{ upcoming_tournament.prize_pool|intcomma }}
-                            </p>
+
+                        {# ── Card body ── #}
+                        <div class="px-5 pb-5 -mt-10 relative z-10">
+                            <div class="flex items-end gap-3.5 mb-3">
+                                {# Team logo overlapping banner #}
+                                {% if team.logo %}
+                                <img src="{{ team.logo.url }}" class="w-18 h-18 w-[72px] h-[72px] rounded-xl object-cover border-2 border-dc-dark flex-shrink-0 shadow-2xl group-hover:border-dc-cyan/50 transition-all duration-300 bg-dc-dark" alt="{{ team.name }}" loading="lazy">
+                                {% else %}
+                                <div class="w-[72px] h-[72px] rounded-xl border-2 border-dc-dark bg-gradient-to-br from-dc-cyan/25 to-dc-purple/25 flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-2xl font-display">{{ team.tag|default:team.name|truncatechars:3 }}</div>
+                                {% endif %}
+                                <div class="flex-1 min-w-0 pb-1">
+                                    <h4 class="font-bold text-white text-base group-hover:text-dc-cyan transition-colors leading-tight mb-0.5" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">{{ team.name }}</h4>
+                                    {# Tier badge #}
+                                    {% with r=team.ranking %}
+                                    {% if r %}
+                                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider
+                                        {% if r.tier == 'THE_CROWN' %}bg-yellow-500/15 text-yellow-400 border border-yellow-500/25
+                                        {% elif r.tier == 'LEGEND' %}bg-orange-500/15 text-orange-400 border border-orange-500/25
+                                        {% elif r.tier == 'MASTER' %}bg-violet-500/15 text-violet-400 border border-violet-500/25
+                                        {% elif r.tier == 'ELITE' %}bg-blue-500/15 text-blue-400 border border-blue-500/25
+                                        {% elif r.tier == 'CHALLENGER' %}bg-green-500/15 text-green-400 border border-green-500/25
+                                        {% else %}bg-gray-500/15 text-gray-400 border border-gray-500/25{% endif %}">{{ r.tier }}</span>
+                                    {% else %}
+                                    <span class="text-[10px] text-gray-600 uppercase tracking-wider font-semibold">Unranked</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+
+                            {# ── Stats & Roster Row ── #}
+                            <div class="border-t border-white/5 pt-3 flex items-center justify-between gap-3">
+                                {# CP + Rank stats #}
+                                <div class="flex items-center gap-4 text-xs min-w-0">
+                                    {% with r=team.ranking %}
+                                    {% if r %}
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] text-gray-500 uppercase tracking-wider">CP</span>
+                                        <span class="font-bold text-white font-display text-sm">{{ r.current_cp|intcomma }}</span>
+                                    </div>
+                                    {% if r.global_rank %}
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] text-gray-500 uppercase tracking-wider">Rank</span>
+                                        <span class="font-bold font-display text-sm {% if r.global_rank <= 3 %}text-yellow-400{% elif r.global_rank <= 10 %}text-dc-cyan{% else %}text-white{% endif %}">#{{ r.global_rank }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% endif %}
+                                    {% endwith %}
+                                    {# Roster count #}
+                                    {% with members=team.vnext_memberships.all %}
+                                    {% if members %}
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] text-gray-500 uppercase tracking-wider">Roster</span>
+                                        <span class="font-bold text-white text-sm">{{ members|length }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+
+                                {# Member avatars stack #}
+                                <div class="flex items-center -space-x-2 flex-shrink-0">
+                                    {% for member in team.vnext_memberships.all|slice:":4" %}
+                                    {% if member.roster_image %}
+                                    <img src="{{ member.roster_image.url }}" class="w-7 h-7 rounded-lg object-cover border-2 border-dc-dark shadow-md" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
+                                    {% else %}
+                                    <div class="w-7 h-7 rounded-lg bg-white/10 border-2 border-dc-dark flex items-center justify-center text-[9px] font-bold text-gray-300 shadow-md" title="{{ member.display_name|default:member.user.username }}">{{ member.display_name|default:member.user.username|make_list|first|upper }}</div>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% with total=team.vnext_memberships.all|length %}
+                                    {% if total > 4 %}
+                                    <div class="w-7 h-7 rounded-lg bg-white/5 border-2 border-dc-dark flex items-center justify-center text-[9px] font-bold text-gray-400 shadow-md">+{{ total|add:"-4" }}</div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    {% if upcoming_tournament.status == 'registration_open' %}
-                    <span class="bg-green-500/10 text-green-400 text-xs font-bold px-2.5 py-1 rounded-full border border-green-500/20">REG OPEN</span>
-                    {% else %}
-                    <span class="bg-dc-cyan/10 text-dc-cyan text-xs font-bold px-2.5 py-1 rounded-full border border-dc-cyan/20">UPCOMING</span>
-                    {% endif %}
-                </a>
+
+                        {# Hover glow #}
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style="background:radial-gradient(ellipse at 30% 15%,rgba(6,182,212,0.07),transparent 65%);"></div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="glass rounded-2xl p-10 text-center" style="transform:none!important">
+                    <i data-lucide="star" class="w-8 h-8 text-yellow-700/40 mx-auto mb-3"></i>
+                    <p class="text-base text-gray-400 mb-1">No featured teams yet</p>
+                    <p class="text-sm text-gray-500">Admins can feature standout teams from the admin panel</p>
+                </div>
                 {% endif %}
             </div>
 
@@ -1213,21 +1229,25 @@ body::after {
                         <div class="col-span-1 text-center">#</div>
                         <div class="col-span-5">Team</div>
                         <div class="col-span-2 text-center hidden sm:block">Tier</div>
-                        <div class="col-span-2 text-right">Points</div>
-                        <div class="col-span-2 text-center">Trend</div>
+                        <div class="col-span-2 text-right">CP</div>
+                        <div class="col-span-2 text-center">Activity</div>
                     </div>
 
                     <!-- Table Body -->
                     <div class="divide-y divide-white/5" id="rankings-list">
                         {% if rankings_preview %}
                         {% for entry in rankings_preview %}
-                        <a href="{{ entry.team_url|default:'#' }}" class="rank-row grid grid-cols-12 gap-4 px-6 {% if forloop.counter <= 3 %}py-4{% else %}py-3{% endif %} items-center {% if forloop.counter == 1 %}bg-gradient-to-r from-dc-gold/10 to-transparent{% endif %} relative group cursor-pointer block" style="text-decoration:none; color:inherit;">
+                        <a href="{{ entry.team_url|default:'#' }}" class="rank-row grid grid-cols-12 gap-4 px-6 {% if forloop.counter <= 3 %}py-4{% else %}py-3{% endif %} items-center {% if forloop.counter == 1 %}bg-gradient-to-r from-dc-gold/10 to-transparent{% endif %} relative group cursor-pointer block overflow-hidden" style="text-decoration:none; color:inherit;">
+                            {# Banner bg-reveal on hover #}
+                            {% if entry.team_banner_url %}
+                            <img src="{{ entry.team_banner_url }}" class="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-15 transition-opacity duration-500 z-0 pointer-events-none" alt="" loading="lazy">
+                            {% endif %}
                             <!-- Rank Number -->
-                            <div class="col-span-1 text-center font-display font-bold {% if forloop.counter == 1 %}text-xl text-dc-gold{% elif forloop.counter == 2 %}text-lg text-gray-300{% elif forloop.counter == 3 %}text-lg text-orange-400{% else %}text-gray-500{% endif %}">
-                                {{ forloop.counter }}
+                            <div class="col-span-1 text-center font-display font-bold relative z-10 {% if forloop.counter == 1 %}text-xl text-dc-gold{% elif forloop.counter == 2 %}text-lg text-gray-300{% elif forloop.counter == 3 %}text-lg text-orange-400{% else %}text-gray-500{% endif %}">
+                                {{ entry.rank }}
                             </div>
                             <!-- Team Info -->
-                            <div class="col-span-5 flex items-center gap-3 sm:gap-4">
+                            <div class="col-span-5 flex items-center gap-3 sm:gap-4 relative z-10">
                                 {% if entry.team_logo_url %}
                                 <img src="{{ entry.team_logo_url }}" class="{% if forloop.counter <= 3 %}w-10 h-10{% else %}w-8 h-8{% endif %} rounded-lg object-cover flex-shrink-0 border {% if forloop.counter == 1 %}border-dc-gold/50{% else %}border-white/10{% endif %}" alt="{{ entry.team_name }}" loading="lazy">
                                 {% else %}
@@ -1240,19 +1260,29 @@ body::after {
                                     <div class="flex items-center gap-2">
                                         <span class="{% if forloop.counter <= 3 %}text-sm{% else %}text-sm{% endif %} font-bold text-white group-hover:text-dc-cyan transition-colors truncate">{{ entry.team_name }}</span>
                                     </div>
-                                    {% if entry.organization_name %}
-                                    <p class="text-xs text-gray-500 truncate">{{ entry.organization_name }}</p>
-                                    {% endif %}
+                                    <div class="flex items-center gap-2">
+                                        {% if not entry.is_independent and entry.organization_name %}
+                                        <p class="text-xs text-gray-500 truncate">{{ entry.organization_name }}</p>
+                                        {% endif %}
+                                        {% if entry.game_name %}
+                                        <span class="text-[10px] text-dc-cyan/60 flex items-center gap-1"><i data-lucide="gamepad-2" class="w-2.5 h-2.5"></i> {{ entry.game_name }}</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             <!-- Tier (hidden on mobile) -->
-                            <div class="col-span-2 text-center hidden sm:block">
-                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if entry.tier == 'CROWN' %}tier-crown{% elif entry.tier == 'ASCENDANT' %}tier-ascendant{% elif entry.tier == 'DIAMOND' %}tier-diamond{% elif entry.tier == 'PLATINUM' %}tier-platinum{% elif entry.tier == 'GOLD' %}tier-gold{% else %}tier-silver{% endif %}">{{ entry.tier|default:"UNRANKED" }}</span>
+                            <div class="col-span-2 text-center hidden sm:block relative z-10">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if entry.tier == 'THE_CROWN' %}tier-the_crown{% elif entry.tier == 'LEGEND' %}tier-legend{% elif entry.tier == 'MASTER' %}tier-master{% elif entry.tier == 'ELITE' %}tier-elite{% elif entry.tier == 'CHALLENGER' %}tier-challenger{% else %}tier-rookie{% endif %}">{{ entry.tier|default:"ROOKIE" }}</span>
                             </div>
-                            <!-- Points -->
-                            <div class="col-span-2 text-right font-display font-bold {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }}</div>
-                            <!-- Trend -->
-                            <div class="col-span-2 flex justify-center text-gray-500 text-xs">—</div>
+                            <!-- CP -->
+                            <div class="col-span-2 text-right font-display font-bold relative z-10 {% if forloop.counter <= 3 %}text-white text-lg{% else %}text-gray-300{% endif %}">{{ entry.score|intcomma }} <span class="text-[10px] text-slate-500 font-normal">CP</span></div>
+                            <!-- Activity -->
+                            <div class="col-span-2 flex justify-center relative z-10">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full {% if entry.activity_score >= 80 %}bg-emerald-400{% elif entry.activity_score >= 40 %}bg-yellow-400{% else %}bg-slate-500{% endif %}"></span>
+                                    <span class="text-xs font-bold {% if entry.activity_score >= 80 %}text-emerald-400{% elif entry.activity_score >= 40 %}text-yellow-400{% else %}text-slate-400{% endif %}">{{ entry.activity_score }}%</span>
+                                </div>
+                            </div>
                         </a>
                         {% endfor %}
                         {% else %}
@@ -2342,8 +2372,8 @@ function selectGame(slug, el) {
                         const py = idx <= 3 ? 'py-4' : 'py-3';
                         const imgSize = idx <= 3 ? 'w-10 h-10' : 'w-8 h-8';
                         const imgBorder = idx === 1 ? 'border-dc-gold/50' : 'border-white/10';
-                        const tierMap = { CROWN:'tier-crown', ASCENDANT:'tier-ascendant', DIAMOND:'tier-diamond', PLATINUM:'tier-platinum', GOLD:'tier-gold' };
-                        const tierCls = tierMap[e.tier] || 'tier-silver';
+                        const tierMap = { THE_CROWN:'tier-the_crown', LEGEND:'tier-legend', MASTER:'tier-master', ELITE:'tier-elite', CHALLENGER:'tier-challenger' };
+                        const tierCls = tierMap[e.tier] || 'tier-rookie';
                         const logo = e.team_logo_url
                             ? `<img src="${e.team_logo_url}" class="${imgSize} rounded-lg object-cover flex-shrink-0 border ${imgBorder}" alt="${e.team_name}" loading="lazy">`
                             : `<div class="${imgSize} rounded-lg bg-dc-dark border ${imgBorder} flex items-center justify-center text-xs font-bold text-gray-400 flex-shrink-0">${(e.team_tag||'??').substring(0,3)}</div>`;
@@ -2480,7 +2510,7 @@ if (searchInput) {
                     html += `<div class="mb-4"><p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3"></i>Teams (${teams.length})</p><div class="space-y-1">`;
                     html += teams.map(t => {
                         const logo = t.logo ? `<img src="${t.logo}" class="w-9 h-9 rounded-lg object-cover" alt="${t.name}" loading="lazy">` : `<div class="w-9 h-9 rounded-lg bg-dc-cyan/10 border border-dc-cyan/20 flex items-center justify-center text-xs font-bold text-dc-cyan">${(t.name||'').substring(0,2)}</div>`;
-                        return `<a href="${t.url}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all group">${logo}<div class="flex-1 min-w-0"><p class="text-sm text-white font-semibold group-hover:text-dc-cyan transition-colors truncate">${t.name}</p><p class="text-xs text-gray-500">${t.game||'Multi-game'} · ${t.tier||'Unranked'} · ${t.cp||0} CP</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-dc-cyan transition-colors flex-shrink-0"></i></a>`;
+                        return `<a href="${t.url}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all group">${logo}<div class="flex-1 min-w-0"><p class="text-sm text-white font-semibold group-hover:text-dc-cyan transition-colors truncate">${t.name}</p><p class="text-xs text-gray-500">${t.game||'Multi-game'} · ${t.tier||'Rookie'} · ${t.cp||0} CP</p></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-dc-cyan transition-colors flex-shrink-0"></i></a>`;
                     }).join('');
                     html += '</div></div>';
                 }

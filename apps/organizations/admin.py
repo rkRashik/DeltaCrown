@@ -20,6 +20,7 @@ from apps.organizations.models import (
     Team,  # vNext canonical Team model
     TeamMembership,
     TeamRanking,
+    TeamRankingAdjustmentLog,
     TeamActivityLog,
 )
 
@@ -394,31 +395,28 @@ class CPRangeFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         """Define CP range options."""
         return (
-            ('0-500', '0-500 (Unranked/Bronze)'),
-            ('500-1500', '500-1500 (Silver)'),
-            ('1500-5000', '1500-5000 (Gold)'),
-            ('5000-15000', '5000-15000 (Platinum)'),
-            ('15000-40000', '15000-40000 (Diamond)'),
-            ('40000-80000', '40000-80000 (Ascendant)'),
-            ('80000+', '80000+ (Crown)'),
+            ('0-100', '0-100 (Rookie)'),
+            ('100-500', '100-500 (Challenger)'),
+            ('500-2000', '500-2000 (Elite)'),
+            ('2000-8000', '2000-8000 (Master)'),
+            ('8000-30000', '8000-30000 (Legend)'),
+            ('30000+', '30000+ (The Crown)'),
         )
     
     def queryset(self, request, queryset):
         """Filter queryset by selected CP range."""
-        if self.value() == '0-500':
-            return queryset.filter(current_cp__gte=0, current_cp__lt=500)
-        elif self.value() == '500-1500':
-            return queryset.filter(current_cp__gte=500, current_cp__lt=1500)
-        elif self.value() == '1500-5000':
-            return queryset.filter(current_cp__gte=1500, current_cp__lt=5000)
-        elif self.value() == '5000-15000':
-            return queryset.filter(current_cp__gte=5000, current_cp__lt=15000)
-        elif self.value() == '15000-40000':
-            return queryset.filter(current_cp__gte=15000, current_cp__lt=40000)
-        elif self.value() == '40000-80000':
-            return queryset.filter(current_cp__gte=40000, current_cp__lt=80000)
-        elif self.value() == '80000+':
-            return queryset.filter(current_cp__gte=80000)
+        if self.value() == '0-100':
+            return queryset.filter(current_cp__gte=0, current_cp__lt=100)
+        elif self.value() == '100-500':
+            return queryset.filter(current_cp__gte=100, current_cp__lt=500)
+        elif self.value() == '500-2000':
+            return queryset.filter(current_cp__gte=500, current_cp__lt=2000)
+        elif self.value() == '2000-8000':
+            return queryset.filter(current_cp__gte=2000, current_cp__lt=8000)
+        elif self.value() == '8000-30000':
+            return queryset.filter(current_cp__gte=8000, current_cp__lt=30000)
+        elif self.value() == '30000+':
+            return queryset.filter(current_cp__gte=30000)
         return queryset
 
 
@@ -466,6 +464,7 @@ class TeamRankingAdmin(ModelAdmin):
         'last_activity_date',
         'last_decay_applied'
     ]
+    actions = ['apply_bonus_cp', 'apply_penalty_cp', 'refresh_global_ranks']
     
     fieldsets = (
         ('Team', {
@@ -502,14 +501,12 @@ class TeamRankingAdmin(ModelAdmin):
     def current_cp_display(self, obj):
         """Display CP with colored background based on tier."""
         colors = {
-            'CROWN': '#FFD700',
-            'ASCENDANT': '#E74C3C',
-            'DIAMOND': '#3498DB',
-            'PLATINUM': '#1ABC9C',
-            'GOLD': '#F39C12',
-            'SILVER': '#95A5A6',
-            'BRONZE': '#CD7F32',
-            'UNRANKED': '#7F8C8D'
+            'THE_CROWN': '#FFD700',
+            'LEGEND': '#E74C3C',
+            'MASTER': '#3498DB',
+            'ELITE': '#1ABC9C',
+            'CHALLENGER': '#F39C12',
+            'ROOKIE': '#95A5A6',
         }
         color = colors.get(obj.tier, '#7F8C8D')
         return format_html(
@@ -539,6 +536,85 @@ class TeamRankingAdmin(ModelAdmin):
         return obj.team.region if obj.team else '-'
     region_display.short_description = 'Region'
     region_display.admin_order_field = 'team__region'
+
+    # ------------------------------------------------------------------ actions
+    @admin.action(description='Award +100 bonus CP to selected teams')
+    def apply_bonus_cp(self, request, queryset):
+        self._adjust_cp(request, queryset, delta=100, change_type='BONUS', reason='Admin bulk bonus (+100 CP)')
+
+    @admin.action(description='Apply -50 penalty CP to selected teams')
+    def apply_penalty_cp(self, request, queryset):
+        self._adjust_cp(request, queryset, delta=-50, change_type='PENALTY', reason='Admin bulk penalty (-50 CP)')
+
+    @admin.action(description='Refresh global rank positions')
+    def refresh_global_ranks(self, request, queryset):
+        from apps.organizations.services.ranking_service import compute_global_ranks
+        updated = compute_global_ranks()
+        self.message_user(request, f'Global ranks refreshed for {updated} teams.')
+
+    def _adjust_cp(self, request, queryset, *, delta, change_type, reason):
+        from apps.organizations.services.ranking_service import RankingService, compute_global_ranks
+        logs = []
+        for ranking in queryset.select_related('team'):
+            cp_before = ranking.current_cp
+            tier_before = ranking.tier
+            ranking.current_cp = max(0, ranking.current_cp + delta)
+            ranking.tier = RankingService.calculate_tier(ranking.current_cp)
+            ranking.all_time_cp = max(ranking.all_time_cp, ranking.current_cp)
+            ranking.save(update_fields=['current_cp', 'tier', 'all_time_cp'])
+            logs.append(TeamRankingAdjustmentLog(
+                team=ranking.team,
+                admin_user=request.user,
+                change_type=change_type,
+                cp_before=cp_before,
+                cp_after=ranking.current_cp,
+                cp_delta=ranking.current_cp - cp_before,
+                tier_before=tier_before,
+                tier_after=ranking.tier,
+                reason=reason,
+            ))
+        TeamRankingAdjustmentLog.objects.bulk_create(logs)
+        compute_global_ranks()
+        self.message_user(request, f'Adjusted {len(logs)} team(s) by {delta:+d} CP. Ranks refreshed.')
+
+
+@admin.register(TeamRankingAdjustmentLog)
+class TeamRankingAdjustmentLogAdmin(ModelAdmin):
+    """Read-only audit log of all admin ranking adjustments."""
+    list_display = ['team_link', 'change_type', 'cp_delta_display', 'cp_before', 'cp_after',
+                    'tier_before', 'tier_after', 'admin_user', 'reason_short', 'created_at']
+    list_filter = ['change_type', 'created_at']
+    search_fields = ['team__name', 'admin_user__username', 'reason']
+    ordering = ['-created_at']
+    readonly_fields = ['team', 'admin_user', 'change_type', 'cp_before', 'cp_after',
+                       'cp_delta', 'tier_before', 'tier_after', 'reason', 'created_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('team', 'admin_user')
+
+    def team_link(self, obj):
+        return format_html('<a href="/admin/organizations/teamranking/{}/change/">{}</a>', obj.team_id, obj.team.name)
+    team_link.short_description = 'Team'
+    team_link.admin_order_field = 'team__name'
+
+    def cp_delta_display(self, obj):
+        color = '#27ae60' if obj.cp_delta >= 0 else '#e74c3c'
+        return format_html('<span style="color:{};font-weight:bold;">{:+d}</span>', color, obj.cp_delta)
+    cp_delta_display.short_description = 'CP Delta'
+    cp_delta_display.admin_order_field = 'cp_delta'
+
+    def reason_short(self, obj):
+        return (obj.reason[:60] + '...') if len(obj.reason) > 60 else obj.reason
+    reason_short.short_description = 'Reason'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # =============================================================================

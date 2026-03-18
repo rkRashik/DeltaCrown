@@ -21,12 +21,12 @@ class Command(BaseCommand):
         }
         
         default_tier_thresholds = {
-            'DIAMOND': 2000,
-            'PLATINUM': 1200,
-            'GOLD': 600,
-            'SILVER': 250,
-            'BRONZE': 100,
-            'UNRANKED': 0,
+            'THE_CROWN': 30000,
+            'LEGEND': 8000,
+            'MASTER': 2000,
+            'ELITE': 500,
+            'CHALLENGER': 100,
+            'ROOKIE': 0,
         }
         
         default_decay_policy = {

@@ -194,6 +194,20 @@ _heavy_schedule = {
         }
     },
 
+    # Phase 18: Reset daily match counters at midnight UTC
+    'reset-daily-match-counters': {
+        'task': 'apps.organizations.tasks.reset_daily_match_counters',
+        'schedule': crontab(hour=0, minute=0),
+        'options': {'expires': 3600},
+    },
+
+    # Phase 18: Activity score decay at 00:15 UTC
+    'apply-activity-decay': {
+        'task': 'apps.organizations.tasks.apply_activity_decay',
+        'schedule': crontab(hour=0, minute=15),
+        'options': {'expires': 3600},
+    },
+
     # ========================================================================
     # TournamentOps Periodic Tasks (Phase 1 - Foundation Wiring)
     # ========================================================================

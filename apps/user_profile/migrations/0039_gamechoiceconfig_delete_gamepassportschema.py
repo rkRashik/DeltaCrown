@@ -12,160 +12,171 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="GameChoiceConfig",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+        # GameChoiceConfig reuses the same db_table as GamePassportSchema.
+        # Use SeparateDatabaseAndState so Django updates its internal state
+        # without trying to CREATE TABLE again (the table already exists from 0001).
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name="GameChoiceConfig",
+                    fields=[
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                            ),
+                        ),
+                        (
+                            "identity_fields",
+                            models.JSONField(
+                                default=dict,
+                                help_text='\n        Required identity fields for this game.\n        Format: {\n            "riot_name": {"label": "Riot ID", "required": True, "max_length": 50},\n            "tagline": {"label": "Tagline", "required": True, "max_length": 5}\n        }\n        ',
+                            ),
+                        ),
+                        (
+                            "identity_format",
+                            models.CharField(
+                                blank=True,
+                                default="",
+                                help_text="Format template (e.g., '{riot_name}#{tagline}' for Riot games)",
+                                max_length=200,
+                            ),
+                        ),
+                        (
+                            "identity_key_format",
+                            models.CharField(
+                                blank=True,
+                                default="",
+                                help_text="Normalization format for uniqueness check (e.g., '{riot_name_lower}#{tagline_lower}')",
+                                max_length=200,
+                            ),
+                        ),
+                        (
+                            "region_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Allowed region choices for this game.\n        Format: [\n            {"value": "NA", "label": "North America"},\n            {"value": "EU", "label": "Europe"}\n        ]\n        ',
+                            ),
+                        ),
+                        (
+                            "region_required",
+                            models.BooleanField(
+                                default=False, help_text="Whether region selection is mandatory"
+                            ),
+                        ),
+                        (
+                            "role_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Available role choices for this game.\n        Format: [\n            {"value": "duelist", "label": "Duelist"},\n            {"value": "controller", "label": "Controller"}\n        ]\n        ',
+                            ),
+                        ),
+                        (
+                            "platform_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Platform choices for cross-platform games.\n        Format: ["ps5", "xbox", "pc", "switch", "mobile"]\n        ',
+                            ),
+                        ),
+                        (
+                            "server_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Server/datacenter choices for games with server-based regions.\n        Format: ["use", "usw", "euw", "eue", "sea", "etc."]\n        ',
+                            ),
+                        ),
+                        (
+                            "mode_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Game mode choices (PUBG modes, Rocket League playlists, etc.).\n        Format: ["tpp", "fpp", "1v1", "2v2", "3v3", etc.]\n        ',
+                            ),
+                        ),
+                        (
+                            "premier_rating_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        CS2 Premier rating ranges.\n        Format: ["0-5000", "5000-10000", "10000-15000", etc.]\n        ',
+                            ),
+                        ),
+                        (
+                            "division_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        EA FC/eFootball division choices.\n        Format: ["div10", "div9", "div8", ..., "elite"]\n        ',
+                            ),
+                        ),
+                        (
+                            "rank_system",
+                            models.CharField(
+                                blank=True,
+                                default="",
+                                help_text="Rank system identifier (e.g., 'valorant_competitive', 'dota2_mmr')",
+                                max_length=50,
+                            ),
+                        ),
+                        (
+                            "rank_choices",
+                            models.JSONField(
+                                default=list,
+                                help_text='\n        Available rank choices for this game.\n        Format: [\n            {"value": "iron", "label": "Iron", "tier": 1},\n            {"value": "bronze", "label": "Bronze", "tier": 2}\n        ]\n        ',
+                            ),
+                        ),
+                        (
+                            "normalization_rules",
+                            models.JSONField(
+                                default=dict,
+                                help_text='\n        Rules for normalizing identity values.\n        Format: {\n            "riot_name": {"lowercase": true, "strip": true, "max_length": 50},\n            "tagline": {"lowercase": true, "strip": true, "max_length": 5}\n        }\n        ',
+                            ),
+                        ),
+                        (
+                            "platform_specific",
+                            models.BooleanField(
+                                default=False,
+                                help_text="Whether identity is platform-specific (PC, Mobile, Console)",
+                            ),
+                        ),
+                        (
+                            "requires_verification",
+                            models.BooleanField(
+                                default=False,
+                                help_text="Whether this game requires external verification (for Phase 2+)",
+                            ),
+                        ),
+                        (
+                            "notes",
+                            models.TextField(
+                                blank=True,
+                                default="",
+                                help_text="Admin notes about this schema configuration",
+                            ),
+                        ),
+                        ("created_at", models.DateTimeField(auto_now_add=True)),
+                        ("updated_at", models.DateTimeField(auto_now=True)),
+                        (
+                            "game",
+                            models.OneToOneField(
+                                help_text="Game this schema applies to",
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="passport_schema",
+                                to="games.game",
+                            ),
+                        ),
+                    ],
+                    options={
+                        "verbose_name": "Game Choice Config",
+                        "verbose_name_plural": "Game Choice Configs",
+                        "db_table": "user_profile_gamepassportschema",
+                        "ordering": ["game__name"],
+                    },
                 ),
-                (
-                    "identity_fields",
-                    models.JSONField(
-                        default=dict,
-                        help_text='\n        Required identity fields for this game.\n        Format: {\n            "riot_name": {"label": "Riot ID", "required": True, "max_length": 50},\n            "tagline": {"label": "Tagline", "required": True, "max_length": 5}\n        }\n        ',
-                    ),
-                ),
-                (
-                    "identity_format",
-                    models.CharField(
-                        blank=True,
-                        default="",
-                        help_text="Format template (e.g., '{riot_name}#{tagline}' for Riot games)",
-                        max_length=200,
-                    ),
-                ),
-                (
-                    "identity_key_format",
-                    models.CharField(
-                        blank=True,
-                        default="",
-                        help_text="Normalization format for uniqueness check (e.g., '{riot_name_lower}#{tagline_lower}')",
-                        max_length=200,
-                    ),
-                ),
-                (
-                    "region_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Allowed region choices for this game.\n        Format: [\n            {"value": "NA", "label": "North America"},\n            {"value": "EU", "label": "Europe"}\n        ]\n        ',
-                    ),
-                ),
-                (
-                    "region_required",
-                    models.BooleanField(
-                        default=False, help_text="Whether region selection is mandatory"
-                    ),
-                ),
-                (
-                    "role_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Available role choices for this game.\n        Format: [\n            {"value": "duelist", "label": "Duelist"},\n            {"value": "controller", "label": "Controller"}\n        ]\n        ',
-                    ),
-                ),
-                (
-                    "platform_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Platform choices for cross-platform games.\n        Format: ["ps5", "xbox", "pc", "switch", "mobile"]\n        ',
-                    ),
-                ),
-                (
-                    "server_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Server/datacenter choices for games with server-based regions.\n        Format: ["use", "usw", "euw", "eue", "sea", "etc."]\n        ',
-                    ),
-                ),
-                (
-                    "mode_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Game mode choices (PUBG modes, Rocket League playlists, etc.).\n        Format: ["tpp", "fpp", "1v1", "2v2", "3v3", etc.]\n        ',
-                    ),
-                ),
-                (
-                    "premier_rating_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        CS2 Premier rating ranges.\n        Format: ["0-5000", "5000-10000", "10000-15000", etc.]\n        ',
-                    ),
-                ),
-                (
-                    "division_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        EA FC/eFootball division choices.\n        Format: ["div10", "div9", "div8", ..., "elite"]\n        ',
-                    ),
-                ),
-                (
-                    "rank_system",
-                    models.CharField(
-                        blank=True,
-                        default="",
-                        help_text="Rank system identifier (e.g., 'valorant_competitive', 'dota2_mmr')",
-                        max_length=50,
-                    ),
-                ),
-                (
-                    "rank_choices",
-                    models.JSONField(
-                        default=list,
-                        help_text='\n        Available rank choices for this game.\n        Format: [\n            {"value": "iron", "label": "Iron", "tier": 1},\n            {"value": "bronze", "label": "Bronze", "tier": 2}\n        ]\n        ',
-                    ),
-                ),
-                (
-                    "normalization_rules",
-                    models.JSONField(
-                        default=dict,
-                        help_text='\n        Rules for normalizing identity values.\n        Format: {\n            "riot_name": {"lowercase": true, "strip": true, "max_length": 50},\n            "tagline": {"lowercase": true, "strip": true, "max_length": 5}\n        }\n        ',
-                    ),
-                ),
-                (
-                    "platform_specific",
-                    models.BooleanField(
-                        default=False,
-                        help_text="Whether identity is platform-specific (PC, Mobile, Console)",
-                    ),
-                ),
-                (
-                    "requires_verification",
-                    models.BooleanField(
-                        default=False,
-                        help_text="Whether this game requires external verification (for Phase 2+)",
-                    ),
-                ),
-                (
-                    "notes",
-                    models.TextField(
-                        blank=True,
-                        default="",
-                        help_text="Admin notes about this schema configuration",
-                    ),
-                ),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                (
-                    "game",
-                    models.OneToOneField(
-                        help_text="Game this schema applies to",
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="passport_schema",
-                        to="games.game",
-                    ),
+                migrations.DeleteModel(
+                    name="GamePassportSchema",
                 ),
             ],
-            options={
-                "verbose_name": "Game Choice Config",
-                "verbose_name_plural": "Game Choice Configs",
-                "db_table": "user_profile_gamepassportschema",
-                "ordering": ["game__name"],
-            },
-        ),
-        migrations.DeleteModel(
-            name="GamePassportSchema",
+            database_operations=[
+                # No DB changes needed — table already exists from 0001_initial.
+                # Only the Django model state is being renamed.
+            ],
         ),
     ]

@@ -5,6 +5,7 @@ TeamRanking tracks individual team rankings with Crown Points.
 OrganizationRanking aggregates rankings across an organization's teams.
 """
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -47,7 +48,7 @@ class TeamRanking(models.Model):
     tier = models.CharField(
         max_length=20,
         choices=RankingTier.choices,
-        default=RankingTier.UNRANKED,
+        default=RankingTier.ROOKIE,
         db_index=True,
         help_text="Tier based on current CP thresholds"
     )
@@ -94,6 +95,34 @@ class TeamRanking(models.Model):
         help_text="Last time inactivity decay was applied"
     )
 
+    # Anti-abuse (Phase 18)
+    matches_today = models.IntegerField(
+        default=0,
+        help_text="Ranked matches played today (reset at midnight UTC)"
+    )
+    matches_today_reset = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date of last daily counter reset"
+    )
+    recent_opponents = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Same-opponent tracking: {team_id: [iso_timestamps]}"
+    )
+
+    # Activity score (Phase 18)
+    activity_score = models.IntegerField(
+        default=0,
+        help_text="Engagement score 0-100 (badges/visibility, not ranking)"
+    )
+
+    # ELO rating (Phase 19 — internal only, never exposed in API)
+    elo_rating = models.IntegerField(
+        default=1200,
+        help_text="Internal ELO rating (K=32). Drives CP scaling, not shown to users."
+    )
+
     class Meta:
         db_table = 'organizations_ranking'
         ordering = ['-current_cp']
@@ -112,22 +141,18 @@ class TeamRanking(models.Model):
 
     def recalculate_tier(self):
         """Determine tier based on current CP thresholds."""
-        if self.current_cp >= 80000:
-            self.tier = RankingTier.CROWN
-        elif self.current_cp >= 40000:
-            self.tier = RankingTier.ASCENDANT
-        elif self.current_cp >= 15000:
-            self.tier = RankingTier.DIAMOND
-        elif self.current_cp >= 5000:
-            self.tier = RankingTier.PLATINUM
-        elif self.current_cp >= 1500:
-            self.tier = RankingTier.GOLD
+        if self.current_cp >= 30000:
+            self.tier = RankingTier.THE_CROWN
+        elif self.current_cp >= 8000:
+            self.tier = RankingTier.LEGEND
+        elif self.current_cp >= 2000:
+            self.tier = RankingTier.MASTER
         elif self.current_cp >= 500:
-            self.tier = RankingTier.SILVER
-        elif self.current_cp >= 50:
-            self.tier = RankingTier.BRONZE
+            self.tier = RankingTier.ELITE
+        elif self.current_cp >= 100:
+            self.tier = RankingTier.CHALLENGER
         else:
-            self.tier = RankingTier.UNRANKED
+            self.tier = RankingTier.ROOKIE
 
     def update_cp(self, points_delta, reason=""):
         """Add or subtract CP and recalculate tier."""
@@ -247,3 +272,52 @@ class OrganizationRanking(models.Model):
         self.save()
 
         return score
+
+
+class TeamRankingAdjustmentLog(models.Model):
+    """
+    Audit log for all admin-initiated ranking adjustments.
+
+    Every manual CP change, tier override, penalty, or bonus is
+    recorded here for accountability and rollback reference.
+
+    Database Table: organizations_ranking_adjustment_log
+    """
+
+    class ChangeType(models.TextChoices):
+        BONUS = 'BONUS', 'Bonus CP'
+        PENALTY = 'PENALTY', 'Penalty'
+        MANUAL_CP = 'MANUAL_CP', 'Manual CP Override'
+        TIER_OVERRIDE = 'TIER_OVERRIDE', 'Tier Override'
+
+    team = models.ForeignKey(
+        'Team',
+        on_delete=models.CASCADE,
+        related_name='ranking_adjustments',
+    )
+    admin_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='+',
+    )
+    change_type = models.CharField(
+        max_length=20,
+        choices=ChangeType.choices,
+    )
+    cp_before = models.IntegerField(help_text="CP before adjustment")
+    cp_after = models.IntegerField(help_text="CP after adjustment")
+    cp_delta = models.IntegerField(help_text="Net CP change (can be negative)")
+    tier_before = models.CharField(max_length=20, blank=True, default='')
+    tier_after = models.CharField(max_length=20, blank=True, default='')
+    reason = models.TextField(help_text="Admin-supplied justification")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'organizations_ranking_adjustment_log'
+        ordering = ['-created_at']
+        verbose_name = 'Ranking Adjustment Log'
+        verbose_name_plural = 'Ranking Adjustment Logs'
+
+    def __str__(self):
+        return f"{self.team} | {self.change_type} {self.cp_delta:+d} CP by {self.admin_user} ({self.created_at:%Y-%m-%d})"

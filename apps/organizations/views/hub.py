@@ -409,14 +409,14 @@ def vnext_hub(request):
                 # Per-game rankings
                 response = CompetitionService.get_game_rankings(
                     game_id=selected_game_id,
-                    limit=10,
+                    limit=20,
                     verified_only=False
                 )
                 rankings_preview = response.entries
             else:
                 # Global rankings
                 response = CompetitionService.get_global_rankings(
-                    limit=10,
+                    limit=20,
                     verified_only=False
                 )
                 rankings_preview = response.entries
@@ -426,7 +426,28 @@ def vnext_hub(request):
                 user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
         except Exception as e:
             logger.warning(f"Could not fetch rankings preview: {e}")
-    
+
+    # Featured ranked teams: only admin-curated teams (is_featured=True), newest first
+    featured_ranked_teams = []
+    try:
+        from apps.organizations.models import Team
+        from apps.organizations.choices import TeamStatus
+
+        featured_ranked_teams = list(
+            Team.objects.filter(
+                status=TeamStatus.ACTIVE,
+                visibility='PUBLIC',
+                is_featured=True,
+            ).select_related(
+                'organization',
+                'ranking',
+            ).prefetch_related(
+                'vnext_memberships',
+            ).order_by('-updated_at')[:8]
+        )
+    except Exception as e:
+        logger.warning(f"Could not fetch featured ranked teams: {e}")
+
     # Fetch available games for filter (with roster config for Match Finder)
     available_games = Game.objects.select_related('roster_config').filter(
         is_active=True
@@ -625,6 +646,7 @@ def vnext_hub(request):
     return render(request, 'organizations/hub/team_hub.html', {
         'page_title': 'Team Hub',
         'featured_teams': featured_teams,
+        'featured_ranked_teams': featured_ranked_teams,
         'rankings_preview': rankings_preview,
         'user_highlights': user_highlights,
         'available_games': available_games,
@@ -684,9 +706,9 @@ def vnext_hub_filter(request):
         try:
             from apps.competition.services import CompetitionService
             if game_id:
-                response = CompetitionService.get_game_rankings(game_id=game_id, limit=10, verified_only=False)
+                response = CompetitionService.get_game_rankings(game_id=game_id, limit=20, verified_only=False)
             else:
-                response = CompetitionService.get_global_rankings(limit=10, verified_only=False)
+                response = CompetitionService.get_global_rankings(limit=20, verified_only=False)
             for e in response.entries:
                 rankings_data.append({
                     'rank': e.rank,
@@ -694,7 +716,7 @@ def vnext_hub_filter(request):
                     'team_url': e.team_url or '#',
                     'team_logo_url': e.team_logo_url,
                     'team_tag': e.team_tag or (e.team_name[:3] if e.team_name else '??'),
-                    'tier': e.tier or 'UNRANKED',
+                    'tier': e.tier or 'ROOKIE',
                     'score': e.score,
                     'organization_name': e.organization_name,
                 })

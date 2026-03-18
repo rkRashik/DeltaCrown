@@ -592,7 +592,6 @@ def _get_top_teams(limit=5):
                 'logo': team.logo.url if team.logo else None,
                 'game': game_display,
                 'game_display': game_display,
-                'elo_rating': getattr(team, 'elo_rating', 1500),
                 'total_points': getattr(team, 'total_points', 0),
                 'members_count': team.members_count,
                 'weekly_change': weekly_change,

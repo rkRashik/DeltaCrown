@@ -23,7 +23,7 @@ class UserAnalyticsSerializer(serializers.Serializer):
     win_rate_30d = serializers.DecimalField(max_digits=5, decimal_places=2)
     current_streak = serializers.IntegerField()
     longest_win_streak = serializers.IntegerField()
-    tier = serializers.ChoiceField(choices=['bronze', 'silver', 'gold', 'diamond', 'crown'])
+    tier = serializers.ChoiceField(choices=['rookie', 'challenger', 'elite', 'master', 'legend', 'the_crown'])
     percentile_rank = serializers.DecimalField(max_digits=5, decimal_places=2)
     recalculated_at = serializers.DateTimeField()
 
@@ -43,7 +43,7 @@ class TeamAnalyticsSerializer(serializers.Serializer):
     activity_score = serializers.DecimalField(max_digits=5, decimal_places=2)
     matches_last_7d = serializers.IntegerField()
     matches_last_30d = serializers.IntegerField()
-    tier = serializers.ChoiceField(choices=['bronze', 'silver', 'gold', 'diamond', 'crown'])
+    tier = serializers.ChoiceField(choices=['rookie', 'challenger', 'elite', 'master', 'legend', 'the_crown'])
     percentile_rank = serializers.DecimalField(max_digits=5, decimal_places=2)
     recalculated_at = serializers.DateTimeField()
 

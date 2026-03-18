@@ -15,6 +15,7 @@ Async Boundaries:
 - Real-time match results processed synchronously (<100ms)
 """
 
+import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
@@ -23,6 +24,8 @@ from .exceptions import (
     ValidationError,
     RankingServiceError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -87,37 +90,19 @@ class RankingService:
         """
         Convert Crown Points to tier bracket.
         
-        Tier Brackets (DCRS v1.0 specification):
-        - CROWN: 80,000+ CP (Top 1% globally, elite professional teams)
-        - ASCENDANT: 40,000+ CP (Top 5%, semi-professional teams)
-        - DIAMOND: 15,000+ CP (Top 15%, highly competitive)
-        - PLATINUM: 5,000+ CP (Top 30%, competitive)
-        - GOLD: 1,500+ CP (Top 50%, established teams)
-        - SILVER: 500+ CP (Active teams with match history)
-        - BRONZE: 50+ CP (New teams, initial placement)
-        - UNRANKED: <50 CP (Inactive or brand-new teams)
+        Tier Brackets (DCRS v2.0 specification):
+        - THE_CROWN: 30,000+ CP (Top 1% globally, elite professional teams)
+        - LEGEND: 8,000+ CP (Top 5%, semi-professional teams)
+        - MASTER: 2,000+ CP (Top 15%, highly competitive)
+        - ELITE: 500+ CP (Top 30%, competitive)
+        - CHALLENGER: 100+ CP (Active teams with match history)
+        - ROOKIE: <100 CP (New or inactive teams)
         
         Args:
             crown_points: Current CP total (integer, can be negative for defensive coding)
         
         Returns:
             Tier string matching RankingTier.choices (uppercase)
-        
-        Performance Notes:
-            - Target: <1ms (pure math, no DB queries, O(1) complexity)
-            - Zero allocations (returns constant strings)
-        
-        Business Rules:
-            - Negative CP treated as 0 (defensive coding for data integrity issues)
-            - None treated as 0 (handles uninitialized rankings gracefully)
-            - Tier boundaries are inclusive on lower bound (e.g., 50 CP = BRONZE)
-        
-        Example:
-            tier = RankingService.calculate_tier(cp=15000)
-            # Returns "DIAMOND"
-            
-            tier = RankingService.calculate_tier(cp=-100)
-            # Returns "UNRANKED" (defensive: treats negative as 0)
         """
         from ..choices import RankingTier
         
@@ -126,22 +111,18 @@ class RankingService:
             crown_points = 0
         
         # Tier calculation (descending order for efficiency)
-        if crown_points >= 80000:
-            return RankingTier.CROWN
-        elif crown_points >= 40000:
-            return RankingTier.ASCENDANT
-        elif crown_points >= 15000:
-            return RankingTier.DIAMOND
-        elif crown_points >= 5000:
-            return RankingTier.PLATINUM
-        elif crown_points >= 1500:
-            return RankingTier.GOLD
+        if crown_points >= 30000:
+            return RankingTier.THE_CROWN
+        elif crown_points >= 8000:
+            return RankingTier.LEGEND
+        elif crown_points >= 2000:
+            return RankingTier.MASTER
         elif crown_points >= 500:
-            return RankingTier.SILVER
-        elif crown_points >= 50:
-            return RankingTier.BRONZE
+            return RankingTier.ELITE
+        elif crown_points >= 100:
+            return RankingTier.CHALLENGER
         else:
-            return RankingTier.UNRANKED
+            return RankingTier.ROOKIE
     
     @staticmethod
     def calculate_cp_delta(
@@ -234,9 +215,8 @@ class RankingService:
             )
         
         valid_tiers = {
-            RankingTier.UNRANKED, RankingTier.BRONZE, RankingTier.SILVER,
-            RankingTier.GOLD, RankingTier.PLATINUM, RankingTier.DIAMOND,
-            RankingTier.ASCENDANT, RankingTier.CROWN
+            RankingTier.ROOKIE, RankingTier.CHALLENGER, RankingTier.ELITE,
+            RankingTier.MASTER, RankingTier.LEGEND, RankingTier.THE_CROWN
         }
         if opponent_tier not in valid_tiers:
             raise ValidationError(
@@ -262,14 +242,12 @@ class RankingService:
         
         # Step 2: Opponent tier weighting
         tier_values = {
-            RankingTier.UNRANKED: 0,
-            RankingTier.BRONZE: 1,
-            RankingTier.SILVER: 2,
-            RankingTier.GOLD: 3,
-            RankingTier.PLATINUM: 4,
-            RankingTier.DIAMOND: 5,
-            RankingTier.ASCENDANT: 6,
-            RankingTier.CROWN: 7
+            RankingTier.ROOKIE: 0,
+            RankingTier.CHALLENGER: 1,
+            RankingTier.ELITE: 2,
+            RankingTier.MASTER: 3,
+            RankingTier.LEGEND: 4,
+            RankingTier.THE_CROWN: 5
         }
         opponent_value = tier_values[opponent_tier]
         
@@ -389,27 +367,91 @@ class RankingService:
                     details={"team_ids": team_ids, "error": str(e)}
                 )
             
-            # Verify both rankings exist
-            if winner_team_id not in rankings:
-                raise NotFoundError(
-                    message=f"Winner team ranking not found: {winner_team_id}",
-                    error_code="RANKING_NOT_FOUND",
-                    details={"team_id": winner_team_id}
-                )
-            
-            if loser_team_id not in rankings:
-                raise NotFoundError(
-                    message=f"Loser team ranking not found: {loser_team_id}",
-                    error_code="RANKING_NOT_FOUND",
-                    details={"team_id": loser_team_id}
-                )
+            # Auto-create missing rankings (defensive — prevents crash if
+            # bootstrap hasn't run or a new team plays its first match).
+            for tid in team_ids:
+                if tid not in rankings:
+                    rankings[tid] = TeamRanking.objects.create(team_id=tid)
+                    # Re-acquire with row lock inside the transaction
+                    rankings[tid] = TeamRanking.objects.select_for_update().get(
+                        team_id=tid
+                    )
             
             winner_ranking = rankings[winner_team_id]
             loser_ranking = rankings[loser_team_id]
             
+            # --- Phase 18: Anti-abuse checks ---
+            from datetime import date, datetime, timedelta, timezone as dt_tz
+
+            today = date.today()
+
+            # Reset daily counters if stale
+            for r in (winner_ranking, loser_ranking):
+                if r.matches_today_reset != today:
+                    r.matches_today = 0
+                    r.matches_today_reset = today
+                    r.recent_opponents = {}
+
+            DAILY_CAP = 10
+            winner_capped = winner_ranking.matches_today >= DAILY_CAP
+            loser_capped = loser_ranking.matches_today >= DAILY_CAP
+
+            # Same-opponent diminishing returns (24h window)
+            def _opponent_multiplier(ranking, opponent_id):
+                """Return CP multiplier (1.0 / 0.5 / 0.25) based on recent encounters."""
+                opps = ranking.recent_opponents or {}
+                key = str(opponent_id)
+                stamps = opps.get(key, [])
+                cutoff = (datetime.now(dt_tz.utc) - timedelta(hours=24)).isoformat()
+                recent = [t for t in stamps if t > cutoff]
+                count = len(recent)
+                # Record this encounter
+                recent.append(datetime.now(dt_tz.utc).isoformat())
+                opps[key] = recent[-10:]  # keep last 10 only
+                ranking.recent_opponents = opps
+                if count == 0:
+                    return 1.0
+                elif count == 1:
+                    return 0.5
+                return 0.25
+
+            winner_opp_mult = _opponent_multiplier(winner_ranking, loser_team_id)
+            loser_opp_mult = _opponent_multiplier(loser_ranking, winner_team_id)
+
+            # Increment daily match counters
+            winner_ranking.matches_today += 1
+            loser_ranking.matches_today += 1
+
+            # --- End anti-abuse ---
+
             # Capture old state for DTO
             winner_old_tier = winner_ranking.tier
             loser_old_tier = loser_ranking.tier
+
+            # --- Phase 19: ELO calculation (K=32, standard formula) ---
+            # Expected scores based on ELO difference
+            elo_diff = loser_ranking.elo_rating - winner_ranking.elo_rating
+            expected_winner = 1.0 / (1.0 + 10.0 ** (elo_diff / -400.0))
+            expected_loser = 1.0 - expected_winner
+
+            ELO_K = 32
+            winner_elo_delta = round(ELO_K * (1.0 - expected_winner))
+            loser_elo_delta = round(ELO_K * (0.0 - expected_loser))
+
+            # Apply ELO changes (floor at 100 to prevent absurd ratings)
+            winner_ranking.elo_rating = max(100, winner_ranking.elo_rating + winner_elo_delta)
+            loser_ranking.elo_rating = max(100, loser_ranking.elo_rating + loser_elo_delta)
+
+            # --- Phase 19: ELO→CP scaling ---
+            # CP base comes from calculate_cp_delta (tier/streak), then
+            # scaled by ELO surprise factor:
+            #   Beat stronger → scale >1.0 (up to 1.6x)
+            #   Beat weaker   → scale <1.0 (down to 0.5x)
+            #   Lose to weaker → scale >1.0 (harsher penalty)
+            #   Lose to stronger → scale <1.0 (softer penalty)
+            # elo_diff = loser_elo - winner_elo (positive = underdog win)
+            elo_scale_win = max(0.5, min(1.6, 1.0 + elo_diff / 800.0))
+            elo_scale_loss = max(0.5, min(1.6, 1.0 - elo_diff / 800.0))
             
             # Calculate CP deltas for winner (WIN against opponent)
             winner_delta = RankingService.calculate_cp_delta(
@@ -424,6 +466,24 @@ class RankingService:
                 opponent_tier=winner_ranking.tier,
                 streak=loser_ranking.streak_count  # Loser's streak (will be reset)
             )
+
+            # Scale CP by ELO surprise factor
+            winner_delta = int(winner_delta * elo_scale_win)
+            loser_delta = int(loser_delta * elo_scale_loss)
+
+            # Re-apply floor/ceiling after ELO scaling
+            winner_delta = max(50, min(300, winner_delta))
+            loser_delta = max(-100, min(-10, loser_delta))
+
+            # Apply anti-abuse modifiers
+            if winner_capped:
+                winner_delta = 0
+            else:
+                winner_delta = int(winner_delta * winner_opp_mult)
+            if loser_capped:
+                loser_delta = 0
+            else:
+                loser_delta = int(loser_delta * loser_opp_mult)
             
             # Apply CP changes with floor at 0
             winner_ranking.current_cp = max(0, winner_ranking.current_cp + winner_delta)
@@ -458,18 +518,27 @@ class RankingService:
             # Determine if tier changed
             winner_tier_changed = (winner_ranking.tier != winner_old_tier)
             loser_tier_changed = (loser_ranking.tier != loser_old_tier)
+
+            # Phase 18: Activity score (+5 per match, +2 bonus for winner, cap 100)
+            for r in (winner_ranking, loser_ranking):
+                r.activity_score = min(100, r.activity_score + 5)
+            winner_ranking.activity_score = min(100, winner_ranking.activity_score + 2)
+
+            _save_fields = [
+                'current_cp', 'season_cp', 'all_time_cp', 'tier',
+                'streak_count', 'is_hot_streak', 'last_activity_date',
+                'matches_today', 'matches_today_reset', 'recent_opponents',
+                'activity_score', 'elo_rating',
+            ]
             
             # Query 3-4: Save both rankings
-            winner_ranking.save(update_fields=[
-                'current_cp', 'season_cp', 'all_time_cp', 'tier',
-                'streak_count', 'is_hot_streak', 'last_activity_date'
-            ])
-            loser_ranking.save(update_fields=[
-                'current_cp', 'season_cp', 'all_time_cp', 'tier',
-                'streak_count', 'is_hot_streak', 'last_activity_date'
-            ])
+            winner_ranking.save(update_fields=_save_fields)
+            loser_ranking.save(update_fields=_save_fields)
             
-            # TODO (Phase 4+): Update organization aggregate rankings if applicable
+            # Refresh global ranks after CP change
+            from apps.organizations.services.ranking_service import compute_global_ranks
+            compute_global_ranks()
+
             # TODO (Phase 4+): Emit signal for rank-up notifications
             # TODO (Phase 5+): Invalidate leaderboard cache
             
@@ -482,8 +551,34 @@ class RankingService:
                 winner_tier_changed=winner_tier_changed,
                 loser_tier_changed=loser_tier_changed
             )
-        raise NotImplementedError("Business logic will be implemented in P2-T2+")
-    
+
+
+def compute_global_ranks():
+    """
+    Assign global_rank to all active TeamRanking rows using a single
+    window-function UPDATE. Highest CP = rank 1. Ties get the same rank
+    (dense_rank). Idempotent — safe to call repeatedly.
+    """
+    from django.db import connection
+    sql = """
+        WITH ranked AS (
+            SELECT r.team_id,
+                   DENSE_RANK() OVER (ORDER BY r.current_cp DESC) AS new_rank
+            FROM   organizations_ranking r
+            INNER JOIN organizations_team t ON t.id = r.team_id
+            WHERE  t.status = 'ACTIVE'
+        )
+        UPDATE organizations_ranking
+        SET    global_rank = ranked.new_rank
+        FROM   ranked
+        WHERE  organizations_ranking.team_id = ranked.team_id;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        updated = cursor.rowcount
+    logger.info("compute_global_ranks: updated %d rows", updated)
+    return updated
+
     # ========================================================================
     # RANKING RECOMPUTATION (MAINTENANCE)
     # ========================================================================
