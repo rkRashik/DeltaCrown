@@ -182,6 +182,10 @@ ORG_APP_ENABLED = os.getenv("ORG_APP_ENABLED", "1") == "1"
 # Default: True (for compatibility during migration)
 LEGACY_TEAMS_ENABLED = os.getenv("LEGACY_TEAMS_ENABLED", "1") == "1"
 
+# Discord Bot: Defaults to disabled on free tier to save ~50-150 MB RAM.
+# Set ENABLE_DISCORD_BOT=1 in Render env vars to activate.
+ENABLE_DISCORD_BOT = os.getenv("ENABLE_DISCORD_BOT", "0") == "1"
+
 # --- ALLOWED_HOSTS / CSRF (add your LAN IP here) ---
 ALLOWED_HOSTS = [
     "localhost", "127.0.0.1",
@@ -570,8 +574,8 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Allow larger request bodies for admin forms with multiple file uploads
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB (Django default is 2.5 MB)
+# Request body limit — keep low on 512 MB tier to prevent concurrent-upload RAM spikes.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5 MB (Django default)
 
 # -----------------------------------------------------------------------------
 # Storage Backends (Django 5.x STORAGES dict)
@@ -990,7 +994,7 @@ if _USE_REDIS_CHANNELS:
             'CONFIG': {
                 'hosts': [_REDIS_CHANNEL_URL],
                 'prefix': 'dc-ws',
-                'capacity': 1500,
+                'capacity': 500,   # lowered from 1500 — saves RAM on 512 MB tier
                 'expiry': 10,
             },
         }
@@ -1083,6 +1087,12 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
+
+# Memory safety: recycle worker after N tasks to prevent slow leaks
+CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', '200'))
+# Kill stuck/runaway tasks before they exhaust RAM
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv('CELERY_TASK_SOFT_TIME_LIMIT', '120'))
+CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', '180'))
 
 # Task deduplication - prevent double execution
 CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'

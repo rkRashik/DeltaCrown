@@ -3,32 +3,27 @@ Organization Detail Service
 Provides context for organization detail page.
 """
 
+from functools import lru_cache
+
 from django.shortcuts import get_object_or_404
 from apps.organizations.models.organization import Organization
 from apps.organizations.permissions import get_permission_context
 
 
-# In-memory cache for game lookups (populated once per request)
-_game_cache = {}
-
-
+@lru_cache(maxsize=64)
 def _get_game_data(game_id):
     """
-    Look up Game model data by ID. Caches results to avoid N+1 queries.
-    Returns dict with name, display_name, short_code, icon_url or None.
+    Look up Game model data by ID.  Bounded LRU cache (max 64 games)
+    prevents unbounded memory growth on long-lived processes.
+    Returns tuple of (name, display_name, short_code, icon, slug) or None.
     """
-    if game_id in _game_cache:
-        return _game_cache[game_id]
-    
     try:
         from apps.games.models.game import Game
-        game = Game.objects.filter(id=game_id).values(
-            'name', 'display_name', 'short_code', 'icon', 'slug'
+        game = Game.objects.filter(id=game_id).values_list(
+            'name', 'display_name', 'short_code', 'icon', 'slug',
         ).first()
-        _game_cache[game_id] = game
-        return game
+        return game  # tuple or None
     except Exception:
-        _game_cache[game_id] = None
         return None
 
 
@@ -41,7 +36,8 @@ def _safe_game_label(team):
     if game_id:
         game_data = _get_game_data(game_id)
         if game_data:
-            return game_data.get('display_name') or game_data.get('name') or f"Game #{game_id}"
+            # game_data is a tuple: (name, display_name, short_code, icon, slug)
+            return game_data[1] or game_data[0] or f"Game #{game_id}"
         return f"Game #{game_id}"
     return "—"
 
@@ -52,7 +48,7 @@ def _safe_game_short_code(team):
     if game_id:
         game_data = _get_game_data(game_id)
         if game_data:
-            return game_data.get('short_code', '')
+            return game_data[2] or ''
     return ''
 
 
@@ -61,8 +57,8 @@ def _safe_game_icon(team):
     game_id = getattr(team, 'game_id', None)
     if game_id:
         game_data = _get_game_data(game_id)
-        if game_data and game_data.get('icon'):
-            return f"/media/{game_data['icon']}"
+        if game_data and game_data[3]:
+            return f"/media/{game_data[3]}"
     return ''
 
 

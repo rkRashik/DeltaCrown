@@ -20,8 +20,8 @@ npm cache clean --force 2>/dev/null || true
 rm -rf node_modules            # CSS is already compiled into static/dist/
 
 # ── 2. Python ───────────────────────────────────────────────────────
-echo "🐍 Installing Python dependencies…"
-pip install --no-cache-dir -r requirements.txt
+echo "🐍 Installing Python dependencies (production only)…"
+pip install --no-cache-dir -r requirements-prod.txt
 
 echo "📦 Collecting Django static files…"
 python manage.py collectstatic --noinput

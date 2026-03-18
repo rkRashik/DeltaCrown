@@ -727,7 +727,7 @@ class GamePassportService:
     @staticmethod
     def get_all_passports(user: User) -> List[GameProfile]:
         """Get all passports for user (ordered: pinned first)"""
-        return list(GameProfile.objects.filter(user=user))
+        return list(GameProfile.objects.filter(user=user).select_related('game'))
     
     @staticmethod
     def get_alias_history(user: User, game: str) -> List[GameProfileAlias]:

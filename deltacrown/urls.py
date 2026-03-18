@@ -77,13 +77,13 @@ urlpatterns = [
 
     # -------------------------------------------------------------------------
     # API Documentation (Phase 9, Epic 9.1: API Documentation Generator)
+    # Gated behind DEBUG — loading all serializers for schema gen costs ~10-20 MB.
     # -------------------------------------------------------------------------
-    # OpenAPI 3.0 schema endpoint (JSON)
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    # Swagger UI (interactive API documentation)
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    # ReDoc UI (alternative API documentation)
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    *([  # Only expose schema/docs endpoints in DEBUG mode
+        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+        path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+        path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    ] if settings.DEBUG else []),
 
 
     # Core apps (explicit)

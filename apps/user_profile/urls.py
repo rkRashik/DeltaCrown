@@ -344,6 +344,7 @@ urlpatterns = [
     path("profile/api/game-passports/update/", update_game_passport_api, name="game_passports_update_alias"),
     path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
     path("profile/api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_alias"),
+    path("profile/api/passports/set-visibility/", set_visibility, name="passport_set_visibility_alias"),
     path("profile/api/oauth/riot/login/", RiotLoginRedirectView.as_view(), name="riot_oauth_login_alias"),
     path("profile/api/oauth/riot/callback/", RiotCallbackView.as_view(), name="riot_oauth_callback_alias"),
     path("profile/api/oauth/epic/login/", EpicLoginRedirectView.as_view(), name="epic_oauth_login_alias"),

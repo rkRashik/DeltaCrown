@@ -17,7 +17,7 @@ DAPHNE_PING_INTERVAL="${DAPHNE_PING_INTERVAL:-20}"
 DAPHNE_PING_TIMEOUT="${DAPHNE_PING_TIMEOUT:-30}"
 DAPHNE_APP_CLOSE_TIMEOUT="${DAPHNE_APPLICATION_CLOSE_TIMEOUT:-5}"
 
-echo "[render] Startup profile: migrations=${ENABLE_MIGRATIONS_ON_START:-1} celery=${ENABLE_CELERY_WORKER:-1} beat=${ENABLE_CELERY_BEAT:-0} discord=${ENABLE_DISCORD_BOT:-1} access_log=${DAPHNE_ACCESS_LOG:-0} celery_pool=${CELERY_POOL} celery_concurrency=${CELERY_CONCURRENCY} prefetch=${CELERY_PREFETCH_MULTIPLIER}"
+echo "[render] Startup profile: migrations=${ENABLE_MIGRATIONS_ON_START:-1} celery=${ENABLE_CELERY_WORKER:-1} beat=${ENABLE_CELERY_BEAT:-0} discord=${ENABLE_DISCORD_BOT:-0} access_log=${DAPHNE_ACCESS_LOG:-0} celery_pool=${CELERY_POOL} celery_concurrency=${CELERY_CONCURRENCY} prefetch=${CELERY_PREFETCH_MULTIPLIER}"
 
 # ── Migrations ──────────────────────────────────────────────────────
 if [ "${ENABLE_MIGRATIONS_ON_START:-1}" = "1" ]; then
@@ -43,6 +43,7 @@ if [ "${ENABLE_CELERY_WORKER:-1}" = "1" ]; then
         --without-gossip \
         --without-mingle \
         --without-heartbeat \
+        --max-memory-per-child=150000 \
         &
     CELERY_PID=$!
 else
@@ -65,11 +66,11 @@ fi
 
 # ── Discord bot (background, conditional) ──────────────────────────
 DISCORD_PID=""
-if [ "${ENABLE_DISCORD_BOT:-1}" = "1" ] && [ -n "${DISCORD_BOT_TOKEN:-}" ]; then
+if [ "${ENABLE_DISCORD_BOT:-0}" = "1" ] && [ -n "${DISCORD_BOT_TOKEN:-}" ]; then
     echo "[render] Starting Discord bot…"
     python manage.py run_discord_bot &
     DISCORD_PID=$!
-elif [ "${ENABLE_DISCORD_BOT:-1}" != "1" ]; then
+elif [ "${ENABLE_DISCORD_BOT:-0}" != "1" ]; then
     echo "[render] ENABLE_DISCORD_BOT=0 — skipping bot."
 else
     echo "[render] DISCORD_BOT_TOKEN not set — skipping bot."

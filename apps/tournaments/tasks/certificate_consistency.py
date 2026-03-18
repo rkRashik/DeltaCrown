@@ -61,7 +61,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, soft_time_limit=120, time_limit=180, rate_limit='2/m')
 def check_certificate_consistency(self):
     """
     Daily consistency check: Compare S3 vs local file counts.
@@ -152,7 +152,7 @@ def check_certificate_consistency(self):
         raise self.retry(exc=e, countdown=300)  # Retry after 5 minutes
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, soft_time_limit=120, time_limit=180, rate_limit='2/m')
 def spot_check_certificate_integrity(self, sample_percent: float = 1.0):
     """
     Random spot check: Verify SHA-256 hashes for sample certificates.

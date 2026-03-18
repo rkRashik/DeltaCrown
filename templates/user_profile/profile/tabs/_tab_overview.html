@@ -133,15 +133,15 @@
         </div>
     </div>
 
-    {# UP PHASE 8: Game Passports Widget - Limit to 2 items #}
-    <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group cursor-pointer relative overflow-hidden" data-career-deep-link>
+    {# UP PHASE 8: Game Passports Widget - Enhanced with stats + modal #}
+    <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group relative overflow-hidden">
         <div class="absolute right-0 top-0 w-40 h-40 bg-z-purple/5 rounded-full blur-3xl group-hover:bg-z-purple/10 transition"></div>
 
         <div class="flex justify-between items-start mb-4">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-purple/20 to-transparent border border-z-purple/20 flex items-center justify-center text-z-purple text-xl shadow-lg">
                 <i class="fa-solid fa-gamepad"></i>
             </div>
-            <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
+            <button data-career-deep-link class="text-gray-600 group-hover:text-white -rotate-45 transition"><i class="fa-solid fa-arrow-right"></i></button>
         </div>
         
         <h3 class="text-white font-bold font-display text-xl mb-1">Game Passports</h3>
@@ -149,31 +149,93 @@
 
         {% if is_owner or permissions.can_view_game_passports %}
         <div class="space-y-3">
-            {# UP PHASE 8: Show max 2 passports (pinned first) #}
             {% with all_passports=pinned_passports|add:unpinned_passports %}
                 {% if all_passports %}
-                    {% for passport in all_passports|slice:":2" %}
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                        <div class="flex items-center gap-3">
-                            {% if passport.is_pinned %}
-                            <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                            {% else %}
-                            <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                            {% endif %}
-                            <div>
-                                <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
-                                <div class="text-[10px] {% if passport.is_pinned %}text-z-cyan{% else %}text-gray-400{% endif %}">
-                                    {% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}
+                    {% for passport in all_passports|slice:":3" %}
+                    {% if passport.visibility == 'PUBLIC' or is_owner %}
+                    <div class="gp-profile-card p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-z-purple/30 transition cursor-pointer"
+                         data-passport-detail="{{ passport.id }}"
+                         onclick="openPassportModal(this)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 min-w-0">
+                                {% if passport.game.icon %}
+                                <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-9 h-9 rounded-lg border border-white/10 object-contain bg-black/30">
+                                {% elif passport.is_pinned %}
+                                <div class="w-9 h-9 rounded-lg bg-z-cyan/20 border border-z-cyan/30 flex items-center justify-center text-z-cyan text-sm"><i class="fa-solid fa-gamepad"></i></div>
+                                {% else %}
+                                <div class="w-9 h-9 rounded-lg bg-gray-700/50 border border-white/10 flex items-center justify-center text-gray-400 text-sm"><i class="fa-solid fa-gamepad"></i></div>
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-white text-xs font-bold font-mono truncate">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</span>
+                                        {% if passport.verification_status == 'VERIFIED' %}
+                                        <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]" title="Verified"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-[10px] {% if passport.is_pinned %}text-z-cyan{% else %}text-gray-400{% endif %} truncate">
+                                        {{ passport.game.name }}{% if passport.rank_name %} • {{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}
+                                    </div>
                                 </div>
                             </div>
+                            <i class="fa-solid fa-chevron-right text-[10px] text-gray-600 group-hover:text-gray-400 transition shrink-0"></i>
                         </div>
-                        {% if passport.verification_status == 'VERIFIED' %}
-                        <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
+                        {% if passport.kd_ratio or passport.win_rate or passport.matches_played %}
+                        <div class="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
+                            {% if passport.kd_ratio %}
+                            <div class="text-center flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">K/D</div>
+                                <div class="text-xs font-bold {% if passport.kd_ratio >= 1.3 %}text-emerald-400{% elif passport.kd_ratio < 0.9 %}text-red-400{% else %}text-white{% endif %}">{{ passport.kd_ratio|floatformat:2 }}</div>
+                            </div>
+                            {% endif %}
+                            {% if passport.win_rate %}
+                            <div class="text-center flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Win%</div>
+                                <div class="text-xs font-bold {% if passport.win_rate >= 55 %}text-emerald-400{% elif passport.win_rate < 45 %}text-red-400{% else %}text-white{% endif %}">{{ passport.win_rate|floatformat:1 }}%</div>
+                            </div>
+                            {% endif %}
+                            {% if passport.matches_played %}
+                            <div class="text-center flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Matches</div>
+                                <div class="text-xs font-bold text-white">{{ passport.matches_played }}</div>
+                            </div>
+                            {% endif %}
+                            {% if passport.main_role %}
+                            <div class="text-center flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wider">Role</div>
+                                <div class="text-xs font-bold text-z-cyan">{{ passport.main_role }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
                         {% endif %}
+                        {# Hidden data for modal #}
+                        <script type="application/json" class="gp-passport-data">
+                        {
+                            "id": {{ passport.id }},
+                            "game_name": "{{ passport.game.name|escapejs }}",
+                            "game_icon": "{% if passport.game.icon %}{{ passport.game.icon.url|escapejs }}{% endif %}",
+                            "ign": "{{ passport.in_game_name|escapejs }}",
+                            "discriminator": "{{ passport.discriminator|default:''|escapejs }}",
+                            "platform": "{{ passport.platform|default:''|escapejs }}",
+                            "region": "{{ passport.region|default:''|escapejs }}",
+                            "rank_name": "{{ passport.rank_name|default:''|escapejs }}",
+                            "rank_tier": {{ passport.rank_tier|default:"0" }},
+                            "peak_rank": "{{ passport.peak_rank|default:''|escapejs }}",
+                            "kd_ratio": {{ passport.kd_ratio|default:"null" }},
+                            "win_rate": {{ passport.win_rate|default:"null" }},
+                            "matches_played": {{ passport.matches_played|default:"0" }},
+                            "hours_played": {{ passport.hours_played|default:"0" }},
+                            "main_role": "{{ passport.main_role|default:''|escapejs }}",
+                            "verification_status": "{{ passport.verification_status|default:'PENDING'|escapejs }}",
+                            "is_pinned": {{ passport.is_pinned|yesno:"true,false" }},
+                            "visibility": "{{ passport.visibility|default:'PUBLIC'|escapejs }}",
+                            "updated_at": "{{ passport.updated_at|date:'c' }}"
+                        }
+                        </script>
                     </div>
+                    {% endif %}
                     {% endfor %}
                     
-                    {% if all_passports|length > 2 %}
+                    {% if all_passports|length > 3 %}
                     <div class="text-center pt-2">
                         <button data-career-deep-link class="text-xs text-z-purple hover:text-white transition font-medium">
                             View all {{ all_passports|length }} passports <i class="fa-solid fa-arrow-right ml-1"></i>
@@ -196,3 +258,115 @@
         {% endif %}
     </div>
 </div>
+
+{# ── Game Passport Detail Modal ── #}
+<div id="gp-detail-modal" class="fixed inset-0 z-[9999] hidden" style="background:rgba(5,5,8,0.88);backdrop-filter:blur(18px);" onclick="if(event.target===this||event.target.closest('#gp-detail-shell')===null)closePassportModal()">
+    <div class="min-h-full w-full flex items-center justify-center p-4">
+        <div id="gp-detail-shell" class="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden" style="background:linear-gradient(155deg,rgba(19,22,38,0.95),rgba(12,14,26,0.93));box-shadow:0 32px 80px rgba(0,0,0,0.5);">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+                <div class="flex items-center gap-3 min-w-0">
+                    <img id="gp-detail-icon" src="" alt="" class="w-10 h-10 rounded-lg border border-white/10 object-contain bg-black/30">
+                    <div>
+                        <h3 id="gp-detail-title" class="text-lg font-display font-black text-white"></h3>
+                        <p id="gp-detail-game" class="text-[11px] text-gray-400 uppercase tracking-widest"></p>
+                    </div>
+                </div>
+                <button onclick="closePassportModal()" class="text-gray-500 hover:text-white transition w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div id="gp-detail-body" class="p-5 space-y-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPassportModal(card) {
+    var json = card.querySelector('.gp-passport-data');
+    if (!json) return;
+    var data;
+    try { data = JSON.parse(json.textContent); } catch(e) { return; }
+    
+    var modal = document.getElementById('gp-detail-modal');
+    var icon = document.getElementById('gp-detail-icon');
+    var title = document.getElementById('gp-detail-title');
+    var game = document.getElementById('gp-detail-game');
+    var body = document.getElementById('gp-detail-body');
+    
+    if (data.game_icon) {
+        icon.src = data.game_icon;
+        icon.classList.remove('hidden');
+    } else {
+        icon.classList.add('hidden');
+    }
+    
+    var ign = data.ign || '';
+    if (data.discriminator) ign += '#' + data.discriminator;
+    title.textContent = ign;
+    game.textContent = data.game_name;
+    
+    var verifyHtml = '';
+    if (data.verification_status === 'VERIFIED') {
+        verifyHtml = '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-bold uppercase tracking-wider"><i class="fa-solid fa-circle-check"></i> Verified</span>';
+    } else if (data.verification_status === 'FLAGGED') {
+        verifyHtml = '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-red-400 bg-red-500/10 border border-red-500/25 text-[10px] font-bold uppercase tracking-wider"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>';
+    } else {
+        verifyHtml = '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-yellow-400 bg-yellow-500/10 border border-yellow-500/25 text-[10px] font-bold uppercase tracking-wider"><i class="fa-solid fa-clock"></i> Pending</span>';
+    }
+    
+    var statsHtml = '<div class="grid grid-cols-2 gap-3">';
+    var statItems = [
+        {label:'K/D Ratio', value: data.kd_ratio !== null ? parseFloat(data.kd_ratio).toFixed(2) : '--', color: data.kd_ratio >= 1.3 ? 'text-emerald-400' : data.kd_ratio < 0.9 ? 'text-red-400' : 'text-white'},
+        {label:'Win Rate', value: data.win_rate !== null ? parseFloat(data.win_rate).toFixed(1) + '%' : '--', color: data.win_rate >= 55 ? 'text-emerald-400' : data.win_rate < 45 ? 'text-red-400' : 'text-white'},
+        {label:'Matches', value: data.matches_played || '0', color: 'text-white'},
+        {label:'Hours Played', value: data.hours_played || '0', color: 'text-white'},
+    ];
+    statItems.forEach(function(s) {
+        statsHtml += '<div class="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-center">' +
+            '<div class="text-[9px] text-gray-500 uppercase tracking-wider mb-1">' + s.label + '</div>' +
+            '<div class="text-lg font-black ' + s.color + '">' + s.value + '</div>' +
+        '</div>';
+    });
+    statsHtml += '</div>';
+    
+    var infoHtml = '<div class="space-y-2">';
+    var infoItems = [
+        {label:'Platform', value: data.platform},
+        {label:'Region', value: data.region},
+        {label:'Rank', value: data.rank_name},
+        {label:'Peak Rank', value: data.peak_rank},
+        {label:'Main Role', value: data.main_role},
+    ];
+    infoItems.forEach(function(item) {
+        if (item.value) {
+            infoHtml += '<div class="flex items-center justify-between py-1.5 border-b border-white/5">' +
+                '<span class="text-[10px] text-gray-500 uppercase tracking-wider">' + item.label + '</span>' +
+                '<span class="text-xs text-white font-bold">' + item.value + '</span>' +
+            '</div>';
+        }
+    });
+    infoHtml += '</div>';
+    
+    var updated = data.updated_at ? new Date(data.updated_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '';
+    
+    body.innerHTML = 
+        '<div class="flex items-center justify-between">' + verifyHtml +
+            (data.is_pinned ? '<span class="text-[10px] text-z-cyan font-bold uppercase tracking-wider"><i class="fa-solid fa-thumbtack mr-1"></i>Pinned</span>' : '') +
+        '</div>' +
+        statsHtml + infoHtml +
+        (updated ? '<div class="text-[10px] text-gray-600 text-right uppercase tracking-wider pt-2">Last updated ' + updated + '</div>' : '');
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePassportModal() {
+    var modal = document.getElementById('gp-detail-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePassportModal();
+});
+</script>

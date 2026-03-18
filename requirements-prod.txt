@@ -1,0 +1,166 @@
+# DeltaCrown — Production Requirements (Memory-optimised for 512 MB)
+# Generated: 2026-03-18
+#
+# This file contains ONLY packages required at runtime.
+# Dev/test/doc/build tools (pytest, mypy, Sphinx, Faker, playwright, etc.)
+# live in requirements-dev.txt and are NOT installed on Render.
+#
+# Usage:
+#   Production:  pip install --no-cache-dir -r requirements-prod.txt
+#   Development: pip install -r requirements.txt  (includes everything)
+
+# ── Core Framework ──────────────────────────────────────────────────
+Django==5.2.8
+asgiref==3.10.0
+daphne==4.2.1
+channels==4.3.1
+channels_redis==4.3.0
+
+# ── Database ────────────────────────────────────────────────────────
+psycopg2-binary==2.9.11
+dj-database-url==3.0.1
+
+# ── Task Queue ──────────────────────────────────────────────────────
+celery==5.5.3
+kombu==5.5.4
+amqp==5.3.1
+billiard==4.2.2
+vine==5.1.0
+redis==7.0.1
+click==8.3.0
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
+
+# ── REST API ────────────────────────────────────────────────────────
+djangorestframework==3.16.1
+djangorestframework_simplejwt==5.5.1
+drf-nested-routers==0.95.0
+drf-spectacular==0.27.2
+inflection==0.5.1
+uritemplate==4.2.0
+PyJWT==2.10.1
+pydantic==2.12.4
+pydantic_core==2.41.5
+
+# ── Auth & Security ─────────────────────────────────────────────────
+django-allauth==65.13.0
+cryptography==46.0.3
+pyOpenSSL==25.3.0
+PyNaCl==1.5.0
+certifi==2025.10.5
+
+# ── Storage & Media ─────────────────────────────────────────────────
+django-storages==1.14.6
+cloudinary==1.40.0
+django-cloudinary-storage==0.3.0
+boto3==1.40.71
+botocore==1.40.71
+s3transfer==0.14.0
+jmespath==1.0.1
+whitenoise==6.6.0
+pillow==12.0.0
+python-magic==0.4.27
+
+# ── Utilities ───────────────────────────────────────────────────────
+django-environ==0.12.0
+python-decouple==3.8
+python-dotenv==1.2.1
+python-slugify==8.0.4
+text-unidecode==1.3
+django-countries==7.6.1
+django-cors-headers==4.9.0
+django-filter==25.2
+django-ckeditor-5==0.2.18
+bleach==6.3.0
+nh3==0.3.2
+beautifulsoup4==4.14.3
+soupsieve==2.8.1
+python-dateutil==2.9.0.post0
+pytz==2025.2
+tzdata==2025.2
+PyYAML==6.0.3
+requests==2.32.5
+urllib3==2.5.0
+idna==3.11
+charset-normalizer==3.4.4
+packaging==25.0
+six==1.17.0
+
+# ── PDF & Image Generation ──────────────────────────────────────────
+reportlab==4.4.4
+cairocffi==1.7.1
+CairoSVG==2.8.2
+svglib==1.6.0
+lxml==6.0.2
+PyPDF2==3.0.1
+pycairo==1.28.0
+qrcode==8.2
+cssselect2==0.8.0
+tinycss2==1.4.0
+defusedxml==0.7.1
+webencodings==0.5.1
+freetype-py==2.5.1
+rlPyCairo==0.4.0
+
+# ── Monitoring ──────────────────────────────────────────────────────
+django-prometheus==2.4.1
+prometheus_client==0.23.1
+sentry-sdk==2.43.0
+python-json-logger==4.0.0
+
+# ── Admin UI ────────────────────────────────────────────────────────
+django-unfold==0.80.0
+
+# ── Discord (only needed when ENABLE_DISCORD_BOT=1) ────────────────
+discord.py==2.6.4
+aiohttp==3.13.3
+aiohappyeyeballs==2.6.1
+aiosignal==1.4.0
+frozenlist==1.8.0
+multidict==6.7.1
+yarl==1.22.0
+attrs==25.4.0
+
+# ── Email ───────────────────────────────────────────────────────────
+resend==2.23.0
+
+# ── Misc Runtime Dependencies ───────────────────────────────────────
+annotated-types==0.7.0
+cffi==2.0.0
+pycparser==2.23
+colorama==0.4.6
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+marshmallow==4.1.0
+msgpack==1.1.2
+more-itertools==10.8.0
+jsonschema==4.25.1
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==0.30.0
+platformdirs==4.5.0
+propcache==0.4.1
+prompt_toolkit==3.0.52
+wcwidth==0.2.14
+Pygments==2.19.2
+rich==14.2.0
+mdurl==0.1.2
+markdown-it-py==4.0.0
+setuptools==80.9.0
+sqlparse==0.5.3
+typing_extensions==4.15.0
+greenlet==3.3.0
+
+# ── Twisted (Daphne dependency) ─────────────────────────────────────
+Twisted==25.5.0
+autobahn==25.10.2
+Automat==25.4.16
+constantly==23.10.4
+hyperlink==21.0.0
+incremental==24.7.2
+txaio==25.9.2
+service-identity==24.2.0
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+zope.interface==8.0.1

@@ -857,7 +857,25 @@
             const canEdit = !isApiSyncedPassport(passport, game);
             const isApiSynced = isApiSyncedPassport(passport, game) || shouldRenderLivePerformance(passport, game);
             const isLocked = lockState.isDeleteBlocked;
-            const livePerformanceMarkup = renderLivePerformance(passport, game);
+
+            var verifyBadge = '';
+            var vstatus = String(passport.verification_status || '').toUpperCase();
+            if (vstatus === 'VERIFIED') {
+                verifyBadge = '<span class="gp-verify-badge gp-verify-verified" title="Verified"><i class="fa-solid fa-circle-check"></i> Verified</span>';
+            } else if (vstatus === 'FLAGGED') {
+                verifyBadge = '<span class="gp-verify-badge gp-verify-flagged" title="Flagged"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>';
+            } else {
+                verifyBadge = '<span class="gp-verify-badge gp-verify-pending" title="Pending Verification"><i class="fa-solid fa-clock"></i> Pending</span>';
+            }
+
+            var gameSlug = getPassportSlug(passport);
+            var visibilityVal = String(passport.visibility || 'PUBLIC').toUpperCase();
+            var isPublic = visibilityVal === 'PUBLIC';
+            var privacyToggle =
+                '<button type="button" data-action="toggle-privacy" data-passport-id="' + String(passport.id) + '" data-game-slug="' + escapeHtml(gameSlug) + '" data-current="' + escapeHtml(visibilityVal) + '" class="gp-privacy-toggle' + (isPublic ? ' gp-privacy-public' : ' gp-privacy-private') + '" title="' + (isPublic ? 'Public — visible on profile' : 'Private — hidden from profile') + '">' +
+                    '<i class="fa-solid ' + (isPublic ? 'fa-eye' : 'fa-eye-slash') + '"></i> ' +
+                    (isPublic ? 'Public' : 'Private') +
+                '</button>';
 
             const sourceChip = isApiSynced
                 ? '<span class="gp-source-chip gp-source-api"><i class="fa-solid fa-bolt text-[10px]"></i> API Synced</span>'
@@ -897,13 +915,15 @@
                                     '<div class="gp-roster-identity">' + escapeHtml(identity) + '</div>' +
                                 '</div>' +
                             '</div>' +
-                            sourceChip +
+                            '<div class="flex items-center gap-2 shrink-0">' + verifyBadge + sourceChip + '</div>' +
+                        '</div>' +
+                        '<div class="gp-status-bar">' +
+                            privacyToggle +
+                            lockText +
                         '</div>' +
                         '<div class="gp-data-chip-list">' + dataTagMarkup + '</div>' +
-                        livePerformanceMarkup +
                         '<div class="gp-roster-divider"></div>' +
                         '<div class="gp-roster-foot">' +
-                            lockText +
                             '<div class="flex items-center gap-2">' +
                                 editAction +
                                 '<button type="button" data-action="disconnect" data-passport-id="' + String(passport.id) + '" class="' + disconnectClass + '"' + disconnectDisabled + '>' +
@@ -1591,6 +1611,38 @@
             }
 
             initiateOTPDelete(passportId, actionBtn);
+        }
+
+        if (action === 'toggle-privacy') {
+            const passportId = Number(actionBtn.dataset.passportId || '0');
+            const gameSlug = actionBtn.dataset.gameSlug || '';
+            const current = String(actionBtn.dataset.current || 'PUBLIC').toUpperCase();
+            var newVis = current === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
+
+            actionBtn.disabled = true;
+            actionBtn.classList.add('gp-btn-disabled');
+
+            try {
+                var result = await apiFetch('/profile/api/passports/set-visibility/', {
+                    method: 'POST',
+                    body: JSON.stringify({ game: gameSlug, visibility: newVis })
+                });
+
+                if (result && result.success) {
+                    var passport = state.passports.find(function (p) { return Number(p.id) === passportId; });
+                    if (passport) passport.visibility = newVis;
+                    renderPlayerHub();
+                    showToast('Privacy set to ' + newVis.charAt(0) + newVis.slice(1).toLowerCase(), 'success');
+                } else {
+                    showToast((result && result.error) || 'Failed to update privacy', 'error');
+                    actionBtn.disabled = false;
+                    actionBtn.classList.remove('gp-btn-disabled');
+                }
+            } catch (err) {
+                showToast('Failed to update privacy', 'error');
+                actionBtn.disabled = false;
+                actionBtn.classList.remove('gp-btn-disabled');
+            }
         }
     }
 

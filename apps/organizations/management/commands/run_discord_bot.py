@@ -71,6 +71,16 @@ class Command(BaseCommand):
     help = "Run the DeltaCrown Discord bot (chat sync + slash commands)."
 
     def handle(self, *args, **options):
+        # Respect the settings-level kill switch (default: disabled on free tier)
+        if not getattr(settings, 'ENABLE_DISCORD_BOT', False):
+            self.stderr.write(
+                self.style.WARNING(
+                    "ENABLE_DISCORD_BOT is False in settings. "
+                    "Set ENABLE_DISCORD_BOT=1 in environment to activate. Aborting."
+                )
+            )
+            return
+
         token = (
             getattr(settings, "DISCORD_BOT_TOKEN", "")
             or os.environ.get("DISCORD_BOT_TOKEN", "")

@@ -9,7 +9,7 @@
                     <i class="fa-solid fa-id-card text-z-cyan"></i>
                 </h2>
                 <p class="text-gray-400 text-sm md:text-base max-w-3xl mt-2 leading-relaxed">
-                    Link your game accounts to unlock events, keep your profile tournament-ready, and build your DeltaCrown legacy.
+                    Manage your game connections, control privacy per game, and keep your accounts linked for tournaments and team play. Stats appear on your public profile.
                 </p>
             </div>
 
@@ -409,6 +409,92 @@ body.gp-modal-open {
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
 }
 
+/* ── Verification badges ── */
+#tab-passports .gp-verify-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    padding: 0.22rem 0.55rem;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#tab-passports .gp-verify-verified {
+    color: #34f3af;
+    background: rgba(52, 243, 175, 0.14);
+    border: 1px solid rgba(52, 243, 175, 0.3);
+}
+
+#tab-passports .gp-verify-pending {
+    color: #ffd66f;
+    background: rgba(255, 214, 111, 0.12);
+    border: 1px solid rgba(255, 214, 111, 0.25);
+}
+
+#tab-passports .gp-verify-flagged {
+    color: #ff8ea2;
+    background: rgba(255, 78, 122, 0.14);
+    border: 1px solid rgba(255, 78, 122, 0.3);
+}
+
+/* ── Privacy toggle ── */
+#tab-passports .gp-privacy-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 0.5rem;
+    padding: 0.3rem 0.62rem;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+#tab-passports .gp-privacy-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#tab-passports .gp-privacy-public {
+    color: #85f7ff;
+    background: rgba(0, 240, 255, 0.1);
+    border-color: rgba(0, 240, 255, 0.25);
+}
+
+#tab-passports .gp-privacy-public:hover:not(:disabled) {
+    background: rgba(0, 240, 255, 0.2);
+}
+
+#tab-passports .gp-privacy-private {
+    color: #b5bfd8;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+#tab-passports .gp-privacy-private:hover:not(:disabled) {
+    background: rgba(148, 163, 184, 0.22);
+}
+
+/* ── Status bar ── */
+#tab-passports .gp-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.7rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.55rem;
+    background: rgba(8, 12, 22, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 #tab-passports .gp-data-chip-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -445,227 +531,7 @@ body.gp-modal-open {
     white-space: nowrap;
 }
 
-#tab-passports .gp-live-panel {
-    margin-top: 0.72rem;
-    border: 1px solid rgba(0, 240, 255, 0.24);
-    background: linear-gradient(145deg, rgba(8, 20, 34, 0.8), rgba(7, 12, 24, 0.86));
-    border-radius: 0.78rem;
-    padding: 0.58rem 0.62rem;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 24px rgba(0, 240, 255, 0.12);
-}
-
-#tab-passports .gp-live-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.45rem;
-    margin-bottom: 0.45rem;
-}
-
-#tab-passports .gp-live-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.34rem;
-    color: #85f7ff;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-}
-
-#tab-passports .gp-live-sync-tag {
-    color: #9dc0da;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-#tab-passports .gp-live-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
-}
-
-#tab-passports .gp-live-metric {
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    background: rgba(7, 12, 21, 0.62);
-    border-radius: 0.6rem;
-    padding: 0.4rem 0.5rem;
-    min-height: 74px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.2rem;
-}
-
-#tab-passports .gp-live-metric.gp-live-metric-ring {
-    align-items: center;
-    text-align: center;
-}
-
-#tab-passports .gp-live-label {
-    color: #8fa9be;
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-}
-
-#tab-passports .gp-live-value {
-    color: #f0f6ff;
-    font-size: 18px;
-    font-weight: 900;
-    line-height: 1.05;
-}
-
-#tab-passports .gp-live-subtle {
-    color: #7f94ac;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-#tab-passports .gp-live-trend {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.22rem;
-    width: fit-content;
-    border-radius: 9999px;
-    padding: 0.15rem 0.38rem;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
-#tab-passports .gp-live-trend.gp-live-trend-up {
-    color: #34f3af;
-    background: rgba(52, 243, 175, 0.16);
-}
-
-#tab-passports .gp-live-trend.gp-live-trend-down {
-    color: #ff8ea2;
-    background: rgba(255, 78, 122, 0.18);
-}
-
-#tab-passports .gp-live-trend.gp-live-trend-flat,
-#tab-passports .gp-live-trend.gp-live-trend-neutral {
-    color: #9bc8ff;
-    background: rgba(88, 144, 255, 0.16);
-}
-
-#tab-passports .gp-win-ring {
-    --gp-win-rate: 0;
-    position: relative;
-    width: 52px;
-    height: 52px;
-    border-radius: 9999px;
-    display: grid;
-    place-items: center;
-    background: conic-gradient(#00f0ff calc(var(--gp-win-rate) * 1%), rgba(255, 255, 255, 0.11) 0);
-}
-
-#tab-passports .gp-win-ring::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 9999px;
-    background: rgba(7, 14, 28, 0.98);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-#tab-passports .gp-win-ring > span {
-    position: relative;
-    color: #dffbff;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.03em;
-}
-
-#tab-passports .gp-role-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.32rem;
-    width: fit-content;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 0.2rem 0.5rem;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
-#tab-passports .gp-role-chip.gp-role-duelist {
-    color: #ff8e72;
-    background: rgba(255, 88, 45, 0.2);
-}
-
-#tab-passports .gp-role-chip.gp-role-initiator {
-    color: #ffd66f;
-    background: rgba(255, 189, 62, 0.2);
-}
-
-#tab-passports .gp-role-chip.gp-role-controller {
-    color: #8eb7ff;
-    background: rgba(85, 124, 255, 0.22);
-}
-
-#tab-passports .gp-role-chip.gp-role-sentinel {
-    color: #9de4ff;
-    background: rgba(88, 216, 255, 0.18);
-}
-
-#tab-passports .gp-role-chip.gp-role-support,
-#tab-passports .gp-role-chip.gp-role-generic,
-#tab-passports .gp-role-chip.gp-role-fragger,
-#tab-passports .gp-role-chip.gp-role-roamer,
-#tab-passports .gp-role-chip.gp-role-jungler,
-#tab-passports .gp-role-chip.gp-role-sniper {
-    color: #c9d6eb;
-    background: rgba(122, 145, 186, 0.2);
-}
-
-#tab-passports .gp-live-panel.gp-live-syncing {
-    border-color: rgba(41, 240, 255, 0.28);
-}
-
-#tab-passports .gp-live-syncing-body {
-    display: flex;
-    align-items: center;
-    gap: 0.56rem;
-    color: #9fd8e9;
-    border: 1px dashed rgba(0, 240, 255, 0.22);
-    border-radius: 0.58rem;
-    background: rgba(0, 240, 255, 0.06);
-    padding: 0.42rem 0.52rem;
-}
-
-#tab-passports .gp-live-syncing-copy {
-    color: #d2efff;
-    font-size: 11px;
-    font-weight: 800;
-    margin: 0;
-}
-
-#tab-passports .gp-live-syncing-copy.gp-live-syncing-pulse {
-    animation: gpLiveSyncPulse 1.4s ease-in-out infinite;
-}
-
-#tab-passports .gp-live-syncing-sub {
-    color: #8aa0bb;
-    font-size: 10px;
-    margin: 0;
-    margin-top: 0.12rem;
-}
-
-@keyframes gpLiveSyncPulse {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.58;
-    }
-}
+/* ── Live performance styles (removed from settings — stats display on profile page only) ── */
 
 #tab-passports .gp-roster-foot {
     display: flex;
