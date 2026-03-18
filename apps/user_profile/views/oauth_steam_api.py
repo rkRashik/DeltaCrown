@@ -169,15 +169,29 @@ class SteamCallbackView(View):
                 cached_data=cached,
             )
 
+        logger.info(
+            "[Steam OpenID] Callback received: user=%s game=%s state_present=%s openid_params=%s",
+            request.user.id if request.user.is_authenticated else "anon",
+            game_slug,
+            bool(state),
+            bool(request.GET.get("openid.claimed_id")),
+        )
         try:
             steam_id = verify_steam_callback(request.GET.dict())
+            logger.info("[Steam OpenID] Signature verified: steam_id=%s", steam_id)
             summary = fetch_player_summary(steam_id)
+            logger.info("[Steam OpenID] Player summary fetched: persona=%s", summary.personaname)
             passport, oauth_connection, passport_created = upsert_steam_connection(
                 user=request.user,
                 game_slug=game_slug,
                 summary=summary,
             )
+            logger.info(
+                "[Steam OpenID] Connection saved: passport_id=%s steam_id=%s game=%s created=%s",
+                passport.id, summary.steam_id, game_slug, passport_created,
+            )
         except SteamOpenIDError as exc:
+            logger.warning("[Steam OpenID] SteamOpenIDError: %s — %s (status=%s)", exc.error_code, exc.message, exc.status_code)
             return _error_response_or_redirect(
                 error_code=exc.error_code,
                 message=exc.message,

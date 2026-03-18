@@ -18,7 +18,7 @@ from apps.user_profile.models import GameOAuthConnection, GameProfile
 
 logger = logging.getLogger(__name__)
 
-EPIC_AUTHORIZE_URL = "https://www.epicgames.com/id/api/redirect"
+EPIC_AUTHORIZE_URL = "https://www.epicgames.com/id/authorize"
 EPIC_TOKEN_URL = "https://api.epicgames.dev/epic/oauth/v2/token"
 
 

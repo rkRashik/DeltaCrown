@@ -152,6 +152,14 @@ class EpicCallbackView(View):
         state = str(payload.get("state", "")).strip()
         callback_mode = str(payload.get("callback_mode", "") or "").strip().lower()
 
+        logger.info(
+            "[Epic OAuth] Callback received: user=%s code_present=%s state_present=%s callback_mode=%s",
+            request.user.id if request.user.is_authenticated else "anon",
+            bool(code),
+            bool(state),
+            callback_mode or "(none)",
+        )
+
         if not code:
             return self._error_response_or_redirect(
                 explicit_callback_mode=callback_mode,
@@ -191,13 +199,23 @@ class EpicCallbackView(View):
             )
 
         redirect_uri = request.build_absolute_uri(reverse("user_profile:epic_oauth_callback"))
+        logger.info("[Epic OAuth] State validated for user=%s, exchanging code (redirect_uri=%s)", request.user.id, redirect_uri)
         try:
             token_data = exchange_code_for_tokens(code=code, redirect_uri=redirect_uri)
+            logger.info(
+                "[Epic OAuth] Token exchange successful: account_id=%s",
+                token_data.get("account_id", "(missing)"),
+            )
             passport, oauth_connection, passport_created = upsert_epic_connection(
                 user=request.user,
                 token_data=token_data,
             )
+            logger.info(
+                "[Epic OAuth] Connection saved: passport_id=%s provider_account=%s created=%s",
+                passport.id, oauth_connection.provider_account_id, passport_created,
+            )
         except EpicOAuthError as exc:
+            logger.warning("[Epic OAuth] EpicOAuthError: %s — %s (status=%s)", exc.error_code, exc.message, exc.status_code)
             return self._error_response_or_redirect(
                 explicit_callback_mode=callback_mode,
                 cached_state=cached_state,

@@ -9,7 +9,7 @@
     const ROOT_ID = 'tab-passports';
 
     const DIRECT_CONNECT_ROUTES = {
-        valorant: '/api/oauth/riot/login/',
+        valorant: '/profile/api/oauth/riot/login/?response_mode=json&callback_mode=redirect',
         cs2: '/profile/api/oauth/steam/login/?game=cs2&response_mode=json&callback_mode=redirect',
         dota2: '/profile/api/oauth/steam/login/?game=dota2&response_mode=json&callback_mode=redirect',
         rocketleague: '/profile/api/oauth/epic/login/?response_mode=json&callback_mode=redirect'
