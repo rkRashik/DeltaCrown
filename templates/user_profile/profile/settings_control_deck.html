@@ -4257,13 +4257,16 @@
     }
 
     // Phase 4C.1: Save About Settings
+    let _aboutSaving = false;
     async function saveAboutSettings(event) {
         if (event) event.preventDefault();
-        
+        if (_aboutSaving) return; // prevent concurrent/looping calls
+        _aboutSaving = true;
+
         const form = document.getElementById('about-form');
         const button = form.querySelector('button[type="submit"]');
         const originalHTML = button ? button.innerHTML : '';
-        
+
         // Loading state
         if (button) {
             button.disabled = true;
@@ -4343,17 +4346,11 @@
             }
             
             if (response.ok && result.success) {
-                // SUCCESS: Show toast and keep values (no immediate reload for debugging)
+                // SUCCESS: Show toast in-place (no reload to avoid request loop)
                 const successMsg = String(result.message || 'About settings saved successfully');
                 showToast(successMsg, 'success');
                 showInlineFeedback('about-form', 'Saved successfully', 'success');
                 markSaved();
-                
-                // Phase 4C.1.2: Delayed reload to allow user to see success message
-                // Comment out for debugging, uncomment for production
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1200);
             } else {
                 // ERROR: Show meaningful error message
                 let errorMsg = 'Failed to save About settings';
@@ -4390,6 +4387,7 @@
                 button.disabled = false;
                 button.innerHTML = originalHTML;
             }
+            _aboutSaving = false;
         }
     }
 

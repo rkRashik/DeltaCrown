@@ -423,11 +423,18 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
 # Uses a single REDIS_URL and appends /N for each subsystem.
 # -----------------------------------------------------------------------------
 def _redis_url_with_db(base_url: str, db: int) -> str:
-    """Append or replace the DB number on a Redis URL."""
+    """Append or replace the DB number on a Redis URL.
+
+    Upstash only supports logical DB 0 — any other DB number raises
+    "Only 0th database is supported!".  Force db=0 when the host is on
+    upstash.io so Channels (/3), Celery broker (/1) and results (/2)
+    all resolve to the single supported database.
+    """
     if not base_url:
         return base_url
-    # Strip trailing slash and any existing /N suffix
     import re
+    if 'upstash.io' in base_url:
+        db = 0
     return re.sub(r'/\d*$', '', base_url.rstrip('/')) + f'/{db}'
 
 _BASE_REDIS_URL = os.getenv("REDIS_URL", "")

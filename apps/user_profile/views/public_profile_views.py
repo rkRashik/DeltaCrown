@@ -1707,9 +1707,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     
     # CRITICAL: Use direct DB query to get canonical profile instance
     user_profile = UserProfile.objects.select_related('user').get(user=request.user)
-    logger.info(f"[SETTINGS-GET] Loading settings for user {request.user.username} (profile_id={user_profile.id})")
-    logger.info(f"[SETTINGS-GET] Connections: phone='{user_profile.phone}', whatsapp='{user_profile.whatsapp}', preferred_contact='{user_profile.preferred_contact_method}', emergency_name='{user_profile.emergency_contact_name}', social_count={SocialLink.objects.filter(user=request.user).count()}")
-    
+
     # PHASE 4C.1.2: Handle POST requests for settings tabs
     if request.method == 'POST':
         settings_tab = request.POST.get('settings_tab', 'identity')
@@ -1818,8 +1816,9 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
             }, status=500)
     
     # GET request - render settings page
+    logger.info("[SETTINGS-GET] Loading settings for user %s (profile_id=%s)", request.user.username, user_profile.id)
     username = request.user.username
-    
+
     # Build safe context (owner view with edit permissions)
     context = build_public_profile_context(
         viewer=request.user,
