@@ -1121,27 +1121,29 @@ body::after {
                             <div class="flex items-end gap-3.5 mb-3">
                                 {# Team logo overlapping banner #}
                                 {% if team.logo %}
-                                <img src="{{ team.logo.url }}" class="w-18 h-18 w-[72px] h-[72px] rounded-xl object-cover border-2 border-dc-dark flex-shrink-0 shadow-2xl group-hover:border-dc-cyan/50 transition-all duration-300 bg-dc-dark" alt="{{ team.name }}" loading="lazy">
+                                <img src="{{ team.logo.url }}" class="w-[72px] h-[72px] rounded-xl object-cover border-2 border-dc-dark flex-shrink-0 shadow-2xl group-hover:border-dc-cyan/50 transition-all duration-300 bg-dc-dark" alt="{{ team.name }}" loading="lazy">
                                 {% else %}
                                 <div class="w-[72px] h-[72px] rounded-xl border-2 border-dc-dark bg-gradient-to-br from-dc-cyan/25 to-dc-purple/25 flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-2xl font-display">{{ team.tag|default:team.name|truncatechars:3 }}</div>
                                 {% endif %}
                                 <div class="flex-1 min-w-0 pb-1">
-                                    <h4 class="font-bold text-white text-base group-hover:text-dc-cyan transition-colors leading-tight mb-0.5" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">{{ team.name }}</h4>
-                                    {# Tier badge #}
-                                    {% with r=team.ranking %}
-                                    {% if r %}
-                                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider
-                                        {% if r.tier == 'THE_CROWN' %}bg-yellow-500/15 text-yellow-400 border border-yellow-500/25
-                                        {% elif r.tier == 'LEGEND' %}bg-orange-500/15 text-orange-400 border border-orange-500/25
-                                        {% elif r.tier == 'MASTER' %}bg-violet-500/15 text-violet-400 border border-violet-500/25
-                                        {% elif r.tier == 'ELITE' %}bg-blue-500/15 text-blue-400 border border-blue-500/25
-                                        {% elif r.tier == 'CHALLENGER' %}bg-green-500/15 text-green-400 border border-green-500/25
-                                        {% else %}bg-gray-500/15 text-gray-400 border border-gray-500/25{% endif %}">{{ r.tier }}</span>
-                                    {% else %}
-                                    <span class="text-[10px] text-gray-600 uppercase tracking-wider font-semibold">Unranked</span>
-                                    {% endif %}
-                                    {% endwith %}
+                                    <h4 class="font-bold text-white text-base group-hover:text-dc-cyan transition-colors leading-tight" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">{{ team.name }}</h4>
                                 </div>
+                            </div>
+                            {# Tier badge — standalone row below name for clear visibility #}
+                            <div class="mb-3">
+                                {% with r=team.ranking %}
+                                {% if r %}
+                                <span class="inline-block text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider
+                                    {% if r.tier == 'THE_CROWN' %}bg-yellow-500/15 text-yellow-400 border border-yellow-500/25
+                                    {% elif r.tier == 'LEGEND' %}bg-orange-500/15 text-orange-400 border border-orange-500/25
+                                    {% elif r.tier == 'MASTER' %}bg-violet-500/15 text-violet-400 border border-violet-500/25
+                                    {% elif r.tier == 'ELITE' %}bg-blue-500/15 text-blue-400 border border-blue-500/25
+                                    {% elif r.tier == 'CHALLENGER' %}bg-green-500/15 text-green-400 border border-green-500/25
+                                    {% else %}bg-gray-500/15 text-gray-400 border border-gray-500/25{% endif %}">{{ r.tier }}</span>
+                                {% else %}
+                                <span class="inline-block text-[10px] text-gray-600 uppercase tracking-wider font-semibold">Unranked</span>
+                                {% endif %}
+                                {% endwith %}
                             </div>
 
                             {# ── Stats & Roster Row ── #}
@@ -1174,17 +1176,17 @@ body::after {
                                 </div>
 
                                 {# Member avatars stack #}
-                                <div class="flex items-center -space-x-2 flex-shrink-0">
+                                <div class="flex items-center -space-x-1.5 flex-shrink-0">
                                     {% for member in team.vnext_memberships.all|slice:":4" %}
                                     {% if member.roster_image %}
-                                    <img src="{{ member.roster_image.url }}" class="w-7 h-7 rounded-lg object-cover border-2 border-dc-dark shadow-md" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
+                                    <img src="{{ member.roster_image.url }}" class="w-8 h-8 rounded-full object-cover border-2 border-dc-dark shadow-md ring-1 ring-white/5" alt="{{ member.display_name|default:member.user.username }}" title="{{ member.display_name|default:member.user.username }}" loading="lazy">
                                     {% else %}
-                                    <div class="w-7 h-7 rounded-lg bg-white/10 border-2 border-dc-dark flex items-center justify-center text-[9px] font-bold text-gray-300 shadow-md" title="{{ member.display_name|default:member.user.username }}">{{ member.display_name|default:member.user.username|make_list|first|upper }}</div>
+                                    <div class="w-8 h-8 rounded-full bg-white/10 border-2 border-dc-dark flex items-center justify-center text-[10px] font-bold text-gray-300 shadow-md ring-1 ring-white/5" title="{{ member.display_name|default:member.user.username }}">{{ member.display_name|default:member.user.username|make_list|first|upper }}</div>
                                     {% endif %}
                                     {% endfor %}
                                     {% with total=team.vnext_memberships.all|length %}
                                     {% if total > 4 %}
-                                    <div class="w-7 h-7 rounded-lg bg-white/5 border-2 border-dc-dark flex items-center justify-center text-[9px] font-bold text-gray-400 shadow-md">+{{ total|add:"-4" }}</div>
+                                    <div class="w-8 h-8 rounded-full bg-white/5 border-2 border-dc-dark flex items-center justify-center text-[10px] font-bold text-gray-400 shadow-md">+{{ total|add:"-4" }}</div>
                                     {% endif %}
                                     {% endwith %}
                                 </div>

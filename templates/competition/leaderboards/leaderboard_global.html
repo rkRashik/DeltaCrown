@@ -108,7 +108,7 @@ body {
 /* ── Avatar stacks ── */
 .avatar-stack > img, .avatar-stack > div {
   border: 2px solid #05050A;
-  margin-left: -10px;
+  margin-left: -4px;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.3s, box-shadow 0.3s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
@@ -262,21 +262,29 @@ body {
       {# Divider #}
       <div class="hidden sm:block w-px h-8 bg-white/10 shrink-0"></div>
 
-      {# Current filter info pill (shows active game on mobile) #}
-      <div class="flex items-center gap-2 text-[11px] text-dc-muted font-medium">
-        <i class="fa-solid fa-filter text-[9px]"></i>
-        <span>
-          {% if is_global %}All games · {% else %}{{ selected_game_name }} · {% endif %}
-          {% if tier_filter %}{{ tier_filter|capfirst }} tier{% else %}All tiers{% endif %}
-        </span>
+      {# ── Quick-access game icon bar (responsive, fills available space) ── #}
+      <div id="quickGameBar" class="hidden sm:flex items-center gap-3 flex-1 min-w-0 overflow-hidden" aria-label="Quick game filter">
+        {% for config in game_configs %}
+        <a href="{% url 'competition:rankings_game' config.game_id %}"
+           class="quick-game-icon shrink-0 w-9 h-9 rounded-lg overflow-hidden border transition-all duration-200 flex items-center justify-center
+                  {% if selected_game == config.game_id %}border-dc-cyan bg-dc-cyan/20 ring-1 ring-dc-cyan/40 scale-110{% else %}border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 hover:scale-105{% endif %}"
+           title="{{ config.display_name }}" data-game-id="{{ config.game_id }}">
+          {% if config.icon_url %}
+          <img src="{{ config.icon_url }}" class="w-full h-full object-cover" alt="{{ config.display_name }}">
+          {% else %}
+          <i class="fa-solid fa-gamepad {% if selected_game == config.game_id %}text-dc-cyan{% else %}text-gray-500{% endif %} text-xs"></i>
+          {% endif %}
+        </a>
+        {% endfor %}
       </div>
 
       {# ── Search + Tier filter (right side) ── #}
       <div class="flex gap-2.5 w-full sm:w-auto items-center sm:ml-auto">
         <div class="relative flex-1 sm:w-56 sm:flex-none">
-          <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-dc-muted text-xs pointer-events-none"></i>
+          <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-dc-muted/70 text-[13px] pointer-events-none" style="left:14px"></i>
           <input type="text" id="searchInput" placeholder="Search team, tag, or org..."
-                 class="w-full bg-black/60 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-dc-cyan focus:ring-1 focus:ring-dc-cyan/50 transition-all placeholder-dc-muted/50"
+                 class="w-full bg-black/60 border border-white/10 rounded-xl py-2.5 pr-4 text-sm text-white focus:outline-none focus:border-dc-cyan focus:ring-1 focus:ring-dc-cyan/50 transition-all placeholder-dc-muted/50"
+                 style="padding-left:2.5rem"
                  autocomplete="off">
         </div>
         <div class="relative shrink-0">
@@ -549,16 +557,13 @@ body {
         <div class="col-span-2 hidden lg:flex justify-center z-10 w-full">
           {% if entry.roster_avatars %}
           <div class="avatar-stack flex items-center">
-            {% for member in entry.roster_avatars|slice:":4" %}
+            {% for member in entry.roster_avatars %}
             {% if member.avatar_url %}
             <img src="{{ member.avatar_url }}" class="w-8 h-8 rounded-lg object-cover bg-dc-surface relative shadow-md" style="z-index: {{ forloop.revcounter }}" alt="{{ member.name }}" title="{{ member.name }}">
             {% else %}
             <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-white relative shadow-md" style="z-index: {{ forloop.revcounter }}" title="{{ member.name }}">{{ member.name|first }}</div>
             {% endif %}
             {% endfor %}
-            {% if entry.roster_avatars|length > 4 %}
-            <div class="w-8 h-8 rounded-lg bg-black/80 border-2 border-dc-bg flex items-center justify-center text-[10px] font-bold text-white relative shadow-md" style="z-index: 0; margin-left: -10px;">+{{ entry.roster_avatars|length|add:"-4" }}</div>
-            {% endif %}
           </div>
           {% else %}
           <span class="text-[10px] text-white/20">—</span>
@@ -759,6 +764,31 @@ body {
     if (e.key === 'Escape' && _dropOpen) closeGameDropdown();
   });
 
+  /* ── Responsive quick-access game icon bar ── */
+  (function initQuickBar() {
+    var bar = document.getElementById('quickGameBar');
+    if (!bar) return;
+    var icons = bar.querySelectorAll('.quick-game-icon');
+    function fitIcons() {
+      // Show all first to measure
+      icons.forEach(function(ic) { ic.style.display = ''; });
+      var barRect = bar.getBoundingClientRect();
+      var gap = 6; // gap-1.5 = 6px
+      var iconW = 36 + gap; // w-9 = 36px + gap
+      var available = barRect.width;
+      var maxVisible = Math.floor(available / iconW);
+      icons.forEach(function(ic, i) {
+        ic.style.display = i < maxVisible ? '' : 'none';
+      });
+    }
+    fitIcons();
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fitIcons, 150);
+    });
+  })();
+
   var searchInput = document.getElementById('searchInput');
   var tableBody = document.getElementById('table-body');
   var emptyState = document.getElementById('empty-state');
@@ -919,17 +949,14 @@ body {
     var rosterHtml = '';
     if (entry.roster_avatars && entry.roster_avatars.length > 0) {
       rosterHtml = '<div class="avatar-stack flex items-center">';
-      var maxShow = Math.min(4, entry.roster_avatars.length);
-      for (var i = 0; i < maxShow; i++) {
+      var rosterLen = entry.roster_avatars.length;
+      for (var i = 0; i < rosterLen; i++) {
         var m = entry.roster_avatars[i];
         if (m.avatar_url) {
-          rosterHtml += '<img src="' + escapeAttr(m.avatar_url) + '" class="w-8 h-8 rounded-lg object-cover bg-dc-surface relative shadow-md" style="z-index:' + (maxShow - i) + '" alt="' + escapeAttr(m.name || '') + '" title="' + escapeAttr(m.name || '') + '">';
+          rosterHtml += '<img src="' + escapeAttr(m.avatar_url) + '" class="w-8 h-8 rounded-lg object-cover bg-dc-surface relative shadow-md" style="z-index:' + (rosterLen - i) + '" alt="' + escapeAttr(m.name || '') + '" title="' + escapeAttr(m.name || '') + '">';
         } else {
-          rosterHtml += '<div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-white relative shadow-md" style="z-index:' + (maxShow - i) + '" title="' + escapeAttr(m.name || '') + '">' + escapeHtml((m.name || '?').charAt(0)) + '</div>';
+          rosterHtml += '<div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-white relative shadow-md" style="z-index:' + (rosterLen - i) + '" title="' + escapeAttr(m.name || '') + '">' + escapeHtml((m.name || '?').charAt(0)) + '</div>';
         }
-      }
-      if (entry.roster_avatars.length > 4) {
-        rosterHtml += '<div class="w-8 h-8 rounded-lg bg-black/80 border-2 border-dc-bg flex items-center justify-center text-[10px] font-bold text-white relative shadow-md" style="z-index:0;margin-left:-10px">+' + (entry.roster_avatars.length - 4) + '</div>';
       }
       rosterHtml += '</div>';
     } else {

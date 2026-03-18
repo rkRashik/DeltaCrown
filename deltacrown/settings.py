@@ -1615,10 +1615,16 @@ if _HAS_UNFOLD:
                     },
                 ],
             },
+            # ── Esports Management ──
             {
-                "title": "Tournaments",
+                "title": "Esports Management",
                 "separator": True,
                 "items": [
+                    {
+                        "title": "Games",
+                        "icon": "sports_esports",
+                        "link": reverse_lazy("admin:games_game_changelist"),
+                    },
                     {
                         "title": "Tournaments",
                         "icon": "emoji_events",
@@ -1631,7 +1637,7 @@ if _HAS_UNFOLD:
                     },
                     {
                         "title": "Matches",
-                        "icon": "sports_esports",
+                        "icon": "swords",
                         "link": reverse_lazy("admin:tournaments_match_changelist"),
                     },
                     {
@@ -1645,51 +1651,133 @@ if _HAS_UNFOLD:
                         "link": reverse_lazy("admin:tournaments_tournamentresult_changelist"),
                     },
                     {
-                        "title": "Prizes",
-                        "icon": "paid",
-                        "link": reverse_lazy("admin:tournaments_prizetransaction_changelist"),
+                        "title": "Disputes",
+                        "icon": "gavel",
+                        "link": reverse_lazy("admin:tournaments_dispute_changelist"),
                     },
                     {
-                        "title": "Certificates",
-                        "icon": "workspace_premium",
-                        "link": reverse_lazy("admin:tournaments_certificate_changelist"),
+                        "title": "Challenges",
+                        "icon": "local_fire_department",
+                        "link": reverse_lazy("admin:challenges_challenge_changelist"),
+                    },
+                    {
+                        "title": "Group Stages",
+                        "icon": "grid_view",
+                        "link": reverse_lazy("admin:tournaments_groupstage_changelist"),
+                    },
+                    {
+                        "title": "Groups",
+                        "icon": "workspaces",
+                        "link": reverse_lazy("admin:tournaments_group_changelist"),
                     },
                 ],
             },
+            # ── Tournament Configuration ──
             {
-                "title": "Organizations & Teams",
+                "title": "Tournament Config",
                 "separator": True,
+                "collapsible": True,
                 "items": [
                     {
-                        "title": "Organizations",
-                        "icon": "corporate_fare",
-                        "link": reverse_lazy("admin:organizations_organization_changelist"),
+                        "title": "Templates",
+                        "icon": "content_copy",
+                        "link": reverse_lazy("admin:tournaments_tournamenttemplate_changelist"),
                     },
                     {
-                        "title": "Memberships",
-                        "icon": "group",
-                        "link": reverse_lazy("admin:organizations_organizationmembership_changelist"),
+                        "title": "Form Configs",
+                        "icon": "dynamic_form",
+                        "link": reverse_lazy("admin:tournaments_tournamentformconfiguration_changelist"),
+                    },
+                    {
+                        "title": "Reg Form Templates",
+                        "icon": "description",
+                        "link": reverse_lazy("admin:tournaments_registrationformtemplate_changelist"),
+                    },
+                    {
+                        "title": "Reg Forms",
+                        "icon": "edit_note",
+                        "link": reverse_lazy("admin:tournaments_tournamentregistrationform_changelist"),
+                    },
+                    {
+                        "title": "Form Responses",
+                        "icon": "checklist",
+                        "link": reverse_lazy("admin:tournaments_formresponse_changelist"),
+                    },
+                    {
+                        "title": "Custom Fields",
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:tournaments_customfield_changelist"),
+                    },
+                    {
+                        "title": "Payment Methods",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:tournaments_tournamentpaymentmethod_changelist"),
+                    },
+                    {
+                        "title": "Payment Verifications",
+                        "icon": "verified",
+                        "link": reverse_lazy("admin:tournaments_paymentverification_changelist"),
+                    },
+                    {
+                        "title": "Payments",
+                        "icon": "credit_card",
+                        "link": reverse_lazy("admin:tournaments_payment_changelist"),
+                    },
+                    {
+                        "title": "Announcements",
+                        "icon": "campaign",
+                        "link": reverse_lazy("admin:tournaments_tournamentannouncement_changelist"),
+                    },
+                    {
+                        "title": "Sponsors",
+                        "icon": "handshake",
+                        "link": reverse_lazy("admin:tournaments_tournamentsponsor_changelist"),
+                    },
+                    {
+                        "title": "Versions",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:tournaments_tournamentversion_changelist"),
+                    },
+                    {
+                        "title": "Staff Assignments",
+                        "icon": "assignment_ind",
+                        "link": reverse_lazy("admin:tournaments_tournamentstaffassignment_changelist"),
+                    },
+                    {
+                        "title": "Staff Roles",
+                        "icon": "admin_panel_settings",
+                        "link": reverse_lazy("admin:tournaments_tournamentstaffrole_changelist"),
+                    },
+                    {
+                        "title": "Staff",
+                        "icon": "supervisor_account",
+                        "link": reverse_lazy("admin:tournaments_tournamentstaff_changelist"),
+                    },
+                    {
+                        "title": "Webhooks",
+                        "icon": "webhook",
+                        "link": reverse_lazy("admin:tournaments_formwebhook_changelist"),
+                    },
+                    {
+                        "title": "Webhook Deliveries",
+                        "icon": "send",
+                        "link": reverse_lazy("admin:tournaments_webhookdelivery_changelist"),
+                    },
+                    {
+                        "title": "Game Configs",
+                        "icon": "settings_applications",
+                        "link": reverse_lazy("admin:games_gametournamentconfig_changelist"),
+                    },
+                    {
+                        "title": "Game Roster Configs",
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:games_gamerosterconfig_changelist"),
                     },
                 ],
             },
+            # ── User & Org Management ──
             {
-                "title": "Economy",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Wallets",
-                        "icon": "account_balance_wallet",
-                        "link": reverse_lazy("admin:economy_deltacrownwallet_changelist"),
-                    },
-                    {
-                        "title": "Transactions",
-                        "icon": "receipt_long",
-                        "link": reverse_lazy("admin:economy_deltacrowntransaction_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Users & Profiles",
+                "title": "Users & Organizations",
                 "separator": True,
                 "items": [
                     {
@@ -1707,8 +1795,212 @@ if _HAS_UNFOLD:
                         "icon": "stadia_controller",
                         "link": reverse_lazy("admin:user_profile_gameprofile_changelist"),
                     },
+                    {
+                        "title": "Organizations",
+                        "icon": "corporate_fare",
+                        "link": reverse_lazy("admin:organizations_organization_changelist"),
+                    },
+                    {
+                        "title": "Org Memberships",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:organizations_organizationmembership_changelist"),
+                    },
+                    {
+                        "title": "Teams",
+                        "icon": "groups_3",
+                        "link": reverse_lazy("admin:organizations_team_changelist"),
+                    },
+                    {
+                        "title": "Team Memberships",
+                        "icon": "person_add",
+                        "link": reverse_lazy("admin:organizations_teammembership_changelist"),
+                    },
+                    {
+                        "title": "Team Rankings",
+                        "icon": "military_tech",
+                        "link": reverse_lazy("admin:organizations_teamranking_changelist"),
+                    },
+                    {
+                        "title": "Org Rankings",
+                        "icon": "workspace_premium",
+                        "link": reverse_lazy("admin:organizations_organizationranking_changelist"),
+                    },
+                    {
+                        "title": "Pending Signups",
+                        "icon": "person_search",
+                        "link": reverse_lazy("admin:accounts_pendingsignup_changelist"),
+                    },
                 ],
             },
+            # ── Finance & Rewards ──
+            {
+                "title": "Finance & Rewards",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Wallets",
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:economy_deltacrownwallet_changelist"),
+                    },
+                    {
+                        "title": "Transactions",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:economy_deltacrowntransaction_changelist"),
+                    },
+                    {
+                        "title": "Top-Up Requests",
+                        "icon": "add_card",
+                        "link": reverse_lazy("admin:economy_topuprequest_changelist"),
+                    },
+                    {
+                        "title": "Withdrawals",
+                        "icon": "money_off",
+                        "link": reverse_lazy("admin:economy_withdrawalrequest_changelist"),
+                    },
+                    {
+                        "title": "Prize Payouts",
+                        "icon": "paid",
+                        "link": reverse_lazy("admin:tournaments_prizetransaction_changelist"),
+                    },
+                    {
+                        "title": "Prize Claims",
+                        "icon": "redeem",
+                        "link": reverse_lazy("admin:tournaments_prizeclaim_changelist"),
+                    },
+                    {
+                        "title": "Certificates",
+                        "icon": "card_membership",
+                        "link": reverse_lazy("admin:tournaments_certificate_changelist"),
+                    },
+                    {
+                        "title": "Coin Policy",
+                        "icon": "policy",
+                        "link": reverse_lazy("admin:economy_coinpolicy_changelist"),
+                    },
+                    {
+                        "title": "Gift Requests",
+                        "icon": "card_giftcard",
+                        "link": reverse_lazy("admin:economy_giftrequest_changelist"),
+                    },
+                    {
+                        "title": "Trade Requests",
+                        "icon": "swap_horiz",
+                        "link": reverse_lazy("admin:economy_traderequest_changelist"),
+                    },
+                    {
+                        "title": "Inventory Items",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:economy_inventoryitem_changelist"),
+                    },
+                    {
+                        "title": "User Inventory",
+                        "icon": "backpack",
+                        "link": reverse_lazy("admin:economy_userinventoryitem_changelist"),
+                    },
+                ],
+            },
+            # ── Shop & E-Commerce ──
+            {
+                "title": "Shop & E-Commerce",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Shop Items",
+                        "icon": "storefront",
+                        "link": reverse_lazy("admin:shop_shopitem_changelist"),
+                    },
+                    {
+                        "title": "Reservations",
+                        "icon": "bookmark_added",
+                        "link": reverse_lazy("admin:shop_reservationhold_changelist"),
+                    },
+                    {
+                        "title": "Orders",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:ecommerce_order_changelist"),
+                    },
+                    {
+                        "title": "Categories",
+                        "icon": "category",
+                        "link": reverse_lazy("admin:ecommerce_category_changelist"),
+                    },
+                    {
+                        "title": "Brands",
+                        "icon": "branding_watermark",
+                        "link": reverse_lazy("admin:ecommerce_brand_changelist"),
+                    },
+                    {
+                        "title": "Coupons",
+                        "icon": "local_offer",
+                        "link": reverse_lazy("admin:ecommerce_coupon_changelist"),
+                    },
+                    {
+                        "title": "Reviews",
+                        "icon": "rate_review",
+                        "link": reverse_lazy("admin:ecommerce_review_changelist"),
+                    },
+                    {
+                        "title": "Wishlists",
+                        "icon": "favorite",
+                        "link": reverse_lazy("admin:ecommerce_wishlist_changelist"),
+                    },
+                    {
+                        "title": "Loyalty Program",
+                        "icon": "loyalty",
+                        "link": reverse_lazy("admin:ecommerce_loyaltyprogram_changelist"),
+                    },
+                ],
+            },
+            # ── Competition & Rankings ──
+            {
+                "title": "Competition & Rankings",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Ranking Configs",
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:competition_gamerankingconfig_changelist"),
+                    },
+                    {
+                        "title": "Match Reports",
+                        "icon": "summarize",
+                        "link": reverse_lazy("admin:competition_matchreport_changelist"),
+                    },
+                    {
+                        "title": "Match Verifications",
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:competition_matchverification_changelist"),
+                    },
+                    {
+                        "title": "Bounties",
+                        "icon": "target",
+                        "link": reverse_lazy("admin:competition_bounty_changelist"),
+                    },
+                    {
+                        "title": "Bounty Claims",
+                        "icon": "redeem",
+                        "link": reverse_lazy("admin:competition_bountyclaim_changelist"),
+                    },
+                    {
+                        "title": "Comp. Challenges",
+                        "icon": "bolt",
+                        "link": reverse_lazy("admin:competition_challenge_changelist"),
+                    },
+                    {
+                        "title": "Ranking Adj. Logs",
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:organizations_teamrankingadjustmentlog_changelist"),
+                    },
+                    {
+                        "title": "Team Activity Logs",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:organizations_teamactivitylog_changelist"),
+                    },
+                ],
+            },
+            # ── Platform Content & Support ──
             {
                 "title": "Content & Support",
                 "separator": True,
@@ -1717,6 +2009,11 @@ if _HAS_UNFOLD:
                         "title": "Home Page",
                         "icon": "home",
                         "link": reverse_lazy("admin:siteui_homepagecontent_changelist"),
+                    },
+                    {
+                        "title": "Notifications",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notification_changelist"),
                     },
                     {
                         "title": "FAQs",
@@ -1728,31 +2025,95 @@ if _HAS_UNFOLD:
                         "icon": "mail",
                         "link": reverse_lazy("admin:support_contactmessage_changelist"),
                     },
+                    {
+                        "title": "Testimonials",
+                        "icon": "format_quote",
+                        "link": reverse_lazy("admin:support_testimonial_changelist"),
+                    },
                 ],
             },
+            # ── Moderation & Security ──
             {
-                "title": "Platform",
+                "title": "Moderation & Security",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Games",
-                        "icon": "sports_esports",
-                        "link": reverse_lazy("admin:games_game_changelist"),
-                    },
-                    {
-                        "title": "Notifications",
-                        "icon": "notifications",
-                        "link": reverse_lazy("admin:notifications_notification_changelist"),
-                    },
-                    {
-                        "title": "Moderation",
+                        "title": "Sanctions",
                         "icon": "shield",
                         "link": reverse_lazy("admin:moderation_moderationsanction_changelist"),
                     },
                     {
-                        "title": "Challenges",
-                        "icon": "local_fire_department",
-                        "link": reverse_lazy("admin:challenges_challenge_changelist"),
+                        "title": "Abuse Reports",
+                        "icon": "report",
+                        "link": reverse_lazy("admin:moderation_abusereport_changelist"),
+                    },
+                    {
+                        "title": "Audit Trail",
+                        "icon": "security",
+                        "link": reverse_lazy("admin:moderation_moderationaudit_changelist"),
+                    },
+                    {
+                        "title": "User Audit Events",
+                        "icon": "manage_search",
+                        "link": reverse_lazy("admin:user_profile_userauditevent_changelist"),
+                    },
+                    {
+                        "title": "Account Deletions",
+                        "icon": "person_remove",
+                        "link": reverse_lazy("admin:accounts_accountdeletionrequest_changelist"),
+                    },
+                ],
+            },
+            # ── User Profile Features ──
+            {
+                "title": "Profile Features",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Badges",
+                        "icon": "military_tech",
+                        "link": reverse_lazy("admin:user_profile_badge_changelist"),
+                    },
+                    {
+                        "title": "User Badges",
+                        "icon": "workspace_premium",
+                        "link": reverse_lazy("admin:user_profile_userbadge_changelist"),
+                    },
+                    {
+                        "title": "Skill Endorsements",
+                        "icon": "thumb_up",
+                        "link": reverse_lazy("admin:user_profile_skillendorsement_changelist"),
+                    },
+                    {
+                        "title": "Highlight Clips",
+                        "icon": "movie",
+                        "link": reverse_lazy("admin:user_profile_highlightclip_changelist"),
+                    },
+                    {
+                        "title": "Stream Configs",
+                        "icon": "live_tv",
+                        "link": reverse_lazy("admin:user_profile_streamconfig_changelist"),
+                    },
+                    {
+                        "title": "Hardware Gear",
+                        "icon": "mouse",
+                        "link": reverse_lazy("admin:user_profile_hardwaregear_changelist"),
+                    },
+                    {
+                        "title": "Privacy Settings",
+                        "icon": "lock",
+                        "link": reverse_lazy("admin:user_profile_privacysettings_changelist"),
+                    },
+                    {
+                        "title": "Game Roles",
+                        "icon": "assignment_ind",
+                        "link": reverse_lazy("admin:games_gamerole_changelist"),
+                    },
+                    {
+                        "title": "Game ID Configs",
+                        "icon": "fingerprint",
+                        "link": reverse_lazy("admin:games_gameplayeridentityconfig_changelist"),
                     },
                 ],
             },

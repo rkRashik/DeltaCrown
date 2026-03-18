@@ -353,6 +353,61 @@ def dashboard_callback(request, context):
             t_name = t_name[:32] + "\u2026"
         top_table_rows.append([t_name, str(t.reg_count), t.status.replace("_", " ").title()])
 
+    # ── Live tournaments operational table ───────────────────────────────
+    try:
+        live_tourn_list = (
+            Tournament.objects
+            .filter(status='live')
+            .annotate(confirmed_count=Count('registrations', filter=Q(registrations__status='confirmed')))
+            .order_by('tournament_start')[:8]
+        )
+        live_tourn_table = []
+        for t in live_tourn_list:
+            t_name = str(t)
+            if len(t_name) > 32:
+                t_name = t_name[:29] + "\u2026"
+            start = t.tournament_start.strftime("%b %d") if t.tournament_start else "\u2014"
+            slots = f"{t.confirmed_count}/{t.max_participants}" if t.max_participants else str(t.confirmed_count)
+            live_tourn_table.append({
+                "name": t_name,
+                "start": start,
+                "slots": slots,
+                "url": f"/admin/tournaments/tournament/{t.pk}/change/",
+            })
+    except Exception:
+        live_tourn_table = []
+
+    # ── Recent transactions table (safe import) ──────────────────────────
+    try:
+        from apps.economy.models import DeltaCrownTransaction
+
+        recent_txns = (
+            DeltaCrownTransaction.objects
+            .select_related('wallet__user')
+            .order_by('-created_at')[:8]
+        )
+        recent_txn_table = []
+        for txn in recent_txns:
+            try:
+                username = txn.wallet.user.username if txn.wallet and txn.wallet.user else "\u2014"
+            except Exception:
+                username = "\u2014"
+            recent_txn_table.append({
+                "username": username,
+                "amount": txn.amount,
+                "reason": txn.get_reason_display(),
+                "created": txn.created_at.strftime("%b %d, %H:%M"),
+            })
+    except Exception:
+        recent_txn_table = []
+
+    # ── Abuse reports count (safe import) ────────────────────────────────
+    try:
+        from apps.moderation.models import AbuseReport
+        open_abuse_reports = AbuseReport.objects.filter(state='open').count()
+    except Exception:
+        open_abuse_reports = 0
+
     # ══════════════════════════════════════════════════════════════════════
     # QUICK ACTIONS
     # ══════════════════════════════════════════════════════════════════════
@@ -481,6 +536,10 @@ def dashboard_callback(request, context):
         "dc_quick_actions": quick_actions,
         # ── Health indicators ────────────────────────────────────────────
         "dc_health": health_indicators,
+        # ── Operational tables ───────────────────────────────────────────
+        "dc_live_tourn_table": live_tourn_table,
+        "dc_recent_txn_table": recent_txn_table,
+        "dc_open_abuse_reports": open_abuse_reports,
     }
 
     # Cache the dashboard payload (excludes user-specific greeting/time)

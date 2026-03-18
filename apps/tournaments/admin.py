@@ -37,6 +37,7 @@ from apps.tournaments.models import (
     RegistrationFormTemplate, TournamentRegistrationForm, FormResponse,
     TournamentFormConfiguration,
     TournamentSponsor, PrizeClaim,
+    Group, GroupStage, PaymentVerification, TournamentStaffAssignment,
 )
 from apps.games.services import game_service
 from apps.games.models.game import Game as GamesGame
@@ -1497,3 +1498,55 @@ class PrizeClaimAdmin(ModelAdmin):
         )
     status_badge.short_description = 'Status'
 
+
+# ============================================================================
+# CASCADE-DELETE SUPPORT: Register related models that must be deletable
+# by admins so that tournament cascade-deletion does not fail.
+# ============================================================================
+
+@admin.register(TournamentFormConfiguration)
+class TournamentFormConfigurationAdmin(ModelAdmin):
+    list_display = ['tournament', 'form_type', 'updated_at']
+    list_filter = ['form_type']
+    search_fields = ['tournament__name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(TournamentPaymentMethod)
+class TournamentPaymentMethodAdmin(ModelAdmin):
+    list_display = ['tournament', 'method', 'is_enabled', 'display_order']
+    list_filter = ['method', 'is_enabled']
+    search_fields = ['tournament__name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(PaymentVerification)
+class PaymentVerificationAdmin(ModelAdmin):
+    list_display = ['registration', 'method', 'status', 'amount_bdt', 'created_at']
+    list_filter = ['status', 'method']
+    search_fields = ['registration__team_name', 'transaction_id']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(Group)
+class GroupAdmin(ModelAdmin):
+    list_display = ['name', 'tournament', 'display_order', 'max_participants', 'is_finalized']
+    list_filter = ['is_finalized']
+    search_fields = ['name', 'tournament__name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(GroupStage)
+class GroupStageAdmin(ModelAdmin):
+    list_display = ['name', 'tournament', 'num_groups', 'group_size', 'state']
+    list_filter = ['state', 'format']
+    search_fields = ['name', 'tournament__name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(TournamentStaffAssignment)
+class TournamentStaffAssignmentAdmin(ModelAdmin):
+    list_display = ['tournament', 'user', 'role', 'is_active', 'assigned_at']
+    list_filter = ['is_active']
+    search_fields = ['tournament__name', 'user__username']
+    readonly_fields = ['created_at', 'updated_at']

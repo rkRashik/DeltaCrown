@@ -22,6 +22,47 @@ from apps.competition.models import (
 from apps.organizations.models import Team, Organization
 
 
+# ── Game lineup size lookup ─────────────────────────────────────────────────
+_GAME_LINEUP_SIZES: dict = {
+    'valorant': 5, 'cs2': 5, 'counter-strike 2': 5,
+    'dota 2': 5, 'dota2': 5, 'league of legends': 5,
+    'pubg': 4, 'pubg mobile': 4,
+    'apex legends': 3, 'fortnite': 3, 'rocket league': 3,
+    'efootball': 5, 'call of duty': 5,
+    'rainbow six': 5, 'overwatch 2': 5,
+}
+
+
+def _lineup_size(game_name: Optional[str]) -> int:
+    """Return the standard roster display size for a game."""
+    if not game_name:
+        return 5
+    key = game_name.lower().strip()
+    for pattern, size in _GAME_LINEUP_SIZES.items():
+        if pattern in key:
+            return size
+    return 5
+
+
+def _membership_sort_key(m) -> int:
+    """Sort key: tournament captain first, then owner, manager, starter players, etc."""
+    if getattr(m, 'is_tournament_captain', False):
+        return 0
+    role = (getattr(m, 'role', '') or '').upper()
+    if role == 'OWNER':
+        return 1
+    if role == 'MANAGER':
+        return 2
+    slot = (getattr(m, 'roster_slot', '') or '').upper()
+    if role == 'PLAYER' and slot == 'STARTER':
+        return 3
+    if role == 'PLAYER':
+        return 4
+    if role in ('COACH', 'SUBSTITUTE'):
+        return 5
+    return 6
+
+
 @dataclass
 class RankingEntry:
     """Single ranking entry for display."""
@@ -116,6 +157,7 @@ class CompetitionService:
                 'vnext_memberships',
                 queryset=TeamMembership.objects.filter(status='ACTIVE').select_related('user__profile').only(
                     'id', 'team_id', 'display_name', 'roster_image',
+                    'role', 'roster_slot', 'is_tournament_captain',
                     'user__id', 'user__username', 'user__profile__avatar',
                 ),
                 to_attr='active_roster',
@@ -138,14 +180,17 @@ class CompetitionService:
         for idx, team in enumerate(paginated, start=offset + 1):
             org = team.organization
             # Build roster avatar list (max 5)
+            game_name_for_team = game_names.get(team.game_id)
+            lineup_size = _lineup_size(game_name_for_team)
+            sorted_roster = sorted(getattr(team, 'active_roster', []), key=_membership_sort_key)
             roster = []
-            for m in getattr(team, 'active_roster', [])[:5]:
+            for m in sorted_roster[:lineup_size]:
                 avatar = None
                 if m.roster_image:
                     avatar = m.roster_image.url
                 elif hasattr(m, 'user') and hasattr(m.user, 'profile') and m.user.profile.avatar:
                     avatar = m.user.profile.avatar.url
-                roster.append({'name': m.display_name or m.user.username, 'avatar': avatar})
+                roster.append({'name': m.display_name or m.user.username, 'avatar_url': avatar})
 
             entry = RankingEntry(
                 rank=team.display_rank if team.display_rank else idx,
@@ -163,7 +208,7 @@ class CompetitionService:
                 team_tag=team.tag,
                 activity_score=team.display_activity,
                 team_banner_url=team.banner.url if team.banner else None,
-                game_name=game_names.get(team.game_id),
+                game_name=game_name_for_team,
                 roster_avatars=roster or None,
             )
             entries.append(entry)
@@ -227,6 +272,7 @@ class CompetitionService:
                 'vnext_memberships',
                 queryset=TeamMembership.objects.filter(status='ACTIVE').select_related('user__profile').only(
                     'id', 'team_id', 'display_name', 'roster_image',
+                    'role', 'roster_slot', 'is_tournament_captain',
                     'user__id', 'user__username', 'user__profile__avatar',
                 ),
                 to_attr='active_roster',
@@ -245,18 +291,20 @@ class CompetitionService:
         total_count = queryset.count()
         paginated = queryset[offset:offset + limit]
 
+        lineup_size = _lineup_size(game_name_str)
         entries = []
         for idx, team in enumerate(paginated, start=offset + 1):
             org = team.organization
-            # Build roster avatar list (max 5)
+            # Build roster with captain-first sorting and game-specific lineup size
+            sorted_roster = sorted(getattr(team, 'active_roster', []), key=_membership_sort_key)
             roster = []
-            for m in getattr(team, 'active_roster', [])[:5]:
+            for m in sorted_roster[:lineup_size]:
                 avatar = None
                 if m.roster_image:
                     avatar = m.roster_image.url
                 elif hasattr(m, 'user') and hasattr(m.user, 'profile') and m.user.profile.avatar:
                     avatar = m.user.profile.avatar.url
-                roster.append({'name': m.display_name or m.user.username, 'avatar': avatar})
+                roster.append({'name': m.display_name or m.user.username, 'avatar_url': avatar})
 
             entry = RankingEntry(
                 rank=team.display_rank if team.display_rank else idx,

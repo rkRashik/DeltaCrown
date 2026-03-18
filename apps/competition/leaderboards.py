@@ -18,10 +18,18 @@ TIER_DETAILS = [
 ]
 
 
-def _get_game_configs_with_colors():
-    """Get all active GameRankingConfigs enriched with game color and icon info."""
+def _get_game_configs_with_colors(user=None):
+    """Get all active GameRankingConfigs enriched with game color and icon info.
+
+    Smart sorting:
+    - Logged-in users with teams: their games first (primary team first)
+    - Guests / users without teams: trending order (VAL, EFB, PUBG, FF, ...)
+    Only returns configs whose game_id also appears in active Game entries OR
+    the config itself is active (fallback for ranking-only games).
+    """
     configs = list(GameRankingConfig.objects.filter(is_active=True).order_by('game_name'))
-    # Try to enrich with primary_color and icon from Game model
+
+    # Build lookup from Game model (multiple keys per game for fuzzy matching)
     game_meta = {}
     try:
         for game in Game.objects.filter(is_active=True):
@@ -29,23 +37,67 @@ def _get_game_configs_with_colors():
             logo_url = game.logo.url if game.logo else None
             meta = {
                 'color': game.primary_color or '#64748b',
-                'icon_url': icon_url,
+                'icon_url': icon_url or logo_url,   # fallback icon→logo
                 'logo_url': logo_url,
                 'display_name': game.display_name or game.name,
             }
-            if game.short_code:
-                game_meta[game.short_code.upper()] = meta
-            if game.slug:
-                game_meta[game.slug.upper()] = meta
+            # Index by every plausible key
+            for key in filter(None, [
+                game.short_code.upper() if game.short_code else None,
+                game.slug.upper() if game.slug else None,
+                game.name.upper() if game.name else None,
+            ]):
+                game_meta[key] = meta
     except Exception:
         pass
 
     for config in configs:
-        meta = game_meta.get(config.game_id.upper(), {})
-        config.color = meta.get('color', '#64748b')
-        config.icon_url = meta.get('icon_url', None)
-        config.logo_url = meta.get('logo_url', None)
-        config.display_name = meta.get('display_name', config.game_name)
+        cid = config.game_id.upper()
+        meta = game_meta.get(cid)
+        # Secondary: try game_name as lookup key
+        if not meta:
+            meta = game_meta.get(config.game_name.upper())
+        # Tertiary: prefix match (e.g. "PUBG" matches "PUBG MOBILE", "COD" matches "CODM")
+        if not meta:
+            for key, m in game_meta.items():
+                if key.startswith(cid) or cid.startswith(key):
+                    meta = m
+                    break
+        config.color = meta.get('color', '#64748b') if meta else '#64748b'
+        config.icon_url = meta.get('icon_url') if meta else None
+        config.logo_url = meta.get('logo_url') if meta else None
+        config.display_name = meta.get('display_name', config.game_name) if meta else config.game_name
+
+    # ── Smart sorting ──
+    # Determine user's game priorities
+    user_game_ids = []
+    if user and user.is_authenticated:
+        try:
+            highlights = CompetitionService.get_user_team_highlights(user.id)
+            if highlights and highlights.get('teams'):
+                seen = set()
+                for t in highlights['teams']:
+                    # team dicts may have game_id
+                    gid = t.get('game_id')
+                    if gid and gid not in seen:
+                        user_game_ids.append(gid)
+                        seen.add(gid)
+        except Exception:
+            pass
+
+    # Trending order fallback
+    TRENDING_ORDER = ['VAL', 'EFB', 'PUBG', 'FF', 'CS2', 'DOTA2', 'LOL',
+                      'APEX', 'COD', 'FORT', 'OW2', 'R6', 'RL']
+
+    def sort_key(cfg):
+        cid = cfg.game_id
+        if cid in user_game_ids:
+            return (0, user_game_ids.index(cid))
+        if cid in TRENDING_ORDER:
+            return (1, TRENDING_ORDER.index(cid))
+        return (2, cfg.game_name)
+
+    configs.sort(key=sort_key)
     return configs
 
 
@@ -128,7 +180,7 @@ def leaderboard_global(request):
     max_score = max((e.score for e in response.entries), default=1) or 1
 
     # Game configs for the game selector tabs
-    game_configs = _get_game_configs_with_colors()
+    game_configs = _get_game_configs_with_colors(user=request.user)
 
     # AJAX load-more: return JSON
     if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -221,7 +273,7 @@ def leaderboard_game(request, game_id):
     max_score = max((e.score for e in response.entries), default=1) or 1
 
     # Game configs for the game selector tabs
-    game_configs = _get_game_configs_with_colors()
+    game_configs = _get_game_configs_with_colors(user=request.user)
 
     # AJAX load-more: return JSON
     if request.GET.get('format') == 'json' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
