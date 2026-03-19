@@ -75,6 +75,17 @@ class GameProfileSerializer(serializers.ModelSerializer):
         "epic":  {"account_id", "display_name", "epic_id"},
     }
 
+    # Normalised slug (dashes stripped) → OAuth provider namespace.
+    # ALL identity fields for these games are ALWAYS locked — data comes from
+    # the OAuth provider; users never type them manually.
+    _OAUTH_GAME_SLUGS: dict = {
+        "cs2": "steam",
+        "counterstrike2": "steam",
+        "dota2": "steam",
+        "valorant": "riot",
+        "rocketleague": "epic",
+    }
+
     @staticmethod
     def _coerce_float(value):
         try:
@@ -119,39 +130,40 @@ class GameProfileSerializer(serializers.ModelSerializer):
         return {}
 
     def get_game(self, obj):
+        slug_norm = (getattr(obj.game, "slug", "") or "").strip().lower().replace("-", "")
         return {
             "id": obj.game.id,
             "name": obj.game.name,
             "slug": obj.game.slug,
             "icon": _safe_image_url(obj.game.icon),
+            "api_synced": slug_norm in self._OAUTH_GAME_SLUGS,
         }
 
     def get_field_schema(self, obj):
         """
-        Phase 1 Dynamic Schema — data-driven field classification.
+        Truth-table field classification.
 
-        Returns a list of field descriptors so the frontend renderer never
-        needs to hard-code which fields are locked vs. editable.  Driven by
-        ``GamePlayerIdentityConfig`` rows for the passport's game plus the
-        presence of data in ``provider_data`` namespaces.
-
-        Field classes:
-          VERIFIED_IDENTITY  — set by OAuth; padlock badge, never editable
-          API_SYNCED         — refreshed by sync jobs; cloud-sync badge
-          PREFERENCE         — user-controlled dropdown
-          USER_EDITABLE      — free-text user input
+        OAuth games (CS2 / Valorant / Dota2 / RL): ALL identity fields are
+        ALWAYS locked — data arrives via the OAuth provider; users never type.
+        Manual games (EA FC 26 / Free Fire / eFootball / etc.): ALL identity
+        fields are USER_EDITABLE — the user enters their own game ID freely.
+        Preference fields (role / region / etc.): always USER_EDITABLE.
         """
         from apps.games.models import GamePlayerIdentityConfig
+        from apps.user_profile.models.game_passport_schema import GameChoiceConfig
 
-        game_slug = (getattr(obj.game, "slug", "") or "").strip().lower()
+        game_slug_norm = (getattr(obj.game, "slug", "") or "").strip().lower().replace("-", "")
+        is_oauth_game = game_slug_norm in self._OAUTH_GAME_SLUGS
+        oauth_provider = self._OAUTH_GAME_SLUGS.get(game_slug_norm)
         provider_data = obj.provider_data if isinstance(obj.provider_data, dict) else {}
         preferences = obj.preferences if isinstance(obj.preferences, dict) else {}
 
-        # Collect all provider-owned field names that have live data
-        verified_field_names: set[str] = set()
-        for provider_key, owned_keys in self._PROVIDER_IDENTITY_KEYS.items():
-            if provider_data.get(provider_key):
-                verified_field_names.update(owned_keys)
+        # Load GameChoiceConfig once for dropdown options
+        choice_config = None
+        try:
+            choice_config = GameChoiceConfig.objects.get(game=obj.game)
+        except GameChoiceConfig.DoesNotExist:
+            pass
 
         schema_fields = []
 
@@ -164,11 +176,13 @@ class GameProfileSerializer(serializers.ModelSerializer):
 
         for config in identity_configs:
             fname = config.field_name
-            is_immutable = config.is_immutable
             is_required = config.is_required
 
-            # Determine field class
-            if fname in verified_field_names or is_immutable:
+            # ── Truth Table ────────────────────────────────────────────────
+            # is_oauth_game=True  → VERIFIED_IDENTITY, locked=True  (always)
+            # is_oauth_game=False → USER_EDITABLE,     locked=False (always)
+            # preference field    → PREFERENCE,        locked=False (always)
+            if is_oauth_game:
                 field_class = self._FC_VERIFIED_IDENTITY
                 locked = True
             elif fname in preferences:
@@ -178,17 +192,13 @@ class GameProfileSerializer(serializers.ModelSerializer):
                 field_class = self._FC_USER_EDITABLE
                 locked = False
 
-            # Determine which zone holds the current value
-            value_path = None
-            for provider_key, owned_keys in self._PROVIDER_IDENTITY_KEYS.items():
-                if fname in owned_keys and provider_data.get(provider_key):
-                    value_path = f"provider_data.{provider_key}.{fname}"
-                    break
-            if value_path is None:
-                if fname in preferences:
-                    value_path = f"preferences.{fname}"
-                else:
-                    value_path = f"metadata.{fname}"
+            # ── Value path ─────────────────────────────────────────────────
+            if is_oauth_game and oauth_provider:
+                value_path = f"provider_data.{oauth_provider}.{fname}"
+            elif fname in preferences:
+                value_path = f"preferences.{fname}"
+            else:
+                value_path = f"metadata.{fname}"
 
             entry: dict = {
                 "field_name": fname,
@@ -198,17 +208,39 @@ class GameProfileSerializer(serializers.ModelSerializer):
                 "required": is_required,
                 "value_path": value_path,
                 "help_text": config.help_text or "",
+                "placeholder": config.placeholder or "",
+                "type": (config.field_type or "text").lower(),
+                "min_length": config.min_length,
+                "max_length": config.max_length,
+                "validation_regex": config.validation_regex or "",
             }
 
-            # Attach choices for PREFERENCE / USER_EDITABLE selects
-            if hasattr(config, "choices") and config.choices:
-                entry["choices"] = config.choices
+            # ── Dropdown choices from GameChoiceConfig ─────────────────────
+            if choice_config and config.field_type and config.field_type.lower() == "select":
+                fn_lower = fname.lower()
+                if "region" in fn_lower:
+                    entry["choices"] = choice_config.region_choices or []
+                elif "rank" in fn_lower and "peak" not in fn_lower:
+                    entry["choices"] = choice_config.rank_choices or []
+                elif "role" in fn_lower:
+                    entry["choices"] = choice_config.role_choices or []
+                elif "platform" in fn_lower:
+                    entry["choices"] = choice_config.platform_choices or []
+                elif "server" in fn_lower:
+                    entry["choices"] = choice_config.server_choices or []
+                elif "mode" in fn_lower:
+                    entry["choices"] = choice_config.mode_choices or []
+                elif "premier" in fn_lower:
+                    entry["choices"] = choice_config.premier_rating_choices or []
+                elif "division" in fn_lower:
+                    entry["choices"] = choice_config.division_choices or []
 
             schema_fields.append(entry)
 
-        # If no schema rows exist yet, emit a minimal entry for each known
-        # provider_data key so the frontend still knows what to lock.
-        if not schema_fields:
+        # Fallback: only for OAuth games — if no identity_configs exist yet but we have
+        # provider_data, surface those fields as locked entries so the UI can display them.
+        # Manual games (non-OAuth) must never be locked through this path.
+        if not schema_fields and is_oauth_game:
             for provider_key, provider_ns in provider_data.items():
                 if not isinstance(provider_ns, dict):
                     continue
@@ -223,6 +255,7 @@ class GameProfileSerializer(serializers.ModelSerializer):
                         "required": False,
                         "value_path": f"provider_data.{provider_key}.{key}",
                         "help_text": f"Verified by {provider_key.title()}.",
+                        "type": "text",
                     })
 
         return schema_fields

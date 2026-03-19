@@ -809,8 +809,13 @@
         identity_key: true, live_stats: true, api_synced: true,
         oauth_provider: true, riot_last_match_sync_at: true,
         steamid: true, steam_id: true, avatar: true, avatar_medium: true,
-        avatar_full: true, profile_url: true, synced_at: true
+        avatar_full: true, profile_url: true, synced_at: true,
+        avatar_url: true, image_url: true, thumbnail_url: true, photo_url: true
     };
+
+    function looksLikeUrl(val) {
+        return /^https?:\/\//i.test(String(val || ''));
+    }
 
     function collectMetaTags(passport, game) {
         // Prefer field_schema from the passport (populated by GameProfileSerializer)
@@ -819,15 +824,18 @@
             var schemaTags = [];
             for (var si = 0; si < fieldSchema.length; si++) {
                 var sf = fieldSchema[si];
-                var sfKey = String(sf.key || '').trim();
+                // Normalise key across both schema formats
+                var sfKey = String(sf.key || sf.field_name || '').trim();
                 if (!sfKey || COLLECT_META_SKIP[sfKey]) continue;
                 var sfVal = sf.value_path
                     ? getFieldValueFromPath(passport, sf.value_path)
                     : getPassportFieldValue(passport, sfKey);
                 if (!sfVal) continue;
+                // Skip raw URL values ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â images/links surface in dedicated UI slots, not chips
+                if (looksLikeUrl(sfVal)) continue;
                 schemaTags.push({
                     key: sfKey,
-                    label: sf.label || getFieldDisplayLabel(sfKey, game),
+                    label: sf.display_name || sf.label || getFieldDisplayLabel(sfKey, game),
                     value: sfVal,
                     fieldClass: String(sf.field_class || '')
                 });
@@ -844,6 +852,8 @@
             var value = metadata[key];
             if (value === null || value === undefined || value === '') return;
             if (typeof value === 'object') return;
+            // Skip raw URL values ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â images/links surface in dedicated UI slots, not chips
+            if (looksLikeUrl(value)) return;
             tags.push({ key: key, label: getFieldDisplayLabel(key, game), value: value });
         });
 
@@ -858,135 +868,144 @@
         }
         return tags.slice(0, 4);
     }
-
     function renderConnectedGames() {
-        const grid = byId('gp-connected-grid');
+        const container = document.getElementById('activeRosterGrid');
         const empty = byId('gp-connected-empty');
-        if (!grid || !empty) return;
+        const counter = byId('gp-roster-count');
+        if (!container) return;
 
         if (!state.passports.length) {
-            grid.innerHTML = '';
-            empty.classList.remove('hidden');
+            container.innerHTML = '';
+            if (empty) empty.classList.remove('hidden');
+            if (counter) counter.textContent = '0';
             return;
         }
 
-        empty.classList.add('hidden');
+        if (empty) empty.classList.add('hidden');
+        if (counter) counter.textContent = String(state.passports.length);
 
-        const markup = state.passports.map(function (passport, index) {
+        container.innerHTML = '';
+
+        state.passports.forEach(function (passport, index) {
             var game = findGameBySlug(getPassportSlug(passport));
             var title = getGameDisplay(game, passport);
             var identity = getIdentityLabel(passport);
             var lockState = getPassportLockState(passport);
             var accent = getGameAccent(game);
-            var accentSoft = hexToRgba(accent, 0.25);
-            var accentGlow = hexToRgba(accent, 0.2);
             var icon = getGameIconMarkup(game, title);
             var tags = collectMetaTags(passport, game);
-            // Steam-verified passports: identity is set via OAuth, not manual entry
-            var steamData = passport.provider_data && typeof passport.provider_data === 'object'
-                ? passport.provider_data.steam
-                : null;
-            var hasSteamLink = !!(steamData && steamData.persona_name);
-            var canEdit = !isApiSyncedPassport(passport, game) && !hasSteamLink;
-            var isApiSynced = isApiSyncedPassport(passport, game) || hasSteamLink || shouldRenderLivePerformance(passport, game);
+            var gameSlug = getPassportSlug(passport);
             var isLocked = lockState.isDeleteBlocked;
 
-            var verifyBadge = '';
-            var vstatus = String(passport.verification_status || '').toUpperCase();
-            if (vstatus === 'VERIFIED') {
-                verifyBadge = '<span class="gp-verify-badge gp-verify-verified" title="Verified"><i class="fa-solid fa-circle-check"></i> Verified</span>';
-            } else if (vstatus === 'FLAGGED') {
-                verifyBadge = '<span class="gp-verify-badge gp-verify-flagged" title="Flagged"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>';
-            } else {
-                verifyBadge = '<span class="gp-verify-badge gp-verify-pending" title="Pending Verification"><i class="fa-solid fa-clock"></i> Pending</span>';
-            }
+            var providerData = (passport.provider_data && typeof passport.provider_data === 'object')
+                ? passport.provider_data : {};
 
-            var gameSlug = getPassportSlug(passport);
-            var visibilityVal = String(passport.visibility || 'PUBLIC').toUpperCase();
-            var isPublic = visibilityVal === 'PUBLIC';
-            var privacyToggle =
-                '<button type="button" data-action="toggle-privacy" data-passport-id="' + String(passport.id) + '" data-game-slug="' + escapeHtml(gameSlug) + '" data-current="' + escapeHtml(visibilityVal) + '" class="gp-privacy-toggle' + (isPublic ? ' gp-privacy-public' : ' gp-privacy-private') + '" title="' + (isPublic ? 'Public — visible on profile' : 'Private — hidden from profile') + '">' +
-                    '<i class="fa-solid ' + (isPublic ? 'fa-eye' : 'fa-eye-slash') + '"></i> ' +
-                    (isPublic ? 'Public' : 'Private') +
-                '</button>';
+            // Resolve Avatar
+            var avatarUrl = '';
+            if (providerData.steam && providerData.steam.avatar_full) avatarUrl = providerData.steam.avatar_full;
+            else if (providerData.steam && providerData.steam.avatar_medium) avatarUrl = providerData.steam.avatar_medium;
+            else if (providerData.riot && providerData.riot.profile_icon_url) avatarUrl = providerData.riot.profile_icon_url;
 
-            // Source chip: Steam-verified gets a Steam brand badge with persona
-            var sourceChip;
-            if (hasSteamLink) {
-                sourceChip =
-                    '<span class="gp-source-chip gp-source-api" title="Connected via Steam as ' + escapeHtml(steamData.persona_name) + '">' +
-                        '<i class="fa-brands fa-steam text-[10px]"></i>' +
-                        ' Connected as ' + escapeHtml(steamData.persona_name) +
-                    '</span>';
-            } else if (isApiSynced) {
-                sourceChip = '<span class="gp-source-chip gp-source-api"><i class="fa-solid fa-bolt text-[10px]"></i> API Synced</span>';
-            } else {
-                sourceChip = '<span class="gp-source-chip gp-source-manual"><i class="fa-solid fa-user-pen text-[10px]"></i> Manual</span>';
-            }
+            var avatarHTML = avatarUrl
+                ? '<img src="' + escapeHtml(avatarUrl) + '" class="w-full h-full object-cover" alt="Avatar">'
+                : '<span class="text-2xl font-black text-white">' + icon + '</span>';
 
-            var lockText = isLocked
-                ? '<span class="gp-lock-text gp-lock-active">Identity Locked</span>'
-                : '<span class="gp-lock-text gp-lock-open">Roster Ready</span>';
-
-            var dataTagMarkup = tags.map(function (entry) {
-                // Show a lock icon for VERIFIED_IDENTITY chips
-                var fClass = String(entry.fieldClass || '');
-                var chipIcon = fClass === 'VERIFIED_IDENTITY'
-                    ? '<i class="fa-solid fa-lock text-amber-400/60 text-[8px] mr-1"></i>'
-                    : (fClass === 'API_SYNCED' ? '<i class="fa-solid fa-cloud text-z-cyan/50 text-[8px] mr-1"></i>' : '');
-                return (
-                    '<div class="gp-data-chip">' +
-                        '<span class="gp-data-chip-label">' + chipIcon + escapeHtml(entry.label || entry.key) + '</span>' +
-                        '<span class="gp-data-chip-value">' + escapeHtml(entry.value) + '</span>' +
-                    '</div>'
-                );
-            }).join('');
-
-            var editAction = canEdit && !isLocked
-                ? '<button type="button" data-action="edit" data-passport-id="' + String(passport.id) + '" class="gp-btn gp-btn-edit">' +
-                    '<i class="fa-solid fa-pen-to-square"></i> Edit' +
-                  '</button>'
+            // Background
+            var bgImage = (game && game.icon_url)
+                ? '<img src="' + escapeHtml(game.icon_url) + '" class="absolute inset-0 w-full h-full object-cover opacity-10 mix-blend-luminosity blur-[2px] pointer-events-none z-0" alt="BG">'
                 : '';
 
-            var disconnectClass = isLocked ? 'gp-btn gp-btn-disconnect gp-btn-disabled' : 'gp-btn gp-btn-disconnect';
-            var disconnectDisabled = isLocked ? ' disabled' : '';
+            // Badges
+            var isApiSynced = isApiSyncedPassport(passport, game)
+                || !!(providerData.steam && providerData.steam.persona_name)
+                || !!(providerData.riot && providerData.riot.puuid)
+                || shouldRenderLivePerformance(passport, game);
+            var vstatus = String(passport.verification_status || '').toUpperCase();
+            var badgeHTML = (vstatus === 'FLAGGED')
+                ? '<span class="bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-red-400 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> FLAGGED</span>'
+                : ((vstatus === 'VERIFIED' || isApiSynced)
+                    ? '<span class="bg-white/10 border border-white/5 px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-300 flex items-center gap-1"><i class="fa-solid fa-shield-check"></i> VERIFIED</span>'
+                    : '<span class="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-400 flex items-center gap-1"><i class="fa-solid fa-clock"></i> PENDING</span>');
 
-            return (
-                '<article class="gp-glass-panel gp-connected-card gp-roster-card gp-compact-card p-4 animate-slide-up relative" style="--gp-accent:' + escapeHtml(accent) + '; --gp-accent-soft:' + escapeHtml(accentSoft) + '; --gp-accent-glow:' + escapeHtml(accentGlow) + '; animation-delay:' + (index * 45) + 'ms;">' +
-                    '<div class="gp-card-overlay"></div>' +
-                    '<div class="relative z-10">' +
-                        '<div class="gp-roster-head">' +
-                            '<div class="flex items-center gap-3 min-w-0">' +
-                                '<div class="gp-roster-icon w-12 h-12 rounded-lg border bg-black/35 flex items-center justify-center text-xl shrink-0">' + icon + '</div>' +
-                                '<div class="min-w-0">' +
-                                    '<h4 class="gp-roster-title">' + escapeHtml(title) + '</h4>' +
-                                    '<div class="gp-roster-identity">' + escapeHtml(identity) + '</div>' +
+            var typeBadgeHTML = isApiSynced
+                ? '<span class="liquid-glass px-2 py-0.5 rounded-md text-[10px] font-bold text-teal-400 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-cloud-arrow-down"></i> API SYNCED</span>'
+                : '<span class="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-400 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-keyboard"></i> MANUAL ENTRY</span>';
+
+            // Privacy footer
+            var visibilityVal = String(passport.visibility || 'PUBLIC').toUpperCase();
+            var isPublic = visibilityVal === 'PUBLIC';
+            var privacyIcon = isPublic ? '<i class="fa-solid fa-eye text-teal-500"></i>' : '<i class="fa-solid fa-eye-slash text-slate-500"></i>';
+            var privacyText = isPublic ? '<span class="text-slate-300">Public</span>' : '<span class="text-slate-500">Private</span>';
+
+            // Data chips from collectMetaTags
+            var dataChipsHTML = '';
+            if (tags && tags.length) {
+                tags.slice(0, 4).forEach(function (entry) {
+                    dataChipsHTML +=
+                        '<div class="bg-black/40 border border-white/5 rounded-xl p-3 backdrop-blur-md overflow-hidden">' +
+                            '<p class="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1 truncate">' + escapeHtml(entry.label || entry.key) + '</p>' +
+                            '<p class="text-sm font-medium text-slate-200 truncate">' + escapeHtml(String(entry.value || '--')) + '</p>' +
+                        '</div>';
+                });
+            } else {
+                dataChipsHTML = '<div class="col-span-2 text-slate-500 text-xs italic p-2">No identity data configured.</div>';
+            }
+
+            var ign = escapeHtml(identity) || 'Configure ID';
+
+            // Edit button — uses data-action delegation (openIdModal lives in closure)
+            var editBtnHtml = !isLocked
+                ? '<button type="button" data-action="edit" data-passport-id="' + String(passport.id) + '" class="liquid-glass px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:bg-white/10 transition flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-pen"></i> EDIT ID</button>'
+                : '';
+
+            var lockFooterHtml = isLocked
+                ? '<span class="text-xs font-black text-amber-500 tracking-wide uppercase"><i class="fa-solid fa-lock mr-1"></i> Identity Locked</span>'
+                : '<span class="text-xs font-black text-green-400 tracking-wide uppercase"><i class="fa-solid fa-check mr-1"></i> Roster Ready</span>';
+
+            var gameLabel = escapeHtml(String(game && game.display_name || title || gameSlug));
+
+            var div = document.createElement('div');
+            div.id = 'card-' + passport.id;
+            div.className = 'liquid-glass rounded-[2rem] p-1 accent-' + gameSlug + ' transition-all duration-300 relative group overflow-hidden w-full';
+            div.style.cssText = '--game-color:' + accent + ';animation-delay:' + (index * 80) + 'ms;';
+            div.innerHTML =
+                '<div class="bg-[#0A0F1A] rounded-[30px] h-full w-full p-5 relative z-10 overflow-hidden game-glow flex flex-col min-h-[300px]">' +
+                    bgImage +
+                    '<div class="relative z-20 flex flex-col flex-1 min-h-0">' +
+                        '<div class="flex justify-between items-start w-full mb-4 gap-3">' +
+                            '<div class="flex items-center gap-3 flex-1 min-w-0">' +
+                                '<div class="w-14 h-14 rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-slate-800 flex items-center justify-center shrink-0">' +
+                                    avatarHTML +
+                                '</div>' +
+                                '<div class="flex flex-col flex-1 min-w-0">' +
+                                    '<span class="text-[10px] font-black text-white/50 tracking-widest uppercase truncate mb-0.5">' + gameLabel + '</span>' +
+                                    '<h3 class="text-xl font-black text-white leading-tight truncate" title="' + ign + '">' + ign + '</h3>' +
+                                    '<div class="flex flex-wrap gap-1.5 mt-1">' +
+                                        typeBadgeHTML +
+                                        badgeHTML +
+                                    '</div>' +
                                 '</div>' +
                             '</div>' +
-                            '<div class="flex items-center gap-2 shrink-0">' + verifyBadge + sourceChip + '</div>' +
-                        '</div>' +
-                        '<div class="gp-status-bar">' +
-                            privacyToggle +
-                            lockText +
-                        '</div>' +
-                        '<div class="gp-data-chip-list">' + dataTagMarkup + '</div>' +
-                        '<div class="gp-roster-divider"></div>' +
-                        '<div class="gp-roster-foot">' +
-                            '<div class="flex items-center gap-2">' +
-                                editAction +
-                                '<button type="button" data-action="disconnect" data-passport-id="' + String(passport.id) + '" class="' + disconnectClass + '"' + disconnectDisabled + '>' +
-                                '<i class="fa-solid fa-unlink"></i> Disconnect' +
-                                '</button>' +
+                            '<div class="flex flex-col gap-1.5 shrink-0 items-end">' +
+                                editBtnHtml +
+                                '<button type="button" data-action="disconnect" data-passport-id="' + String(passport.id) + '" class="bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/20 transition flex items-center gap-1.5 whitespace-nowrap"' + (isLocked ? ' disabled' : '') + '><i class="fa-solid fa-link-slash"></i> UNLINK</button>' +
                             '</div>' +
                         '</div>' +
+                        '<div class="grid grid-cols-2 gap-2 mt-3 w-full">' +
+                            dataChipsHTML +
+                        '</div>' +
+                        '<div class="mt-auto pt-3 border-t border-white/5 flex justify-between items-center w-full">' +
+                            '<button type="button" data-action="toggle-privacy" data-passport-id="' + String(passport.id) + '" data-game-slug="' + escapeHtml(gameSlug) + '" data-current="' + visibilityVal + '" class="flex items-center gap-2 text-xs font-bold hover:opacity-80 transition">' +
+                                privacyIcon + ' ' + privacyText +
+                            '</button>' +
+                            lockFooterHtml +
+                        '</div>' +
                     '</div>' +
-                '</article>'
-            );
-        }).join('');
+                '</div>';
 
-        grid.innerHTML = markup;
+            container.appendChild(div);
+        });
     }
-
     function renderAddGames() {
         const grid = byId('gp-add-grid');
         if (!grid) return;
@@ -1001,12 +1020,12 @@
 
         if (!availableGames.length) {
             grid.innerHTML = (
-                '<div class="gp-glass-panel rounded-2xl p-8 text-center col-span-full border border-dashed border-white/20">' +
-                    '<div class="w-14 h-14 mx-auto mb-3 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-z-purple">' +
-                        '<i class="fa-solid fa-trophy text-xl"></i>' +
+                '<div class="col-span-full liquid-glass rounded-2xl p-10 text-center">' +
+                    '<div class="w-14 h-14 mx-auto mb-4 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">' +
+                        '<i class="fa-solid fa-trophy text-xl text-teal-400/70"></i>' +
                     '</div>' +
-                    '<h4 class="text-white font-bold text-lg">All games connected</h4>' +
-                    '<p class="text-gray-500 text-sm mt-1">Your roster is ready for team play and tournaments.</p>' +
+                    '<h4 class="text-white font-black text-base">All games connected</h4>' +
+                    '<p class="text-slate-500 text-xs mt-1">Your roster is ready for team play and tournaments.</p>' +
                 '</div>'
             );
             return;
@@ -1016,30 +1035,44 @@
             const slug = canonicalSlug(game.slug || game.name || game.display_name);
             const title = game.display_name || game.name || slug;
             const accent = getGameAccent(game);
-            const accentSoft = hexToRgba(accent, 0.2);
             const icon = getGameIconMarkup(game, title);
             const isDirect = !!DIRECT_CONNECT_ROUTES[slug];
-            const connectType = isDirect ? 'Direct' : 'Manual';
-            const chipIcon = isDirect
-                ? '<i class="fa-solid fa-bolt"></i>'
-                : '<i class="fa-solid fa-id-card"></i>';
+
+            // Type badge: AUTO-SYNC vs MANUAL
+            var typeBadge = isDirect
+                ? '<span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-[9px] font-bold text-slate-400 flex items-center gap-1">' +
+                      '<i class="fa-solid fa-bolt text-teal-400"></i> AUTO-SYNC' +
+                  '</span>'
+                : '<span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-[9px] font-bold text-slate-400 flex items-center gap-1">' +
+                      '<i class="fa-solid fa-keyboard text-amber-500"></i> MANUAL' +
+                  '</span>';
+
+            // Connect button label
+            var connectLabel = isDirect ? 'CONNECT' : 'ADD ID MANUALLY';
+            var accentHex = escapeHtml(accent);
 
             return (
-                '<article class="gp-glass-panel gp-add-card gp-compact-card rounded-xl p-3.5 border border-white/10" style="--gp-accent:' + escapeHtml(accent) + '; background:linear-gradient(152deg,' + escapeHtml(accentSoft) + ',' + hexToRgba(accent, 0.05) + ');">' +
-                    '<div class="flex items-start justify-between gap-2">' +
-                        '<div class="gp-roster-icon w-10 h-10 rounded-lg border bg-black/35 flex items-center justify-center text-lg font-black shrink-0">' + icon + '</div>' +
-                        '<span class="gp-add-type-chip">' + chipIcon + ' ' + escapeHtml(connectType) + '</span>' +
+                '<div class="liquid-glass-hover liquid-glass rounded-2xl p-5 flex flex-col justify-between cursor-pointer group gp-add-card">' +
+                    '<div class="flex justify-between items-start mb-4">' +
+                        '<div class="w-14 h-14 rounded-xl border border-white/10 bg-black/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 text-xl" style="color:' + accentHex + ';">' +
+                            icon +
+                        '</div>' +
+                        typeBadge +
                     '</div>' +
-                    '<div class="mt-3 min-w-0">' +
-                        '<h4 class="gp-add-title">' + escapeHtml(title) + '</h4>' +
-                        '<p class="gp-add-subtitle">' + (isDirect ? 'Instant provider connect' : 'Fill player ID fields') + '</p>' +
+                    '<div>' +
+                        '<h4 class="text-lg font-black text-white mb-1">' + escapeHtml(title) + '</h4>' +
+                        '<p class="text-xs text-slate-500 mb-4">' +
+                            (isDirect ? 'Secure OAuth provider connect.' : 'Enter your in-game player ID fields.') +
+                        '</p>' +
+                        '<button type="button" data-action="add-game" data-game-slug="' + escapeHtml(slug) + '" ' +
+                            'class="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white text-center hover:bg-white/10 transition-all duration-300">' +
+                            connectLabel +
+                        '</button>' +
                     '</div>' +
-                    '<button type="button" data-action="add-game" data-game-slug="' + escapeHtml(slug) + '" class="gp-btn gp-btn-connect w-full mt-3">Connect</button>' +
-                '</article>'
+                '</div>'
             );
         }).join('');
     }
-
     function syncBodyModalLock() {
         const idModal = byId('gp-id-modal');
         const disModal = byId('gp-disconnect-modal');
@@ -1107,7 +1140,7 @@
         var fieldClass = String(field.field_class || '').toUpperCase();
         var isLocked = fieldClass === 'VERIFIED_IDENTITY' || fieldClass === 'API_SYNCED';
 
-        // ── Locked field: render as read-only display panel ────────────────
+        // ΓöÇΓöÇ Locked field: render as read-only display panel ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
         if (isLocked) {
             var rawValue = '';
             if (currentPassport) {
@@ -1158,7 +1191,7 @@
             return (
                 '<div class="mb-4 relative">' +
                     baseLabel +
-                    '<select id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition appearance-none cursor-pointer"' + (required ? ' required' : '') + '>' +
+                    '<select id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" class="w-full bg-gray-900/60 border border-slate-600/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition appearance-none cursor-pointer"' + (required ? ' required' : '') + '>' +
                         '<option value="">Select ' + escapeHtml(label) + '</option>' +
                         optionsMarkup +
                     '</select>' +
@@ -1171,7 +1204,7 @@
         return (
             '<div class="mb-4 relative">' +
                 baseLabel +
-                '<input id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" type="text" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition" autocomplete="off"' +
+                '<input id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" type="text" class="w-full bg-gray-900/60 border border-slate-600/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition" autocomplete="off"' +
                     (field.placeholder ? ' placeholder="' + escapeHtml(String(field.placeholder)) + '"' : '') +
                     (required ? ' required' : '') +
                     (minLength ? ' minlength="' + String(minLength) + '"' : '') +
@@ -1275,7 +1308,8 @@
                 var fc = String(field.field_class || '').toUpperCase();
                 if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
 
-                var key = String(field.key || '').trim();
+                // Normalise key across both schema formats
+                var key = String(field.key || field.field_name || '').trim();
                 if (!key) return;
 
                 var input = document.querySelector('[data-id-field="' + key + '"]');
@@ -1310,7 +1344,8 @@
 
     function validateField(field, value) {
         const text = String(value == null ? '' : value).trim();
-        const fieldLabel = getFieldDisplayLabel(field.key, state.selectedGame, field.label);
+        const fieldKey = field.key || field.field_name || '';
+        const fieldLabel = getFieldDisplayLabel(fieldKey, state.selectedGame, field.display_name || field.label);
 
         if (field.required && !text) {
             return fieldLabel + ' is required.';
@@ -1357,11 +1392,14 @@
         var schema = fieldSchema || (Array.isArray(game.passport_schema) ? game.passport_schema : []);
 
         schema.forEach(function (field) {
-            // Skip locked fields — they are not submitted in the form
+            // Skip locked fields ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â they are not submitted in the form
             var fc = String(field.field_class || '').toUpperCase();
+            if (!fc) fc = (field.immutable || field.locked) ? 'VERIFIED_IDENTITY' : 'USER_EDITABLE';
             if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
 
-            var input = document.querySelector('[data-id-field="' + field.key + '"]');
+            // Normalise key across both schema formats
+            var fieldKey = String(field.key || field.field_name || '').trim();
+            var input = document.querySelector('[data-id-field="' + fieldKey + '"]');
             if (!input) return;
 
             var value = String(input.value || '').trim();
@@ -1372,7 +1410,7 @@
                 return;
             }
 
-            result.metadata[field.key] = value;
+            result.metadata[fieldKey] = value;
         });
 
         return result;
@@ -1811,6 +1849,25 @@
                 closeDisconnectModal();
             }
         });
+
+        // Career deep-link: delegated listener ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â supports any [data-career-deep-link] element,
+        // including outer container divs. Skips clicks that land on interactive children.
+        document.addEventListener('click', function (evt) {
+            var trigger = evt.target && typeof evt.target.closest === 'function'
+                ? evt.target.closest('[data-career-deep-link]')
+                : null;
+            if (!trigger) return;
+            // If the click hit an interactive child (not the trigger itself), let it handle normally
+            if (evt.target !== trigger && evt.target.closest('button, input, select, textarea, a[href]:not([data-career-deep-link])')) return;
+            evt.preventDefault();
+            if (typeof window.switchTab === 'function') {
+                window.switchTab('career');
+                setTimeout(function () {
+                    var careerEl = document.getElementById('tab-career');
+                    if (careerEl) careerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 60);
+            }
+        }, false);
 
         state.eventsBound = true;
     }

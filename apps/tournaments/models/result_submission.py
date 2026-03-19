@@ -53,11 +53,13 @@ class MatchResultSubmission(models.Model):
     # Submission source choices
     SOURCE_MANUAL = 'manual'
     SOURCE_RIOT_API = 'riot_api'
+    SOURCE_STEAM_API = 'steam_api'
     SOURCE_ADMIN_OVERRIDE = 'admin_override'
 
     SOURCE_CHOICES = [
         (SOURCE_MANUAL, 'Manual Submission'),
         (SOURCE_RIOT_API, 'Riot API Ingestion'),
+        (SOURCE_STEAM_API, 'Steam API Ingestion'),
         (SOURCE_ADMIN_OVERRIDE, 'Admin Override'),
     ]
     

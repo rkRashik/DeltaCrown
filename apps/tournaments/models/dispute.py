@@ -140,6 +140,12 @@ class DisputeRecord(models.Model):
         default='',
         help_text='Internal notes explaining the resolution decision'
     )
+
+    flagged_by_system = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='True when this dispute was raised automatically by the integrity check pipeline'
+    )
     
     # Timestamps
     opened_at = models.DateTimeField(

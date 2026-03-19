@@ -14,9 +14,12 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.games.models import Game
-from apps.user_profile.models import GameOAuthConnection, GameProfile
+from apps.user_profile.models import GameOAuthConnection, GameProfile, ProviderAccount
 
 logger = logging.getLogger(__name__)
+
+# Expand to include "lol", "tft", etc. as Riot adds more supported games.
+RIOT_SUPPORTED_GAMES: frozenset[str] = frozenset({"valorant"})
 
 RIOT_AUTHORIZE_URL = "https://auth.riotgames.com/authorize"
 RIOT_TOKEN_URL = "https://auth.riotgames.com/token"
@@ -50,6 +53,22 @@ def _oauth_timeout_seconds() -> int:
         return 10
 
 
+def _require_redirect_settings() -> None:
+    """Validate only the settings needed to build an authorization URL."""
+    missing = []
+    if not getattr(settings, "RIOT_CLIENT_ID", ""):
+        missing.append("RIOT_CLIENT_ID")
+    if not getattr(settings, "RIOT_REDIRECT_URI", ""):
+        missing.append("RIOT_REDIRECT_URI")
+    if missing:
+        raise RiotOAuthError(
+            error_code="RIOT_CONFIG_MISSING",
+            message=f"Riot OAuth is not fully configured. Missing: {', '.join(missing)}.",
+            status_code=503,
+            metadata={"missing": missing},
+        )
+
+
 def _require_riot_settings() -> None:
     missing = []
     if not getattr(settings, "RIOT_CLIENT_ID", ""):
@@ -70,7 +89,7 @@ def _require_riot_settings() -> None:
 
 def build_riot_authorization_url(state: str) -> str:
     """Build Riot authorization URL for frontend redirect."""
-    _require_riot_settings()
+    _require_redirect_settings()
 
     scope = getattr(settings, "RIOT_OAUTH_SCOPES", "openid offline_access")
     scope = scope.strip() or "openid offline_access"
@@ -289,32 +308,24 @@ def fetch_account_by_puuid(cluster: str, puuid: str, access_token: str) -> dict[
     return data
 
 
-def upsert_riot_connection(
+def upsert_riot_passports(
     *,
     user,
     identity: RiotIdentity,
     token_data: dict[str, Any],
-) -> tuple[GameProfile, GameOAuthConnection, bool]:
-    """Create/update Valorant GameProfile and linked OAuth connection."""
-    game = (
-        Game.objects.filter(slug__iexact="valorant").first()
-        or Game.objects.filter(name__iexact="Valorant").first()
-    )
-    if game is None:
-        raise RiotOAuthError(
-            "VALORANT_GAME_NOT_CONFIGURED",
-            "Valorant game record is missing in games_game",
-            500,
-        )
-
-    riot_id = identity.riot_id
-    discriminator = f"#{identity.tag_line}" if identity.tag_line else ""
-
-    metadata_update = {
-        "riot_puuid": identity.puuid,
-        "riot_game_name": identity.game_name,
-        "riot_tag_line": identity.tag_line,
+) -> list[tuple[GameProfile, GameOAuthConnection, bool]]:
+    """
+    Create/update the ProviderAccount for this Riot identity, then iterate over
+    every game in RIOT_SUPPORTED_GAMES and ensure a GameProfile + GameOAuthConnection
+    exists for each one.  Returns a list of (passport, oauth_conn, created) tuples.
+    """
+    riot_provider_data = {
+        "puuid": identity.puuid,
+        "game_name": identity.game_name,
+        "tag_line": identity.tag_line,
+        "riot_id": identity.riot_id,
         "oauth_provider": GameOAuthConnection.Provider.RIOT,
+        "synced_at": timezone.now().isoformat(),
     }
 
     expires_at = None
@@ -329,94 +340,145 @@ def upsert_riot_connection(
     if isinstance(scope_value, (list, tuple)):
         scope_value = " ".join(str(s).strip() for s in scope_value if str(s).strip())
 
+    discriminator = f"#{identity.tag_line}" if identity.tag_line else ""
+
     with transaction.atomic():
-        try:
-            passport, created = GameProfile.objects.get_or_create(
-                user=user,
-                game=game,
-                defaults={
-                    "game_display_name": game.display_name,
-                    "ign": identity.game_name,
-                    "discriminator": discriminator,
-                    "platform": "PC",
-                    "in_game_name": riot_id,
-                    "identity_key": riot_id,
-                    "visibility": GameProfile.VISIBILITY_PUBLIC,
-                    "metadata": metadata_update,
-                },
-            )
-        except IntegrityError as exc:
-            raise RiotOAuthError(
-                "RIOT_PASSPORT_CONFLICT",
-                "Could not create Valorant passport due to uniqueness conflict",
-                409,
-            ) from exc
-
-        if not created:
-            existing_metadata = passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
-            existing_metadata.update(metadata_update)
-
-            passport.game_display_name = game.display_name
-            passport.ign = identity.game_name
-            passport.discriminator = discriminator
-            passport.platform = passport.platform or "PC"
-            passport.in_game_name = riot_id
-            passport.identity_key = riot_id
-            passport.metadata = existing_metadata
-            try:
-                passport.save(
-                    update_fields=[
-                        "game_display_name",
-                        "ign",
-                        "discriminator",
-                        "platform",
-                        "in_game_name",
-                        "identity_key",
-                        "metadata",
-                        "updated_at",
-                    ]
-                )
-            except IntegrityError as exc:
-                raise RiotOAuthError(
-                    "RIOT_IDENTITY_CONFLICT",
-                    "This Riot ID is already linked to another account",
-                    409,
-                ) from exc
-
-        linked_elsewhere = GameOAuthConnection.objects.filter(
+        # Guard: this PUUID must not be linked to a different user
+        linked_to_another = ProviderAccount.objects.filter(
             provider=GameOAuthConnection.Provider.RIOT,
             provider_account_id=identity.puuid,
-        ).exclude(passport__user=user).first()
-        if linked_elsewhere:
+        ).exclude(user=user).first()
+        if linked_to_another:
             raise RiotOAuthError(
                 "RIOT_ACCOUNT_ALREADY_LINKED",
                 "This Riot account is already linked to another profile",
                 409,
             )
 
-        try:
-            oauth_connection, _ = GameOAuthConnection.objects.update_or_create(
-                passport=passport,
-                defaults={
-                    "provider": GameOAuthConnection.Provider.RIOT,
-                    "provider_account_id": identity.puuid,
-                    "access_token": str(token_data.get("access_token", "")),
-                    "refresh_token": str(token_data.get("refresh_token", "")),
-                    "token_type": str(token_data.get("token_type", "Bearer")),
-                    "scopes": str(scope_value or ""),
-                    "expires_at": expires_at,
-                    "last_synced_at": timezone.now(),
-                    "game_shard": "",
-                },
-            )
-        except IntegrityError as exc:
-            raise RiotOAuthError(
-                "RIOT_OAUTH_CONFLICT",
-                "This Riot OAuth account is already linked elsewhere",
-                409,
-            ) from exc
+        # Upsert the single cross-game provider identity anchor
+        provider_account, _ = ProviderAccount.objects.update_or_create(
+            provider=GameOAuthConnection.Provider.RIOT,
+            provider_account_id=identity.puuid,
+            defaults={
+                "user": user,
+                "provider_data": riot_provider_data,
+            },
+        )
 
-    return passport, oauth_connection, created
+        results: list[tuple[GameProfile, GameOAuthConnection, bool]] = []
+
+        for game_slug in RIOT_SUPPORTED_GAMES:
+            game = (
+                Game.objects.filter(slug__iexact=game_slug).first()
+                or Game.objects.filter(name__iexact=game_slug).first()
+            )
+            if game is None:
+                logger.warning(
+                    "[Riot upsert] Game '%s' not found in games_game table — skipping.",
+                    game_slug,
+                )
+                continue
+
+            riot_id = identity.riot_id
+
+            try:
+                passport, created = GameProfile.objects.get_or_create(
+                    user=user,
+                    game=game,
+                    defaults={
+                        "game_display_name": game.display_name,
+                        "ign": identity.game_name,
+                        "discriminator": discriminator,
+                        "platform": "PC",
+                        "in_game_name": riot_id,
+                        "identity_key": riot_id,
+                        "visibility": GameProfile.VISIBILITY_PUBLIC,
+                        "provider_data": {"riot": riot_provider_data},
+                        # OAuth-sourced passports are pre-verified — never leave them as PENDING
+                        "verification_status": "VERIFIED",
+                        "verified_at": timezone.now(),
+                    },
+                )
+            except IntegrityError as exc:
+                raise RiotOAuthError(
+                    "RIOT_PASSPORT_CONFLICT",
+                    f"Could not create Riot passport for {game_slug}",
+                    409,
+                ) from exc
+
+            if not created:
+                existing_provider_data = (
+                    passport.provider_data.copy()
+                    if isinstance(passport.provider_data, dict)
+                    else {}
+                )
+                existing_provider_data["riot"] = riot_provider_data
+
+                passport.game_display_name = game.display_name
+                passport.ign = identity.game_name
+                passport.discriminator = discriminator
+                passport.platform = passport.platform or "PC"
+                passport.in_game_name = riot_id
+                passport.identity_key = riot_id
+                passport.provider_data = existing_provider_data
+                # Re-sync always re-verifies: OAuth identity is authoritative
+                passport.verification_status = "VERIFIED"
+                passport.verified_at = timezone.now()
+                try:
+                    passport.save(
+                        update_fields=[
+                            "game_display_name",
+                            "ign",
+                            "discriminator",
+                            "platform",
+                            "in_game_name",
+                            "identity_key",
+                            "provider_data",
+                            "verification_status",
+                            "verified_at",
+                            "updated_at",
+                        ]
+                    )
+                except IntegrityError as exc:
+                    raise RiotOAuthError(
+                        "RIOT_IDENTITY_CONFLICT",
+                        "This Riot ID is already linked to another account",
+                        409,
+                    ) from exc
+
+            # Link ProviderAccount ↔ GameProfile via GameOAuthConnection
+            try:
+                oauth_conn, _ = GameOAuthConnection.objects.update_or_create(
+                    provider_account=provider_account,
+                    game_profile=passport,
+                    defaults={
+                        "provider": GameOAuthConnection.Provider.RIOT,
+                        "access_token": str(token_data.get("access_token", "")),
+                        "refresh_token": str(token_data.get("refresh_token", "")),
+                        "token_type": str(token_data.get("token_type", "Bearer")),
+                        "scopes": str(scope_value or ""),
+                        "expires_at": expires_at,
+                        "last_synced_at": timezone.now(),
+                        "game_shard": "",
+                    },
+                )
+            except IntegrityError as exc:
+                raise RiotOAuthError(
+                    "RIOT_OAUTH_CONFLICT",
+                    "This Riot OAuth account is already linked elsewhere",
+                    409,
+                ) from exc
+
+            results.append((passport, oauth_conn, created))
+
+    if not results:
+        raise RiotOAuthError(
+            "RIOT_NO_SUPPORTED_GAMES",
+            "No supported Riot games found in the database",
+            500,
+        )
+
+    return results
 
 
 def refresh_riot_access_token(conn: GameOAuthConnection) -> GameOAuthConnection:

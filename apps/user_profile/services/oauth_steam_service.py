@@ -271,6 +271,9 @@ def upsert_steam_passports(
                         "visibility": GameProfile.VISIBILITY_PUBLIC,
                         "metadata": metadata_update,
                         "provider_data": {"steam": steam_provider_data},
+                        # OAuth-sourced passports are pre-verified — never leave them as PENDING
+                        "verification_status": "VERIFIED",
+                        "verified_at": timezone.now(),
                     },
                 )
             except IntegrityError as exc:
@@ -300,6 +303,9 @@ def upsert_steam_passports(
                 passport.identity_key = summary.steam_id
                 passport.metadata = existing_metadata
                 passport.provider_data = existing_provider_data
+                # Re-sync always re-verifies: OAuth identity is authoritative
+                passport.verification_status = "VERIFIED"
+                passport.verified_at = timezone.now()
                 try:
                     passport.save(
                         update_fields=[
@@ -310,6 +316,8 @@ def upsert_steam_passports(
                             "identity_key",
                             "metadata",
                             "provider_data",
+                            "verification_status",
+                            "verified_at",
                             "updated_at",
                         ]
                     )

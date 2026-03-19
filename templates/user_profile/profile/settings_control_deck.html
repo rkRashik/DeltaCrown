@@ -146,6 +146,8 @@
     /* Utilities */
     .tab-section { display: none; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .tab-section.active { display: block; }
+    /* All tabs except passports stay constrained to readable line-length */
+    .tab-section.active:not(#tab-passports) { max-width: 56rem; margin-left: auto; margin-right: auto; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     
@@ -246,22 +248,27 @@
 {% block content %}
 <div class="flex flex-col h-screen overflow-hidden text-sm">
 
-    <header class="h-16 z-50 bg-z-bg/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 lg:px-8 shrink-0 relative">
-        <div class="flex items-center gap-4">
-            <a href="{% url 'user_profile:public_profile' username=request.user.username %}" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition border border-white/10 text-gray-400 hover:text-white group">
-                <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+    <header class="h-14 z-50 bg-z-bg/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-4 lg:px-6 shrink-0 relative">
+        <!-- Left: back + breadcrumb -->
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="{% url 'user_profile:public_profile' username=request.user.username %}" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition border border-white/8 text-gray-400 hover:text-white group shrink-0">
+                <i class="fa-solid fa-arrow-left text-xs group-hover:-translate-x-0.5 transition-transform"></i>
             </a>
-            <div class="flex flex-col">
-                <h1 class="text-lg font-display font-bold text-white tracking-wide">Control Deck</h1>
+            <div class="flex items-center gap-2 text-sm min-w-0">
+                <span class="text-gray-500 font-medium hidden sm:block whitespace-nowrap">Control Deck</span>
+                <i class="fa-solid fa-chevron-right text-[8px] text-gray-600 hidden sm:block shrink-0"></i>
+                <span id="header-tab-label" class="text-white font-bold truncate">Identity</span>
             </div>
         </div>
-        
-        <div class="flex items-center gap-4">
-            <span class="text-xs text-yellow-500 font-mono hidden md:flex items-center gap-2 animate-pulse" id="unsaved-changes" style="display: none;">
-                <i class="fa-solid fa-circle text-[6px]"></i> Unsaved Changes
+
+        <!-- Right: unsaved indicator + save -->
+        <div class="flex items-center gap-3 shrink-0">
+            <span class="hidden md:flex items-center gap-1.5 text-xs text-amber-400 font-semibold animate-pulse" id="unsaved-changes" style="display:none;">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> Unsaved
             </span>
-            <button id="save-all-btn" onclick="saveAll()" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-2">
-                <i class="fa-solid fa-floppy-disk"></i> Save
+            <button id="save-all-btn" onclick="saveAll()" class="bg-z-cyan text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-1.5">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span class="hidden sm:inline">Save</span>
             </button>
         </div>
     </header>
@@ -329,8 +336,8 @@
             <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security" data-nav="security">Security</button>
         </div>
 
-        <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-12 pb-32 scroll-smooth">
-            <div class="max-w-4xl mx-auto space-y-8">
+        <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-8 pb-32 scroll-smooth">
+            <div class="space-y-8">
 
                 <!-- IDENTITY TAB (READY) -->
                 <div id="tab-identity" class="tab-section active">
@@ -3112,6 +3119,18 @@
                 btn.classList.add('active');
             }
         });
+
+        // Update breadcrumb label in header
+        const tabLabelMap = {
+            identity: 'Identity', about: 'About', connections: 'Connections',
+            security: 'Security', privacy: 'Privacy & Visibility', platform: 'Platform',
+            notifications: 'Notifications', recruitment: 'Career & LFT',
+            passports: 'Game Passports', matchmaking: 'Bounties & Match',
+            loadout: 'Pro Loadout', inventory: 'Inventory', stream: 'Live Feed',
+            billing: 'Wallet', danger: 'Danger Zone'
+        };
+        const headerLabel = document.getElementById('header-tab-label');
+        if (headerLabel) headerLabel.textContent = tabLabelMap[targetId] || targetId;
 
         // PHASE 9A: Initialize Game Passports tab on first activation
         if (targetId === 'passports') {

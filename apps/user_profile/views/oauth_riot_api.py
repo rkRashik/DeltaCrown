@@ -21,7 +21,7 @@ from apps.user_profile.services.oauth_riot_service import (
     exchange_code_for_tokens,
     fetch_userinfo,
     resolve_riot_identity,
-    upsert_riot_connection,
+    upsert_riot_passports,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class RiotLoginRedirectView(View):
     """Return the Riot authorization URL for frontend redirect."""
 
     def get(self, request: HttpRequest) -> HttpResponse:
-        response_mode = str(request.GET.get("response_mode", "json") or "json").strip().lower()
+        response_mode = str(request.GET.get("response_mode", "auto") or "auto").strip().lower()
         raw_callback_mode = str(request.GET.get("callback_mode", "") or "").strip().lower()
 
         if response_mode not in VALID_RESPONSE_MODES:
@@ -73,6 +73,28 @@ class RiotLoginRedirectView(View):
         callback_mode = raw_callback_mode if raw_callback_mode in VALID_CALLBACK_MODES else ("json" if wants_json else "redirect")
 
         state = secrets.token_urlsafe(32)
+
+        try:
+            authorization_url = build_riot_authorization_url(state=state)
+        except RiotOAuthError as exc:
+            # Map status 500 → 503 for "not configured" so Django doesn't
+            # treat it as a server crash (503 = service unavailable).
+            http_status = exc.status_code if exc.status_code != 500 else 503
+            return error_response(
+                error_code=exc.error_code,
+                message=exc.message,
+                status=http_status,
+                metadata=exc.metadata,
+            )
+        except Exception:
+            logger.exception("[Riot OAuth] Unexpected error building authorization URL")
+            return error_response(
+                error_code="SERVER_ERROR",
+                message="An unexpected error occurred. Please try again.",
+                status=500,
+            )
+
+        # Settings are valid — only persist OAuth state after successful validation.
         cache.set(
             f"{STATE_CACHE_PREFIX}{state}",
             {
@@ -81,16 +103,6 @@ class RiotLoginRedirectView(View):
             },
             timeout=STATE_TTL_SECONDS,
         )
-
-        try:
-            authorization_url = build_riot_authorization_url(state=state)
-        except RiotOAuthError as exc:
-            return error_response(
-                error_code=exc.error_code,
-                message=exc.message,
-                status=exc.status_code,
-                metadata=exc.metadata,
-            )
 
         if not wants_json:
             return HttpResponseRedirect(authorization_url)
@@ -216,13 +228,14 @@ class RiotCallbackView(View):
             logger.info("[Riot OAuth] Userinfo fetched: sub=%s", userinfo.get("sub", "(missing)"))
             identity = resolve_riot_identity(userinfo, token_data["access_token"])
             logger.info("[Riot OAuth] Identity resolved: puuid=%s riot_id=%s", identity.puuid, identity.riot_id)
-            passport, oauth_connection, passport_created = upsert_riot_connection(
+            results = upsert_riot_passports(
                 user=request.user,
                 identity=identity,
                 token_data=token_data,
             )
+            passport, oauth_connection, passport_created = results[0]
             logger.info(
-                "[Riot OAuth] Connection saved: passport_id=%s provider_account=%s created=%s",
+                "[Riot OAuth] Connection saved: passport_id=%s provider_account_pk=%s created=%s",
                 passport.id, oauth_connection.provider_account_id, passport_created,
             )
         except RiotOAuthError as exc:
