@@ -24,6 +24,7 @@ class GameProfileSerializer(serializers.ModelSerializer):
     cooldown = serializers.SerializerMethodField()
     api_synced = serializers.SerializerMethodField()
     live_performance = serializers.SerializerMethodField()
+    field_schema = serializers.SerializerMethodField()
 
     class Meta:
         model = GameProfile
@@ -45,6 +46,8 @@ class GameProfileSerializer(serializers.ModelSerializer):
             "pinned",
             "visibility",
             "metadata",
+            "provider_data",
+            "preferences",
             "passport_data",
             "locked_until",
             "is_locked",
@@ -54,8 +57,23 @@ class GameProfileSerializer(serializers.ModelSerializer):
             "cooldown",
             "api_synced",
             "live_performance",
+            "field_schema",
         ]
         read_only_fields = fields
+
+    # ── Field class constants (consumed by the frontend renderer) ────────────
+    _FC_VERIFIED_IDENTITY = "VERIFIED_IDENTITY"   # Set by OAuth; never user-editable
+    _FC_API_SYNCED        = "API_SYNCED"           # Refreshed by sync jobs; display-only
+    _FC_PREFERENCE        = "PREFERENCE"           # User-controlled dropdown
+    _FC_USER_EDITABLE     = "USER_EDITABLE"        # Free-text user input
+
+    # Provider-owned keys that map directly into provider_data namespaces.
+    # Any field whose DB name appears here is treated as VERIFIED_IDENTITY.
+    _PROVIDER_IDENTITY_KEYS = {
+        "steam": {"steam_id", "persona_name", "avatar", "avatar_medium", "avatar_full", "profile_url"},
+        "riot":  {"puuid", "game_name", "tag_line", "summoner_id", "account_id", "region_shard"},
+        "epic":  {"account_id", "display_name", "epic_id"},
+    }
 
     @staticmethod
     def _coerce_float(value):
@@ -107,6 +125,107 @@ class GameProfileSerializer(serializers.ModelSerializer):
             "slug": obj.game.slug,
             "icon": _safe_image_url(obj.game.icon),
         }
+
+    def get_field_schema(self, obj):
+        """
+        Phase 1 Dynamic Schema — data-driven field classification.
+
+        Returns a list of field descriptors so the frontend renderer never
+        needs to hard-code which fields are locked vs. editable.  Driven by
+        ``GamePlayerIdentityConfig`` rows for the passport's game plus the
+        presence of data in ``provider_data`` namespaces.
+
+        Field classes:
+          VERIFIED_IDENTITY  — set by OAuth; padlock badge, never editable
+          API_SYNCED         — refreshed by sync jobs; cloud-sync badge
+          PREFERENCE         — user-controlled dropdown
+          USER_EDITABLE      — free-text user input
+        """
+        from apps.games.models import GamePlayerIdentityConfig
+
+        game_slug = (getattr(obj.game, "slug", "") or "").strip().lower()
+        provider_data = obj.provider_data if isinstance(obj.provider_data, dict) else {}
+        preferences = obj.preferences if isinstance(obj.preferences, dict) else {}
+
+        # Collect all provider-owned field names that have live data
+        verified_field_names: set[str] = set()
+        for provider_key, owned_keys in self._PROVIDER_IDENTITY_KEYS.items():
+            if provider_data.get(provider_key):
+                verified_field_names.update(owned_keys)
+
+        schema_fields = []
+
+        try:
+            identity_configs = list(
+                GamePlayerIdentityConfig.objects.filter(game=obj.game).order_by("order")
+            )
+        except Exception:  # noqa: BLE001 — tolerate missing table during migration
+            identity_configs = []
+
+        for config in identity_configs:
+            fname = config.field_name
+            is_immutable = config.is_immutable
+            is_required = config.is_required
+
+            # Determine field class
+            if fname in verified_field_names or is_immutable:
+                field_class = self._FC_VERIFIED_IDENTITY
+                locked = True
+            elif fname in preferences:
+                field_class = self._FC_PREFERENCE
+                locked = False
+            else:
+                field_class = self._FC_USER_EDITABLE
+                locked = False
+
+            # Determine which zone holds the current value
+            value_path = None
+            for provider_key, owned_keys in self._PROVIDER_IDENTITY_KEYS.items():
+                if fname in owned_keys and provider_data.get(provider_key):
+                    value_path = f"provider_data.{provider_key}.{fname}"
+                    break
+            if value_path is None:
+                if fname in preferences:
+                    value_path = f"preferences.{fname}"
+                else:
+                    value_path = f"metadata.{fname}"
+
+            entry: dict = {
+                "field_name": fname,
+                "display_name": config.display_name,
+                "field_class": field_class,
+                "locked": locked,
+                "required": is_required,
+                "value_path": value_path,
+                "help_text": config.help_text or "",
+            }
+
+            # Attach choices for PREFERENCE / USER_EDITABLE selects
+            if hasattr(config, "choices") and config.choices:
+                entry["choices"] = config.choices
+
+            schema_fields.append(entry)
+
+        # If no schema rows exist yet, emit a minimal entry for each known
+        # provider_data key so the frontend still knows what to lock.
+        if not schema_fields:
+            for provider_key, provider_ns in provider_data.items():
+                if not isinstance(provider_ns, dict):
+                    continue
+                for key in provider_ns:
+                    if key == "synced_at":
+                        continue
+                    schema_fields.append({
+                        "field_name": key,
+                        "display_name": key.replace("_", " ").title(),
+                        "field_class": self._FC_VERIFIED_IDENTITY,
+                        "locked": True,
+                        "required": False,
+                        "value_path": f"provider_data.{provider_key}.{key}",
+                        "help_text": f"Verified by {provider_key.title()}.",
+                    })
+
+        return schema_fields
 
     def get_passport_data(self, obj):
         return obj.metadata or {}

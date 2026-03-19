@@ -53,7 +53,11 @@ def toggle_lft(request):
         return JsonResponse({
             'success': True,
             'is_lft': passport.is_lft,
-            'game': passport.game,
+            'game': {
+                'id': passport.game.id,
+                'slug': passport.game.slug,
+                'name': passport.game.display_name,
+            },
             'message': f"{'Activated' if passport.is_lft else 'Deactivated'} Looking for Team"
         })
         
@@ -93,7 +97,11 @@ def set_visibility(request):
         return JsonResponse({
             'success': True,
             'visibility': passport.visibility,
-            'game': passport.game,
+            'game': {
+                'id': passport.game.id,
+                'slug': passport.game.slug,
+                'name': passport.game.display_name,
+            },
             'message': f"Privacy set to {passport.get_visibility_display()}"
         })
         
@@ -167,7 +175,10 @@ def reorder_passports(request):
         
         return JsonResponse({
             'success': True,
-            'game_order': [p.game for p in passports],
+            'game_order': [
+                {'id': p.game.id, 'slug': p.game.slug, 'name': p.game.display_name}
+                for p in passports
+            ],
             'message': f"Reordered {len(passports)} passports"
         })
         

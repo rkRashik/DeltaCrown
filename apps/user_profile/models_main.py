@@ -1825,13 +1825,34 @@ class GameProfile(models.Model):
         help_text="Passport status"
     )
     
-    # Per-game metadata (JSON)
+    # Per-game metadata (JSON) — DEPRECATED for identity/OAuth data; kept for backward compat.
     metadata = models.JSONField(
         default=dict,
         blank=True,
-        help_text="SHOWCASE/CONFIG ONLY - DO NOT store identity here (use ign/discriminator/region/platform columns)"
+        help_text="DEPRECATED for identity storage. Use provider_data for OAuth fields and preferences for user choices."
     )
-    
+
+    # Phase 1 Dynamic Schema — OAuth-verified data (written only by sync services, never by users)
+    provider_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Verified data written exclusively by OAuth/API services. "
+            "Fields here are locked from user editing. "
+            "Namespaced by provider key: {'steam': {...}, 'riot': {...}}."
+        ),
+    )
+
+    # Phase 1 Dynamic Schema — User-controlled preferences (written only by users, never by sync services)
+    preferences = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "User-controlled preferences (main_role, preferred_region, display options). "
+            "Never populated by automated sync jobs."
+        ),
+    )
+
     # Verification DEPRECATED (GP-0: Remove verification system)
     is_verified = models.BooleanField(
         default=False,

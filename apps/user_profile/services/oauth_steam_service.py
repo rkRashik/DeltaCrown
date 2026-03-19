@@ -14,7 +14,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.games.models import Game
-from apps.user_profile.models import GameOAuthConnection, GameProfile
+from apps.user_profile.models import GameOAuthConnection, GameProfile, ProviderAccount
 
 logger = logging.getLogger(__name__)
 
@@ -193,16 +193,26 @@ def fetch_player_summary(steam_id: str) -> SteamProfileSummary:
     )
 
 
-def upsert_steam_connection(*, user, game_slug: str, summary: SteamProfileSummary) -> tuple[GameProfile, GameOAuthConnection, bool]:
-    game_slug = validate_game_slug(game_slug)
-    game = Game.objects.filter(slug__iexact=game_slug).first()
-    if game is None:
-        raise SteamOpenIDError(
-            "STEAM_GAME_NOT_CONFIGURED",
-            f"Steam game '{game_slug}' is missing in games_game",
-            500,
-        )
+def upsert_steam_passports(
+    *, user, summary: SteamProfileSummary
+) -> list[tuple[GameProfile, GameOAuthConnection, bool]]:
+    """
+    Create/update the ProviderAccount for this Steam identity, then iterate over
+    every game in STEAM_SUPPORTED_GAMES and ensure a GameProfile + GameOAuthConnection
+    exists for each one.  Returns a list of (passport, oauth_conn, created) tuples.
+    """
+    steam_provider_data = {
+        "steam_id": summary.steam_id,
+        "persona_name": summary.personaname,
+        "profile_url": summary.profile_url,
+        "avatar": summary.avatar,
+        "avatar_medium": summary.avatar_medium,
+        "avatar_full": summary.avatar_full,
+        "oauth_provider": GameOAuthConnection.Provider.STEAM,
+        "synced_at": timezone.now().isoformat(),
+    }
 
+    # Backward-compat metadata dict kept so legacy readers still work
     metadata_update = {
         "steam_id": summary.steam_id,
         "steam_persona_name": summary.personaname,
@@ -214,80 +224,118 @@ def upsert_steam_connection(*, user, game_slug: str, summary: SteamProfileSummar
     }
 
     with transaction.atomic():
-        linked_elsewhere = GameOAuthConnection.objects.filter(
+        # Guard: this Steam account must not be linked to a different user
+        linked_to_another = ProviderAccount.objects.filter(
             provider=GameOAuthConnection.Provider.STEAM,
             provider_account_id=summary.steam_id,
-        ).exclude(passport__user=user).first()
-        if linked_elsewhere:
+        ).exclude(user=user).first()
+        if linked_to_another:
             raise SteamOpenIDError(
                 "STEAM_ACCOUNT_ALREADY_LINKED",
                 "This Steam account is already linked to another profile",
                 409,
             )
 
-        try:
-            passport, created = GameProfile.objects.get_or_create(
-                user=user,
-                game=game,
-                defaults={
-                    "game_display_name": game.display_name,
-                    "ign": summary.personaname,
-                    "platform": "PC",
-                    "in_game_name": summary.personaname,
-                    "identity_key": summary.steam_id,
-                    "visibility": GameProfile.VISIBILITY_PUBLIC,
-                    "metadata": metadata_update,
-                },
-            )
-        except IntegrityError as exc:
-            raise SteamOpenIDError(
-                "STEAM_PASSPORT_CONFLICT",
-                "Could not create Steam passport due to uniqueness conflict",
-                409,
-            ) from exc
-
-        if not created:
-            existing_metadata = passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
-            existing_metadata.update(metadata_update)
-
-            passport.game_display_name = game.display_name
-            passport.ign = summary.personaname
-            passport.platform = passport.platform or "PC"
-            passport.in_game_name = summary.personaname
-            passport.identity_key = summary.steam_id
-            passport.metadata = existing_metadata
-            try:
-                passport.save(
-                    update_fields=[
-                        "game_display_name",
-                        "ign",
-                        "platform",
-                        "in_game_name",
-                        "identity_key",
-                        "metadata",
-                        "updated_at",
-                    ]
-                )
-            except IntegrityError as exc:
-                raise SteamOpenIDError(
-                    "STEAM_IDENTITY_CONFLICT",
-                    "This Steam ID is already linked to another account",
-                    409,
-                ) from exc
-
-        oauth_connection, _ = GameOAuthConnection.objects.update_or_create(
-            passport=passport,
+        # Upsert the single cross-game provider identity anchor
+        provider_account, _ = ProviderAccount.objects.update_or_create(
+            provider=GameOAuthConnection.Provider.STEAM,
+            provider_account_id=summary.steam_id,
             defaults={
-                "provider": GameOAuthConnection.Provider.STEAM,
-                "provider_account_id": summary.steam_id,
-                "access_token": "",
-                "refresh_token": "",
-                "token_type": "openid",
-                "scopes": "openid2",
-                "expires_at": None,
-                "last_synced_at": timezone.now(),
-                "game_shard": "",
+                "user": user,
+                "provider_data": steam_provider_data,
             },
         )
 
-    return passport, oauth_connection, created
+        results: list[tuple[GameProfile, GameOAuthConnection, bool]] = []
+
+        for game_slug in STEAM_SUPPORTED_GAMES:
+            game = Game.objects.filter(slug__iexact=game_slug).first()
+            if game is None:
+                logger.warning(
+                    "[Steam upsert] Game '%s' not found in games_game table — skipping.",
+                    game_slug,
+                )
+                continue
+
+            # Create or update the GameProfile for this (user, game) pair
+            try:
+                passport, created = GameProfile.objects.get_or_create(
+                    user=user,
+                    game=game,
+                    defaults={
+                        "game_display_name": game.display_name,
+                        "ign": summary.personaname,
+                        "platform": "PC",
+                        "in_game_name": summary.personaname,
+                        "identity_key": summary.steam_id,
+                        "visibility": GameProfile.VISIBILITY_PUBLIC,
+                        "metadata": metadata_update,
+                        "provider_data": {"steam": steam_provider_data},
+                    },
+                )
+            except IntegrityError as exc:
+                raise SteamOpenIDError(
+                    "STEAM_PASSPORT_CONFLICT",
+                    f"Could not create Steam passport for {game_slug}",
+                    409,
+                ) from exc
+
+            if not created:
+                existing_metadata = (
+                    passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
+                )
+                existing_metadata.update(metadata_update)
+
+                existing_provider_data = (
+                    passport.provider_data.copy()
+                    if isinstance(passport.provider_data, dict)
+                    else {}
+                )
+                existing_provider_data["steam"] = steam_provider_data
+
+                passport.game_display_name = game.display_name
+                passport.ign = summary.personaname
+                passport.platform = passport.platform or "PC"
+                passport.in_game_name = summary.personaname
+                passport.identity_key = summary.steam_id
+                passport.metadata = existing_metadata
+                passport.provider_data = existing_provider_data
+                try:
+                    passport.save(
+                        update_fields=[
+                            "game_display_name",
+                            "ign",
+                            "platform",
+                            "in_game_name",
+                            "identity_key",
+                            "metadata",
+                            "provider_data",
+                            "updated_at",
+                        ]
+                    )
+                except IntegrityError as exc:
+                    raise SteamOpenIDError(
+                        "STEAM_IDENTITY_CONFLICT",
+                        "This Steam ID is already linked to another account",
+                        409,
+                    ) from exc
+
+            # Link ProviderAccount ↔ GameProfile via GameOAuthConnection
+            oauth_conn, _ = GameOAuthConnection.objects.update_or_create(
+                provider_account=provider_account,
+                game_profile=passport,
+                defaults={
+                    "provider": GameOAuthConnection.Provider.STEAM,
+                    "access_token": "",
+                    "refresh_token": "",
+                    "token_type": "openid",
+                    "scopes": "openid2",
+                    "expires_at": None,
+                    "last_synced_at": timezone.now(),
+                    "game_shard": "",
+                },
+            )
+
+            results.append((passport, oauth_conn, created))
+
+    return results

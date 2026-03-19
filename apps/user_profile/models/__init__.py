@@ -7,7 +7,7 @@ the app registry does not pull in unrelated cross-app model graphs.
 
 import os
 
-from apps.user_profile.models.oauth import GameOAuthConnection
+from apps.user_profile.models.oauth import GameOAuthConnection, ProviderAccount
 from apps.user_profile.models_main import (
     Badge,
     Follow,
@@ -33,6 +33,7 @@ _MINIMAL_TEST_APPS = os.environ.get("DELTA_MINIMAL_TEST_APPS") == "1"
 
 __all__ = [
     'GameOAuthConnection',
+    'ProviderAccount',
     'UserProfile',
     'PrivacySettings',
     'SocialLink',

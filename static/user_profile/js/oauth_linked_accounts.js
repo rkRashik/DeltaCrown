@@ -10,8 +10,8 @@
 
     const DIRECT_CONNECT_ROUTES = {
         valorant: '/profile/api/oauth/riot/login/?response_mode=json&callback_mode=redirect',
-        cs2: '/profile/api/oauth/steam/login/?game=cs2&response_mode=json&callback_mode=redirect',
-        dota2: '/profile/api/oauth/steam/login/?game=dota2&response_mode=json&callback_mode=redirect',
+        cs2:      '/profile/api/oauth/steam/login/?response_mode=json&callback_mode=redirect',
+        dota2:    '/profile/api/oauth/steam/login/?response_mode=json&callback_mode=redirect',
         rocketleague: '/profile/api/oauth/epic/login/?response_mode=json&callback_mode=redirect'
     };
 
@@ -761,6 +761,18 @@
         );
     }
 
+    // Traverse a dot-notation path (e.g. "provider_data.steam.persona_name") on a passport object.
+    function getFieldValueFromPath(passport, valuePath) {
+        if (!valuePath || !passport) return '';
+        var parts = String(valuePath).split('.');
+        var obj = passport;
+        for (var i = 0; i < parts.length; i++) {
+            if (obj == null || typeof obj !== 'object') return '';
+            obj = obj[parts[i]];
+        }
+        return (obj == null || obj === '') ? '' : String(obj);
+    }
+
     function getPassportFieldValue(passport, key) {
         const metadata = passport && passport.metadata || {};
         const cleanKey = String(key || '').trim();
@@ -793,41 +805,57 @@
         return '';
     }
 
-    function collectMetaTags(passport, game) {
-        const metadata = passport.metadata || {};
-        const hide = {
-            identity_key: true,
-            live_stats: true,
-            api_synced: true,
-            oauth_provider: true,
-            riot_last_match_sync_at: true
-        };
+    var COLLECT_META_SKIP = {
+        identity_key: true, live_stats: true, api_synced: true,
+        oauth_provider: true, riot_last_match_sync_at: true,
+        steamid: true, steam_id: true, avatar: true, avatar_medium: true,
+        avatar_full: true, profile_url: true, synced_at: true
+    };
 
-        const tags = [];
+    function collectMetaTags(passport, game) {
+        // Prefer field_schema from the passport (populated by GameProfileSerializer)
+        var fieldSchema = Array.isArray(passport && passport.field_schema) ? passport.field_schema : [];
+        if (fieldSchema.length) {
+            var schemaTags = [];
+            for (var si = 0; si < fieldSchema.length; si++) {
+                var sf = fieldSchema[si];
+                var sfKey = String(sf.key || '').trim();
+                if (!sfKey || COLLECT_META_SKIP[sfKey]) continue;
+                var sfVal = sf.value_path
+                    ? getFieldValueFromPath(passport, sf.value_path)
+                    : getPassportFieldValue(passport, sfKey);
+                if (!sfVal) continue;
+                schemaTags.push({
+                    key: sfKey,
+                    label: sf.label || getFieldDisplayLabel(sfKey, game),
+                    value: sfVal,
+                    fieldClass: String(sf.field_class || '')
+                });
+                if (schemaTags.length >= 4) break;
+            }
+            if (schemaTags.length) return schemaTags;
+        }
+
+        // Fallback: scan metadata dict
+        var metadata = passport.metadata || {};
+        var tags = [];
         Object.keys(metadata).forEach(function (key) {
-            if (hide[key]) return;
-            const value = metadata[key];
+            if (COLLECT_META_SKIP[key]) return;
+            var value = metadata[key];
             if (value === null || value === undefined || value === '') return;
             if (typeof value === 'object') return;
-            tags.push({
-                key: key,
-                label: getFieldDisplayLabel(key, game),
-                value: value
-            });
+            tags.push({ key: key, label: getFieldDisplayLabel(key, game), value: value });
         });
 
         if (!tags.length && passport.region) {
             tags.push({ key: 'region', label: getFieldDisplayLabel('region', game), value: passport.region });
         }
-
         if (!tags.length && passport.main_role) {
             tags.push({ key: 'role', label: getFieldDisplayLabel('role', game), value: passport.main_role });
         }
-
         if (!tags.length && game && game.display_name) {
             tags.push({ key: 'status', label: getFieldDisplayLabel('status', game), value: 'Ready' });
         }
-
         return tags.slice(0, 4);
     }
 
@@ -845,18 +873,23 @@
         empty.classList.add('hidden');
 
         const markup = state.passports.map(function (passport, index) {
-            const game = findGameBySlug(getPassportSlug(passport));
-            const title = getGameDisplay(game, passport);
-            const identity = getIdentityLabel(passport);
-            const lockState = getPassportLockState(passport);
-            const accent = getGameAccent(game);
-            const accentSoft = hexToRgba(accent, 0.25);
-            const accentGlow = hexToRgba(accent, 0.2);
-            const icon = getGameIconMarkup(game, title);
-            const tags = collectMetaTags(passport, game);
-            const canEdit = !isApiSyncedPassport(passport, game);
-            const isApiSynced = isApiSyncedPassport(passport, game) || shouldRenderLivePerformance(passport, game);
-            const isLocked = lockState.isDeleteBlocked;
+            var game = findGameBySlug(getPassportSlug(passport));
+            var title = getGameDisplay(game, passport);
+            var identity = getIdentityLabel(passport);
+            var lockState = getPassportLockState(passport);
+            var accent = getGameAccent(game);
+            var accentSoft = hexToRgba(accent, 0.25);
+            var accentGlow = hexToRgba(accent, 0.2);
+            var icon = getGameIconMarkup(game, title);
+            var tags = collectMetaTags(passport, game);
+            // Steam-verified passports: identity is set via OAuth, not manual entry
+            var steamData = passport.provider_data && typeof passport.provider_data === 'object'
+                ? passport.provider_data.steam
+                : null;
+            var hasSteamLink = !!(steamData && steamData.persona_name);
+            var canEdit = !isApiSyncedPassport(passport, game) && !hasSteamLink;
+            var isApiSynced = isApiSyncedPassport(passport, game) || hasSteamLink || shouldRenderLivePerformance(passport, game);
+            var isLocked = lockState.isDeleteBlocked;
 
             var verifyBadge = '';
             var vstatus = String(passport.verification_status || '').toUpperCase();
@@ -877,31 +910,46 @@
                     (isPublic ? 'Public' : 'Private') +
                 '</button>';
 
-            const sourceChip = isApiSynced
-                ? '<span class="gp-source-chip gp-source-api"><i class="fa-solid fa-bolt text-[10px]"></i> API Synced</span>'
-                : '<span class="gp-source-chip gp-source-manual"><i class="fa-solid fa-user-pen text-[10px]"></i> Manual</span>';
+            // Source chip: Steam-verified gets a Steam brand badge with persona
+            var sourceChip;
+            if (hasSteamLink) {
+                sourceChip =
+                    '<span class="gp-source-chip gp-source-api" title="Connected via Steam as ' + escapeHtml(steamData.persona_name) + '">' +
+                        '<i class="fa-brands fa-steam text-[10px]"></i>' +
+                        ' Connected as ' + escapeHtml(steamData.persona_name) +
+                    '</span>';
+            } else if (isApiSynced) {
+                sourceChip = '<span class="gp-source-chip gp-source-api"><i class="fa-solid fa-bolt text-[10px]"></i> API Synced</span>';
+            } else {
+                sourceChip = '<span class="gp-source-chip gp-source-manual"><i class="fa-solid fa-user-pen text-[10px]"></i> Manual</span>';
+            }
 
-            const lockText = isLocked
+            var lockText = isLocked
                 ? '<span class="gp-lock-text gp-lock-active">Identity Locked</span>'
                 : '<span class="gp-lock-text gp-lock-open">Roster Ready</span>';
 
-            const dataTagMarkup = tags.map(function (entry) {
+            var dataTagMarkup = tags.map(function (entry) {
+                // Show a lock icon for VERIFIED_IDENTITY chips
+                var fClass = String(entry.fieldClass || '');
+                var chipIcon = fClass === 'VERIFIED_IDENTITY'
+                    ? '<i class="fa-solid fa-lock text-amber-400/60 text-[8px] mr-1"></i>'
+                    : (fClass === 'API_SYNCED' ? '<i class="fa-solid fa-cloud text-z-cyan/50 text-[8px] mr-1"></i>' : '');
                 return (
                     '<div class="gp-data-chip">' +
-                        '<span class="gp-data-chip-label">' + escapeHtml(entry.label || entry.key) + '</span>' +
+                        '<span class="gp-data-chip-label">' + chipIcon + escapeHtml(entry.label || entry.key) + '</span>' +
                         '<span class="gp-data-chip-value">' + escapeHtml(entry.value) + '</span>' +
                     '</div>'
                 );
             }).join('');
 
-            const editAction = canEdit && !isLocked
+            var editAction = canEdit && !isLocked
                 ? '<button type="button" data-action="edit" data-passport-id="' + String(passport.id) + '" class="gp-btn gp-btn-edit">' +
                     '<i class="fa-solid fa-pen-to-square"></i> Edit' +
                   '</button>'
                 : '';
 
-            const disconnectClass = isLocked ? 'gp-btn gp-btn-disconnect gp-btn-disabled' : 'gp-btn gp-btn-disconnect';
-            const disconnectDisabled = isLocked ? ' disabled' : '';
+            var disconnectClass = isLocked ? 'gp-btn gp-btn-disconnect gp-btn-disabled' : 'gp-btn gp-btn-disconnect';
+            var disconnectDisabled = isLocked ? ' disabled' : '';
 
             return (
                 '<article class="gp-glass-panel gp-connected-card gp-roster-card gp-compact-card p-4 animate-slide-up relative" style="--gp-accent:' + escapeHtml(accent) + '; --gp-accent-soft:' + escapeHtml(accentSoft) + '; --gp-accent-glow:' + escapeHtml(accentGlow) + '; animation-delay:' + (index * 45) + 'ms;">' +
@@ -1049,25 +1097,61 @@
         });
     }
 
-    function renderSchemaField(field) {
-        const key = String(field.key || 'field');
-        const label = getFieldDisplayLabel(key, state.selectedGame, field.label);
-        const type = String(field.type || 'text').toLowerCase();
-        const required = !!field.required;
-        const minLength = field.min_length ? Number(field.min_length) : 0;
-        const maxLength = field.max_length ? Number(field.max_length) : 0;
+    // Render one field from a passport_schema or field_schema entry.
+    // currentPassport is required for locked field classes (VERIFIED_IDENTITY, API_SYNCED).
+    function renderSchemaField(field, currentPassport) {
+        var key = String(field.key || 'field');
+        var label = getFieldDisplayLabel(key, state.selectedGame, field.label);
+        var type = String(field.type || 'text').toLowerCase();
+        var required = !!field.required;
+        var fieldClass = String(field.field_class || '').toUpperCase();
+        var isLocked = fieldClass === 'VERIFIED_IDENTITY' || fieldClass === 'API_SYNCED';
 
-        const baseLabel =
+        // ── Locked field: render as read-only display panel ────────────────
+        if (isLocked) {
+            var rawValue = '';
+            if (currentPassport) {
+                rawValue = field.value_path
+                    ? getFieldValueFromPath(currentPassport, field.value_path)
+                    : getPassportFieldValue(currentPassport, key);
+            }
+            var lockIcon = fieldClass === 'VERIFIED_IDENTITY'
+                ? '<i class="fa-solid fa-lock text-amber-400 text-[10px]"></i>'
+                : '<i class="fa-solid fa-cloud text-z-cyan text-[10px]"></i>';
+            var panelCls = fieldClass === 'VERIFIED_IDENTITY'
+                ? 'border-amber-500/25 bg-amber-500/8 text-amber-100/80'
+                : 'border-z-cyan/20 bg-z-cyan/5 text-z-cyan/80';
+            return (
+                '<div class="mb-4">' +
+                    '<div class="flex items-center gap-1.5 mb-1.5 ml-1">' +
+                        lockIcon +
+                        '<label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">' +
+                            escapeHtml(label) +
+                        '</label>' +
+                    '</div>' +
+                    '<div class="w-full rounded-lg border ' + panelCls + ' px-4 py-2.5 text-sm font-mono select-all cursor-default">' +
+                        (rawValue
+                            ? escapeHtml(rawValue)
+                            : '<span class="text-gray-500 italic text-xs">Not synced yet</span>') +
+                    '</div>' +
+                '</div>'
+            );
+        }
+
+        var minLength = field.min_length ? Number(field.min_length) : 0;
+        var maxLength = field.max_length ? Number(field.max_length) : 0;
+
+        var baseLabel =
             '<label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1" for="gp-field-' + escapeHtml(key) + '">' +
                 escapeHtml(label) + (required ? ' <span class="text-red-400">*</span>' : '') +
             '</label>';
 
-        const helpText = field.help_text
+        var helpText = field.help_text
             ? '<p class="text-[11px] text-gray-500 mt-1">' + escapeHtml(field.help_text) + '</p>'
             : '';
 
         if (type === 'select') {
-            const optionsMarkup = getFieldOptions(field).map(function (option) {
+            var optionsMarkup = getFieldOptions(field).map(function (option) {
                 return '<option value="' + escapeHtml(option.value) + '">' + escapeHtml(option.label) + '</option>';
             }).join('');
 
@@ -1142,11 +1226,11 @@
         const iconEl = byId('gp-id-modal-icon');
         const titleEl = byId('gp-id-modal-title');
         const subtitleEl = byId('gp-id-modal-subtitle');
-        const fieldsEl = byId('gp-id-fields');
-        const saveBtn = byId('gp-id-save');
+        var fieldsEl = byId('gp-id-fields');
+        var saveBtn = byId('gp-id-save');
 
-        const title = game.display_name || game.name || 'Game';
-        const accent = getGameAccent(game);
+        var title = game.display_name || game.name || 'Game';
+        var accent = getGameAccent(game);
 
         if (iconEl) {
             iconEl.style.backgroundColor = hexToRgba(accent, 0.2);
@@ -1168,35 +1252,44 @@
                 : '<i class="fa-solid fa-shield-check"></i> Save Passport';
         }
 
-        const schema = Array.isArray(game.passport_schema) ? game.passport_schema : [];
+        // Use field_schema from passport (dynamic) if available in edit mode, else fall back.
+        var fieldSchema = isEditMode && Array.isArray(editingPassport && editingPassport.field_schema)
+            ? editingPassport.field_schema
+            : null;
+        var schema = fieldSchema || (Array.isArray(game.passport_schema) ? game.passport_schema : []);
+        var passportForSchema = isEditMode ? editingPassport : null;
 
         if (fieldsEl) {
             if (!schema.length) {
                 fieldsEl.innerHTML = '<div class="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">This game has no profile fields configured right now.</div>';
             } else {
-                fieldsEl.innerHTML = schema.map(renderSchemaField).join('');
+                fieldsEl.innerHTML = schema.map(function (field) {
+                    return renderSchemaField(field, passportForSchema);
+                }).join('');
             }
         }
 
+        // Pre-fill only USER_EDITABLE / PREFERENCE fields (locked fields render inline)
         if (isEditMode && schema.length) {
             schema.forEach(function (field) {
-                const key = String(field.key || '').trim();
+                var fc = String(field.field_class || '').toUpperCase();
+                if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
+
+                var key = String(field.key || '').trim();
                 if (!key) return;
 
-                const input = document.querySelector('[data-id-field="' + key + '"]');
+                var input = document.querySelector('[data-id-field="' + key + '"]');
                 if (!input) return;
 
-                const rawValue = getPassportFieldValue(editingPassport, key);
-                const value = String(rawValue || '').trim();
+                var rawValue = getPassportFieldValue(editingPassport, key);
+                var value = String(rawValue || '').trim();
                 if (!value) return;
 
                 if (String(input.tagName || '').toLowerCase() === 'select') {
-                    const hasOption = Array.from(input.options || []).some(function (opt) {
+                    var hasOption = Array.from(input.options || []).some(function (opt) {
                         return String(opt.value) === value;
                     });
-                    if (hasOption) {
-                        input.value = value;
-                    }
+                    if (hasOption) { input.value = value; }
                     return;
                 }
 
@@ -1246,22 +1339,33 @@
     }
 
     function collectMetadataFromForm() {
-        const game = state.selectedGame;
-        const result = { metadata: {}, errors: [] };
+        var game = state.selectedGame;
+        var result = { metadata: {}, errors: [] };
 
         if (!game) {
             result.errors.push('No game selected.');
             return result;
         }
 
-        const schema = Array.isArray(game.passport_schema) ? game.passport_schema : [];
+        // Use field_schema from the passport being edited if available
+        var editingPassport = state.modalMode === 'edit' && state.editingPassportId
+            ? state.passports.find(function (p) { return Number(p.id) === Number(state.editingPassportId); })
+            : null;
+        var fieldSchema = editingPassport && Array.isArray(editingPassport.field_schema)
+            ? editingPassport.field_schema
+            : null;
+        var schema = fieldSchema || (Array.isArray(game.passport_schema) ? game.passport_schema : []);
 
         schema.forEach(function (field) {
-            const input = document.querySelector('[data-id-field="' + field.key + '"]');
+            // Skip locked fields — they are not submitted in the form
+            var fc = String(field.field_class || '').toUpperCase();
+            if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
+
+            var input = document.querySelector('[data-id-field="' + field.key + '"]');
             if (!input) return;
 
-            const value = String(input.value || '').trim();
-            const validationError = validateField(field, value);
+            var value = String(input.value || '').trim();
+            var validationError = validateField(field, value);
 
             if (validationError) {
                 result.errors.push(validationError);
