@@ -114,9 +114,24 @@ class SteamCallbackView(View):
     """Verify Steam OpenID callback and connect a Steam game passport."""
 
     def get(self, request: HttpRequest) -> HttpResponse:
+        from django.conf import settings as django_settings
+
         state = str(request.GET.get("state", "")).strip()
         game_slug = request.GET.get("game")
         callback_mode = str(request.GET.get("callback_mode", "") or "").strip().lower()
+
+        # ── PROBE 0: Log every incoming callback unconditionally ──────────
+        logger.error(
+            "[Steam OpenID] PROBE-0 callback hit: user=%s user_auth=%s "
+            "state=%r game=%r has_claimed_id=%s has_openid_mode=%s url_path=%s",
+            request.user.id if request.user.is_authenticated else "anon",
+            request.user.is_authenticated,
+            state[:8] + "…" if len(state) > 8 else state,
+            game_slug,
+            bool(request.GET.get("openid.claimed_id")),
+            request.GET.get("openid.mode"),
+            request.path,
+        )
 
         def _resolve_callback_mode(cached_data):
             if callback_mode in VALID_CALLBACK_MODES:
@@ -127,6 +142,12 @@ class SteamCallbackView(View):
 
         def _error_response_or_redirect(*, error_code: str, message: str, status: int = 400, metadata=None, cached_data=None):
             resolved_mode = _resolve_callback_mode(cached_data)
+            logger.error(
+                "[Steam OpenID] ERROR → code=%s message=%r resolved_mode=%s user=%s game=%s",
+                error_code, message, resolved_mode,
+                request.user.id if request.user.is_authenticated else "anon",
+                game_slug,
+            )
             if resolved_mode == "redirect":
                 target_slug = game_slug or (cached_data or {}).get("game_slug") or "cs2"
                 return HttpResponseRedirect(
@@ -161,6 +182,17 @@ class SteamCallbackView(View):
         cached = cache.get(cache_key)
         cache.delete(cache_key)
 
+        # ── PROBE 1: State cache lookup result ────────────────────────────
+        logger.error(
+            "[Steam OpenID] PROBE-1 state check: cache_hit=%s "
+            "cached_user=%s request_user=%s cached_game=%s param_game=%s",
+            cached is not None,
+            (cached or {}).get("user_id"),
+            request.user.id if request.user.is_authenticated else "anon",
+            (cached or {}).get("game_slug"),
+            game_slug,
+        )
+
         if not cached or cached.get("user_id") != request.user.id or cached.get("game_slug") != game_slug:
             return _error_response_or_redirect(
                 error_code="INVALID_OPENID_STATE",
@@ -168,6 +200,15 @@ class SteamCallbackView(View):
                 status=400,
                 cached_data=cached,
             )
+
+        # ── PROBE 2: API key presence check ──────────────────────────────
+        steam_api_key = getattr(django_settings, "STEAM_API_KEY", "").strip()
+        logger.error(
+            "[Steam OpenID] PROBE-2 config: STEAM_API_KEY_present=%s game=%s user=%s",
+            bool(steam_api_key),
+            game_slug,
+            request.user.id,
+        )
 
         logger.info(
             "[Steam OpenID] Callback received: user=%s game=%s state_present=%s openid_params=%s",
@@ -178,20 +219,26 @@ class SteamCallbackView(View):
         )
         try:
             steam_id = verify_steam_callback(request.GET.dict())
-            logger.info("[Steam OpenID] Signature verified: steam_id=%s", steam_id)
+            logger.error("[Steam OpenID] PROBE-3 signature verified: steam_id=%s", steam_id)
             summary = fetch_player_summary(steam_id)
-            logger.info("[Steam OpenID] Player summary fetched: persona=%s", summary.personaname)
+            logger.error(
+                "[Steam OpenID] PROBE-4 player summary OK: persona=%s steam_id=%s",
+                summary.personaname, summary.steam_id,
+            )
             passport, oauth_connection, passport_created = upsert_steam_connection(
                 user=request.user,
                 game_slug=game_slug,
                 summary=summary,
             )
-            logger.info(
-                "[Steam OpenID] Connection saved: passport_id=%s steam_id=%s game=%s created=%s",
-                passport.id, summary.steam_id, game_slug, passport_created,
+            logger.error(
+                "[Steam OpenID] PROBE-5 upsert done: passport_id=%s game=%s created=%s",
+                passport.id, game_slug, passport_created,
             )
         except SteamOpenIDError as exc:
-            logger.warning("[Steam OpenID] SteamOpenIDError: %s — %s (status=%s)", exc.error_code, exc.message, exc.status_code)
+            logger.error(
+                "[Steam OpenID] SteamOpenIDError: code=%s message=%r status=%s metadata=%s",
+                exc.error_code, exc.message, exc.status_code, exc.metadata,
+            )
             return _error_response_or_redirect(
                 error_code=exc.error_code,
                 message=exc.message,
@@ -200,13 +247,15 @@ class SteamCallbackView(View):
                 cached_data=cached,
             )
         except Exception as exc:
-            logger.exception("Unexpected Steam OpenID callback failure: %s", exc)
+            logger.exception("[Steam OpenID] UNEXPECTED exception in callback: %s", exc)
             return _error_response_or_redirect(
                 error_code="SERVER_ERROR",
                 message="Unexpected error while processing Steam callback",
                 status=500,
                 cached_data=cached,
             )
+        # ── PROBE-6: Success path reached ────────────────────────────────
+        logger.error("[Steam OpenID] PROBE-6 SUCCESS: dispatching response mode=%s", _resolve_callback_mode(cached))
 
         resolved_mode = _resolve_callback_mode(cached)
         if resolved_mode == "redirect":
