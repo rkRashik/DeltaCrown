@@ -222,8 +222,49 @@
             }
             await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
             toast('Settings saved', 'success');
+
+            // Update sidebar context badges to reflect saved values
+            _syncSidebarBadges(payload);
         } catch (e) {
             toast('Save failed: ' + (e.message || e), 'error');
+        }
+    }
+
+    function _syncSidebarBadges (payload) {
+        if (payload.participation_type) {
+            const el = document.getElementById('sidebar-badge-participation');
+            if (el) {
+                const isSolo = payload.participation_type === 'solo';
+                const icon = el.querySelector('i[data-lucide]');
+                if (icon) {
+                    icon.setAttribute('data-lucide', isSolo ? 'user' : 'users');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+                const text = el.childNodes[el.childNodes.length - 1];
+                if (text && text.nodeType === Node.TEXT_NODE) {
+                    text.textContent = ' ' + payload.participation_type.charAt(0).toUpperCase() + payload.participation_type.slice(1);
+                }
+            }
+        }
+        if (payload.format) {
+            const el = document.getElementById('sidebar-badge-format');
+            if (el) {
+                const display = payload.format.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                const text = el.childNodes[el.childNodes.length - 1];
+                if (text && text.nodeType === Node.TEXT_NODE) {
+                    text.textContent = ' ' + display;
+                }
+            }
+        }
+        if (payload.status) {
+            const el = document.getElementById('sidebar-badge-status');
+            if (el) {
+                const display = payload.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                const text = el.childNodes[el.childNodes.length - 1];
+                if (text && text.nodeType === Node.TEXT_NODE) {
+                    text.textContent = display;
+                }
+            }
         }
     }
 

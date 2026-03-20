@@ -173,14 +173,14 @@
                         <i data-lucide="gamepad-2" class="w-2.5 h-2.5"></i> {{ game.display_name|default:game.name }}
                     </span>
                     {% endif %}
-                    <span class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
+                    <span id="sidebar-badge-participation" class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
                         <i data-lucide="{% if is_solo %}user{% else %}users{% endif %}" class="w-2.5 h-2.5"></i> {{ participation_type|title }}
                     </span>
-                    <span class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
+                    <span id="sidebar-badge-format" class="inline-flex items-center gap-1 text-[10px] font-medium bg-dc-surface text-dc-textBright px-2 py-0.5 rounded-full border border-dc-border">
                         <i data-lucide="git-branch" class="w-2.5 h-2.5"></i> {{ tournament_format|default:"Custom"|title }}
                     </span>
                     {% if status %}
-                    <span class="inline-flex items-center gap-1 text-[10px] font-medium {% if status == 'live' %}bg-dc-success/10 text-dc-success border-dc-success/20{% elif status == 'registration_open' %}bg-theme/10 text-theme border-theme/20{% else %}bg-dc-surface text-dc-text border-dc-border{% endif %} px-2 py-0.5 rounded-full border">
+                    <span id="sidebar-badge-status" class="inline-flex items-center gap-1 text-[10px] font-medium {% if status == 'live' %}bg-dc-success/10 text-dc-success border-dc-success/20{% elif status == 'registration_open' %}bg-theme/10 text-theme border-theme/20{% else %}bg-dc-surface text-dc-text border-dc-border{% endif %} px-2 py-0.5 rounded-full border">
                         {{ status|title }}
                     </span>
                     {% endif %}
@@ -1969,8 +1969,8 @@
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-xs text-dc-text mb-1">Description</label>
-                            <textarea data-field="description" rows="3" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea>
+                            <label class="block text-xs text-dc-text mb-1">Description <span class="text-[10px] text-dc-text/50 font-normal">— plain text or HTML</span></label>
+                            <textarea data-field="description" rows="6" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50 font-mono" placeholder="Describe your tournament. Use plain text (newlines are preserved) or basic HTML for formatting."></textarea>
                         </div>
                         <div>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="is_official" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Official Tournament</label>
@@ -3657,31 +3657,28 @@
         };
         window.TOC_USER_CAPABILITIES = [{% for cap in user_capabilities %}'{{ cap }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
     </script>
-    <script src="{% static 'tournaments/toc/js/toc-core.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-polish.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-overview.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-participants.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-participants-advanced.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-payments.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-brackets.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-schedule.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-matches.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-disputes.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-settings.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-announcements.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-audit.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-standings.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-checkin.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-streams.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-analytics.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-lobby.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
-    <script src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
-    <script>
-        if (typeof lucide !== 'undefined') { lucide.createIcons(); }
-    </script>
+    <script defer src="{% static 'tournaments/toc/js/toc-core.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-polish.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-overview.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-participants.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-participants-advanced.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-payments.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-brackets.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-schedule.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-matches.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-disputes.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-announcements.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-audit.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-standings.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-checkin.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-streams.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-analytics.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-lobby.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
 </body>
 </html>

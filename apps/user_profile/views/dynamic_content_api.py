@@ -12,6 +12,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.db.models import Max
 
 from apps.games.models import Game, GamePlayerIdentityConfig
 from apps.user_profile.models_main import SocialLink, PrivacySettings
@@ -76,14 +78,18 @@ def get_available_games(request):
     }
     """
     try:
+        # ------------------------------------------------------------------
+        # Performance: serve from cache when schema hasn't changed (5 min TTL)
+        # ------------------------------------------------------------------
+        _CACHE_KEY = 'api_available_games_v2'
+        cached_response = cache.get(_CACHE_KEY)
+        if cached_response:
+            return JsonResponse(cached_response)
+
         # Phase 9A-14: Calculate schema version from latest updated timestamp
-        # Version changes when any GamePlayerIdentityConfig or GameChoiceConfig changes
-        from django.db.models import Max
-        
         config_updated = GamePlayerIdentityConfig.objects.aggregate(Max('updated_at'))['updated_at__max']
         schema_updated = GameChoiceConfig.objects.aggregate(Max('updated_at'))['updated_at__max']
-        
-        # Use the most recent timestamp between configs and schemas
+
         if config_updated and schema_updated:
             schema_version_timestamp = max(config_updated, schema_updated)
         elif config_updated:
@@ -91,35 +97,46 @@ def get_available_games(request):
         elif schema_updated:
             schema_version_timestamp = schema_updated
         else:
-            # No schemas exist yet, use fixed version
             from django.utils import timezone
             schema_version_timestamp = timezone.now()
-        
-        # Format as ISO 8601 string for cache key
+
         schema_version = schema_version_timestamp.isoformat()
-        
-        # Phase 9A-9: Use EXPLICIT query to avoid relationship issues
-        # Get all active games without prefetch (we'll query configs explicitly)
-        games = Game.objects.filter(is_active=True).order_by('display_name')
-        
+
+        # ------------------------------------------------------------------
+        # Performance: bulk-fetch all related objects (3 queries total, not 2N+1)
+        # ------------------------------------------------------------------
+        games = list(Game.objects.filter(is_active=True).order_by('display_name'))
+        game_ids = [g.id for g in games]
+
+        # 1 query: all identity configs for all active games
+        all_identity_configs = list(
+            GamePlayerIdentityConfig.objects
+            .filter(game_id__in=game_ids)
+            .order_by('game_id', 'order', 'id')
+        )
+        configs_by_game = {}
+        for cfg in all_identity_configs:
+            configs_by_game.setdefault(cfg.game_id, []).append(cfg)
+
+        # 1 query: all choice configs for all active games
+        choice_by_game = {
+            c.game_id: c
+            for c in GameChoiceConfig.objects.filter(game_id__in=game_ids)
+        }
+
         games_data = []
         for game in games:
-            # Phase 9A-6 FIX: Explicit query to avoid empty prefetch issues
-            identity_configs = GamePlayerIdentityConfig.objects.filter(
-                game=game
-            ).order_by('order', 'id')
-            
-            # DEBUG diagnostics
-            config_count = identity_configs.count()
-            if settings.DEBUG and config_count == 0:
+            identity_configs = configs_by_game.get(game.id, [])
+
+            if settings.DEBUG and not identity_configs:
                 logger.warning(
                     f"⚠️  Game '{game.display_name}' (slug={game.slug}) has ZERO identity configs. "
                     f"Run: python manage.py seed_games"
                 )
-            
-            # Get GameChoiceConfig for select field options (Phase 9A-7: all 8 choice types)
-            try:
-                game_schema = GameChoiceConfig.objects.get(game=game)
+
+            # Choice config options (Phase 9A-7: all 8 choice types)
+            game_schema = choice_by_game.get(game.id)
+            if game_schema:
                 region_options = game_schema.region_choices or []
                 rank_options = game_schema.rank_choices or []
                 role_options = game_schema.role_choices or []
@@ -128,19 +145,12 @@ def get_available_games(request):
                 mode_options = game_schema.mode_choices or []
                 premier_rating_options = game_schema.premier_rating_choices or []
                 division_options = game_schema.division_choices or []
-            except GameChoiceConfig.DoesNotExist:
-                region_options = []
-                rank_options = []
-                role_options = []
-                platform_options = []
-                server_options = []
-                mode_options = []
-                premier_rating_options = []
-                division_options = []
-            
+            else:
+                region_options = rank_options = role_options = platform_options = []
+                server_options = mode_options = premier_rating_options = division_options = []
+
             # Serialize passport schema from GamePlayerIdentityConfig
             passport_schema = []
-            
             for config in identity_configs:
                 field_data = {
                     'key': config.field_name,
@@ -154,34 +164,33 @@ def get_available_games(request):
                     'min_length': config.min_length,
                     'max_length': config.max_length
                 }
-                
+
                 # Phase 9A-7: Add options for select fields from GameChoiceConfig
                 if config.field_type and config.field_type.lower() == 'select':
-                    # Map field name to appropriate options (2026 schema with 8 choice types)
-                    if 'region' in config.field_name.lower():
+                    fname = config.field_name.lower()
+                    if 'region' in fname:
                         field_data['options'] = region_options
-                    elif 'rank' in config.field_name.lower():
+                    elif 'rank' in fname:
                         field_data['options'] = rank_options
-                    elif 'role' in config.field_name.lower():
+                    elif 'role' in fname:
                         field_data['options'] = role_options
-                    elif 'platform' in config.field_name.lower():
+                    elif 'platform' in fname:
                         field_data['options'] = platform_options
-                    elif 'server' in config.field_name.lower():
+                    elif 'server' in fname:
                         field_data['options'] = server_options
-                    elif 'mode' in config.field_name.lower():
+                    elif 'mode' in fname:
                         field_data['options'] = mode_options
-                    elif 'premier' in config.field_name.lower():
+                    elif 'premier' in fname:
                         field_data['options'] = premier_rating_options
-                    elif 'division' in config.field_name.lower():
+                    elif 'division' in fname:
                         field_data['options'] = division_options
                     else:
                         field_data['options'] = []
-                
+
                 passport_schema.append(field_data)
-            
+
             # Backward compatibility: If no schema exists, provide basic fallback
             if not passport_schema:
-                # PHASE 9A-6: Only warn, don't create fake schema
                 logger.warning(
                     f"No passport_schema found for game: {game.display_name} (slug={game.slug}). "
                     f"Run: python manage.py seed_games"
@@ -224,7 +233,7 @@ def get_available_games(request):
                         'max_length': None
                     }
                 ]
-            
+
             game_data = {
                 'id': game.id,
                 'slug': game.slug,
@@ -234,23 +243,27 @@ def get_available_games(request):
                 'primary_color': game.primary_color or '#7c3aed',
                 'passport_schema': passport_schema,
                 'rules': {
-                    'lock_days': 30,  # Fair Play Protocol: 30-day ID lock
-                    'one_passport': True,  # One passport per game per user
-                    'region_restricted': game.has_servers  # Regional restrictions if game has servers
+                    'lock_days': 30,
+                    'one_passport': True,
+                    'region_restricted': game.has_servers
                 }
             }
-            
-            # Phase 9A-6: DEBUG diagnostics
+
             if settings.DEBUG:
-                game_data['_debug_identity_config_count'] = config_count
-            
+                game_data['_debug_identity_config_count'] = len(identity_configs)
+
             games_data.append(game_data)
-        
-        return JsonResponse({
+
+        result = {
             'success': True,
-            'schema_version': schema_version,  # Phase 9A-14: Cache invalidation key
+            'schema_version': schema_version,
             'games': games_data
-        })
+        }
+
+        # Cache for 5 minutes — invalidated on next schema change via different version key
+        cache.set(_CACHE_KEY, result, 300)
+
+        return JsonResponse(result)
         
     except Exception as e:
         error_msg = f"Failed to fetch games list: {e.__class__.__name__}: {e}"

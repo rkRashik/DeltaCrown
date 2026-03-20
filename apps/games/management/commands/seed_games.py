@@ -507,6 +507,72 @@ class Command(BaseCommand):
                 }
             },
 
+            # Alias slug seeded from live DB — seeds identity configs for the auto-generated
+            # efootball-1773578027 game object so passport_schema lookups resolve correctly.
+            'efootball-1773578027': {
+                'name': 'eFootball',
+                'display_name': 'eFootball™ 2026',
+                'short_code': 'EFB2',
+                'category': 'SPORTS',
+                'game_type': '1V1',
+                'platforms': ['PC', 'Console', 'Mobile'],
+                'primary_color': '#0051a5',
+                'secondary_color': '#ffffff',
+                'accent_color': '#00b0ff',
+                'description': 'Free-to-play cross-platform football simulation (auto-generated game record).',
+                'developer': 'Konami',
+                'publisher': 'Konami',
+                'official_website': 'https://efootball.konami.net',
+                'release_date': date(2021, 9, 30),
+                'is_featured': False,
+                'roster': {
+                    'min_team_size': 1,
+                    'max_team_size': 1,
+                    'min_roster_size': 1,
+                    'max_roster_size': 2,
+                    'has_roles': False,
+                    'has_regions': True,
+                    'available_regions': [{'code': 'GLOBAL', 'name': 'Global'}]
+                },
+                'identity_fields': [
+                    {'field_name': 'konami_id', 'display_name': 'Konami ID', 'field_type': 'TEXT', 'is_required': True, 'is_immutable': True, 'placeholder': 'exampleUser123', 'help_text': 'Find at my.konami.net → Personal Info → Konami ID', 'max_length': 64, 'order': 1},
+                    {'field_name': 'user_id', 'display_name': 'User ID', 'field_type': 'TEXT', 'is_required': True, 'is_immutable': True, 'placeholder': 'ABCD-123-456-789', 'help_text': 'Extras → User Information → User Personal Information → User ID', 'validation_regex': r'^[A-Z]{4}-\d{3}-\d{3}-\d{3}$', 'validation_error_message': 'Must be format: XXXX-XXX-XXX-XXX', 'max_length': 19, 'order': 2},
+                    {'field_name': 'username', 'display_name': 'Username', 'field_type': 'TEXT', 'is_required': False, 'placeholder': 'rkrashik', 'help_text': 'Your in-game username (optional)', 'max_length': 32, 'order': 3},
+                    {'field_name': 'division', 'display_name': 'Division', 'field_type': 'SELECT', 'is_required': False, 'help_text': 'Your current competitive division', 'order': 4},
+                    {'field_name': 'team_name', 'display_name': 'Team Name', 'field_type': 'TEXT', 'is_required': False, 'placeholder': 'SIUU', 'help_text': 'Your custom team name', 'max_length': 32, 'order': 5},
+                    {'field_name': 'platform', 'display_name': 'Platform', 'field_type': 'SELECT', 'is_required': True, 'help_text': 'Your gaming platform', 'order': 6},
+                ],
+                'dropdown_choices': {
+                    'platform_choices': [
+                        {'value': 'PS5', 'label': 'PlayStation 5'},
+                        {'value': 'PS4', 'label': 'PlayStation 4'},
+                        {'value': 'XBOX_SERIES', 'label': 'Xbox Series X|S'},
+                        {'value': 'XBOX_ONE', 'label': 'Xbox One'},
+                        {'value': 'PC', 'label': 'PC (Steam)'},
+                        {'value': 'MOBILE', 'label': 'Mobile (iOS/Android)'},
+                    ],
+                    'division_choices': [
+                        {'value': 'Division_9', 'label': 'Division 9', 'tier': 1},
+                        {'value': 'Division_8', 'label': 'Division 8', 'tier': 2},
+                        {'value': 'Division_7', 'label': 'Division 7', 'tier': 3},
+                        {'value': 'Division_6', 'label': 'Division 6', 'tier': 4},
+                        {'value': 'Division_5', 'label': 'Division 5', 'tier': 5},
+                        {'value': 'Division_4', 'label': 'Division 4', 'tier': 6},
+                        {'value': 'Division_3', 'label': 'Division 3', 'tier': 7},
+                        {'value': 'Division_2', 'label': 'Division 2', 'tier': 8},
+                        {'value': 'Division_1', 'label': 'Division 1', 'tier': 9},
+                    ],
+                },
+                'tournament_config': {
+                    'available_match_formats': ['BO1', 'BO3'],
+                    'default_match_format': 'BO1',
+                    'default_scoring_type': 'GOALS',
+                    'default_tiebreakers': ['goal_difference', 'goals_scored'],
+                    'default_match_duration_minutes': 10,
+                    'allow_draws': True,
+                }
+            },
+
             'pubgm': {
                 'name': 'PUBG Mobile',
                 'display_name': 'PUBG MOBILE',

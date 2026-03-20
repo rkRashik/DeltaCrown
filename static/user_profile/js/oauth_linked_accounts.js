@@ -9,7 +9,7 @@
     const ROOT_ID = 'tab-passports';
 
     const DIRECT_CONNECT_ROUTES = {
-        valorant: '/profile/api/oauth/riot/login/?response_mode=json&callback_mode=redirect',
+        // valorant: RSO approval pending — manual entry only until production approval granted
         cs2:      '/profile/api/oauth/steam/login/?response_mode=json&callback_mode=redirect',
         dota2:    '/profile/api/oauth/steam/login/?response_mode=json&callback_mode=redirect',
         rocketleague: '/profile/api/oauth/epic/login/?response_mode=json&callback_mode=redirect'
@@ -25,6 +25,7 @@
         rocketleague: 'rocketleague',
         'rocket-league': 'rocketleague',
         efootball: 'efootball',
+        'efootball-1773578027': 'efootball',
         pubgmobile: 'pubgm',
         'pubg-mobile': 'pubgm',
         pubgm: 'pubgm',
