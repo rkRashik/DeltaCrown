@@ -22,6 +22,8 @@ STEAM_OPENID_URL = "https://steamcommunity.com/openid/login"
 STEAM_SUMMARIES_URL = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
 STEAM_ID_RE = re.compile(r"^https://steamcommunity\.com/openid/id/(?P<steam_id>\d{17,25})/?$")
 STEAM_SUPPORTED_GAMES = {"cs2", "dota2"}
+STEAM_OWNED_GAMES_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+STEAM_GAME_APPIDS = {"cs2": 730, "dota2": 570}
 STEAM_OPENID_NS = "http://specs.openid.net/auth/2.0"
 STEAM_IDENTIFIER_SELECT = "http://specs.openid.net/auth/2.0/identifier_select"
 
@@ -193,6 +195,31 @@ def fetch_player_summary(steam_id: str) -> SteamProfileSummary:
     )
 
 
+def _fetch_owned_appids(steam_id: str) -> set[int]:
+    """Return the set of appids owned by this Steam account; empty set on any failure."""
+    api_key = getattr(settings, "STEAM_API_KEY", "").strip()
+    if not api_key:
+        logger.warning("[Steam] STEAM_API_KEY not configured — skipping ownership check")
+        return set()
+    try:
+        response = requests.get(
+            STEAM_OWNED_GAMES_URL,
+            params={"key": api_key, "steamid": steam_id, "include_appinfo": 0},
+            timeout=_timeout_seconds(),
+        )
+        if response.status_code >= 400:
+            logger.warning(
+                "[Steam] GetOwnedGames returned %s — proceeding without ownership check",
+                response.status_code,
+            )
+            return set()
+        data = response.json()
+        return {g["appid"] for g in data.get("response", {}).get("games", []) if "appid" in g}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[Steam] GetOwnedGames failed — proceeding without ownership check: %s", exc)
+        return set()
+
+
 def upsert_steam_passports(
     *, user, summary: SteamProfileSummary
 ) -> list[tuple[GameProfile, GameOAuthConnection, bool]]:
@@ -222,6 +249,9 @@ def upsert_steam_passports(
         "steam_avatar_full": summary.avatar_full,
         "oauth_provider": GameOAuthConnection.Provider.STEAM,
     }
+
+    # Fetch outside the transaction to avoid holding a DB connection during HTTP I/O.
+    owned_appids = _fetch_owned_appids(summary.steam_id)
 
     with transaction.atomic():
         # Guard: this Steam account must not be linked to a different user
@@ -254,6 +284,15 @@ def upsert_steam_passports(
                 logger.warning(
                     "[Steam upsert] Game '%s' not found in games_game table — skipping.",
                     game_slug,
+                )
+                continue
+
+            required_appid = STEAM_GAME_APPIDS.get(game_slug)
+            if required_appid is not None and required_appid not in owned_appids:
+                logger.info(
+                    "[Steam upsert] User does not own %s (appid %s) — skipping passport creation.",
+                    game_slug,
+                    required_appid,
                 )
                 continue
 

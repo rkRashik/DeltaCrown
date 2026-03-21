@@ -302,7 +302,7 @@
 
         const message = params.get('oauth_message') || '';
         const providerLabel = provider.charAt(0).toUpperCase() + provider.slice(1);
-        if (status === 'connected') {
+        if (status === 'connected' || status === 'success') {
             showOAuthHandoff(
                 providerLabel + ' account linked',
                 'Refreshing your Player Hub roster...'

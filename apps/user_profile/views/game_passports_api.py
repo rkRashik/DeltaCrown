@@ -176,29 +176,31 @@ def list_game_passports_api(request):
             user=request.user
         ).select_related('game').order_by('-is_pinned', 'game__name')
         
-        # Phase 9A-28: Import cooldown model
         from apps.user_profile.models.cooldown import GamePassportCooldown
-        
+        from django.utils import timezone
+
+        # Batch-fetch all active POST_DELETE cooldowns in one query (avoids N+1).
+        _now = timezone.now()
+        _game_ids = [p.game_id for p in passports]
+        _active_cds = GamePassportCooldown.objects.filter(
+            user=request.user,
+            game_id__in=_game_ids,
+            cooldown_type='POST_DELETE',
+            expires_at__gt=_now,
+            overridden=False,
+        )
+        _cd_by_game = {c.game_id: c for c in _active_cds}
         cooldown_map = {}
         for passport in passports:
-            # Phase 9A-28: Check for active cooldown
-            cooldown_data = None
-            has_cooldown, cooldown_obj = GamePassportCooldown.check_cooldown(
-                request.user, 
-                passport.game, 
-                cooldown_type='POST_DELETE'
-            )
-            if has_cooldown and cooldown_obj:
-                cooldown_data = {
+            c = _cd_by_game.get(passport.game_id)
+            if c:
+                cooldown_map[passport.id] = {
                     'is_active': True,
-                    'type': cooldown_obj.cooldown_type,
-                    'expires_at': cooldown_obj.expires_at.isoformat(),
-                    'days_remaining': cooldown_obj.days_remaining(),
-                    'reason': cooldown_obj.reason
+                    'type': c.cooldown_type,
+                    'expires_at': c.expires_at.isoformat(),
+                    'days_remaining': c.days_remaining(),
+                    'reason': c.reason,
                 }
-
-            if cooldown_data:
-                cooldown_map[passport.id] = cooldown_data
 
         passports_data = GameProfileSerializer(
             passports,

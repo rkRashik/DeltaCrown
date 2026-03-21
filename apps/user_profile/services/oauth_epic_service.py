@@ -77,6 +77,8 @@ def exchange_code_for_tokens(*, code: str, redirect_uri: str) -> dict[str, Any]:
         "Authorization": f"Basic {basic}",
         "Content-Type": "application/x-www-form-urlencoded",
     }
+    # Render's reverse proxy reports http://, but Epic only accepts the registered https:// URI.
+    redirect_uri = redirect_uri.replace("http://", "https://")
     data = {
         "grant_type": "authorization_code",
         "code": code,
