@@ -70,12 +70,11 @@ def exchange_code_for_tokens(*, code: str, redirect_uri: str) -> dict[str, Any]:
     if not code:
         raise EpicOAuthError("MISSING_CODE", "Authorization code is required", 400)
 
-    basic = base64.b64encode(
-        f"{settings.EPIC_CLIENT_ID}:{settings.EPIC_CLIENT_SECRET}".encode("utf-8")
-    ).decode("utf-8")
+    auth_string = f"{settings.EPIC_CLIENT_ID}:{settings.EPIC_CLIENT_SECRET}"
+    b64_auth = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8").strip()
     headers = {
-        "Authorization": f"Basic {basic}",
         "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {b64_auth}",
     }
     # Render's reverse proxy reports http://, but Epic only accepts the registered https:// URI.
     redirect_uri = redirect_uri.replace("http://", "https://")

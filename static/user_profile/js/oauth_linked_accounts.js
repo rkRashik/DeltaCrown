@@ -869,6 +869,46 @@
         }
         return tags.slice(0, 4);
     }
+    function renderSkeletons(count) {
+        const container = document.getElementById('activeRosterGrid');
+        if (!container) return;
+        count = count || 3;
+        var skeletonHTML = '';
+        for (var i = 0; i < count; i++) {
+            skeletonHTML +=
+                '<div class="liquid-glass rounded-[2rem] p-1 animate-pulse overflow-hidden w-full">' +
+                    '<div class="bg-[#0A0F1A] rounded-[30px] h-full w-full p-5 flex flex-col min-h-[300px]">' +
+                        '<div class="flex items-start gap-3 mb-4">' +
+                            '<div class="w-14 h-14 rounded-2xl bg-white/5 shrink-0"></div>' +
+                            '<div class="flex flex-col gap-2 flex-1 min-w-0 pt-1">' +
+                                '<div class="h-2 bg-white/5 rounded-full w-1/3"></div>' +
+                                '<div class="h-4 bg-white/8 rounded-full w-2/3"></div>' +
+                                '<div class="flex gap-1.5 mt-1">' +
+                                    '<div class="h-4 bg-white/5 rounded-md w-20"></div>' +
+                                    '<div class="h-4 bg-white/5 rounded-md w-16"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="flex flex-col gap-1.5 shrink-0">' +
+                                '<div class="h-7 bg-white/5 rounded-xl w-20"></div>' +
+                                '<div class="h-7 bg-white/5 rounded-xl w-20"></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="grid grid-cols-2 gap-2 mt-3">' +
+                            '<div class="h-14 bg-white/5 rounded-xl"></div>' +
+                            '<div class="h-14 bg-white/5 rounded-xl"></div>' +
+                            '<div class="h-14 bg-white/5 rounded-xl"></div>' +
+                            '<div class="h-14 bg-white/5 rounded-xl"></div>' +
+                        '</div>' +
+                        '<div class="mt-auto pt-3 border-t border-white/5 flex justify-between">' +
+                            '<div class="h-4 bg-white/5 rounded-full w-16"></div>' +
+                            '<div class="h-4 bg-white/5 rounded-full w-24"></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+        }
+        container.innerHTML = skeletonHTML;
+    }
+
     function renderConnectedGames() {
         const container = document.getElementById('activeRosterGrid');
         const empty = byId('gp-connected-empty');
@@ -876,8 +916,20 @@
         if (!container) return;
 
         if (!state.passports.length) {
-            container.innerHTML = '';
-            if (empty) empty.classList.remove('hidden');
+            container.innerHTML =
+                '<div class="border border-dashed border-white/20 bg-white/[0.02] backdrop-blur-md p-10 text-center rounded-[2rem] col-span-full flex flex-col items-center gap-4">' +
+                    '<i class="fa-solid fa-ghost text-5xl text-teal-500/50"></i>' +
+                    '<div>' +
+                        '<h3 class="text-xl font-black text-white mb-1">Your Roster is Empty</h3>' +
+                        '<p class="text-sm text-slate-400 max-w-sm mx-auto">Link your first game from the <span class="text-teal-400 font-bold">Game Library</span> below to build your competitive identity.</p>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-2 text-xs text-slate-500 animate-bounce mt-1">' +
+                        '<i class="fa-solid fa-arrow-down"></i>' +
+                        '<span class="font-bold uppercase tracking-widest">Scroll to Game Library</span>' +
+                        '<i class="fa-solid fa-arrow-down"></i>' +
+                    '</div>' +
+                '</div>';
+            if (empty) empty.classList.add('hidden');
             if (counter) counter.textContent = '0';
             return;
         }
@@ -1740,7 +1792,12 @@
                 return;
             }
 
-            openIdModal(slug, { mode: 'edit', passport: passport });
+            setButtonLoading(actionBtn, true, 'Opening...');
+            try {
+                openIdModal(slug, { mode: 'edit', passport: passport });
+            } finally {
+                setButtonLoading(actionBtn, false);
+            }
             return;
         }
 
@@ -1884,6 +1941,7 @@
     }
 
     async function refreshData() {
+        renderSkeletons(3);
         await loadData();
         renderPlayerHub();
     }
@@ -1956,3 +2014,24 @@
         }
     }
 })();
+
+// Universal OAuth return handler — fires unconditionally on every page load so
+// toasts are shown even when the passports tab is not the active tab on arrival.
+document.addEventListener('DOMContentLoaded', function () {
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('oauth_status')) return;
+
+    var status = params.get('oauth_status');
+    var rawMsg = params.get('oauth_message') || '';
+    var msg = rawMsg ? decodeURIComponent(rawMsg.replace(/\+/g, ' ')) : 'Operation completed';
+
+    if (status === 'failed' || status === 'error') {
+        if (typeof window.showToast === 'function') window.showToast(msg, 'error');
+    } else {
+        if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+    }
+
+    // Clean the URL — redirect to passports tab so the refreshed list is visible.
+    var nextUrl = window.location.pathname + '?tab=passports';
+    window.history.replaceState({}, document.title, nextUrl);
+});

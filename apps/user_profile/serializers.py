@@ -158,18 +158,21 @@ class GameProfileSerializer(serializers.ModelSerializer):
         provider_data = obj.provider_data if isinstance(obj.provider_data, dict) else {}
         preferences = obj.preferences if isinstance(obj.preferences, dict) else {}
 
-        # Load GameChoiceConfig once for dropdown options
+        # Use prefetch cache populated by prefetch_related('game__identity_configs',
+        # 'game__passport_schema') in the view — avoids N+1 per-passport DB queries.
         choice_config = None
         try:
-            choice_config = GameChoiceConfig.objects.get(game=obj.game)
-        except GameChoiceConfig.DoesNotExist:
+            choice_config = obj.game.passport_schema
+        except Exception:  # noqa: BLE001
             pass
 
         schema_fields = []
 
         try:
-            identity_configs = list(
-                GamePlayerIdentityConfig.objects.filter(game=obj.game).order_by("order")
+            # .all() uses the prefetch cache; sort in Python to avoid cache bypass.
+            identity_configs = sorted(
+                obj.game.identity_configs.all(),
+                key=lambda c: c.order,
             )
         except Exception:  # noqa: BLE001 — tolerate missing table during migration
             identity_configs = []

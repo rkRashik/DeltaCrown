@@ -174,7 +174,10 @@ def list_game_passports_api(request):
     try:
         passports = GameProfile.objects.filter(
             user=request.user
-        ).select_related('game').order_by('-is_pinned', 'game__name')
+        ).select_related('game').prefetch_related(
+            'game__identity_configs',
+            'game__passport_schema',
+        ).order_by('-is_pinned', 'game__name')
         
         from apps.user_profile.models.cooldown import GamePassportCooldown
         from django.utils import timezone
