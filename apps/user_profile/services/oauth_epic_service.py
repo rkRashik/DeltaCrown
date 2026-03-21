@@ -13,7 +13,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.games.models import Game
-from apps.user_profile.models import GameOAuthConnection, GameProfile
+from apps.user_profile.models import GameOAuthConnection, GameProfile, ProviderAccount
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,22 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
         )
 
     account_id = str(token_data.get("account_id", "")).strip()
-    display_name = str(token_data.get("displayName", "")).strip() or account_id
+    display_name = str(token_data.get("displayName", "")).strip()
+
+    # Epic-er kach theke ashol nam (preferred_username) ana
+    if not display_name and "access_token" in token_data:
+        try:
+            user_info = requests.get(
+                "https://api.epicgames.dev/epic/oauth/v1/userInfo",
+                headers={"Authorization": f"Bearer {token_data['access_token']}"},
+                timeout=5
+            )
+            if user_info.status_code == 200:
+                display_name = user_info.json().get("preferred_username", "")
+        except Exception:
+            pass
+
+    display_name = display_name or account_id
 
     expires_at = None
     expires_in = token_data.get("expires_in")
@@ -130,6 +145,13 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
         except (TypeError, ValueError):
             expires_at = None
 
+    epic_provider_data = {
+        "epic_account_id": account_id,
+        "epic_display_name": display_name,
+        "oauth_provider": GameOAuthConnection.Provider.EPIC,
+        "synced_at": timezone.now().isoformat(),
+    }
+
     metadata_update = {
         "epic_account_id": account_id,
         "epic_display_name": display_name,
@@ -137,16 +159,27 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
     }
 
     with transaction.atomic():
-        linked_elsewhere = GameOAuthConnection.objects.filter(
+        # Guard: this Epic account must not be linked to a different user
+        linked_elsewhere = ProviderAccount.objects.filter(
             provider=GameOAuthConnection.Provider.EPIC,
             provider_account_id=account_id,
-        ).exclude(passport__user=user).first()
+        ).exclude(user=user).first()
         if linked_elsewhere:
             raise EpicOAuthError(
                 "EPIC_ACCOUNT_ALREADY_LINKED",
                 "This Epic account is already linked to another profile",
                 409,
             )
+
+        # Upsert the cross-game provider identity anchor
+        provider_account, _ = ProviderAccount.objects.update_or_create(
+            provider=GameOAuthConnection.Provider.EPIC,
+            provider_account_id=account_id,
+            defaults={
+                "user": user,
+                "provider_data": epic_provider_data,
+            },
+        )
 
         try:
             passport, created = GameProfile.objects.get_or_create(
@@ -160,6 +193,9 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
                     "identity_key": account_id,
                     "visibility": GameProfile.VISIBILITY_PUBLIC,
                     "metadata": metadata_update,
+                    "provider_data": {"epic": epic_provider_data},
+                    "verification_status": "VERIFIED",
+                    "verified_at": timezone.now(),
                 },
             )
         except IntegrityError as exc:
@@ -172,12 +208,17 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
         if not created:
             existing_metadata = passport.metadata.copy() if isinstance(passport.metadata, dict) else {}
             existing_metadata.update(metadata_update)
+            existing_provider_data = passport.provider_data.copy() if isinstance(passport.provider_data, dict) else {}
+            existing_provider_data["epic"] = epic_provider_data
             passport.game_display_name = game.display_name
             passport.ign = display_name
             passport.platform = passport.platform or "PC"
             passport.in_game_name = display_name
             passport.identity_key = account_id
             passport.metadata = existing_metadata
+            passport.provider_data = existing_provider_data
+            passport.verification_status = "VERIFIED"
+            passport.verified_at = timezone.now()
             try:
                 passport.save(
                     update_fields=[
@@ -187,6 +228,9 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
                         "in_game_name",
                         "identity_key",
                         "metadata",
+                        "provider_data",
+                        "verification_status",
+                        "verified_at",
                         "updated_at",
                     ]
                 )
@@ -198,10 +242,10 @@ def upsert_epic_connection(*, user, token_data: dict[str, Any]) -> tuple[GamePro
                 ) from exc
 
         oauth_connection, _ = GameOAuthConnection.objects.update_or_create(
-            passport=passport,
+            provider_account=provider_account,
+            game_profile=passport,
             defaults={
                 "provider": GameOAuthConnection.Provider.EPIC,
-                "provider_account_id": account_id,
                 "access_token": str(token_data.get("access_token", "")),
                 "refresh_token": str(token_data.get("refresh_token", "")),
                 "token_type": str(token_data.get("token_type", "Bearer")),
