@@ -68,6 +68,15 @@ body {
     filter: brightness(0.7) saturate(1.2) contrast(1.05);
     image-rendering: -webkit-optimize-contrast;
 }
+
+/* Banner image on the modern adaptive banner (replaces hero-banner-img on <img>) */
+.hero-infinity > img {
+    object-position: center 20%;
+    filter: brightness(0.75) saturate(1.2) contrast(1.05);
+    animation: heroFloat 30s ease-in-out infinite alternate;
+    image-rendering: -webkit-optimize-contrast;
+}
+@media (prefers-reduced-motion: reduce) { .hero-infinity > img { animation: none; } }
 @keyframes heroFloat {
     0% { transform: scale(1.04) translateY(0); }
     50% { transform: scale(1.06) translateY(-10px); }

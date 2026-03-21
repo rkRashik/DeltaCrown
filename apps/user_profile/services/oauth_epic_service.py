@@ -76,7 +76,6 @@ def exchange_code_for_tokens(*, code: str, redirect_uri: str) -> dict[str, Any]:
     headers = {
         "Authorization": f"Basic {basic}",
         "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
     }
     data = {
         "grant_type": "authorization_code",

@@ -26,22 +26,21 @@
 <!-- Toast notification container -->
 <div id="dc-toast" class="dc-toast"><i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="dc-toast-msg"></span></div>
 
-<!-- HERO SECTION — Cinematic Infinity -->
-<div class="hero-infinity relative w-full overflow-hidden" style="height:clamp(320px,42vw,720px)">
-    <!-- Banner Image -->
-    <div class="absolute inset-0 z-0">
-        {% if tournament.banner_image %}
-        <img src="{{ tournament.banner_image.url }}" class="hero-banner-img" alt="{{ tournament.name }}">
-        {% else %}
-        <div class="w-full h-full hero-banner-img" style="background: linear-gradient(135deg, var(--game-color-secondary), #020204 60%);"></div>
-        {% endif %}
-    </div>
-    <!-- Infinity Fades -->
+<!-- HERO SECTION — Adaptive Cover Banner -->
+<div class="hero-infinity relative w-full overflow-hidden">
+    <!-- Banner Image — responsive heights, aspect-ratio preserved via object-cover -->
+    {% if tournament.banner_image %}
+    <img src="{{ tournament.banner_image.url }}" class="w-full h-64 md:h-80 lg:h-[450px] object-cover object-center" alt="{{ tournament.name }}">
+    {% else %}
+    <div class="w-full h-64 md:h-80 lg:h-[450px]" style="background: linear-gradient(135deg, var(--game-color-secondary), #020204 60%);"></div>
+    {% endif %}
+    <!-- Left edge dissolution -->
     <div class="fade-left absolute inset-0 z-10"></div>
-    <div class="fade-bottom absolute inset-0 z-10"></div>
+    <!-- Bottom gradient: blends banner into page background -->
+    <div class="absolute inset-0 z-10 bg-gradient-to-t from-[#020204] via-[#020204]/40 to-transparent"></div>
 
-    <!-- Hero Content -->
-    <div class="relative z-20 max-w-[1800px] mx-auto px-6 lg:px-12 h-full flex flex-col justify-end pb-10 lg:pb-12">
+    <!-- Hero Content — gracefully overlaid on gradient -->
+    <div class="absolute bottom-0 left-0 right-0 z-20 max-w-[1800px] mx-auto px-6 lg:px-12 pb-10 lg:pb-12">
         <!-- Ambient Glow -->
         <div class="ambient-glow"></div>
 
