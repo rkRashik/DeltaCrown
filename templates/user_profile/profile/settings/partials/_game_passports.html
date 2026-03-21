@@ -50,8 +50,17 @@
 
             <div id="activeRosterGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-6 mb-12 w-full"></div>
 
-            <div id="gp-connected-empty" class="hidden col-span-2 text-center py-10 liquid-glass rounded-2xl">
-                <p class="text-slate-500 font-bold"><i class="fa-solid fa-ghost text-3xl mb-3 block"></i> No active games. Connect one below.</p>
+            <div id="gp-connected-empty" class="hidden col-span-full border border-dashed border-white/20 bg-white/[0.02] backdrop-blur-md p-10 text-center rounded-[2rem] flex flex-col items-center gap-4">
+                <i class="fa-solid fa-ghost text-5xl text-teal-500/50"></i>
+                <div>
+                    <h3 class="text-xl font-black text-white mb-1">Your Roster is Empty</h3>
+                    <p class="text-sm text-slate-400 max-w-sm mx-auto">Link your first game from the <span class="text-teal-400 font-bold">Game Library</span> below to build your competitive identity.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-500 animate-bounce mt-1">
+                    <i class="fa-solid fa-arrow-down"></i>
+                    <span class="font-bold uppercase tracking-widest">Scroll to Game Library</span>
+                    <i class="fa-solid fa-arrow-down"></i>
+                </div>
             </div>
         </section>
 

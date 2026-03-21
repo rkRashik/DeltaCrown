@@ -157,7 +157,7 @@
 
     function showToast(message, type) {
         if (typeof window.showToast === 'function') {
-            window.showToast(message, type || 'info');
+            window.showToast({ type: type || 'info', message: message });
             return;
         }
 
@@ -313,6 +313,10 @@
                 hideOAuthHandoff();
             }, 900);
             showToast(message || (providerLabel + ' account connected successfully.'), 'success');
+        } else if (status === 'warning') {
+            hideOAuthHandoff();
+            await refreshData();
+            showToast(message || (providerLabel + ' connected, but no supported games were found.'), 'warning');
         } else {
             hideOAuthHandoff();
             const errorCode = params.get('oauth_error');
@@ -2017,21 +2021,44 @@
 
 // Universal OAuth return handler — fires unconditionally on every page load so
 // toasts are shown even when the passports tab is not the active tab on arrival.
-document.addEventListener('DOMContentLoaded', function () {
+function checkAndShowOAuthStatus() {
     var params = new URLSearchParams(window.location.search);
     if (!params.has('oauth_status')) return;
 
     var status = params.get('oauth_status');
     var rawMsg = params.get('oauth_message') || '';
     var msg = rawMsg ? decodeURIComponent(rawMsg.replace(/\+/g, ' ')) : 'Operation completed';
-
+    var toastType;
     if (status === 'failed' || status === 'error') {
-        if (typeof window.showToast === 'function') window.showToast(msg, 'error');
+        toastType = 'error';
+    } else if (status === 'warning') {
+        toastType = 'warning';
     } else {
-        if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+        toastType = 'success';
     }
 
-    // Clean the URL — redirect to passports tab so the refreshed list is visible.
-    var nextUrl = window.location.pathname + '?tab=passports';
-    window.history.replaceState({}, document.title, nextUrl);
-});
+    // Poll until window.showToast is ready, THEN fire toast, THEN clean URL.
+    var attempts = 0;
+    var maxAttempts = 60; // 3 seconds at 50ms intervals
+    var timer = setInterval(function () {
+        attempts++;
+        if (typeof window.showToast === 'function') {
+            clearInterval(timer);
+            window.showToast({ type: toastType, message: msg });
+            // Clean URL only after the toast has been dispatched.
+            var nextUrl = window.location.pathname + '?tab=passports';
+            window.history.replaceState({}, document.title, nextUrl);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(timer);
+            // Fallback: clean URL anyway to prevent infinite stale params.
+            var nextUrl = window.location.pathname + '?tab=passports';
+            window.history.replaceState({}, document.title, nextUrl);
+        }
+    }, 50);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndShowOAuthStatus);
+} else {
+    checkAndShowOAuthStatus();
+}

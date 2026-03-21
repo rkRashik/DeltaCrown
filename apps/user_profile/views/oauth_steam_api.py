@@ -230,7 +230,14 @@ class SteamCallbackView(View):
 
         resolved_mode = _resolve_callback_mode(cached)
         if resolved_mode == "redirect":
-            return HttpResponseRedirect(
+            if not results:
+                return HttpResponseRedirect(
+                    _build_settings_return_url(
+                        status="warning",
+                        message="Steam connected successfully, but we did not find supported games (CS2/Dota 2) in your library.",
+                    )
+                )
+                return HttpResponseRedirect(
                 _build_settings_return_url(
                     status="connected",
                     message=(

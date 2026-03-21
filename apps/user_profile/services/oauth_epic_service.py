@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -70,12 +69,6 @@ def exchange_code_for_tokens(*, code: str, redirect_uri: str) -> dict[str, Any]:
     if not code:
         raise EpicOAuthError("MISSING_CODE", "Authorization code is required", 400)
 
-    auth_string = f"{settings.EPIC_CLIENT_ID}:{settings.EPIC_CLIENT_SECRET}"
-    b64_auth = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8").strip()
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": f"Basic {b64_auth}",
-    }
     # Render's reverse proxy reports http://, but Epic only accepts the registered https:// URI.
     redirect_uri = redirect_uri.replace("http://", "https://")
     data = {
@@ -85,7 +78,13 @@ def exchange_code_for_tokens(*, code: str, redirect_uri: str) -> dict[str, Any]:
     }
 
     try:
-        response = requests.post(EPIC_TOKEN_URL, data=data, headers=headers, timeout=_timeout_seconds())
+        response = requests.post(
+            EPIC_TOKEN_URL,
+            data=data,
+            auth=(settings.EPIC_CLIENT_ID, settings.EPIC_CLIENT_SECRET),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=_timeout_seconds(),
+        )
     except requests.Timeout as exc:
         raise EpicOAuthError("EPIC_TIMEOUT", "Epic token exchange timed out", 504) from exc
     except requests.RequestException as exc:
