@@ -423,10 +423,27 @@ class SmartRegistrationView(LoginRequiredMixin, View):
 
         Each field: { value, locked, source }
         """
-        profile = getattr(user, 'profile', None)
+        effective_user = getattr(getattr(self, 'request', None), 'user', None) or user
+        profile = getattr(effective_user, 'profile', None)
+
+        # Resolve current-game passport directly for deterministic prefill.
+        passport = None
+        try:
+            from apps.user_profile.models import GameProfile
+            passport = (
+                GameProfile.objects.filter(
+                    user=effective_user,
+                    game=tournament.game,
+                )
+                .only('platform', 'region', 'rank_name')
+                .order_by('-updated_at')
+                .first()
+            )
+        except Exception as e:
+            logger.exception("Passport prefill query failed for user=%s tournament=%s: %s", getattr(effective_user, 'id', None), getattr(tournament, 'id', None), e)
 
         # Player identity
-        full_name = user.get_full_name() or ''
+        full_name = effective_user.get_full_name() or ''
         if not full_name and profile:
             full_name = getattr(profile, 'real_full_name', '') or ''
 
@@ -446,6 +463,10 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             platform_val = autofill_data['platform'].value
         elif 'server' in autofill_data and autofill_data['server'].value:
             platform_val = autofill_data['server'].value
+        elif passport and passport.platform:
+            platform_val = passport.platform
+        elif passport and passport.region:
+            platform_val = passport.region
 
         # Rank
         rank_val = ''
@@ -453,6 +474,30 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         if 'rank' in autofill_data and autofill_data['rank'].value:
             rank_val = autofill_data['rank'].value
             rank_locked = True
+        elif passport and passport.rank_name:
+            rank_val = passport.rank_name
+            rank_locked = True
+
+        # Age (derive from DOB)
+        age_val = ''
+        if 'age' in autofill_data and autofill_data['age'].value not in (None, ''):
+            age_val = autofill_data['age'].value
+        elif getattr(getattr(effective_user, 'profile', None), 'date_of_birth', None):
+            dob = effective_user.profile.date_of_birth
+            today = timezone.now().date()
+            age_val = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+        # Dropdown choices sourced from Game model
+        try:
+            game_obj = tournament.game
+        except Exception:
+            game_obj = None
+        platform_choices = list(game_obj.platforms or []) if game_obj and hasattr(game_obj, 'platforms') else []
+        rank_choices = (
+            list(game_obj.available_ranks or [])
+            if game_obj and getattr(game_obj, 'has_rank_system', False)
+            else []
+        )
 
         # Discord — try autofill, then profile
         discord_val = ''
@@ -482,12 +527,12 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 'source': 'profile',
             },
             'display_name': {
-                'value': user.username,
+                'value': effective_user.username,
                 'locked': not getattr(tournament, 'allow_display_name_override', False),
                 'source': 'username' if not getattr(tournament, 'allow_display_name_override', False) else 'editable',
             },
             'email': {
-                'value': user.email,
+                'value': effective_user.email,
                 'locked': True,
                 'source': 'account',
             },
@@ -506,6 +551,11 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 'locked': False,
                 'source': 'profile',
             },
+            'age': {
+                'value': age_val,
+                'locked': False,
+                'source': 'profile',
+            },
             'game_id': {
                 'value': game_id_val,
                 'locked': game_id_locked,
@@ -515,11 +565,13 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 'value': platform_val,
                 'locked': False,
                 'source': 'game_passport',
+                'choices': platform_choices,
             },
             'rank': {
                 'value': rank_val,
                 'locked': rank_locked,
                 'source': 'game_passport',
+                'choices': rank_choices,
             },
             'preferred_contact': {
                 'value': 'discord' if discord_val else 'email',

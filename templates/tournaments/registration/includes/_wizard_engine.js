@@ -55,17 +55,17 @@
             el.innerHTML = `
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 step-indicator relative"
                      style="border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);" data-step-indicator="${idx}">
-                    <i data-lucide="${step.icon}" class="w-3.5 h-3.5 text-gray-600 step-icon"></i>
+                    <i data-lucide="${step.icon}" class="w-3.5 h-3.5 text-slate-500 step-icon"></i>
                     <div class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 items-center justify-center hidden step-check-badge" style="box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);">
                         <i data-lucide="check" class="w-2.5 h-2.5 text-white"></i>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between">
-                        <p class="text-xs font-bold text-gray-500 group-hover:text-white transition-colors step-label truncate">${step.label}</p>
-                        <span class="text-[9px] font-mono text-gray-700 step-number">${idx + 1}/${stepsConfig.length}</span>
+                        <p class="text-xs font-bold text-slate-400 group-hover:text-white transition-colors step-label truncate">${step.label}</p>
+                        <span class="text-[9px] font-mono text-slate-600 step-number">${idx + 1}/${stepsConfig.length}</span>
                     </div>
-                    <p class="text-[10px] text-gray-700 mt-0.5 truncate step-subtitle">${step.subtitle}</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5 truncate step-subtitle">${step.subtitle}</p>
                 </div>
             `;
             container.appendChild(el);
@@ -96,6 +96,22 @@
     //  STEP NAVIGATION
     // ══════════════════════════════════════════════════════════
 
+    function clearHiddenRequiredAttributes() {
+        document.querySelectorAll('[data-wizard-step]').forEach(function(stepEl) {
+            const isHidden = stepEl.classList.contains('step-hidden');
+            stepEl.querySelectorAll('input, select, textarea').forEach(function(inp) {
+                if (isHidden && inp.hasAttribute('required')) {
+                    inp.dataset.wasRequired = 'true';
+                    inp.removeAttribute('required');
+                }
+                if (!isHidden && inp.dataset.wasRequired === 'true' && inp.dataset.contactField !== 'true') {
+                    inp.setAttribute('required', '');
+                    delete inp.dataset.wasRequired;
+                }
+            });
+        });
+    }
+
     function showStep(idx) {
         if (idx < 0 || idx >= TOTAL_STEPS) return;
         currentStep = idx;
@@ -115,6 +131,9 @@
             stepEl.offsetHeight;
             stepEl.style.animation = '';
         }
+
+        // Prevent browser validation from targeting required fields in hidden steps
+        clearHiddenRequiredAttributes();
 
         updateSidebarIndicators();
         updateFooterButtons();
@@ -584,14 +603,28 @@
         if (!numEl) return;
         const text = numEl.textContent.trim();
         if (!text || text === '—') return;
-        navigator.clipboard.writeText(text).then(() => {
+
+        function onSuccess() {
             const label = el.querySelector('.copy-label');
             if (label) {
                 label.textContent = 'Copied!';
                 label.classList.add('text-green-400');
                 setTimeout(() => { label.textContent = 'Copy'; label.classList.remove('text-green-400'); }, 2000);
             }
-        }).catch(() => {});
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(function() {});
+        } else {
+            // Fallback for non-HTTPS / insecure contexts
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); onSuccess(); } catch(e) {}
+            document.body.removeChild(ta);
+        }
     }
     window.copyNumber = copyNumber;
 
@@ -1664,9 +1697,10 @@
     // ══════════════════════════════════════════════════════════
 
     function handleSubmit(event) {
+        if (event) event.preventDefault();
+
         const terms = document.getElementById('terms-checkbox');
         if (!terms || !terms.checked) {
-            event.preventDefault();
             alert('Please accept the rules and terms before submitting.');
             return false;
         }
@@ -1678,7 +1712,6 @@
             if (!valid) {
                 allValid = false;
                 showStep(i);
-                // Highlight first invalid field
                 const stepEl = document.querySelector(`[data-wizard-step="${stepsConfig[i].key}"]`);
                 if (stepEl) {
                     const firstInvalid = stepEl.querySelector('input:invalid, select:invalid, textarea:invalid');
@@ -1691,19 +1724,61 @@
             }
         }
 
-        if (!allValid) {
-            event.preventDefault();
-            return false;
-        }
+        if (!allValid) return false;
+
+        // Disable required on ALL hidden steps to prevent browser validation traps
+        document.querySelectorAll('[data-wizard-step].step-hidden').forEach(function(hiddenStep) {
+            hiddenStep.querySelectorAll('[required]').forEach(function(inp) {
+                inp.removeAttribute('required');
+                inp.dataset.wasRequired = 'true';
+            });
+        });
 
         // Show loading overlay
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
             overlay.style.display = 'flex';
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        return true;
+        // Submit via fetch to bypass native HTML5 validation entirely
+        const form = document.getElementById('registration-form');
+        if (!form) return false;
+        const formData = new FormData(form);
+
+        fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        }).then(function(response) {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.text().then(function(html) {
+                if (response.ok) {
+                    // Server returned HTML (success page) — replace document
+                    document.open();
+                    document.write(html);
+                    document.close();
+                } else {
+                    // Server returned error — hide overlay and show message
+                    if (overlay) overlay.style.display = 'none';
+                    try {
+                        var data = JSON.parse(html);
+                        alert(data.error || data.message || 'Registration failed. Please try again.');
+                    } catch(e) {
+                        alert('Registration failed. Please check your details and try again.');
+                    }
+                }
+            });
+        }).catch(function() {
+            if (overlay) overlay.style.display = 'none';
+            alert('Network error. Please check your connection and try again.');
+        });
+
+        return false;
     }
     window.handleSubmit = handleSubmit;
 
@@ -1794,9 +1869,61 @@
         }
     }
 
+    // Toggle required on contact inputs based on preferred_contact selection.
+    function initPreferredContactValidation() {
+        var contactInputMap = {
+            phone: 'input[name="phone"]',
+            discord: 'input[name="discord"], input[name="socials_discord_handle"]',
+            email: 'input[name="email"]',
+            whatsapp: 'input[name="whatsapp"]',
+        };
+
+        Object.values(contactInputMap).forEach(function(selector) {
+            document.querySelectorAll(selector).forEach(function(el) {
+                el.dataset.contactField = 'true';
+            });
+        });
+
+        function applyContactRequired(selectedValue) {
+            // Remove required from all contact inputs first
+            Object.values(contactInputMap).forEach(function(selector) {
+                document.querySelectorAll(selector).forEach(function(el) {
+                    el.removeAttribute('required');
+                    delete el.dataset.wasRequired;
+                });
+            });
+
+            // Add required only to the matching input if it exists
+            var selector = contactInputMap[selectedValue];
+            if (selector) {
+                document.querySelectorAll(selector).forEach(function(el) {
+                    if (el.offsetParent !== null) { // only if visible
+                        el.setAttribute('required', '');
+                    }
+                });
+            }
+
+            // Final pass: remove required from hidden-step fields to avoid native invalid focus traps
+            clearHiddenRequiredAttributes();
+        }
+
+        document.querySelectorAll('input[name="preferred_contact"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                applyContactRequired(this.value);
+            });
+        });
+        // Apply for any pre-selected value on load
+        var preSelected = document.querySelector('input[name="preferred_contact"]:checked');
+        if (preSelected) {
+            applyContactRequired(preSelected.value);
+        }
+    }
+
     // Initialize live validation after DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(initLiveValidation, 200);
+        setTimeout(initPreferredContactValidation, 250);
+        setTimeout(clearHiddenRequiredAttributes, 300);
     });
 
 })();

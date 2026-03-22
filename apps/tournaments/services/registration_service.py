@@ -806,11 +806,18 @@ class RegistrationService:
                 f"Payment amount {amount} does not match entry fee {expected_amount}"
             )
         
-        # Validate payment method is accepted
-        if payment_method not in registration.tournament.payment_methods:
+        # Validate payment method is accepted (case-insensitive).
+        # Prefer TournamentPaymentMethod records; fall back to legacy JSONB list.
+        from apps.tournaments.models.payment_config import TournamentPaymentMethod as _TPM
+        _tpm_qs = _TPM.objects.filter(tournament=registration.tournament, is_enabled=True)
+        if _tpm_qs.exists():
+            accepted_methods = list(_tpm_qs.values_list('method', flat=True))
+        else:
+            accepted_methods = registration.tournament.payment_methods or []
+        if not accepted_methods or payment_method.lower() not in [m.lower() for m in accepted_methods]:
             raise ValidationError(
                 f"Payment method '{payment_method}' is not accepted for this tournament. "
-                f"Accepted methods: {', '.join(registration.tournament.payment_methods)}"
+                f"Accepted methods: {', '.join(accepted_methods)}"
             )
         
         # Create payment

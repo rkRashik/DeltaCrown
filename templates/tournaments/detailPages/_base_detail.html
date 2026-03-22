@@ -219,42 +219,44 @@
             {% block sidebar_top %}{% endblock %}
 
             <!-- Registration / Action Card -->
-            <div class="glass p-5 sm:p-6 rounded-2xl space-y-4 relative overflow-hidden game-glow-border fade-up">
-                <div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px] pointer-events-none" style="background: rgba(var(--game-color-rgb), 0.06);"></div>
-                <div class="absolute bottom-0 left-0 w-24 h-24 rounded-full blur-[40px] pointer-events-none" style="background: rgba(99, 102, 241, 0.04);"></div>
+            <div class="bg-[#0A0F1A]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden fade-up">
+                <div class="absolute -top-10 -right-10 w-44 h-44 rounded-full blur-3xl pointer-events-none" style="background: rgba(20, 184, 166, 0.12);"></div>
+                <div class="absolute -bottom-12 -left-10 w-40 h-40 rounded-full blur-3xl pointer-events-none" style="background: rgba(37, 99, 235, 0.12);"></div>
 
-                <div class="relative z-10 space-y-4">
-                    <!-- Slots Progress -->
+                <div class="relative z-10 space-y-5">
                     {% if not is_pre_registration %}
                     <div>
-                        <div class="flex items-center justify-between mb-2.5">
-                            <span class="text-label">Slots</span>
-                            <span class="text-xs font-bold text-white">{{ slots_filled }}<span class="text-[--text-muted]">/{{ slots_total }}</span></span>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Slots</span>
+                            <span class="text-sm font-black text-white">{{ slots_filled }}<span class="text-gray-500">/{{ slots_total }}</span></span>
                         </div>
-                        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-700 ease-out" style="width: {{ slots_percentage }}%; background: linear-gradient(90deg, var(--game-color), rgba(var(--game-color-rgb), 0.6));"></div>
+                        <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-700 ease-out" style="width: {{ slots_percentage }}%; background: linear-gradient(90deg, #14b8a6, #2563eb);"></div>
                         </div>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-2">
-                        <span class="text-label">Registration Not Yet Open</span>
                     </div>
                     {% endif %}
 
-                    <!-- Quick Details -->
-                    <div class="space-y-2.5 text-[13px]">
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Format</span><span class="text-white font-semibold">{{ tournament.get_format_display }}</span></div>
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Platform</span><span class="text-white font-semibold">{{ tournament.get_platform_display }}</span></div>
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Mode</span><span class="text-white font-semibold">{{ tournament.get_mode_display }}</span></div>
-                        {% if game_spec.tournament_config %}
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Match Format</span><span class="text-white font-semibold">{{ game_spec.tournament_config.get_default_match_format_display }}</span></div>
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Scoring</span><span class="text-white font-semibold">{{ game_spec.tournament_config.get_default_scoring_type_display }}</span></div>
-                        {% endif %}
-                        {% if tournament.has_entry_fee and tournament.entry_fee_amount %}
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Entry Fee</span><span class="text-white font-semibold">৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}</span></div>
-                        {% else %}
-                        <div class="flex justify-between"><span class="text-[--text-muted]">Entry Fee</span><span class="text-emerald-400 font-semibold">Free</span></div>
-                        {% endif %}
+                    <div class="grid grid-cols-2 gap-2.5 text-center">
+                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Format</p>
+                            <p class="text-sm font-bold text-white">{{ tournament.get_format_display }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Platform</p>
+                            <p class="text-sm font-bold text-white">{{ tournament.get_platform_display }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Mode</p>
+                            <p class="text-sm font-bold text-white">{{ tournament.get_mode_display }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Entry Fee</p>
+                            {% if tournament.has_entry_fee and tournament.entry_fee_amount %}
+                            <p class="text-sm font-bold text-amber-400">৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}</p>
+                            {% else %}
+                            <p class="text-sm font-bold text-emerald-400">Free</p>
+                            {% endif %}
+                        </div>
                     </div>
 
                     {% block sidebar_cta %}

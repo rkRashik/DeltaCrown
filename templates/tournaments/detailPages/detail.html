@@ -629,69 +629,112 @@
 
                         <!-- Register CTA + Security Badge -->
                         <div class="md:col-span-5 flex flex-col gap-4">
-                            <div class="bg-dc-card border border-white/[0.06] rounded-3xl p-6 flex-1 flex flex-col justify-between">
-                                <div>
-                                    <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                        <i data-lucide="{% if can_register %}lock-open{% else %}lock{% endif %}" class="w-3.5 h-3.5"></i>
+                            <div class="bg-[#0A0F1A]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl flex-1 flex flex-col justify-between relative overflow-hidden">
+                                {# Ambient glow #}
+                                <div class="absolute -top-20 -right-20 w-44 h-44 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                                <div class="absolute -bottom-16 -left-16 w-36 h-36 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                                <div class="relative z-10">
+                                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-5 flex items-center gap-2">
+                                        <i data-lucide="{% if can_register %}lock-open{% else %}lock{% endif %}" class="w-3.5 h-3.5 text-teal-400"></i>
                                         {% if is_registered %}Your Registration{% elif can_register %}Register Now{% else %}Registration{% endif %}
                                     </h4>
 
                                     {% if is_registered and user_registration %}
-                                    <div class="bg-green-900/20 border border-green-700/30 rounded-xl p-4 mb-4">
+                                    <div class="bg-green-900/20 border border-green-500/20 rounded-xl p-4 mb-5">
                                         <div class="flex items-center gap-2 mb-1">
-                                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                                            <i data-lucide="check-circle" class="w-4 h-4 text-green-400"></i>
                                             <span class="text-sm font-bold text-green-400">Registered</span>
                                         </div>
                                         <p class="text-xs text-gray-400">Status: {{ eligibility_status|default:"Confirmed" }}</p>
                                     </div>
                                     {% endif %}
 
-                                    <div class="space-y-3 text-sm">
+                                    {# Tournament meta grid #}
+                                    <div class="grid grid-cols-2 gap-3 mb-5">
+                                        <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+                                                <i data-lucide="users" class="w-4 h-4 text-teal-400"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-none">Slots</p>
+                                                <p class="text-sm font-bold text-white mt-0.5 truncate">{{ slots_filled }}/{{ slots_total }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                                                <i data-lucide="swords" class="w-4 h-4 text-blue-400"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-none">Format</p>
+                                                <p class="text-sm font-bold text-white mt-0.5 truncate">{{ tournament.get_format_display }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                                                <i data-lucide="monitor" class="w-4 h-4 text-purple-400"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-none">Mode</p>
+                                                <p class="text-sm font-bold text-white mt-0.5 truncate">{{ tournament.get_mode_display|default:"Online" }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                                                <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-none">Entry</p>
+                                                <p class="text-sm font-bold text-white mt-0.5 truncate">{% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|floatformat:0 }}{% else %}FREE{% endif %}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {# Schedule rows #}
+                                    <div class="space-y-2.5 text-sm">
                                         {% if tournament.registration_start %}
                                         <div class="flex items-center justify-between">
-                                            <span class="text-gray-400">Reg Opens</span>
-                                            <span class="text-white font-medium">{{ tournament.registration_start|date:"M j, g:i A" }}</span>
+                                            <span class="text-gray-500 text-xs">Reg Opens</span>
+                                            <span class="text-white font-medium text-xs">{{ tournament.registration_start|date:"M j, g:i A" }}</span>
                                         </div>
                                         {% endif %}
                                         {% if tournament.registration_end %}
                                         <div class="flex items-center justify-between">
-                                            <span class="text-gray-400">Reg Closes</span>
-                                            <span class="text-white font-medium">{{ tournament.registration_end|date:"M j, g:i A" }}</span>
+                                            <span class="text-gray-500 text-xs">Reg Closes</span>
+                                            <span class="text-white font-medium text-xs">{{ tournament.registration_end|date:"M j, g:i A" }}</span>
                                         </div>
                                         {% endif %}
                                         <div class="flex items-center justify-between">
-                                            <span class="text-gray-400">Starts</span>
-                                            <span class="text-white font-medium">{{ tournament.tournament_start|date:"M j, g:i A" }}</span>
+                                            <span class="text-gray-500 text-xs">Starts</span>
+                                            <span class="text-white font-medium text-xs">{{ tournament.tournament_start|date:"M j, g:i A" }}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="mt-6 pt-6 border-t border-white/[0.06] space-y-3">
+                                <div class="mt-6 pt-5 border-t border-white/[0.06] space-y-3 relative z-10">
                                     {% if can_register %}
                                     <a href="{{ registration_action_url }}"
-                                       class="block w-full py-4 bg-white text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] transition-all text-center">
-                                        {{ registration_action_label }} <i data-lucide="arrow-right" class="w-4 h-4 inline"></i>
+                                       class="block w-full py-4 bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 text-white font-black text-lg uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)] transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.97] text-center">
+                                        {{ registration_action_label }} <i data-lucide="arrow-right" class="w-5 h-5 inline ml-1"></i>
                                     </a>
                                     {% elif is_registered %}
                                     <a href="{{ registration_action_url }}"
-                                       class="block w-full py-4 bg-dc-purple/20 border border-dc-purple/40 text-dc-purple font-black text-xs uppercase tracking-[0.2em] rounded-2xl text-center">
+                                       class="block w-full py-4 bg-dc-purple/20 border border-dc-purple/40 text-dc-purple font-black text-sm uppercase tracking-[0.2em] rounded-xl text-center hover:bg-dc-purple/30 transition-colors">
                                         {{ registration_action_label }}
                                     </a>
                                     {% else %}
-                                    <div class="w-full py-4 bg-dc-card border border-white/10 text-gray-400 font-bold text-xs uppercase tracking-[0.2em] rounded-2xl text-center">
+                                    <div class="w-full py-4 bg-white/[0.03] border border-white/10 text-gray-500 font-bold text-xs uppercase tracking-[0.2em] rounded-xl text-center">
                                         {{ registration_status_reason|default:"Registration closed" }}
                                     </div>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <div class="glass-panel px-6 py-4 rounded-2xl flex items-center justify-between border border-white/[0.06]">
-                                <div class="flex items-center gap-3">
-                                    <i data-lucide="shield-check" class="w-5 h-5 game-accent"></i>
-                                    <div>
-                                        <p class="text-[10px] font-black text-white uppercase leading-none">DeltaCrown Secured</p>
-                                        <p class="text-[9px] text-gray-400 leading-none mt-1">{% if tournament.prize_pool %}Escrow Prize Protection Active{% else %}Fair Play Guarantee{% endif %}</p>
-                                    </div>
+                            <div class="bg-[#0A0F1A]/60 backdrop-blur-lg px-5 py-3.5 rounded-2xl flex items-center gap-3 border border-white/[0.06]">
+                                <i data-lucide="shield-check" class="w-5 h-5 text-teal-400 shrink-0"></i>
+                                <div>
+                                    <p class="text-[10px] font-black text-white uppercase leading-none">DeltaCrown Secured</p>
+                                    <p class="text-[9px] text-gray-500 leading-none mt-1">{% if tournament.prize_pool %}Escrow Prize Protection Active{% else %}Fair Play Guarantee{% endif %}</p>
                                 </div>
                             </div>
                         </div>
@@ -1370,9 +1413,14 @@
                         <!-- CTA Button -->
                         {% if can_register %}
                         <a href="{{ registration_action_url }}"
-                           class="block w-full py-4 text-black font-black uppercase tracking-[0.15em] rounded-xl transition-all shadow-lg text-center text-sm hover:scale-[1.02] active:scale-[0.98]"
-                           style="background: var(--game-color); box-shadow: 0 4px 20px color-mix(in srgb, var(--game-color) 30%, transparent);">
-                            {{ registration_action_label }}
+                           class="block w-full"
+                           style="display: flex !important; align-items: center !important; justify-content: center !important; gap: 0.5rem !important; width: 100% !important; padding: 1rem 1.25rem !important; border-radius: 0.75rem !important; font-weight: 900 !important; font-size: 0.875rem !important; letter-spacing: 0.2em !important; text-transform: uppercase !important; color: #ffffff !important; background: linear-gradient(90deg, #0d9488, #2563eb) !important; box-shadow: 0 0 25px rgba(13,148,136,0.5) !important; border: 1px solid rgba(255,255,255,0.2) !important; text-decoration: none !important;"
+                           onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0 0 40px rgba(37,99,235,0.8)';"
+                           onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 25px rgba(13,148,136,0.5)';">
+                            <span style="color: #ffffff !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">{{ registration_action_label }}</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 8px rgba(250,204,21,0.8));">
+                                <path d="M13 2L4 14H11L10 22L20 9H13V2Z" fill="#FACC15"/>
+                            </svg>
                         </a>
                         {% elif is_registered %}
                         <a href="{{ registration_action_url }}"

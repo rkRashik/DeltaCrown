@@ -84,7 +84,7 @@
             {% if form_config.enable_age_field %}
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age <span class="text-red-400">*</span></label>
-                <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" required oninput="checkStep('profile')">
+                <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" value="{{ fields.age.value|default:'' }}" required oninput="checkStep('profile')">
                 <p class="text-[10px] text-gray-600 ml-1">Must be 13+</p>
             </div>
             {% endif %}
@@ -97,13 +97,31 @@
             {% if form_config.enable_platform_field %}
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Platform / Server</label>
+                {% if fields.platform_server.choices %}
+                <select name="platform_server" class="input-premium" onchange="checkStep('profile')">
+                    <option value="">Select platform…</option>
+                    {% for p in fields.platform_server.choices %}
+                    <option value="{{ p }}" {% if fields.platform_server.value == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
                 <input type="text" name="platform_server" class="input-premium" placeholder="e.g. APAC, NA, PC" value="{{ fields.platform_server.value|default:'' }}" oninput="checkStep('profile')">
+                {% endif %}
             </div>
             {% endif %}
             {% if form_config.enable_rank_field %}
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Current Rank</label>
+                {% if fields.rank.choices %}
+                <select name="rank" class="input-premium" onchange="checkStep('profile')">
+                    <option value="">Select rank…</option>
+                    {% for r in fields.rank.choices %}
+                    <option value="{{ r.value }}" {% if fields.rank.value == r.value %}selected{% endif %}>{{ r.label }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
                 <input type="text" name="rank" class="input-premium" placeholder="e.g. Diamond, Gold" value="{{ fields.rank.value|default:'' }}" oninput="checkStep('profile')">
+                {% endif %}
             </div>
             {% endif %}
         </div>
