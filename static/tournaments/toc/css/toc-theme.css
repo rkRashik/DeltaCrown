@@ -361,6 +361,22 @@
 #toc-sidebar.collapsed #sidebar-collapse-btn i {
   transform: rotate(180deg);
 }
+
+.toc-context-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.toc-context-card .toc-context-chevron {
+  transform: rotate(0deg);
+}
+
+.toc-context-card[open] .toc-context-chevron {
+  transform: rotate(180deg);
+}
+
+#toc-sidebar.collapsed .toc-context-card {
+  display: none;
+}
 /* ─── Bracket Connector Lines ─────────────────────────────── */
 .bracket-tree-wrap {
   position: relative;

@@ -958,14 +958,31 @@
 
   // Auto-init when DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _init);
+    document.addEventListener('DOMContentLoaded', _boot);
   } else {
-    _init();
+    _boot();
   }
 
   function _init() {
     load();
     startAutoRefresh();
+  }
+
+  function _boot() {
+    const activeTab = (window.location.hash || '#overview').replace('#', '') || 'overview';
+    if (activeTab === 'overview') {
+      _init();
+    }
+
+    document.addEventListener('toc:tab-changed', function (e) {
+      if (e.detail && e.detail.tab === 'overview') {
+        if (!_refreshTimer) {
+          _init();
+        }
+      } else {
+        stopAutoRefresh();
+      }
+    });
   }
 
 })();

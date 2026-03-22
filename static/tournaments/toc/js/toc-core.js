@@ -35,6 +35,7 @@
     const CFG = window.TOC_CONFIG || {};
     const IS_MAC = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
     const MOD_KEY_LABEL = IS_MAC ? '⌘' : 'Ctrl';
+    const _inflightGetRequests = new Map();
 
     /* ───────────────────────────────────────────────
        S0-J3: Tab Router (hash-based)
@@ -98,6 +99,12 @@
        ─────────────────────────────────────────────── */
 
     async function tocFetch(url, opts = {}) {
+        const method = ((opts && opts.method) || 'GET').toUpperCase();
+        const dedupeKey = method === 'GET' ? url : '';
+        if (dedupeKey && _inflightGetRequests.has(dedupeKey)) {
+            return _inflightGetRequests.get(dedupeKey);
+        }
+
         const defaults = {
             headers: {
                 'Content-Type': 'application/json',
@@ -129,30 +136,42 @@
         config.signal = controller.signal;
         const timer = setTimeout(() => controller.abort(), timeout);
 
-        try {
-            const res = await fetch(url, config);
-            clearTimeout(timer);
+        const requestPromise = (async () => {
+            try {
+                const res = await fetch(url, config);
+                clearTimeout(timer);
 
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                const err = new Error(`TOC Fetch ${res.status}: ${text.slice(0, 200)}`);
-                err.status = res.status;
-                err.response = res;
-                throw err;
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    const err = new Error(`TOC Fetch ${res.status}: ${text.slice(0, 200)}`);
+                    err.status = res.status;
+                    err.response = res;
+                    throw err;
+                }
+
+                // Mark data as fresh so toc-polish stale warning resets
+                if (window.TOC?.polish?.markFresh) window.TOC.polish.markFresh();
+
+                const ct = res.headers.get('content-type') || '';
+                return ct.includes('application/json') ? res.json() : res.text();
+            } catch (e) {
+                clearTimeout(timer);
+                if (e.name === 'AbortError') {
+                    throw new Error('TOC Fetch: Request timed out');
+                }
+                throw e;
+            } finally {
+                if (dedupeKey) {
+                    _inflightGetRequests.delete(dedupeKey);
+                }
             }
+        })();
 
-            // Mark data as fresh so toc-polish stale warning resets
-            if (window.TOC?.polish?.markFresh) window.TOC.polish.markFresh();
-
-            const ct = res.headers.get('content-type') || '';
-            return ct.includes('application/json') ? res.json() : res.text();
-        } catch (e) {
-            clearTimeout(timer);
-            if (e.name === 'AbortError') {
-                throw new Error('TOC Fetch: Request timed out');
-            }
-            throw e;
+        if (dedupeKey) {
+            _inflightGetRequests.set(dedupeKey, requestPromise);
         }
+
+        return requestPromise;
     }
 
 

@@ -31,14 +31,29 @@
   </div>
   {% elif tournament.rules_text %}
   <div class="hub-glass rounded-2xl p-6 md:p-10 border border-white/5">
-    <div class="prose prose-invert prose-sm max-w-none hub-rich-text">
-      {% if '<' in tournament.rules_text and '>' in tournament.rules_text %}
-        {{ tournament.rules_text|sanitize_html }}
-      {% else %}
-        {{ tournament.rules_text|linebreaksbr }}
-      {% endif %}
+    <div class="prose prose-invert prose-sm max-w-none hub-rich-text" id="hub-rulebook-content">
+      {{ tournament.rules_text|render_rulebook }}
     </div>
   </div>
+  <script>
+    (function () {
+      const root = document.getElementById('hub-rulebook-content');
+      if (!root) return;
+
+      const hasRichNodes = root.querySelector('h1,h2,h3,h4,p,ul,ol,li,strong,em,table,blockquote');
+      if (hasRichNodes) return;
+
+      const raw = (root.textContent || '').trim();
+      if (!raw || !raw.includes('<')) return;
+
+      const decoder = document.createElement('textarea');
+      decoder.innerHTML = raw;
+      const decoded = decoder.value;
+      if (decoded.includes('<')) {
+        root.innerHTML = decoded;
+      }
+    })();
+  </script>
   {% else %}
   <div class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center">
     <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">

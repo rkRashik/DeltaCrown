@@ -1063,8 +1063,15 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiBracket;
     if (!url) return;
 
-    _showLoading('hub-bracket-tree', 'Loading bracket…');
+    _show('bracket-skeleton');
     _hide('bracket-not-generated');
+    _hide('bracket-zoom-controls');
+
+    const tree = document.getElementById('hub-bracket-tree');
+    if (tree) {
+      tree.classList.remove('hidden');
+      tree.innerHTML = '';
+    }
 
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
@@ -1083,17 +1090,22 @@ const HubEngine = (() => {
   function _renderBracket(data) {
     _hide('bracket-skeleton');
 
+    const tree = document.getElementById('hub-bracket-tree');
+    if (!tree) return;
+
     if (!data.generated || !data.rounds || data.rounds.length === 0) {
+      tree.innerHTML = '';
+      tree.classList.add('hidden');
       _show('bracket-not-generated');
+      _hide('bracket-zoom-controls');
       return;
     }
 
+    tree.classList.remove('hidden');
+    _hide('bracket-not-generated');
     _show('bracket-zoom-controls');
     const fmtEl = document.getElementById('bracket-format-label');
     if (fmtEl && data.format_display) fmtEl.textContent = data.format_display;
-
-    const tree = document.getElementById('hub-bracket-tree');
-    if (!tree) return;
 
     const fmt = (data.format || '').toLowerCase();
     const isDE = fmt.includes('double');
@@ -1398,6 +1410,7 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiMatches;
     if (!url) return;
 
+    _show('matches-skeleton');
     _showLoading('hub-match-cards', 'Loading matches…');
     _hide('matches-empty');
 
@@ -1424,6 +1437,7 @@ const HubEngine = (() => {
     const cardsEl = document.getElementById('hub-match-cards');
     if (cardsEl) {
       if (data.active_matches && data.active_matches.length > 0) {
+        _hide('matches-empty');
         let html = '';
         data.active_matches.forEach(m => {
           const stateColor = m.state === 'live' ? '#FF2A55' : m.state === 'ready' ? '#00FF66' : '#00F0FF';
@@ -1453,6 +1467,9 @@ const HubEngine = (() => {
         cardsEl.innerHTML = html;
         cardsEl.classList.remove('hidden');
       } else {
+        cardsEl.innerHTML = '';
+        cardsEl.classList.add('hidden');
+        _renderMatchLobbyEmptyState();
         _show('matches-empty');
       }
     }
@@ -1521,6 +1538,41 @@ const HubEngine = (() => {
         _show('match-history-empty');
       }
     }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _renderMatchLobbyEmptyState() {
+    const emptyEl = document.getElementById('matches-empty');
+    if (!emptyEl) return;
+
+    const status = _shell?.dataset.tournamentStatus || '';
+    let title = 'No Active Matches';
+    let message = 'When the tournament goes live and matches are scheduled, your matchups will appear here with live lobby controls and result submission.';
+
+    if (status === 'registration' || status === 'registration_open' || status === 'registration_closed') {
+      title = 'Matches Will Unlock After Bracket Generation';
+      message = 'Registration is still in progress. After check-in closes and the organizer generates the bracket, your match lobby will activate automatically.';
+    } else if (status === 'check_in') {
+      title = 'Waiting for Check-In to Close';
+      message = 'Check-in is active now. Matchups will appear as soon as the organizer finalizes the bracket and publishes schedules.';
+    }
+
+    emptyEl.innerHTML = `
+      <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+        <i data-lucide="crosshair" class="w-8 h-8 text-gray-600"></i>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">${_esc(title)}</h3>
+      <p class="text-sm text-gray-500 max-w-xl">${_esc(message)}</p>
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" onclick="HubEngine.switchTab('schedule')">
+          View Schedule
+        </button>
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" onclick="HubEngine.switchTab('bracket')">
+          Check Bracket Status
+        </button>
+      </div>
+    `;
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
@@ -1751,8 +1803,8 @@ const HubEngine = (() => {
               ${logo}
             </div>
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1">
-                <h3 class="font-bold text-white text-lg group-hover:text-[#00F0FF] transition-colors truncate" style="font-family:Outfit,sans-serif;">${_esc(p.name)}</h3>
+              <div class="flex items-start gap-1 flex-wrap">
+                <h3 class="font-bold text-white text-lg group-hover:text-[#00F0FF] transition-colors break-words whitespace-normal leading-tight" style="font-family:Outfit,sans-serif;">${_esc(p.name)}</h3>
                 ${youBadge}
                 ${statusBadge}
                 ${checkedIn}

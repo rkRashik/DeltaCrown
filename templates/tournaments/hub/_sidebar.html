@@ -3,53 +3,6 @@
   Used in both desktop sidebar and mobile drawer.
 {% endcomment %}
 
-{% comment %}Team Identity Block{% endcomment %}
-{% if is_staff_or_organizer and not is_team or is_staff_or_organizer and not team_name %}
-<div class="p-5 border-b border-white/5">
-  <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Viewing As</p>
-  <div class="flex items-center gap-3 p-3 rounded-xl bg-[#FFB800]/[0.06] border border-[#FFB800]/20">
-    <div class="w-8 h-8 rounded bg-[#FFB800]/20 border border-[#FFB800]/30 flex items-center justify-center">
-      <i data-lucide="shield-check" class="w-4 h-4 text-[#FFB800]"></i>
-    </div>
-    <div class="overflow-hidden flex-1 min-w-0">
-      <p class="text-sm font-bold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-      <p class="text-[10px] text-[#FFB800] font-semibold uppercase tracking-wider" style="font-family:'Space Grotesk',monospace;">Staff / Organizer</p>
-    </div>
-  </div>
-</div>
-{% elif is_team and team_name %}
-<div class="p-5 border-b border-white/5">
-  <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Competing As</p>
-  <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-    {% if team_logo_url %}
-      <img src="{{ team_logo_url }}" alt="{{ team_tag }}" class="w-8 h-8 rounded border border-white/10 object-cover">
-    {% else %}
-      <div class="w-8 h-8 rounded bg-[#00F0FF]/20 border border-[#00F0FF]/30 flex items-center justify-center text-[#00F0FF] font-black text-sm"
-           style="font-family:Outfit,sans-serif;">{{ team_tag }}</div>
-    {% endif %}
-    <div class="overflow-hidden flex-1 min-w-0">
-      <p class="text-sm font-bold text-white truncate">{{ team_name }}</p>
-      <p class="text-[10px] text-gray-400" style="font-family:'Space Grotesk',monospace;">
-        {{ starters|length }}/{{ min_roster }} starters &middot; {{ subs|length }} sub{{ subs|length|pluralize }}
-      </p>
-    </div>
-  </div>
-</div>
-{% elif not is_team %}
-<div class="p-5 border-b border-white/5">
-  <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Competing As</p>
-  <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-    <div class="w-8 h-8 rounded bg-[#7000FF]/20 border border-[#7000FF]/30 flex items-center justify-center text-[#7000FF] font-black text-sm">
-      {{ request.user.username|truncatechars:2 }}
-    </div>
-    <div class="overflow-hidden flex-1 min-w-0">
-      <p class="text-sm font-bold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-      <p class="text-[10px] text-gray-400" style="font-family:'Space Grotesk',monospace;">Solo Participant</p>
-    </div>
-  </div>
-</div>
-{% endif %}
-
 {% comment %}── Navigation Tabs ──────────────────────────────────────────{% endcomment %}
 <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
 

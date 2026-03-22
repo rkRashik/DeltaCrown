@@ -406,28 +406,27 @@
     /* Init — load data when participants tab activates               */
     /* ════════════════════════════════════════════════════════════════ */
 
+    let _initialized = false;
+
     function init() {
+        if (_initialized) return;
+        _initialized = true;
         refreshEmergencySubs();
         refreshFreeAgents();
         refreshWaitlist();
     }
 
     // Listen for tab activation
-    const origNavigate = TOC.navigate;
-    if (origNavigate) {
-        TOC.navigate = function (tabId) {
-            origNavigate(tabId);
-            if (tabId === 'participants') {
-                // Small delay to ensure DOM is visible
-                setTimeout(init, 100);
-            }
-        };
-    }
+    document.addEventListener('toc:tab-changed', function (e) {
+        if (e.detail && e.detail.tab === 'participants') {
+            setTimeout(init, 100);
+        }
+    });
 
     // Auto-init if participants tab is already active
     document.addEventListener('DOMContentLoaded', () => {
-        const view = document.getElementById('view-participants');
-        if (view && !view.classList.contains('hidden-view')) {
+        const currentTab = (window.location.hash || '#overview').replace('#', '');
+        if (currentTab === 'participants') {
             setTimeout(init, 300);
         }
     });

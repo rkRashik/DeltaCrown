@@ -14,6 +14,7 @@ with a single, SPA-style page driven by JSON API endpoints for real-time data.
 import json
 import logging
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
@@ -102,7 +103,28 @@ def _get_user_registration(user, tournament):
     ).first()
 
 
-def _build_hub_context(request, tournament, registration):
+def _resolve_hub_view_mode(request, tournament, registration):
+    """Resolve whether this Hub request should render as staff or participant view."""
+    is_staff_or_organizer = _is_tournament_staff_or_organizer(request.user, tournament)
+    can_toggle_view_mode = bool(is_staff_or_organizer and registration)
+    view_as = (request.GET.get('view_as') or '').strip().lower()
+    is_participant_view = can_toggle_view_mode and view_as == 'participant'
+    is_staff_view = bool(is_staff_or_organizer and not is_participant_view)
+
+    query_suffix = ''
+    if is_participant_view:
+        query_suffix = '?' + urlencode({'view_as': 'participant'})
+
+    return {
+        'is_staff_or_organizer': is_staff_or_organizer,
+        'is_staff_view': is_staff_view,
+        'is_participant_view': is_participant_view,
+        'can_toggle_view_mode': can_toggle_view_mode,
+        'query_suffix': query_suffix,
+    }
+
+
+def _build_hub_context(request, tournament, registration, query_suffix=''):
     """Build the full context dict for the hub template."""
     from apps.organizations.models import TeamMembership
     from apps.games.services import game_service
@@ -445,17 +467,17 @@ def _build_hub_context(request, tournament, registration):
         'game_card_url': tournament.game.card_image.url if tournament.game and hasattr(tournament.game, 'card_image') and tournament.game.card_image else '',
 
         # API endpoints (JS will poll these)
-        'api_state_url': f'/tournaments/{tournament.slug}/hub/api/state/',
-        'api_checkin_url': f'/tournaments/{tournament.slug}/hub/api/check-in/',
-        'api_announcements_url': f'/tournaments/{tournament.slug}/hub/api/announcements/',
-        'api_roster_url': f'/tournaments/{tournament.slug}/hub/api/roster/',
-        'api_squad_url': f'/tournaments/{tournament.slug}/hub/api/squad/',
-        'api_resources_url': f'/tournaments/{tournament.slug}/hub/api/resources/',
-        'api_prize_claim_url': f'/tournaments/{tournament.slug}/hub/api/prize-claim/',
-        'api_bracket_url': f'/tournaments/{tournament.slug}/hub/api/bracket/',
-        'api_standings_url': f'/tournaments/{tournament.slug}/hub/api/standings/',
-        'api_matches_url': f'/tournaments/{tournament.slug}/hub/api/matches/',
-        'api_participants_url': f'/tournaments/{tournament.slug}/hub/api/participants/',
+        'api_state_url': f'/tournaments/{tournament.slug}/hub/api/state/{query_suffix}',
+        'api_checkin_url': f'/tournaments/{tournament.slug}/hub/api/check-in/{query_suffix}',
+        'api_announcements_url': f'/tournaments/{tournament.slug}/hub/api/announcements/{query_suffix}',
+        'api_roster_url': f'/tournaments/{tournament.slug}/hub/api/roster/{query_suffix}',
+        'api_squad_url': f'/tournaments/{tournament.slug}/hub/api/squad/{query_suffix}',
+        'api_resources_url': f'/tournaments/{tournament.slug}/hub/api/resources/{query_suffix}',
+        'api_prize_claim_url': f'/tournaments/{tournament.slug}/hub/api/prize-claim/{query_suffix}',
+        'api_bracket_url': f'/tournaments/{tournament.slug}/hub/api/bracket/{query_suffix}',
+        'api_standings_url': f'/tournaments/{tournament.slug}/hub/api/standings/{query_suffix}',
+        'api_matches_url': f'/tournaments/{tournament.slug}/hub/api/matches/{query_suffix}',
+        'api_participants_url': f'/tournaments/{tournament.slug}/hub/api/participants/{query_suffix}',
 
         # Social / Contact
         'discord_url': tournament.social_discord or (lobby.discord_server_url if lobby else ''),
@@ -475,7 +497,7 @@ def _build_hub_context(request, tournament, registration):
         'stream_youtube_url': getattr(tournament, 'stream_youtube_url', '') or '',
 
         # Support system API
-        'api_support_url': f'/tournaments/{tournament.slug}/hub/api/support/',
+        'api_support_url': f'/tournaments/{tournament.slug}/hub/api/support/{query_suffix}',
     }
     return context
 
@@ -673,8 +695,16 @@ class TournamentHubView(LoginRequiredMixin, View):
             )
             return redirect('tournaments:detail', slug=slug)
 
-        context = _build_hub_context(request, tournament, registration)
-        context['is_staff_or_organizer'] = is_staff_or_organizer
+        view_mode = _resolve_hub_view_mode(request, tournament, registration)
+        context = _build_hub_context(
+            request,
+            tournament,
+            registration,
+            query_suffix=view_mode['query_suffix'],
+        )
+        context.update(view_mode)
+        context['hub_view_as_staff_url'] = request.path
+        context['hub_view_as_participant_url'] = f"{request.path}?view_as=participant"
         return render(request, self.template_name, context)
 
 
@@ -1527,7 +1557,8 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
         is_team = tournament.participation_type == 'team'
-        is_staff_view = not registration and _is_tournament_staff_or_organizer(request.user, tournament)
+        view_mode = _resolve_hub_view_mode(request, tournament, registration)
+        is_staff_view = view_mode['is_staff_view']
         participant_id = (registration.team_id if registration else None) if is_team else request.user.id
 
         # Get user's matches (staff/organizers see ALL matches)
