@@ -7,11 +7,14 @@ Emergency Subs, Free Agent Pool, Waitlist, Guest Conversion, Fee Waivers.
 All views inherit TOCBaseView for tournament lookup + permission check.
 """
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.participants_advanced_service import (
     TOCParticipantsAdvancedService,
 )
@@ -45,6 +48,7 @@ class EmergencySubSubmitView(TOCBaseView):
                 substitute_player_id=ser.validated_data["substitute_player_id"],
                 reason=ser.validated_data["reason"],
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'matches')
             return Response(result, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -61,11 +65,19 @@ class EmergencySubListView(TOCBaseView):
     def get(self, request, slug):
         status_filter = request.query_params.get("status")
         try:
+            cache_bucket = int(timezone.now().timestamp() // 10)
+            cache_key = toc_cache_key('participants_adv', self.tournament.id, 'emergency_subs', cache_bucket, status_filter or '')
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
             results = TOCParticipantsAdvancedService.list_emergency_subs(
                 self.tournament,
                 status_filter=status_filter,
             )
-            return Response({"results": results, "total": len(results)})
+            payload = {"results": results, "total": len(results)}
+            cache.set(cache_key, payload, timeout=15)
+            return Response(payload)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -84,6 +96,7 @@ class EmergencySubApproveView(TOCBaseView):
                 reviewer=request.user,
                 notes=ser.validated_data.get("notes", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'matches', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -105,6 +118,7 @@ class EmergencySubDenyView(TOCBaseView):
                 reviewer=request.user,
                 notes=ser.validated_data.get("notes", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'matches')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -122,12 +136,20 @@ class FreeAgentListView(TOCBaseView):
         status_filter = request.query_params.get("status")
         search = request.query_params.get("search")
         try:
+            cache_bucket = int(timezone.now().timestamp() // 10)
+            cache_key = toc_cache_key('participants_adv', self.tournament.id, 'free_agents', cache_bucket, status_filter or '', search or '')
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
             results = TOCParticipantsAdvancedService.list_free_agents(
                 self.tournament,
                 status_filter=status_filter,
                 search=search,
             )
-            return Response({"results": results, "total": len(results)})
+            payload = {"results": results, "total": len(results)}
+            cache.set(cache_key, payload, timeout=15)
+            return Response(payload)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -149,6 +171,7 @@ class FreeAgentAssignView(TOCBaseView):
                 team_id=ser.validated_data["team_id"],
                 assigned_by=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'matches', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -169,6 +192,7 @@ class WaitlistPromoteView(TOCBaseView):
                 registration_id=pk,
                 promoted_by=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -187,6 +211,7 @@ class WaitlistAutoPromoteView(TOCBaseView):
             result = TOCParticipantsAdvancedService.auto_promote_waitlist(
                 self.tournament,
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -207,6 +232,7 @@ class ConvertGuestView(TOCBaseView):
                 registration_id=pk,
                 converted_by=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -231,6 +257,7 @@ class FeeWaiverView(TOCBaseView):
                 waived_by=request.user,
                 reason=ser.validated_data["reason"],
             )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'payments', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -246,7 +273,15 @@ class WaitlistListView(TOCBaseView):
 
     def get(self, request, slug):
         try:
+            cache_bucket = int(timezone.now().timestamp() // 10)
+            cache_key = toc_cache_key('participants_adv', self.tournament.id, 'waitlist', cache_bucket)
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
             results = TOCParticipantsAdvancedService.get_waitlist(self.tournament)
-            return Response({"results": results, "total": len(results)})
+            payload = {"results": results, "total": len(results)}
+            cache.set(cache_key, payload, timeout=15)
+            return Response(payload)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

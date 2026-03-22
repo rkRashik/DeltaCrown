@@ -367,19 +367,22 @@ class TOCBracketsService:
         Sprint 27: Enhanced with conflict detection, group info,
         per-day breakdown, and estimated completion time.
         """
-        matches = (
+        matches_qs = (
             Match.objects.filter(tournament=tournament)
             .select_related("bracket")
             .order_by("scheduled_time", "round_number", "match_number")
         )
+        matches = list(matches_qs)
 
         # ── Build group lookup (match → group name) ──
         group_lookup = {}
         try:
-            for grp in Group.objects.filter(tournament=tournament):
-                for standing in GroupStanding.objects.filter(group=grp):
-                    if standing.team_id:
-                        group_lookup[standing.team_id] = grp.name
+            standings = GroupStanding.objects.filter(
+                group__tournament=tournament,
+            ).select_related('group').only('team_id', 'group__name')
+            for standing in standings:
+                if standing.team_id:
+                    group_lookup[standing.team_id] = standing.group.name
         except Exception:
             pass
 
@@ -436,7 +439,7 @@ class TOCBracketsService:
         conflicts = TOCBracketsService._detect_schedule_conflicts(matches)
 
         # ── Summary statistics ──
-        total = matches.count()
+        total = len(matches)
         scheduled = sum(1 for m in matches if m.state in ("scheduled", "check_in", "ready"))
         live = sum(1 for m in matches if m.state == "live")
         completed = sum(1 for m in matches if m.state in ("completed", "forfeit"))

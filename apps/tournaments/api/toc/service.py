@@ -16,7 +16,7 @@ from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -25,6 +25,7 @@ from apps.tournaments.models.registration import Registration
 from apps.tournaments.models.match import Match
 from apps.tournaments.models.dispute import DisputeRecord
 from apps.tournaments.models.payment_verification import PaymentVerification
+from apps.tournaments.models import AuditLog
 from apps.tournaments.services.command_center_service import CommandCenterService
 from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 
@@ -104,6 +105,10 @@ class TOCService:
         # S28: Quick-launch actions based on tournament state
         quick_actions = cls._get_quick_actions(tournament)
 
+        # S30: Inline quick stats + recent activity to avoid overview fan-out calls
+        quick_stats = cls._build_quick_stats(tournament, match_stats)
+        activity_log = cls._get_recent_activity(tournament, limit=25)
+
         return {
             'status': tournament.status,
             'status_display': tournament.get_status_display(),
@@ -119,6 +124,8 @@ class TOCService:
             'group_progress': group_progress,
             'countdowns': countdowns,
             'quick_actions': quick_actions,
+            'quick_stats': quick_stats,
+            'activity_log': activity_log,
         }
 
     # ── S1-S2: Transition Validation & Execution ──────────────────────
@@ -783,3 +790,79 @@ class TOCService:
             })
 
         return actions
+
+    # ── S30: Overview Inline Stats & Activity ───────────────────────
+
+    @classmethod
+    def _build_quick_stats(cls, tournament: Tournament, match_stats: Dict[str, int]) -> Dict[str, Any]:
+        """Build quick stats payload expected by overview sidebar cards."""
+        total_matches = match_stats.get('total', 0)
+        completed_matches = match_stats.get('completed', 0)
+        completion_pct = round((completed_matches / total_matches) * 100, 1) if total_matches else 0
+
+        reg_agg = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).aggregate(
+            total=models.Count('id'),
+            checked_in=models.Count('id', filter=models.Q(checked_in=True)),
+            disqualified=models.Count('id', filter=models.Q(status='disqualified')),
+        )
+        total_regs = reg_agg.get('total') or 0
+        checked_in = reg_agg.get('checked_in') or 0
+        disqualified = reg_agg.get('disqualified') or 0
+        dq_rate = round((disqualified / total_regs) * 100, 1) if total_regs else 0
+
+        match_agg = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).aggregate(
+            forfeits=models.Count('id', filter=models.Q(state='forfeit')),
+            avg_dur=models.Avg(
+                models.F('completed_at') - models.F('started_at'),
+                filter=models.Q(
+                    state=Match.COMPLETED,
+                    completed_at__isnull=False,
+                    started_at__isnull=False,
+                ),
+            ),
+        )
+
+        avg_duration_minutes = None
+        if match_agg.get('avg_dur'):
+            avg_duration_minutes = int(match_agg['avg_dur'].total_seconds() // 60)
+
+        return {
+            'matches': {
+                'completion_pct': completion_pct,
+                'avg_duration_minutes': avg_duration_minutes,
+                'in_progress': match_stats.get('live', 0),
+                'forfeits': match_agg.get('forfeits') or 0,
+            },
+            'participants': {
+                'checked_in': checked_in,
+                'dq_rate_pct': dq_rate,
+            },
+        }
+
+    @classmethod
+    def _get_recent_activity(cls, tournament: Tournament, limit: int = 25) -> List[Dict[str, Any]]:
+        """Return lightweight activity log entries for overview without extra API request."""
+        qs = (
+            AuditLog.objects
+            .filter(tournament_id=tournament.id)
+            .select_related('user')
+            .order_by('-timestamp')[:limit]
+        )
+
+        items: List[Dict[str, Any]] = []
+        for entry in qs:
+            metadata = entry.metadata if isinstance(entry.metadata, dict) else {}
+            items.append({
+                'id': entry.pk,
+                'action': entry.action,
+                'username': entry.user.username if entry.user else 'system',
+                'detail': metadata.get('detail') if isinstance(metadata.get('detail'), dict) else {},
+                'created_at': entry.timestamp.isoformat() if entry.timestamp else '',
+            })
+        return items

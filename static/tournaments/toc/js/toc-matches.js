@@ -49,26 +49,169 @@
   let selectedMatchDetail = null;
   let activeGroupFilter = '';
   let _debounceTimer = null;
+  let _matchesInflight = null;
+  let _matchesInflightQueryKey = '';
+  let _matchesRequestId = 0;
+  let _matchesLastFetchedAt = 0;
+  let _matchesLastQueryKey = '';
+  let _matchesAutoRefreshTimer = null;
+
+  const MATCHES_CACHE_TTL_MS = 15000;
+  const MATCHES_AUTO_REFRESH_MS = 30000;
+  const MATCHES_STAT_IDS = ['total', 'live', 'pending', 'completed', 'disputed'];
+
+  function isMatchesTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'matches';
+  }
+
+  function currentQueryKey() {
+    const stateVal = $('#match-filter-state')?.value || '';
+    const roundVal = $('#match-filter-round')?.value || '';
+    const searchVal = $('#match-search')?.value || '';
+    return [stateVal, roundVal, searchVal].join('::');
+  }
+
+  function hasFreshCache(queryKey) {
+    return allMatches.length > 0
+      && queryKey === _matchesLastQueryKey
+      && (Date.now() - _matchesLastFetchedAt) < MATCHES_CACHE_TTL_MS;
+  }
+
+  function setMatchesSyncStatus(mode, note) {
+    const el = $('#matches-sync-status');
+    if (!el) return;
+
+    if (mode === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing matches...';
+      return;
+    }
+
+    if (mode === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+
+    if (_matchesLastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = 'Last sync ' + new Date(_matchesLastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return;
+    }
+
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setMatchesErrorBanner(message) {
+    const el = $('#matches-error-banner');
+    if (!el) return;
+
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Matches request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.matches.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function setMatchesLoading(loading) {
+    MATCHES_STAT_IDS.forEach((id) => {
+      const el = $(`#matches-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    const list = $('#match-list');
+    if (list) {
+      list.classList.toggle('toc-panel-loading', loading);
+      if (loading) list.setAttribute('aria-busy', 'true');
+      else list.removeAttribute('aria-busy');
+    }
+  }
 
   /* ============================================================
      FETCH & RENDER
   ============================================================ */
-  async function refresh() {
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
     const state = $('#match-filter-state')?.value || '';
     const round = $('#match-filter-round')?.value || '';
     const search = $('#match-search')?.value || '';
-    try {
-      const data = await API.get('matches/' +
-        '?state=' + state + '&round=' + round + '&search=' + encodeURIComponent(search));
-      allMatches = data.matches || [];
+    const queryKey = currentQueryKey();
+
+    if (!force && hasFreshCache(queryKey)) {
       applyGroupFilter();
       renderStats(allMatches);
       populateRoundFilter(allMatches);
       populateGroupPills(allMatches);
-    } catch (e) {
-      console.error('[matches] fetch error', e);
-      toast('Failed to load matches', 'error');
+      setMatchesSyncStatus('ok');
+      return { matches: allMatches };
     }
+
+    if (_matchesInflight && !force && _matchesInflightQueryKey === queryKey) return _matchesInflight;
+
+    if (!silent) {
+      setMatchesLoading(true);
+      setMatchesSyncStatus('loading', allMatches.length ? 'Refreshing matches...' : 'Loading matches...');
+    }
+
+    const requestId = ++_matchesRequestId;
+    _matchesInflightQueryKey = queryKey;
+    _matchesInflight = (async () => {
+      try {
+        const data = await API.get('matches/' +
+          '?state=' + state + '&round=' + round + '&search=' + encodeURIComponent(search));
+        if (requestId !== _matchesRequestId) return { matches: allMatches };
+
+        allMatches = data.matches || [];
+        _matchesLastFetchedAt = Date.now();
+        _matchesLastQueryKey = queryKey;
+
+        applyGroupFilter();
+        renderStats(allMatches);
+        populateRoundFilter(allMatches);
+        populateGroupPills(allMatches);
+        setMatchesLoading(false);
+        setMatchesErrorBanner('');
+        setMatchesSyncStatus('ok');
+        return data;
+      } catch (e) {
+        if (requestId !== _matchesRequestId) return { matches: allMatches };
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[matches] fetch error', e);
+        toast('Failed to load matches', 'error');
+        setMatchesLoading(false);
+        if (allMatches.length) {
+          setMatchesSyncStatus('error', `Using cached data (${detail})`);
+          setMatchesErrorBanner(`Live refresh failed, showing cached matches data. ${detail}`);
+        } else {
+          setMatchesSyncStatus('error', detail);
+          setMatchesErrorBanner(detail);
+        }
+        return { matches: allMatches };
+      } finally {
+        if (requestId === _matchesRequestId) {
+          _matchesInflight = null;
+          _matchesInflightQueryKey = '';
+        }
+      }
+    })();
+
+    return _matchesInflight;
   }
 
   function debouncedRefresh() {
@@ -1526,6 +1669,12 @@
     refresh();
     switchDetailTab('score');
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (!_matchesAutoRefreshTimer) {
+      _matchesAutoRefreshTimer = setInterval(() => {
+        if (!isMatchesTabActive()) return;
+        refresh({ silent: true });
+      }, MATCHES_AUTO_REFRESH_MS);
+    }
   }
 
   document.addEventListener('keydown', handleKeyboard);
@@ -1558,5 +1707,12 @@
 
   document.addEventListener('toc:tab-changed', function (e) {
     if (e.detail?.tab === 'matches') init();
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && isMatchesTabActive()) {
+      const queryKey = currentQueryKey();
+      if (!hasFreshCache(queryKey)) refresh({ silent: true });
+    }
   });
 })();

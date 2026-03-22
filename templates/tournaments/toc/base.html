@@ -304,6 +304,38 @@
             </button>
         </div>
 
+        {# ── Global sync health summary ── #}
+        <div id="toc-health-summary" class="px-6 py-2.5 border-b border-dc-border/40 bg-dc-panel/35 shrink-0" role="status" aria-live="polite" aria-atomic="true">
+            <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row lg:items-center gap-2.5">
+                <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-dc-text">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-theme"></i>
+                    <span>TOC Health</span>
+                    <span id="toc-health-last" class="text-[10px] font-mono text-dc-text normal-case tracking-normal">Waiting for first sync...</span>
+                </div>
+                <div class="flex items-center flex-wrap gap-2 text-[10px] font-mono">
+                    <span class="px-2 py-1 rounded border border-dc-border text-dc-text">Total <strong id="toc-health-total" class="text-white">0</strong></span>
+                    <span class="px-2 py-1 rounded border border-dc-success/40 text-dc-success">Healthy <strong id="toc-health-ok" class="text-white">0</strong></span>
+                    <span class="px-2 py-1 rounded border border-dc-warning/40 text-dc-warning">Syncing <strong id="toc-health-warn" class="text-white">0</strong></span>
+                    <span class="px-2 py-1 rounded border border-dc-danger/40 text-dc-danger">Issues <strong id="toc-health-error" class="text-white">0</strong></span>
+                </div>
+                <div id="toc-health-issues" class="text-[11px] text-dc-text truncate" aria-live="polite"></div>
+                <div class="flex items-center flex-wrap gap-2 lg:ml-auto">
+                    <button id="toc-health-refresh-visible" type="button" class="toc-health-btn" title="Refresh current tab">
+                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        <span>Refresh Visible</span>
+                    </button>
+                    <button id="toc-health-refresh-all" type="button" class="toc-health-btn" title="Refresh all TOC modules">
+                        <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+                        <span>Refresh All</span>
+                    </button>
+                    <button id="toc-health-jump-issue" type="button" class="toc-health-btn" title="Jump to first issue module">
+                        <i data-lucide="triangle-alert" class="w-3 h-3"></i>
+                        <span>Go To Issue</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         {# ── Tab content viewport ── #}
         <div class="flex-1 overflow-y-auto relative" id="toc-viewport">
 
@@ -317,6 +349,7 @@
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-3xl text-white tracking-tight">Command Center</h2>
                         <p class="text-sm text-dc-text mt-1 font-mono">{{ tournament.name }} | {{ game.display_name|default:game.name }}</p>
+                        <p id="overview-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Syncing overview...</p>
                     </div>
                 </div>
 
@@ -400,7 +433,7 @@
                         <p id="stat-checked-in" class="text-xl font-display font-black text-dc-warning">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
-                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Matches Total</p>
+                        <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">In Progress</p>
                         <p id="stat-in-progress" class="text-xl font-display font-black text-theme">—</p>
                     </div>
                     <div class="glass-box rounded-xl p-3 text-center">
@@ -1178,6 +1211,7 @@
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Match Operations</h2>
                         <p class="text-xs text-dc-text mt-1 font-mono">Master-Detail Control Room</p>
+                        <p id="matches-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-5 text-xs font-mono text-dc-text">
                         <span>Total: <strong id="matches-stat-total" class="text-white font-bold">—</strong></span>
@@ -1187,6 +1221,8 @@
                         <span>Disputed: <strong id="matches-stat-disputed" class="text-dc-danger font-bold">—</strong></span>
                     </div>
                 </div>
+
+                <div id="matches-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3 mb-3"></div>
 
                 {# ━━━ Master-Detail Grid ━━━ #}
                 <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 h-[calc(100vh-220px)] min-h-[600px]">
@@ -1647,6 +1683,7 @@
                         <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Schedule Manager</h2>
                         <p class="text-xs text-dc-text mt-1 font-mono">Timeline · List · Calendar · Auto-Schedule · Conflicts</p>
+                        <p id="schedule-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.schedule.openUserGuide()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Schedule Guide">
@@ -1666,6 +1703,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="schedule-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 {# S27: Schedule stats — 6 cards #}
                 <div id="schedule-stats" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -1927,11 +1966,15 @@
                     <div>
                         <h2 class="font-display font-black text-2xl text-white tracking-tight">Tournament Configuration</h2>
                         <p class="text-sm text-dc-text mt-1">Full 1:1 database settings &bull; Game-aware panels auto-hide based on game type</p>
+                        <p id="settings-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                        <p id="settings-dirty-indicator" class="hidden text-[10px] font-mono text-dc-warning mt-1">Unsaved changes</p>
                     </div>
-                    <button onclick="TOC.settings.saveAll()" data-cap-require="edit_settings" class="px-5 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
+                    <button id="btn-settings-save-all" onclick="TOC.settings.saveAll()" data-cap-require="edit_settings" class="px-5 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
                         <i data-lucide="save" class="w-4 h-4"></i> Save All Changes
                     </button>
                 </div>
+
+                <div id="settings-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 {# ── Group: Core Setup ── #}
                 <div class="flex items-center gap-3">
@@ -2813,7 +2856,10 @@
 
                 {# Header + Actions #}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Standings & Leaderboards</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Standings & Leaderboards</h2>
+                        <p id="standings-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <select id="standings-group-filter" onchange="TOC.standings.refresh()" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
                             <option value="">All Groups</option>
@@ -2826,6 +2872,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="standings-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 {# Stats Row #}
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="standings-stats-row">
@@ -2976,7 +3024,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Streams & Media</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Streams & Media</h2>
+                        <p id="streams-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.streams.addStation()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Add Station
@@ -2989,6 +3040,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="streams-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="streams-stats-row">
                     <div class="glass-box rounded-xl p-4 text-center">
@@ -3055,7 +3108,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Analytics & Insights</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Analytics & Insights</h2>
+                        <p id="analytics-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.analytics.exportReport()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="download" class="w-3 h-3"></i> Export Report
@@ -3065,6 +3121,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="analytics-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 {# Overview Stats #}
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="analytics-stats-row">
@@ -3167,7 +3225,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Lobby & Server Management</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Lobby & Server Management</h2>
+                        <p id="lobby-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.lobby.addServer()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Add Server
@@ -3177,6 +3238,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="lobby-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="lobby-stats-row">
                     <div class="glass-box rounded-xl p-4 text-center">
@@ -3251,7 +3314,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Rules & Information</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Rules & Information</h2>
+                        <p id="rules-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.rules.addSection()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Add Section
@@ -3264,6 +3330,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="rules-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="rules-stats-row">
                     <div class="glass-box rounded-xl p-4 text-center">
@@ -3342,7 +3410,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Team Roster Management</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Team Roster Management</h2>
+                        <p id="rosters-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.rosters.lockRosters()" id="rosters-lock-btn" class="px-3 py-2 rounded-lg bg-dc-warning text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="lock" class="w-3 h-3"></i> Lock Rosters
@@ -3355,6 +3426,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="rosters-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3" id="rosters-stats-row">
                     <div class="glass-box rounded-xl p-4 text-center">
@@ -3458,7 +3531,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Notifications Center</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Notifications Center</h2>
+                        <p id="notifications-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button onclick="TOC.notifications.sendNotification()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="send" class="w-3 h-3"></i> Send Now
@@ -3471,6 +3547,8 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="notifications-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3"></div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="notif-stats-row">
                     <div class="glass-box rounded-xl p-4 text-center">
@@ -3630,6 +3708,79 @@
     {# CONFIG INJECTION + SCRIPTS                                    #}
     {# ══════════════════════════════════════════════════════════════ #}
     <script>
+        window.TOC_INITIAL_SETTINGS = JSON.parse('{{ toc_initial_settings_json|escapejs }}');
+        (function () {
+            function setField(sectionId, field, value) {
+                var section = document.getElementById(sectionId);
+                if (!section) return;
+                var el = section.querySelector('[data-field="' + field + '"]');
+                if (!el || value === undefined || value === null) return;
+                if (el.type === 'checkbox') {
+                    el.checked = !!value;
+                    return;
+                }
+                if (el.type === 'datetime-local' && typeof value === 'string') {
+                    el.value = value.slice(0, 16);
+                    return;
+                }
+                el.value = value;
+            }
+
+            function hydrateSettingsFallback() {
+                var s = window.TOC_INITIAL_SETTINGS || {};
+                if (!s.basic || !s.format) return;
+
+                var sectionMap = {
+                    basic: 'settings-basic',
+                    media: 'settings-media',
+                    format: 'settings-format',
+                    dates: 'settings-dates',
+                    venue: 'settings-venue',
+                    fees: 'settings-fees',
+                    prizes: 'settings-prizes',
+                    rules: 'settings-rules',
+                    features: 'settings-features',
+                    social: 'settings-social',
+                    waitlist: 'settings-waitlist',
+                    seo: 'settings-seo',
+                };
+
+                Object.keys(sectionMap).forEach(function (group) {
+                    var payload = s[group] || {};
+                    var sectionId = sectionMap[group];
+                    Object.keys(payload).forEach(function (field) {
+                        var value = payload[field];
+                        if (group === 'seo' && field === 'meta_keywords' && Array.isArray(value)) {
+                            value = value.join(', ');
+                        }
+                        setField(sectionId, field, value);
+                    });
+                });
+
+                if (s.media && s.media.banner_image) {
+                    var bStat = document.getElementById('banner-status');
+                    if (bStat) bStat.textContent = String(s.media.banner_image).split('/').pop();
+                }
+                if (s.media && s.media.thumbnail_image) {
+                    var tStat = document.getElementById('thumbnail-status');
+                    if (tStat) tStat.textContent = String(s.media.thumbnail_image).split('/').pop();
+                }
+                if (s.rules && s.rules.rules_pdf) {
+                    var rulesPdf = document.getElementById('rules-pdf-status');
+                    if (rulesPdf) rulesPdf.textContent = String(s.rules.rules_pdf).split('/').pop();
+                }
+                if (s.rules && s.rules.terms_pdf) {
+                    var termsPdf = document.getElementById('terms-pdf-status');
+                    if (termsPdf) termsPdf.textContent = String(s.rules.terms_pdf).split('/').pop();
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', hydrateSettingsFallback);
+            } else {
+                hydrateSettingsFallback();
+            }
+        })();
         window.TOC_CONFIG = {
             tournamentSlug: '{{ tournament.slug }}',
             csrfToken: '{{ csrf_token }}',
@@ -3654,7 +3805,7 @@
         };
         window.TOC_USER_CAPABILITIES = [{% for cap in user_capabilities %}'{{ cap }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
     </script>
-    <script defer src="{% static 'tournaments/toc/js/toc-core.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-core.js' %}?v=20260323a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-polish.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-overview.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-participants.js' %}"></script>
@@ -3664,7 +3815,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-schedule.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-matches.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-disputes.js' %}"></script>
-    <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}?v=20260323b"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-announcements.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>
@@ -3677,5 +3828,6 @@
     <script defer src="{% static 'tournaments/toc/js/toc-rules.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rosters.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-notifications.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-sync-health.js' %}"></script>
 </body>
 </html>

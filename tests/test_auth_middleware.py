@@ -33,6 +33,7 @@ class TestAuthMiddleware(BaseMiddleware):
     Optionally accepts ?role=organizer to inject organizer privileges.
     Bypasses JWT validation to avoid transaction visibility issues in tests.
     """
+    __test__ = False
     
     async def __call__(self, scope, receive, send):
         # Only process websocket connections

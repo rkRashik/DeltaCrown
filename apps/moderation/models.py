@@ -76,7 +76,7 @@ class ModerationSanction(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=models.F('starts_at')),
+                condition=models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=models.F('starts_at')),
                 name='sanction_ends_after_starts'
             ),
         ]
@@ -208,7 +208,7 @@ class AbuseReport(models.Model):
         ordering = ['-priority', '-created_at']
         constraints = [
             models.CheckConstraint(
-                check=models.Q(priority__gte=0, priority__lte=5),
+                condition=models.Q(priority__gte=0, priority__lte=5),
                 name='report_priority_bounds'
             ),
         ]

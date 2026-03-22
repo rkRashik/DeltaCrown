@@ -9,10 +9,14 @@ PRD: §1.2, §1.3 (TOC Architecture, Tab Structure)
 Tracker: S0-B3
 """
 
+import json
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404
 from django.views.generic import TemplateView
 
+from apps.tournaments.api.toc.settings_service import TOCSettingsService
 from apps.tournaments.models.tournament import Tournament
 
 
@@ -151,5 +155,13 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['has_brackets'] = has_brackets
         ctx['has_groups'] = has_groups
         ctx['tournament_format'] = fmt
+
+        # Provide initial settings payload so Settings tab can hydrate even if
+        # runtime API calls fail due transient client/network issues.
+        try:
+            initial_settings = TOCSettingsService.get_settings(t)
+        except Exception:
+            initial_settings = {}
+        ctx['toc_initial_settings_json'] = json.dumps(initial_settings, cls=DjangoJSONEncoder)
 
         return ctx

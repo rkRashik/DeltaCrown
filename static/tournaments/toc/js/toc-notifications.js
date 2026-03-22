@@ -15,19 +15,190 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
-  let dashData = null;
+  const CACHE_TTL_MS = 25000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['templates', 'pending', 'total', 'auto'];
+  const PANEL_IDS = ['notif-templates-list', 'notif-auto-rules', 'notif-channels', 'notif-log'];
 
-  async function refresh() {
-    try {
-      const data = await API.get('notifications/');
-      dashData = data;
-      renderStats(data.summary || {});
-      renderTemplates(data.templates || []);
-      renderAutoRules(data.auto_rules || []);
-      renderChannels(data.channels || {});
-      renderLog(data.log || []);
-    } catch (e) {
-      console.error('[notifications] fetch error', e);
+  let dashData = null;
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+
+  function isNotificationsTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'notifications';
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#notifications-sync-status');
+    if (!el) return;
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing notifications...';
+      return;
+    }
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#notifications-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Notifications request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.notifications.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#notif-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderDashboard(data) {
+    const safe = data && typeof data === 'object' ? data : {};
+    renderStats(safe.summary || {});
+    renderTemplates(Array.isArray(safe.templates) ? safe.templates : []);
+    renderAutoRules(Array.isArray(safe.auto_rules) ? safe.auto_rules : []);
+    renderChannels(safe.channels && typeof safe.channels === 'object' ? safe.channels : {});
+    renderLog(Array.isArray(safe.log) ? safe.log : []);
+    setLoading(false);
+    setErrorBanner('');
+    setSyncStatus('ok');
+  }
+
+  function renderErrorEmpty(message) {
+    const list = $('#notif-templates-list');
+    if (list) {
+      list.innerHTML = `
+        <div class="glass-box rounded-xl p-8 text-center">
+          <p class="text-sm text-dc-danger">${esc(message || 'Notifications unavailable')}</p>
+        </div>`;
+    }
+    setLoading(false);
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) return dashData;
+    }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing notifications...' : 'Loading notifications...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('notifications/');
+        if (requestId !== activeRequestId) return dashData || data;
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[notifications] fetch error', e);
+        if (dashData) {
+          setLoading(false);
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached notifications data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderErrorEmpty('Failed to load notifications data.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isNotificationsTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'notifications') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isNotificationsTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
     }
   }
 
@@ -217,7 +388,7 @@
     if (!subject) { toast('Subject is required', 'error'); return; }
     if (!body)    { toast('Body is required', 'error'); return; }
     API.post('notifications/templates/', { name, subject, body, trigger, enabled: true })
-      .then(() => { toast('Template created', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Template created', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -249,7 +420,7 @@
     if (!name)    { toast('Name is required', 'error'); return; }
     if (!subject) { toast('Subject is required', 'error'); return; }
     API.put(`notifications/templates/${id}/`, { name, subject, body, trigger, enabled })
-      .then(() => { toast('Template updated', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Template updated', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -258,7 +429,8 @@
     try {
       await API.delete(`notifications/templates/${id}/`);
       toast('Template deleted', 'success');
-      refresh();
+      invalidate();
+      refresh({ force: true });
     } catch (e) { toast('Failed', 'error'); }
   }
 
@@ -287,7 +459,7 @@
     if (!subject) { toast('Subject is required', 'error'); return; }
     if (!body)    { toast('Message body is required', 'error'); return; }
     API.post('notifications/send/', { subject, body, target })
-      .then(() => { toast('Notification sent!', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Notification sent!', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -320,7 +492,7 @@
     if (!body)          { toast('Message body is required', 'error'); return; }
     if (!scheduled_for) { toast('Schedule date/time is required', 'error'); return; }
     API.post('notifications/schedule/', { subject, body, target, scheduled_for })
-      .then(() => { toast('Notification scheduled', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Notification scheduled', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -349,7 +521,7 @@
     if (!teamId)  { toast('Team is required', 'error'); return; }
     if (!message) { toast('Message is required', 'error'); return; }
     API.post('notifications/team-message/', { team_id: teamId, message })
-      .then(() => { toast('Message sent', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Message sent', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -361,7 +533,8 @@
       });
       await API.post('notifications/auto-rules/', { rules });
       toast('Auto rule updated', 'success');
-      refresh();
+      invalidate();
+      refresh({ force: true });
     } catch (e) { toast('Failed', 'error'); }
   }
 
@@ -377,7 +550,7 @@
 
   window.TOC = window.TOC || {};
   window.TOC.notifications = {
-    refresh,
+    refresh, invalidate,
     createTemplate, _submitCreateTemplate,
     editTemplate, _submitEditTemplate, deleteTemplate,
     sendNotification, _submitSend,
@@ -386,8 +559,11 @@
     toggleAutoRule, saveChannels,
   };
 
-  // Auto-load when tab is activated
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail && e.detail.tab === 'notifications') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isNotificationsTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 })();

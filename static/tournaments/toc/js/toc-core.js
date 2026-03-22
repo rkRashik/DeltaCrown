@@ -36,6 +36,7 @@
     const IS_MAC = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
     const MOD_KEY_LABEL = IS_MAC ? '⌘' : 'Ctrl';
     const _inflightGetRequests = new Map();
+    let _activeTabId = '';
 
     /* ───────────────────────────────────────────────
        S0-J3: Tab Router (hash-based)
@@ -46,6 +47,11 @@
 
     function navigate(tabId) {
         if (!tabId) tabId = 'overview';
+
+        // No-op if we are already on this tab.
+        if (_activeTabId === tabId) {
+            return;
+        }
 
         // Update hash without triggering extra hashchange
         const cleanHash = '#' + tabId;
@@ -61,6 +67,8 @@
                 panel.classList.add('hidden-view');
             }
         });
+
+        _activeTabId = tabId;
 
         // Update sidebar active state
         $$('.toc-nav-btn[data-tab]').forEach(btn => {

@@ -114,11 +114,11 @@ class Group(TimestampedModel):
         ]
         constraints = [
             CheckConstraint(
-                check=Q(max_participants__gte=2),
+                condition=Q(max_participants__gte=2),
                 name='group_min_participants'
             ),
             CheckConstraint(
-                check=Q(advancement_count__gte=1),
+                condition=Q(advancement_count__gte=1),
                 name='group_min_advancement'
             ),
         ]
@@ -358,7 +358,7 @@ class GroupStanding(TimestampedModel):
         ]
         constraints = [
             CheckConstraint(
-                check=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
+                condition=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
                       (Q(user__isnull=True) & Q(team_id__isnull=False)),
                 name='group_standing_user_or_team_xor'
             ),
@@ -520,15 +520,15 @@ class GroupStage(TimestampedModel):
         ]
         constraints = [
             CheckConstraint(
-                check=Q(num_groups__gte=1),
+                condition=Q(num_groups__gte=1),
                 name='groupstage_min_groups'
             ),
             CheckConstraint(
-                check=Q(group_size__gte=2),
+                condition=Q(group_size__gte=2),
                 name='groupstage_min_group_size'
             ),
             CheckConstraint(
-                check=Q(advancement_count_per_group__gte=1),
+                condition=Q(advancement_count_per_group__gte=1),
                 name='groupstage_min_advancement'
             ),
         ]

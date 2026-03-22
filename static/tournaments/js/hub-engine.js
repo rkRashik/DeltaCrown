@@ -727,6 +727,16 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiResources;
     if (!url) return;
 
+    const rulesContent = document.getElementById('rules-content');
+    const socialSection = document.getElementById('resources-social-section');
+    const sponsorsSection = document.getElementById('resources-sponsors-section');
+    const emptyState = document.getElementById('resources-empty-state');
+    if (rulesContent) rulesContent.classList.add('hidden');
+    if (socialSection) socialSection.classList.add('hidden');
+    if (sponsorsSection) sponsorsSection.classList.add('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+    _show('rules-skeleton');
+
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -736,8 +746,23 @@ const HubEngine = (() => {
     } catch (err) {
       console.warn('[HubEngine] Resources fetch failed:', err.message);
       _hide('rules-skeleton');
-      _show('resources-empty-state');
+      _setResourcesEmptyState('Could not load resources right now.', 'Please check your network and try again.', true);
     }
+  }
+
+  function _setResourcesEmptyState(title, subtitle, canRetry) {
+    const titleEl = document.getElementById('resources-empty-title');
+    const subtitleEl = document.getElementById('resources-empty-subtitle');
+    const retryBtn = document.getElementById('resources-empty-retry');
+
+    if (titleEl) titleEl.textContent = title || 'No resources available yet';
+    if (subtitleEl) subtitleEl.textContent = subtitle || 'The organizer has not published any resources yet.';
+    if (retryBtn) {
+      retryBtn.classList.toggle('hidden', !canRetry);
+      retryBtn.onclick = canRetry ? _fetchResources : null;
+    }
+
+    _show('resources-empty-state');
   }
 
   function _renderResources(data) {
@@ -746,10 +771,15 @@ const HubEngine = (() => {
     const hasRules = data.rules?.text || data.rules?.pdf_url;
     const hasSocial = data.social_links && data.social_links.length > 0;
     const hasSponsors = data.sponsors && data.sponsors.length > 0;
-    const hasContact = !!data.contact_email;
+    const hasContact = !!(data.contact_email || data.contact_phone);
+    const hasSupportInfo = !!data.support_info;
 
-    if (!hasRules && !hasSocial && !hasSponsors && !hasContact) {
-      _show('resources-empty-state');
+    if (!hasRules && !hasSocial && !hasSponsors && !hasContact && !hasSupportInfo) {
+      _setResourcesEmptyState(
+        'No resources available yet',
+        'The organizer has not published any resources for this tournament yet.',
+        false,
+      );
       return;
     }
 
@@ -786,44 +816,91 @@ const HubEngine = (() => {
     }
 
     // ── Social Links ──
-    if (hasSocial || hasContact) {
+    if (hasSocial || hasContact || hasSupportInfo) {
       const socialSection = document.getElementById('resources-social-section');
-      if (socialSection) socialSection.classList.remove('hidden');
+      if (socialSection) {
+        socialSection.classList.remove('hidden');
+        socialSection.classList.add('hub-fade-in-up');
+      }
+
+      const emailRow = document.getElementById('contact-email-row');
+      const phoneRow = document.getElementById('contact-phone-row');
+      const supportRow = document.getElementById('resources-support-row');
+      if (emailRow) emailRow.classList.add('hidden');
+      if (phoneRow) phoneRow.classList.add('hidden');
+      if (supportRow) supportRow.classList.add('hidden');
 
       const grid = document.getElementById('social-links-grid');
       if (grid && hasSocial) {
         const iconMap = {
           discord: 'message-circle', twitter: 'twitter', instagram: 'instagram',
-          youtube: 'youtube', website: 'globe', twitch: 'tv', youtube_stream: 'play-circle',
+          youtube: 'youtube', facebook: 'facebook', tiktok: 'music',
+          website: 'globe', twitch: 'tv', youtube_stream: 'play-circle',
+        };
+        const subtitleMap = {
+          discord: 'Community',
+          twitter: 'News',
+          instagram: 'Media',
+          youtube: 'Videos',
+          facebook: 'Page',
+          tiktok: 'Clips',
+          website: 'Official',
+          twitch: 'Live',
+          youtube_stream: 'Live',
         };
         let html = '';
-        data.social_links.forEach(link => {
+        data.social_links.forEach((link, idx) => {
           const icon = iconMap[link.key] || 'link';
+          const sub = subtitleMap[link.key] || 'Channel';
           html += `
-            <a href="${_esc(link.url)}" target="_blank" rel="noopener" class="social-link-card">
+            <a href="${_esc(link.url)}" target="_blank" rel="noopener" class="social-link-card" style="animation: fadeIn 220ms ease ${idx * 35}ms both;">
               <div class="social-icon ${_esc(link.key)}">
                 <i data-lucide="${icon}" class="w-4 h-4"></i>
               </div>
-              <span>${_esc(link.label)}</span>
+              <span>
+                <span class="social-link-label">${_esc(link.label)}</span>
+                <span class="social-link-sub">${_esc(sub)}</span>
+              </span>
             </a>`;
         });
         grid.innerHTML = html;
+      } else if (grid) {
+        grid.innerHTML = '';
       }
 
       if (hasContact) {
-        const emailRow = document.getElementById('contact-email-row');
         const emailLink = document.getElementById('contact-email-link');
         const emailText = document.getElementById('contact-email-text');
-        if (emailRow) emailRow.classList.remove('hidden');
-        if (emailLink) emailLink.href = 'mailto:' + data.contact_email;
-        if (emailText) emailText.textContent = data.contact_email;
+        if (data.contact_email) {
+          if (emailRow) emailRow.classList.remove('hidden');
+          if (emailLink) emailLink.href = 'mailto:' + data.contact_email;
+          if (emailText) emailText.textContent = data.contact_email;
+        }
+
+        const phoneLink = document.getElementById('contact-phone-link');
+        const phoneText = document.getElementById('contact-phone-text');
+        if (data.contact_phone) {
+          const phoneDigits = String(data.contact_phone).replace(/[^\d+]/g, '').replace('+', '');
+          if (phoneRow) phoneRow.classList.remove('hidden');
+          if (phoneLink) phoneLink.href = 'https://wa.me/' + phoneDigits;
+          if (phoneText) phoneText.textContent = data.contact_phone;
+        }
+      }
+
+      if (hasSupportInfo) {
+        const supportText = document.getElementById('resources-support-text');
+        if (supportRow) supportRow.classList.remove('hidden');
+        if (supportText) supportText.innerHTML = `<span class="hub-support-title">Support & Disputes</span>${_esc(data.support_info).replace(/\n/g, '<br>')}`;
       }
     }
 
     // ── Sponsors ──
     if (hasSponsors) {
       const sponsorsSection = document.getElementById('resources-sponsors-section');
-      if (sponsorsSection) sponsorsSection.classList.remove('hidden');
+      if (sponsorsSection) {
+        sponsorsSection.classList.remove('hidden');
+        sponsorsSection.classList.add('hub-fade-in-up');
+      }
 
       const tierMap = { title: 'sponsors-title', gold: 'sponsors-gold', silver: 'sponsors-silver', bronze: 'sponsors-bronze', partner: 'sponsors-partner' };
       const tierGridMap = { title: 'sponsors-title', gold: 'sponsors-gold-grid', silver: 'sponsors-silver-grid', bronze: 'sponsors-bronze-grid', partner: 'sponsors-partner-grid' };

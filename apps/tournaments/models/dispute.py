@@ -183,7 +183,7 @@ class DisputeRecord(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=[
                         'open',
                         'under_review',

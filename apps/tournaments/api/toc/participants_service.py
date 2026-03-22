@@ -164,7 +164,18 @@ class TOCParticipantService:
         # Build IGL user_id → game IGN map for team registrations (avoids N+1)
         user_ign_map = cls._build_igl_ign_map(registrations, tournament)
 
-        results = [cls._serialize_participant_row(r, team_cache=team_cache, user_ign_map=user_ign_map) for r in registrations]
+        # Build latest payment map for quick-review payloads (avoids Payment fallback N+1)
+        payment_map = cls._build_latest_payment_map(registrations)
+
+        results = [
+            cls._serialize_participant_row(
+                r,
+                team_cache=team_cache,
+                user_ign_map=user_ign_map,
+                payment_map=payment_map,
+            )
+            for r in registrations
+        ]
 
         return {
             'results': results,
@@ -371,8 +382,9 @@ class TOCParticipantService:
             id__in=registration_ids,
             tournament=tournament,
             is_deleted=False,
-        )
-        found_ids = set(regs.values_list('id', flat=True))
+        ).select_related('user')
+        reg_map = {r.id: r for r in regs}
+        found_ids = set(reg_map.keys())
         missing = set(registration_ids) - found_ids
         if missing:
             raise ValidationError(f"Registrations not found: {missing}")
@@ -382,14 +394,16 @@ class TOCParticipantService:
 
         for reg_id in registration_ids:
             try:
-                if action == 'approve':
-                    cls.approve_registration(tournament, reg_id, actor)
-                elif action == 'reject':
-                    cls.reject_registration(tournament, reg_id, actor, reason)
-                elif action == 'disqualify':
-                    cls.disqualify_registration(tournament, reg_id, actor, reason)
-                elif action == 'checkin':
-                    cls.toggle_checkin(tournament, reg_id, actor)
+                reg = reg_map.get(reg_id)
+                if not reg:
+                    raise ValidationError(f"Registration {reg_id} not found in this tournament.")
+
+                cls._perform_bulk_action_on_registration(
+                    reg,
+                    action=action,
+                    actor=actor,
+                    reason=reason,
+                )
                 processed += 1
             except Exception as e:
                 errors.append({'id': reg_id, 'error': str(e)})
@@ -404,6 +418,48 @@ class TOCParticipantService:
             'errors': errors,
             'total_requested': len(registration_ids),
         }
+
+    @classmethod
+    def _perform_bulk_action_on_registration(
+        cls,
+        reg: Registration,
+        *,
+        action: str,
+        actor,
+        reason: str = '',
+    ) -> None:
+        """Execute a supported bulk action on a pre-fetched registration object."""
+        if action == 'approve':
+            RegistrationService.approve_registration(
+                registration=reg,
+                approved_by=actor,
+            )
+            return
+
+        if action == 'reject':
+            RegistrationService.reject_registration(
+                registration=reg,
+                rejected_by=actor,
+            )
+            return
+
+        if action == 'disqualify':
+            RegistrationService.disqualify_registration(
+                registration=reg,
+                reason=reason,
+                disqualified_by=actor,
+                auto_refund=False,
+            )
+            return
+
+        if action == 'checkin':
+            CheckinService.organizer_toggle_checkin(
+                registration=reg,
+                actor=actor,
+            )
+            return
+
+        raise ValidationError(f"Invalid bulk action: {action}")
 
     # ── System Verification Checks ────────────────────────────────────
 
@@ -463,6 +519,8 @@ class TOCParticipantService:
             'Registered At', 'Game ID',
         ] + [k.replace('_', ' ').title() for k in reg_data_keys])
 
+        payment_map = cls._build_latest_payment_map(all_regs)
+
         for reg in all_regs:
             payment_status = cls._payment_status_label(reg)
             game_id = (reg.registration_data or {}).get('game_id', '')
@@ -484,7 +542,7 @@ class TOCParticipantService:
                 pass
             # Fallback to Payment model
             if not txn_id:
-                pay = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+                pay = payment_map.get(reg.id)
                 if pay:
                     txn_id = pay.transaction_id or ''
                     sender_phone = getattr(pay, 'payer_account_number', '') or ''
@@ -536,7 +594,13 @@ class TOCParticipantService:
             raise ValidationError(f"Registration {reg_id} not found in this tournament.")
 
     @classmethod
-    def _serialize_participant_row(cls, reg: Registration, team_cache: dict = None, user_ign_map: dict = None) -> Dict[str, Any]:
+    def _serialize_participant_row(
+        cls,
+        reg: Registration,
+        team_cache: dict = None,
+        user_ign_map: dict = None,
+        payment_map: dict = None,
+    ) -> Dict[str, Any]:
         """Serialize a registration to a grid-row dict."""
         payment_status = cls._payment_status_label(reg)
         game_id = (reg.registration_data or {}).get('game_id', '')
@@ -560,7 +624,7 @@ class TOCParticipantService:
                     coordinator_game_id = user_ign_map.get(cap_uid, '')
 
         # Quick-review payment data (for inline expand)
-        qr_payment = cls._get_quick_review_payment(reg)
+        qr_payment = cls._get_quick_review_payment(reg, payment_map=payment_map)
 
         return {
             'id': reg.id,
@@ -587,7 +651,11 @@ class TOCParticipantService:
         }
 
     @classmethod
-    def _get_quick_review_payment(cls, reg: Registration) -> Optional[Dict[str, Any]]:
+    def _get_quick_review_payment(
+        cls,
+        reg: Registration,
+        payment_map: Optional[Dict[int, Payment]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Lightweight payment data for inline quick-review panel."""
         # Try PaymentVerification first
         try:
@@ -610,7 +678,11 @@ class TOCParticipantService:
             pass
 
         # Fallback: Payment model
-        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        payment = None
+        if payment_map is not None:
+            payment = payment_map.get(reg.id)
+        if payment is None:
+            payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
         if not payment:
             return None
 
@@ -628,6 +700,23 @@ class TOCParticipantService:
             'method': payment.payment_method or '',
             'proof_url': proof_url,
         }
+
+    @classmethod
+    def _build_latest_payment_map(cls, registrations) -> Dict[int, Payment]:
+        """Build {registration_id: latest Payment} map in one query for a registration batch."""
+        reg_ids = [r.id for r in registrations if getattr(r, 'id', None)]
+        if not reg_ids:
+            return {}
+
+        payments = Payment.objects.filter(
+            registration_id__in=reg_ids,
+        ).order_by('registration_id', '-submitted_at', '-id')
+
+        latest: Dict[int, Payment] = {}
+        for payment in payments:
+            if payment.registration_id not in latest:
+                latest[payment.registration_id] = payment
+        return latest
 
     @classmethod
     def _enrich_lineup_snapshot(cls, reg: Registration, tournament: Tournament) -> List[Dict]:

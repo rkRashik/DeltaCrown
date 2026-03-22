@@ -17,12 +17,15 @@ Endpoints:
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.cache import cache
 from django.db import models
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.participants_service import TOCParticipantService
 from apps.tournaments.api.toc.serializers import (
     BulkActionInputSerializer,
@@ -40,7 +43,19 @@ class ParticipantListView(TOCBaseView):
     """
 
     def get(self, request, slug):
-        page = int(request.query_params.get('page', 1))
+        try:
+            page = int(request.query_params.get('page', 1))
+        except (TypeError, ValueError):
+            page = 1
+        page = max(1, page)
+
+        cache_bucket = int(timezone.now().timestamp() // 8)
+        query_sig = request.META.get('QUERY_STRING', '')
+        cache_key = toc_cache_key('participants', self.tournament.id, cache_bucket, page, query_sig)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCParticipantService.get_participant_list(
             tournament=self.tournament,
             page=page,
@@ -51,7 +66,9 @@ class ParticipantListView(TOCBaseView):
             ordering=request.query_params.get('ordering', '-registered_at'),
         )
         serializer = ParticipantListSerializer(data)
-        return Response(serializer.data)
+        payload = serializer.data
+        cache.set(cache_key, payload, timeout=12)
+        return Response(payload)
 
 
 class ParticipantDetailView(TOCBaseView):
@@ -62,12 +79,20 @@ class ParticipantDetailView(TOCBaseView):
 
     def get(self, request, slug, pk):
         try:
+            cache_bucket = int(timezone.now().timestamp() // 10)
+            cache_key = toc_cache_key('participants', self.tournament.id, 'detail', pk, cache_bucket)
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
             data = TOCParticipantService.get_participant_detail(
                 tournament=self.tournament,
                 registration_id=pk,
             )
             serializer = ParticipantDetailSerializer(data)
-            return Response(serializer.data)
+            payload = serializer.data
+            cache.set(cache_key, payload, timeout=15)
+            return Response(payload)
         except DjangoValidationError as e:
             return Response(
                 {'error': e.message if hasattr(e, 'message') else str(e)},
@@ -88,6 +113,7 @@ class ApproveView(TOCBaseView):
                 registration_id=pk,
                 actor=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics')
             return Response({
                 'ok': True,
                 'message': 'Registration approved.',
@@ -117,6 +143,7 @@ class RejectView(TOCBaseView):
                 actor=request.user,
                 reason=ser.validated_data.get('reason', ''),
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics')
             return Response({
                 'ok': True,
                 'message': 'Registration rejected.',
@@ -148,6 +175,7 @@ class DisqualifyView(TOCBaseView):
                 evidence=ser.validated_data.get('evidence', ''),
                 auto_refund=request.data.get('auto_refund', False),
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics', 'payments')
             return Response({
                 'ok': True,
                 'message': 'Participant disqualified.',
@@ -174,6 +202,7 @@ class VerifyPaymentView(TOCBaseView):
                 registration_id=pk,
                 actor=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'payments', 'overview', 'analytics')
             return Response({
                 'ok': True,
                 'message': 'Payment verified.',
@@ -200,6 +229,7 @@ class ToggleCheckinView(TOCBaseView):
                 registration_id=pk,
                 actor=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'overview', 'analytics')
             return Response({
                 'ok': True,
                 'message': 'Check-in toggled.',
@@ -230,6 +260,7 @@ class BulkActionView(TOCBaseView):
                 actor=request.user,
                 reason=ser.validated_data.get('reason', ''),
             )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics', 'payments')
             return Response(BulkActionResultSerializer(result).data)
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -329,6 +360,8 @@ class ImportCSVView(TOCBaseView):
                 results['skipped'] += 1
 
         results['total'] = results['imported'] + results['skipped']
+        if results['imported'] > 0:
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(results)
 
 

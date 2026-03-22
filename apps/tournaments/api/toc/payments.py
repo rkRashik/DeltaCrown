@@ -8,12 +8,15 @@ CSV export, prize pool, bounty CRUD, KYC endpoints.
 All views inherit TOCBaseView for tournament lookup + permission check.
 """
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.payments_service import TOCPaymentsService
 from apps.tournaments.api.toc.serializers import (
     BountyAssignInputSerializer,
@@ -32,11 +35,23 @@ class PaymentListView(TOCBaseView):
     """GET /api/toc/<slug>/payments/"""
 
     def get(self, request, slug):
-        page = int(request.query_params.get("page", 1))
+        try:
+            page = int(request.query_params.get("page", 1))
+        except (TypeError, ValueError):
+            page = 1
+        page = max(1, page)
+
         status_filter = request.query_params.get("status")
         method_filter = request.query_params.get("method")
         search = request.query_params.get("search")
         ordering = request.query_params.get("ordering", "-submitted_at")
+
+        cache_bucket = int(timezone.now().timestamp() // 8)
+        query_sig = request.META.get('QUERY_STRING', '')
+        cache_key = toc_cache_key('payments', self.tournament.id, cache_bucket, query_sig)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
 
         result = TOCPaymentsService.get_payment_list(
             self.tournament,
@@ -46,6 +61,7 @@ class PaymentListView(TOCBaseView):
             search=search,
             ordering=ordering,
         )
+        cache.set(cache_key, result, timeout=12)
         return Response(result)
 
 
@@ -62,6 +78,7 @@ class PaymentVerifyView(TOCBaseView):
                 payment_id=pk,
                 verified_by=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -89,6 +106,7 @@ class PaymentRejectView(TOCBaseView):
                 rejected_by=request.user,
                 reason=ser.validated_data.get("reason", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -116,6 +134,7 @@ class PaymentRefundView(TOCBaseView):
                 refunded_by=request.user,
                 reason=ser.validated_data.get("reason", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -141,6 +160,7 @@ class PaymentBulkVerifyView(TOCBaseView):
             payment_ids=ser.validated_data["ids"],
             verified_by=request.user,
         )
+        bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
         return Response(result)
 
 
@@ -151,7 +171,14 @@ class PaymentSummaryView(TOCBaseView):
     """GET /api/toc/<slug>/payments/summary/"""
 
     def get(self, request, slug):
+        cache_bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('payments', self.tournament.id, 'summary', cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         result = TOCPaymentsService.get_revenue_summary(self.tournament)
+        cache.set(cache_key, result, timeout=15)
         return Response(result)
 
 
@@ -177,7 +204,14 @@ class PrizePoolView(TOCBaseView):
     """GET /api/toc/<slug>/prize-pool/"""
 
     def get(self, request, slug):
+        cache_bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('payments', self.tournament.id, 'prize_pool', cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         result = TOCPaymentsService.get_prize_pool(self.tournament)
+        cache.set(cache_key, result, timeout=15)
         return Response(result)
 
 
@@ -193,6 +227,7 @@ class PrizeDistributeView(TOCBaseView):
                 self.tournament,
                 distributed_by=request.user,
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -211,8 +246,16 @@ class BountyListCreateView(TOCBaseView):
     """
 
     def get(self, request, slug):
+        cache_bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('payments', self.tournament.id, 'bounties', cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         results = TOCPaymentsService.list_bounties(self.tournament)
-        return Response({"results": results, "total": len(results)})
+        payload = {"results": results, "total": len(results)}
+        cache.set(cache_key, payload, timeout=15)
+        return Response(payload)
 
     def post(self, request, slug):
         ser = BountyCreateInputSerializer(data=request.data)
@@ -222,6 +265,7 @@ class BountyListCreateView(TOCBaseView):
             result = TOCPaymentsService.create_bounty(
                 self.tournament, **ser.validated_data
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'overview', 'analytics')
             return Response(result, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response(
@@ -241,6 +285,7 @@ class BountyDetailView(TOCBaseView):
             result = TOCPaymentsService.update_bounty(
                 self.tournament, bounty_id=bounty_id, **request.data
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -253,6 +298,7 @@ class BountyDetailView(TOCBaseView):
     def delete(self, request, slug, bounty_id):
         try:
             result = TOCPaymentsService.delete_bounty(self.tournament, bounty_id)
+            bump_toc_scopes(self.tournament.id, 'payments', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -277,6 +323,7 @@ class BountyAssignView(TOCBaseView):
                 assigned_by=request.user,
                 reason=ser.validated_data.get("reason", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(
@@ -295,10 +342,18 @@ class KYCListView(TOCBaseView):
 
     def get(self, request, slug):
         status_filter = request.query_params.get("status")
+        cache_bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('payments', self.tournament.id, 'kyc', cache_bucket, status_filter or '')
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         results = TOCPaymentsService.list_kyc_submissions(
             self.tournament, status_filter=status_filter
         )
-        return Response({"results": results, "total": len(results)})
+        payload = {"results": results, "total": len(results)}
+        cache.set(cache_key, payload, timeout=15)
+        return Response(payload)
 
 
 class KYCReviewView(TOCBaseView):
@@ -316,6 +371,7 @@ class KYCReviewView(TOCBaseView):
                 reviewer=request.user,
                 reason=ser.validated_data.get("reason", ""),
             )
+            bump_toc_scopes(self.tournament.id, 'payments', 'participants', 'overview', 'analytics')
             return Response(result)
         except ValidationError as e:
             return Response(

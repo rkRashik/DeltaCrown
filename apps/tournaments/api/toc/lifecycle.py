@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes
 from apps.tournaments.api.toc.serializers import (
     FreezeInputSerializer,
     LifecycleTransitionInputSerializer,
@@ -59,6 +60,11 @@ class LifecycleTransitionView(TOCBaseView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        bump_toc_scopes(
+            self.tournament.id,
+            'overview', 'analytics', 'brackets', 'matches', 'participants', 'participants_adv', 'payments', 'disputes', 'rosters',
+        )
+
         return Response({
             'status': updated.status,
             'status_display': updated.get_status_display(),
@@ -89,6 +95,11 @@ class FreezeView(TOCBaseView):
                 {'error': str(e.message if hasattr(e, 'message') else e.messages[0])},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        bump_toc_scopes(
+            self.tournament.id,
+            'overview', 'analytics', 'brackets', 'matches', 'participants', 'participants_adv', 'payments', 'disputes', 'rosters',
+        )
 
         config = updated.config or {}
         frozen_at = config.get('frozen', {}).get('frozen_at', '')
@@ -122,6 +133,11 @@ class UnfreezeView(TOCBaseView):
                 {'error': str(e.message if hasattr(e, 'message') else e.messages[0])},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        bump_toc_scopes(
+            self.tournament.id,
+            'overview', 'analytics', 'brackets', 'matches', 'participants', 'participants_adv', 'payments', 'disputes', 'rosters',
+        )
 
         return Response({
             'message': 'Tournament unfrozen. Operations resumed.',

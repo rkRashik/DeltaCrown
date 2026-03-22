@@ -22,31 +22,192 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
+  const CACHE_TTL_MS = 25000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['teams', 'players', 'valid', 'invalid', 'game-ids', 'status'];
+  const PANEL_IDS = ['rosters-teams-list', 'rosters-solo-list', 'rosters-change-log', 'rosters-config-section'];
+
   let dashData = null;
   let searchQuery = '';
   let statusFilter = 'all';
   let gameIdLabel = 'Game ID';   // dynamic from backend
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+
+  function isRostersTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'rosters';
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#rosters-sync-status');
+    if (!el) return;
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing rosters...';
+      return;
+    }
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#rosters-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Rosters request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.rosters.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#rosters-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderErrorEmpty(message) {
+    const container = $('#rosters-teams-list');
+    if (container) {
+      container.innerHTML = `
+        <div class="glass-box rounded-xl p-8 text-center">
+          <p class="text-sm text-dc-danger">${esc(message || 'Failed to load rosters')}</p>
+        </div>`;
+    }
+    setLoading(false);
+  }
+
+  function renderDashboard(data) {
+    const safe = data && typeof data === 'object' ? data : {};
+    gameIdLabel = safe.game_meta?.game_id_label || 'Game ID';
+    renderAll(safe);
+    setLoading(false);
+    setErrorBanner('');
+    setSyncStatus('ok');
+  }
 
   /* ─────────────────────────── Data fetch ─────────────────────────── */
 
-  async function refresh() {
-    const container = $('#rosters-teams-list');
-    if (container) container.innerHTML = `
-      <div class="flex items-center justify-center py-12 gap-2 text-dc-text opacity-60">
-        <span class="inline-block w-4 h-4 border-2 border-theme border-t-transparent rounded-full animate-spin"></span>
-        <span class="text-sm">Loading rosters…</span>
-      </div>`;
-    try {
-      const data = await API.get('rosters/');
-      dashData = data;
-      gameIdLabel = data.game_meta?.game_id_label || 'Game ID';
-      renderAll(data);
-    } catch (e) {
-      console.error('[rosters] fetch error', e);
-      if (container) container.innerHTML = `
-        <div class="glass-box rounded-xl p-8 text-center">
-          <p class="text-sm text-dc-danger">Failed to load rosters. Please refresh.</p>
-        </div>`;
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) return dashData;
+    }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing rosters...' : 'Loading rosters...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('rosters/');
+        if (requestId !== activeRequestId) return dashData || data;
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[rosters] fetch error', e);
+        if (dashData) {
+          setLoading(false);
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached rosters data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderErrorEmpty('Failed to load rosters. Please refresh.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isRostersTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'rosters') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isRostersTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
     }
   }
 
@@ -544,26 +705,26 @@
       confirmText: 'Lock Rosters',
       variant: 'warning',
       onConfirm: async function () {
-        try { await API.post('rosters/lock/', {}); toast('Rosters locked', 'warning'); refresh(); }
+        try { await API.post('rosters/lock/', {}); toast('Rosters locked', 'warning'); invalidate(); refresh({ force: true }); }
         catch { toast('Failed to lock', 'error'); }
       },
     });
   }
 
   async function unlockRosters() {
-    try { await API.post('rosters/unlock/', {}); toast('Rosters unlocked', 'success'); refresh(); }
+    try { await API.post('rosters/unlock/', {}); toast('Rosters unlocked', 'success'); invalidate(); refresh({ force: true }); }
     catch { toast('Failed to unlock', 'error'); }
   }
 
   async function setCaptain(teamId, userId) {
     if (!userId) { toast('No user ID', 'error'); return; }
-    try { await API.post('rosters/captain/', { team_id: teamId, user_id: userId }); toast('IGL updated', 'success'); refresh(); }
+    try { await API.post('rosters/captain/', { team_id: teamId, user_id: userId }); toast('IGL updated', 'success'); invalidate(); refresh({ force: true }); }
     catch { toast('Failed', 'error'); }
   }
 
   async function removePlayer(teamId, userId) {
     if (!confirm('Remove this player from the roster?')) return;
-    try { await API.post('rosters/remove-player/', { team_id: teamId, user_id: userId }); toast('Player removed', 'success'); refresh(); }
+    try { await API.post('rosters/remove-player/', { team_id: teamId, user_id: userId }); toast('Player removed', 'success'); invalidate(); refresh({ force: true }); }
     catch { toast('Failed', 'error'); }
   }
 
@@ -586,7 +747,7 @@
     const userId = parseInt(document.getElementById('roster-add-uid')?.value || '');
     if (!userId || isNaN(userId)) { toast('Valid user ID is required', 'error'); return; }
     API.post('rosters/add-player/', { team_id: teamId, user_id: userId })
-      .then(() => { toast('Player added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Player added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed to add player', 'error'));
   }
 
@@ -605,7 +766,7 @@
       allow_subs: $('#rosters-allow-subs')?.checked || false,
       max_subs: parseInt($('#rosters-max-subs')?.value || '2'),
     };
-    try { await API.post('rosters/config/', data); toast('Config saved', 'success'); }
+    try { await API.post('rosters/config/', data); toast('Config saved', 'success'); invalidate(); refresh({ force: true }); }
     catch { toast('Save failed', 'error'); }
   }
 
@@ -622,13 +783,17 @@
     refresh, lockRosters, unlockRosters,
     setCaptain, removePlayer, addPlayer, _submitAddPlayer,
     checkEligibility, saveConfig,
+    invalidate,
     _setFilter,
   };
 
-  // Auto-load when tab is activated
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail?.tab === 'rosters') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isRostersTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 
   /* ── Dropdown CSS (injected once) ── */
   const style = document.createElement('style');

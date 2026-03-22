@@ -400,6 +400,8 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
             'fields': (
                 'enable_dynamic_seeding', 'enable_live_updates',
                 'enable_certificates', 'enable_challenges', 'enable_fan_voting',
+                'auto_forfeit_no_shows', 'waitlist_auto_promote',
+                'enable_no_show_timer', 'no_show_timeout_minutes', 'max_waitlist_size',
             ),
             'classes': ('collapse',),
             'description': 'Optional features: auto-seeding, live score updates, completion certificates, challenges, fan voting.',

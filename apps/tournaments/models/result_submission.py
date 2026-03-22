@@ -188,7 +188,7 @@ class MatchResultSubmission(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=[
                         'pending',
                         'confirmed',
@@ -201,7 +201,7 @@ class MatchResultSubmission(models.Model):
                 name='chk_submission_status_valid',
             ),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     source__in=[
                         'manual',
                         'riot_api',

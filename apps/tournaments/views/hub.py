@@ -972,6 +972,8 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
             ('twitter', 'social_twitter', 'Twitter / X'),
             ('instagram', 'social_instagram', 'Instagram'),
             ('youtube', 'social_youtube', 'YouTube'),
+            ('facebook', 'social_facebook', 'Facebook'),
+            ('tiktok', 'social_tiktok', 'TikTok'),
             ('website', 'social_website', 'Website'),
             ('twitch', 'stream_twitch_url', 'Twitch'),
             ('youtube_stream', 'stream_youtube_url', 'YouTube Stream'),
@@ -983,6 +985,8 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
 
         # ── Contact ────────────────────────────────────
         contact_email = getattr(tournament, 'contact_email', '') or ''
+        contact_phone = getattr(tournament, 'contact_phone', '') or ''
+        support_info = getattr(tournament, 'support_info', '') or ''
 
         # ── Sponsors (tiered) ──────────────────────────
         sponsors_qs = TournamentSponsor.objects.filter(
@@ -1007,6 +1011,8 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
             'rules': rules,
             'social_links': social_links,
             'contact_email': contact_email,
+            'contact_phone': contact_phone,
+            'support_info': support_info,
             'sponsors': sponsors,
             'support_url': f'/support/?tournament={tournament.slug}',
             'tournament_page_url': f'/tournaments/{tournament.slug}/',

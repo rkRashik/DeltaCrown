@@ -282,7 +282,7 @@ class Challenge(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=~models.Q(challenger_team=models.F('challenged_team')),
+                condition=~models.Q(challenger_team=models.F('challenged_team')),
                 name='challenge_teams_different',
             ),
         ]

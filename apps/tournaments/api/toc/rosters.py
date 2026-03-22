@@ -12,10 +12,13 @@ POST  rosters/lineup/              — Submit match-day lineup
 GET   rosters/eligibility/<team>/  — Check team eligibility
 """
 
+from django.core.cache import cache
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.rosters_service import TOCRostersService
 
 
@@ -23,7 +26,14 @@ class RostersDashboardView(TOCBaseView):
     """Full roster management dashboard."""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('rosters', self.tournament.id, 'dashboard', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         result = TOCRostersService.get_rosters_dashboard(self.tournament)
+        cache.set(cache_key, result, timeout=15)
         return Response(result)
 
 
@@ -32,6 +42,7 @@ class RostersLockView(TOCBaseView):
 
     def post(self, request, slug):
         result = TOCRostersService.lock_rosters(self.tournament)
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(result)
 
 
@@ -40,6 +51,7 @@ class RostersUnlockView(TOCBaseView):
 
     def post(self, request, slug):
         result = TOCRostersService.unlock_rosters(self.tournament)
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(result)
 
 
@@ -54,6 +66,7 @@ class RostersCaptainView(TOCBaseView):
         result = TOCRostersService.set_captain(
             self.tournament, team_id=int(team_id), user_id=int(user_id),
         )
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv')
         return Response(result)
 
 
@@ -68,6 +81,7 @@ class RostersRemovePlayerView(TOCBaseView):
         result = TOCRostersService.remove_player(
             self.tournament, team_id=int(team_id), user_id=int(user_id),
         )
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(result)
 
 
@@ -81,6 +95,7 @@ class RostersAddPlayerView(TOCBaseView):
         result = TOCRostersService.add_player(
             self.tournament, team_id=int(team_id), data=request.data,
         )
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(result)
 
 
@@ -89,6 +104,7 @@ class RostersConfigView(TOCBaseView):
 
     def post(self, request, slug):
         result = TOCRostersService.update_roster_config(self.tournament, request.data)
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'overview', 'analytics')
         return Response(result)
 
 
@@ -102,6 +118,7 @@ class RostersLineupView(TOCBaseView):
         result = TOCRostersService.submit_lineup(
             self.tournament, team_id=int(team_id), data=request.data,
         )
+        bump_toc_scopes(self.tournament.id, 'rosters', 'participants', 'participants_adv', 'matches', 'overview', 'analytics')
         return Response(result)
 
 
@@ -109,7 +126,14 @@ class RostersEligibilityView(TOCBaseView):
     """Check team eligibility."""
 
     def get(self, request, slug, team_id):
+        bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('rosters', self.tournament.id, 'eligibility', team_id, bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         result = TOCRostersService.check_eligibility(
             self.tournament, team_id=int(team_id),
         )
+        cache.set(cache_key, result, timeout=15)
         return Response(result)

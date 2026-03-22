@@ -195,11 +195,11 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
         ]
         constraints = [
             models.CheckConstraint(
-                check=~models.Q(runner_up=models.F('winner')),
+                condition=~models.Q(runner_up=models.F('winner')),
                 name='runner_up_not_winner'
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(third_place__isnull=True) |
                     (
                         ~models.Q(third_place=models.F('winner')) &

@@ -92,7 +92,7 @@ async def wait_for_channel_message(communicator, timeout_ms=400):
     
     # Timeout reached
     raise asyncio.TimeoutError(f"No message received within {timeout_ms}ms")
-test_application = create_test_websocket_app()
+ws_test_application = create_test_websocket_app()
 
 # Monkey-patch consumers to use test-aware role resolution
 # This allows ?role=organizer to work in tests without transaction visibility issues
@@ -314,7 +314,7 @@ async def test_match_channel_participant_connection(user_factory):
     
     # Use test auth middleware with user_id query param (bypasses JWT)
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
@@ -342,7 +342,7 @@ async def test_match_channel_organizer_connection(user_factory):
     
     # Use role=organizer query param to inject organizer privileges in tests
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/?user_id={organizer.id}&role=organizer"
     )
     
@@ -366,7 +366,7 @@ async def test_match_channel_spectator_connection(user_factory):
     spectator_user = await database_sync_to_async(user_factory)()  # Create unique spectator
     
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/?user_id={spectator_user.id}"
     )
     
@@ -388,9 +388,9 @@ async def test_match_channel_requires_authentication(user_factory):
     data = await create_test_tournament_and_match(user_factory)
     match_obj = data['match']
     
-    # Use test_application without user_id - should inject AnonymousUser
+    # Use ws_test_application without user_id - should inject AnonymousUser
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/"  # No user_id parameter
     )
     
@@ -442,7 +442,7 @@ async def test_match_channel_room_isolation(user_factory):
     
     # Connect p1 to match1
     comm1 = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match1.id}/?user_id={p1.id}"
     )
     await comm1.connect()
@@ -450,7 +450,7 @@ async def test_match_channel_room_isolation(user_factory):
     
     # Connect p3 to match2
     comm2 = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match2.id}/?user_id={p3.id}"
     )
     await comm2.connect()
@@ -504,7 +504,7 @@ async def test_dispute_created_broadcast_to_both_rooms(user_factory):
     
     # Connect to tournament room
     comm_tournament = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/tournament/{tournament.id}/?user_id={participant1.id}"
     )
     await comm_tournament.connect()
@@ -512,7 +512,7 @@ async def test_dispute_created_broadcast_to_both_rooms(user_factory):
     
     # Connect to match room
     comm_match = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/?user_id={participant2.id}"
     )
     await comm_match.connect()
@@ -576,7 +576,7 @@ async def test_server_initiated_heartbeat_ping(user_factory):
     participant1 = data['participant1']
     
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_test_application,
         f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
@@ -605,7 +605,7 @@ async def test_heartbeat_pong_updates_last_pong_time(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -638,7 +638,7 @@ async def test_heartbeat_timeout_closes_connection(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -672,7 +672,7 @@ async def test_score_micro_batching_coalesces_rapid_updates(user_factory):
         match_obj = data['match']
         participant1 = data['participant1']
         communicator = WebsocketCommunicator(
-            test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+            ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
         )
         
         await communicator.connect()
@@ -735,7 +735,7 @@ async def test_score_batching_includes_sequence_number(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -782,7 +782,7 @@ async def test_match_completed_immediate_no_batching(user_factory):
         match_obj = data['match']
         participant1 = data['participant1']
         communicator = WebsocketCommunicator(
-            test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+            ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
         )
         
         await communicator.connect()
@@ -856,7 +856,7 @@ async def test_match_channel_schema_validation_missing_type(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -881,7 +881,7 @@ async def test_match_channel_unsupported_message_type(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -911,7 +911,7 @@ async def test_rate_limiter_compatibility_burst_score_updates(user_factory):
     match_obj = data['match']
     participant1 = data['participant1']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
+        ws_test_application, f"/ws/match/{match_obj.id}/?user_id={participant1.id}"
     )
     
     await communicator.connect()
@@ -957,7 +957,7 @@ async def test_tournament_channel_heartbeat_pong_handling(user_factory):
     tournament = data['tournament']
     organizer = data['organizer']
     communicator = WebsocketCommunicator(
-        test_application, f"/ws/tournament/{tournament.id}/?user_id={organizer.id}"
+        ws_test_application, f"/ws/tournament/{tournament.id}/?user_id={organizer.id}"
     )
     
     await communicator.connect()

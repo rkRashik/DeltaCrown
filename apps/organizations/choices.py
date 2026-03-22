@@ -121,6 +121,13 @@ class RankingTier(models.TextChoices):
     THE_CROWN = 'THE_CROWN', 'The Crown'
 
 
+# Backward-compatible aliases for legacy tests/services still referencing
+# the old BRONZE/SILVER/GOLD naming scheme.
+RankingTier.BRONZE = RankingTier.ROOKIE
+RankingTier.SILVER = RankingTier.ELITE
+RankingTier.GOLD = RankingTier.MASTER
+
+
 class ActivityActionType(models.TextChoices):
     """
     Audit log action types for team activity tracking.

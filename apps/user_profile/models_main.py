@@ -2567,7 +2567,7 @@ class FollowRequest(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=~models.Q(requester=models.F('target')),
+                condition=~models.Q(requester=models.F('target')),
                 name='follow_request_no_self_request'
             )
         ]

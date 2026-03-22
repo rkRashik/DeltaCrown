@@ -305,7 +305,7 @@ class Match(SoftDeleteModel, TimestampedModel):
         constraints = [
             # State must be valid (enforced by choices)
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     state__in=[
                         'scheduled', 'check_in', 'ready', 'live',
                         'pending_result', 'completed', 'disputed',
@@ -316,12 +316,12 @@ class Match(SoftDeleteModel, TimestampedModel):
             ),
             # Scores must be non-negative (enforced by PositiveIntegerField + validator)
             models.CheckConstraint(
-                check=models.Q(participant1_score__gte=0) & models.Q(participant2_score__gte=0),
+                condition=models.Q(participant1_score__gte=0) & models.Q(participant2_score__gte=0),
                 name='chk_match_scores_positive'
             ),
             # If COMPLETED, must have winner and loser
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(state='completed', winner_id__isnull=False, loser_id__isnull=False) |
                     ~models.Q(state='completed')
                 ),
@@ -329,7 +329,7 @@ class Match(SoftDeleteModel, TimestampedModel):
             ),
             # Round and match numbers must be positive
             models.CheckConstraint(
-                check=models.Q(round_number__gt=0) & models.Q(match_number__gt=0),
+                condition=models.Q(round_number__gt=0) & models.Q(match_number__gt=0),
                 name='chk_match_numbers_positive'
             ),
         ]
@@ -549,7 +549,7 @@ class Dispute(TimestampedModel):
         constraints = [
             # Reason must be valid (enforced by choices)
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     reason__in=[
                         'score_mismatch', 'no_show', 'cheating',
                         'technical_issue', 'other'
@@ -559,7 +559,7 @@ class Dispute(TimestampedModel):
             ),
             # Status must be valid (enforced by choices)
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=['open', 'under_review', 'resolved', 'escalated']
                 ),
                 name='chk_dispute_status_valid'

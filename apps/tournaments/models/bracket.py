@@ -422,17 +422,17 @@ class BracketNode(models.Model):
             ),
             # Round number must be positive
             CheckConstraint(
-                check=Q(round_number__gt=0),
+                condition=Q(round_number__gt=0),
                 name='chk_bracketnode_round_positive'
             ),
             # Match number in round must be positive
             CheckConstraint(
-                check=Q(match_number_in_round__gt=0),
+                condition=Q(match_number_in_round__gt=0),
                 name='chk_bracketnode_match_number_positive'
             ),
             # Parent slot must be 1 or 2 (if set)
             CheckConstraint(
-                check=Q(parent_slot__isnull=True) | Q(parent_slot__in=[1, 2]),
+                condition=Q(parent_slot__isnull=True) | Q(parent_slot__in=[1, 2]),
                 name='chk_bracketnode_parent_slot'
             ),
         ]

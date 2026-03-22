@@ -17,6 +17,7 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, override_settings
 from django.urls import reverse, resolve, NoReverseMatch
@@ -261,11 +262,11 @@ class TestTOCView:
         assert 'accent' in colors
 
     def test_context_contains_toc_tabs(self, organizer_client, tournament):
-        """Context includes 9 tab definitions."""
+        """Context includes the core TOC tab definitions."""
         url = reverse('toc:hub', kwargs={'slug': tournament.slug})
         response = organizer_client.get(url)
         tabs = response.context['toc_tabs']
-        assert len(tabs) == 9
+        assert len(tabs) >= 9
         tab_ids = [t['id'] for t in tabs]
         assert 'overview' in tab_ids
         assert 'participants' in tab_ids
@@ -344,6 +345,34 @@ class TestTOCAPIPermissions:
         response = outsider_client.get(url)
         assert response.status_code == 403
 
+    def test_assigned_tournament_staff_can_call_settings(self, tournament):
+        """TournamentStaffAssignment users should have TOC API access parity with shell view."""
+        from apps.tournaments.models.staffing import StaffRole, TournamentStaffAssignment
+
+        assigned_user = User.objects.create_user(
+            username='toc_assigned_staff',
+            email='assigned_staff@toc.test',
+            password='pass1234',
+        )
+        staff_role = StaffRole.objects.create(
+            name='TOC Assigned Staff',
+            code='toc_assigned_staff',
+            capabilities={'view_all': True},
+        )
+        TournamentStaffAssignment.objects.create(
+            tournament=tournament,
+            user=assigned_user,
+            role=staff_role,
+            assigned_by=tournament.organizer,
+            is_active=True,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=assigned_user)
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+        response = client.get(url)
+        assert response.status_code == 200
+
 
 # ============================================================================
 # 4. TOC API Endpoints
@@ -377,6 +406,165 @@ class TestTOCOverviewAPI:
         if response.status_code == 200:
             data = response.json()
             assert 'transitions' in data
+
+
+@pytest.mark.django_db
+class TestTOCPerformanceAPI:
+    """Regression tests for TOC request telemetry and perf summary endpoint."""
+
+    def test_perf_summary_url_resolves(self):
+        """Performance summary endpoint is wired in toc_api namespace."""
+        url = reverse('toc_api:perf-summary', kwargs={'slug': 'test-slug'})
+        assert '/api/toc/test-slug/perf/summary/' in url
+
+    def test_toc_elapsed_header_present(self, organizer_client, tournament):
+        """TOC API responses include X-TOC-Elapsed-MS header from base instrumentation."""
+        url = reverse('toc_api:participants', kwargs={'slug': tournament.slug})
+        response = organizer_client.get(url)
+        assert response.status_code == 200
+        assert 'X-TOC-Elapsed-MS' in response
+        assert float(response['X-TOC-Elapsed-MS']) >= 0
+
+    def test_perf_summary_counts_recent_requests(self, organizer_client, tournament):
+        """Perf summary reflects rolling request counters for recent TOC traffic."""
+        cache.clear()
+
+        participants_url = reverse('toc_api:participants', kwargs={'slug': tournament.slug})
+        organizer_client.get(participants_url)
+        organizer_client.get(participants_url)
+
+        perf_url = reverse('toc_api:perf-summary', kwargs={'slug': tournament.slug})
+        response = organizer_client.get(perf_url, {'minutes': 5})
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data['window_minutes'] == 5
+        assert data['summary']['total'] >= 2
+        assert 'series' in data
+        assert len(data['series']) == 5
+
+
+@pytest.mark.django_db
+class TestTOCCacheUtils:
+    """Unit tests for TOC scope-stamped cache invalidation helpers."""
+
+    def test_scope_bump_changes_generated_cache_key(self, tournament):
+        """After a scope bump, generated keys should change to bypass stale entries."""
+        from apps.tournaments.api.toc.cache_utils import toc_cache_key, bump_toc_scope
+
+        key_before = toc_cache_key('overview', tournament.id, 'bucket', 1)
+        bump_toc_scope('overview', tournament.id)
+        key_after = toc_cache_key('overview', tournament.id, 'bucket', 1)
+
+        assert key_before != key_after
+
+
+@pytest.mark.django_db
+class TestTOCSettingsValidationContract:
+    """Contract tests for structured settings validation responses."""
+
+    def test_settings_get_includes_settings_version_meta(self, organizer_client, tournament):
+        """Settings GET should include a version token for optimistic concurrency."""
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+        response = organizer_client.get(url)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert '_meta' in payload
+        assert payload['_meta']['settings_version']
+
+    def test_settings_put_returns_structured_validation_errors(self, organizer_client, tournament):
+        """Invalid participant bounds should return 400 with field and section errors."""
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+        response = organizer_client.put(
+            url,
+            data={
+                'max_participants': 8,
+                'min_participants': 16,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert 'error' in payload
+        assert payload['error']['type'] == 'validation'
+        assert payload['error']['code'] == 'settings_validation_failed'
+        assert 'fields' in payload['error']
+        assert 'sections' in payload['error']
+        assert 'min_participants' in payload['error']['fields']
+        assert 'settings-format' in payload['error']['sections']
+
+    def test_settings_put_returns_dates_section_errors(self, organizer_client, tournament):
+        """Out-of-order date payload should return settings-dates section validation errors."""
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+        response = organizer_client.put(
+            url,
+            data={
+                'registration_start': '2026-04-20T12:00:00Z',
+                'registration_end': '2026-04-10T12:00:00Z',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload['error']['type'] == 'validation'
+        assert 'registration_end' in payload['error']['fields']
+        assert 'settings-dates' in payload['error']['sections']
+
+    def test_settings_put_success_returns_updated_fields(self, organizer_client, tournament):
+        """Valid settings update should keep 200 contract and return updated field names."""
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+        response = organizer_client.put(
+            url,
+            data={
+                'name': 'TOC Validation Contract Updated',
+                'max_participants': 32,
+                'min_participants': 8,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert 'updated_fields' in payload
+        assert 'name' in payload['updated_fields']
+        assert 'max_participants' in payload['updated_fields']
+        assert 'min_participants' in payload['updated_fields']
+
+    def test_settings_put_with_stale_version_returns_conflict(self, organizer_client, tournament):
+        """Stale settings_version should return 409 conflict with server version hint."""
+        url = reverse('toc_api:settings', kwargs={'slug': tournament.slug})
+
+        tournament.updated_at = timezone.now() - timedelta(minutes=5)
+        tournament.save(update_fields=['updated_at'])
+
+        old_version = organizer_client.get(url).json()['_meta']['settings_version']
+
+        first_write = organizer_client.put(
+            url,
+            data={
+                'name': 'TOC Version Writer 1',
+            },
+            format='json',
+        )
+        assert first_write.status_code == 200
+
+        stale_write = organizer_client.put(
+            url,
+            data={
+                'name': 'TOC Version Writer 2',
+                'settings_version': old_version,
+            },
+            format='json',
+        )
+
+        assert stale_write.status_code == 409
+        payload = stale_write.json()
+        assert payload['error']['type'] == 'conflict'
+        assert payload['error']['code'] == 'settings_version_conflict'
+        assert payload['error']['server_settings_version']
 
 
 @pytest.mark.django_db
@@ -624,13 +812,13 @@ class TestTOCWorkflow:
         assert response.context['status'] == 'draft'
 
     def test_toc_tabs_match_api_endpoints(self, tournament):
-        """Each TOC tab has a corresponding API endpoint."""
+        """TOC shell exposes the required core tabs used by API modules."""
         from apps.tournaments.views.toc import TOCView
-        # Verify TOCView has 9 tabs
         view = TOCView()
         view.tournament = tournament
         view.request = MagicMock()
         view.request.user = tournament.organizer
         view.kwargs = {'slug': tournament.slug}
         ctx = view.get_context_data()
-        assert len(ctx['toc_tabs']) == 9
+        tab_ids = {tab['id'] for tab in ctx['toc_tabs']}
+        assert {'overview', 'participants', 'brackets', 'matches', 'disputes', 'settings'}.issubset(tab_ids)

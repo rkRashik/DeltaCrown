@@ -15,13 +15,25 @@ import re
 from typing import Optional
 from html import escape
 
-try:
-    from PyPDF2 import PdfReader
-    PYPDF2_AVAILABLE = True
-except ImportError:
-    PYPDF2_AVAILABLE = False
-
 logger = logging.getLogger(__name__)
+
+
+def _load_pdf_reader_class():
+    """Load a PDF reader class, preferring pypdf and falling back to PyPDF2."""
+    try:
+        from pypdf import PdfReader  # type: ignore
+        return PdfReader
+    except ImportError:
+        pass
+
+    try:
+        from PyPDF2 import PdfReader  # type: ignore
+        return PdfReader
+    except ImportError as exc:
+        raise ImportError(
+            "PDF import requires pypdf (preferred) or PyPDF2. "
+            "Install one with: pip install pypdf"
+        ) from exc
 
 
 def import_rules_from_pdf(tournament, *, overwrite: bool = True) -> Optional[str]:
@@ -36,17 +48,12 @@ def import_rules_from_pdf(tournament, *, overwrite: bool = True) -> Optional[str
         Generated HTML string, or None if no import was performed
         
     Raises:
-        ImportError: If PyPDF2 is not installed
+        ImportError: If no supported PDF library is installed
         FileNotFoundError: If PDF file doesn't exist
         Exception: For other PDF reading errors
     """
-    
-    # Check if PyPDF2 is available
-    if not PYPDF2_AVAILABLE:
-        raise ImportError(
-            "PyPDF2 is required for PDF import. "
-            "Install it with: pip install PyPDF2"
-        )
+
+    PdfReader = _load_pdf_reader_class()
     
     # Check if tournament has a PDF
     if not tournament.rules_pdf or not tournament.rules_pdf.name:

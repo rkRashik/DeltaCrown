@@ -189,11 +189,11 @@ class TournamentStage(TimestampedModel):
         ]
         constraints = [
             CheckConstraint(
-                check=Q(order__gte=1),
+                condition=Q(order__gte=1),
                 name='stage_min_order'
             ),
             CheckConstraint(
-                check=Q(advancement_count__gte=0),
+                condition=Q(advancement_count__gte=0),
                 name='stage_min_advancement'
             ),
         ]

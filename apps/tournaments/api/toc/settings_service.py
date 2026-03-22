@@ -23,8 +23,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator, validate_email
 from django.db import transaction
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
 from apps.tournaments.models import Tournament
@@ -54,6 +58,9 @@ class TOCSettingsService:
         """Return editable tournament fields grouped by section (1:1 model parity)."""
         t = tournament
         return {
+            "_meta": {
+                "settings_version": t.updated_at.isoformat() if getattr(t, "updated_at", None) else None,
+            },
             "basic": {
                 "name": t.name,
                 "slug": t.slug,
@@ -161,11 +168,11 @@ class TOCSettingsService:
         }
 
     @staticmethod
-    def update_settings(tournament: Tournament, data: dict) -> dict:
-        """Flat-merge provided fields into the Tournament model (1:1 parity)."""
+    def update_settings(tournament: Tournament, data: dict, expected_settings_version: str | None = None) -> dict:
+        """Flat-merge provided fields into the Tournament model with structured validation."""
         updatable = {
             # Basic
-            "name", "description", "is_official", "is_featured",
+            "name", "description", "status", "is_official", "is_featured",
             # Format
             "format", "participation_type", "platform", "mode",
             "max_participants", "min_participants",
@@ -202,6 +209,47 @@ class TOCSettingsService:
             # SEO
             "meta_description", "meta_keywords",
         }
+
+        if expected_settings_version is not None:
+            parsed_expected = parse_datetime(str(expected_settings_version)) if expected_settings_version else None
+            if parsed_expected is None:
+                return {
+                    "error": {
+                        "type": "validation",
+                        "code": "settings_validation_failed",
+                        "message": "Please fix the highlighted settings fields and try again.",
+                        "fields": {
+                            "settings_version": ["Settings version is invalid. Refresh and try again."],
+                        },
+                        "sections": {},
+                    }
+                }
+
+            current_version = getattr(tournament, "updated_at", None)
+            if current_version:
+                delta_seconds = abs((current_version - parsed_expected).total_seconds())
+                if delta_seconds > 0.001:
+                    return {
+                        "error": {
+                            "type": "conflict",
+                            "code": "settings_version_conflict",
+                            "message": "Settings changed elsewhere. Refresh and apply your changes again.",
+                            "server_settings_version": current_version.isoformat(),
+                        }
+                    }
+
+        field_errors, section_errors = TOCSettingsService._validate_settings_payload(data)
+        if field_errors or section_errors:
+            return {
+                "error": {
+                    "type": "validation",
+                    "code": "settings_validation_failed",
+                    "message": "Please fix the highlighted settings fields and try again.",
+                    "fields": field_errors,
+                    "sections": section_errors,
+                }
+            }
+
         changed: list[str] = []
         for key, value in data.items():
             if key in updatable and hasattr(tournament, key):
@@ -209,7 +257,175 @@ class TOCSettingsService:
                 changed.append(key)
         if changed:
             tournament.save(update_fields=changed + ["updated_at"] if hasattr(tournament, "updated_at") else changed)
-        return {"updated_fields": changed}
+
+        current_version = getattr(tournament, "updated_at", None)
+        return {
+            "updated_fields": changed,
+            "settings_version": current_version.isoformat() if current_version else None,
+        }
+
+    @staticmethod
+    def _validate_settings_payload(data: dict) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+        field_errors: dict[str, list[str]] = {}
+        section_errors: dict[str, list[str]] = {}
+
+        def add_field_error(field: str, message: str) -> None:
+            field_errors.setdefault(field, []).append(message)
+
+        def add_section_error(section: str, message: str) -> None:
+            section_errors.setdefault(section, []).append(message)
+
+        def _as_int(value: Any) -> int | None:
+            if value is None or value == "":
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        def _as_float(value: Any) -> float | None:
+            if value is None or value == "":
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        name = data.get("name")
+        if name is not None:
+            if not str(name).strip():
+                add_field_error("name", "Tournament name is required.")
+            elif len(str(name).strip()) > 255:
+                add_field_error("name", "Tournament name must be 255 characters or fewer.")
+
+        max_participants = _as_int(data.get("max_participants"))
+        min_participants = _as_int(data.get("min_participants"))
+        if "max_participants" in data:
+            if max_participants is None:
+                add_field_error("max_participants", "Max participants must be a number.")
+            elif max_participants < 2:
+                add_field_error("max_participants", "Max participants must be at least 2.")
+
+        if "min_participants" in data:
+            if min_participants is None:
+                add_field_error("min_participants", "Min participants must be a number.")
+            elif min_participants < 0:
+                add_field_error("min_participants", "Min participants cannot be negative.")
+
+        if max_participants is not None and min_participants is not None and min_participants > max_participants:
+            add_field_error("min_participants", "Min participants cannot exceed max participants.")
+            add_section_error("settings-format", "Participant limits are inconsistent.")
+
+        max_guest_teams = _as_int(data.get("max_guest_teams"))
+        if "max_guest_teams" in data:
+            if max_guest_teams is None:
+                add_field_error("max_guest_teams", "Max guest teams must be a number.")
+            elif max_guest_teams < 0:
+                add_field_error("max_guest_teams", "Max guest teams cannot be negative.")
+
+        if data.get("contact_email"):
+            try:
+                validate_email(data["contact_email"])
+            except DjangoValidationError:
+                add_field_error("contact_email", "Enter a valid email address.")
+
+        url_fields = (
+            "promo_video_url",
+            "stream_twitch_url",
+            "stream_youtube_url",
+            "venue_map_url",
+            "social_discord",
+            "discord_webhook_url",
+            "social_facebook",
+            "social_tiktok",
+            "social_instagram",
+            "social_youtube",
+            "social_website",
+        )
+        url_validator = URLValidator(schemes=["http", "https"])
+        for field in url_fields:
+            value = data.get(field)
+            if not value:
+                continue
+            try:
+                url_validator(str(value))
+            except DjangoValidationError:
+                add_field_error(field, "Enter a valid URL starting with http:// or https://.")
+
+        timezone_name = data.get("timezone_name")
+        if timezone_name:
+            try:
+                ZoneInfo(str(timezone_name))
+            except ZoneInfoNotFoundError:
+                add_field_error("timezone_name", "Select a valid timezone.")
+
+        registration_start = parse_datetime(str(data.get("registration_start"))) if data.get("registration_start") else None
+        registration_end = parse_datetime(str(data.get("registration_end"))) if data.get("registration_end") else None
+        tournament_start = parse_datetime(str(data.get("tournament_start"))) if data.get("tournament_start") else None
+        tournament_end = parse_datetime(str(data.get("tournament_end"))) if data.get("tournament_end") else None
+
+        if data.get("registration_start") and registration_start is None:
+            add_field_error("registration_start", "Registration start must be a valid datetime.")
+        if data.get("registration_end") and registration_end is None:
+            add_field_error("registration_end", "Registration end must be a valid datetime.")
+        if data.get("tournament_start") and tournament_start is None:
+            add_field_error("tournament_start", "Tournament start must be a valid datetime.")
+        if data.get("tournament_end") and tournament_end is None:
+            add_field_error("tournament_end", "Tournament end must be a valid datetime.")
+
+        if registration_start and registration_end and registration_end < registration_start:
+            add_field_error("registration_end", "Registration end cannot be before registration start.")
+            add_section_error("settings-dates", "Registration dates are out of order.")
+        if tournament_start and tournament_end and tournament_end < tournament_start:
+            add_field_error("tournament_end", "Tournament end cannot be before tournament start.")
+            add_section_error("settings-dates", "Tournament dates are out of order.")
+        if registration_end and tournament_start and registration_end > tournament_start:
+            add_field_error("registration_end", "Registration should close on or before tournament start.")
+            add_section_error("settings-dates", "Registration closes after tournament start.")
+
+        payment_deadline_hours = _as_int(data.get("payment_deadline_hours"))
+        if "payment_deadline_hours" in data:
+            if payment_deadline_hours is None:
+                add_field_error("payment_deadline_hours", "Payment deadline must be a number of hours.")
+            elif payment_deadline_hours < 0:
+                add_field_error("payment_deadline_hours", "Payment deadline cannot be negative.")
+
+        fee_waiver_top_n = _as_int(data.get("fee_waiver_top_n_teams"))
+        if "fee_waiver_top_n_teams" in data:
+            if fee_waiver_top_n is None:
+                add_field_error("fee_waiver_top_n_teams", "Fee waiver value must be a number.")
+            elif fee_waiver_top_n < 0:
+                add_field_error("fee_waiver_top_n_teams", "Fee waiver value cannot be negative.")
+            elif max_participants is not None and fee_waiver_top_n > max_participants:
+                add_field_error("fee_waiver_top_n_teams", "Fee waiver teams cannot exceed max participants.")
+
+        entry_fee_amount = _as_float(data.get("entry_fee_amount"))
+        if data.get("has_entry_fee") is True:
+            if entry_fee_amount is None:
+                add_field_error("entry_fee_amount", "Entry fee amount is required when entry fee is enabled.")
+            elif entry_fee_amount < 0:
+                add_field_error("entry_fee_amount", "Entry fee amount cannot be negative.")
+
+        no_show_timeout_minutes = _as_int(data.get("no_show_timeout_minutes"))
+        max_waitlist_size = _as_int(data.get("max_waitlist_size"))
+        if "no_show_timeout_minutes" in data and no_show_timeout_minutes is None:
+            add_field_error("no_show_timeout_minutes", "No-show timeout must be a number.")
+        if "max_waitlist_size" in data:
+            if max_waitlist_size is None:
+                add_field_error("max_waitlist_size", "Max waitlist size must be a number.")
+            elif max_waitlist_size < 0:
+                add_field_error("max_waitlist_size", "Max waitlist size cannot be negative.")
+
+        if data.get("enable_no_show_timer") is True:
+            if no_show_timeout_minutes is None or no_show_timeout_minutes < 1:
+                add_field_error("no_show_timeout_minutes", "No-show timeout must be at least 1 minute when timer is enabled.")
+                add_section_error("settings-waitlist", "No-show timer is enabled but timeout is invalid.")
+
+        meta_keywords = data.get("meta_keywords")
+        if meta_keywords is not None and not isinstance(meta_keywords, list):
+            add_field_error("meta_keywords", "Meta keywords must be an array of strings.")
+
+        return field_errors, section_errors
 
     # ------------------------------------------------------------------
     # Game Match Config
@@ -516,7 +732,9 @@ class TOCSettingsService:
                     "bank_account_number": m.bank_account_number,
                     "bank_account_name": m.bank_account_name,
                     "bank_routing_number": m.bank_routing_number,
+                    "bank_swift_code": m.bank_swift_code,
                     "bank_instructions": m.bank_instructions,
+                    "bank_reference_required": m.bank_reference_required,
                 })
             elif m.method == "deltacoin":
                 entry["deltacoin_instructions"] = m.deltacoin_instructions
@@ -548,7 +766,8 @@ class TOCSettingsService:
                     kwargs[key] = data[key]
         elif method == "bank_transfer":
             for field in ("bank_name", "bank_branch", "bank_account_number",
-                          "bank_account_name", "bank_routing_number", "bank_instructions"):
+                          "bank_account_name", "bank_routing_number", "bank_swift_code",
+                          "bank_instructions", "bank_reference_required"):
                 if field in data:
                     kwargs[field] = data[field]
         elif method == "deltacoin":
@@ -557,6 +776,50 @@ class TOCSettingsService:
 
         pm = TournamentPaymentMethod.objects.create(**kwargs)
         return {"id": pm.id, "method": pm.method}
+
+    @staticmethod
+    def update_payment_method(tournament: Tournament, payment_method_id: int, data: dict) -> dict:
+        """Update an existing payment method for the tournament."""
+        try:
+            pm = TournamentPaymentMethod.objects.get(pk=payment_method_id, tournament=tournament)
+        except TournamentPaymentMethod.DoesNotExist:
+            return {"error": "Payment method not found."}
+
+        updatable = {"is_enabled", "display_order"}
+
+        if pm.method in ("bkash", "nagad", "rocket"):
+            prefix = pm.method
+            updatable.update({
+                f"{prefix}_account_number",
+                f"{prefix}_account_name",
+                f"{prefix}_account_type",
+                f"{prefix}_instructions",
+                f"{prefix}_reference_required",
+            })
+        elif pm.method == "bank_transfer":
+            updatable.update({
+                "bank_name",
+                "bank_branch",
+                "bank_account_number",
+                "bank_account_name",
+                "bank_routing_number",
+                "bank_swift_code",
+                "bank_instructions",
+                "bank_reference_required",
+            })
+        elif pm.method == "deltacoin":
+            updatable.add("deltacoin_instructions")
+
+        changed = []
+        for key, value in data.items():
+            if key in updatable and hasattr(pm, key):
+                setattr(pm, key, value)
+                changed.append(key)
+
+        if changed:
+            pm.save(update_fields=changed + ["updated_at"])
+
+        return {"id": pm.id, "method": pm.method, "updated_fields": changed}
 
     @staticmethod
     def delete_payment_method(payment_method_id: int) -> dict:

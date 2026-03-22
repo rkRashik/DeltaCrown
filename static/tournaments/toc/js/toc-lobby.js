@@ -14,18 +14,187 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
-  let dashData = null;
+  const CACHE_TTL_MS = 20000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['servers', 'active', 'pending', 'completed'];
+  const PANEL_IDS = ['lobby-servers-list', 'lobby-matches-list', 'lobby-config-section'];
 
-  async function refresh() {
-    try {
-      const data = await API.get('lobby/');
-      dashData = data;
-      renderStats(data);
-      renderServers(data.servers || []);
-      renderMatches(data.matches || []);
-      renderConfig(data.config || {});
-    } catch (e) {
-      console.error('[lobby] fetch error', e);
+  let dashData = null;
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+
+  function isLobbyTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'lobby';
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#lobby-sync-status');
+    if (!el) return;
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing lobby...';
+      return;
+    }
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#lobby-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Lobby request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.lobby.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#lobby-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderDashboard(data) {
+    const safe = data && typeof data === 'object' ? data : {};
+    renderStats(safe);
+    renderServers(Array.isArray(safe.servers) ? safe.servers : []);
+    renderMatches(Array.isArray(safe.matches) ? safe.matches : []);
+    renderConfig(safe.config && typeof safe.config === 'object' ? safe.config : {});
+    setLoading(false);
+    setErrorBanner('');
+    setSyncStatus('ok');
+  }
+
+  function renderEmptyState(message) {
+    const text = esc(message || 'No data available');
+    const servers = $('#lobby-servers-list');
+    const matches = $('#lobby-matches-list');
+    if (servers) servers.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    if (matches) matches.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    setLoading(false);
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) return dashData;
+    }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing lobby...' : 'Loading lobby...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('lobby/');
+        if (requestId !== activeRequestId) return dashData || data;
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[lobby] fetch error', e);
+        if (dashData) {
+          setLoading(false);
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached lobby data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderEmptyState('Lobby data is unavailable right now.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isLobbyTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'lobby') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isLobbyTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
     }
   }
 
@@ -138,14 +307,14 @@
     const ip     = document.getElementById('lobby-srv-ip')?.value.trim() || '';
     if (!name) { toast('Server name is required', 'error'); return; }
     API.post('lobby/servers/', { name, region, ip })
-      .then(() => { toast('Server added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Server added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function deleteServer(serverId) {
     if (!confirm('Remove this server?')) return;
     API.delete(`lobby/servers/${serverId}/`)
-      .then(() => { toast('Removed', 'success'); refresh(); })
+      .then(() => { toast('Removed', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -154,14 +323,15 @@
       .then((res) => {
         const code = res.lobby_code || '';
         toast(`Lobby created: ${code}`, 'success');
-        refresh();
+        invalidate();
+        refresh({ force: true });
       })
       .catch(() => toast('Failed', 'error'));
   }
 
   function closeLobby(matchId) {
     API.post('lobby/close/', { match_id: matchId })
-      .then(() => { toast('Lobby closed', 'success'); refresh(); })
+      .then(() => { toast('Lobby closed', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -174,16 +344,21 @@
     try {
       await API.post('lobby/config/', data);
       toast('Config saved', 'success');
+      invalidate();
+      refresh({ force: true });
     } catch (e) {
       toast('Save failed', 'error');
     }
   }
 
   window.TOC = window.TOC || {};
-  window.TOC.lobby = { refresh, addServer, _submitAddServer, deleteServer, createLobby, closeLobby, saveConfig };
+  window.TOC.lobby = { refresh, invalidate, addServer, _submitAddServer, deleteServer, createLobby, closeLobby, saveConfig };
 
-  // Auto-load when tab is activated
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail && e.detail.tab === 'lobby') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isLobbyTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 })();

@@ -128,7 +128,7 @@ class PrizeTransaction(TimestampedModel):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(amount__gte=0),
+                condition=models.Q(amount__gte=0),
                 name='prize_amount_positive',
                 violation_error_message="Prize amount must be non-negative"
             ),

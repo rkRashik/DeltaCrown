@@ -479,9 +479,21 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         default=False,
         help_text='Automatically forfeit matches when both teams fail to start within the timeout window'
     )
+    auto_forfeit_no_shows = models.BooleanField(
+        default=False,
+        help_text='Automatically issue no-show forfeits for non-started matches when organizer policy allows'
+    )
+    waitlist_auto_promote = models.BooleanField(
+        default=False,
+        help_text='Automatically promote waitlisted registrations when slots become available'
+    )
     no_show_timeout_minutes = models.PositiveIntegerField(
         default=10,
         help_text='Minutes after scheduled start before a no-show forfeit is issued (requires enable_no_show_timer)'
+    )
+    max_waitlist_size = models.PositiveIntegerField(
+        default=0,
+        help_text='Maximum waitlist size (0 means unlimited)'
     )
 
     # Guest team settings (P2-T02)
@@ -596,11 +608,11 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(min_participants__gte=2),
+                condition=models.Q(min_participants__gte=2),
                 name='min_participants_at_least_2'
             ),
             models.CheckConstraint(
-                check=models.Q(max_participants__gte=models.F('min_participants')),
+                condition=models.Q(max_participants__gte=models.F('min_participants')),
                 name='max_participants_gte_min_participants'
             ),
         ]

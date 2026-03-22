@@ -40,7 +40,16 @@ class SettingsView(TOCBaseView):
         return Response(data)
 
     def put(self, request, slug):
-        result = TOCSettingsService.update_settings(self.tournament, request.data)
+        result = TOCSettingsService.update_settings(
+            self.tournament,
+            request.data,
+            expected_settings_version=request.data.get("settings_version"),
+        )
+        if isinstance(result, dict) and isinstance(result.get("error"), dict):
+            if result["error"].get("type") == "validation":
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            if result["error"].get("type") == "conflict":
+                return Response(result, status=status.HTTP_409_CONFLICT)
         return Response(result)
 
 
@@ -217,8 +226,14 @@ class PaymentMethodListView(TOCBaseView):
         return Response(result, status=status.HTTP_201_CREATED)
 
 
-class PaymentMethodDeleteView(TOCBaseView):
-    """DELETE a payment method."""
+class PaymentMethodDetailView(TOCBaseView):
+    """PUT to update / DELETE to remove a payment method."""
+
+    def put(self, request, slug, pk):
+        result = TOCSettingsService.update_payment_method(self.tournament, int(pk), request.data)
+        if "error" in result:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+        return Response(result)
 
     def delete(self, request, slug, pk):
         result = TOCSettingsService.delete_payment_method(int(pk))

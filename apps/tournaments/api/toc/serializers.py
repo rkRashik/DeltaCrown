@@ -78,6 +78,8 @@ class OverviewSerializer(serializers.Serializer):
     group_progress = serializers.DictField(required=False, allow_null=True, default=None)
     countdowns = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     quick_actions = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    quick_stats = serializers.DictField(required=False)
+    activity_log = serializers.ListField(child=serializers.DictField(), required=False)
 
 
 class LifecycleTransitionInputSerializer(serializers.Serializer):

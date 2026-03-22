@@ -14,10 +14,13 @@ S5-B10       groups/                  — Group stage CRUD
 S5-B11       pipelines/               — Qualifier pipeline CRUD
 """
 
+from django.core.cache import cache
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from .base import TOCBaseView
+from .cache_utils import bump_toc_scopes, toc_cache_key
 from .brackets_service import TOCBracketsService
 from .serializers import (
     AutoScheduleInputSerializer,
@@ -36,7 +39,14 @@ class BracketGetView(TOCBaseView):
     """S5-B5: GET /api/toc/<slug>/brackets/"""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'bracket', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCBracketsService.get_bracket(self.tournament)
+        cache.set(cache_key, data, timeout=12)
         return Response(data)
 
 
@@ -48,6 +58,7 @@ class BracketGenerateView(TOCBaseView):
             data = TOCBracketsService.generate_bracket(
                 self.tournament, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data, status=status.HTTP_201_CREATED)
         except (ValueError, Exception) as e:
             return Response(
@@ -60,6 +71,7 @@ class BracketResetView(TOCBaseView):
 
     def post(self, request, slug):
         data = TOCBracketsService.reset_bracket(self.tournament, request.user)
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -71,6 +83,7 @@ class BracketPublishView(TOCBaseView):
             data = TOCBracketsService.publish_bracket(
                 self.tournament, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -88,6 +101,7 @@ class BracketSeedsView(TOCBaseView):
             data = TOCBracketsService.reorder_seeds(
                 self.tournament, ser.validated_data["seeds"], request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'participants', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -101,7 +115,14 @@ class ScheduleGetView(TOCBaseView):
     """S5-B9: GET /api/toc/<slug>/schedule/"""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'schedule', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCBracketsService.get_schedule(self.tournament)
+        cache.set(cache_key, data, timeout=12)
         return Response(data)
 
 
@@ -230,6 +251,7 @@ class ScheduleAutoGenerateView(TOCBaseView):
         data = TOCBracketsService.auto_schedule(
             self.tournament, ser.validated_data, request.user
         )
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -243,6 +265,7 @@ class ScheduleBulkShiftView(TOCBaseView):
             data = TOCBracketsService.bulk_shift(
                 self.tournament, ser.validated_data, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -259,6 +282,7 @@ class ScheduleAddBreakView(TOCBaseView):
         data = TOCBracketsService.add_break(
             self.tournament, ser.validated_data, request.user
         )
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -270,6 +294,7 @@ class ScheduleRescheduleMatchView(TOCBaseView):
             data = TOCBracketsService.reschedule_match(
                 self.tournament, pk, request.data, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -285,6 +310,7 @@ class ScheduleManualMatchView(TOCBaseView):
             data = TOCBracketsService.manual_schedule_match(
                 self.tournament, pk, request.data, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -298,7 +324,14 @@ class GroupStageView(TOCBaseView):
     """S5-B10: GET /api/toc/<slug>/groups/"""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'groups', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCBracketsService.get_groups(self.tournament)
+        cache.set(cache_key, data, timeout=12)
         return Response(data)
 
 
@@ -312,6 +345,7 @@ class GroupConfigureView(TOCBaseView):
             data = TOCBracketsService.configure_groups(
                 self.tournament, ser.validated_data, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except (ValueError, Exception) as e:
             return Response(
@@ -329,6 +363,7 @@ class GroupDrawView(TOCBaseView):
             data = TOCBracketsService.draw_groups(
                 self.tournament, ser.validated_data, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -344,6 +379,7 @@ class GroupResetView(TOCBaseView):
             data = TOCBracketsService.reset_groups(
                 self.tournament, request.user
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response(
@@ -355,7 +391,14 @@ class GroupStandingsView(TOCBaseView):
     """S5-B10: GET /api/toc/<slug>/groups/standings/"""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'group_standings', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCBracketsService.get_group_standings(self.tournament)
+        cache.set(cache_key, data, timeout=12)
         return Response(data)
 
 
@@ -365,7 +408,14 @@ class PipelineListCreateView(TOCBaseView):
     """S5-B11: GET/POST /api/toc/<slug>/pipelines/"""
 
     def get(self, request, slug):
+        bucket = int(timezone.now().timestamp() // 10)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'pipelines', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCBracketsService.list_pipelines(self.tournament)
+        cache.set(cache_key, data, timeout=15)
         return Response(data)
 
     def post(self, request, slug):
@@ -374,6 +424,7 @@ class PipelineListCreateView(TOCBaseView):
         data = TOCBracketsService.create_pipeline(
             self.tournament, ser.validated_data, request.user
         )
+        bump_toc_scopes(self.tournament.id, 'brackets', 'overview', 'analytics')
         return Response(data, status=status.HTTP_201_CREATED)
 
 
@@ -385,6 +436,7 @@ class PipelineDetailView(TOCBaseView):
             data = TOCBracketsService.update_pipeline(
                 self.tournament, str(pipeline_id), request.data
             )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'overview', 'analytics')
             return Response(data)
         except Exception as e:
             return Response(
@@ -395,6 +447,7 @@ class PipelineDetailView(TOCBaseView):
         TOCBracketsService.delete_pipeline(
             self.tournament, str(pipeline_id)
         )
+        bump_toc_scopes(self.tournament.id, 'brackets', 'overview', 'analytics')
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -408,18 +461,27 @@ class SwissStandingsView(TOCBaseView):
     def get(self, request, slug):
         from apps.tournaments.models.bracket import Bracket
         from apps.tournaments.services.swiss_service import SwissService
+
+        bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'swiss_standings', bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         try:
             bracket = Bracket.objects.get(tournament=self.tournament, format=Bracket.SWISS)
         except Bracket.DoesNotExist:
             return Response({"error": "No Swiss bracket found for this tournament."}, status=status.HTTP_404_NOT_FOUND)
         standings = SwissService.get_standings(bracket)
         structure = bracket.bracket_structure or {}
-        return Response({
+        payload = {
             "bracket_id": bracket.id,
             "current_round": structure.get("current_round", 1),
             "total_rounds": bracket.total_rounds,
             "standings": standings,
-        })
+        }
+        cache.set(cache_key, payload, timeout=12)
+        return Response(payload)
 
 
 class SwissAdvanceRoundView(TOCBaseView):
@@ -439,6 +501,7 @@ class SwissAdvanceRoundView(TOCBaseView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         structure = bracket.bracket_structure or {}
         standings = SwissService.get_standings(bracket)
+        bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
         return Response({
             "bracket_id": bracket.id,
             "current_round": structure.get("current_round", 1),

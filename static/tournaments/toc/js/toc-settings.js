@@ -47,13 +47,491 @@
     let vetoSequence = [];
     let rulebookVersions = [];
     let paymentMethods = [];
+    let _settingsInflight = null;
+    let _settingsLastInitAt = 0;
+    let _settingsLoadedOnce = false;
+    let _settingsDirty = false;
+    let _suspendDirtyTracking = false;
+    let _fieldSectionMap = null;
+    const _sectionState = {};
+    let _settingsVersion = null;
+    const _sectionSnapshots = {};
+
+    const SETTINGS_CACHE_TTL_MS = 90000;
+    const SETTINGS_SECTION_IDS = [
+        'settings-basic',
+        'settings-media',
+        'settings-format',
+        'settings-dates',
+        'settings-venue',
+        'settings-fees',
+        'settings-prizes',
+        'settings-rules',
+        'settings-features',
+        'settings-social',
+        'settings-waitlist',
+        'settings-seo',
+    ];
+
+    const SETTINGS_CUSTOM_SECTION_SAVERS = {
+        'settings-game-section': function () { return saveGameConfig(); },
+        'settings-br-section': function () { return saveBRScoring(); },
+        'settings-scoring-section': function () { return saveScoringConfig(); },
+    };
+
+    function isSettingsTabActive() {
+        return (window.location.hash || '').replace('#', '') === 'settings';
+    }
+
+    function hasFreshSettingsCache() {
+        return _settingsLoadedOnce && _settingsLastInitAt > 0 && (Date.now() - _settingsLastInitAt) < SETTINGS_CACHE_TTL_MS;
+    }
+
+    function _formatTime(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function setSettingsSyncStatus(state, note) {
+        const el = document.getElementById('settings-sync-status');
+        if (!el) return;
+
+        if (state === 'loading') {
+            el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+            el.textContent = note || 'Syncing settings...';
+            return;
+        }
+
+        if (state === 'error') {
+            el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+            el.textContent = note || 'Sync failed';
+            return;
+        }
+
+        if (_settingsLastInitAt > 0) {
+            el.className = 'text-[10px] font-mono text-dc-text mt-1';
+            el.textContent = 'Last sync ' + _formatTime(new Date(_settingsLastInitAt));
+            return;
+        }
+
+        el.className = 'text-[10px] font-mono text-dc-text mt-1';
+        el.textContent = 'Not synced yet';
+    }
+
+    function setSettingsErrorBanner(message) {
+        const el = document.getElementById('settings-error-banner');
+        if (!el) return;
+
+        if (!message) {
+            el.classList.add('hidden');
+            el.innerHTML = '';
+            return;
+        }
+
+        el.classList.remove('hidden');
+        el.innerHTML = '<div class="flex items-start gap-3">'
+            + '<i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>'
+            + '<div class="min-w-0 flex-1">'
+            + '<p class="text-xs font-bold text-white">Settings refresh failed</p>'
+            + '<p class="text-[11px] text-dc-text mt-1">' + esc(message) + '</p>'
+            + '<button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.settings.init({ force: true })">Retry now</button>'
+            + '</div></div>';
+        if (typeof lucide !== 'undefined') {
+            try { lucide.createIcons(); } catch (e) { /* ok */ }
+        }
+    }
+
+    function _markSettingsDirty (isDirty) {
+        if (_suspendDirtyTracking) return;
+        _settingsDirty = !!isDirty;
+
+        const dirtyEl = document.getElementById('settings-dirty-indicator');
+        if (dirtyEl) dirtyEl.classList.toggle('hidden', !_settingsDirty);
+
+        const saveBtn = document.getElementById('btn-settings-save-all');
+        if (saveBtn) {
+            saveBtn.disabled = !_settingsDirty;
+            saveBtn.classList.toggle('opacity-50', !_settingsDirty);
+            saveBtn.classList.toggle('cursor-not-allowed', !_settingsDirty);
+            if (_settingsDirty) {
+                saveBtn.title = 'Save pending settings changes';
+            } else {
+                saveBtn.title = 'No pending settings changes';
+            }
+        }
+    }
+
+    function _buildFieldSectionMap () {
+        if (_fieldSectionMap) return _fieldSectionMap;
+        _fieldSectionMap = {};
+        document.querySelectorAll('[id^="settings-"][data-field], [id^="settings-"] [data-field]').forEach(function (el) {
+            const field = el.getAttribute('data-field');
+            if (!field) return;
+            const section = el.closest('[id^="settings-"]');
+            if (!section || !section.id) return;
+            _fieldSectionMap[field] = section.id;
+        });
+        return _fieldSectionMap;
+    }
+
+    function _ensureSectionStateBadges () {
+        document.querySelectorAll('#view-settings [id^="settings-"]').forEach(function (section) {
+            const details = section.closest('details');
+            if (!details) return;
+            const summaryTitle = details.querySelector('summary span');
+            if (!summaryTitle || summaryTitle.querySelector('[data-settings-section-state]')) return;
+            const pill = document.createElement('span');
+            pill.setAttribute('data-settings-section-state', section.id);
+            pill.className = 'hidden ml-2 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold border';
+            summaryTitle.appendChild(pill);
+        });
+    }
+
+    function _renderSectionState (sectionId, state, text) {
+        const pill = document.querySelector('[data-settings-section-state="' + sectionId + '"]');
+        if (!pill) return;
+
+        if (!state || state === 'clean') {
+            pill.classList.add('hidden');
+            pill.textContent = '';
+            return;
+        }
+
+        pill.classList.remove('hidden');
+        pill.classList.remove('border-dc-warning/40', 'text-dc-warning', 'bg-dc-warning/10');
+        pill.classList.remove('border-dc-success/40', 'text-dc-success', 'bg-dc-success/10');
+        pill.classList.remove('border-theme/40', 'text-theme', 'bg-theme/10');
+        pill.classList.remove('border-dc-danger/40', 'text-dc-danger', 'bg-dc-danger/10');
+
+        if (state === 'dirty') {
+            pill.classList.add('border-dc-warning/40', 'text-dc-warning', 'bg-dc-warning/10');
+            pill.textContent = text || 'Unsaved';
+            return;
+        }
+
+        if (state === 'saving') {
+            pill.classList.add('border-theme/40', 'text-theme', 'bg-theme/10');
+            pill.textContent = text || 'Saving';
+            return;
+        }
+
+        if (state === 'saved') {
+            pill.classList.add('border-dc-success/40', 'text-dc-success', 'bg-dc-success/10');
+            pill.textContent = text || 'Saved';
+            return;
+        }
+
+        if (state === 'error') {
+            pill.classList.add('border-dc-danger/40', 'text-dc-danger', 'bg-dc-danger/10');
+            pill.textContent = text || 'Fix errors';
+        }
+    }
+
+    function _setSectionState (sectionId, state, text) {
+        if (!sectionId) return;
+        _sectionState[sectionId] = state;
+        _renderSectionState(sectionId, state, text);
+    }
+
+    function _refreshGlobalDirtyFromSections () {
+        _markSettingsDirty(_dirtySections().length > 0);
+    }
+
+    function _syncConditionalVisibility () {
+        syncModeVisibility();
+        syncCheckInVisibility();
+        syncFeeVisibility();
+        syncNoShowVisibility();
+    }
+
+    function _captureSectionSnapshot (sectionId) {
+        if (!sectionId) return;
+        _sectionSnapshots[sectionId] = gatherFields(sectionId);
+    }
+
+    function _captureAllSectionSnapshots () {
+        SETTINGS_SECTION_IDS.forEach(function (sectionId) {
+            _captureSectionSnapshot(sectionId);
+        });
+    }
+
+    function _restoreSectionSnapshots (sectionIds) {
+        _suspendDirtyTracking = true;
+        try {
+            (sectionIds || []).forEach(function (sectionId) {
+                const section = document.getElementById(sectionId);
+                const snapshot = _sectionSnapshots[sectionId];
+                if (!section || !snapshot) return;
+                Object.keys(snapshot).forEach(function (field) {
+                    setVal(section, field, snapshot[field]);
+                });
+                _setSectionState(sectionId, 'clean');
+            });
+            _syncConditionalVisibility();
+        } finally {
+            _suspendDirtyTracking = false;
+        }
+    }
+
+    function _updateSettingsVersionFromResponse (result) {
+        const version = result && result.settings_version;
+        if (typeof version === 'string' && version.length > 0) {
+            _settingsVersion = version;
+        }
+    }
+
+    function _markAllSections (state) {
+        document.querySelectorAll('#view-settings [id^="settings-"]').forEach(function (section) {
+            _setSectionState(section.id, state);
+        });
+    }
+
+    function _dirtySections () {
+        return Object.keys(_sectionState).filter(function (sectionId) {
+            return _sectionState[sectionId] === 'dirty';
+        });
+    }
+
+    function _clearFieldErrors () {
+        document.querySelectorAll('[data-settings-field-error-for]').forEach(function (el) { el.remove(); });
+        document.querySelectorAll('[data-field]').forEach(function (fieldEl) {
+            fieldEl.classList.remove('border-dc-danger', 'ring-1', 'ring-dc-danger/40');
+            fieldEl.removeAttribute('aria-invalid');
+            fieldEl.removeAttribute('aria-describedby');
+        });
+    }
+
+    function _applyFieldErrors (fieldErrors, sectionErrors) {
+        _clearFieldErrors();
+
+        const map = _buildFieldSectionMap();
+        const sectionsWithErrors = new Set();
+        let focused = false;
+
+        Object.entries(fieldErrors || {}).forEach(function (entry) {
+            const field = entry[0];
+            const messages = Array.isArray(entry[1]) ? entry[1] : [String(entry[1] || 'Invalid value')];
+            const input = document.querySelector('[data-field="' + field + '"]');
+            if (!input) return;
+
+            input.classList.add('border-dc-danger', 'ring-1', 'ring-dc-danger/40');
+            input.setAttribute('aria-invalid', 'true');
+
+            const errId = 'settings-error-' + field;
+            input.setAttribute('aria-describedby', errId);
+
+            const msgEl = document.createElement('p');
+            msgEl.id = errId;
+            msgEl.setAttribute('data-settings-field-error-for', field);
+            msgEl.className = 'mt-1 text-[11px] text-dc-danger';
+            msgEl.textContent = messages[0] || 'Invalid value';
+            input.insertAdjacentElement('afterend', msgEl);
+
+            const sectionId = map[field];
+            if (sectionId) sectionsWithErrors.add(sectionId);
+
+            if (!focused) {
+                input.focus();
+                focused = true;
+            }
+        });
+
+        Object.keys(sectionErrors || {}).forEach(function (sectionId) {
+            sectionsWithErrors.add(sectionId);
+        });
+
+        sectionsWithErrors.forEach(function (sectionId) {
+            _setSectionState(sectionId, 'error');
+        });
+    }
+
+    async function _extractErrorPayload (e) {
+        if (!e || !e.response) return null;
+        try {
+            return await e.response.clone().json();
+        } catch (ignored) {
+            return null;
+        }
+    }
+
+    function _bindDirtyTracking () {
+        const sections = SETTINGS_SECTION_IDS.concat(['settings-game-config', 'settings-br-scoring', 'settings-scoring']);
+
+        sections.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el || el.dataset.dirtyBound === '1') return;
+            el.dataset.dirtyBound = '1';
+
+            ['input', 'change'].forEach(function (evt) {
+                el.addEventListener(evt, function () {
+                    if (_suspendDirtyTracking) return;
+                    _setSectionState(id, 'dirty');
+                    _refreshGlobalDirtyFromSections();
+                });
+            });
+        });
+    }
+
+    function _ensureSectionActionButtons () {
+        const detailsBlocks = document.querySelectorAll('#view-settings details');
+        detailsBlocks.forEach(function (details) {
+            if (!details || details.dataset.sectionSaveBound === '1') return;
+
+            const summary = details.querySelector(':scope > summary');
+            if (!summary) return;
+
+            let sectionId = null;
+            const candidates = Array.from(details.querySelectorAll('[id^="settings-"]'));
+            const modelSection = candidates.find(function (el) {
+                return SETTINGS_SECTION_IDS.includes(el.id) || !!el.querySelector('[data-field]');
+            });
+            if (modelSection) {
+                sectionId = modelSection.id;
+            }
+
+            const detailsId = details.id || '';
+            const hasCustomSaver = typeof SETTINGS_CUSTOM_SECTION_SAVERS[detailsId] === 'function';
+            const canSaveSection = true;
+
+            const legacyActionWrap = details.querySelector(':scope > .toc-settings-section-actions');
+            if (legacyActionWrap) legacyActionWrap.remove();
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-settings-save-detail', detailsId || sectionId || 'generic');
+            btn.className = 'ml-3 px-3 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-colors '
+                + 'border-theme/35 text-theme hover:text-white hover:border-theme/60 hover:bg-theme/15';
+            if (!canSaveSection) {
+                btn.disabled = true;
+                btn.title = 'No direct save action for this section';
+            }
+            btn.textContent = 'Save';
+
+            const chevron = summary.querySelector('i[data-lucide="chevron-down"]');
+            if (chevron && chevron.parentNode === summary) {
+                summary.insertBefore(btn, chevron);
+            } else {
+                summary.appendChild(btn);
+            }
+
+            if (btn) {
+                btn.addEventListener('click', function (evt) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+
+                    if (hasCustomSaver) {
+                        SETTINGS_CUSTOM_SECTION_SAVERS[detailsId]();
+                        return;
+                    }
+
+                    if (sectionId) {
+                        saveSection(sectionId);
+                        return;
+                    }
+
+                    // Non-field utility sections fallback to Save All.
+                    saveAll();
+                });
+            }
+
+            details.dataset.sectionSaveBound = '1';
+        });
+    }
+
+    function _normalizeSettingsPayload (payload) {
+        const normalized = Object.assign({}, payload || {});
+        if (typeof normalized.meta_keywords === 'string') {
+            normalized.meta_keywords = normalized.meta_keywords.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        }
+        return normalized;
+    }
+
+    async function saveSection (sectionId) {
+        const sectionEl = document.getElementById(sectionId);
+        if (!sectionEl) return;
+
+        try {
+            _clearFieldErrors();
+            _setSectionState(sectionId, 'saving');
+
+            const payload = _normalizeSettingsPayload(gatherFields(sectionId));
+            if (!Object.keys(payload).length) {
+                _setSectionState(sectionId, 'clean');
+                _refreshGlobalDirtyFromSections();
+                return;
+            }
+            if (_settingsVersion) payload.settings_version = _settingsVersion;
+
+            const result = await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
+            _updateSettingsVersionFromResponse(result);
+            const updatedFields = Array.isArray(result?.updated_fields) ? result.updated_fields : [];
+
+            if (!updatedFields.length) {
+                _setSectionState(sectionId, 'saved');
+                setTimeout(function () { _setSectionState(sectionId, 'clean'); }, 1200);
+                _captureSectionSnapshot(sectionId);
+                _refreshGlobalDirtyFromSections();
+                return;
+            }
+
+            const fieldMap = _buildFieldSectionMap();
+            updatedFields.forEach(function (field) {
+                const sid = fieldMap[field] || sectionId;
+                _setSectionState(sid, 'saved');
+                setTimeout(function () { _setSectionState(sid, 'clean'); }, 1200);
+                _captureSectionSnapshot(sid);
+            });
+
+            _refreshGlobalDirtyFromSections();
+            toast('Section saved', 'success');
+        } catch (e) {
+            const payload = await _extractErrorPayload(e);
+            const err = payload && payload.error;
+            if (err && err.type === 'validation') {
+                _applyFieldErrors(err.fields || {}, err.sections || {});
+                toast(err.message || 'Validation failed', 'error');
+            } else if (err && err.type === 'conflict') {
+                _updateSettingsVersionFromResponse({ settings_version: err.server_settings_version });
+                _restoreSectionSnapshots([sectionId]);
+                _setSectionState(sectionId, 'error', 'Stale');
+                toast(err.message || 'Settings are out of date. Section rolled back.', 'warning');
+                init({ force: true, silent: true });
+            } else {
+                _setSectionState(sectionId, 'error');
+                toast('Section save failed: ' + (e.message || e), 'error');
+            }
+            _refreshGlobalDirtyFromSections();
+        }
+    }
 
     /* ==================================================================
      * LOAD SETTINGS — populates all Tournament-model sections
      * ================================================================== */
     async function loadSettings () {
         try {
-            const s = await API('settings/');
+            _suspendDirtyTracking = true;
+            let s = null;
+            try {
+                s = await API('settings/');
+            } catch (apiErr) {
+                const fallback = window.TOC_INITIAL_SETTINGS;
+                if (fallback && typeof fallback === 'object' && fallback.basic && fallback.format) {
+                    s = fallback;
+                } else {
+                    throw apiErr;
+                }
+            }
+            if (!s || typeof s !== 'object' || !s.basic || !s.format) {
+                const fallback = window.TOC_INITIAL_SETTINGS;
+                if (fallback && typeof fallback === 'object' && fallback.basic && fallback.format) {
+                    s = fallback;
+                } else {
+                    throw new Error('Settings payload is missing required sections.');
+                }
+            }
+            if (typeof s?._meta?.settings_version === 'string' && s._meta.settings_version.length > 0) {
+                _settingsVersion = s._meta.settings_version;
+            }
             // Basic
             const basic = document.getElementById('settings-basic');
             if (basic && s.basic) {
@@ -189,11 +667,13 @@
                 setVal(seo, 'meta_keywords', Array.isArray(kw) ? kw.join(', ') : kw || '');
             }
             // Sync conditional sections
-            syncModeVisibility();
-            syncCheckInVisibility();
-            syncFeeVisibility();
+            _syncConditionalVisibility();
+            return true;
         } catch (e) {
             console.warn('[TOC.settings] loadSettings failed', e);
+            return false;
+        } finally {
+            _suspendDirtyTracking = false;
         }
     }
 
@@ -201,8 +681,20 @@
      * SAVE ALL — gathers all Tournament-model fields and PUTs them
      * ================================================================== */
     async function saveAll () {
+        const saveBtn = document.getElementById('btn-settings-save-all');
+        const oldText = saveBtn ? saveBtn.innerHTML : '';
         try {
-            const payload = Object.assign({},
+            _clearFieldErrors();
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...';
+            }
+
+            const dirtySections = _dirtySections();
+            dirtySections.forEach(function (id) { _setSectionState(id, 'saving'); });
+
+            const payload = _normalizeSettingsPayload(Object.assign({}
                 gatherFields('settings-basic'),
                 gatherFields('settings-media'),
                 gatherFields('settings-format'),
@@ -215,18 +707,56 @@
                 gatherFields('settings-social'),
                 gatherFields('settings-waitlist'),
                 gatherFields('settings-seo'),
-            );
-            // Convert meta_keywords string to array
-            if (typeof payload.meta_keywords === 'string') {
-                payload.meta_keywords = payload.meta_keywords.split(',').map(s => s.trim()).filter(Boolean);
-            }
-            await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
+            ));
+            if (_settingsVersion) payload.settings_version = _settingsVersion;
+
+            const result = await API('settings/', { method: 'PUT', body: JSON.stringify(payload) });
+            _updateSettingsVersionFromResponse(result);
             toast('Settings saved', 'success');
+            _markSettingsDirty(false);
+
+            const fieldMap = _buildFieldSectionMap();
+            const updatedFields = Array.isArray(result?.updated_fields) ? result.updated_fields : [];
+            const savedSections = new Set();
+            updatedFields.forEach(function (field) {
+                if (fieldMap[field]) savedSections.add(fieldMap[field]);
+            });
+            if (!savedSections.size) {
+                dirtySections.forEach(function (id) { savedSections.add(id); });
+            }
+            savedSections.forEach(function (id) { _setSectionState(id, 'saved'); });
+            setTimeout(function () {
+                savedSections.forEach(function (id) { _setSectionState(id, 'clean'); });
+            }, 1600);
+            _captureAllSectionSnapshots();
 
             // Update sidebar context badges to reflect saved values
             _syncSidebarBadges(payload);
         } catch (e) {
-            toast('Save failed: ' + (e.message || e), 'error');
+            const payload = await _extractErrorPayload(e);
+            const err = payload && payload.error;
+            if (err && err.type === 'validation') {
+                _applyFieldErrors(err.fields || {}, err.sections || {});
+                toast(err.message || 'Validation failed', 'error');
+            } else if (err && err.type === 'conflict') {
+                const dirtySections = _dirtySections();
+                _updateSettingsVersionFromResponse({ settings_version: err.server_settings_version });
+                _restoreSectionSnapshots(dirtySections);
+                dirtySections.forEach(function (id) { _setSectionState(id, 'error', 'Stale'); });
+                toast(err.message || 'Settings changed elsewhere. Unsaved edits were rolled back.', 'warning');
+                init({ force: true, silent: true });
+            } else {
+                _dirtySections().forEach(function (id) { _setSectionState(id, 'error'); });
+                toast('Save failed: ' + (e.message || e), 'error');
+            }
+        } finally {
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Save All Changes';
+                if (typeof lucide !== 'undefined') {
+                    try { lucide.createIcons(); } catch (err) { /* no-op */ }
+                }
+                saveBtn.disabled = !_settingsDirty;
+            }
         }
     }
 
@@ -353,6 +883,7 @@
             };
             await API('settings/game-config/', { method: 'PUT', body: JSON.stringify(payload) });
             toast('Game config saved', 'success');
+            _markSettingsDirty(false);
         } catch (e) { toast('Game config save failed', 'error'); }
     }
 
@@ -618,6 +1149,7 @@
                 placement_points: pp,
             }) });
             toast('BR Scoring saved', 'success');
+            _markSettingsDirty(false);
         } catch (e) { toast('BR Scoring save failed', 'error'); }
     }
 
@@ -634,14 +1166,37 @@
                 list.innerHTML = '<p class="text-xs text-dc-text italic text-center py-4">No payment methods configured.</p>';
                 return;
             }
+
+            function methodLabel (method) {
+                var labels = {
+                    bkash: 'bKash',
+                    nagad: 'Nagad',
+                    rocket: 'Rocket',
+                    bank_transfer: 'Bank Transfer',
+                    deltacoin: 'DeltaCoin',
+                };
+                return labels[method] || (method ? method.charAt(0).toUpperCase() + method.slice(1) : 'Method');
+            }
+
+            function summarizeAccount (m) {
+                var raw = m.account_number || m.bank_account_number || m.bank_name || '';
+                if (!raw) return '';
+                var text = String(raw);
+                if (/^\d{8,}$/.test(text)) {
+                    return '••••' + text.slice(-4);
+                }
+                return text;
+            }
+
             list.innerHTML = paymentMethods.map(function (m) {
-                var label = m.method.charAt(0).toUpperCase() + m.method.slice(1);
-                var acct = m.account_number || m.bank_name || '';
-                return '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
+                var label = methodLabel(m.method);
+                var acct = summarizeAccount(m);
+                return '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border gap-2">'
                     + '<div class="flex items-center gap-2">'
                     + '<span class="w-2 h-2 rounded-full ' + (m.is_enabled ? 'bg-dc-success' : 'bg-dc-text/30') + '"></span>'
-                    + '<span class="text-sm text-white font-medium">' + esc(label) + '</span>'
+                    + '<span class="text-[11px] px-2 py-0.5 rounded-full border border-dc-border text-dc-textBright bg-dc-bg/70">' + esc(label) + '</span>'
                     + (acct ? '<span class="text-xs text-dc-text">' + esc(acct) + '</span>' : '')
+                    + '<span class="text-[10px] ' + (m.is_enabled ? 'text-dc-success' : 'text-dc-text') + '">' + (m.is_enabled ? 'Enabled' : 'Disabled') + '</span>'
                     + '</div>'
                     + '<div class="flex items-center gap-1">'
                     + '<button onclick="TOC.settings.editPaymentMethod(' + m.id + ')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
@@ -658,50 +1213,72 @@
             + '<option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>'
             + '<option value="bank_transfer">Bank Transfer</option><option value="deltacoin">DeltaCoin</option></select></div>'
             + '<div id="pm-fields"></div>'
-            + '<button onclick="TOC.settings.confirmAddPaymentMethod()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
+            + '<div class="flex items-center gap-2">'
+            + '<button id="pm-submit-add" onclick="TOC.settings.confirmAddPaymentMethod()" class="flex-1 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
+            + '<button onclick="TOC.settings.dismissPaymentOverlay()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
+            + '</div>'
             + '</div>');
         syncPaymentMethodFields();
     }
 
-    function syncPaymentMethodFields () {
+    function dismissPaymentOverlay () {
+        closeOverlay();
+    }
+
+    function syncPaymentMethodFields (seed) {
         var method = document.getElementById('pm-method')?.value || 'bkash';
         var container = document.getElementById('pm-fields');
         if (!container) return;
+        var s = seed || {};
+        var hint = {
+            bkash: 'Use the same number participants send payment from to reduce review friction.',
+            nagad: 'Keep account name identical to your KYC/legal display name.',
+            rocket: 'Agent wallets are recommended for high-volume tournaments.',
+            bank_transfer: 'Include SWIFT and routing details for international/local transfers.',
+            deltacoin: 'Add short payout notes if you require memo/reference format.',
+        };
         var html = '';
+        html += '<div class="mb-2 text-[11px] text-dc-text bg-dc-bg/60 border border-dc-border rounded-lg px-3 py-2">'
+            + '<span class="text-dc-textBright font-semibold">Tip:</span> ' + esc(hint[method] || 'Complete all required fields to avoid failed payments.')
+            + '</div>';
         if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
             var prefix = method;
-            html = '<div class="space-y-3">'
+            html += '<div class="space-y-3">'
                 + '<div><label class="block text-xs text-dc-text mb-1">Account Number</label>'
-                + '<input id="pm-account-number" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="01XXXXXXXXX"></div>'
+                + '<input id="pm-account-number" type="text" value="' + esc(s[prefix + '_account_number'] || '') + '" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="01XXXXXXXXX" autocomplete="off"></div>'
                 + '<div><label class="block text-xs text-dc-text mb-1">Account Name</label>'
-                + '<input id="pm-account-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<input id="pm-account-name" type="text" value="' + esc(s[prefix + '_account_name'] || '') + '" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" autocomplete="name"></div>'
                 + '<div><label class="block text-xs text-dc-text mb-1">Account Type</label>'
                 + '<select id="pm-account-type" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">'
                 + '<option value="personal">Personal</option><option value="merchant">Merchant</option><option value="agent">Agent</option></select></div>'
                 + '<div><label class="block text-xs text-dc-text mb-1">Instructions</label>'
-                + '<textarea id="pm-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>'
-                + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-ref-required" type="checkbox" checked class="rounded border-dc-border bg-dc-surface text-theme"> Reference Required</label>'
+                + '<textarea id="pm-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">' + esc(s[prefix + '_instructions'] || '') + '</textarea></div>'
+                + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-ref-required" type="checkbox" ' + ((s[prefix + '_reference_required'] ?? true) ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-surface text-theme"> Reference Required</label>'
                 + '</div>';
         } else if (method === 'bank_transfer') {
-            html = '<div class="space-y-3">'
-                + '<div><label class="block text-xs text-dc-text mb-1">Bank Name</label><input id="pm-bank-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-                + '<div><label class="block text-xs text-dc-text mb-1">Branch</label><input id="pm-bank-branch" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-                + '<div><label class="block text-xs text-dc-text mb-1">Account Number</label><input id="pm-bank-acct" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-                + '<div><label class="block text-xs text-dc-text mb-1">Account Name</label><input id="pm-bank-acct-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-                + '<div><label class="block text-xs text-dc-text mb-1">Routing Number</label><input id="pm-bank-routing" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-                + '<div><label class="block text-xs text-dc-text mb-1">Instructions</label><textarea id="pm-bank-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>'
+            html += '<div class="space-y-3">'
+                + '<div><label class="block text-xs text-dc-text mb-1">Bank Name</label><input id="pm-bank-name" value="' + esc(s.bank_name || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Branch</label><input id="pm-bank-branch" value="' + esc(s.bank_branch || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Number</label><input id="pm-bank-acct" value="' + esc(s.bank_account_number || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Account Name</label><input id="pm-bank-acct-name" value="' + esc(s.bank_account_name || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Routing Number</label><input id="pm-bank-routing" value="' + esc(s.bank_routing_number || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">SWIFT Code</label><input id="pm-bank-swift" value="' + esc(s.bank_swift_code || '') + '" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+                + '<div><label class="block text-xs text-dc-text mb-1">Instructions</label><textarea id="pm-bank-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">' + esc(s.bank_instructions || '') + '</textarea></div>'
+                + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-bank-ref-required" type="checkbox" ' + ((s.bank_reference_required ?? true) ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-surface text-theme"> Reference Required</label>'
                 + '</div>';
         } else {
-            html = '<div><label class="block text-xs text-dc-text mb-1">Instructions</label>'
-                + '<textarea id="pm-dc-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea></div>';
+            html += '<div><label class="block text-xs text-dc-text mb-1">Instructions</label>'
+                + '<textarea id="pm-dc-instructions" rows="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">' + esc(s.deltacoin_instructions || '') + '</textarea></div>';
         }
         container.innerHTML = html;
+        if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
+            var typeEl = document.getElementById('pm-account-type');
+            if (typeEl) typeEl.value = s[method + '_account_type'] || 'personal';
+        }
     }
 
-    async function confirmAddPaymentMethod () {
-        var method = document.getElementById('pm-method')?.value;
-        if (!method) return;
-        var payload = { method: method };
+    function buildPaymentMethodPayload (method) {
+        var payload = {};
         if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
             payload[method + '_account_number'] = document.getElementById('pm-account-number')?.value || '';
             payload[method + '_account_name'] = document.getElementById('pm-account-name')?.value || '';
@@ -714,19 +1291,138 @@
             payload.bank_account_number = document.getElementById('pm-bank-acct')?.value || '';
             payload.bank_account_name = document.getElementById('pm-bank-acct-name')?.value || '';
             payload.bank_routing_number = document.getElementById('pm-bank-routing')?.value || '';
+            payload.bank_swift_code = document.getElementById('pm-bank-swift')?.value || '';
             payload.bank_instructions = document.getElementById('pm-bank-instructions')?.value || '';
+            payload.bank_reference_required = document.getElementById('pm-bank-ref-required')?.checked ?? true;
         } else {
             payload.deltacoin_instructions = document.getElementById('pm-dc-instructions')?.value || '';
+        }
+        return payload;
+    }
+
+    function validatePaymentMethodPayload (method, payload) {
+        function markInvalid (id, message) {
+            var el = document.getElementById(id);
+            if (!el) {
+                toast(message, 'error');
+                return false;
+            }
+            el.classList.add('border-dc-danger');
+            el.focus();
+            toast(message, 'error');
+            return false;
+        }
+
+        ['pm-account-number', 'pm-account-name', 'pm-bank-name', 'pm-bank-acct', 'pm-bank-acct-name'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.remove('border-dc-danger');
+        });
+
+        if (method === 'bkash' || method === 'nagad' || method === 'rocket') {
+            if (!String(payload[method + '_account_number'] || '').trim()) {
+                return markInvalid('pm-account-number', 'Account number is required');
+            }
+            if (!String(payload[method + '_account_name'] || '').trim()) {
+                return markInvalid('pm-account-name', 'Account name is required');
+            }
+        }
+
+        if (method === 'bank_transfer') {
+            if (!String(payload.bank_name || '').trim()) {
+                return markInvalid('pm-bank-name', 'Bank name is required');
+            }
+            if (!String(payload.bank_account_number || '').trim()) {
+                return markInvalid('pm-bank-acct', 'Bank account number is required');
+            }
+            if (!String(payload.bank_account_name || '').trim()) {
+                return markInvalid('pm-bank-acct-name', 'Bank account name is required');
+            }
+        }
+
+        return true;
+    }
+
+    async function confirmAddPaymentMethod () {
+        var method = document.getElementById('pm-method')?.value;
+        if (!method) return;
+        var payload = { method: method };
+        Object.assign(payload, buildPaymentMethodPayload(method));
+        if (!validatePaymentMethodPayload(method, payload)) return;
+
+        var btn = document.getElementById('pm-submit-add');
+        var previousText = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Adding...';
+            btn.classList.add('opacity-70');
         }
         try {
             await API('settings/payment-methods/', { method: 'POST', body: JSON.stringify(payload) });
             closeOverlay(); loadPaymentMethods(); toast('Payment method added', 'success');
-        } catch (e) { toast('Failed to add payment method', 'error'); }
+        } catch (e) {
+            toast('Failed to add payment method', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = previousText || 'Add Method';
+                btn.classList.remove('opacity-70');
+            }
+        }
     }
 
     function editPaymentMethod (id) {
-        // Re-load the specific method — for simplicity, ask user to delete and re-add
-        toast('To edit, delete and re-add the payment method', 'info');
+        var m = paymentMethods.find(function (x) { return Number(x.id) === Number(id); });
+        if (!m) { toast('Payment method not found', 'error'); return; }
+
+        var method = m.method || 'deltacoin';
+        var labels = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', bank_transfer: 'Bank Transfer', deltacoin: 'DeltaCoin' };
+        var label = labels[method] || (method.charAt(0).toUpperCase() + method.slice(1));
+        showOverlay('Edit Payment Method: ' + label, '<div class="space-y-4">'
+            + '<div><label class="block text-xs text-dc-text mb-1">Provider</label>'
+            + '<input type="text" readonly value="' + esc(label) + '" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-text"></div>'
+            + '<select id="pm-method" class="hidden"><option value="' + esc(method) + '" selected>' + esc(method) + '</option></select>'
+            + '<div id="pm-fields"></div>'
+            + '<div class="flex items-center justify-between gap-3">'
+            + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-is-enabled" type="checkbox" ' + (m.is_enabled ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-surface text-theme"> Enabled</label>'
+            + '<div class="flex items-center gap-2">'
+            + '<button onclick="TOC.settings.dismissPaymentOverlay()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
+            + '<button id="pm-submit-edit" onclick="TOC.settings.confirmEditPaymentMethod(' + Number(id) + ')" class="px-4 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
+            + '</div>'
+            + '</div>'
+            + '</div>');
+        syncPaymentMethodFields(m);
+    }
+
+    async function confirmEditPaymentMethod (id) {
+        var method = document.getElementById('pm-method')?.value;
+        if (!method) return;
+        var payload = {
+            is_enabled: document.getElementById('pm-is-enabled')?.checked ?? true,
+        };
+        Object.assign(payload, buildPaymentMethodPayload(method));
+        if (!validatePaymentMethodPayload(method, payload)) return;
+
+        var btn = document.getElementById('pm-submit-edit');
+        var previousText = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            btn.classList.add('opacity-70');
+        }
+        try {
+            await API('settings/payment-methods/' + id + '/', { method: 'PUT', body: JSON.stringify(payload) });
+            closeOverlay();
+            loadPaymentMethods();
+            toast('Payment method updated', 'success');
+        } catch (e) {
+            toast('Update failed', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = previousText || 'Save Changes';
+                btn.classList.remove('opacity-70');
+            }
+        }
     }
 
     async function deletePaymentMethod (id) {
@@ -869,6 +1565,7 @@
                 body: JSON.stringify({ scoring_rules: rules }),
             });
             toast('Scoring configuration saved', 'success');
+            _markSettingsDirty(false);
         } catch (e) {
             toast('Save failed: ' + e.message, 'error');
         }
@@ -1006,16 +1703,72 @@
     /* ==================================================================
      * INIT
      * ================================================================== */
-    function init () {
-        loadSettings();
-        loadGameConfig();
-        loadMapPool();
-        loadRegions();
-        loadRulebook();
-        loadBRScoring();
-        loadPaymentMethods();
-        loadScoringConfig();
-        applyGameAwareVisibility();
+    async function init (options) {
+        const opts = options || {};
+        const force = opts.force === true;
+        const silent = opts.silent === true;
+
+        if (!force && hasFreshSettingsCache()) {
+            setSettingsSyncStatus('ok');
+            return;
+        }
+
+        if (_settingsInflight && !force) {
+            return _settingsInflight;
+        }
+
+        if (!silent) {
+            setSettingsSyncStatus('loading', _settingsLastInitAt > 0 ? 'Refreshing settings...' : 'Loading settings...');
+        }
+
+        _settingsInflight = (async function () {
+            try {
+                const settingsLoaded = await loadSettings();
+                if (!settingsLoaded) {
+                    throw new Error('Unable to load tournament settings data.');
+                }
+
+                // Render per-section controls as soon as core settings are present.
+                _ensureSectionStateBadges();
+                _ensureSectionActionButtons();
+
+                const results = await Promise.allSettled([
+                    loadGameConfig(),
+                    loadMapPool(),
+                    loadRegions(),
+                    loadRulebook(),
+                    loadBRScoring(),
+                    loadPaymentMethods(),
+                    loadScoringConfig(),
+                ]);
+
+                const failed = results.filter(function (r) { return r && r.status === 'rejected'; });
+                if (failed.length > 0) {
+                    throw new Error(failed[0] && failed[0].reason && failed[0].reason.message
+                        ? String(failed[0].reason.message)
+                        : 'One or more settings sections failed to refresh');
+                }
+
+                applyGameAwareVisibility();
+                _bindDirtyTracking();
+                _markSettingsDirty(false);
+                _settingsLastInitAt = Date.now();
+                _settingsLoadedOnce = true;
+                setSettingsErrorBanner('');
+                setSettingsSyncStatus('ok');
+                _markAllSections('clean');
+            } catch (e) {
+                const detail = e && e.message ? String(e.message) : 'Request failed';
+                _settingsLastInitAt = 0;
+                _settingsLoadedOnce = false;
+                setSettingsSyncStatus('error', detail);
+                setSettingsErrorBanner(detail);
+            } finally {
+                _settingsInflight = null;
+            }
+        })();
+
+        return _settingsInflight;
     }
 
     // Public API
@@ -1023,6 +1776,7 @@
     window.TOC.settings = {
         init,
         saveAll,
+        saveSection,
         saveGameConfig,
         syncModeVisibility,
         syncCheckInVisibility,
@@ -1050,6 +1804,8 @@
         syncPaymentMethodFields,
         confirmAddPaymentMethod,
         editPaymentMethod,
+        confirmEditPaymentMethod,
+        dismissPaymentOverlay,
         deletePaymentMethod,
         uploadFile,
         // S27: Scoring system
@@ -1106,8 +1862,31 @@
         });
     });
 
+    function _onSettingsVisibilityChange() {
+        if (!document.hidden && isSettingsTabActive() && !hasFreshSettingsCache()) {
+            init({ silent: true });
+        }
+    }
+
+    function _onBeforeUnload(e) {
+        if (!_settingsDirty) return;
+        e.preventDefault();
+        e.returnValue = 'You have unsaved settings changes. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+
     // Auto-init when navigating to Settings tab
     document.addEventListener('toc:tab-changed', function (e) {
         if (e.detail?.tab === 'settings') init();
     });
+
+    document.addEventListener('visibilitychange', _onSettingsVisibilityChange);
+    window.addEventListener('beforeunload', _onBeforeUnload);
+
+    if (isSettingsTabActive()) {
+        init({ silent: true });
+    } else {
+        _bindDirtyTracking();
+        _markSettingsDirty(false);
+    }
 })();

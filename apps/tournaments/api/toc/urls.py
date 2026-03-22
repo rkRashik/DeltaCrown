@@ -24,7 +24,7 @@ from apps.tournaments.api.toc import (
     participants_advanced, payments, brackets, matches, disputes,
     settings, announcements, stats, rbac, audit,
     standings, checkin, streams, analytics, lobby, rules, rosters,
-    notifications as notif_views,
+    notifications as notif_views, performance,
 )
 
 app_name = 'toc_api'
@@ -32,6 +32,7 @@ app_name = 'toc_api'
 urlpatterns = [
     # ── Overview (S1-B2) ──
     path('<slug:slug>/overview/', overview.OverviewAPIView.as_view(), name='overview'),
+    path('<slug:slug>/perf/summary/', performance.PerformanceSummaryView.as_view(), name='perf-summary'),
 
     # ── Lifecycle (S1-B3/B4/B5) ──
     path('<slug:slug>/lifecycle/transition/', lifecycle.LifecycleTransitionView.as_view(), name='lifecycle-transition'),
@@ -180,7 +181,7 @@ urlpatterns = [
 
     # ── Payment Methods (S10G) ──
     path('<slug:slug>/settings/payment-methods/', settings.PaymentMethodListView.as_view(), name='settings-payment-methods'),
-    path('<slug:slug>/settings/payment-methods/<int:pk>/', settings.PaymentMethodDeleteView.as_view(), name='settings-payment-method-delete'),
+    path('<slug:slug>/settings/payment-methods/<int:pk>/', settings.PaymentMethodDetailView.as_view(), name='settings-payment-method-detail'),
 
     # ── File Upload (S10G) ──
     path('<slug:slug>/settings/upload/', settings.SettingsFileUploadView.as_view(), name='settings-upload'),

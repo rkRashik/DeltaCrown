@@ -16,30 +16,256 @@
   const slug = window.TOC?.slug;
   if (!API || !slug) return;
 
+  const CACHE_TTL_MS = 25000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['participants', 'matches', 'revenue', 'completion'];
+  const PANEL_IDS = [
+    'analytics-reg-funnel',
+    'analytics-matches-content',
+    'analytics-rounds-progress',
+    'analytics-revenue-content',
+    'analytics-engagement-content',
+    'analytics-closest-matches',
+    'analytics-timeline',
+  ];
+
   const $ = (sel) => document.querySelector(sel);
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
   function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
   let dashData = null;
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
 
-  /* ─────────────────────────── Data fetch ─────────────────────────── */
+  function isAnalyticsTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'analytics';
+  }
 
-  async function refresh() {
-    try {
-      const data = await API.get('analytics/');
-      dashData = data;
-      renderOverviewStats(data);
-      renderRegFunnel(data.registration || {});
-      renderMatchAnalytics(data.matches || {});
-      renderRoundsProgress(data.matches || {});
-      renderRevenue(data.revenue || {});
-      renderEngagement(data.engagement || {});
-      renderClosestMatches(data.matches || {});
-      renderTimeline(data.timeline || []);
-    } catch (e) {
-      console.error('[analytics] fetch error', e);
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#analytics-sync-status');
+    if (!el) return;
+
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing analytics...';
+      return;
     }
+
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+
+    if (dashData?.generated_at) {
+      const generatedAt = new Date(dashData.generated_at);
+      const generatedLabel = Number.isNaN(generatedAt.getTime()) ? '' : `Snapshot ${formatTime(generatedAt)}`;
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = generatedLabel || 'Analytics synced';
+      return;
+    }
+
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#analytics-error-banner');
+    if (!el) return;
+
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Analytics request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.analytics.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#analytics-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+      if (loading && (el.textContent || '').trim() === '-') {
+        el.textContent = '0';
+      }
+    });
+
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderEmptyState(message) {
+    const html = `<p class="text-xs text-dc-text text-center py-4 opacity-70">${esc(message || 'No data available')}</p>`;
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      if (id === 'analytics-timeline') {
+        el.innerHTML = html;
+      } else {
+        el.innerHTML = `<div class="min-h-[4rem] flex items-center justify-center">${html}</div>`;
+      }
+    });
+    refreshIcons();
+  }
+
+  function normalizeDashboard(raw) {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const registration = source.registration && typeof source.registration === 'object' ? source.registration : {};
+    const matches = source.matches && typeof source.matches === 'object' ? source.matches : {};
+    const revenue = source.revenue && typeof source.revenue === 'object' ? source.revenue : {};
+    const engagement = source.engagement && typeof source.engagement === 'object' ? source.engagement : {};
+
+    return {
+      generated_at: source.generated_at || null,
+      registration,
+      matches,
+      revenue,
+      engagement,
+      timeline: Array.isArray(source.timeline) ? source.timeline : [],
+    };
+  }
+
+  function renderDashboard(data) {
+    const safe = normalizeDashboard(data);
+    window.requestAnimationFrame(() => {
+      renderOverviewStats(safe);
+      renderRegFunnel(safe.registration);
+      renderMatchAnalytics(safe.matches);
+      renderRoundsProgress(safe.matches);
+      renderRevenue(safe.revenue);
+      renderEngagement(safe.engagement);
+      renderClosestMatches(safe.matches);
+      renderTimeline(safe.timeline);
+      setLoading(false);
+      setErrorBanner('');
+      setSyncStatus('ok');
+    });
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) {
+        return dashData;
+      }
+    }
+
+    if (inflightPromise && !force) {
+      return inflightPromise;
+    }
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing analytics...' : 'Loading analytics...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = normalizeDashboard(await API.get('analytics/'));
+        if (requestId !== activeRequestId) return dashData || data;
+
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[analytics] fetch error', e);
+        setLoading(false);
+
+        if (dashData) {
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached analytics. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderEmptyState('Analytics data is unavailable right now.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) {
+          inflightPromise = null;
+        }
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isAnalyticsTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isAnalyticsTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'analytics') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
   }
 
   /* ─────────────────── Overview stat cards ─────────────────────────── */
@@ -77,7 +303,7 @@
     ];
 
     let html = '<div class="space-y-3">';
-    bars.forEach(b => {
+    bars.forEach((b) => {
       html += `
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs">
@@ -98,14 +324,13 @@
         </div>`;
     }
 
-    // Trend sparkline (simple CSS bar chart)
     const trend = reg.trend || [];
     if (trend.length > 1) {
-      const maxCount = Math.max(...trend.map(t => t.count), 1);
+      const maxCount = Math.max(...trend.map((t) => t.count), 1);
       html += `<div class="mt-4 pt-3 border-t border-dc-border/30">
         <p class="text-[10px] text-dc-text uppercase tracking-wide mb-2">Registration Trend</p>
         <div class="flex items-end gap-[2px] h-10">`;
-      trend.forEach(t => {
+      trend.forEach((t) => {
         const h = Math.max(2, Math.round(t.count / maxCount * 100));
         html += `<div class="flex-1 bg-theme/40 rounded-t hover:bg-theme/70 transition-colors" style="height:${h}%" title="${t.date}: ${t.count}"></div>`;
       });
@@ -120,8 +345,6 @@
     html += '</div>';
     container.innerHTML = html;
   }
-
-  /* ────────────────── Match analytics ──────────────────────────────── */
 
   function renderMatchAnalytics(mat) {
     const container = $('#analytics-matches-content');
@@ -167,8 +390,6 @@
       </div>`;
   }
 
-  /* ────────────────── Round-by-round progress ─────────────────────── */
-
   function renderRoundsProgress(mat) {
     const container = $('#analytics-rounds-progress');
     if (!container) return;
@@ -180,7 +401,7 @@
     }
 
     let html = '<div class="space-y-2">';
-    rounds.forEach(r => {
+    rounds.forEach((r) => {
       const pct = r.pct || 0;
       const color = pct >= 100 ? 'bg-dc-success' : pct >= 50 ? 'bg-theme' : 'bg-dc-warning';
       html += `
@@ -198,14 +419,12 @@
     container.innerHTML = html;
   }
 
-  /* ────────────────── Revenue ─────────────────────────────────────── */
-
   function renderRevenue(rev) {
     const container = $('#analytics-revenue-content');
     if (!container) return;
 
     const currency = rev.currency || 'USD';
-    const fmt = (v) => `${currency === 'USD' ? '$' : currency + ' '}${(v || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+    const fmt = (v) => `${currency === 'USD' ? '$' : `${currency} `}${(v || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
     container.innerHTML = `
       <div class="grid grid-cols-2 gap-2">
@@ -232,8 +451,6 @@
       </div>`;
   }
 
-  /* ────────────────── Engagement ──────────────────────────────────── */
-
   function renderEngagement(eng) {
     const container = $('#analytics-engagement-content');
     if (!container) return;
@@ -259,8 +476,6 @@
       </div>`;
   }
 
-  /* ────────────────── Closest matches ────────────────────────────── */
-
   function renderClosestMatches(mat) {
     const container = $('#analytics-closest-matches');
     if (!container) return;
@@ -282,8 +497,6 @@
 
     container.innerHTML = `<div class="space-y-0.5">${rows}</div>`;
   }
-
-  /* ────────────────── Activity timeline ───────────────────────────── */
 
   function renderTimeline(timeline) {
     const container = $('#analytics-timeline');
@@ -309,7 +522,7 @@
       checkin: 'text-blue-400 bg-blue-400/10',
     };
 
-    container.innerHTML = timeline.map(ev => {
+    container.innerHTML = timeline.map((ev) => {
       const icon = iconMap[ev.type] || 'circle';
       const colors = colorMap[ev.type] || 'text-dc-text bg-dc-surface/50';
       const time = ev.timestamp ? new Date(ev.timestamp).toLocaleString() : '';
@@ -328,38 +541,35 @@
     refreshIcons();
   }
 
-  /* ────────────────── Export ──────────────────────────────────────── */
-
   async function exportReport() {
     try {
       const data = await API.get('analytics/export/');
 
-      // Build CSV from report data
       const rows = [
         ['Tournament Report', data.tournament || ''],
         ['Generated', data.generated_at || ''],
         [],
-        ['── Registration Summary ──'],
+        ['-- Registration Summary --'],
         ['Total Registrations', data.registration?.total_registrations ?? ''],
         ['Confirmed', data.registration?.confirmed ?? ''],
         ['Pending', data.registration?.pending ?? ''],
         ['Rejected', data.registration?.rejected ?? ''],
         ['Waitlisted', data.registration?.waitlisted ?? ''],
         [],
-        ['── Match Summary ──'],
+        ['-- Match Summary --'],
         ['Total Matches', data.matches?.total ?? ''],
         ['Completed', data.matches?.completed ?? ''],
         ['Forfeited', data.matches?.forfeited ?? ''],
         ['Pending', data.matches?.pending ?? ''],
         ['Disputed', data.matches?.disputed ?? ''],
         [],
-        ['── Revenue Summary ──'],
+        ['-- Revenue Summary --'],
         ['Total Entries', data.revenue?.total_entries ?? ''],
         ['Gross Revenue', data.revenue?.gross_revenue ?? ''],
         ['Prize Pool', data.revenue?.prize_pool ?? ''],
       ];
 
-      const csv = rows.map(r => r.map(cell => {
+      const csv = rows.map((r) => r.map((cell) => {
         const s = String(cell ?? '');
         return s.includes(',') || s.includes('"') || s.includes('\n')
           ? `"${s.replace(/"/g, '""')}"` : s;
@@ -378,12 +588,14 @@
     }
   }
 
-  /* ────────────────── Public API ──────────────────────────────────── */
-
   window.TOC = window.TOC || {};
-  window.TOC.analytics = { refresh, exportReport };
+  window.TOC.analytics = { refresh, exportReport, invalidate };
 
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail?.tab === 'analytics') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isAnalyticsTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 })();

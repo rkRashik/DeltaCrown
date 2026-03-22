@@ -24,6 +24,7 @@ class TOCAnalyticsService:
     def get_analytics_dashboard(tournament: Tournament) -> dict:
         """Comprehensive analytics dashboard."""
         return {
+            "generated_at": timezone.now().isoformat(),
             "registration": TOCAnalyticsService.get_registration_analytics(tournament),
             "matches": TOCAnalyticsService.get_match_analytics(tournament),
             "revenue": TOCAnalyticsService.get_revenue_analytics(tournament),
@@ -38,12 +39,11 @@ class TOCAnalyticsService:
 
         qs = Registration.objects.filter(tournament=tournament)
         total = qs.count()
-        by_status = {}
-        for status_val in ["draft", "submitted", "pending", "auto_approved", "needs_review",
-                           "payment_submitted", "confirmed", "rejected", "cancelled", "waitlisted", "no_show"]:
-            c = qs.filter(status=status_val).count()
-            if c > 0:
-                by_status[status_val] = c
+        by_status = {
+            row["status"]: row["count"]
+            for row in qs.values("status").annotate(count=Count("id")).filter(count__gt=0)
+            if row.get("status")
+        }
 
         # Registration trend (daily count)
         trend = []
@@ -80,42 +80,47 @@ class TOCAnalyticsService:
     def get_match_analytics(tournament: Tournament) -> dict:
         """Match performance analytics."""
         matches = Match.objects.filter(tournament=tournament)
-        total = matches.count()
-        by_state = {}
+        state_rows = matches.values("state").annotate(count=Count("id"))
+        by_state = {row["state"]: row["count"] for row in state_rows if row.get("state")}
         for state_val in ["scheduled", "check_in", "ready", "live", "pending_result", "completed", "disputed", "forfeit", "cancelled"]:
-            by_state[state_val] = matches.filter(state=state_val).count()
+            by_state.setdefault(state_val, 0)
+
+        total = sum(by_state.values())
         # JS-friendly aliases
         by_state["in_progress"] = by_state.get("live", 0)
         by_state["forfeited"] = by_state.get("forfeit", 0)
 
         completed = matches.filter(state="completed")
-        completed_count = completed.count()
+        completed_count = by_state.get("completed", 0)
 
         # Average match duration
         avg_duration = None
-        durations = []
-        for m in completed.filter(started_at__isnull=False, completed_at__isnull=False):
-            dur = (m.completed_at - m.started_at).total_seconds() / 60
-            if dur > 0:
-                durations.append(dur)
-        if durations:
-            avg_duration = round(sum(durations) / len(durations), 1)
+        avg_dur = completed.filter(
+            started_at__isnull=False,
+            completed_at__isnull=False,
+        ).aggregate(avg=Avg(F("completed_at") - F("started_at"))).get("avg")
+        if avg_dur:
+            avg_minutes = avg_dur.total_seconds() / 60
+            if avg_minutes > 0:
+                avg_duration = round(avg_minutes, 1)
 
         # Forfeit rate
-        forfeit_count = matches.filter(state="forfeit").count()
+        forfeit_count = by_state.get("forfeit", 0)
         forfeit_rate = round(forfeit_count / total * 100, 1) if total > 0 else 0
 
         # Dispute rate
-        dispute_count = matches.filter(state="disputed").count()
+        dispute_count = by_state.get("disputed", 0)
         dispute_rate = round(dispute_count / total * 100, 1) if total > 0 else 0
 
         # Matches per round
         rounds_data = []
-        rounds = matches.values("round_number").annotate(total=Count("id")).order_by("round_number")
+        rounds = matches.values("round_number").annotate(
+            total=Count("id"),
+            completed=Count("id", filter=Q(state="completed")),
+        ).order_by("round_number")
         for r in rounds:
             rn = r["round_number"]
-            round_matches = matches.filter(round_number=rn)
-            round_completed = round_matches.filter(state="completed").count()
+            round_completed = r.get("completed", 0)
             rounds_data.append({
                 "round": rn,
                 "total": r["total"],
@@ -195,14 +200,15 @@ class TOCAnalyticsService:
         """Engagement and activity metrics."""
         matches = Match.objects.filter(tournament=tournament)
         streamed = matches.exclude(stream_url__isnull=True).exclude(stream_url="").count()
+        total_matches = matches.count()
 
         config = tournament.config or {}
         engagement = config.get("engagement_stats", {})
 
         return {
             "streamed_matches": streamed,
-            "total_matches": matches.count(),
-            "stream_coverage": round(streamed / matches.count() * 100) if matches.count() > 0 else 0,
+            "total_matches": total_matches,
+            "stream_coverage": round(streamed / total_matches * 100) if total_matches > 0 else 0,
             "page_views": engagement.get("page_views", 0),
             "bracket_views": engagement.get("bracket_views", 0),
             "unique_visitors": engagement.get("unique_visitors", 0),

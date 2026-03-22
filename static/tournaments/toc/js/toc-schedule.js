@@ -58,31 +58,146 @@
     showLocalTime: true,
   };
 
+  const CACHE_TTL_MS = 20000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['total-matches', 'scheduled', 'live', 'completed', 'conflicts', 'est-end'];
+
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+  let _initialized = false;
+
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
   function _esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  function isScheduleTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'schedule';
+  }
+
+  function hasFreshCache() {
+    return !!state.data && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function setSyncStatus(mode, note) {
+    const el = $('#schedule-sync-status');
+    if (!el) return;
+    if (mode === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing schedule...';
+      return;
+    }
+    if (mode === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = 'Last sync ' + new Date(lastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#schedule-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Schedule request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${_esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.schedule.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    _reinitIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#sched-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    const content = $('#schedule-content');
+    if (content) {
+      content.classList.toggle('toc-panel-loading', loading);
+      if (loading) content.setAttribute('aria-busy', 'true');
+      else content.removeAttribute('aria-busy');
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════════
    *  Data Fetching
    * ═══════════════════════════════════════════════════════════════ */
 
-  async function refresh() {
-    try {
-      const data = await API.get('schedule/');
-      state.data = data;
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
 
-      // Build conflict lookup set
-      state.conflicts = data.conflicts || [];
-      state.conflictMatchIds = new Set();
-      state.conflicts.forEach(c => {
-        state.conflictMatchIds.add(c.match_a);
-        state.conflictMatchIds.add(c.match_b);
-      });
-
+    if (state.data && !force) {
       renderAll();
-    } catch (e) {
-      console.error('[schedule] fetch error', e);
-      toast('Failed to load schedule', 'error');
+      if (hasFreshCache()) return state.data;
     }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', state.data ? 'Refreshing schedule...' : 'Loading schedule...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('schedule/');
+        if (requestId !== activeRequestId) return state.data || data;
+        state.data = data;
+        lastFetchedAt = Date.now();
+
+        // Build conflict lookup set
+        state.conflicts = data.conflicts || [];
+        state.conflictMatchIds = new Set();
+        state.conflicts.forEach(c => {
+          state.conflictMatchIds.add(c.match_a);
+          state.conflictMatchIds.add(c.match_b);
+        });
+
+        renderAll();
+        setLoading(false);
+        setErrorBanner('');
+        setSyncStatus('ok');
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return state.data;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[schedule] fetch error', e);
+        setLoading(false);
+        toast('Failed to load schedule', 'error');
+        if (state.data) {
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached schedule data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+        }
+        return state.data;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1320,8 +1435,22 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   function init() {
+    if (!_initialized) {
+      document.addEventListener('keydown', handleKeyboard);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && isScheduleTabActive() && !hasFreshCache()) {
+          refresh({ silent: true });
+        }
+      });
+      _initialized = true;
+    }
     refresh();
-    document.addEventListener('keydown', handleKeyboard);
+    if (!autoRefreshTimer) {
+      autoRefreshTimer = setInterval(() => {
+        if (!isScheduleTabActive()) return;
+        refresh({ silent: true });
+      }, AUTO_REFRESH_MS);
+    }
   }
 
   window.TOC = window.TOC || {};

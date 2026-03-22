@@ -307,7 +307,7 @@ class CheckIn(TimestampedModel):
         ]
         constraints = [
             CheckConstraint(
-                check=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
+                condition=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
                       (Q(user__isnull=True) & Q(team_id__isnull=False)),
                 name='check_in_user_or_team_xor'
             ),

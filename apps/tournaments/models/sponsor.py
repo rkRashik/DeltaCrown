@@ -98,7 +98,19 @@ class TournamentSponsor(TimestampedModel):
 
     class Meta:
         db_table = 'tournaments_sponsor'
-        ordering = ['tier', 'display_order', 'name']
+        ordering = [
+            models.Case(
+                models.When(tier='title', then=models.Value(0)),
+                models.When(tier='gold', then=models.Value(1)),
+                models.When(tier='silver', then=models.Value(2)),
+                models.When(tier='bronze', then=models.Value(3)),
+                models.When(tier='partner', then=models.Value(4)),
+                default=models.Value(99),
+                output_field=models.IntegerField(),
+            ),
+            'display_order',
+            'name',
+        ]
         verbose_name = 'Tournament Sponsor'
         verbose_name_plural = 'Tournament Sponsors'
         indexes = [

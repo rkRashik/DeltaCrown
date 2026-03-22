@@ -15,10 +15,13 @@ S9-B1  GET  matches/<id>/detail/
 S9-B2  POST matches/<id>/verify/
 """
 
+from django.core.cache import cache
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
+from apps.tournaments.api.toc.cache_utils import bump_toc_scopes, toc_cache_key
 from apps.tournaments.api.toc.matches_service import TOCMatchesService
 
 
@@ -26,13 +29,29 @@ class MatchListView(TOCBaseView):
     """S6-B1: Paginated match list with filters."""
 
     def get(self, request, slug):
+        round_raw = request.query_params.get('round')
+        round_number = None
+        if round_raw not in (None, ''):
+            try:
+                round_number = int(round_raw)
+            except (TypeError, ValueError):
+                round_number = None
+
+        cache_bucket = int(timezone.now().timestamp() // 8)
+        query_sig = request.META.get('QUERY_STRING', '')
+        cache_key = toc_cache_key('matches', self.tournament.id, cache_bucket, query_sig)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         result = TOCMatchesService.get_matches(
             self.tournament,
-            round_number=request.query_params.get('round'),
+            round_number=round_number,
             state=request.query_params.get('state'),
             search=request.query_params.get('search'),
             group=request.query_params.get('group'),
         )
+        cache.set(cache_key, result, timeout=12)
         return Response(result)
 
 
@@ -47,6 +66,7 @@ class MatchScoreView(TOCBaseView):
             p2_score=int(request.data.get('participant2_score', 0)),
             user_id=request.user.id,
         )
+        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -55,6 +75,7 @@ class MatchMarkLiveView(TOCBaseView):
 
     def post(self, request, slug, pk):
         data = TOCMatchesService.mark_live(pk, self.tournament)
+        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -64,6 +85,7 @@ class MatchPauseView(TOCBaseView):
     def post(self, request, slug, pk):
         try:
             data = TOCMatchesService.pause_match(pk, self.tournament)
+            bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -75,6 +97,7 @@ class MatchResumeView(TOCBaseView):
     def post(self, request, slug, pk):
         try:
             data = TOCMatchesService.resume_match(pk, self.tournament)
+            bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -85,6 +108,7 @@ class MatchForceCompleteView(TOCBaseView):
 
     def post(self, request, slug, pk):
         data = TOCMatchesService.force_complete(pk, self.tournament, user_id=request.user.id)
+        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -99,6 +123,7 @@ class MatchRescheduleView(TOCBaseView):
             reason=request.data.get('reason', ''),
             user_id=request.user.id,
         )
+        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data, status=status.HTTP_201_CREATED)
 
 
@@ -112,6 +137,7 @@ class MatchForfeitView(TOCBaseView):
             forfeiter_id=int(request.data.get('forfeiter_id')),
             user_id=request.user.id,
         )
+        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data)
 
 
@@ -125,6 +151,7 @@ class MatchNoteView(TOCBaseView):
             text=request.data.get('text', ''),
             user_id=request.user.id,
         )
+        bump_toc_scopes(self.tournament.id, 'matches')
         return Response(data)
 
 
@@ -132,8 +159,16 @@ class MatchMediaView(TOCBaseView):
     """S6-B10: List and upload match media."""
 
     def get(self, request, slug, pk):
+        cache_bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('matches', self.tournament.id, 'media', pk, cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCMatchesService.get_media(pk, self.tournament)
-        return Response({'media': data})
+        payload = {'media': data}
+        cache.set(cache_key, payload, timeout=12)
+        return Response(payload)
 
     def post(self, request, slug, pk):
         data = TOCMatchesService.upload_media(
@@ -145,6 +180,7 @@ class MatchMediaView(TOCBaseView):
             is_evidence=request.data.get('is_evidence', False),
             user_id=request.user.id,
         )
+        bump_toc_scopes(self.tournament.id, 'matches', 'disputes')
         return Response(data, status=status.HTTP_201_CREATED)
 
 
@@ -156,7 +192,14 @@ class MatchDetailView(TOCBaseView):
 
     def get(self, request, slug, pk):
         try:
+            cache_bucket = int(timezone.now().timestamp() // 8)
+            cache_key = toc_cache_key('matches', self.tournament.id, 'detail', pk, cache_bucket)
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
             data = TOCMatchesService.get_match_detail(pk, self.tournament)
+            cache.set(cache_key, data, timeout=12)
             return Response(data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
@@ -183,6 +226,7 @@ class MatchVerifyView(TOCBaseView):
                 notes=request.data.get('notes', ''),
                 reason_code=request.data.get('reason_code', 'other'),
             )
+            bump_toc_scopes(self.tournament.id, 'matches', 'disputes', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -200,11 +244,19 @@ class MatchSeriesStatusView(TOCBaseView):
     def get(self, request, slug, pk):
         from apps.tournaments.models.match import Match
         from apps.tournaments.services.match_service import MatchService
+
+        cache_bucket = int(timezone.now().timestamp() // 8)
+        cache_key = toc_cache_key('matches', self.tournament.id, 'series_status', pk, cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         try:
             match = Match.objects.get(pk=pk, tournament=self.tournament, is_deleted=False)
         except Match.DoesNotExist:
             return Response({'error': 'Match not found'}, status=status.HTTP_404_NOT_FOUND)
         data = MatchService.get_series_status(match)
+        cache.set(cache_key, data, timeout=12)
         return Response(data)
 
     def patch(self, request, slug, pk):
@@ -220,6 +272,7 @@ class MatchSeriesStatusView(TOCBaseView):
         match.best_of = best_of
         match.save(update_fields=['best_of'])
         from apps.tournaments.services.match_service import MatchService
+        bump_toc_scopes(self.tournament.id, 'matches')
         return Response(MatchService.get_series_status(match))
 
 
@@ -245,6 +298,7 @@ class MatchSeriesGameView(TOCBaseView):
                 participant2_score=p2_score,
                 submitted_by_id=request.user.id,
             )
+            bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
             return Response(MatchService.get_series_status(match))
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -14,19 +14,190 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
-  let dashData = null;
+  const CACHE_TTL_MS = 25000;
+  const AUTO_REFRESH_MS = 60000;
+  const STAT_IDS = ['sections', 'faq', 'version', 'ack'];
+  const PANEL_IDS = ['rules-quick-ref', 'rules-sections-list', 'rules-faq-list', 'rules-prize-info'];
 
-  async function refresh() {
-    try {
-      const data = await API.get('rules/');
-      dashData = data;
-      renderStats(data.summary || {});
-      renderSections(data.sections || []);
-      renderFaq(data.faq || []);
-      renderQuickRef(data.quick_reference || {});
-      renderPrizeInfo(data.prize_info || {});
-    } catch (e) {
-      console.error('[rules] fetch error', e);
+  let dashData = null;
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+
+  function isRulesTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'rules';
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#rules-sync-status');
+    if (!el) return;
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing rules...';
+      return;
+    }
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#rules-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Rules request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.rules.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#rules-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderDashboard(data) {
+    const safe = data && typeof data === 'object' ? data : {};
+    renderStats(safe.summary && typeof safe.summary === 'object' ? safe.summary : {});
+    renderSections(Array.isArray(safe.sections) ? safe.sections : []);
+    renderFaq(Array.isArray(safe.faq) ? safe.faq : []);
+    renderQuickRef(safe.quick_reference && typeof safe.quick_reference === 'object' ? safe.quick_reference : {});
+    renderPrizeInfo(safe.prize_info && typeof safe.prize_info === 'object' ? safe.prize_info : {});
+    setLoading(false);
+    setErrorBanner('');
+    setSyncStatus('ok');
+  }
+
+  function renderEmptyState(message) {
+    const text = esc(message || 'No data available');
+    const sections = $('#rules-sections-list');
+    const faq = $('#rules-faq-list');
+    if (sections) {
+      sections.innerHTML = `<div class="glass-box rounded-xl p-8 text-center"><p class="text-xs text-dc-text opacity-60">${text}</p></div>`;
+    }
+    if (faq) faq.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    setLoading(false);
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) return dashData;
+    }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing rules...' : 'Loading rules...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('rules/');
+        if (requestId !== activeRequestId) return dashData || data;
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[rules] fetch error', e);
+        if (dashData) {
+          setLoading(false);
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached rules data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderEmptyState('Rules data is unavailable right now.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isRulesTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'rules') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isRulesTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
     }
   }
 
@@ -191,7 +362,7 @@
     const content = document.getElementById('rules-sec-content')?.value.trim() || '';
     if (!id) { toast('Section ID is required', 'error'); return; }
     API.post(`rules/sections/${id}/`, { title: title || id, content })
-      .then(() => { toast('Section added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Section added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -211,14 +382,14 @@
     const content = document.getElementById('rules-esec-content')?.value.trim() || '';
     if (!title) { toast('Title is required', 'error'); return; }
     API.post(`rules/sections/${sectionId}/`, { title, content })
-      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function deleteSection(sectionId) {
     if (!confirm('Delete this section?')) return;
     API.delete(`rules/sections/${sectionId}/`)
-      .then(() => { toast('Deleted', 'success'); refresh(); })
+      .then(() => { toast('Deleted', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -238,7 +409,7 @@
     const answer = document.getElementById('rules-faq-a')?.value.trim() || '';
     if (!question) { toast('Question is required', 'error'); return; }
     API.post('rules/faq/', { question, answer })
-      .then(() => { toast('FAQ added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('FAQ added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -258,14 +429,14 @@
     const answer = document.getElementById('rules-efaq-a')?.value.trim() || '';
     if (!question) { toast('Question is required', 'error'); return; }
     API.put(`rules/faq/${faqId}/`, { question, answer })
-      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function deleteFaq(faqId) {
     if (!confirm('Delete this FAQ?')) return;
     API.delete(`rules/faq/${faqId}/`)
-      .then(() => { toast('Deleted', 'success'); refresh(); })
+      .then(() => { toast('Deleted', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -290,7 +461,7 @@
     const changelog = document.getElementById('rules-pub-changelog')?.value.trim() || '';
     if (!version) { toast('Version number is required', 'error'); return; }
     API.post('rules/publish/', { version, changelog })
-      .then(() => { toast(`Version ${version} published`, 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast(`Version ${version} published`, 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -320,13 +491,13 @@
     const map_pool     = document.getElementById('rules-qr-maps')?.value.trim()    || '';
     const contact      = document.getElementById('rules-qr-contact')?.value.trim() || '';
     API.post('rules/quick-reference/', { format, match_format, checkin_time, map_pool, contact })
-      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   window.TOC = window.TOC || {};
   window.TOC.rules = {
-    refresh,
+    refresh, invalidate,
     addSection, _submitAddSection,
     editSection, _submitEditSection, deleteSection,
     addFaq, _submitAddFaq,
@@ -335,8 +506,11 @@
     editQuickRef, _submitQuickRef,
   };
 
-  // Auto-load when tab is activated
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail && e.detail.tab === 'rules') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isRulesTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 })();

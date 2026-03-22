@@ -96,7 +96,6 @@
   background: #050508;
   position: relative;
   z-index: 50;
-  shrink: 0;
   flex-shrink: 0;
   box-shadow: 0 1px 0 color-mix(in srgb, var(--game-primary) 5%, transparent), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
@@ -394,6 +393,32 @@
 }
 
 /* ── Resources Tab ────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hub-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hub-fade-in-up {
+  animation: hub-fade-in-up 280ms ease-out both;
+}
+
 .social-link-card {
   display: flex;
   align-items: center;
@@ -407,12 +432,33 @@
   font-size: 0.875rem;
   font-weight: 600;
   transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.social-link-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: linear-gradient(120deg, rgba(255,255,255,0.14), rgba(0,240,255,0.22), rgba(255,255,255,0.02)) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
 }
 .social-link-card:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(0, 240, 255, 0.2);
   color: #fff;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+.social-link-card:hover::before {
+  opacity: 1;
 }
 .social-link-card .social-icon {
   width: 2rem;
@@ -430,6 +476,72 @@
 .social-link-card .social-icon.website { background: rgba(0, 240, 255, 0.15); color: #00F0FF; }
 .social-link-card .social-icon.twitch { background: rgba(145, 70, 255, 0.2); color: #9146FF; }
 .social-link-card .social-icon.youtube_stream { background: rgba(255, 0, 0, 0.15); color: #FF0000; }
+.social-link-card .social-icon.facebook { background: rgba(24, 119, 242, 0.2); color: #1877F2; }
+.social-link-card .social-icon.tiktok { background: rgba(255, 255, 255, 0.12); color: #FFFFFF; }
+.social-link-card .social-link-label {
+  display: block;
+  color: #F8FAFC;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.social-link-card .social-link-sub {
+  display: block;
+  color: #94A3B8;
+  font-size: 0.67rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.12rem;
+}
+
+#contact-email-row a,
+#contact-phone-row a {
+  width: 100%;
+  justify-content: flex-start;
+  position: relative;
+}
+
+#contact-email-row a::after,
+#contact-phone-row a::after {
+  content: 'Open';
+  margin-left: auto;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+}
+
+#resources-support-row {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(245, 158, 11, 0.06) 55%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+#resources-support-row .hub-support-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #FCD34D;
+  font-weight: 800;
+  margin-bottom: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-tactical-grid,
+  .hub-status-dot,
+  .hub-tab-content,
+  .social-link-card,
+  .social-link-card::before,
+  .hub-fade-in-up,
+  .animate-pulse > div {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .social-link-card:hover,
+  .hub-glass-hover:hover {
+    transform: none !important;
+  }
+}
 
 /* Sponsor cards */
 .sponsor-card {

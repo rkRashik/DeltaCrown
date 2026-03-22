@@ -203,12 +203,12 @@ class SkillEndorsement(models.Model):
             ),
             # Prevent self-endorsement
             models.CheckConstraint(
-                check=~models.Q(endorser=models.F('receiver')),
+                condition=~models.Q(endorser=models.F('receiver')),
                 name='no_self_endorsement',
             ),
             # Ensure either match or bounty is set (not both, not neither)
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(match__isnull=False, bounty__isnull=True) |
                     models.Q(match__isnull=True, bounty__isnull=False)
                 ),

@@ -242,7 +242,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
             # Either user_id OR team_id must be set, not both
             # Guest teams have user set but no team_id (is_guest_team=True)
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(user__isnull=False, team_id__isnull=True) |
                     models.Q(user__isnull=True, team_id__isnull=False)
                 ),
@@ -262,7 +262,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
             ),
             # Status must be valid
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=[
                         'draft', 'submitted', 'pending', 'auto_approved',
                         'needs_review', 'payment_submitted', 'confirmed',
@@ -643,26 +643,26 @@ class Payment(models.Model):
         constraints = [
             # Amount must be positive
             models.CheckConstraint(
-                check=models.Q(amount__gt=0),
+                condition=models.Q(amount__gt=0),
                 name='payment_amount_positive'
             ),
             # Payment method must be valid
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     payment_method__in=['bkash', 'nagad', 'rocket', 'bank', 'deltacoin']
                 ),
                 name='payment_method_valid'
             ),
             # Status must be valid
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=['pending', 'submitted', 'verified', 'rejected', 'refunded', 'expired', 'waived']
                 ),
                 name='payment_status_valid'
             ),
             # If verified, must have verified_by and verified_at
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(status='verified', verified_by__isnull=False, verified_at__isnull=False) |
                     ~models.Q(status='verified')
                 ),

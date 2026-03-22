@@ -80,6 +80,7 @@ class TestJWTAuthMiddleware:
     
     For production, use JWTAuthMiddleware from apps.tournaments.realtime.middleware.
     """
+    __test__ = False
     
     def __init__(self, app):
         """

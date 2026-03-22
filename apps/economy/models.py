@@ -333,7 +333,7 @@ class DeltaCrownTransaction(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=~models.Q(amount=0),
+                condition=~models.Q(amount=0),
                 name="economy_transaction_amount_nonzero"
             ),
         ]
@@ -978,7 +978,7 @@ class UserInventoryItem(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(quantity__gte=0),
+                condition=models.Q(quantity__gte=0),
                 name='economy_user_inventory_quantity_nonnegative'
             )
         ]

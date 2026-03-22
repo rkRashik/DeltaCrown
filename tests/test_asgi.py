@@ -59,7 +59,7 @@ websocket_app = TestJWTAuthMiddleware(
 )
 
 # Test ASGI application (no rate limiting in tests)
-test_application = ProtocolTypeRouter({
+asgi_test_application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": websocket_app,
 })

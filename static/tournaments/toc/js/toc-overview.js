@@ -7,11 +7,11 @@
  * Loads from /api/toc/<slug>/overview/ and renders:
  *   - Lifecycle pipeline visualizer (S1-F2)
  *   - Vital stat hero cards by ID (S1-F1 + S1-F6, refactored S25)
- *   - Quick stats strip from /stats/ (S25)
+ *   - Quick stats strip from overview payload (fallback /stats/) (S25)
  *   - Alerts panel (S1-F4)
  *   - Action Queue (S25, derived from actionable alerts)
  *   - Tournament Progress timeline (S25, derived from lifecycle)
- *   - Activity Log from /audit-log/ (S25)
+ *   - Activity Log from overview payload (fallback /audit-log/) (S25)
  *   - Upcoming events timeline (S1-F7)
  *   - Transition modal (S1-F3)
  *   - Freeze / Unfreeze (S1-F5)
@@ -60,50 +60,99 @@
 
   let _refreshTimer = null;
   let _selectedTransition = null;
+  let _lastSyncAt = null;
+
+  const LOADING_IDS = [
+    '#stat-participants', '#stat-revenue', '#stat-active-matches', '#stat-open-disputes',
+    '#stat-completion', '#stat-avg-duration', '#stat-dq-rate', '#stat-checked-in', '#stat-in-progress', '#stat-forfeits',
+    '#health-score-value', '#health-grade', '#health-label',
+    '#hb-reg', '#hb-pay', '#hb-match', '#hb-disp', '#hb-alert',
+  ];
 
   // ═══════════════════════════════════════════════════════════════
   //  Main fetch & render
   // ═══════════════════════════════════════════════════════════════
 
   async function load() {
+    setOverviewLoading(true);
+    updateSyncStatus('loading');
     try {
       const data = await TOC.fetch(`${API}/overview/`);
       render(data);
+      _lastSyncAt = new Date();
+      updateSyncStatus('ok');
     } catch (e) {
       console.error('[TOC:overview] Load failed:', e);
-      renderError();
+      updateSyncStatus('error', e && e.message ? String(e.message) : 'request failed');
+      renderError(e);
+      setOverviewLoading(false);
     }
   }
 
   function render(data) {
-    renderLifecycle(data.lifecycle, data.transitions);
-    renderStats(data.stats);
-    renderAlerts(data.alerts);
-    renderEvents(data.events);
-    renderActionQueue(data.alerts);
-    renderProgress(data.lifecycle);
-    renderHealthScore(data.health_score);
-    renderUpcomingMatches(data.upcoming_matches);
-    renderGroupProgress(data.group_progress);
-    renderCountdowns(data.countdowns || []);
-    updateGlobalStatus(data);
-    // Async side-channels (non-blocking)
-    loadQuickStats();
-    loadActivityLog();
+    const payload = data || {};
+    const lifecycle = payload.lifecycle || { stages: [], progress_pct: 0 };
+    const transitions = Array.isArray(payload.transitions) ? payload.transitions : [];
+    const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+    const events = Array.isArray(payload.events) ? payload.events : [];
+
+    renderLifecycle(lifecycle, transitions);
+    renderStats(Array.isArray(payload.stats) ? payload.stats : []);
+    renderAlerts(alerts);
+    renderEvents(events);
+    renderActionQueue(alerts);
+    renderProgress(lifecycle);
+    renderHealthScore(payload.health_score || null);
+    renderUpcomingMatches(payload.upcoming_matches || []);
+    renderGroupProgress(payload.group_progress || null);
+    renderCountdowns(payload.countdowns || []);
+    renderQuickStats(payload.quick_stats || null);
+    renderActivityLog(payload.activity_log || []);
+    updateGlobalStatus(payload);
+
+    // Backward compatibility fallback when backend doesn't provide bundled data yet.
+    if (!payload.quick_stats) loadQuickStats();
+    if (!Array.isArray(payload.activity_log)) loadActivityLog();
+
+    setOverviewLoading(false);
   }
 
-  function renderError() {
+  function renderError(err) {
     const el = $('#overview-alerts');
     if (el) {
+      const detail = err && err.message ? _esc(String(err.message)) : 'Could not load overview data. Retrying in 30s…';
       el.innerHTML = `
         <div class="flex items-center gap-3 p-4 bg-dc-dangerBg border border-dc-danger/30 rounded-lg">
           <i data-lucide="wifi-off" class="w-5 h-5 text-dc-danger shrink-0"></i>
           <div>
             <p class="text-sm font-bold text-white">Connection Error</p>
-            <p class="text-xs text-dc-text mt-1">Could not load overview data. Retrying in 30s…</p>
+            <p class="text-xs text-dc-text mt-1">${detail}</p>
+            <button class="mt-2 px-2.5 py-1.5 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.overview.load()">Retry Now</button>
           </div>
         </div>`;
       _reinitIcons();
+    }
+  }
+
+  function updateSyncStatus(state, note) {
+    const el = $('#overview-sync-status');
+    if (!el) return;
+
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning';
+      el.textContent = 'Syncing overview...';
+      return;
+    }
+
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger';
+      el.textContent = `Sync failed${note ? `: ${note}` : ''}`;
+      return;
+    }
+
+    if (_lastSyncAt) {
+      el.className = 'text-[10px] font-mono text-dc-text';
+      el.textContent = `Last sync ${_lastSyncAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
     }
   }
 
@@ -194,8 +243,9 @@
     const counter = $('#alerts-count');
     if (!container) return;
 
+    const safeAlerts = Array.isArray(alerts) ? alerts : [];
     const dismissed = getDismissed();
-    const visible = alerts.filter(a => !dismissed.includes(a.title));
+    const visible = safeAlerts.filter(a => !dismissed.includes(a.title));
 
     if (counter) {
       counter.textContent = visible.length;
@@ -368,24 +418,25 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  Sprint 25: Quick Stats (from /stats/ endpoint)
+  //  Sprint 25: Quick Stats (prefer overview payload, fallback /stats/)
   // ═══════════════════════════════════════════════════════════════
+
+  function renderQuickStats(data) {
+    var m = (data && data.matches) || {};
+    var p = (data && data.participants) || {};
+
+    _setText('#stat-completion', m.completion_pct != null ? m.completion_pct + '%' : '—');
+    _setText('#stat-avg-duration', m.avg_duration_minutes != null ? m.avg_duration_minutes + 'm' : '—');
+    _setText('#stat-dq-rate', p.dq_rate_pct != null ? p.dq_rate_pct + '%' : '—');
+    _setText('#stat-checked-in', p.checked_in != null ? p.checked_in : '—');
+    _setText('#stat-in-progress', m.in_progress != null ? m.in_progress : '—');
+    _setText('#stat-forfeits', m.forfeits != null ? m.forfeits : 0);
+  }
 
   async function loadQuickStats() {
     try {
       var data = await TOC.fetch(API + '/stats/');
-      var m = data.matches || {};
-      var p = data.participants || {};
-
-      _setText('#stat-completion', m.completion_pct != null ? m.completion_pct + '%' : '—');
-      _setText('#stat-avg-duration', m.avg_duration_minutes != null ? m.avg_duration_minutes + 'm' : '—');
-      _setText('#stat-dq-rate', p.dq_rate_pct != null ? p.dq_rate_pct + '%' : '—');
-      _setText('#stat-checked-in', p.checked_in != null ? p.checked_in : '—');
-      _setText('#stat-in-progress', m.in_progress != null ? m.in_progress : '—');
-
-      // Forfeits: count forfeit-status matches if available
-      var forfeits = m.forfeits != null ? m.forfeits : 0;
-      _setText('#stat-forfeits', forfeits);
+      renderQuickStats(data);
     } catch (e) {
       console.warn('[TOC:overview] Quick stats fetch failed:', e);
     }
@@ -758,9 +809,14 @@
       const statusColors = {
         draft:        'bg-dc-text/10 text-dc-text border border-dc-border',
         registration: 'bg-dc-info/15 text-dc-info border border-dc-info/30',
+        published:    'bg-dc-info/15 text-dc-info border border-dc-info/30',
+        registration_open: 'bg-dc-info/15 text-dc-info border border-dc-info/30',
+        registration_closed: 'bg-dc-warning/15 text-dc-warning border border-dc-warning/30',
         check_in:     'bg-dc-warning/15 text-dc-warning border border-dc-warning/30',
+        in_progress:  'bg-dc-success/15 text-dc-success border border-dc-success/30',
         live:         'bg-dc-success/15 text-dc-success border border-dc-success/30',
         completed:    'bg-dc-text/10 text-dc-textBright border border-dc-border',
+        finalized:    'bg-dc-text/10 text-dc-textBright border border-dc-border',
         cancelled:    'bg-dc-danger/15 text-dc-danger border border-dc-danger/30',
       };
       const colorClasses = statusColors[data.status] || statusColors.draft;
@@ -836,6 +892,14 @@
   function _esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function _attr(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
   function _setText(sel, val) { var el = $(sel); if (el) el.textContent = val; }
+
+  function setOverviewLoading(isLoading) {
+    LOADING_IDS.forEach(function (sel) {
+      var el = $(sel);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', !!isLoading);
+    });
+  }
 
   function _relativeTime(date) {
     const now = new Date();

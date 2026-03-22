@@ -14,18 +14,189 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
-  let dashData = null;
+  const CACHE_TTL_MS = 20000;
+  const AUTO_REFRESH_MS = 45000;
+  const STAT_IDS = ['live', 'stations', 'upcoming', 'vods'];
+  const PANEL_IDS = ['streams-stations-list', 'streams-schedule-list', 'streams-vods-list'];
 
-  async function refresh() {
-    try {
-      const data = await API.get('streams/');
-      dashData = data;
-      renderStats(data);
-      renderStations(data.stations || []);
-      renderSchedule(data.live || [], data.upcoming || []);
-      renderVods(data.vods || []);
-    } catch (e) {
-      console.error('[streams] fetch error', e);
+  let dashData = null;
+  let inflightPromise = null;
+  let activeRequestId = 0;
+  let lastFetchedAt = 0;
+  let autoRefreshTimer = null;
+
+  function isStreamsTabActive() {
+    return (window.location.hash || '').replace('#', '') === 'streams';
+  }
+
+  function hasFreshCache() {
+    return !!dashData && (Date.now() - lastFetchedAt) < CACHE_TTL_MS;
+  }
+
+  function formatTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setSyncStatus(state, note) {
+    const el = $('#streams-sync-status');
+    if (!el) return;
+    if (state === 'loading') {
+      el.className = 'text-[10px] font-mono text-dc-warning mt-1';
+      el.textContent = note || 'Syncing streams...';
+      return;
+    }
+    if (state === 'error') {
+      el.className = 'text-[10px] font-mono text-dc-danger mt-1';
+      el.textContent = note || 'Sync failed';
+      return;
+    }
+    if (lastFetchedAt > 0) {
+      el.className = 'text-[10px] font-mono text-dc-text mt-1';
+      el.textContent = `Last sync ${formatTime(new Date(lastFetchedAt))}`;
+      return;
+    }
+    el.className = 'text-[10px] font-mono text-dc-text mt-1';
+    el.textContent = 'Not synced yet';
+  }
+
+  function setErrorBanner(message) {
+    const el = $('#streams-error-banner');
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-dc-danger shrink-0 mt-0.5"></i>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-white">Streams request failed</p>
+          <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.streams.refresh({ force: true })">Retry now</button>
+        </div>
+      </div>`;
+    refreshIcons();
+  }
+
+  function setLoading(loading) {
+    STAT_IDS.forEach((id) => {
+      const el = $(`#streams-stat-${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-loading-value', loading);
+    });
+    PANEL_IDS.forEach((id) => {
+      const el = $(`#${id}`);
+      if (!el) return;
+      el.classList.toggle('toc-panel-loading', loading);
+      if (loading) el.setAttribute('aria-busy', 'true');
+      else el.removeAttribute('aria-busy');
+    });
+  }
+
+  function renderDashboard(data) {
+    const safe = data && typeof data === 'object' ? data : {};
+    renderStats(safe);
+    renderStations(Array.isArray(safe.stations) ? safe.stations : []);
+    renderSchedule(Array.isArray(safe.live) ? safe.live : [], Array.isArray(safe.upcoming) ? safe.upcoming : []);
+    renderVods(Array.isArray(safe.vods) ? safe.vods : []);
+    setLoading(false);
+    setErrorBanner('');
+    setSyncStatus('ok');
+  }
+
+  function renderEmptyState(message) {
+    const text = esc(message || 'No data available');
+    const stations = $('#streams-stations-list');
+    const schedule = $('#streams-schedule-list');
+    const vods = $('#streams-vods-list');
+    if (stations) stations.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    if (schedule) schedule.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    if (vods) vods.innerHTML = `<p class="text-xs text-dc-text text-center py-4 opacity-60">${text}</p>`;
+    setLoading(false);
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    const force = opts.force === true;
+    const silent = opts.silent === true;
+
+    if (dashData && !force) {
+      renderDashboard(dashData);
+      if (hasFreshCache()) return dashData;
+    }
+
+    if (inflightPromise && !force) return inflightPromise;
+
+    if (!silent) {
+      setLoading(true);
+      setSyncStatus('loading', dashData ? 'Refreshing streams...' : 'Loading streams...');
+    }
+
+    const requestId = ++activeRequestId;
+    inflightPromise = (async () => {
+      try {
+        const data = await API.get('streams/');
+        if (requestId !== activeRequestId) return dashData || data;
+        dashData = data;
+        lastFetchedAt = Date.now();
+        renderDashboard(data);
+        return data;
+      } catch (e) {
+        if (requestId !== activeRequestId) return dashData;
+        const detail = e && e.message ? String(e.message) : 'Request failed';
+        console.error('[streams] fetch error', e);
+        if (dashData) {
+          setLoading(false);
+          setSyncStatus('error', `Using cached data (${detail})`);
+          setErrorBanner(`Live refresh failed, showing cached streams data. ${detail}`);
+        } else {
+          setSyncStatus('error', detail);
+          setErrorBanner(detail);
+          renderEmptyState('Streams data is unavailable right now.');
+        }
+        return dashData;
+      } finally {
+        if (requestId === activeRequestId) inflightPromise = null;
+      }
+    })();
+
+    return inflightPromise;
+  }
+
+  function invalidate() {
+    lastFetchedAt = 0;
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      if (!isStreamsTabActive()) return;
+      refresh({ silent: true });
+    }, AUTO_REFRESH_MS);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function onTabChange(e) {
+    if (e.detail?.tab === 'streams') {
+      refresh();
+      startAutoRefresh();
+      return;
+    }
+    stopAutoRefresh();
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && isStreamsTabActive() && !hasFreshCache()) {
+      refresh({ silent: true });
     }
   }
 
@@ -159,7 +330,7 @@
     const url      = document.getElementById('streams-st-url')?.value.trim() || '';
     if (!name) { toast('Station name is required', 'error'); return; }
     API.post('streams/stations/', { name, platform, url })
-      .then(() => { toast('Station added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Station added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -189,14 +360,14 @@
     const url      = document.getElementById('streams-est-url')?.value.trim() || '';
     if (!name) { toast('Station name is required', 'error'); return; }
     API.put(`streams/stations/${stationId}/`, { name, platform, url })
-      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Updated', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function deleteStation(stationId) {
     if (!confirm('Delete this station?')) return;
     API.delete(`streams/stations/${stationId}/`)
-      .then(() => { toast('Deleted', 'success'); refresh(); })
+      .then(() => { toast('Deleted', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -218,7 +389,7 @@
     const url = document.getElementById('streams-assign-url')?.value.trim();
     if (!url) { toast('Stream URL is required', 'error'); return; }
     API.post('streams/assign/', { match_id: matchId, stream_url: url })
-      .then(() => { toast('Stream assigned', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('Stream assigned', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -246,14 +417,14 @@
     const platform = document.getElementById('streams-vod-platform')?.value || 'youtube';
     if (!title) { toast('VOD title is required', 'error'); return; }
     API.post('streams/vods/', { title, url, platform })
-      .then(() => { toast('VOD added', 'success'); TOC.drawer.close(); refresh(); })
+      .then(() => { toast('VOD added', 'success'); TOC.drawer.close(); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
   function deleteVod(vodId) {
     if (!confirm('Delete this VOD?')) return;
     API.delete(`streams/vods/${vodId}/`)
-      .then(() => { toast('Deleted', 'success'); refresh(); })
+      .then(() => { toast('Deleted', 'success'); invalidate(); refresh({ force: true }); })
       .catch(() => toast('Failed', 'error'));
   }
 
@@ -281,7 +452,7 @@
 
   window.TOC = window.TOC || {};
   window.TOC.streams = {
-    refresh,
+    refresh, invalidate,
     addStation, _submitAddStation,
     editStation, _submitEditStation, deleteStation,
     assignStream, _submitAssign,
@@ -289,8 +460,11 @@
     generateOverlayKey,
   };
 
-  // Auto-load when tab is activated
-  document.addEventListener('toc:tab-changed', (e) => {
-    if (e.detail && e.detail.tab === 'streams') refresh();
-  });
+  document.addEventListener('toc:tab-changed', onTabChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  if (isStreamsTabActive()) {
+    refresh();
+    startAutoRefresh();
+  }
 })();
