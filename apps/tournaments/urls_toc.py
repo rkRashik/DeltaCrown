@@ -10,10 +10,11 @@ Tracker: S0-B4
 
 from django.urls import path
 
-from apps.tournaments.views.toc import TOCView
+from apps.tournaments.views.toc import TOCView, TOCFormConfigurationView
 
 app_name = 'toc'
 
 urlpatterns = [
     path('<slug:slug>/', TOCView.as_view(), name='hub'),
+    path('<slug:slug>/form-configuration/', TOCFormConfigurationView.as_view(), name='form_configuration'),
 ]

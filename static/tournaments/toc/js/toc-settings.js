@@ -16,11 +16,16 @@
     const showOverlay = (...a) => NS.rbac?.showOverlay?.(...a) || console.warn('showOverlay unavailable');
     const closeOverlay = () => NS.rbac?.closeOverlay?.();
     const toast = (m, t) => NS.toast?.(m, t);
+    const _richTextEditors = new Map();
     const setVal = (container, field, value) => {
         const el = container?.querySelector('[data-field="' + field + '"]');
         if (!el) return;
         if (el.type === 'checkbox') el.checked = !!value;
-        else if (el.tagName === 'TEXTAREA') el.value = value || '';
+        else if (el.tagName === 'TEXTAREA') {
+            const editor = _richTextEditors.get(el);
+            if (editor) editor.setData(value || '');
+            else el.value = value || '';
+        }
         else el.value = value ?? '';
     };
     const getVal = (container, field) => {
@@ -28,6 +33,11 @@
         if (!el) return undefined;
         if (el.type === 'checkbox') return el.checked;
         if (el.type === 'number') return el.value === '' ? null : Number(el.value);
+        if (el.type === 'datetime-local') return el.value ? el.value.replace('T', ' ') : null;
+        if (el.tagName === 'TEXTAREA') {
+            const editor = _richTextEditors.get(el);
+            return editor ? editor.getData() : el.value;
+        }
         return el.value;
     };
     const gatherFields = (containerId) => {
@@ -38,6 +48,11 @@
             const k = el.getAttribute('data-field');
             if (el.type === 'checkbox') data[k] = el.checked;
             else if (el.type === 'number') data[k] = el.value === '' ? null : Number(el.value);
+            else if (el.type === 'datetime-local') data[k] = el.value ? el.value.replace('T', ' ') : null;
+            else if (el.tagName === 'TEXTAREA') {
+                const editor = _richTextEditors.get(el);
+                data[k] = editor ? editor.getData() : el.value;
+            }
             else data[k] = el.value;
         });
         return data;
@@ -372,6 +387,122 @@
         });
     }
 
+    async function _initRichTextEditors () {
+        const inputs = document.querySelectorAll('#view-settings textarea[data-richtext="true"]');
+        if (!inputs.length) return;
+
+        function isUrl(value) {
+            return /^https?:\/\//i.test(String(value || '').trim());
+        }
+
+        function normalizeHtml(value) {
+            const html = String(value || '').trim();
+            if (!html) return '';
+            if (html === '<br>' || html === '<p><br></p>') return '';
+            return html;
+        }
+
+        function markDirtyForInput(input) {
+            if (_suspendDirtyTracking) return;
+            const section = input.closest('[id^="settings-"]');
+            if (!section || !section.id) return;
+            _setSectionState(section.id, 'dirty');
+            _refreshGlobalDirtyFromSections();
+        }
+
+        function exec(command, value) {
+            try {
+                document.execCommand(command, false, value);
+            } catch (err) {
+                console.warn('[TOC.settings] rich text command failed', command, err);
+            }
+        }
+
+        for (const input of inputs) {
+            if (_richTextEditors.has(input)) continue;
+            try {
+                const shell = document.createElement('div');
+                shell.className = 'toc-richtext-shell rounded-lg border border-dc-border bg-dc-surface overflow-hidden';
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'toc-richtext-toolbar flex flex-wrap items-center gap-1 p-2 border-b border-dc-border bg-dc-panel';
+
+                const editorEl = document.createElement('div');
+                editorEl.className = 'toc-richtext-editor min-h-[140px] p-3 text-sm text-dc-textBright focus:outline-none';
+                editorEl.contentEditable = 'true';
+                editorEl.innerHTML = input.value || '';
+
+                const buttons = [
+                    { label: 'B', title: 'Bold', cmd: 'bold' },
+                    { label: 'I', title: 'Italic', cmd: 'italic' },
+                    { label: 'U', title: 'Underline', cmd: 'underline' },
+                    { label: '• List', title: 'Bulleted List', cmd: 'insertUnorderedList' },
+                    { label: '1. List', title: 'Numbered List', cmd: 'insertOrderedList' },
+                    { label: 'Quote', title: 'Block Quote', cmd: 'formatBlock', val: 'blockquote' },
+                    { label: 'Clear', title: 'Clear Formatting', cmd: 'removeFormat' },
+                ];
+
+                buttons.forEach(function (btnCfg) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'px-2 py-1 rounded border border-dc-border text-[11px] font-bold text-dc-textBright hover:bg-dc-surface transition-colors';
+                    btn.textContent = btnCfg.label;
+                    btn.title = btnCfg.title;
+                    btn.addEventListener('click', function () {
+                        editorEl.focus();
+                        exec(btnCfg.cmd, btnCfg.val);
+                        input.value = normalizeHtml(editorEl.innerHTML);
+                        markDirtyForInput(input);
+                    });
+                    toolbar.appendChild(btn);
+                });
+
+                const linkBtn = document.createElement('button');
+                linkBtn.type = 'button';
+                linkBtn.className = 'px-2 py-1 rounded border border-dc-border text-[11px] font-bold text-dc-textBright hover:bg-dc-surface transition-colors';
+                linkBtn.textContent = 'Link';
+                linkBtn.title = 'Insert Link';
+                linkBtn.addEventListener('click', function () {
+                    editorEl.focus();
+                    const url = window.prompt('Enter URL (https://...)');
+                    if (!url || !isUrl(url)) return;
+                    exec('createLink', url);
+                    input.value = normalizeHtml(editorEl.innerHTML);
+                    markDirtyForInput(input);
+                });
+                toolbar.appendChild(linkBtn);
+
+                shell.appendChild(toolbar);
+                shell.appendChild(editorEl);
+
+                input.style.display = 'none';
+                input.insertAdjacentElement('afterend', shell);
+
+                editorEl.addEventListener('input', function () {
+                    input.value = normalizeHtml(editorEl.innerHTML);
+                    markDirtyForInput(input);
+                });
+                editorEl.addEventListener('blur', function () {
+                    input.value = normalizeHtml(editorEl.innerHTML);
+                });
+
+                const editor = {
+                    setData: function (value) {
+                        editorEl.innerHTML = value || '';
+                        input.value = normalizeHtml(editorEl.innerHTML);
+                    },
+                    getData: function () {
+                        return normalizeHtml(editorEl.innerHTML);
+                    },
+                };
+
+                _richTextEditors.set(input, editor);
+            } catch (err) {
+                console.warn('[TOC.settings] rich text init failed for', input.getAttribute('data-field'), err);
+            }
+        }
+    }
+
     function _ensureSectionActionButtons () {
         const detailsBlocks = document.querySelectorAll('#view-settings details');
         detailsBlocks.forEach(function (details) {
@@ -694,7 +825,7 @@
             const dirtySections = _dirtySections();
             dirtySections.forEach(function (id) { _setSectionState(id, 'saving'); });
 
-            const payload = _normalizeSettingsPayload(Object.assign({}
+            const payload = _normalizeSettingsPayload(Object.assign({},
                 gatherFields('settings-basic'),
                 gatherFields('settings-media'),
                 gatherFields('settings-format'),
@@ -1709,6 +1840,7 @@
         const silent = opts.silent === true;
 
         if (!force && hasFreshSettingsCache()) {
+            await _initRichTextEditors();
             setSettingsSyncStatus('ok');
             return;
         }
@@ -1726,6 +1858,12 @@
                 const settingsLoaded = await loadSettings();
                 if (!settingsLoaded) {
                     throw new Error('Unable to load tournament settings data.');
+                }
+
+                await _initRichTextEditors();
+                const refreshed = await loadSettings();
+                if (!refreshed) {
+                    throw new Error('Unable to hydrate rich text settings content.');
                 }
 
                 // Render per-section controls as soon as core settings are present.
@@ -1877,7 +2015,10 @@
 
     // Auto-init when navigating to Settings tab
     document.addEventListener('toc:tab-changed', function (e) {
-        if (e.detail?.tab === 'settings') init();
+        if (e.detail?.tab === 'settings') {
+            _initRichTextEditors();
+            init();
+        }
     });
 
     document.addEventListener('visibilitychange', _onSettingsVisibilityChange);
@@ -1885,6 +2026,7 @@
 
     if (isSettingsTabActive()) {
         init({ silent: true });
+        _initRichTextEditors();
     } else {
         _bindDirtyTracking();
         _markSettingsDirty(false);

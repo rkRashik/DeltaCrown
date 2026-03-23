@@ -101,8 +101,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {% if form_config.enable_captain_phone_field %}
             <div class="space-y-1.5">
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone {% if form_config.require_captain_phone %}<span class="text-red-400">*</span>{% endif %}</label>
-                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if form_config.require_captain_phone %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone {% if contact_channel_requirements.phone %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if contact_channel_requirements.phone %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
             </div>
             {% endif %}
 
@@ -112,7 +112,7 @@
                     <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.496A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.317 0-4.47-.693-6.27-1.882l-.44-.295-2.851.957.957-2.851-.295-.44A9.965 9.965 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
                     WhatsApp
                 </label>
-                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.whatsapp.value|default:'' }}" {% if contact_channel_requirements.whatsapp %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
             </div>
             {% endif %}
 
@@ -160,6 +160,11 @@
                 <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
                     <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %} onchange="checkStep('coordinator')"> Email
                 </label>
+                {% if contact_channel_labels.facebook %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="facebook" class="sr-only" {% if fields.preferred_contact.value == 'facebook' %}checked{% endif %} onchange="checkStep('coordinator')"> Facebook
+                </label>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -182,8 +187,17 @@
             </div>
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone</label>
-                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if contact_channel_requirements.phone %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
             </div>
+            {% if contact_channel_labels.whatsapp %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.496A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.317 0-4.47-.693-6.27-1.882l-.44-.295-2.851.957.957-2.851-.295-.44A9.965 9.965 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp {% if contact_channel_requirements.whatsapp %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                <input type="tel" name="whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.whatsapp.value|default:'' }}" {% if contact_channel_requirements.whatsapp %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            {% endif %}
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
                     <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.07.07 0 00-.032.027C.533 9.045-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
@@ -212,14 +226,24 @@
             <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Preferred Contact Method</label>
             <div class="flex flex-wrap gap-2">
                 <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
-                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %}> Discord
+                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %} onchange="checkStep('coordinator')"> Discord
                 </label>
                 <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
-                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %}> Phone
+                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %} onchange="checkStep('coordinator')"> Phone
                 </label>
+                {% if contact_channel_labels.whatsapp %}
                 <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
-                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %}> Email
+                    <input type="radio" name="preferred_contact" value="whatsapp" class="sr-only" {% if fields.preferred_contact.value == 'whatsapp' %}checked{% endif %} onchange="checkStep('coordinator')"> WhatsApp
                 </label>
+                {% endif %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %} onchange="checkStep('coordinator')"> Email
+                </label>
+                {% if contact_channel_labels.facebook %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="facebook" class="sr-only" {% if fields.preferred_contact.value == 'facebook' %}checked{% endif %} onchange="checkStep('coordinator')"> Facebook
+                </label>
+                {% endif %}
             </div>
         </div>
     </div>

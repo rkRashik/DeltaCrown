@@ -108,6 +108,30 @@
             @apply absolute left-[4px] top-[1px] w-[5px] h-[10px] border-solid border-black border-0 border-r-2 border-b-2 rotate-45;
         }
         .hidden-view { @apply hidden !important; }
+
+        /* Inline rich text editor (CSP-safe, no external scripts) */
+        #view-settings .toc-richtext-editor {
+            background: #0b0b0f;
+            line-height: 1.6;
+        }
+        #view-settings .toc-richtext-editor:focus {
+            box-shadow: inset 0 0 0 1px rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.5);
+        }
+        #view-settings .toc-richtext-editor p,
+        #view-settings .toc-richtext-editor ul,
+        #view-settings .toc-richtext-editor ol,
+        #view-settings .toc-richtext-editor blockquote {
+            margin: 0 0 0.6rem;
+        }
+        #view-settings .toc-richtext-editor ul,
+        #view-settings .toc-richtext-editor ol {
+            padding-left: 1.2rem;
+        }
+        #view-settings .toc-richtext-editor blockquote {
+            border-left: 2px solid rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.5);
+            padding-left: 0.6rem;
+            color: #b6b6c4;
+        }
     </style>
 </head>
 <body data-game="{{ game_slug }}">
@@ -1983,6 +2007,84 @@
                     <div class="h-px bg-dc-border/40 flex-1"></div>
                 </div>
 
+                {# ═══ Registration Command Center ═══ #}
+                <details open class="glass-box rounded-xl group overflow-hidden" id="settings-registration-control-section">
+                    <summary class="p-5 cursor-pointer select-none">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-theme/30 bg-theme/10 text-[10px] font-black uppercase tracking-[0.14em] text-theme">
+                                        <i data-lucide="sparkles" class="w-3 h-3"></i> Registration
+                                    </span>
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-dc-border bg-dc-surface text-[10px] font-bold uppercase tracking-[0.12em] text-dc-text">Control Center</span>
+                                </div>
+                                <span class="font-display font-black text-white text-base sm:text-lg tracking-tight flex items-center gap-2">
+                                    <i data-lucide="clipboard-check" class="w-4 h-4 text-theme"></i> Registration Command Center
+                                </span>
+                                <p class="text-xs text-dc-text mt-1">Design the form journey, control required channels, and publish changes with confidence.</p>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform shrink-0"></i>
+                        </div>
+                    </summary>
+
+                    <div class="px-5 pb-5 space-y-4">
+                        <div class="rounded-xl border border-theme/20 bg-[linear-gradient(135deg,rgba(var(--color-primary-r),var(--color-primary-g),var(--color-primary-b),0.12),rgba(8,12,20,0.5))] p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+                                <div class="rounded-lg border border-dc-border/70 bg-black/30 px-3 py-2.5">
+                                    <p class="text-[10px] uppercase tracking-[0.12em] text-dc-text mb-1">What You Control</p>
+                                    <p class="text-dc-textBright font-semibold">Fields, channels, validation rules</p>
+                                </div>
+                                <div class="rounded-lg border border-dc-border/70 bg-black/30 px-3 py-2.5">
+                                    <p class="text-[10px] uppercase tracking-[0.12em] text-dc-text mb-1">When It Applies</p>
+                                    <p class="text-dc-textBright font-semibold">Until registration closes</p>
+                                </div>
+                                <div class="rounded-lg border border-dc-border/70 bg-black/30 px-3 py-2.5">
+                                    <p class="text-[10px] uppercase tracking-[0.12em] text-dc-text mb-1">Quick Workflow</p>
+                                    <p class="text-dc-textBright font-semibold">Configure → Questions → Preview</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                            <a href="{% url 'toc:form_configuration' tournament.slug %}" target="_blank" rel="noopener noreferrer" class="group rounded-xl border border-dc-border bg-dc-surface/60 p-4 hover:border-theme/40 hover:bg-theme/5 transition-all">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="w-9 h-9 rounded-lg border border-theme/30 bg-theme/10 flex items-center justify-center shrink-0">
+                                        <i data-lucide="sliders-horizontal" class="w-4 h-4 text-theme"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-[0.14em] text-dc-text group-hover:text-theme transition-colors">Step 1</span>
+                                </div>
+                                <h4 class="mt-3 text-sm font-black text-white">Form Configuration</h4>
+                                <p class="mt-1 text-xs text-dc-text">Enable or disable profile fields, contact channels, and required inputs.</p>
+                                <div class="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-theme">Open <i data-lucide="arrow-up-right" class="w-3 h-3"></i></div>
+                            </a>
+
+                            <a href="/admin/tournaments/registrationquestion/?tournament__id__exact={{ tournament.id }}" target="_blank" rel="noopener noreferrer" class="group rounded-xl border border-dc-border bg-dc-surface/60 p-4 hover:border-theme/40 hover:bg-theme/5 transition-all">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="w-9 h-9 rounded-lg border border-theme/30 bg-theme/10 flex items-center justify-center shrink-0">
+                                        <i data-lucide="list-checks" class="w-4 h-4 text-theme"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-[0.14em] text-dc-text group-hover:text-theme transition-colors">Step 2</span>
+                                </div>
+                                <h4 class="mt-3 text-sm font-black text-white">Custom Questions</h4>
+                                <p class="mt-1 text-xs text-dc-text">Add tournament-specific prompts, required answers, and ordering.</p>
+                                <div class="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-theme">Manage <i data-lucide="arrow-up-right" class="w-3 h-3"></i></div>
+                            </a>
+
+                            <a href="{% url 'tournaments:smart_registration' tournament.slug %}" target="_blank" rel="noopener noreferrer" class="group rounded-xl border border-theme/35 bg-[linear-gradient(140deg,rgba(var(--color-primary-r),var(--color-primary-g),var(--color-primary-b),0.14),rgba(8,12,20,0.7))] p-4 hover:border-theme/60 transition-all">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="w-9 h-9 rounded-lg border border-theme/40 bg-black/30 flex items-center justify-center shrink-0">
+                                        <i data-lucide="external-link" class="w-4 h-4 text-theme"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-[0.14em] text-theme">Step 3</span>
+                                </div>
+                                <h4 class="mt-3 text-sm font-black text-white">Preview Registration</h4>
+                                <p class="mt-1 text-xs text-dc-text">Open the live registration page and verify UX exactly as players see it.</p>
+                                <div class="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-theme">Preview Now <i data-lucide="arrow-up-right" class="w-3 h-3"></i></div>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+
                 {# ═══ 1. Basic Information ═══ #}
                 <details open class="glass-box rounded-xl group">
                     <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
@@ -2010,7 +2112,7 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs text-dc-text mb-1">Description <span class="text-[10px] text-dc-text/50 font-normal">— plain text or HTML</span></label>
-                            <textarea data-field="description" rows="6" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50 font-mono" placeholder="Describe your tournament. Use plain text (newlines are preserved) or basic HTML for formatting."></textarea>
+                            <textarea data-field="description" data-richtext="true" rows="6" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Describe your tournament."></textarea>
                         </div>
                         <div>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="is_official" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Official Tournament</label>
@@ -2258,7 +2360,7 @@
                             </div>
                             <div class="sm:col-span-2 md:col-span-3">
                                 <label class="block text-xs text-dc-text mb-1">Custom Refund Policy Text</label>
-                                <textarea data-field="refund_policy_text" rows="2" placeholder="Describe your custom refund policy..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea>
+                                <textarea data-field="refund_policy_text" data-richtext="true" rows="2" placeholder="Describe your custom refund policy..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></textarea>
                             </div>
                             <div class="flex items-end pb-1">
                                 <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_fee_waiver" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Fee Waiver</label>
@@ -2439,7 +2541,7 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs text-dc-text mb-1">Support & Dispute Info</label>
-                            <textarea data-field="support_info" rows="3" placeholder="Custom support instructions for participants (e.g. how to report issues, dispute process, contact hours)..."
+                            <textarea data-field="support_info" data-richtext="true" rows="3" placeholder="Custom support instructions for participants (e.g. how to report issues, dispute process, contact hours)..."
                                 class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50 resize-y"></textarea>
                         </div>
                     </div>
@@ -3815,7 +3917,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-schedule.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-matches.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-disputes.js' %}"></script>
-    <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}?v=20260323b"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}?v=20260323g"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-announcements.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>

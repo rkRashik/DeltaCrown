@@ -53,6 +53,20 @@ class SettingsView(TOCBaseView):
         return Response(result)
 
 
+class FormConfigurationView(TOCBaseView):
+    """GET / PUT registration form configuration for this tournament."""
+
+    def get(self, request, slug):
+        data = TOCSettingsService.get_form_configuration(self.tournament)
+        return Response(data)
+
+    def put(self, request, slug):
+        result = TOCSettingsService.update_form_configuration(self.tournament, request.data)
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result)
+
+
 # ------------------------------------------------------------------
 # S8-B2: Game Match Config
 # ------------------------------------------------------------------

@@ -148,8 +148,70 @@
         if (key === 'review') syncReview();
     }
 
+    function clearStepValidationUI(stepEl) {
+        if (!stepEl) return;
+        const banner = stepEl.querySelector('[data-step-error-banner]');
+        if (banner) banner.remove();
+        stepEl.querySelectorAll('.input-error').forEach(function(el) {
+            if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
+                el.classList.remove('input-error');
+            }
+        });
+    }
+
+    function showStepValidationError(stepEl, message) {
+        if (!stepEl) return;
+        clearStepValidationUI(stepEl);
+        const box = document.createElement('div');
+        box.setAttribute('data-step-error-banner', '1');
+        box.className = 'mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300';
+        box.textContent = message || 'Please complete required fields before continuing.';
+        stepEl.insertBefore(box, stepEl.firstChild);
+    }
+
+    function getFirstVisibleInvalidInput(stepEl) {
+        if (!stepEl) return null;
+        const candidates = stepEl.querySelectorAll('input[required], select[required], textarea[required]');
+        for (const input of candidates) {
+            if (input.offsetParent === null) continue;
+            if (input.disabled || input.readOnly) continue;
+            const value = (input.value || '').trim();
+            if (!value) return input;
+            if (input.validity && !input.validity.valid) return input;
+        }
+        return null;
+    }
+
+    function guardCurrentStepBeforeAdvance(targetIdx) {
+        const currentKey = stepsConfig[currentStep]?.key;
+        const currentEl = document.querySelector(`[data-wizard-step="${currentKey}"]`);
+        if (!currentKey || !currentEl) return true;
+
+        const isValid = checkStep(currentKey);
+        if (isValid) {
+            clearStepValidationUI(currentEl);
+            return true;
+        }
+
+        const invalidInput = getFirstVisibleInvalidInput(currentEl);
+        if (invalidInput) {
+            invalidInput.classList.add('input-error');
+            invalidInput.focus();
+            showStepValidationError(currentEl, 'This field is required before moving to the next step.');
+        } else {
+            showStepValidationError(currentEl, 'Please complete all required information in this step before continuing.');
+        }
+
+        if (typeof targetIdx === 'number' && targetIdx !== currentStep) {
+            const content = document.getElementById('wizard-content');
+            if (content) content.scrollTop = 0;
+        }
+        return false;
+    }
+
     function nextStep() {
         if (currentStep < TOTAL_STEPS - 1) {
+            if (!guardCurrentStepBeforeAdvance(currentStep + 1)) return;
             showStep(currentStep + 1);
         }
     }
@@ -163,7 +225,9 @@
     window.prevStep = prevStep;
 
     function goToStep(idx) {
-        if (idx >= 0 && idx < TOTAL_STEPS) showStep(idx);
+        if (idx < 0 || idx >= TOTAL_STEPS) return;
+        if (idx > currentStep && !guardCurrentStepBeforeAdvance(idx)) return;
+        showStep(idx);
     }
     window.goToStep = goToStep;
 
@@ -341,6 +405,8 @@
         }
 
         stepValidity[idx] = valid;
+        const stepEl = document.querySelector(`[data-wizard-step="${stepKey}"]`);
+        if (valid && stepEl) clearStepValidationUI(stepEl);
         updateSidebarIndicators();
         updateProgress();
         return valid;
@@ -1813,7 +1879,11 @@
         applyFieldFeedback(el);
 
         // Re-validate the step
-        checkStep(stepKey);
+        const valid = checkStep(stepKey);
+        if (!valid && stepEl === document.querySelector(`[data-wizard-step="${stepsConfig[currentStep].key}"]`)) {
+            const invalid = getFirstVisibleInvalidInput(stepEl);
+            if (invalid) invalid.classList.add('input-error');
+        }
     }
 
     function handleLiveChange(e) {
@@ -1823,7 +1893,11 @@
         const stepKey = stepEl.dataset.wizardStep;
 
         applyFieldFeedback(el);
-        checkStep(stepKey);
+        const valid = checkStep(stepKey);
+        if (!valid && stepEl === document.querySelector(`[data-wizard-step="${stepsConfig[currentStep].key}"]`)) {
+            const invalid = getFirstVisibleInvalidInput(stepEl);
+            if (invalid) invalid.classList.add('input-error');
+        }
     }
 
     function applyFieldFeedback(el) {
@@ -1875,7 +1949,8 @@
             phone: 'input[name="phone"]',
             discord: 'input[name="discord"], input[name="socials_discord_handle"]',
             email: 'input[name="email"]',
-            whatsapp: 'input[name="whatsapp"]',
+            whatsapp: 'input[name="whatsapp"], input[name="captain_whatsapp"]',
+            facebook: 'input[name="comm_facebook"]',
         };
 
         Object.values(contactInputMap).forEach(function(selector) {

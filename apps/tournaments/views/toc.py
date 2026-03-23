@@ -165,3 +165,9 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['toc_initial_settings_json'] = json.dumps(initial_settings, cls=DjangoJSONEncoder)
 
         return ctx
+
+
+class TOCFormConfigurationView(TOCView):
+    """Dedicated modern page for organizer form configuration management."""
+
+    template_name = 'tournaments/toc/form_configuration.html'

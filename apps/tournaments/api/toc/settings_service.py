@@ -32,6 +32,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
 from apps.tournaments.models import Tournament
+from apps.tournaments.models.form_configuration import TournamentFormConfiguration
 from apps.tournaments.models.game_config import (
     BRScoringMatrix,
     GameMatchConfig,
@@ -48,6 +49,271 @@ logger = logging.getLogger("toc.settings")
 
 class TOCSettingsService:
     """All read/write operations for the Settings & Config tab."""
+
+    CATEGORY_LABELS = {
+        "FPS": "First-Person Shooter",
+        "MOBA": "MOBA",
+        "BR": "Battle Royale",
+        "SPORTS": "Sports Simulation",
+        "FIGHTING": "Fighting",
+        "STRATEGY": "Strategy",
+        "CCG": "Card Game",
+        "OTHER": "Other",
+    }
+
+    GAME_TYPE_LABELS = {
+        "TEAM_VS_TEAM": "Team vs Team",
+        "1V1": "1 vs 1",
+        "BATTLE_ROYALE": "Battle Royale",
+        "FREE_FOR_ALL": "Free For All",
+    }
+
+    # ------------------------------------------------------------------
+    # Registration Form Configuration
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_form_configuration(tournament: Tournament) -> dict:
+        cfg = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
+        game_context = TOCSettingsService._get_form_config_game_context(tournament)
+        return {
+            "id": cfg.id,
+            "form_type": cfg.form_type,
+            "enable_age_field": cfg.enable_age_field,
+            "enable_country_field": cfg.enable_country_field,
+            "enable_platform_field": cfg.enable_platform_field,
+            "enable_rank_field": cfg.enable_rank_field,
+            "enable_phone_field": cfg.enable_phone_field,
+            "enable_discord_field": cfg.enable_discord_field,
+            "enable_preferred_contact_field": cfg.enable_preferred_contact_field,
+            "enable_team_logo_upload": cfg.enable_team_logo_upload,
+            "enable_team_banner_upload": cfg.enable_team_banner_upload,
+            "enable_team_bio": cfg.enable_team_bio,
+            "enable_captain_whatsapp_field": cfg.enable_captain_whatsapp_field,
+            "enable_captain_phone_field": cfg.enable_captain_phone_field,
+            "enable_captain_discord_field": cfg.enable_captain_discord_field,
+            "enable_payment_mobile_number_field": cfg.enable_payment_mobile_number_field,
+            "enable_payment_screenshot_field": cfg.enable_payment_screenshot_field,
+            "enable_payment_notes_field": cfg.enable_payment_notes_field,
+            "enable_preferred_communication": cfg.enable_preferred_communication,
+            "communication_channels": cfg.get_communication_channels(),
+            "game_context": game_context,
+            "smart_recommendations": TOCSettingsService._build_form_config_recommendations(
+                tournament,
+                game_context,
+            ),
+            "updated_at": cfg.updated_at.isoformat() if getattr(cfg, "updated_at", None) else None,
+        }
+
+    @staticmethod
+    def _get_form_config_game_context(tournament: Tournament) -> dict:
+        game = getattr(tournament, "game", None)
+        if not game:
+            return {}
+
+        identity_fields = []
+        try:
+            identity_fields = list(
+                game.identity_configs.order_by("order", "id").values(
+                    "field_name",
+                    "display_name",
+                    "is_required",
+                    "placeholder",
+                    "help_text",
+                )
+            )
+        except Exception:
+            logger.exception("Failed to load game identity config for tournament=%s", tournament.id)
+
+        return {
+            "name": game.name,
+            "display_name": game.display_name,
+            "slug": game.slug,
+            "category": game.category,
+            "category_label": TOCSettingsService.CATEGORY_LABELS.get(game.category, game.category),
+            "game_type": game.game_type,
+            "game_type_label": TOCSettingsService.GAME_TYPE_LABELS.get(game.game_type, game.game_type),
+            "platforms": game.platforms or [],
+            "has_servers": bool(game.has_servers),
+            "has_rank_system": bool(game.has_rank_system),
+            "available_rank_count": len(game.available_ranks or []),
+            "is_passport_supported": bool(getattr(game, "is_passport_supported", False)),
+            "game_id_label": getattr(game, "game_id_label", "") or "Game ID",
+            "game_id_placeholder": getattr(game, "game_id_placeholder", "") or "Enter your in-game identifier",
+            "identity_fields": identity_fields,
+        }
+
+    @staticmethod
+    def _build_form_config_recommendations(tournament: Tournament, game_context: dict) -> list[dict[str, Any]]:
+        recommendations: list[dict[str, Any]] = []
+        platforms = game_context.get("platforms") or []
+
+        if game_context.get("game_type") in {"TEAM_VS_TEAM", "BATTLE_ROYALE"}:
+            recommendations.append(
+                {
+                    "id": "team_competitive",
+                    "title": "Team Competitive Blueprint",
+                    "summary": "Prepare structured team intake with coordinator reliability.",
+                    "reason": "Your game format often requires captain communication and team assets.",
+                    "changes": {
+                        "form_type": "default_team",
+                        "enable_team_logo_upload": True,
+                        "enable_team_bio": True,
+                        "enable_captain_whatsapp_field": True,
+                        "enable_captain_phone_field": True,
+                        "enable_captain_discord_field": True,
+                        "enable_preferred_communication": True,
+                    },
+                    "channels": [
+                        {"key": "discord", "label": "Discord", "placeholder": "discord.gg/yourserver", "required": True},
+                        {"key": "whatsapp", "label": "WhatsApp", "placeholder": "+8801XXXXXXXXX", "required": False},
+                    ],
+                }
+            )
+
+        if game_context.get("has_rank_system"):
+            recommendations.append(
+                {
+                    "id": "ranked_verification",
+                    "title": "Ranked Validation Layer",
+                    "summary": "Collect rank signal for seeding and fair matchmaking.",
+                    "reason": "This game has a rank ecosystem. Rank data improves bracket quality.",
+                    "changes": {
+                        "enable_rank_field": True,
+                        "enable_platform_field": True,
+                        "enable_country_field": True,
+                    },
+                    "channels": [],
+                }
+            )
+
+        if game_context.get("has_servers") or len(platforms) > 1:
+            recommendations.append(
+                {
+                    "id": "region_readiness",
+                    "title": "Server & Region Readiness",
+                    "summary": "Capture platform/server context to reduce scheduling friction.",
+                    "reason": "Multi-platform or server-sensitive games need region-aware enrollment.",
+                    "changes": {
+                        "enable_platform_field": True,
+                        "enable_country_field": True,
+                        "enable_preferred_contact_field": True,
+                    },
+                    "channels": [
+                        {"key": "telegram", "label": "Telegram", "placeholder": "@team_handle", "required": False},
+                    ],
+                }
+            )
+
+        if bool(getattr(tournament, "has_entry_fee", False)):
+            recommendations.append(
+                {
+                    "id": "payment_proof_strict",
+                    "title": "Payment Verification Safety",
+                    "summary": "Add mandatory payment evidence to reduce manual disputes.",
+                    "reason": "Entry-fee tournaments benefit from structured proof fields.",
+                    "changes": {
+                        "enable_payment_mobile_number_field": True,
+                        "enable_payment_screenshot_field": True,
+                        "enable_payment_notes_field": True,
+                    },
+                    "channels": [],
+                }
+            )
+
+        if game_context.get("is_passport_supported"):
+            recommendations.append(
+                {
+                    "id": "passport_ready",
+                    "title": "Passport-Ready Identity",
+                    "summary": "Guide players toward immutable contact and identity signals.",
+                    "reason": "Game Passport support benefits from consistent player verification metadata.",
+                    "changes": {
+                        "enable_discord_field": True,
+                        "enable_phone_field": True,
+                        "enable_preferred_contact_field": True,
+                    },
+                    "channels": [
+                        {"key": "email", "label": "Email", "placeholder": "name@example.com", "required": True},
+                    ],
+                }
+            )
+
+        return recommendations[:5]
+
+    @staticmethod
+    def update_form_configuration(tournament: Tournament, data: dict) -> dict:
+        cfg = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
+
+        bool_fields = {
+            "enable_age_field",
+            "enable_country_field",
+            "enable_platform_field",
+            "enable_rank_field",
+            "enable_phone_field",
+            "enable_discord_field",
+            "enable_preferred_contact_field",
+            "enable_team_logo_upload",
+            "enable_team_banner_upload",
+            "enable_team_bio",
+            "enable_captain_whatsapp_field",
+            "enable_captain_phone_field",
+            "enable_captain_discord_field",
+            "enable_payment_mobile_number_field",
+            "enable_payment_screenshot_field",
+            "enable_payment_notes_field",
+            "enable_preferred_communication",
+        }
+        changed = []
+
+        for field in bool_fields:
+            if field in data and hasattr(cfg, field):
+                setattr(cfg, field, bool(data.get(field)))
+                changed.append(field)
+
+        if "form_type" in data:
+            form_type = str(data.get("form_type") or "").strip()
+            valid_form_types = {choice[0] for choice in TournamentFormConfiguration.FORM_TYPE_CHOICES}
+            if form_type and form_type in valid_form_types:
+                cfg.form_type = form_type
+                changed.append("form_type")
+
+        if "communication_channels" in data:
+            raw_channels = data.get("communication_channels")
+            if not isinstance(raw_channels, list):
+                return {"error": "communication_channels must be an array."}
+
+            normalized_channels = []
+            seen_keys = set()
+            for item in raw_channels:
+                if not isinstance(item, dict):
+                    continue
+                key = str(item.get("key") or "").strip().lower().replace(" ", "_")
+                label = str(item.get("label") or "").strip()
+                if not key or not label:
+                    continue
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                normalized_channels.append({
+                    "key": key,
+                    "label": label,
+                    "placeholder": str(item.get("placeholder") or label).strip(),
+                    "icon": str(item.get("icon") or "circle").strip(),
+                    "required": bool(item.get("required")),
+                    "type": str(item.get("type") or "text").strip() or "text",
+                })
+
+            cfg.communication_channels = normalized_channels
+            changed.append("communication_channels")
+
+        if changed:
+            cfg.save(update_fields=sorted(set(changed + ["updated_at"])))
+
+        return {
+            "updated_fields": sorted(set(changed)),
+            "configuration": TOCSettingsService.get_form_configuration(tournament),
+        }
 
     # ------------------------------------------------------------------
     # Tournament Settings (basic info)

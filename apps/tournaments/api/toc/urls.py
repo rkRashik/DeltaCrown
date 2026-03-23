@@ -154,6 +154,7 @@ urlpatterns = [
 
     # ── Settings (S8-B1) ──
     path('<slug:slug>/settings/', settings.SettingsView.as_view(), name='settings'),
+    path('<slug:slug>/settings/form-configuration/', settings.FormConfigurationView.as_view(), name='settings-form-configuration'),
 
     # ── Game Config (S8-B2) ──
     path('<slug:slug>/settings/game-config/', settings.GameConfigView.as_view(), name='settings-game-config'),

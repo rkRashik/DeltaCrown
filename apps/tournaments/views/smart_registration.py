@@ -216,6 +216,15 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         # ── Form Configuration (organizer-defined) ──
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
         form_config_ctx = form_config.to_template_context()
+        communication_channels = form_config.get_communication_channels()
+        contact_channel_requirements: dict[str, bool] = {}
+        contact_channel_labels: dict[str, str] = {}
+        for channel in communication_channels:
+            key = str(channel.get('key') or '').strip().lower()
+            if not key:
+                continue
+            contact_channel_requirements[key] = bool(channel.get('required'))
+            contact_channel_labels[key] = str(channel.get('label') or key.title())
 
         # ── Game Roster Config (game-specific limits) ──
         roster_config = {}
@@ -374,6 +383,8 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'allow_display_name_override': getattr(tournament, 'allow_display_name_override', False),
             # ── NEW: Form configuration (organizer-defined) ──
             'form_config': form_config_ctx,
+            'contact_channel_requirements': contact_channel_requirements,
+            'contact_channel_labels': contact_channel_labels,
             # ── NEW: Game roster config ──
             'roster_config': roster_config,
             'roster_roles': roster_roles,
@@ -458,6 +469,52 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             game_id_locked = True
 
         # Platform/server
+        platform_choices = []
+        rank_choices = []
+        try:
+            game_obj = tournament.game
+        except Exception:
+            game_obj = None
+        if game_obj and hasattr(game_obj, 'platforms') and game_obj.platforms:
+            platform_choices = list(game_obj.platforms)
+        if game_obj and getattr(game_obj, 'has_rank_system', False) and getattr(game_obj, 'available_ranks', None):
+            rank_choices = list(game_obj.available_ranks)
+
+        def _resolve_platform_default(raw_value):
+            if raw_value is None:
+                return ''
+            raw = str(raw_value).strip()
+            if not raw:
+                return ''
+            if not platform_choices:
+                return raw
+
+            choice_values = [str(v).strip() for v in platform_choices]
+            lowered_map = {v.lower(): v for v in choice_values if v}
+            aliases = {
+                'pc': 'pc',
+                'desktop': 'pc',
+                'mobile': 'mobile',
+                'phone': 'mobile',
+                'ps5': 'ps5',
+                'playstation': 'ps5',
+                'xbox': 'xbox',
+                'switch': 'switch',
+            }
+
+            key = raw.lower()
+            if key in lowered_map:
+                return lowered_map[key]
+
+            alias = aliases.get(key)
+            if alias and alias in lowered_map:
+                return lowered_map[alias]
+
+            for value in choice_values:
+                if raw.lower() in value.lower() or value.lower() in raw.lower():
+                    return value
+            return raw
+
         platform_val = ''
         if 'platform' in autofill_data and autofill_data['platform'].value:
             platform_val = autofill_data['platform'].value
@@ -467,6 +524,9 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             platform_val = passport.platform
         elif passport and passport.region:
             platform_val = passport.region
+        elif getattr(tournament, 'platform', None):
+            platform_val = getattr(tournament, 'platform')
+        platform_val = _resolve_platform_default(platform_val)
 
         # Rank
         rank_val = ''
@@ -487,24 +547,19 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             today = timezone.now().date()
             age_val = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
-        # Dropdown choices sourced from Game model
-        try:
-            game_obj = tournament.game
-        except Exception:
-            game_obj = None
-        platform_choices = list(game_obj.platforms or []) if game_obj and hasattr(game_obj, 'platforms') else []
-        rank_choices = (
-            list(game_obj.available_ranks or [])
-            if game_obj and getattr(game_obj, 'has_rank_system', False)
-            else []
-        )
-
         # Discord — try autofill, then profile
         discord_val = ''
         if 'discord' in autofill_data and autofill_data['discord'].value:
             discord_val = autofill_data['discord'].value
         elif profile:
             discord_val = getattr(profile, 'discord_id', '') or getattr(profile, 'discord', '') or ''
+
+        # WhatsApp
+        whatsapp_val = ''
+        if 'whatsapp' in autofill_data and autofill_data['whatsapp'].value:
+            whatsapp_val = autofill_data['whatsapp'].value
+        elif profile:
+            whatsapp_val = getattr(profile, 'whatsapp', '') or ''
 
         # Phone
         phone_val = ''
@@ -519,6 +574,14 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             country_val = autofill_data['country'].value
         elif profile:
             country_val = str(getattr(profile, 'country', '') or '')
+
+        preferred_contact = 'email'
+        if discord_val:
+            preferred_contact = 'discord'
+        elif phone_val:
+            preferred_contact = 'phone'
+        elif whatsapp_val:
+            preferred_contact = 'whatsapp'
 
         fields = {
             'full_name': {
@@ -543,6 +606,11 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             },
             'discord': {
                 'value': discord_val,
+                'locked': False,
+                'source': 'profile',
+            },
+            'whatsapp': {
+                'value': whatsapp_val,
                 'locked': False,
                 'source': 'profile',
             },
@@ -574,7 +642,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 'choices': rank_choices,
             },
             'preferred_contact': {
-                'value': 'discord' if discord_val else 'email',
+                'value': preferred_contact,
                 'locked': False,
                 'source': 'default',
             },
