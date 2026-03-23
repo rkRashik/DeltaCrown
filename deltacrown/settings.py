@@ -462,8 +462,6 @@ if _CACHE_REDIS and not DEBUG:
             },
         }
     }
-    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
-    SESSION_CACHE_ALIAS = "default"
 else:
     CACHES = {
         "default": {
@@ -476,7 +474,10 @@ else:
             },
         }
     }
-    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# CRITICAL: Keep auth/session flow independent from Redis/cache outages.
+# Free-tier Redis quotas or DNS/connectivity issues must not break session middleware.
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
