@@ -50,6 +50,15 @@ logger = logging.getLogger("toc.settings")
 class TOCSettingsService:
     """All read/write operations for the Settings & Config tab."""
 
+    OFFICIAL_SOCIAL_DEFAULTS = {
+        "social_facebook": "https://www.facebook.com/DeltaCrownGG",
+        "social_discord": "https://discord.gg/UaHRC8Cd",
+        "social_youtube": "https://www.youtube.com/@DeltaCrownGG",
+        "social_instagram": "https://instagram.com/deltacrowngg",
+        "contact_phone": "+8801789560202",
+        "social_website": "https://deltacrown.gg",
+    }
+
     CATEGORY_LABELS = {
         "FPS": "First-Person Shooter",
         "MOBA": "MOBA",
@@ -320,9 +329,37 @@ class TOCSettingsService:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _apply_official_social_defaults(tournament: Tournament, social: dict[str, Any]) -> dict[str, Any]:
+        if not getattr(tournament, "is_official", False):
+            return social
+
+        merged = dict(social)
+        for key, default_value in TOCSettingsService.OFFICIAL_SOCIAL_DEFAULTS.items():
+            existing = merged.get(key)
+            if existing is None or str(existing).strip() == "":
+                merged[key] = default_value
+        return merged
+
+    @staticmethod
     def get_settings(tournament: Tournament) -> dict:
         """Return editable tournament fields grouped by section (1:1 model parity)."""
         t = tournament
+        social_settings = TOCSettingsService._apply_official_social_defaults(
+            t,
+            {
+                "contact_email": getattr(t, "contact_email", ""),
+                "contact_phone": getattr(t, "contact_phone", ""),
+                "social_discord": getattr(t, "social_discord", ""),
+                "discord_webhook_url": getattr(t, "discord_webhook_url", ""),
+                "social_twitter": getattr(t, "social_twitter", ""),
+                "social_instagram": getattr(t, "social_instagram", ""),
+                "social_youtube": getattr(t, "social_youtube", ""),
+                "social_website": getattr(t, "social_website", ""),
+                "social_facebook": getattr(t, "social_facebook", ""),
+                "social_tiktok": getattr(t, "social_tiktok", ""),
+                "support_info": getattr(t, "support_info", ""),
+            },
+        )
         return {
             "_meta": {
                 "settings_version": t.updated_at.isoformat() if getattr(t, "updated_at", None) else None,
@@ -407,19 +444,7 @@ class TOCSettingsService:
                 "enable_challenges": getattr(t, "enable_challenges", False),
                 "enable_fan_voting": getattr(t, "enable_fan_voting", False),
             },
-            "social": {
-                "contact_email": getattr(t, "contact_email", ""),
-                "contact_phone": getattr(t, "contact_phone", ""),
-                "social_discord": getattr(t, "social_discord", ""),
-                "discord_webhook_url": getattr(t, "discord_webhook_url", ""),
-                "social_twitter": getattr(t, "social_twitter", ""),
-                "social_instagram": getattr(t, "social_instagram", ""),
-                "social_youtube": getattr(t, "social_youtube", ""),
-                "social_website": getattr(t, "social_website", ""),
-                "social_facebook": getattr(t, "social_facebook", ""),
-                "social_tiktok": getattr(t, "social_tiktok", ""),
-                "support_info": getattr(t, "support_info", ""),
-            },
+            "social": social_settings,
             "waitlist": {
                 "auto_forfeit_no_shows": getattr(t, "auto_forfeit_no_shows", False),
                 "waitlist_auto_promote": getattr(t, "waitlist_auto_promote", False),
@@ -436,6 +461,13 @@ class TOCSettingsService:
     @staticmethod
     def update_settings(tournament: Tournament, data: dict, expected_settings_version: str | None = None) -> dict:
         """Flat-merge provided fields into the Tournament model with structured validation."""
+        incoming_is_official = data.get("is_official", getattr(tournament, "is_official", False))
+        if incoming_is_official:
+            for key, default_value in TOCSettingsService.OFFICIAL_SOCIAL_DEFAULTS.items():
+                value = data.get(key)
+                if value is None or str(value).strip() == "":
+                    data[key] = default_value
+
         updatable = {
             # Basic
             "name", "description", "status", "is_official", "is_featured",

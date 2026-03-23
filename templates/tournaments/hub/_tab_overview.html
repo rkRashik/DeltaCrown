@@ -78,11 +78,16 @@
           {% if check_in_status == 'open' and not is_checked_in %}
             <button id="hub-checkin-btn"
                     class="hub-checkin-btn ready clip-slant w-full lg:w-auto flex items-center justify-center gap-3"
+                    {% if hub_critical_locked %}disabled{% endif %}
                     onclick="HubEngine.performCheckIn()">
               <i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now
             </button>
             <p class="text-[10px] text-gray-500 mt-3" style="font-family:'Space Grotesk',monospace;">
-              Window closes in {{ check_in_countdown }}s
+              {% if hub_critical_locked %}
+                Locked until verification completes
+              {% else %}
+                Window closes in {{ check_in_countdown }}s
+              {% endif %}
             </p>
           {% elif is_checked_in %}
             <div class="hub-checkin-btn done clip-slant w-full lg:w-auto flex items-center justify-center gap-3">

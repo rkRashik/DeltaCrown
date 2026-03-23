@@ -1,235 +1,849 @@
 {% extends "tournaments/base.html" %}
-{% load static humanize %}
+{% load static %}
 
-{% block title %}Registration Confirmed — {{ tournament.name }} | DeltaCrown{% endblock %}
+{% block title %}VIP Access Secured — {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block tournament_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+
 <style>
     :root {
-        --game-color: {{ game_color|default:"#06b6d4" }};
-        --game-color-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
-        --bg-deep: #060608;
+        --game-primary: {{ game_color|default:"#00E5FF" }};
+        --game-secondary: #6C00FF;
+        --game-accent: #FFD700;
+        --bg-deep: #050508;
+        --dc-border: rgba(255, 255, 255, 0.08);
     }
-    body { background: var(--bg-deep); }
 
-    .success-ambient {
-        position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    body {
+        background: var(--bg-deep);
+        color: #e2e8f0;
+        overflow-x: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .cyber-ambient {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
         background:
-            radial-gradient(ellipse 100% 60% at 50% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 40% at 20% 80%, rgba(var(--game-color-rgb), 0.03) 0%, transparent 50%);
+            radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 90% 80%, rgba(108, 0, 255, 0.05) 0%, transparent 40%);
     }
 
-    @keyframes dropIn {
-        0% { transform: translateY(-30px) scale(0.8); opacity: 0; }
-        60% { transform: translateY(5px) scale(1.02); }
-        100% { transform: translateY(0) scale(1); opacity: 1; }
+    @keyframes slideUpFade {
+        0% { transform: translateY(40px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
     }
-    @keyframes ringPulse {
-        0% { transform: scale(0.5); opacity: 0.8; }
-        100% { transform: scale(2); opacity: 0; }
-    }
-    @keyframes shake {
-        0%, 100% { transform: rotate(0); }
-        25% { transform: rotate(-5deg); }
-        75% { transform: rotate(5deg); }
-    }
-    .drop-in { animation: dropIn 0.7s ease-out forwards; }
 
-    .success-ring {
-        width: 7rem; height: 7rem;
-        border-radius: 50%;
+    .animate-stagger-1 { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.1s; opacity: 0; }
+    .animate-stagger-2 { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s; opacity: 0; }
+    .animate-stagger-3 { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s; opacity: 0; }
+
+    .export-wrapper {
+        background-color: var(--bg-deep);
+        border-radius: 20px;
+        padding: 4px;
+    }
+
+    .dc-ticket {
+        background: #0A0A0F;
+        border: 1px solid var(--dc-border);
+        border-radius: 24px;
         position: relative;
-        background: rgba(16, 185, 129, 0.08);
-        border: 3px solid rgba(16, 185, 129, 0.4);
-        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 229, 255, 0.05);
+        overflow: hidden;
     }
-    .success-ring::before {
+
+    .dc-ticket::after {
         content: '';
-        position: absolute; inset: -6px;
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+        background: linear-gradient(125deg, transparent 20%, rgba(255,255,255,0.03) 30%, rgba(0, 229, 255, 0.05) 40%, transparent 50%);
+        background-size: 200% 200%;
+        animation: holoShine 6s infinite linear;
+    }
+
+    .ticket-ghost-watermark {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .ticket-ghost-watermark img {
+        width: min(72%, 420px);
+        opacity: 0.04;
+        filter: saturate(0.9);
+        user-select: none;
+    }
+
+    #ticket-qr,
+    #ticket-qr canvas,
+    #ticket-qr img {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+
+    @keyframes holoShine {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .ticket-top-band {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, var(--game-accent), var(--game-secondary), var(--game-primary));
+        z-index: 2;
+    }
+
+    .lanyard-hole {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 12px;
+        background: var(--bg-deep);
+        border: 1px solid var(--dc-border);
+        border-radius: 10px;
+        box-shadow: inset 0 3px 5px rgba(0,0,0,0.8);
+        z-index: 20;
+    }
+
+    .ticket-divider {
+        position: relative;
+        border-top: 2px dashed rgba(255, 255, 255, 0.15);
+        margin: 0 24px;
+        z-index: 2;
+    }
+
+    .ticket-divider::before,
+    .ticket-divider::after {
+        content: '';
+        position: absolute;
+        top: -14px;
+        width: 28px;
+        height: 28px;
+        background: var(--bg-deep);
+        border: 1px solid var(--dc-border);
         border-radius: 50%;
-        border: 2px solid rgba(16, 185, 129, 0.15);
-        animation: ringPulse 2s ease-out infinite;
+        box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
     }
 
-    .detail-row {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 0.625rem 0;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .detail-row:last-child { border-bottom: none; }
-
-    .glass-card {
-        background: rgba(12, 12, 18, 0.75);
-        backdrop-filter: blur(20px) saturate(1.4);
-        border: 1px solid rgba(255,255,255,0.05);
-        box-shadow: 0 4px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+    .ticket-divider::before {
+        left: -38px;
+        border-left: none;
+        border-top: none;
+        transform: rotate(45deg);
     }
 
-    .btn-outline {
-        display: inline-flex; align-items: center; gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid rgba(255,255,255,0.1);
+    .ticket-divider::after {
+        right: -38px;
+        border-right: none;
+        border-bottom: none;
+        transform: rotate(45deg);
+    }
+
+    @keyframes neonPulse {
+        0%, 100% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }
+        50% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.4); border-color: var(--game-primary); }
+    }
+
+    .btn-hub-primary {
+        background: linear-gradient(135deg, var(--game-secondary), var(--game-primary));
+        color: #ffffff;
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: all 0.3s ease;
+        animation: neonPulse 3s infinite;
+    }
+
+    .btn-hub-primary:hover {
+        transform: translateY(-2px) scale(1.01);
+        filter: brightness(1.15);
+    }
+
+    .step-line::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 32px;
+        bottom: -10px;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        z-index: 0;
+    }
+
+    .step-item:last-child .step-line::before { display: none; }
+
+    .share-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(8px);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .share-modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .share-modal-content {
+        background: #0A0A0F;
+        border: 1px solid var(--dc-border);
+        border-radius: 24px;
+        width: 90%;
+        max-width: 400px;
+        padding: 32px;
+        transform: translateY(30px) scale(0.95);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 40px rgba(0,229,255,0.1);
+    }
+
+    .share-modal-overlay.active .share-modal-content {
+        transform: translateY(0) scale(1);
+    }
+
+    .social-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid var(--dc-border);
         background: rgba(255,255,255,0.03);
-        color: #e0e0ed;
-        font-weight: 600;
-        font-size: 0.8125rem;
+        transition: all 0.2s ease;
         cursor: pointer;
-        transition: all 0.2s;
+        text-align: center;
     }
-    .btn-outline:hover {
-        border-color: rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.06);
-    }
-    .btn-accent {
-        display: inline-flex; align-items: center; gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8));
-        color: #000; font-weight: 800; font-size: 0.8125rem;
-        text-transform: uppercase; letter-spacing: 0.05em;
-        cursor: pointer; transition: all 0.2s;
-        box-shadow: 0 4px 20px rgba(var(--game-color-rgb), 0.25);
-    }
-    .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 6px 30px rgba(var(--game-color-rgb), 0.35); }
 
-    @keyframes confetti-fall {
-        0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
-        100% { transform: translateY(110vh) rotate(720deg) scale(0.5); opacity: 0; }
+    .social-btn:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.2);
+        transform: translateY(-3px);
     }
-    .confetti { position: fixed; top: -10px; z-index: 50; pointer-events: none; }
+
+    .spark {
+        position: fixed;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+        animation: floatUp ease-in forwards;
+    }
+
+    .dc-grad-text {
+        background: linear-gradient(90deg, #FFD700 0%, #6C00FF 45%, #00E5FF 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    /* Custom Cyber Checkmark Animation */
+    .cyber-check path {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: drawCheck 0.8s cubic-bezier(0.65, 0, 0.45, 1) forwards 0.3s;
+    }
+
+    @keyframes drawCheck {
+        to { stroke-dashoffset: 0; }
+    }
+
+    .radar-spin {
+        animation: spin 8s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+    }
 </style>
 {% endblock %}
 
-{% block tournament_content %}
-<div class="success-ambient"></div>
-<div id="confetti-container"></div>
+{% block content %}
+{% with reg_code=registration_code|default:registration.registration_number|default:registration.id %}
+<div class="cyber-ambient"></div>
+<div id="sparks-container"></div>
 
-<div class="max-w-lg mx-auto px-4 sm:px-6 py-12 relative z-10">
-
-    <div class="text-center mb-8 drop-in">
-        <div class="success-ring mx-auto mb-6">
-            <i data-lucide="check" class="w-10 h-10 text-emerald-400"></i>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight mb-2">You're In!</h1>
-        <p class="text-sm text-gray-400">Registration confirmed for <span class="text-white font-semibold">{{ tournament.name }}</span></p>
+<div class="relative z-10 w-full flex items-center justify-center py-6 animate-stagger-1">
+    <div class="font-display text-[11px] uppercase tracking-[0.25em] font-black text-gray-400 flex items-center gap-4 border border-white/10 bg-white/5 px-6 py-2 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.02)]">
+        <span class="flex items-center gap-2 text-white">
+            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></span>
+            {% if tournament.mode == 'online' %}Online Match Pass Ready{% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}LAN Competitor Pass Ready{% else %}Hybrid Tournament Pass Ready{% endif %}
+        </span>
+        <span class="opacity-30">|</span>
+        <span class="opacity-90 font-black tracking-[0.2em] uppercase text-cyan-300">DeltaCrown Tournament Ops</span>
     </div>
-
-    <div class="glass-card rounded-2xl p-6 mb-5 drop-in" style="animation-delay: 0.15s; opacity: 0;">
-
-        {% if registration.id %}
-        <div class="text-center p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-5">
-            <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Registration ID</p>
-            <p class="text-xl font-black font-mono tracking-wider" style="color: var(--game-color);">#{{ registration.id }}</p>
-        </div>
-        {% endif %}
-
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3"></i> Registered As</span>
-            <span class="text-sm text-white font-semibold">{{ request.user.get_full_name|default:request.user.username }}</span>
-        </div>
-        {% if team %}
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="shield" class="w-3 h-3"></i> Team</span>
-            <span class="text-sm text-white font-semibold">{{ team.name }} [{{ team.tag|upper }}]</span>
-        </div>
-        {% endif %}
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="trophy" class="w-3 h-3"></i> Tournament</span>
-            <span class="text-sm text-white">{{ tournament.name }}</span>
-        </div>
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3 h-3"></i> Date</span>
-            <span class="text-sm text-white">{{ tournament.tournament_start|date:"M d, Y — h:i A" }}</span>
-        </div>
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="tag" class="w-3 h-3"></i> Status</span>
-            <span class="text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider
-                {% if registration.status == 'CONFIRMED' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/15
-                {% elif registration.status == 'PENDING_PAYMENT' %}bg-amber-500/10 text-amber-400 border border-amber-500/15
-                {% else %}bg-sky-500/10 text-sky-400 border border-sky-500/15{% endif %}">
-                {{ registration.get_status_display }}
-            </span>
-        </div>
-        {% if registration.status == 'PENDING_PAYMENT' %}
-        <div class="detail-row">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="wallet" class="w-3 h-3"></i> Payment</span>
-            <span class="text-xs text-amber-400 font-semibold">Awaiting verification</span>
-        </div>
-        {% endif %}
-    </div>
-
-    <div class="glass-card rounded-2xl p-6 mb-6 drop-in" style="animation-delay: 0.3s; opacity: 0;">
-        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">What's Next</h3>
-        <div class="space-y-3">
-            {% if tournament.enable_check_in %}
-            <div class="flex items-start gap-3">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-sky-500/10 mt-0.5">
-                    <i data-lucide="clock" class="w-3.5 h-3.5 text-sky-400"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-white">Check-in Required</p>
-                    <p class="text-[10px] text-gray-500 mt-0.5">Opens {{ tournament.check_in_minutes_before }} minutes before start. Don't forget!</p>
-                </div>
-            </div>
-            {% endif %}
-            <div class="flex items-start gap-3">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-500/10 mt-0.5">
-                    <i data-lucide="bell" class="w-3.5 h-3.5 text-indigo-400"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-white">Stay Updated</p>
-                    <p class="text-[10px] text-gray-500 mt-0.5">We'll send bracket updates and important notifications.</p>
-                </div>
-            </div>
-            <div class="flex items-start gap-3">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(var(--game-color-rgb), 0.1);">
-                    <i data-lucide="swords" class="w-3.5 h-3.5" style="color: var(--game-color);"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-white">Prepare to Compete</p>
-                    <p class="text-[10px] text-gray-500 mt-0.5">Review the tournament rules and make sure your game profile is up to date.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="flex gap-3 drop-in" style="animation-delay: 0.45s; opacity: 0;">
-        <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-accent flex-1 justify-center">
-            <i data-lucide="arrow-right" class="w-4 h-4"></i> Go to Tournament
-        </a>
-        <a href="{% url 'dashboard:index' %}" class="btn-outline flex-1 justify-center">
-            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
-        </a>
-    </div>
-
 </div>
+
+<main class="relative z-10 flex-grow flex flex-col justify-center px-4 pb-16 w-full max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <div class="lg:col-span-7 animate-stagger-2">
+            <div class="mb-10 flex items-center gap-5 md:gap-6">
+                <div class="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center flex-shrink-0">
+                    <svg class="absolute inset-0 w-full h-full text-cyan-500/40 radar-spin" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="15 10 5 10"></circle>
+                    </svg>
+
+                    <div class="absolute inset-2 bg-cyan-500/20 rounded-full blur-md animate-pulse"></div>
+
+                    <svg class="w-8 h-8 md:w-10 md:h-10 text-cyan-400 relative z-10 cyber-check drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M20 6L9 17l-5-5"></path>
+                    </svg>
+                </div>
+
+                <div>
+                    <h2 class="font-display text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        Entry <span class="text-[#00E5FF] drop-shadow-[0_0_12px_rgba(0,229,255,0.8)]">Secured</span>
+                    </h2>
+
+                    <p class="text-sm md:text-base text-gray-400 mt-2 leading-relaxed">
+                        {% if tournament.mode == 'online' %}
+                            {% if tournament.format == 'solo' %}
+                                Your entry is officially confirmed. Keep an eye on the Tournament Hub for bracket drops, digital check-ins, and live match servers.
+                            {% else %}
+                                Your roster is officially locked in. Keep an eye on the Tournament Hub for bracket drops, digital check-ins, and live match servers.
+                            {% endif %}
+                        {% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}
+                            {% if tournament.format == 'solo' %}
+                                Your competitor pass is ready. Save this ticket to your device-you must present this QR code at the arena gate for check-in.
+                            {% else %}
+                                Your team's competitor pass is ready. Save this ticket to your device-you must present this QR code at the arena gate for roster check-in.
+                            {% endif %}
+                        {% else %}
+                            {% if tournament.format == 'solo' %}
+                                Your all-access pass is live. Follow the Hub for online qualifiers, and save this ticket for physical entry at LAN events.
+                            {% else %}
+                                Your team's all-access pass is live. Follow the Hub for online qualifiers, and save this ticket for physical entry at LAN events.
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div id="ticket-export" class="export-wrapper">
+                <div class="dc-ticket w-full flex flex-col">
+                    <div class="ticket-ghost-watermark">
+                        <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="" aria-hidden="true">
+                    </div>
+                    <div class="ticket-top-band"></div>
+                    <div class="lanyard-hole"></div>
+
+                    <div class="p-8 md:p-10 pb-6 flex items-start justify-between mt-4 relative z-20">
+                        <div>
+                            <div class="flex items-center gap-3 mb-5">
+                                <div class="w-12 h-12">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img">
+                                        <defs>
+                                            <linearGradient id="dcGrad" x1="0" y1="0" x2="1" y2="1">
+                                                <stop offset="0%" stop-color="#FFD700"/>
+                                                <stop offset="50%" stop-color="#6C00FF"/>
+                                                <stop offset="100%" stop-color="#00E5FF"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <path fill="url(#dcGrad)" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" />
+                                        <circle cx="64" cy="72" r="14" fill="#FFD700" />
+                                        <circle cx="128" cy="48" r="18" fill="#FFD700" />
+                                        <circle cx="192" cy="72" r="14" fill="#FFD700" />
+                                        <rect x="48" y="200" width="160" height="20" rx="4" fill="url(#dcGrad)" />
+                                    </svg>
+                                </div>
+                                <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-6 w-auto opacity-95 drop-shadow-md">
+                            </div>
+
+                            <h3 class="font-display text-2xl md:text-3xl font-black text-white uppercase tracking-wide drop-shadow-lg leading-tight">{{ tournament.name }}</h3>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-[0.25em] mt-2">{% if tournament.game and tournament.game.name %}{{ tournament.game.name }} Tournament Access Pass{% elif tournament.game and tournament.game.display_name %}{{ tournament.game.display_name }} Tournament Access Pass{% else %}Tournament Access Pass{% endif %}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verified
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-3 uppercase tracking-widest font-mono">Date: {% now "d M Y" %}</p>
+                        </div>
+                    </div>
+
+                    <div class="ticket-divider"></div>
+
+                    <div class="p-8 md:p-10 pt-6 relative z-20">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-4">
+                            <div class="col-span-2">
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Participant / Team</p>
+                                <p class="text-xl font-black text-white uppercase tracking-wider">{% if registration.team %}{{ registration.team.name }}{% else %}{{ request.user.username }}{% endif %}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Registration ID</p>
+                                <p class="font-mono text-xl font-black" style="color: #67E8F9; text-shadow: 0 0 16px rgba(103,232,249,0.55);">{{ reg_code }}</p>
+                            </div>
+
+                            {% if tournament.mode == 'online' %}
+                            <div class="col-span-2 bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 p-3 rounded-lg relative overflow-hidden group">
+                                    <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="wifi" class="w-16 h-16 text-cyan-400"></i></div>
+                                    <p class="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Competition Format</p>
+                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10">
+                                        <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500 shadow-[0_0_8px_#00E5FF]"></span></span>
+                                        ONLINE
+                                    </p>
+                            </div>
+                            <div class="col-span-2 bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/20 p-3 rounded-lg relative overflow-hidden group">
+                                    <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="server" class="w-16 h-16 text-violet-400"></i></div>
+                                    <p class="text-[10px] font-bold text-violet-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Match Venue</p>
+                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10 truncate pb-1 leading-[1.25]">
+                                        <i data-lucide="globe-2" class="w-4 h-4 text-violet-400"></i> DeltaCrown Servers
+                                    </p>
+                            </div>
+                            {% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}
+                            <div class="col-span-2 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 p-3 rounded-lg relative overflow-hidden group">
+                                <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="ticket" class="w-16 h-16 text-amber-400"></i></div>
+                                <p class="text-[10px] font-bold text-amber-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Format</p>
+                                <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> LAN</p>
+                            </div>
+                            <div class="col-span-2 bg-gradient-to-br from-red-500/5 to-transparent border border-red-500/20 p-3 rounded-lg relative overflow-hidden flex flex-col justify-center">
+                                <p class="text-[10px] font-bold text-red-400 uppercase tracking-[0.15em] mb-1.5">Access Rule</p>
+                                <p class="text-[11px] font-bold text-gray-300 uppercase">Gate closes 60 mins early</p>
+                            </div>
+                            <div class="col-span-2 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 p-4 rounded-lg relative overflow-hidden group mt-1">
+                                <div class="absolute right-0 top-1/2 -translate-y-1/2 opacity-[0.07]"><i data-lucide="building-2" class="w-24 h-24 text-indigo-400"></i></div>
+                                <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.15em] mb-2 relative z-10">Physical Venue</p>
+                                <p class="text-sm font-black text-white flex items-start gap-2 tracking-wide uppercase relative z-10 mb-1.5 leading-snug">
+                                    <i data-lucide="map-pin" class="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5"></i>
+                                    {{ tournament.venue_name|default:"TBA" }}
+                                </p>
+                                <p class="text-[11px] font-semibold text-gray-400 relative z-10 pl-6 uppercase tracking-wider leading-relaxed">
+                                    {{ tournament.venue_address|default:"Address details pending."|linebreaksbr }}
+                                </p>
+                            </div>
+                            {% else %}
+                            <div class="col-span-2 bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 p-3 rounded-lg relative overflow-hidden group">
+                                    <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="git-merge" class="w-16 h-16 text-emerald-400"></i></div>
+                                    <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Competition Format</p>
+                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10"><i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i> MULTI-STAGE</p>
+                            </div>
+                            <div class="col-span-2 bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-3 rounded-lg relative overflow-hidden group">
+                                    <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="map" class="w-16 h-16 text-blue-400"></i></div>
+                                    <p class="text-[10px] font-bold text-blue-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Match Venue</p>
+                                    <p class="text-xs font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10 truncate pb-1 leading-[1.25]"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> Server & Arena</p>
+                            </div>
+                            {% endif %}
+
+                            <div class="col-span-2 bg-gradient-to-br from-slate-500/10 to-transparent border border-slate-300/20 p-3 rounded-lg relative overflow-hidden group shadow-[0_0_20px_rgba(148,163,184,0.08)]">
+                                <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="gamepad-2" class="w-16 h-16 text-slate-300"></i></div>
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Platform</p>
+                                <p class="text-sm font-bold text-white flex items-center gap-1.5 relative z-10"><i data-lucide="gamepad-2" class="w-4 h-4 text-slate-300"></i> {% if platform_display_text %}{{ platform_display_text }}{% else %}Any Platform{% endif %}</p>
+                            </div>
+                            <div class="col-span-2 {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}bg-gradient-to-br from-emerald-500/12 to-transparent border-emerald-400/25 shadow-[0_0_22px_rgba(16,185,129,0.14)]{% else %}bg-gradient-to-br from-amber-500/12 to-transparent border-amber-400/25 shadow-[0_0_22px_rgba(245,158,11,0.14)]{% endif %} border p-3 rounded-lg relative overflow-hidden group">
+                                <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="coins" class="w-16 h-16 {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}text-emerald-300{% else %}text-amber-300{% endif %}"></i></div>
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Entry Fee</p>
+                                {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}
+                                <p class="text-sm font-bold text-emerald-300 flex items-center gap-1.5 relative z-10"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Paid / Cleared</p>
+                                {% elif registration.payment_status and registration.payment_status|lower == 'pending' %}
+                                <p class="text-sm font-bold text-amber-300 flex items-center gap-1.5 relative z-10"><i data-lucide="clock-3" class="w-4 h-4"></i> Pending</p>
+                                {% elif not tournament.has_entry_fee %}
+                                <p class="text-sm font-bold text-sky-300 flex items-center gap-1.5 relative z-10"><i data-lucide="badge-dollar-sign" class="w-4 h-4"></i> Free</p>
+                                {% else %}
+                                <p class="text-sm font-bold text-amber-300 flex items-center gap-1.5 relative z-10"><i data-lucide="clock-3" class="w-4 h-4"></i> Pending</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Access Rules</p>
+                                {% if tournament.mode == 'online' %}
+                                <p class="text-xs font-semibold text-cyan-200 bg-cyan-500/10 border border-cyan-400/25 px-3 py-1.5 rounded inline-block">Digital Check-in: Opens {{ tournament.check_in_minutes_before|default:"60" }} Mins Early</p>
+                                {% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}
+                                <p class="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded inline-block">Arena Gate: Closes {{ tournament.check_in_minutes_before|default:"60" }} Mins Early</p>
+                                {% else %}
+                                <p class="text-xs font-semibold text-indigo-200 bg-indigo-500/12 border border-indigo-400/25 px-3 py-1.5 rounded inline-block">Multi-Stage Check-in Rules Apply</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-8 py-6 bg-black/50 rounded-b-[24px] border-t border-white/5 flex items-center justify-between relative z-20 backdrop-blur-md">
+                        <div class="text-4xl md:text-5xl text-gray-400 opacity-80 tracking-widest select-none pb-4" style="line-height: 1.35; font-family: 'Libre Barcode 39 Text', cursive;">
+                            *{{ registration.registration_id|default:reg_code|upper }}*
+                        </div>
+                        <div class="w-14 h-14 border-2 border-white/20 p-1 rounded-md bg-white shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                            <div id="ticket-qr" class="w-full h-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row items-center gap-4 px-2">
+                <button onclick="downloadTicketImage()" id="download-btn" class="w-full sm:flex-1 py-4 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white hover:bg-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all flex items-center justify-center gap-2 group">
+                    <i data-lucide="download" class="w-5 h-5 text-gray-400 group-hover:text-cyan-400 transition-colors"></i> Save Ticket
+                </button>
+                <button onclick="toggleShareModal(true)" class="w-full sm:flex-1 py-4 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white hover:bg-white/10 hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(108,0,255,0.15)] transition-all flex items-center justify-center gap-2 group">
+                    <i data-lucide="share-2" class="w-5 h-5 text-gray-400 group-hover:text-violet-400 transition-colors"></i> Share
+                </button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-5 w-full animate-stagger-3">
+            <div class="bg-[#0A0A0F] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-40 h-40 bg-violet-600/20 blur-3xl rounded-full pointer-events-none"></div>
+
+                <h3 class="font-display text-xl font-black text-white uppercase tracking-widest mb-8 border-b border-white/10 pb-5">
+                    Tournament Progression
+                </h3>
+
+                <div class="space-y-8">
+                    <div class="relative step-item">
+                        <div class="step-line"></div>
+                        <div class="flex gap-5 relative z-10">
+                            <div class="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                <i data-lucide="message-square" class="w-5 h-5 text-indigo-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white mb-1.5">Connect Official Discord</h4>
+                                <p class="text-sm text-gray-400 mb-3 leading-relaxed">Mandatory for live comms, match alerts, and dispute resolution. All official announcements and admin rulings are published here first.</p>
+                                <a href="{% firstof tournament.social_discord official_discord_url %}" class="inline-flex items-center gap-2 text-xs font-bold text-indigo-400 bg-indigo-400/10 px-3 py-1.5 rounded hover:bg-indigo-400/20 transition-colors" target="_blank" rel="noopener noreferrer">
+                                    Connect Discord <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative step-item">
+                        <div class="step-line"></div>
+                        <div class="flex gap-5 relative z-10">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="calendar-days" class="w-5 h-5 text-amber-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white mb-1.5">Bracket and Matchroom Status</h4>
+                                {% if is_cancelled_phase %}
+                                <p class="text-sm text-red-300 mb-3 leading-relaxed">Tournament is currently marked as cancelled. Follow organizer announcements for recovery or migration details.</p>
+                                {% elif is_completed_phase %}
+                                <p class="text-sm text-emerald-300 mb-3 leading-relaxed">Tournament is completed. Hub now acts as the official archive for results and standings.</p>
+                                {% elif is_live_phase %}
+                                <p class="text-sm text-emerald-300 mb-3 leading-relaxed">Bracket is live now. Matchroom pushes and result confirmations are running in real time.</p>
+                                {% elif is_paused_phase %}
+                                <p class="text-sm text-amber-300 mb-3 leading-relaxed">Tournament is temporarily paused. Keep monitoring the hub for restart windows.</p>
+                                {% else %}
+                                <p class="text-sm text-gray-400 mb-3 leading-relaxed">Bracket release is pending. Seeding, slot locks, and matchroom generation continue in the hub.</p>
+                                {% endif %}
+                                <a href="{% url 'tournaments:tournament_hub' tournament.slug %}" class="inline-flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded hover:bg-amber-400/20 transition-colors" type="button">
+                                    <i data-lucide="radar" class="w-3.5 h-3.5"></i> Open Live Hub
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative step-item">
+                        <div class="flex gap-5 relative z-10">
+                            <div class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(0,229,255,0.15)]">
+                                <i data-lucide="swords" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white mb-1.5">Match Day Check-In</h4>
+                                {% if check_in_live %}
+                                <p class="text-sm text-emerald-300 leading-relaxed">Check-in is open now. Open the hub and follow the check-in action before it closes.</p>
+                                {% elif check_in_open_at %}
+                                <p class="text-sm text-gray-400 leading-relaxed">Check-in window opens {{ check_in_open_at|date:"d M Y, h:i A" }}{% if check_in_close_at %} and closes {{ check_in_close_at|date:"d M Y, h:i A" }}{% endif %}. Keep this pass ready.</p>
+                                {% else %}
+                                <p class="text-sm text-gray-400 leading-relaxed">Organizer has not enabled automated check-in yet. Track tournament announcements in hub and Discord.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-8 border-t border-white/10">
+                    <a href="{% url 'tournaments:tournament_hub' tournament.slug %}" class="btn-hub-primary block w-full py-5 rounded-xl text-center font-display font-black uppercase tracking-[0.2em] text-sm md:text-base flex items-center justify-center gap-3">
+                        <i data-lucide="layout-dashboard" class="w-6 h-6"></i> Enter Tournament Hub
+                    </a>
+                    <a href="{% url 'dashboard:index' %}" class="block w-full text-center mt-5 text-sm font-semibold text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="home" class="w-4 h-4"></i> Return to Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-6 bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6 flex items-center justify-between group hover:bg-white/10 transition-colors w-full">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-gray-500/20 border border-gray-500/30 flex items-center justify-center group-hover:border-cyan-500/50 group-hover:bg-cyan-500/10 transition-colors">
+                        <i data-lucide="life-buoy" class="w-6 h-6 text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white mb-0.5">Need Assistance?</h4>
+                        <p class="text-xs text-gray-400">Having trouble with your pass?</p>
+                    </div>
+                </div>
+                <a href="{% url 'tournaments:tournament_hub' tournament.slug %}#support" class="px-4 py-2 text-xs font-bold text-cyan-400 bg-cyan-400/10 rounded hover:bg-cyan-400/20 transition-colors whitespace-nowrap">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="share-modal" class="share-modal-overlay" onclick="handleModalClick(event)">
+    <div class="share-modal-content flex flex-col relative">
+        <button onclick="toggleShareModal(false)" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors" type="button">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+
+        <div class="text-center mb-6 mt-2">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/30 mb-3 shadow-[0_0_15px_rgba(108,0,255,0.2)]">
+                <i data-lucide="share-2" class="w-5 h-5 text-violet-400"></i>
+            </div>
+            <h3 class="font-display text-2xl font-black text-white uppercase tracking-wider">Share</h3>
+            <p class="text-sm text-gray-400 mt-2">Let your rivals know you've joined the battlefield.</p>
+        </div>
+
+        <button onclick="nativeShare()" id="native-share-btn" class="w-full mb-4 py-3 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors" type="button">
+            <i data-lucide="smartphone" class="w-4 h-4"></i> Open Device Share
+        </button>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <button onclick="shareTo('twitter')" class="social-btn group" type="button">
+                <svg class="w-6 h-6 text-white group-hover:text-[#1DA1F2] transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.005 4.25H5.078z"></path></svg>
+                <span class="text-xs font-bold text-gray-300">X / Twitter</span>
+            </button>
+            <button onclick="shareTo('facebook')" class="social-btn group" type="button">
+                <svg class="w-6 h-6 text-white group-hover:text-[#1877F2] transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd"></path></svg>
+                <span class="text-xs font-bold text-gray-300">Facebook</span>
+            </button>
+            <button onclick="shareTo('whatsapp')" class="social-btn group" type="button">
+                <svg class="w-6 h-6 text-white group-hover:text-[#25D366] transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12.012 2c5.506 0 9.998 4.478 9.998 9.983 0 5.506-4.492 9.984-9.998 9.984-1.623 0-3.15-.39-4.512-1.078l-5.111 1.34 1.36-4.978A9.917 9.917 0 012.014 11.983C2.014 6.478 6.506 2 12.012 2zm-4.103 6.942c-.225-.63-.464-.64-.67-.65h-.572c-.244 0-.638.092-.97.46-.334.368-1.272 1.243-1.272 3.03 0 1.787 1.303 3.518 1.485 3.763.181.245 2.565 3.914 6.216 5.485.87.375 1.548.6 2.076.768.874.278 1.67.238 2.3.144.707-.105 2.167-.885 2.47-1.74.304-.855.304-1.588.213-1.74-.09-.153-.334-.245-.7-.43-3.037-1.517-3.072-1.542-3.418-1.036-.345.506-1.32 1.74-1.624 2.095-.304.354-.608.398-.973.214-.365-.184-1.546-.57-2.946-1.611-1.09-.81-1.824-1.81-2.036-2.179-.213-.368-.022-.567.161-.75.165-.164.366-.43.548-.644.182-.214.243-.368.365-.613.121-.245.06-.46-.03-.644-.091-.184-.809-1.95-1.109-2.67z" clip-rule="evenodd"></path></svg>
+                <span class="text-xs font-bold text-gray-300">WhatsApp</span>
+            </button>
+            <button onclick="shareTo('copy')" id="copy-btn" class="social-btn group" type="button">
+                <i data-lucide="copy" class="w-6 h-6 text-white group-hover:text-gray-300 transition-colors"></i>
+                <span class="text-xs font-bold text-gray-300">Copy Link</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endwith %}
 {% endblock %}
 
 {% block tournament_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+(function () {
+    const shareData = {
+        title: 'DeltaCrown Registration Secured',
+        text: 'I just secured my VIP Spot in {{ tournament.name|escapejs }}! The arena awaits. Are you ready? #DeltaCrown',
+        url: window.location.href,
+    };
 
-    // ── Confetti burst ──
-    const container = document.getElementById('confetti-container');
-    const colors = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#6366f1'];
-    for (let i = 0; i < 60; i++) {
-        const piece = document.createElement('div');
-        piece.className = 'confetti';
-        piece.style.cssText = `
-            left: ${Math.random() * 100}vw;
-            width: ${4 + Math.random() * 6}px;
-            height: ${4 + Math.random() * 6}px;
-            background: ${colors[Math.floor(Math.random() * colors.length)]};
-            border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
-            animation: confetti-fall ${2 + Math.random() * 3}s ease-in ${Math.random() * 0.8}s forwards;
-        `;
-        container.appendChild(piece);
+    function ensureQrReady(maxWaitMs) {
+        const deadline = Date.now() + (maxWaitMs || 2000);
+        return new Promise(function (resolve) {
+            (function check() {
+                const qrRoot = document.getElementById('ticket-qr');
+                if (!qrRoot) {
+                    resolve(false);
+                    return;
+                }
+                if (qrRoot.querySelector('canvas, img')) {
+                    resolve(true);
+                    return;
+                }
+                if (Date.now() >= deadline) {
+                    resolve(false);
+                    return;
+                }
+                setTimeout(check, 40);
+            })();
+        });
     }
 
-    // Clean up confetti after animation
-    setTimeout(() => container.innerHTML = '', 6000);
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        const nativeShareBtn = document.getElementById('native-share-btn');
+        if (nativeShareBtn && !navigator.share) {
+            nativeShareBtn.style.display = 'none';
+        }
+
+        const qrRoot = document.getElementById('ticket-qr');
+        if (qrRoot && typeof QRCode !== 'undefined') {
+            qrRoot.innerHTML = '';
+            new QRCode(qrRoot, {
+                text: 'https://deltacrown.xyz/tournaments/{{ tournament.slug|escapejs }}/',
+                width: 150,
+                height: 150,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H,
+            });
+        }
+
+        const container = document.getElementById('sparks-container');
+        const colors = ['#00E5FF', '#6C00FF', '#FFD700', '#10b981'];
+
+        for (let i = 0; i < 35; i++) {
+            setTimeout(function () {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                const size = Math.random() * 3 + 2;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 2.5 + 2;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                spark.style.width = size + 'px';
+                spark.style.height = size + 'px';
+                spark.style.left = left + 'vw';
+                spark.style.bottom = '-20px';
+                spark.style.background = color;
+                spark.style.boxShadow = '0 0 ' + (size * 3) + 'px ' + color;
+                spark.style.animationDuration = duration + 's';
+
+                if (container) {
+                    container.appendChild(spark);
+                    setTimeout(function () { spark.remove(); }, duration * 1000);
+                }
+            }, Math.random() * 1500);
+        }
+    });
+
+    window.downloadTicketImage = async function () {
+        const btn = document.getElementById('download-btn');
+        if (!btn) return;
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Processing...';
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        try {
+            await document.fonts.ready;
+            await ensureQrReady(2200);
+            await new Promise(function (resolve) { setTimeout(resolve, 200); });
+
+            const element = document.getElementById('ticket-export');
+            if (!element) throw new Error('Ticket element not found');
+
+            const canvas = await html2canvas(element, {
+                scale: 4,
+                backgroundColor: '#050508',
+                useCORS: true,
+                allowTaint: true,
+                scrollX: 0,
+                scrollY: -window.scrollY,
+            });
+
+            const link = document.createElement('a');
+            link.download = 'DeltaCrown_VIP_Pass.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+
+            btn.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-emerald-400"></i> Saved to Device';
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            setTimeout(function () {
+                btn.innerHTML = originalText;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 3000);
+        } catch (err) {
+            console.error('Error saving image:', err);
+            btn.innerHTML = originalText;
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+    };
+
+    window.toggleShareModal = function (show) {
+        const modal = document.getElementById('share-modal');
+        if (!modal) return;
+
+        if (show) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        } else {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    };
+
+    window.handleModalClick = function (e) {
+        if (e.target && e.target.id === 'share-modal') {
+            window.toggleShareModal(false);
+        }
+    };
+
+    window.nativeShare = async function () {
+        if (!navigator.share) return;
+        try {
+            await navigator.share(shareData);
+            window.toggleShareModal(false);
+        } catch (e) {
+            // User cancelled share
+        }
+    };
+
+    window.shareTo = function (platform) {
+        const encodedText = encodeURIComponent(shareData.text);
+        const encodedUrl = encodeURIComponent(shareData.url);
+        let shareUrl = '';
+
+        if (platform === 'twitter') {
+            shareUrl = 'https://twitter.com/intent/tweet?text=' + encodedText + '&url=' + encodedUrl;
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+            return;
+        }
+        if (platform === 'facebook') {
+            shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl + '&quote=' + encodedText;
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+            return;
+        }
+        if (platform === 'whatsapp') {
+            shareUrl = 'https://api.whatsapp.com/send?text=' + encodedText + '%20' + encodedUrl;
+            window.open(shareUrl, '_blank');
+            return;
+        }
+        if (platform === 'copy') {
+            navigator.clipboard.writeText(shareData.text + ' ' + shareData.url).then(function () {
+                const btn = document.getElementById('copy-btn');
+                if (!btn) return;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" class="w-6 h-6 text-emerald-400"></i><span class="text-xs font-bold text-emerald-400">Copied!</span>';
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                setTimeout(function () {
+                    btn.innerHTML = originalHTML;
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                }, 2000);
+            });
+        }
+    };
+})();
 </script>
 {% endblock %}

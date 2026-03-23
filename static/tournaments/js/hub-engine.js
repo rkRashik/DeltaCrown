@@ -18,10 +18,29 @@ const HubEngine = (() => {
   const POLL_STATE_INTERVAL   = 20_000;   // 20s
   const POLL_ANN_INTERVAL     = 45_000;   // 45s
   const COUNTDOWN_TICK        = 1_000;    // 1s
+  const HUB_TABS = new Set([
+    'overview', 'matches', 'squad', 'schedule',
+    'bracket', 'standings', 'prizes', 'resources',
+    'participants', 'rulebook', 'support',
+  ]);
+  const TAB_ALIASES = {
+    disputes: 'support',
+    'support-disputes': 'support',
+    'hub-tab-support': 'support',
+  };
+  const LOCKED_TABS_WHEN_UNVERIFIED = new Set([
+    'matches',
+    'squad',
+    'schedule',
+    'bracket',
+    'standings',
+    'prizes',
+    'participants',
+  ]);
 
   // ── State ───────────────────────────────────────────────
   let _shell       = null;
-  let _currentTab  = 'overview';
+  let _currentTab  = null;
   let _pollStateId = null;
   let _pollAnnId   = null;
   let _countdownId = null;
@@ -35,6 +54,10 @@ const HubEngine = (() => {
   let _matchesCache      = null;
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
+  let _supportTicketsLoaded = false;
+  let _openModalId = null;
+  let _modalReturnFocusEl = null;
+  let _mobileSidebarReturnFocusEl = null;
 
   // S27: WebSocket connection for real-time sync
   let _ws = null;
@@ -79,13 +102,105 @@ const HubEngine = (() => {
       clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(_redrawBracketLines, 150);
     });
+
+    // Resolve and hydrate initial tab state from URL without causing extra history entries.
+    const initialTab = _resolveInitialTab() || 'overview';
+    switchTab(initialTab, {
+      historyMode: 'replace',
+      smoothScroll: false,
+      announceLock: false,
+    });
+
+    window.addEventListener('hashchange', () => {
+      const hashTab = _resolveInitialTab();
+      if (hashTab && hashTab !== _currentTab) {
+        switchTab(hashTab, {
+          syncUrl: false,
+          smoothScroll: false,
+          announceLock: false,
+        });
+      }
+    });
+
+    window.addEventListener('popstate', () => {
+      const tab = _resolveInitialTab() || 'overview';
+      if (tab !== _currentTab) {
+        switchTab(tab, {
+          syncUrl: false,
+          smoothScroll: false,
+          announceLock: false,
+        });
+      }
+    });
+  }
+
+  function _resolveInitialTab() {
+    const hashTab = (window.location.hash || '').replace('#', '').trim().toLowerCase();
+    const normalizedHash = _normalizeTab(hashTab);
+    if (normalizedHash) return normalizedHash;
+
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const queryTab = (params.get('tab') || '').trim().toLowerCase();
+      const normalizedQuery = _normalizeTab(queryTab);
+      if (normalizedQuery) return normalizedQuery;
+    } catch (e) {
+      // ignore malformed query strings
+    }
+
+    return null;
+  }
+
+  function _normalizeTab(rawTab) {
+    if (!rawTab) return null;
+    if (HUB_TABS.has(rawTab)) return rawTab;
+    return TAB_ALIASES[rawTab] || null;
+  }
+
+  function _syncUrlForTab(tabId, mode = 'push') {
+    if (!window?.history || !window?.location) return;
+
+    const url = new URL(window.location.href);
+    const currentHash = (url.hash || '').replace('#', '').toLowerCase();
+    if (currentHash === tabId) {
+      return;
+    }
+
+    // Canonical URL source is hash only; keep query clean.
+    url.searchParams.delete('tab');
+    url.hash = tabId;
+
+    const state = { ...(window.history.state || {}), hubTab: tabId };
+    if (mode === 'replace') {
+      window.history.replaceState(state, '', url.toString());
+    } else {
+      window.history.pushState(state, '', url.toString());
+    }
   }
 
   // ──────────────────────────────────────────────────────────
   // Tab Switching
   // ──────────────────────────────────────────────────────────
-  function switchTab(tabId) {
-    if (tabId === _currentTab) return;
+  function switchTab(tabId, options = {}) {
+    const {
+      syncUrl = true,
+      historyMode = 'push',
+      smoothScroll = true,
+      announceLock = true,
+    } = options;
+
+    const normalizedTab = _normalizeTab(tabId) || 'overview';
+
+    const shouldLockTab = _isTabLocked(normalizedTab);
+
+    if (normalizedTab === _currentTab) {
+      _applyTabLockState(normalizedTab, { announce: false });
+      if (syncUrl) _syncUrlForTab(normalizedTab, historyMode);
+      return;
+    }
+
+    const target = document.getElementById('hub-tab-' + normalizedTab);
+    if (!target) return;
 
     // Hide all tab contents
     document.querySelectorAll('.hub-tab-content').forEach(el => {
@@ -93,54 +208,64 @@ const HubEngine = (() => {
     });
 
     // Show target
-    const target = document.getElementById('hub-tab-' + tabId);
-    if (target) {
-      target.classList.add('active');
-    }
+    target.classList.add('active');
 
     // Update sidebar nav buttons (both desktop + mobile copies)
     document.querySelectorAll('.hub-nav-btn').forEach(btn => {
       const btnTab = btn.getAttribute('data-hub-tab');
-      if (btnTab === tabId) {
+      if (btnTab === normalizedTab) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
     });
 
-    _currentTab = tabId;
+    _currentTab = normalizedTab;
+    _applyTabLockState(normalizedTab, {
+      announce: shouldLockTab && announceLock,
+    });
+
+    if (syncUrl) {
+      _syncUrlForTab(normalizedTab, historyMode);
+    }
 
     // Scroll content to top
     const viewport = document.getElementById('hub-viewport');
-    if (viewport) viewport.scrollTo({ top: 0, behavior: 'smooth' });
+    if (viewport) {
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      viewport.scrollTo({ top: 0, behavior: (smoothScroll && !prefersReducedMotion) ? 'smooth' : 'auto' });
+    }
 
     // Close mobile sidebar if open
     closeMobileSidebar();
 
     // Async data fetch for lazy tabs
-    if (tabId === 'prizes' && !_prizesCache) {
+    if (normalizedTab === 'prizes' && !_prizesCache) {
       _fetchPrizes();
     }
-    if (tabId === 'resources' && !_resourcesCache) {
+    if (normalizedTab === 'resources' && !_resourcesCache) {
       _fetchResources();
     }
-    if (tabId === 'bracket' && !_bracketCache) {
+    if (normalizedTab === 'bracket' && !_bracketCache) {
       _fetchBracket();
     }
-    if (tabId === 'standings' && !_standingsCache) {
+    if (normalizedTab === 'standings' && !_standingsCache) {
       _fetchStandings();
     }
-    if (tabId === 'matches' && !_matchesCache) {
+    if (normalizedTab === 'matches' && !_matchesCache) {
       _fetchMatches();
     }
-    if (tabId === 'participants' && !_participantsCache) {
+    if (normalizedTab === 'participants' && !_participantsCache) {
       _fetchParticipants();
     }
-    if (tabId === 'support') {
+    if (normalizedTab === 'support') {
       _initSupportForm();
+      if (!_supportTicketsLoaded) {
+        _fetchSupportTickets();
+      }
     }
     // S27: Lazy-load match schedule for schedule tab
-    if (tabId === 'schedule') {
+    if (normalizedTab === 'schedule') {
       _fetchScheduleMatches();
     }
 
@@ -154,8 +279,118 @@ const HubEngine = (() => {
   function openMobileSidebar() {
     const overlay = document.getElementById('hub-mobile-overlay');
     const sidebar = document.getElementById('hub-mobile-sidebar');
+    _mobileSidebarReturnFocusEl = document.activeElement;
     if (overlay) overlay.classList.add('open');
     if (sidebar) sidebar.classList.add('open');
+    if (sidebar) sidebar.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('hub-mobile-nav-open');
+
+    if (sidebar) {
+      _attachModalFocusTrap(sidebar);
+      const focusables = _getFocusableElements(sidebar);
+      if (focusables.length) {
+        focusables[0].focus();
+      }
+    }
+  }
+
+  function _getFocusableElements(container) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(el => {
+      if (!el) return false;
+      if (el.offsetParent === null && el !== document.activeElement) return false;
+      return !el.hasAttribute('hidden');
+    });
+  }
+
+  function _attachModalFocusTrap(modal) {
+    if (!modal || modal._focusTrapBound) return;
+
+    const handler = (e) => {
+      if (e.key !== 'Tab') return;
+
+      const focusables = _getFocusableElements(modal);
+      if (!focusables.length) {
+        e.preventDefault();
+        modal.focus();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    modal._focusTrapHandler = handler;
+    modal.addEventListener('keydown', handler);
+    modal._focusTrapBound = true;
+  }
+
+  function _detachModalFocusTrap(modal) {
+    if (!modal || !modal._focusTrapBound || !modal._focusTrapHandler) return;
+    modal.removeEventListener('keydown', modal._focusTrapHandler);
+    delete modal._focusTrapHandler;
+    modal._focusTrapBound = false;
+  }
+
+  function _openModal(modalId, labelId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    if (_openModalId && _openModalId !== modalId) {
+      _closeModal(_openModalId, false);
+    }
+
+    _openModalId = modalId;
+    _modalReturnFocusEl = document.activeElement;
+
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    if (labelId) {
+      modal.setAttribute('aria-labelledby', labelId);
+    } else {
+      modal.removeAttribute('aria-labelledby');
+    }
+    modal.classList.remove('hidden');
+
+    _attachModalFocusTrap(modal);
+
+    const focusables = _getFocusableElements(modal);
+    if (focusables.length) {
+      focusables[0].focus();
+    } else {
+      modal.setAttribute('tabindex', '-1');
+      modal.focus();
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _closeModal(modalId, restoreFocus = true) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    _detachModalFocusTrap(modal);
+
+    if (_openModalId === modalId) {
+      _openModalId = null;
+    }
+
+    if (restoreFocus && _modalReturnFocusEl && document.contains(_modalReturnFocusEl)) {
+      _modalReturnFocusEl.focus();
+    }
+    if (restoreFocus) {
+      _modalReturnFocusEl = null;
+    }
   }
 
   function closeMobileSidebar() {
@@ -163,6 +398,14 @@ const HubEngine = (() => {
     const sidebar = document.getElementById('hub-mobile-sidebar');
     if (overlay) overlay.classList.remove('open');
     if (sidebar) sidebar.classList.remove('open');
+    if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('hub-mobile-nav-open');
+
+    if (sidebar) _detachModalFocusTrap(sidebar);
+    if (_mobileSidebarReturnFocusEl && document.contains(_mobileSidebarReturnFocusEl)) {
+      _mobileSidebarReturnFocusEl.focus();
+    }
+    _mobileSidebarReturnFocusEl = null;
   }
 
   // ──────────────────────────────────────────────────────────
@@ -213,6 +456,11 @@ const HubEngine = (() => {
   // Check-In Action
   // ──────────────────────────────────────────────────────────
   async function performCheckIn() {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+
     const url = _shell?.dataset.apiCheckin;
     if (!url) return;
 
@@ -403,6 +651,11 @@ const HubEngine = (() => {
   }
 
   async function _swapSlot(membershipId, newSlot) {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+
     const url = _shell?.dataset.apiSquad;
     if (!url) return;
 
@@ -632,6 +885,11 @@ const HubEngine = (() => {
 
   // ── Prize Claim Modal ──
   function openPrizeModal(txId, amount, placement) {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+
     document.getElementById('claim-transaction-id').value = txId;
     document.getElementById('claim-modal-amount').textContent = amount;
     document.getElementById('claim-modal-placement').textContent = placement;
@@ -647,11 +905,11 @@ const HubEngine = (() => {
       select.addEventListener('change', _onPayoutMethodChange);
     }
 
-    document.getElementById('prize-claim-modal').classList.remove('hidden');
+    _openModal('prize-claim-modal');
   }
 
   function closePrizeModal() {
-    document.getElementById('prize-claim-modal').classList.add('hidden');
+    _closeModal('prize-claim-modal');
   }
 
   function _onPayoutMethodChange() {
@@ -663,6 +921,11 @@ const HubEngine = (() => {
   }
 
   async function submitPrizeClaim() {
+    if (_isCriticalLocked()) {
+      _showLockToast();
+      return;
+    }
+
     const url = _shell?.dataset.apiPrizeClaim;
     if (!url) return;
 
@@ -2082,32 +2345,22 @@ const HubEngine = (() => {
   // Registration Status Modal
   // ──────────────────────────────────────────────────────────
   function showStatusModal() {
-    const modal = document.getElementById('hub-status-modal');
-    if (modal) {
-      modal.classList.remove('hidden');
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
+    _openModal('hub-status-modal', 'hub-status-modal-title');
   }
 
   function closeStatusModal() {
-    const modal = document.getElementById('hub-status-modal');
-    if (modal) modal.classList.add('hidden');
+    _closeModal('hub-status-modal');
   }
 
   // ──────────────────────────────────────────────────────────
   // Contact Admin Modal
   // ──────────────────────────────────────────────────────────
   function showContactModal() {
-    const modal = document.getElementById('hub-contact-modal');
-    if (modal) {
-      modal.classList.remove('hidden');
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
+    _openModal('hub-contact-modal', 'hub-contact-modal-title');
   }
 
   function closeContactModal() {
-    const modal = document.getElementById('hub-contact-modal');
-    if (modal) modal.classList.add('hidden');
+    _closeModal('hub-contact-modal');
   }
 
   // ──────────────────────────────────────────────────────────
@@ -2117,11 +2370,7 @@ const HubEngine = (() => {
     const slug = _shell?.dataset.slug || 'default';
     const key = `hub_guide_seen_${slug}`;
     if (!localStorage.getItem(key)) {
-      const guide = document.getElementById('hub-welcome-guide');
-      if (guide) {
-        guide.classList.remove('hidden');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
+      _openModal('hub-welcome-guide', 'hub-welcome-modal-title');
     }
   }
 
@@ -2129,14 +2378,144 @@ const HubEngine = (() => {
     const slug = _shell?.dataset.slug || 'default';
     const key = `hub_guide_seen_${slug}`;
     localStorage.setItem(key, '1');
-    const guide = document.getElementById('hub-welcome-guide');
-    if (guide) guide.classList.add('hidden');
+    _closeModal('hub-welcome-guide');
   }
 
   // ──────────────────────────────────────────────────────────
   // Support Tab — Category Selection & Form Submission
   // ──────────────────────────────────────────────────────────
   let _supportCategory = 'general';
+
+  function _isCriticalLocked() {
+    return _shell?.dataset?.criticalLocked === 'true';
+  }
+
+  function _isTabLocked(tabId) {
+    const normalizedTab = _normalizeTab(tabId);
+    return Boolean(normalizedTab && _isCriticalLocked() && LOCKED_TABS_WHEN_UNVERIFIED.has(normalizedTab));
+  }
+
+  function _tabLabel(tabId) {
+    const navLabel = document.querySelector(`.hub-nav-btn[data-hub-tab="${tabId}"] > div span:last-child`);
+    if (navLabel?.textContent?.trim()) return navLabel.textContent.trim();
+    return String(tabId || 'Locked tab')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function _getLockReason() {
+    return (_shell?.dataset?.lockReason || '').trim() || 'Action is locked until payment verification is complete.';
+  }
+
+  function _showLockToast() {
+    if (window.showToast) {
+      window.showToast({ type: 'warning', message: _getLockReason() });
+    }
+  }
+
+  function _applyTabLockState(tabId, { announce = false } = {}) {
+    const viewport = document.getElementById('hub-viewport');
+    const overlay = document.getElementById('hub-tab-lock-overlay');
+    const titleEl = document.getElementById('hub-lock-overlay-title');
+    const messageEl = document.getElementById('hub-lock-overlay-message');
+    const chipEl = document.getElementById('hub-lock-tab-chip');
+    const activeTab = document.getElementById('hub-tab-' + tabId);
+
+    document.querySelectorAll('.hub-tab-content').forEach((el) => {
+      el.classList.remove('is-lock-blurred');
+    });
+
+    const isLockedTab = _isTabLocked(tabId);
+
+    if (viewport) {
+      viewport.classList.toggle('hub-tab-locked-state', isLockedTab);
+    }
+
+    if (overlay) {
+      overlay.classList.toggle('active', isLockedTab);
+      overlay.setAttribute('aria-hidden', isLockedTab ? 'false' : 'true');
+    }
+
+    if (!isLockedTab) return;
+
+    if (activeTab) {
+      activeTab.classList.add('is-lock-blurred');
+    }
+
+    const tabLabel = _tabLabel(tabId);
+    if (chipEl) chipEl.textContent = tabLabel;
+    if (titleEl) titleEl.textContent = `${tabLabel} unlocks after verification`;
+    if (messageEl) messageEl.textContent = _getLockReason();
+
+    if (announce) {
+      _showLockToast();
+    }
+  }
+
+  async function _fetchSupportTickets() {
+    const url = _shell?.dataset.apiSupport;
+    if (!url) return;
+
+    try {
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      _renderSupportTickets(data.tickets || []);
+      _supportTicketsLoaded = true;
+    } catch (err) {
+      console.warn('[HubEngine] Support tickets fetch failed:', err.message);
+      const list = document.getElementById('support-tickets-list');
+      if (list) {
+        list.innerHTML = `
+          <div class="text-center py-8">
+            <i data-lucide="triangle-alert" class="w-8 h-8 text-[#FFB800] mx-auto mb-2"></i>
+            <p class="text-xs text-gray-400">Could not load ticket history</p>
+            <p class="text-[10px] text-gray-600 mt-1">New submissions will still be sent successfully.</p>
+          </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+  }
+
+  function _renderSupportTickets(tickets) {
+    const list = document.getElementById('support-tickets-list');
+    if (!list) return;
+
+    if (!tickets.length) {
+      list.innerHTML = `
+        <div class="text-center py-8">
+          <i data-lucide="inbox" class="w-8 h-8 text-gray-700 mx-auto mb-2"></i>
+          <p class="text-xs text-gray-500">No support tickets yet</p>
+          <p class="text-[10px] text-gray-600 mt-1">Tickets you submit will appear here</p>
+        </div>`;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    const statusClassMap = {
+      open: 'bg-[#FFB800]/12 border-[#FFB800]/20 text-[#FFB800]',
+      in_review: 'bg-[#00F0FF]/12 border-[#00F0FF]/20 text-[#00F0FF]',
+      resolved: 'bg-[#00FF66]/12 border-[#00FF66]/20 text-[#00FF66]',
+      closed: 'bg-white/10 border-white/15 text-gray-300',
+    };
+
+    const html = tickets.map((ticket) => {
+      const badgeClass = statusClassMap[ticket.status] || statusClassMap.open;
+      return `
+        <div class="p-4 rounded-xl border border-white/8 bg-white/[0.02] mb-3">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-[10px] font-black uppercase tracking-widest text-[var(--game-primary)]">${_esc(ticket.category_display || 'Support')}</span>
+            <span class="text-[10px] text-gray-600">${_esc(ticket.time_ago || '')}</span>
+          </div>
+          <p class="text-sm font-bold text-white">${_esc(ticket.subject || '')}</p>
+          ${ticket.match_ref ? `<p class="text-[10px] text-[#FFB800] mt-1">Match: ${_esc(ticket.match_ref)}</p>` : ''}
+          <p class="text-xs text-gray-400 mt-2 leading-relaxed">${_esc(ticket.message || '')}</p>
+          <div class="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wide ${badgeClass}">${_esc(ticket.status_display || 'Open')}</div>
+        </div>`;
+    }).join('');
+
+    list.innerHTML = html;
+  }
 
   function selectSupportCategory(category) {
     _supportCategory = category;
@@ -2145,8 +2524,10 @@ const HubEngine = (() => {
     document.querySelectorAll('.support-category-btn').forEach(btn => {
       if (btn.dataset.category === category) {
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
       } else {
         btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
       }
     });
 
@@ -2172,6 +2553,14 @@ const HubEngine = (() => {
       msg.addEventListener('input', _updateCharCount);
       msg._charCountBound = true;
     }
+    _updateCharCount();
+    if (!_supportCategory) _supportCategory = 'general';
+    selectSupportCategory(_supportCategory);
+  }
+
+  function _appendSupportTicketPreview(ticket) {
+    if (!ticket) return;
+    _fetchSupportTickets();
   }
 
   async function submitSupportRequest() {
@@ -2221,6 +2610,11 @@ const HubEngine = (() => {
 
       if (data.success) {
         if (okEl) { okEl.textContent = data.message || 'Your message has been sent to the organizer.'; okEl.classList.remove('hidden'); }
+        if (data.ticket) {
+          _appendSupportTicketPreview(data.ticket);
+        } else {
+          _fetchSupportTickets();
+        }
         // Clear form
         const subj = document.getElementById('support-subject');
         const msg = document.getElementById('support-message');

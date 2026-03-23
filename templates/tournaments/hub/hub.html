@@ -55,6 +55,9 @@
      data-is-captain="{{ is_captain|yesno:'true,false' }}"
      data-is-team="{{ is_team|yesno:'true,false' }}"
      data-roster-locked="{{ roster_locked|yesno:'true,false' }}"
+    data-critical-locked="{{ hub_critical_locked|yesno:'true,false' }}"
+    data-payment-verified="{{ hub_payment_verified|yesno:'true,false' }}"
+    data-lock-reason="{{ hub_lock_reason|default:''|escape }}"
 >
 
   {% comment %}Cinematic Background Layers{% endcomment %}
@@ -144,6 +147,20 @@
           {% endif %}
         {% endif %}
 
+        <a href="{% url 'tournaments:tournament_hub' tournament.slug %}#support"
+           class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00F0FF]/10 hover:bg-[#00F0FF]/15 border border-[#00F0FF]/25 text-[10px] font-black text-[#00F0FF] uppercase tracking-wider transition-all"
+           style="font-family:'Space Grotesk',monospace;"
+           title="Open Support & Disputes">
+          <i data-lucide="life-buoy" class="w-3.5 h-3.5"></i>
+          Support
+        </a>
+
+        <a href="{% url 'tournaments:tournament_hub' tournament.slug %}#support"
+           class="md:hidden inline-flex items-center justify-center p-1.5 rounded-lg bg-[#00F0FF]/10 hover:bg-[#00F0FF]/15 border border-[#00F0FF]/25 text-[#00F0FF] transition-all"
+           title="Open Support & Disputes">
+          <i data-lucide="life-buoy" class="w-4 h-4"></i>
+        </a>
+
         {% comment %}Mobile Sidebar Toggle{% endcomment %}
         <button class="hub-mobile-toggle lg:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5"
                 onclick="HubEngine.openMobileSidebar()">
@@ -180,6 +197,19 @@
     </div>
   </nav>
 
+  {% if hub_critical_locked %}
+  <div class="hub-lock-banner px-4 lg:px-6 py-2.5">
+    <div class="hub-lock-banner-inner max-w-[1600px] mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#FFB800]/20 border border-[#FFB800]/40 text-[#FFD86B] font-black uppercase tracking-wide">
+        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-[#FFB800]"></i>
+        Limited Access Mode
+      </span>
+      <span class="text-[#F8F4DC] font-medium">{{ hub_lock_reason }}</span>
+      <button type="button" onclick="HubEngine.switchTab('support')" class="hub-lock-cta ml-auto">Contact support</button>
+    </div>
+  </div>
+  {% endif %}
+
   {% comment %}Main Layout: Sidebar + Content{% endcomment %}
   <div class="flex-1 flex overflow-hidden w-full relative" style="z-index:10;">
 
@@ -190,12 +220,33 @@
 
     {% comment %}Mobile Sidebar Overlay{% endcomment %}
     <div class="hub-mobile-overlay" id="hub-mobile-overlay" onclick="HubEngine.closeMobileSidebar()"></div>
-    <aside class="hub-sidebar-mobile fixed top-0 left-0 bottom-0 w-[280px] flex flex-col hub-glass-heavy border-r border-white/5" id="hub-mobile-sidebar" style="z-index:70;">
+    <aside class="hub-sidebar-mobile fixed top-0 left-0 bottom-0 w-[280px] flex flex-col hub-glass-heavy border-r border-white/5" id="hub-mobile-sidebar" aria-hidden="true" style="z-index:70;">
       {% include "tournaments/hub/_sidebar.html" %}
     </aside>
 
     {% comment %}Main Viewport{% endcomment %}
     <main class="flex-1 overflow-y-auto relative" id="hub-viewport">
+
+      <div id="hub-tab-lock-overlay" class="hub-tab-lock-overlay" aria-hidden="true">
+        <div class="hub-tab-lock-overlay-panel">
+          <div class="hub-tab-lock-emblem" aria-hidden="true">
+            <i data-lucide="lock-keyhole" class="w-6 h-6"></i>
+          </div>
+          <span id="hub-lock-tab-chip" class="hub-tab-lock-chip">Locked Feature</span>
+          <h3 id="hub-lock-overlay-title" class="hub-tab-lock-title">This area unlocks after verification</h3>
+          <p id="hub-lock-overlay-message" class="hub-tab-lock-copy">{{ hub_lock_reason }}</p>
+          <div class="hub-tab-lock-actions">
+            <button type="button" class="hub-tab-lock-btn primary" onclick="HubEngine.switchTab('support')">
+              <i data-lucide="life-buoy" class="w-4 h-4"></i>
+              Contact Support
+            </button>
+            <button type="button" class="hub-tab-lock-btn" onclick="HubEngine.showStatusModal()">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              View Status
+            </button>
+          </div>
+        </div>
+      </div>
 
       {% comment %}Tab: Command Center (Overview){% endcomment %}
       <div id="hub-tab-overview" class="hub-tab-content active">
@@ -268,7 +319,7 @@
               <i data-lucide="shield-check" class="w-5 h-5 text-[#00F0FF]"></i>
             </div>
             <div>
-              <h3 class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Registration Status</h3>
+              <h3 id="hub-status-modal-title" class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Registration Status</h3>
               <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5" style="font-family:'Space Grotesk',monospace;">{{ status_detail.registered_at_display }}</p>
             </div>
           </div>
@@ -348,7 +399,7 @@
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-white/10 p-6 space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Contact Organizer</h3>
+        <h3 id="hub-contact-modal-title" class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Contact Organizer</h3>
         <button onclick="HubEngine.closeContactModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
@@ -388,7 +439,7 @@
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00F0FF]/20 to-[#7000FF]/20 border border-white/10 flex items-center justify-center mx-auto mb-4">
           <i data-lucide="compass" class="w-7 h-7 text-[#00F0FF]"></i>
         </div>
-        <h3 class="text-xl font-bold text-white" style="font-family:Outfit,sans-serif;">Welcome to The Hub</h3>
+        <h3 id="hub-welcome-modal-title" class="text-xl font-bold text-white" style="font-family:Outfit,sans-serif;">Welcome to The Hub</h3>
         <p class="text-sm text-gray-400 mt-2">Your tournament mission control. Here's what you can do:</p>
       </div>
       <div class="space-y-3">
@@ -434,7 +485,7 @@
 {% endblock %}
 
 {% block tournament_js %}
-<script src="{% static 'tournaments/js/hub-engine.js' %}"></script>
+<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260323h"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

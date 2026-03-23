@@ -165,6 +165,9 @@ from .stats_certs import (
 from .discord_webhook_log import (
     DiscordWebhookLog,    # Discord webhook delivery log (rolling 50 entries)
 )
+from .hub_support_ticket import (
+    HubSupportTicket,  # Hub support/dispute tickets for participant history
+)
 from .match_player_stats import (
     MatchPlayerStat,      # Per-player aggregated match stats (kills, ACS, etc.)
     MatchMapPlayerStat,   # Per-player per-map stats within a series
@@ -257,6 +260,8 @@ __all__ = [
     'TrustEvent',
     # Discord Webhook Delivery Log
     'DiscordWebhookLog',
+    # Hub Support / Dispute Tickets
+    'HubSupportTicket',
     # Match Player Statistics
     'MatchPlayerStat',
     'MatchMapPlayerStat',

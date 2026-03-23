@@ -33,6 +33,7 @@ from apps.tournaments.models import (
     TournamentSponsor,
     PrizeClaim,
     TournamentStaff,
+    HubSupportTicket,
 )
 from apps.tournaments.models.bracket import Bracket, BracketNode
 from apps.tournaments.models.group import Group, GroupStanding
@@ -122,6 +123,41 @@ def _resolve_hub_view_mode(request, tournament, registration):
         'can_toggle_view_mode': can_toggle_view_mode,
         'query_suffix': query_suffix,
     }
+
+
+def _is_registration_verified_for_critical_actions(registration):
+    """Only confirmed/auto-approved registrations may perform critical Hub actions."""
+    if not registration:
+        return False
+    return registration.status in (Registration.CONFIRMED, Registration.AUTO_APPROVED)
+
+
+def _critical_lock_reason(registration):
+    if not registration:
+        return 'Registration required before critical actions are available.'
+    status_map = {
+        Registration.PENDING: 'Your registration is pending organizer approval. Critical actions are locked.',
+        Registration.PAYMENT_SUBMITTED: 'Payment verification is pending. Critical actions are locked until verification completes.',
+        Registration.NEEDS_REVIEW: 'Your registration is under manual review. Critical actions are locked for now.',
+        Registration.SUBMITTED: 'Your registration submission is still processing. Critical actions are locked.',
+        Registration.DRAFT: 'Complete your registration first. Critical actions are locked.',
+    }
+    return status_map.get(registration.status, 'Critical actions are currently locked for this registration state.')
+
+
+def _critical_actions_locked(user, tournament, registration):
+    if _is_tournament_staff_or_organizer(user, tournament):
+        return False
+    return not _is_registration_verified_for_critical_actions(registration)
+
+
+def _forbidden_if_critical_locked(request, tournament, registration):
+    if _critical_actions_locked(request.user, tournament, registration):
+        return JsonResponse({
+            'error': 'critical_actions_locked',
+            'reason': _critical_lock_reason(registration),
+        }, status=403)
+    return None
 
 
 def _build_hub_context(request, tournament, registration, query_suffix=''):
@@ -362,6 +398,10 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
     # ── User status label ────────────────────────────────
     user_status = _registration_status_label(registration, check_in)
 
+    hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
+    hub_payment_verified = _is_registration_verified_for_critical_actions(registration) if registration else False
+    hub_lock_reason = _critical_lock_reason(registration) if hub_critical_locked else ''
+
     # ── Status detail for modal ──────────────────────────
     status_detail = _build_status_detail(registration, check_in, tournament, now)
 
@@ -498,6 +538,11 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
 
         # Support system API
         'api_support_url': f'/tournaments/{tournament.slug}/hub/api/support/{query_suffix}',
+
+        # Registration/payment lock state
+        'hub_critical_locked': hub_critical_locked,
+        'hub_payment_verified': hub_payment_verified,
+        'hub_lock_reason': hub_lock_reason,
     }
     return context
 
@@ -771,6 +816,10 @@ class HubCheckInAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
         try:
             team_id = None
             if tournament.participation_type == 'team' and registration and registration.team_id:
@@ -852,6 +901,10 @@ class HubSquadAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         if not registration or tournament.participation_type != 'team' or not registration.team_id:
             return JsonResponse({'error': 'Not a team tournament'}, status=400)
@@ -1044,6 +1097,10 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
         # ── Prize Pool Info ────────────────────────────
         prize_pool = {
             'total': str(tournament.prize_pool or 0),
@@ -1101,6 +1158,10 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         try:
             body = json.loads(request.body)
@@ -1229,6 +1290,10 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         try:
             bracket = Bracket.objects.get(tournament=tournament)
@@ -1363,6 +1428,10 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         is_team = tournament.participation_type == 'team'
         groups = Group.objects.filter(
@@ -1562,6 +1631,10 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
 
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
         is_team = tournament.participation_type == 'team'
         view_mode = _resolve_hub_view_mode(request, tournament, registration)
         is_staff_view = view_mode['is_staff_view']
@@ -1677,6 +1750,10 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return JsonResponse({'error': 'not_registered'}, status=403)
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         is_team = tournament.participation_type == 'team'
 
@@ -1800,7 +1877,48 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
 
 
 class HubSupportAPIView(LoginRequiredMixin, View):
-    """POST: Submit a support request / dispute to the tournament organizer."""
+    """GET/POST support requests for the tournament organizer."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        is_staff_view = _is_tournament_staff_or_organizer(request.user, tournament)
+        tickets_qs = HubSupportTicket.objects.filter(tournament=tournament)
+
+        if not is_staff_view:
+            if registration and registration.team_id:
+                tickets_qs = tickets_qs.filter(
+                    models.Q(registration=registration) |
+                    models.Q(team_id=registration.team_id) |
+                    models.Q(created_by=request.user)
+                )
+            elif registration:
+                tickets_qs = tickets_qs.filter(
+                    models.Q(registration=registration) |
+                    models.Q(created_by=request.user)
+                )
+            else:
+                tickets_qs = tickets_qs.filter(created_by=request.user)
+
+        tickets = []
+        for t in tickets_qs.select_related('created_by').order_by('-created_at')[:50]:
+            tickets.append({
+                'id': t.id,
+                'category': t.category,
+                'category_display': t.get_category_display(),
+                'subject': t.subject,
+                'message': t.message,
+                'match_ref': t.match_ref,
+                'status': t.status,
+                'status_display': t.get_status_display(),
+                'created_at': t.created_at.isoformat() if t.created_at else None,
+                'time_ago': _time_ago(t.created_at) if t.created_at else '',
+            })
+
+        return JsonResponse({'tickets': tickets, 'total': len(tickets)})
 
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('organizer'), slug=slug)
@@ -1826,6 +1944,17 @@ class HubSupportAPIView(LoginRequiredMixin, View):
         valid_categories = ['general', 'dispute', 'technical', 'payment']
         if category not in valid_categories:
             category = 'general'
+
+        ticket = HubSupportTicket.objects.create(
+            tournament=tournament,
+            registration=registration,
+            created_by=request.user,
+            team_id=registration.team_id if registration and registration.team_id else None,
+            category=category,
+            subject=subject,
+            message=message,
+            match_ref=match_ref,
+        )
 
         # Log the support request
         logger.info(
@@ -1870,4 +1999,16 @@ class HubSupportAPIView(LoginRequiredMixin, View):
         return JsonResponse({
             'success': True,
             'message': 'Your message has been sent to the tournament organizer. You should receive a response within 24-48 hours.',
+            'ticket': {
+                'id': ticket.id,
+                'category': ticket.category,
+                'category_display': ticket.get_category_display(),
+                'subject': ticket.subject,
+                'message': ticket.message,
+                'match_ref': ticket.match_ref,
+                'status': ticket.status,
+                'status_display': ticket.get_status_display(),
+                'created_at': ticket.created_at.isoformat() if ticket.created_at else None,
+                'time_ago': _time_ago(ticket.created_at) if ticket.created_at else 'just now',
+            },
         })

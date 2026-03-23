@@ -10,13 +10,19 @@ Replaces the multi-step wizard with a single intelligent page:
 
 import logging
 import math
+import json
 from decimal import Decimal
+from datetime import timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
+from django.utils.crypto import salted_hmac
 from django.utils import timezone
 from django.db import models as db_models
 from django.http import JsonResponse
@@ -34,6 +40,8 @@ from apps.games.services import game_service
 from apps.organizations.models import Team, TeamMembership
 
 logger = logging.getLogger(__name__)
+
+OFFICIAL_DISCORD_URL = "https://discord.gg/UaHRC8Cd"
 
 
 class SmartRegistrationView(LoginRequiredMixin, View):
@@ -75,6 +83,15 @@ class SmartRegistrationView(LoginRequiredMixin, View):
 
         try:
             registration = self._process_registration(request, tournament, eligibility)
+            try:
+                self._send_registration_success_emails(request, tournament, registration)
+            except Exception as mail_error:
+                logger.warning(
+                    "Registration success email dispatch failed for registration %s: %s",
+                    getattr(registration, 'id', 'unknown'),
+                    mail_error,
+                    exc_info=True,
+                )
             return redirect('tournaments:dynamic_registration_success', tournament_slug=actual_slug, registration_id=registration.id)
         except ValidationError as e:
             error_msg = e.message if hasattr(e, 'message') else str(e)
@@ -1141,6 +1158,59 @@ class SmartRegistrationView(LoginRequiredMixin, View):
 
         return registration
 
+    def _send_registration_success_emails(self, request, tournament, registration):
+        """Best-effort registration success email notifications."""
+        recipients = set()
+
+        # Primary registrant email
+        primary_email = (getattr(request.user, 'email', '') or '').strip().lower()
+        if primary_email:
+            recipients.add(primary_email)
+
+        # Team registrations also notify all active team members
+        team = getattr(registration, 'team', None)
+        if team:
+            member_qs = TeamMembership.objects.filter(
+                team=team,
+                status=TeamMembership.Status.ACTIVE,
+            ).select_related('user')
+            for membership in member_qs:
+                email = (getattr(membership.user, 'email', '') or '').strip().lower()
+                if email:
+                    recipients.add(email)
+
+        if not recipients:
+            return
+
+        reg_code = (
+            (getattr(registration, 'registration_number', '') or '').strip()
+            or str(registration.id)
+        )
+        card_path = reverse(
+            'tournaments:dynamic_registration_success',
+            kwargs={'tournament_slug': tournament.slug, 'registration_id': registration.id},
+        )
+        hub_path = reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug})
+        card_url = request.build_absolute_uri(card_path)
+        hub_url = request.build_absolute_uri(hub_path)
+
+        subject = f"[DeltaCrown] Registration Confirmed - {tournament.name}"
+        message = (
+            f"Your registration for {tournament.name} is complete.\n\n"
+            f"Registration ID: {reg_code}\n"
+            f"View your VIP pass card: {card_url}\n"
+            f"Open Tournament Hub: {hub_url}\n\n"
+            "Keep this pass ready for check-in and match operations."
+        )
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=sorted(recipients),
+            fail_silently=True,
+        )
+
     def _process_payment(self, request, registration, tournament):
         """Process payment for paid tournaments."""
         payment_method = request.POST.get('payment_method', '')
@@ -1271,12 +1341,97 @@ class SmartRegistrationSuccessView(LoginRequiredMixin, View):
         game_color = getattr(game_spec, 'primary_color', '#06b6d4') if game_spec else '#06b6d4'
         game_color_rgb = getattr(game_spec, 'primary_color_rgb', '6, 182, 212') if game_spec else '6, 182, 212'
 
+        now = timezone.now()
+        start_at = getattr(tournament, 'tournament_start', None)
+        check_in_open_at = None
+        check_in_close_at = None
+        check_in_live = False
+        if getattr(tournament, 'enable_check_in', False) and start_at:
+            check_in_open_at = start_at - timedelta(minutes=int(getattr(tournament, 'check_in_minutes_before', 30) or 30))
+            check_in_close_at = start_at - timedelta(minutes=int(getattr(tournament, 'check_in_closes_minutes_before', 0) or 0))
+            check_in_live = check_in_open_at <= now <= check_in_close_at
+
+        status_value = str(getattr(tournament, 'status', '') or '').lower()
+        is_live_phase = status_value in {'live', 'ongoing', 'in_progress', 'active'}
+        is_completed_phase = status_value in {'completed', 'finished'}
+        is_paused_phase = status_value in {'paused', 'postponed'}
+        is_cancelled_phase = status_value in {'cancelled', 'canceled'}
+
+        discord_url = (
+            (getattr(tournament, 'social_discord', '') or '').strip()
+            or OFFICIAL_DISCORD_URL
+        )
+        registration_code = (
+            (getattr(registration, 'registration_number', '') or '').strip()
+            or str(registration.id)
+        )
+
+        platform_value = getattr(tournament, 'platform', None)
+        platform_labels: list[str] = []
+        platform_choice_map = {
+            str(key).lower(): str(label)
+            for key, label in getattr(Tournament, 'PLATFORM_CHOICES', [])
+        }
+
+        if platform_value:
+            parsed_platforms = None
+            if isinstance(platform_value, list):
+                parsed_platforms = platform_value
+            else:
+                raw_platform = str(platform_value).strip()
+                if raw_platform.startswith('[') and raw_platform.endswith(']'):
+                    try:
+                        maybe_list = json.loads(raw_platform)
+                        if isinstance(maybe_list, list):
+                            parsed_platforms = maybe_list
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        parsed_platforms = None
+                if parsed_platforms is None:
+                    if ',' in raw_platform:
+                        parsed_platforms = [item.strip() for item in raw_platform.split(',') if item and item.strip()]
+                    else:
+                        parsed_platforms = [raw_platform]
+
+            for token in parsed_platforms or []:
+                key = str(token).strip().lower()
+                if not key:
+                    continue
+                label = platform_choice_map.get(key)
+                if not label:
+                    label = str(token).replace('_', ' ').strip().title()
+                if label not in platform_labels:
+                    platform_labels.append(label)
+
+        platform_display_text = ', '.join(platform_labels)
+
+        secret_digest = salted_hmac(
+            'vip-pass-secret',
+            f'{tournament.id}:{registration_code}:{registration.id}',
+        ).hexdigest().upper()
+        ticket_secret_code = f"DCX-{secret_digest[:12]}"
+        qr_payload = request.build_absolute_uri(
+            f"{request.path}?rid={registration_code}&sig={ticket_secret_code}"
+        )
+
         return render(request, 'tournaments/registration/smart_success.html', {
             'tournament': tournament,
             'registration': registration,
             'team': registration.team,
             'game_color': game_color,
             'game_color_rgb': game_color_rgb,
+            'discord_url': discord_url,
+            'official_discord_url': OFFICIAL_DISCORD_URL,
+            'registration_code': registration_code,
+            'platform_display_text': platform_display_text,
+            'ticket_secret_code': ticket_secret_code,
+            'ticket_qr_payload': qr_payload,
+            'check_in_live': check_in_live,
+            'check_in_open_at': check_in_open_at,
+            'check_in_close_at': check_in_close_at,
+            'is_live_phase': is_live_phase,
+            'is_completed_phase': is_completed_phase,
+            'is_paused_phase': is_paused_phase,
+            'is_cancelled_phase': is_cancelled_phase,
         })
 
 

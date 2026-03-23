@@ -25,6 +25,10 @@
   z-index: 1;
 }
 
+body.hub-mobile-nav-open {
+  overflow: hidden !important;
+}
+
 /* ── Cinematic Background Layers ──────────────────────────── */
 .hub-bg-cinematic {
   position: absolute; inset: 0; z-index: 0;
@@ -118,6 +122,48 @@
   transform: scale(1.05);
 }
 
+/* ── Limited Access Banner ───────────────────────────────── */
+.hub-lock-banner {
+  border-bottom: 1px solid rgba(255, 184, 0, 0.25);
+  background:
+    linear-gradient(90deg, rgba(255, 184, 0, 0.25) 0%, rgba(255, 184, 0, 0.1) 42%, rgba(0, 240, 255, 0.14) 100%),
+    #17110a;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 26px -12px rgba(255, 184, 0, 0.65),
+    0 0 0 1px rgba(255, 184, 0, 0.08);
+  position: relative;
+  z-index: 35;
+}
+.hub-lock-banner-inner {
+  color: #fff4cf;
+}
+.hub-lock-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 240, 255, 0.32);
+  background: rgba(0, 240, 255, 0.16);
+  color: #8ef8ff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: all 0.2s;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.2);
+}
+.hub-lock-cta:hover {
+  background: rgba(0, 240, 255, 0.26);
+  border-color: rgba(0, 240, 255, 0.55);
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.32);
+}
+
+.hub-sidebar-desktop,
+.hub-sidebar-mobile {
+  background: linear-gradient(180deg, #111723 0%, #090d15 100%);
+}
+
 /* ── Back Button ──────────────────────────────────────────── */
 .hub-back-btn {
   display: flex;
@@ -173,6 +219,124 @@
   animation: hub-slideIn 0.4s ease-out forwards;
 }
 .hub-tab-content.active { display: block; }
+
+.hub-tab-content.is-lock-blurred {
+  filter: blur(6px) saturate(0.8);
+  transform: scale(1.01);
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hub-tab-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  z-index: 40;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 184, 0, 0.26) 0%, rgba(255, 184, 0, 0.05) 44%, rgba(2, 2, 3, 0.74) 100%),
+    radial-gradient(circle at 50% 75%, rgba(0, 240, 255, 0.1) 0%, rgba(0, 240, 255, 0.01) 50%, transparent 100%),
+    rgba(2, 4, 8, 0.6);
+}
+.hub-tab-lock-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.hub-tab-lock-overlay-panel {
+  width: min(96%, 540px);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 184, 0, 0.38);
+  background: linear-gradient(165deg, rgba(9, 12, 18, 0.96) 0%, rgba(15, 14, 11, 0.92) 100%);
+  box-shadow:
+    0 24px 70px -30px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 34px rgba(255, 184, 0, 0.12),
+    0 0 24px rgba(0, 240, 255, 0.08);
+  text-align: center;
+  padding: 1.4rem 1.2rem;
+}
+.hub-tab-lock-emblem {
+  width: 3.6rem;
+  height: 3.6rem;
+  margin: 0 auto 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 184, 0, 0.42);
+  background: radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 184, 0, 0.16) 42%, rgba(255, 184, 0, 0.04) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd86b;
+  box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.45), 0 0 16px rgba(255, 184, 0, 0.32);
+  animation: hub-lock-orbit 2.1s ease-in-out infinite;
+}
+.hub-tab-lock-chip {
+  display: inline-flex;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 184, 0, 0.36);
+  color: #ffcf6f;
+  background: rgba(255, 184, 0, 0.14);
+  font-size: 0.625rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+.hub-tab-lock-title {
+  margin-top: 0.8rem;
+  color: #ffffff;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
+}
+.hub-tab-lock-copy {
+  margin-top: 0.55rem;
+  color: #ebe3ca;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.hub-tab-lock-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.hub-tab-lock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.6rem 0.8rem;
+  transition: all 0.2s;
+}
+.hub-tab-lock-btn:hover {
+  border-color: rgba(255, 255, 255, 0.36);
+  background: rgba(255, 255, 255, 0.12);
+}
+.hub-tab-lock-btn.primary {
+  border-color: rgba(0, 240, 255, 0.4);
+  color: #8ef8ff;
+  background: rgba(0, 240, 255, 0.18);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.18);
+}
+.hub-tab-lock-btn.primary:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+  color: #ffffff;
+  background: rgba(0, 240, 255, 0.28);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.3);
+}
 
 /* ── Sidebar Nav Button States ────────────────────────────── */
 .hub-nav-btn {
@@ -315,8 +479,30 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
+@keyframes hub-lock-orbit {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.45);
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(255, 184, 0, 0);
+    transform: translateY(-3px) scale(1.045);
+  }
+}
 .animate-hub-pulse { animation: hub-pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 .animate-hub-float { animation: hub-float 6s ease-in-out infinite; }
+
+@media (max-width: 768px) {
+  .hub-tab-lock-overlay-panel {
+    padding: 1.15rem 1rem;
+  }
+  .hub-tab-lock-title {
+    font-size: 0.96rem;
+  }
+  .hub-tab-lock-copy {
+    font-size: 0.74rem;
+  }
+}
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1023px) {

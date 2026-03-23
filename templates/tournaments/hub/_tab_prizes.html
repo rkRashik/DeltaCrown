@@ -6,6 +6,13 @@
 
 <div class="p-6 lg:p-8 space-y-8 min-h-[80vh]">
 
+  {% if hub_critical_locked %}
+  <div class="rounded-xl border border-[#FFB800]/25 bg-[#FFB800]/8 px-4 py-3 flex items-start gap-3">
+    <i data-lucide="lock" class="w-4 h-4 text-[#FFB800] mt-0.5"></i>
+    <p class="text-xs text-[#FFB800]">Prize claim actions are locked until verification is complete. You can still view prize data.</p>
+  </div>
+  {% endif %}
+
   {% comment %}── Section Header ─────────────────────────────{% endcomment %}
   <div class="flex items-center justify-between flex-wrap gap-4">
     <div>

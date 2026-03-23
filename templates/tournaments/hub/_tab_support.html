@@ -176,19 +176,19 @@
           <div>
             <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Category</label>
             <div class="grid grid-cols-2 gap-2" id="support-categories">
-              <button type="button" class="support-category-btn active" data-category="general" onclick="HubEngine.selectSupportCategory('general')">
+              <button type="button" class="support-category-btn active" data-category="general" aria-pressed="true" onclick="HubEngine.selectSupportCategory('general')">
                 <i data-lucide="help-circle" class="w-4 h-4"></i>
                 <span>General Inquiry</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="dispute" onclick="HubEngine.selectSupportCategory('dispute')">
+              <button type="button" class="support-category-btn" data-category="dispute" aria-pressed="false" onclick="HubEngine.selectSupportCategory('dispute')">
                 <i data-lucide="alert-triangle" class="w-4 h-4"></i>
                 <span>Match Dispute</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="technical" onclick="HubEngine.selectSupportCategory('technical')">
+              <button type="button" class="support-category-btn" data-category="technical" aria-pressed="false" onclick="HubEngine.selectSupportCategory('technical')">
                 <i data-lucide="bug" class="w-4 h-4"></i>
                 <span>Technical Issue</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="payment" onclick="HubEngine.selectSupportCategory('payment')">
+              <button type="button" class="support-category-btn" data-category="payment" aria-pressed="false" onclick="HubEngine.selectSupportCategory('payment')">
                 <i data-lucide="credit-card" class="w-4 h-4"></i>
                 <span>Payment / Prize</span>
               </button>

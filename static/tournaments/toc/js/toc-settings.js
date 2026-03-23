@@ -88,6 +88,15 @@
         'settings-seo',
     ];
 
+    const OFFICIAL_SOCIAL_DEFAULTS = {
+        social_facebook: 'https://www.facebook.com/DeltaCrownGG',
+        social_discord: 'https://discord.gg/UaHRC8Cd',
+        social_youtube: 'https://www.youtube.com/@DeltaCrownGG',
+        social_instagram: 'https://instagram.com/deltacrowngg',
+        contact_phone: '+8801789560202',
+        social_website: 'https://deltacrown.gg',
+    };
+
     const SETTINGS_CUSTOM_SECTION_SAVERS = {
         'settings-game-section': function () { return saveGameConfig(); },
         'settings-br-section': function () { return saveBRScoring(); },
@@ -385,6 +394,31 @@
                 });
             });
         });
+
+        const officialToggle = document.querySelector('#settings-basic [data-field="is_official"]');
+        if (officialToggle && officialToggle.dataset.officialDefaultsBound !== '1') {
+            officialToggle.dataset.officialDefaultsBound = '1';
+            officialToggle.addEventListener('change', function () {
+                if (!officialToggle.checked) return;
+                const social = document.getElementById('settings-social');
+                if (!social) return;
+
+                let changed = false;
+                Object.keys(OFFICIAL_SOCIAL_DEFAULTS).forEach(function (field) {
+                    const current = getVal(social, field);
+                    if (current === undefined || current === null || String(current).trim() === '') {
+                        setVal(social, field, OFFICIAL_SOCIAL_DEFAULTS[field]);
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    _setSectionState('settings-social', 'dirty');
+                    _refreshGlobalDirtyFromSections();
+                    toast('Official defaults applied to Social links', 'info');
+                }
+            });
+        }
     }
 
     async function _initRichTextEditors () {
