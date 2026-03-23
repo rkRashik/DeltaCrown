@@ -489,7 +489,7 @@
             const key = String(field && field.key || '').trim();
             if (!key) return;
 
-            const label = String(field && field.label || '').trim();
+            const label = String(field && (field.label || field.display_name) || '').trim();
             if (label) {
                 map[key] = label;
             }
@@ -1174,15 +1174,24 @@
     }
 
     function getFieldOptions(field) {
-        if (!Array.isArray(field.options)) return [];
-        return field.options.map(function (option) {
+        const sourceOptions = Array.isArray(field && field.options)
+            ? field.options
+            : (Array.isArray(field && field.choices) ? field.choices : []);
+
+        if (!sourceOptions.length) return [];
+
+        return sourceOptions.map(function (option) {
             if (typeof option === 'string') {
                 return { value: option, label: option };
             }
 
             return {
                 value: option && option.value != null ? String(option.value) : '',
-                label: option && option.label != null ? String(option.label) : String(option && option.value != null ? option.value : '')
+                label: option && option.label != null
+                    ? String(option.label)
+                    : String(option && option.display != null
+                        ? option.display
+                        : (option && option.value != null ? option.value : ''))
             };
         });
     }
@@ -1190,10 +1199,10 @@
     // Render one field from a passport_schema or field_schema entry.
     // currentPassport is required for locked field classes (VERIFIED_IDENTITY, API_SYNCED).
     function renderSchemaField(field, currentPassport) {
-        var key = String(field.key || 'field');
-        var label = getFieldDisplayLabel(key, state.selectedGame, field.label);
-        var type = String(field.type || 'text').toLowerCase();
-        var required = !!field.required;
+        var key = String(field.key || field.field_name || field.name || 'field');
+        var label = getFieldDisplayLabel(key, state.selectedGame, field.label || field.display_name);
+        var type = String(field.type || field.field_type || 'text').toLowerCase();
+        var required = !!(field.required || field.is_required);
         var fieldClass = String(field.field_class || '').toUpperCase();
         var isLocked = fieldClass === 'VERIFIED_IDENTITY' || fieldClass === 'API_SYNCED';
 
@@ -1228,8 +1237,8 @@
             );
         }
 
-        var minLength = field.min_length ? Number(field.min_length) : 0;
-        var maxLength = field.max_length ? Number(field.max_length) : 0;
+        var minLength = (field.min_length || field.minLength) ? Number(field.min_length || field.minLength) : 0;
+        var maxLength = (field.max_length || field.maxLength) ? Number(field.max_length || field.maxLength) : 0;
 
         var baseLabel =
             '<label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1" for="gp-field-' + escapeHtml(key) + '">' +
