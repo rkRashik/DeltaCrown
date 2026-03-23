@@ -1843,6 +1843,11 @@
                         <p class="text-xs text-dc-text mt-1 font-mono">Queue · Evidence · Rulings · Escalation</p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <select id="dispute-filter-source" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
+                            <option value="">All Sources</option>
+                            <option value="match_dispute">Match Disputes</option>
+                            <option value="hub_support">Hub Support</option>
+                        </select>
                         <select id="dispute-filter-status" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
                             <option value="">All Statuses</option>
                             <option value="open">Open</option>
@@ -1863,7 +1868,7 @@
                             <i data-lucide="alert-triangle" class="w-4 h-4 text-dc-danger"></i>
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Open Disputes</p>
+                            <p id="disputes-open-label" class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Open Disputes</p>
                             <p id="disputes-open-count" class="font-mono font-black text-xl text-dc-danger">—</p>
                         </div>
                     </div>
@@ -1872,7 +1877,7 @@
                             <i data-lucide="clock" class="w-4 h-4 text-dc-warning"></i>
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Under Review</p>
+                            <p id="disputes-review-label" class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Under Review</p>
                             <p id="disputes-review-count" class="font-mono font-black text-xl text-dc-warning">—</p>
                         </div>
                     </div>
@@ -1881,7 +1886,7 @@
                             <i data-lucide="arrow-up-right" class="w-4 h-4 text-purple-400"></i>
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Escalated</p>
+                            <p id="disputes-escalated-label" class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Escalated</p>
                             <p id="disputes-escalated-count" class="font-mono font-black text-xl text-purple-400">—</p>
                         </div>
                     </div>
@@ -3916,7 +3921,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-brackets.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-schedule.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-matches.js' %}"></script>
-    <script defer src="{% static 'tournaments/toc/js/toc-disputes.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-disputes.js' %}?v=20260324e"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-settings.js' %}?v=20260323g"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-announcements.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>

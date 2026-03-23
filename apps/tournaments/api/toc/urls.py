@@ -146,6 +146,7 @@ urlpatterns = [
     # ── Disputes (S7-B1 through S7-B7) ──
     path('<slug:slug>/disputes/', disputes.DisputeListView.as_view(), name='disputes'),
     path('<slug:slug>/disputes/<int:pk>/', disputes.DisputeDetailView.as_view(), name='dispute-detail'),
+    path('<slug:slug>/disputes/hub-tickets/<int:pk>/', disputes.DisputeHubTicketDetailView.as_view(), name='dispute-hub-ticket-detail'),
     path('<slug:slug>/disputes/<int:pk>/resolve/', disputes.DisputeResolveView.as_view(), name='dispute-resolve'),
     path('<slug:slug>/disputes/<int:pk>/escalate/', disputes.DisputeEscalateView.as_view(), name='dispute-escalate'),
     path('<slug:slug>/disputes/<int:pk>/assign/', disputes.DisputeAssignView.as_view(), name='dispute-assign'),

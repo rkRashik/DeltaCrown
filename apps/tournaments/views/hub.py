@@ -626,6 +626,7 @@ def _get_next_phase_event(tournament, lobby, now):
         events.append({
             'label': 'Registration Opens',
             'target': tournament.registration_start.isoformat(),
+            '_target_dt': tournament.registration_start,
             'type': 'info',
         })
 
@@ -633,6 +634,7 @@ def _get_next_phase_event(tournament, lobby, now):
         events.append({
             'label': 'Registration Closes',
             'target': tournament.registration_end.isoformat(),
+            '_target_dt': tournament.registration_end,
             'type': 'warning',
         })
 
@@ -640,6 +642,7 @@ def _get_next_phase_event(tournament, lobby, now):
         events.append({
             'label': 'Check-In Opens',
             'target': lobby.check_in_opens_at.isoformat(),
+            '_target_dt': lobby.check_in_opens_at,
             'type': 'info',
         })
 
@@ -647,6 +650,7 @@ def _get_next_phase_event(tournament, lobby, now):
         events.append({
             'label': 'Check-In Closes',
             'target': lobby.check_in_closes_at.isoformat(),
+            '_target_dt': lobby.check_in_closes_at,
             'type': 'danger',
         })
 
@@ -654,11 +658,17 @@ def _get_next_phase_event(tournament, lobby, now):
         events.append({
             'label': 'Tournament Starts',
             'target': tournament.tournament_start.isoformat(),
+            '_target_dt': tournament.tournament_start,
             'type': 'info',
         })
 
     # Return earliest upcoming event
-    return events[0] if events else {
+    if events:
+        events.sort(key=lambda e: e['_target_dt'])
+        event = events[0]
+        event.pop('_target_dt', None)
+        return event
+    return {
         'label': 'Tournament In Progress',
         'target': None,
         'type': 'success',
@@ -708,6 +718,13 @@ def _get_avatar_url(user):
     except Exception:
         pass
     return f"https://ui-avatars.com/api/?name={user.username[:2]}&background=0A0A0E&color=fff&size=64"
+
+
+def _json_response(payload, status=200, cache_control=None):
+    resp = JsonResponse(payload, status=status)
+    if cache_control:
+        resp['Cache-Control'] = cache_control
+    return resp
 
 
 # ────────────────────────────────────────────────────────────
@@ -763,7 +780,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         now = timezone.now()
         lobby = getattr(tournament, 'lobby', None)
@@ -804,7 +821,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
             ).count(),
             'server_time': now.isoformat(),
         }
-        return JsonResponse(data)
+        return _json_response(data, cache_control='no-store')
 
 
 class HubCheckInAPIView(LoginRequiredMixin, View):
@@ -845,11 +862,11 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lobby = getattr(tournament, 'lobby', None)
         if not lobby:
-            return JsonResponse({'announcements': []})
+            return _json_response({'announcements': []}, cache_control='private, max-age=15')
 
         now = timezone.now()
         ann_qs = LobbyAnnouncement.objects.filter(
@@ -870,7 +887,7 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
                 'created_at': a.created_at.isoformat(),
                 'time_ago': _time_ago(a.created_at, now),
             })
-        return JsonResponse({'announcements': data})
+        return _json_response({'announcements': data}, cache_control='private, max-age=15')
 
 
 class HubRosterAPIView(LoginRequiredMixin, View):
@@ -1009,7 +1026,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
         )
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         # ── Rules ──────────────────────────────────────
         rules = {
@@ -1060,7 +1077,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
                 'description': s.description or '',
             })
 
-        return JsonResponse({
+        return _json_response({
             'rules': rules,
             'social_links': social_links,
             'contact_email': contact_email,
@@ -1078,7 +1095,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
                 'promo_video_url': tournament.promo_video_url or '',
                 'description': tournament.description or '',
             },
-        })
+        }, cache_control='private, max-age=300')
 
 
 # ────────────────────────────────────────────────────────────
@@ -1095,7 +1112,7 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
@@ -1146,12 +1163,12 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
                 'count': row['count'],
             })
 
-        return JsonResponse({
+        return _json_response({
             'prize_pool': prize_pool,
             'your_prizes': prizes,
             'overview': overview,
             'tournament_status': tournament.status,
-        })
+        }, cache_control='no-store')
 
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament, slug=slug)
@@ -1289,7 +1306,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
@@ -1298,11 +1315,11 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         try:
             bracket = Bracket.objects.get(tournament=tournament)
         except Bracket.DoesNotExist:
-            return JsonResponse({
+            return _json_response({
                 'generated': False,
                 'format': tournament.format,
                 'format_display': tournament.get_format_display(),
-            })
+            }, cache_control='private, max-age=15')
 
         # Build rounds data from matches
         matches = Match.objects.filter(
@@ -1340,7 +1357,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
             })
 
-        return JsonResponse({
+        return _json_response({
             'generated': True,
             'format': bracket.format,
             'format_display': bracket.get_format_display(),
@@ -1348,7 +1365,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             'total_matches': bracket.total_matches,
             'is_finalized': bracket.is_finalized,
             'rounds': list(rounds.values()),
-        })
+        }, cache_control='private, max-age=15')
 
 
 # ────────────────────────────────────────────────────────────
@@ -1427,7 +1444,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
@@ -1480,11 +1497,11 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                     'standings': rows,
                 })
 
-            return JsonResponse({
+            return _json_response({
                 'has_standings': True,
                 'standings_type': 'groups',
                 'groups': groups_data,
-            })
+            }, cache_control='private, max-age=15')
 
         # ── Fallback: derive standings from bracket match results ──
         matches = Match.objects.filter(
@@ -1493,7 +1510,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
             state__in=['completed', 'forfeit'],
         )
         if not matches.exists():
-            return JsonResponse({'has_standings': False, 'groups': []})
+            return _json_response({'has_standings': False, 'groups': []}, cache_control='private, max-age=15')
 
         # Aggregate W/L per participant
         from collections import defaultdict
@@ -1562,11 +1579,11 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         for i, r in enumerate(rows, 1):
             r['rank'] = i
 
-        return JsonResponse({
+        return _json_response({
             'has_standings': True,
             'standings_type': 'bracket',
             'rows': rows,
-        })
+        }, cache_control='private, max-age=15')
 
 
 # ────────────────────────────────────────────────────────────
@@ -1629,7 +1646,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
@@ -1731,11 +1748,11 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             else:
                 active.append(match_data)
 
-        return JsonResponse({
+        return _json_response({
             'active_matches': active,
             'match_history': history,
             'total': len(active) + len(history),
-        })
+        }, cache_control='private, max-age=10')
 
 
 # ────────────────────────────────────────────────────────────
@@ -1749,32 +1766,112 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
             return lock_resp
 
+        try:
+            page = max(int(request.GET.get('page', '1')), 1)
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = int(request.GET.get('page_size', '40'))
+        except (TypeError, ValueError):
+            page_size = 40
+        page_size = max(1, min(page_size, 100))
+
         is_team = tournament.participation_type == 'team'
 
         # Fetch confirmed registrations
-        confirmed_regs = Registration.objects.filter(
+        confirmed_regs_qs = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,
             status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
         ).select_related('user').order_by('created_at')
+        confirmed_regs = list(confirmed_regs_qs)
 
         # Check if user's own registration is unverified (not in confirmed list)
         user_reg_confirmed = registration.status in ('confirmed', 'auto_approved') if registration else False
         seen_ids = set()
 
         participants = []
+        prefetch = {
+            'teams_by_id': {},
+            'member_counts': {},
+            'team_member_avatars': {},
+            'checked_in_team_ids': set(),
+            'checked_in_user_ids': set(),
+        }
+
+        if is_team:
+            from apps.organizations.models import Team, TeamMembership as TM
+
+            team_ids = {reg.team_id for reg in confirmed_regs if reg.team_id}
+            if registration and registration.team_id:
+                team_ids.add(registration.team_id)
+
+            if team_ids:
+                prefetch['teams_by_id'] = {
+                    team.id: team
+                    for team in Team.objects.filter(id__in=team_ids)
+                }
+                prefetch['member_counts'] = {
+                    row['team_id']: row['count']
+                    for row in TM.objects.filter(
+                        team_id__in=team_ids,
+                        status=TM.Status.ACTIVE,
+                    ).values('team_id').annotate(count=models.Count('id'))
+                }
+
+                members = TM.objects.filter(
+                    team_id__in=team_ids,
+                    status=TM.Status.ACTIVE,
+                ).select_related('user', 'user__profile').order_by('team_id', 'id')
+
+                avatar_map = {}
+                for member in members:
+                    slots = avatar_map.setdefault(member.team_id, [])
+                    if len(slots) >= 5:
+                        continue
+                    avatar = ''
+                    if hasattr(member.user, 'profile') and hasattr(member.user.profile, 'avatar') and member.user.profile.avatar:
+                        avatar = member.user.profile.avatar.url
+                    slots.append({
+                        'initial': (member.user.get_full_name() or member.user.username)[:1].upper(),
+                        'avatar_url': avatar,
+                    })
+                prefetch['team_member_avatars'] = avatar_map
+
+                prefetch['checked_in_team_ids'] = set(
+                    CheckIn.objects.filter(
+                        tournament=tournament,
+                        team_id__in=team_ids,
+                        is_checked_in=True,
+                        is_deleted=False,
+                    ).values_list('team_id', flat=True)
+                )
+        else:
+            user_ids = {reg.user_id for reg in confirmed_regs if reg.user_id}
+            if registration and registration.user_id:
+                user_ids.add(registration.user_id)
+            if user_ids:
+                prefetch['checked_in_user_ids'] = set(
+                    CheckIn.objects.filter(
+                        tournament=tournament,
+                        user_id__in=user_ids,
+                        is_checked_in=True,
+                        is_deleted=False,
+                    ).values_list('user_id', flat=True)
+                )
 
         # If user's team is NOT confirmed, add it first with "pending" status
         if registration and not user_reg_confirmed:
             user_entry = self._build_participant(
                 registration, is_team, registration, tournament, request.user,
                 verified=False,
+                prefetch=prefetch,
             )
             if user_entry:
                 participants.append(user_entry)
@@ -1786,19 +1883,29 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
             entry = self._build_participant(
                 reg, is_team, registration, tournament, request.user,
                 verified=True,
+                prefetch=prefetch,
             )
             if entry:
                 participants.append(entry)
 
-        return JsonResponse({
-            'participants': participants,
-            'total': len(participants),
+        total_count = len(participants)
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged = participants[start:end]
+
+        return _json_response({
+            'participants': paged,
+            'total': total_count,
             'max_participants': tournament.max_participants,
             'is_team': is_team,
-        })
+            'page': page,
+            'page_size': page_size,
+            'has_more': end < total_count,
+        }, cache_control='private, max-age=30')
 
-    def _build_participant(self, reg, is_team, user_registration, tournament, current_user, verified=True):
+    def _build_participant(self, reg, is_team, user_registration, tournament, current_user, verified=True, prefetch=None):
         """Build a single participant dict for the API response."""
+        prefetch = prefetch or {}
         status_label = ''
         if not verified:
             status_map = {
@@ -1811,25 +1918,29 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         if is_team and reg.team_id:
             from apps.organizations.models import Team, TeamMembership as TM
             try:
-                team = Team.objects.get(id=reg.team_id)
+                team = prefetch.get('teams_by_id', {}).get(reg.team_id)
+                if not team:
+                    team = Team.objects.get(id=reg.team_id)
                 logo_url = ''
                 if hasattr(team, 'logo') and team.logo:
                     logo_url = team.logo.url
                 team_detail_url = f'/teams/{team.slug}/' if hasattr(team, 'slug') and team.slug else ''
 
-                members_qs = TM.objects.filter(
+                member_avatars = prefetch.get('team_member_avatars', {}).get(reg.team_id, [])
+                member_count = prefetch.get('member_counts', {}).get(reg.team_id)
+                if member_count is None:
+                    member_count = TM.objects.filter(
+                        team_id=reg.team_id,
+                        status=TM.Status.ACTIVE,
+                    ).count()
+
+                checked_in_team_ids = prefetch.get('checked_in_team_ids', set())
+                checked_in = reg.team_id in checked_in_team_ids if checked_in_team_ids else CheckIn.objects.filter(
+                    tournament=tournament,
                     team_id=reg.team_id,
-                    status=TM.Status.ACTIVE,
-                ).select_related('user')
-                member_avatars = []
-                for m in members_qs[:5]:
-                    avatar = ''
-                    if hasattr(m.user, 'profile') and hasattr(m.user.profile, 'avatar') and m.user.profile.avatar:
-                        avatar = m.user.profile.avatar.url
-                    member_avatars.append({
-                        'initial': (m.user.get_full_name() or m.user.username)[:1].upper(),
-                        'avatar_url': avatar,
-                    })
+                    is_checked_in=True,
+                    is_deleted=False,
+                ).exists()
 
                 return {
                     'id': reg.id,
@@ -1840,22 +1951,24 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     'detail_url': team_detail_url,
                     'is_you': bool(user_registration and user_registration.team_id and reg.team_id == user_registration.team_id),
                     'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
-                    'member_count': members_qs.count(),
+                    'member_count': member_count,
                     'member_avatars': member_avatars,
                     'verified': verified,
                     'status_label': status_label,
-                    'checked_in': CheckIn.objects.filter(
-                        tournament=tournament,
-                        team_id=reg.team_id,
-                        is_checked_in=True,
-                        is_deleted=False,
-                    ).exists(),
+                    'checked_in': checked_in,
                 }
             except Team.DoesNotExist:
                 return None
         else:
             avatar_url = _get_avatar_url(reg.user)
             user_slug = getattr(reg.user, 'username', '')
+            checked_in_user_ids = prefetch.get('checked_in_user_ids', set())
+            checked_in = reg.user_id in checked_in_user_ids if checked_in_user_ids else CheckIn.objects.filter(
+                tournament=tournament,
+                user=reg.user,
+                is_checked_in=True,
+                is_deleted=False,
+            ).exists()
             return {
                 'id': reg.id,
                 'type': 'solo',
@@ -1867,12 +1980,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                 'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
                 'verified': verified,
                 'status_label': status_label,
-                'checked_in': CheckIn.objects.filter(
-                    tournament=tournament,
-                    user=reg.user,
-                    is_checked_in=True,
-                    is_deleted=False,
-                ).exists(),
+                'checked_in': checked_in,
             }
 
 
@@ -1883,7 +1991,7 @@ class HubSupportAPIView(LoginRequiredMixin, View):
         tournament = get_object_or_404(Tournament, slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
-            return JsonResponse({'error': 'not_registered'}, status=403)
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         is_staff_view = _is_tournament_staff_or_organizer(request.user, tournament)
         tickets_qs = HubSupportTicket.objects.filter(tournament=tournament)
@@ -1903,8 +2011,22 @@ class HubSupportAPIView(LoginRequiredMixin, View):
             else:
                 tickets_qs = tickets_qs.filter(created_by=request.user)
 
+        try:
+            page = max(int(request.GET.get('page', '1')), 1)
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = int(request.GET.get('page_size', '50'))
+        except (TypeError, ValueError):
+            page_size = 50
+        page_size = max(1, min(page_size, 100))
+
+        total_count = tickets_qs.count()
+        offset = (page - 1) * page_size
+        has_more = offset + page_size < total_count
+
         tickets = []
-        for t in tickets_qs.select_related('created_by').order_by('-created_at')[:50]:
+        for t in tickets_qs.select_related('created_by').order_by('-created_at')[offset:offset + page_size]:
             tickets.append({
                 'id': t.id,
                 'category': t.category,
@@ -1918,7 +2040,13 @@ class HubSupportAPIView(LoginRequiredMixin, View):
                 'time_ago': _time_ago(t.created_at) if t.created_at else '',
             })
 
-        return JsonResponse({'tickets': tickets, 'total': len(tickets)})
+        return _json_response({
+            'tickets': tickets,
+            'total': total_count,
+            'page': page,
+            'page_size': page_size,
+            'has_more': has_more,
+        }, cache_control='no-store')
 
     def post(self, request, slug):
         tournament = get_object_or_404(Tournament.objects.select_related('organizer'), slug=slug)

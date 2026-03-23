@@ -1,7 +1,7 @@
 # apps/siteui/context.py
 from .site_content import SITE_CONTENT
 from . import services
-from django.core.cache import cache
+from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
 
 from deltacrown.middleware.bot_probe import is_bot_probe_path
 
@@ -14,7 +14,7 @@ def site_settings(request):
     if request.path.startswith('/admin/') or is_bot_probe_path(request.path):
         return {'SITE': dict(SITE_CONTENT)}
 
-    cached = cache.get('siteui:site_settings:v1')
+    cached = safe_cache_get('siteui:site_settings:v1')
     if cached is not None:
         return cached
 
@@ -56,7 +56,7 @@ def site_settings(request):
         "timeline_entries": timeline_entries,
     }
 
-    cache.set('siteui:site_settings:v1', payload, 60)
+    safe_cache_set('siteui:site_settings:v1', payload, 60)
     return payload
 
 
@@ -70,7 +70,7 @@ def nav_flags(request):
     Adds `nav_live` to all templates. Cached for 30s to keep it fast.
     """
     key = "dc_nav_live"
-    val = cache.get(key)
+    val = safe_cache_get(key)
     if val is None:
         live = False
         for app_label, model_name in (("media","Broadcast"), ("streams","Stream"), ("siteui","Broadcast")):
@@ -86,6 +86,6 @@ def nav_flags(request):
                     break
             except Exception:
                 continue
-        cache.set(key, live, 30)
+        safe_cache_set(key, live, 30)
         val = live
     return {"nav_live": val}

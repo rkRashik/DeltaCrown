@@ -19,11 +19,11 @@
     {% if is_team %}
     <div class="flex items-center gap-2 text-xs">
       <span class="text-gray-500">Roster:</span>
-      <span class="font-bold {% if starters|length >= min_roster %}text-[#00FF66]{% else %}text-[#FF2A55]{% endif %}">
+      <span id="squad-starters-count" class="font-bold {% if starters|length >= min_roster %}text-[#00FF66]{% else %}text-[#FF2A55]{% endif %}" data-min-roster="{{ min_roster }}">
         {{ starters|length }}/{{ min_roster }} min
       </span>
       <span class="text-gray-600">&middot;</span>
-      <span class="text-gray-400">{{ squad|length }}/{{ max_roster }} max</span>
+      <span id="squad-total-count" class="text-gray-400">{{ squad|length }}/{{ max_roster }} max</span>
     </div>
     {% endif %}
   </div>
@@ -108,10 +108,10 @@
     <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
       <i data-lucide="crosshair" class="w-4 h-4 text-[#00F0FF]"></i>
       Starting Lineup
-      <span class="text-gray-600">({{ starters|length }})</span>
+      <span id="squad-starters-badge" class="text-gray-600">({{ starters|length }})</span>
     </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div id="squad-starters-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for member in starters %}
       <div class="hub-glass rounded-xl p-4 flex items-center gap-4 roster-starter hub-glass-hover" data-member-id="{{ member.id }}">
         {% comment %}Avatar{% endcomment %}
@@ -160,7 +160,7 @@
         </div>
       </div>
       {% empty %}
-      <div class="hub-glass rounded-xl p-6 text-center col-span-2">
+      <div id="squad-starters-empty" class="hub-glass rounded-xl p-6 text-center col-span-2">
         <p class="text-sm text-gray-500">No starters assigned yet.</p>
       </div>
       {% endfor %}
@@ -171,10 +171,10 @@
     <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
       <i data-lucide="refresh-cw" class="w-4 h-4 text-[#FFB800]"></i>
       Substitutes
-      <span class="text-gray-600">({{ subs|length }})</span>
+      <span id="squad-subs-badge" class="text-gray-600">({{ subs|length }})</span>
     </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div id="squad-subs-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for member in subs %}
       <div class="hub-glass rounded-xl p-4 flex items-center gap-4 roster-sub hub-glass-hover opacity-80" data-member-id="{{ member.id }}">
         <div class="w-10 h-10 rounded-lg bg-[#08080C] overflow-hidden border border-white/10 shrink-0">

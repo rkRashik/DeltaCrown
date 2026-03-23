@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 from django.apps import apps
-from django.core.cache import cache
 from django.utils import timezone
+from django.db.models import Q
+from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
 
 from deltacrown.middleware.bot_probe import is_bot_probe_path
 
@@ -18,7 +19,7 @@ def nav_context(request) -> Dict[str, Any]:
         return {'nav_live': False, 'nav_unread_count': 0, 'nav_user_can_create_event': False, 'nav_primary_items': []}
 
     now = timezone.now()
-    nav_live = bool(cache.get('siteui:nav_live:v1', False))
+    nav_live = bool(safe_cache_get('siteui:nav_live:v1', False))
     nav_unread_count = 0
     nav_user_can_create_event = False
     nav_primary_items: List[Dict[str, Any]] = []
@@ -28,12 +29,13 @@ def nav_context(request) -> Dict[str, Any]:
         # Cache briefly since this value is global and expensive to recompute on every request.
         try:
             T = apps.get_model("tournaments", "Tournament")
-            live_qs = T.objects.filter(tournament_start__lte=now, tournament_end__gte=now)
-            for t in live_qs[:3]:
-                if getattr(t, "stream_youtube_url", "") or getattr(t, "stream_twitch_url", ""):
-                    nav_live = True
-                    break
-            cache.set('siteui:nav_live:v1', nav_live, 30)
+            nav_live = T.objects.filter(
+                tournament_start__lte=now,
+                tournament_end__gte=now,
+            ).filter(
+                Q(stream_youtube_url__gt='') | Q(stream_twitch_url__gt='')
+            ).exists()
+            safe_cache_set('siteui:nav_live:v1', nav_live, 30)
         except Exception:
             pass
 
@@ -52,19 +54,14 @@ def nav_context(request) -> Dict[str, Any]:
             # Add pending follow requests count
             try:
                 pending_key = f"siteui:pending_follow_requests:{request.user.id}"
-                pending_requests_count = cache.get(pending_key)
+                pending_requests_count = safe_cache_get(pending_key)
                 if pending_requests_count is None:
-                    UserProfile = apps.get_model("user_profile", "UserProfile")
                     FollowRequest = apps.get_model("user_profile", "FollowRequest")
-                    user_profile = UserProfile.objects.filter(user=request.user).first()
-                    if user_profile:
-                        pending_requests_count = FollowRequest.objects.filter(
-                            target=user_profile,
-                            status='PENDING'
-                        ).count()
-                    else:
-                        pending_requests_count = 0
-                    cache.set(pending_key, pending_requests_count, 30)
+                    pending_requests_count = FollowRequest.objects.filter(
+                        target__user=request.user,
+                        status='PENDING'
+                    ).count()
+                    safe_cache_set(pending_key, pending_requests_count, 30)
 
                 nav_unread_count += int(pending_requests_count or 0)
             except Exception:
@@ -77,14 +74,14 @@ def nav_context(request) -> Dict[str, Any]:
         u = getattr(request, "user", None)
         if u and u.is_authenticated:
             perm_key = f"siteui:can_create_event:{u.id}:{int(bool(u.is_staff))}"
-            cached_perm = cache.get(perm_key)
+            cached_perm = safe_cache_get(perm_key)
             if cached_perm is None:
                 cached_perm = bool(
                     u.is_staff
                     or u.has_perm("tournaments.add_tournament")
                     or u.groups.filter(name__iexact="organizer").exists()
                 )
-                cache.set(perm_key, cached_perm, 60)
+                safe_cache_set(perm_key, cached_perm, 60)
             nav_user_can_create_event = bool(cached_perm)
     except Exception:
         nav_user_can_create_event = False

@@ -122,6 +122,15 @@ body.hub-mobile-nav-open {
   transform: scale(1.05);
 }
 
+#hub-ws-indicator.connected .ws-dot { background:#00FF66; box-shadow:0 0 6px #00FF66; }
+#hub-ws-indicator.connected .ws-label { color:#00FF66; }
+#hub-ws-indicator.disconnected .ws-dot { background:#ef4444; box-shadow:0 0 6px #ef4444; }
+#hub-ws-indicator.disconnected .ws-label { color:#ef4444; }
+#hub-ws-indicator.disconnected .ws-label::after { content:'offline'; }
+#hub-ws-indicator.connected .ws-label::after { content:'live'; }
+#hub-ws-indicator .ws-label { font-size:0; }
+#hub-ws-indicator .ws-label::after { font-size:10px; }
+
 /* ── Limited Access Banner ───────────────────────────────── */
 .hub-lock-banner {
   border-bottom: 1px solid rgba(255, 184, 0, 0.25);
@@ -714,6 +723,7 @@ body.hub-mobile-nav-open {
 @media (prefers-reduced-motion: reduce) {
   .hub-tactical-grid,
   .hub-status-dot,
+  .hub-tab-lock-emblem,
   .hub-tab-content,
   .social-link-card,
   .social-link-card::before,
@@ -724,7 +734,10 @@ body.hub-mobile-nav-open {
   }
 
   .social-link-card:hover,
-  .hub-glass-hover:hover {
+  .hub-glass-hover:hover,
+  .hub-lock-cta:hover,
+  .hub-tab-lock-btn:hover,
+  .hub-tab-lock-btn.primary:hover {
     transform: none !important;
   }
 }

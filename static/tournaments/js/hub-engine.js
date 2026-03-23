@@ -55,6 +55,12 @@ const HubEngine = (() => {
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
   let _supportTicketsLoaded = false;
+  let _participantsPage = 1;
+  let _participantsHasMore = false;
+  const _participantsPageSize = 40;
+  let _supportTicketsPage = 1;
+  let _supportTicketsHasMore = false;
+  const _supportTicketsPageSize = 20;
   let _openModalId = null;
   let _modalReturnFocusEl = null;
   let _mobileSidebarReturnFocusEl = null;
@@ -63,6 +69,13 @@ const HubEngine = (() => {
   let _ws = null;
   let _wsReconnectTimer = null;
   let _wsReconnectAttempts = 0;
+  let _wsPingId = null;
+  let _resizeTimer = null;
+  let _onKeyDown = null;
+  let _onWindowResize = null;
+  let _onHashChange = null;
+  let _onPopState = null;
+  let _onVisibilityChange = null;
   const WS_RECONNECT_MAX = 3;
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
 
@@ -76,32 +89,36 @@ const HubEngine = (() => {
     // Start countdown
     _startCountdown();
 
-    // Start polling
-    _pollStateId = setInterval(_pollState, POLL_STATE_INTERVAL);
-    _pollAnnId   = setInterval(_pollAnnouncements, POLL_ANN_INTERVAL);
+    // Start polling (auto-pauses in background tab)
+    _startPolling();
 
     // S27: Connect WebSocket for real-time updates
     _connectWebSocket();
 
     // Keyboard: Escape closes mobile sidebar + modals
-    document.addEventListener('keydown', (e) => {
+    _onKeyDown = (e) => {
       if (e.key === 'Escape') {
         closeMobileSidebar();
         closeContactModal();
         closeStatusModal();
         dismissGuide();
       }
-    });
+    };
+    document.addEventListener('keydown', _onKeyDown);
+
+    // Retry actions for async error states.
+    document.removeEventListener('click', _handleRetryButtonClick);
+    document.addEventListener('click', _handleRetryButtonClick);
 
     // First-visit welcome guide
     setTimeout(_checkWelcomeGuide, 500);
 
     // Redraw bracket connector lines on window resize
-    let _resizeTimer;
-    window.addEventListener('resize', () => {
+    _onWindowResize = () => {
       clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(_redrawBracketLines, 150);
-    });
+    };
+    window.addEventListener('resize', _onWindowResize);
 
     // Resolve and hydrate initial tab state from URL without causing extra history entries.
     const initialTab = _resolveInitialTab() || 'overview';
@@ -111,7 +128,7 @@ const HubEngine = (() => {
       announceLock: false,
     });
 
-    window.addEventListener('hashchange', () => {
+    _onHashChange = () => {
       const hashTab = _resolveInitialTab();
       if (hashTab && hashTab !== _currentTab) {
         switchTab(hashTab, {
@@ -120,9 +137,10 @@ const HubEngine = (() => {
           announceLock: false,
         });
       }
-    });
+    };
+    window.addEventListener('hashchange', _onHashChange);
 
-    window.addEventListener('popstate', () => {
+    _onPopState = () => {
       const tab = _resolveInitialTab() || 'overview';
       if (tab !== _currentTab) {
         switchTab(tab, {
@@ -131,7 +149,27 @@ const HubEngine = (() => {
           announceLock: false,
         });
       }
-    });
+    };
+    window.addEventListener('popstate', _onPopState);
+
+    _onVisibilityChange = () => {
+      if (document.hidden) {
+        _stopPolling();
+        return;
+      }
+      _startPolling();
+      _pollState();
+      _pollAnnouncements();
+    };
+    document.addEventListener('visibilitychange', _onVisibilityChange);
+
+    // Keep WS alive with periodic pings.
+    if (_wsPingId) clearInterval(_wsPingId);
+    _wsPingId = setInterval(() => {
+      if (_ws && _ws.readyState === WebSocket.OPEN) {
+        _ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
   }
 
   function _resolveInitialTab() {
@@ -256,12 +294,12 @@ const HubEngine = (() => {
       _fetchMatches();
     }
     if (normalizedTab === 'participants' && !_participantsCache) {
-      _fetchParticipants();
+      _fetchParticipants({ reset: true });
     }
     if (normalizedTab === 'support') {
       _initSupportForm();
       if (!_supportTicketsLoaded) {
-        _fetchSupportTickets();
+        _fetchSupportTickets({ reset: true });
       }
     }
     // S27: Lazy-load match schedule for schedule tab
@@ -532,6 +570,26 @@ const HubEngine = (() => {
   // ──────────────────────────────────────────────────────────
   // State Polling
   // ──────────────────────────────────────────────────────────
+  function _startPolling() {
+    if (!_pollStateId) {
+      _pollStateId = setInterval(_pollState, POLL_STATE_INTERVAL);
+    }
+    if (!_pollAnnId) {
+      _pollAnnId = setInterval(_pollAnnouncements, POLL_ANN_INTERVAL);
+    }
+  }
+
+  function _stopPolling() {
+    if (_pollStateId) {
+      clearInterval(_pollStateId);
+      _pollStateId = null;
+    }
+    if (_pollAnnId) {
+      clearInterval(_pollAnnId);
+      _pollAnnId = null;
+    }
+  }
+
   async function _pollState() {
     const url = _shell?.dataset.apiState;
     if (!url) return;
@@ -685,8 +743,7 @@ const HubEngine = (() => {
 
       if (data.success) {
         _showSquadToast(`${data.display_name} moved to ${newSlot.toLowerCase()}`);
-        // Reload the page to reflect changes (simplest approach for server-rendered content)
-        setTimeout(() => window.location.reload(), 800);
+        _refreshSquadTab();
       } else {
         _showSquadToast(data.error || 'Swap failed', true);
         if (btn) {
@@ -701,6 +758,27 @@ const HubEngine = (() => {
         btn.classList.remove('loading');
         btn.disabled = false;
       }
+    }
+  }
+
+  async function _refreshSquadTab() {
+    const squadTab = document.getElementById('hub-tab-squad');
+    if (!squadTab) return;
+    try {
+      const url = new URL(window.location.href);
+      url.hash = 'squad';
+      const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const freshSquadTab = doc.getElementById('hub-tab-squad');
+      if (!freshSquadTab) return;
+      squadTab.innerHTML = freshSquadTab.innerHTML;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (err) {
+      console.warn('[HubEngine] Squad tab refresh failed:', err.message);
+      _showSquadToast('Roster updated. Refresh the page if you do not see changes.', true);
     }
   }
 
@@ -727,6 +805,7 @@ const HubEngine = (() => {
 
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
+    _announceLiveMessage(message, isError ? 'assertive' : 'polite');
   }
 
   // ──────────────────────────────────────────────────────────
@@ -1297,13 +1376,13 @@ const HubEngine = (() => {
    * Show an error message inside a container element.
    * @param {string} containerId  DOM id of the container
    * @param {string} message      Error text
-   * @param {Function} [retryFn]  Optional retry callback
+   * @param {string} [retryAction] Optional retry action key
    */
-  function _showError(containerId, message, retryFn) {
+  function _showError(containerId, message, retryAction) {
     const el = document.getElementById(containerId);
     if (!el) return;
-    const retryBtn = retryFn
-      ? `<button onclick="(${retryFn.toString()})()" class="mt-3 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all">Retry</button>`
+    const retryBtn = retryAction
+      ? `<button type="button" data-hub-retry="${_esc(retryAction)}" class="mt-3 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all">Retry</button>`
       : '';
     el.innerHTML = `
       <div class="flex flex-col items-center justify-center py-16 gap-3 text-center">
@@ -1316,6 +1395,44 @@ const HubEngine = (() => {
         ${retryBtn}
       </div>`;
     el.classList.remove('hidden');
+    _announceLiveMessage(message, 'assertive');
+  }
+
+  function _announceLiveMessage(message, mode = 'polite') {
+    const safeMessage = (message || '').trim();
+    if (!safeMessage) return;
+    const targetId = mode === 'assertive' ? 'hub-live-region-assertive' : 'hub-live-region';
+    const region = document.getElementById(targetId);
+    if (!region) return;
+    region.textContent = '';
+    setTimeout(() => {
+      region.textContent = safeMessage;
+    }, 10);
+  }
+
+  function _handleRetryButtonClick(event) {
+    const btn = event.target.closest('[data-hub-retry]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-hub-retry');
+    if (!action) return;
+    _runRetryAction(action);
+  }
+
+  function _runRetryAction(action) {
+    switch (action) {
+      case 'bracket':
+        _fetchBracket();
+        break;
+      case 'standings':
+        _fetchStandings();
+        break;
+      case 'matches':
+        _fetchMatches();
+        break;
+      default:
+        console.warn('[HubEngine] Unknown retry action:', action);
+        break;
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -1423,7 +1540,7 @@ const HubEngine = (() => {
     } catch (err) {
       console.warn('[HubEngine] Bracket fetch failed:', err.message);
       _hide('bracket-skeleton');
-      _showError('hub-bracket-tree', 'Failed to load bracket. Please try again.', _fetchBracket);
+      _showError('hub-bracket-tree', 'Failed to load bracket. Please try again.', 'bracket');
     }
   }
 
@@ -1583,7 +1700,7 @@ const HubEngine = (() => {
       console.warn('[HubEngine] Standings fetch failed:', err.message);
       _hide('standings-skeleton');
       const target = container ? 'hub-standings-data' : 'standings-empty';
-      _showError(target, 'Failed to load standings. Please try again.', _fetchStandings);
+      _showError(target, 'Failed to load standings. Please try again.', 'standings');
     }
   }
 
@@ -1764,7 +1881,7 @@ const HubEngine = (() => {
     } catch (err) {
       console.warn('[HubEngine] Matches fetch failed:', err.message);
       _hide('matches-skeleton');
-      _showError('hub-match-cards', 'Failed to load matches. Please try again.', _fetchMatches);
+      _showError('hub-match-cards', 'Failed to load matches. Please try again.', 'matches');
     }
   }
 
@@ -2060,22 +2177,79 @@ const HubEngine = (() => {
   // ──────────────────────────────────────────────────────────
   // Participants Tab — Async Fetch & Render
   // ──────────────────────────────────────────────────────────
-  async function _fetchParticipants() {
+  async function _fetchParticipants({ reset = false } = {}) {
     const url = _shell?.dataset.apiParticipants;
     if (!url) return;
 
+    if (reset) {
+      _participantsPage = 1;
+      _participantsHasMore = false;
+      _participantsAll = [];
+      _participantsCache = null;
+      const grid = document.getElementById('participants-grid');
+      if (grid) {
+        grid.classList.add('hidden');
+        grid.innerHTML = '';
+      }
+      _show('participants-skeleton');
+      _hide('participants-no-results');
+      _hide('participants-empty');
+    }
+
     try {
-      const resp = await fetch(url, { credentials: 'same-origin' });
+      const requestUrl = new URL(url, window.location.origin);
+      requestUrl.searchParams.set('page', String(_participantsPage));
+      requestUrl.searchParams.set('page_size', String(_participantsPageSize));
+
+      const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _participantsCache = data;
-      _participantsAll = data.participants || [];
+      const incoming = data.participants || [];
+      const existingIds = new Set(_participantsAll.map((p) => p.id));
+      incoming.forEach((p) => {
+        if (!existingIds.has(p.id)) _participantsAll.push(p);
+      });
+      _participantsHasMore = Boolean(data.has_more);
+      _participantsPage = Number(data.page || _participantsPage);
       _renderParticipants(_participantsAll);
+      _updateParticipantsLoadMoreVisibility();
     } catch (err) {
       console.warn('[HubEngine] Participants fetch failed:', err.message);
       _hide('participants-skeleton');
       _show('participants-empty');
+      _updateParticipantsLoadMoreVisibility();
     }
+  }
+
+  function loadMoreParticipants() {
+    const query = document.getElementById('participants-search')?.value?.trim();
+    if (query) return;
+    if (!_participantsHasMore) return;
+
+    const btn = document.getElementById('participants-load-more-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+    }
+
+    _participantsPage += 1;
+    _fetchParticipants()
+      .finally(() => {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Load More';
+        }
+      });
+  }
+
+  function _updateParticipantsLoadMoreVisibility() {
+    const wrap = document.getElementById('participants-load-more-wrap');
+    if (!wrap) return;
+    const query = document.getElementById('participants-search')?.value?.trim();
+    const shouldShow = _participantsHasMore && !query;
+    wrap.classList.toggle('hidden', !shouldShow);
+    wrap.classList.toggle('flex', shouldShow);
   }
 
   function _renderParticipants(list) {
@@ -2167,6 +2341,7 @@ const HubEngine = (() => {
 
     if (!q) {
       _renderParticipants(_participantsAll);
+      _updateParticipantsLoadMoreVisibility();
       return;
     }
 
@@ -2182,6 +2357,7 @@ const HubEngine = (() => {
       _hide('participants-no-results');
       _renderParticipants(filtered);
     }
+    _updateParticipantsLoadMoreVisibility();
   }
 
   // ──────────────────────────────────────────────────────────
@@ -2320,22 +2496,33 @@ const HubEngine = (() => {
       toast.style.transform = 'translateX(100%)';
       setTimeout(() => toast.remove(), 350);
     }, 4000);
+    _announceLiveMessage(message, level === 'error' ? 'assertive' : 'polite');
   }
-
-  // Keep WS alive with periodic pings
-  setInterval(() => {
-    if (_ws && _ws.readyState === WebSocket.OPEN) {
-      _ws.send(JSON.stringify({ type: 'ping' }));
-    }
-  }, 30000);
 
   // ──────────────────────────────────────────────────────────
   // Cleanup (if SPA navigates away)
   // ──────────────────────────────────────────────────────────
   function destroy() {
-    if (_pollStateId) clearInterval(_pollStateId);
-    if (_pollAnnId) clearInterval(_pollAnnId);
+    _stopPolling();
     if (_countdownId) clearInterval(_countdownId);
+    if (_wsPingId) clearInterval(_wsPingId);
+    if (_resizeTimer) clearTimeout(_resizeTimer);
+
+    if (_onKeyDown) document.removeEventListener('keydown', _onKeyDown);
+    if (_onWindowResize) window.removeEventListener('resize', _onWindowResize);
+    if (_onHashChange) window.removeEventListener('hashchange', _onHashChange);
+    if (_onPopState) window.removeEventListener('popstate', _onPopState);
+    if (_onVisibilityChange) document.removeEventListener('visibilitychange', _onVisibilityChange);
+    document.removeEventListener('click', _handleRetryButtonClick);
+
+    _onKeyDown = null;
+    _onWindowResize = null;
+    _onHashChange = null;
+    _onPopState = null;
+    _onVisibilityChange = null;
+    _wsPingId = null;
+    _resizeTimer = null;
+
     // S27: Close WebSocket
     if (_wsReconnectTimer) clearTimeout(_wsReconnectTimer);
     if (_ws) { _ws.close(1000); _ws = null; }
@@ -2411,11 +2598,13 @@ const HubEngine = (() => {
     if (window.showToast) {
       window.showToast({ type: 'warning', message: _getLockReason() });
     }
+    _announceLiveMessage(_getLockReason(), 'assertive');
   }
 
   function _applyTabLockState(tabId, { announce = false } = {}) {
     const viewport = document.getElementById('hub-viewport');
     const overlay = document.getElementById('hub-tab-lock-overlay');
+    const overlayPanel = document.querySelector('#hub-tab-lock-overlay .hub-tab-lock-overlay-panel');
     const titleEl = document.getElementById('hub-lock-overlay-title');
     const messageEl = document.getElementById('hub-lock-overlay-message');
     const chipEl = document.getElementById('hub-lock-tab-chip');
@@ -2423,6 +2612,8 @@ const HubEngine = (() => {
 
     document.querySelectorAll('.hub-tab-content').forEach((el) => {
       el.classList.remove('is-lock-blurred');
+      if (el.hasAttribute('inert')) el.removeAttribute('inert');
+      el.setAttribute('aria-hidden', 'false');
     });
 
     const isLockedTab = _isTabLocked(tabId);
@@ -2434,12 +2625,17 @@ const HubEngine = (() => {
     if (overlay) {
       overlay.classList.toggle('active', isLockedTab);
       overlay.setAttribute('aria-hidden', isLockedTab ? 'false' : 'true');
+      if (!isLockedTab) {
+        _detachModalFocusTrap(overlay);
+      }
     }
 
     if (!isLockedTab) return;
 
     if (activeTab) {
       activeTab.classList.add('is-lock-blurred');
+      activeTab.setAttribute('inert', '');
+      activeTab.setAttribute('aria-hidden', 'true');
     }
 
     const tabLabel = _tabLabel(tabId);
@@ -2447,20 +2643,44 @@ const HubEngine = (() => {
     if (titleEl) titleEl.textContent = `${tabLabel} unlocks after verification`;
     if (messageEl) messageEl.textContent = _getLockReason();
 
+    if (overlay) {
+      _attachModalFocusTrap(overlay);
+    }
+    if (overlayPanel) {
+      const focusables = _getFocusableElements(overlayPanel);
+      if (focusables.length) {
+        focusables[0].focus();
+      } else {
+        overlayPanel.setAttribute('tabindex', '-1');
+        overlayPanel.focus();
+      }
+    }
+
     if (announce) {
       _showLockToast();
     }
   }
 
-  async function _fetchSupportTickets() {
+  async function _fetchSupportTickets({ reset = false } = {}) {
     const url = _shell?.dataset.apiSupport;
     if (!url) return;
 
+    if (reset) {
+      _supportTicketsPage = 1;
+      _supportTicketsHasMore = false;
+    }
+
     try {
-      const resp = await fetch(url, { credentials: 'same-origin' });
+      const requestUrl = new URL(url, window.location.origin);
+      requestUrl.searchParams.set('page', String(_supportTicketsPage));
+      requestUrl.searchParams.set('page_size', String(_supportTicketsPageSize));
+
+      const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      _renderSupportTickets(data.tickets || []);
+      _supportTicketsHasMore = Boolean(data.has_more);
+      _supportTicketsPage = Number(data.page || _supportTicketsPage);
+      _renderSupportTickets(data.tickets || [], { append: !reset, hasMore: _supportTicketsHasMore });
       _supportTicketsLoaded = true;
     } catch (err) {
       console.warn('[HubEngine] Support tickets fetch failed:', err.message);
@@ -2474,20 +2694,24 @@ const HubEngine = (() => {
           </div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
       }
+      _toggleSupportLoadMore(false);
     }
   }
 
-  function _renderSupportTickets(tickets) {
+  function _renderSupportTickets(tickets, { append = false, hasMore = false } = {}) {
     const list = document.getElementById('support-tickets-list');
     if (!list) return;
 
     if (!tickets.length) {
-      list.innerHTML = `
+      if (!append) {
+        list.innerHTML = `
         <div class="text-center py-8">
           <i data-lucide="inbox" class="w-8 h-8 text-gray-700 mx-auto mb-2"></i>
           <p class="text-xs text-gray-500">No support tickets yet</p>
           <p class="text-[10px] text-gray-600 mt-1">Tickets you submit will appear here</p>
         </div>`;
+      }
+      _toggleSupportLoadMore(false);
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
@@ -2514,7 +2738,37 @@ const HubEngine = (() => {
         </div>`;
     }).join('');
 
-    list.innerHTML = html;
+    if (append) {
+      list.insertAdjacentHTML('beforeend', html);
+    } else {
+      list.innerHTML = html;
+    }
+    _toggleSupportLoadMore(hasMore);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _toggleSupportLoadMore(show) {
+    const wrap = document.getElementById('support-load-more-wrap');
+    if (!wrap) return;
+    wrap.classList.toggle('hidden', !show);
+    wrap.classList.toggle('flex', show);
+  }
+
+  function loadMoreSupportTickets() {
+    if (!_supportTicketsHasMore) return;
+    const btn = document.getElementById('support-load-more-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+    }
+    _supportTicketsPage += 1;
+    _fetchSupportTickets()
+      .finally(() => {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Load More Tickets';
+        }
+      });
   }
 
   function selectSupportCategory(category) {
@@ -2560,7 +2814,7 @@ const HubEngine = (() => {
 
   function _appendSupportTicketPreview(ticket) {
     if (!ticket) return;
-    _fetchSupportTickets();
+    _fetchSupportTickets({ reset: true });
   }
 
   async function submitSupportRequest() {
@@ -2579,10 +2833,12 @@ const HubEngine = (() => {
     // Validate
     if (!subject) {
       if (errEl) { errEl.textContent = 'Please enter a subject.'; errEl.classList.remove('hidden'); }
+      _announceLiveMessage('Please enter a subject.', 'assertive');
       return;
     }
     if (!message || message.length < 10) {
       if (errEl) { errEl.textContent = 'Please write a more detailed message (at least 10 characters).'; errEl.classList.remove('hidden'); }
+      _announceLiveMessage('Please write a more detailed message.', 'assertive');
       return;
     }
 
@@ -2610,10 +2866,11 @@ const HubEngine = (() => {
 
       if (data.success) {
         if (okEl) { okEl.textContent = data.message || 'Your message has been sent to the organizer.'; okEl.classList.remove('hidden'); }
+        _announceLiveMessage(data.message || 'Support request sent successfully.', 'polite');
         if (data.ticket) {
           _appendSupportTicketPreview(data.ticket);
         } else {
-          _fetchSupportTickets();
+          _fetchSupportTickets({ reset: true });
         }
         // Clear form
         const subj = document.getElementById('support-subject');
@@ -2625,10 +2882,12 @@ const HubEngine = (() => {
         _updateCharCount();
       } else {
         if (errEl) { errEl.textContent = data.error || 'Failed to send message.'; errEl.classList.remove('hidden'); }
+        _announceLiveMessage(data.error || 'Failed to send support message.', 'assertive');
       }
     } catch (err) {
       console.error('[HubEngine] Support submit error:', err);
       if (errEl) { errEl.textContent = 'Network error. Please try again or contact the organizer directly.'; errEl.classList.remove('hidden'); }
+      _announceLiveMessage('Network error. Please try again later.', 'assertive');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -2656,6 +2915,7 @@ const HubEngine = (() => {
     submitPrizeClaim,
     // Module 9: Participants
     filterParticipants,
+    loadMoreParticipants,
     // Module 10: Contact & Guide
     showContactModal,
     closeContactModal,
@@ -2666,11 +2926,13 @@ const HubEngine = (() => {
     // Module 12: Support & Disputes
     selectSupportCategory,
     submitSupportRequest,
+    loadMoreSupportTickets,
     // S27: WebSocket status
     isWsConnected: () => _ws && _ws.readyState === WebSocket.OPEN,
     refreshScheduleMatches,
     // Map viewer
     openMapViewer,
     closeMapViewer,
+    retryAction: _runRetryAction,
   };
 })();

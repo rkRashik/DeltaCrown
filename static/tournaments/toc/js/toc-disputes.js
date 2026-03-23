@@ -30,16 +30,57 @@
 
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
 
+  function escHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeSourceType(sourceType) {
+    return sourceType === 'hub_support' ? 'hub_support' : 'match_dispute';
+  }
+
+  function safeUrl(rawUrl) {
+    if (!rawUrl) return '';
+    try {
+      const parsed = new URL(String(rawUrl), window.location.origin);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.href;
+      }
+    } catch (e) {
+      // Invalid URL inputs are rendered as plain text only.
+    }
+    return '';
+  }
+
+  function formatUserDisplay(name, id) {
+    if (name && id) return `${name} (ID: ${id})`;
+    if (name) return name;
+    if (id) return `User #${id}`;
+    return '—';
+  }
+
+  function formatTeamDisplay(name, id) {
+    if (name && id) return `${name} (ID: ${id})`;
+    if (name) return name;
+    if (id) return `Team #${id}`;
+    return '—';
+  }
+
   let allDisputes = [];
   let _debounceTimer = null;
 
   /* ─── Fetch & render ─────────────────────────────────────── */
   async function refresh() {
     const status = $('#dispute-filter-status')?.value || '';
+    const source = $('#dispute-filter-source')?.value || '';
     const search = $('#dispute-search')?.value || '';
     try {
       const data = await API.get(`disputes/` +
-        `?status=${status}&search=${encodeURIComponent(search)}`);
+        `?status=${status}&source=${source}&search=${encodeURIComponent(search)}`);
       allDisputes = data.disputes || [];
       renderQueue(allDisputes);
       renderCounters(allDisputes, data.open_count);
@@ -56,6 +97,25 @@
 
   /* ─── Counters ───────────────────────────────────────────── */
   function renderCounters(disputes, openCount) {
+    const source = $('#dispute-filter-source')?.value || '';
+    const openLabel = $('#disputes-open-label');
+    const reviewLabel = $('#disputes-review-label');
+    const escalatedLabel = $('#disputes-escalated-label');
+
+    if (source === 'hub_support') {
+      if (openLabel) openLabel.textContent = 'Open Hub Tickets';
+      if (reviewLabel) reviewLabel.textContent = 'Hub In Review';
+      if (escalatedLabel) escalatedLabel.textContent = 'Escalated';
+    } else if (source === 'match_dispute') {
+      if (openLabel) openLabel.textContent = 'Open Match Disputes';
+      if (reviewLabel) reviewLabel.textContent = 'Under Review';
+      if (escalatedLabel) escalatedLabel.textContent = 'Escalated';
+    } else {
+      if (openLabel) openLabel.textContent = 'Open Disputes';
+      if (reviewLabel) reviewLabel.textContent = 'Under Review';
+      if (escalatedLabel) escalatedLabel.textContent = 'Escalated';
+    }
+
     const el = (id, val) => { const e = $(`#disputes-${id}`); if (e) e.textContent = val; };
     el('open-count', openCount || 0);
     el('review-count', disputes.filter(d => d.status === 'under_review').length);
@@ -109,21 +169,30 @@
       const sev = severityConfig[d.severity] || severityConfig.low;
       const st = statusConfig[d.status] || statusConfig.open;
       const timeAgo = relativeTime(d.opened_at);
+      const safeUiId = escHtml(d.ui_id || d.id);
+      const safeMatchId = d.match_id ? escHtml(d.match_id) : '';
+      const safeReason = escHtml(d.reason_display);
+      const safeDesc = escHtml(d.description?.substring(0, 120) || '');
+      const safeAssigned = d.resolved_by_user_id ? escHtml(d.resolved_by_user_id) : '';
+      const sourceBadge = d.source_type === 'hub_support'
+        ? '<span class="text-[8px] uppercase tracking-wider text-dc-info bg-dc-info/20 border border-dc-info/30 px-1.5 py-0.5 rounded-full">Hub Ticket</span>'
+        : '';
       return `
-        <div class="p-4 hover:bg-white/[0.02] transition-colors cursor-pointer flex items-start gap-4" onclick="TOC.disputes.openDetail(${d.id})">
+        <div class="p-4 hover:bg-white/[0.02] transition-colors cursor-pointer flex items-start gap-4" onclick="TOC.disputes.openDetail('${safeUiId}')">
           <div class="flex-shrink-0 mt-1">
             <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${sev.cls}">${sev.label}</span>
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-bold text-white">Dispute #${d.id}</span>
+              <span class="text-xs font-bold text-white">Dispute #${escHtml(d.id)}</span>
               <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${st.cls}">${st.label}</span>
-              ${d.match_id ? `<span class="text-[9px] text-dc-text font-mono">Match #${d.match_id}</span>` : ''}
+              ${sourceBadge}
+              ${d.match_id ? `<span class="text-[9px] text-dc-text font-mono">Match #${safeMatchId}</span>` : ''}
             </div>
-            <p class="text-[10px] text-dc-text truncate">${d.reason_display}: ${d.description?.substring(0, 120) || ''}${d.description?.length > 120 ? '...' : ''}</p>
+            <p class="text-[10px] text-dc-text truncate">${safeReason}: ${safeDesc}${d.description?.length > 120 ? '...' : ''}</p>
             <div class="flex items-center gap-3 mt-1 text-[9px] text-dc-text/60">
-              <span>${timeAgo}</span>
-              ${d.resolved_by_user_id ? `<span>Assigned: #${d.resolved_by_user_id}</span>` : ''}
+              <span>${escHtml(timeAgo)}</span>
+              ${d.resolved_by_user_id ? `<span>Assigned: #${safeAssigned}</span>` : ''}
             </div>
           </div>
           <div class="flex-shrink-0">
@@ -136,12 +205,30 @@
   }
 
   /* ─── S7-F2: Dispute detail drawer ──────────────────────── */
-  async function openDetail(id) {
+  async function openDetail(ref) {
+    const normalized = String(ref || '');
+    const isHubTicket = normalized.startsWith('hub-');
+    const numericId = parseInt(normalized.replace(/^[a-z]+-/, ''), 10);
+    if (!Number.isFinite(numericId)) {
+      toast('Invalid dispute reference', 'error');
+      return;
+    }
     try {
-      const d = await API.get(`disputes/${id}/`);
+      const detailUrl = isHubTicket ? `disputes/hub-tickets/${numericId}/` : `disputes/${numericId}/`;
+      const d = await API.get(detailUrl);
       const sev = severityConfig[d.severity] || severityConfig.low;
       const st = statusConfig[d.status] || statusConfig.open;
-      const isOpen = ['open', 'under_review', 'escalated'].includes(d.status);
+      const isOpen = ['open', 'under_review', 'escalated'].includes(d.status) && d.is_actionable !== false;
+      const sourceType = normalizeSourceType(d.source_type);
+      const openedByText = formatUserDisplay(d.opened_by_name, d.opened_by_user_id);
+      const resolvedByText = formatUserDisplay(d.resolved_by_name, d.resolved_by_user_id);
+      const teamText = (d.opened_by_team_name || d.opened_by_team_id)
+        ? formatTeamDisplay(d.opened_by_team_name, d.opened_by_team_id)
+        : '';
+      const matchText = d.match_id ? `#${d.match_id}` : (d.match_ref || 'N/A');
+      const sourceHint = d.source_type === 'hub_support'
+        ? `<div class="text-[9px] font-bold uppercase tracking-widest text-dc-info">Source: HUB Support Ticket</div>`
+        : '';
 
       const html = `
         <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -154,38 +241,55 @@
           </div>
 
           <div class="space-y-2 text-[10px]">
-            <div class="flex justify-between text-dc-text"><span>Reason</span><span class="text-dc-textBright">${d.reason_display}</span></div>
-            <div class="flex justify-between text-dc-text"><span>Match</span><span class="text-dc-textBright font-mono">#${d.match_id || '—'}</span></div>
-            <div class="flex justify-between text-dc-text"><span>Opened By</span><span class="text-dc-textBright font-mono">User #${d.opened_by_user_id}</span></div>
-            <div class="flex justify-between text-dc-text"><span>Opened</span><span class="text-dc-textBright font-mono">${d.opened_at ? new Date(d.opened_at).toLocaleString() : '—'}</span></div>
-            ${d.resolved_at ? `<div class="flex justify-between text-dc-text"><span>Resolved</span><span class="text-dc-textBright font-mono">${new Date(d.resolved_at).toLocaleString()}</span></div>` : ''}
+            <div class="flex justify-between text-dc-text"><span>Reason</span><span class="text-dc-textBright">${escHtml(d.reason_display)}</span></div>
+            <div class="flex justify-between text-dc-text"><span>Match</span><span class="text-dc-textBright font-mono">${escHtml(matchText)}</span></div>
+            <div class="flex justify-between text-dc-text"><span>Opened By</span><span class="text-dc-textBright">${escHtml(openedByText)}</span></div>
+            ${teamText ? `<div class="flex justify-between text-dc-text"><span>Team</span><span class="text-dc-textBright">${escHtml(teamText)}</span></div>` : ''}
+            <div class="flex justify-between text-dc-text"><span>Opened</span><span class="text-dc-textBright font-mono">${escHtml(d.opened_at ? new Date(d.opened_at).toLocaleString() : '—')}</span></div>
+            ${resolvedByText !== '—' ? `<div class="flex justify-between text-dc-text"><span>Resolved By</span><span class="text-dc-textBright">${escHtml(resolvedByText)}</span></div>` : ''}
+            ${d.resolved_at ? `<div class="flex justify-between text-dc-text"><span>Resolved</span><span class="text-dc-textBright font-mono">${escHtml(new Date(d.resolved_at).toLocaleString())}</span></div>` : ''}
           </div>
 
           <div class="bg-dc-bg border border-dc-border rounded-lg p-3">
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Description</p>
-            <p class="text-xs text-dc-textBright leading-relaxed">${d.description || 'No description provided.'}</p>
+            ${sourceHint}
+            <p class="text-xs text-dc-textBright leading-relaxed">${escHtml(d.description || 'No description provided.')}</p>
           </div>
 
           ${d.resolution_notes ? `
           <div class="bg-dc-bg border border-dc-border rounded-lg p-3">
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Resolution Notes</p>
-            <p class="text-xs text-dc-textBright leading-relaxed">${d.resolution_notes}</p>
+            <p class="text-xs text-dc-textBright leading-relaxed">${escHtml(d.resolution_notes)}</p>
           </div>` : ''}
 
           ${d.evidence?.length ? `
           <div>
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2">Evidence (${d.evidence.length})</p>
             <div class="space-y-2">
-              ${d.evidence.map(e => `
-                <a href="${e.url}" target="_blank" class="flex items-center gap-2 bg-dc-bg border border-dc-border rounded-lg p-2 hover:border-dc-borderLight transition-colors">
+              ${d.evidence.map(e => {
+                const evidenceUrl = safeUrl(e.url);
+                const safeEvidenceTitle = escHtml(e.notes || e.evidence_type);
+                const safeEvidenceTextUrl = escHtml(e.url || '');
+                if (!evidenceUrl) {
+                  return `
+                <div class="flex items-center gap-2 bg-dc-bg border border-dc-border rounded-lg p-2">
                   <i data-lucide="${e.evidence_type === 'video' ? 'video' : 'image'}" class="w-4 h-4 text-theme flex-shrink-0"></i>
                   <div class="flex-1 min-w-0">
-                    <p class="text-[10px] text-dc-textBright truncate">${e.notes || e.evidence_type}</p>
-                    <p class="text-[9px] text-dc-text/60 truncate">${e.url}</p>
+                    <p class="text-[10px] text-dc-textBright truncate">${safeEvidenceTitle}</p>
+                    <p class="text-[9px] text-dc-text/60 truncate">${safeEvidenceTextUrl || 'Invalid evidence URL'}</p>
+                  </div>
+                </div>`;
+                }
+                return `
+                <a href="${escHtml(evidenceUrl)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 bg-dc-bg border border-dc-border rounded-lg p-2 hover:border-dc-borderLight transition-colors">
+                  <i data-lucide="${e.evidence_type === 'video' ? 'video' : 'image'}" class="w-4 h-4 text-theme flex-shrink-0"></i>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[10px] text-dc-textBright truncate">${safeEvidenceTitle}</p>
+                    <p class="text-[9px] text-dc-text/60 truncate">${safeEvidenceTextUrl}</p>
                   </div>
                   <i data-lucide="external-link" class="w-3 h-3 text-dc-text/30 flex-shrink-0"></i>
-                </a>
-              `).join('')}
+                </a>`;
+              }).join('')}
             </div>
           </div>` : ''}
 
@@ -193,12 +297,12 @@
           <div class="border-t border-dc-border pt-4 space-y-3">
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Actions</p>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="TOC.disputes.openResolveForm(${d.id})" data-cap-require="resolve_disputes" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
-              <button onclick="TOC.disputes.escalate(${d.id})" data-cap-require="resolve_disputes" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
+              <button onclick="TOC.disputes.openResolveForm(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
+              <button onclick="TOC.disputes.escalate(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
             </div>
             <div class="flex gap-2">
               <input id="assign-staff-id" type="number" placeholder="Staff User ID" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">
-              <button onclick="TOC.disputes.assign(${d.id})" data-cap-require="resolve_disputes" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
+              <button onclick="TOC.disputes.assign(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
             </div>
           </div>` : ''}
         </div>`;
@@ -209,8 +313,9 @@
   }
 
   /* ─── S7-F3: Resolution form ────────────────────────────── */
-  function openResolveForm(id) {
+  function openResolveForm(id, sourceType) {
     closeOverlay('dispute-detail-overlay');
+    const source = normalizeSourceType(sourceType);
     const html = `
       <div class="p-6 space-y-4">
         <h3 class="font-display font-black text-lg text-white">Resolve Dispute #${id}</h3>
@@ -226,16 +331,17 @@
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Resolution Notes</label>
           <textarea id="resolve-notes" rows="3" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Explain your ruling..."></textarea>
         </div>
-        <button onclick="TOC.disputes.confirmResolve(${id})" data-cap-require="resolve_disputes" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
+        <button onclick="TOC.disputes.confirmResolve(${id}, '${source}')" data-cap-require="resolve_disputes" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
       </div>`;
     showOverlay('resolve-overlay', html);
   }
 
-  async function confirmResolve(id) {
+  async function confirmResolve(id, sourceType) {
     try {
       await API.post(`disputes/${id}/resolve/`, {
         ruling: $('#resolve-ruling')?.value || 'submitter_wins',
         resolution_notes: $('#resolve-notes')?.value || '',
+        source_type: sourceType || 'match_dispute',
       });
       toast('Dispute resolved', 'success');
       closeOverlay('resolve-overlay');
@@ -244,7 +350,8 @@
   }
 
   /* ─── S7-F4: Escalate ───────────────────────────────────── */
-  function escalate(id) {
+  function escalate(id, sourceType) {
+    const source = normalizeSourceType(sourceType);
     showOverlay('escalate-overlay', `
       <div class="p-5 space-y-4">
         <div class="flex items-center justify-between">
@@ -257,16 +364,19 @@
           <textarea id="escalate-reason" rows="3" class="w-full bg-dc-bg border border-dc-border/60 rounded-lg px-3 py-2 text-white text-xs focus:border-dc-warning/60 focus:outline-none resize-none placeholder-dc-text/40" placeholder="Describe why this needs escalation..."></textarea>
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.disputes._confirmEscalate('${id}')" class="flex-1 bg-dc-warning hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Escalate</button>
+          <button onclick="TOC.disputes._confirmEscalate('${id}', '${source}')" class="flex-1 bg-dc-warning hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Escalate</button>
           <button onclick="TOC.disputes.closeOverlay('escalate-overlay')" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
         </div>
       </div>`);
   }
 
-  async function _confirmEscalate(id) {
+  async function _confirmEscalate(id, sourceType) {
     const reason = document.getElementById('escalate-reason')?.value.trim() || '';
     try {
-      await API.post(`disputes/${id}/escalate/`, { reason });
+      await API.post(`disputes/${id}/escalate/`, {
+        reason,
+        source_type: sourceType || 'match_dispute',
+      });
       toast('Dispute escalated', 'info');
       closeOverlay('escalate-overlay');
       closeOverlay('dispute-detail-overlay');
@@ -275,11 +385,14 @@
   }
 
   /* ─── S7-F5: Staff assignment ───────────────────────────── */
-  async function assign(id) {
+  async function assign(id, sourceType) {
     const staffId = $('#assign-staff-id')?.value;
     if (!staffId) { toast('Enter staff user ID', 'error'); return; }
     try {
-      await API.post(`disputes/${id}/assign/`, { staff_user_id: parseInt(staffId) });
+      await API.post(`disputes/${id}/assign/`, {
+        staff_user_id: parseInt(staffId),
+        source_type: sourceType || 'match_dispute',
+      });
       toast('Dispute assigned', 'success');
       closeOverlay('dispute-detail-overlay');
       refresh();

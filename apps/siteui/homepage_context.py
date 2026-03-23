@@ -7,9 +7,10 @@ Combines editable content from HomePageContent model with live statistics.
 from typing import Dict, Any
 from django.contrib.auth import get_user_model
 from django.db.models import Count
-from django.core.cache import cache
 from django.utils import timezone
 import hashlib
+
+from apps.siteui.cache_safe import safe_cache_get, safe_cache_set
 
 User = get_user_model()
 
@@ -43,7 +44,7 @@ def get_homepage_context() -> Dict[str, Any]:
     """
     # Try to get cached context first
     cache_key = 'homepage_context_v2'
-    cached_context = cache.get(cache_key)
+    cached_context = safe_cache_get(cache_key)
     
     if cached_context is not None:
         return cached_context
@@ -216,7 +217,7 @@ def get_homepage_context() -> Dict[str, Any]:
     }
     
     # Cache context for 5 minutes (300 seconds)
-    cache.set(cache_key, context, 300)
+    safe_cache_set(cache_key, context, 300)
     
     return context
 
@@ -494,20 +495,29 @@ def _get_featured_tournaments(limit=3):
         Registration = apps.get_model('tournaments', 'Registration')
         
         # Get tournaments ordered by priority
-        tournaments = Tournament.objects.filter(
+        tournaments = list(Tournament.objects.filter(
             status__in=['live', 'registration_open', 'published']
         ).select_related('game', 'organizer').order_by(
             # Live first, then registration_open, then published
             '-status'
-        )[:limit]
+        )[:limit])
+
+        if not tournaments:
+            return []
+
+        # Batch registration counts in one query to avoid per-tournament count calls.
+        tournament_ids = [t.id for t in tournaments]
+        registration_counts = {
+            row['tournament_id']: row['count']
+            for row in Registration.objects.filter(
+                tournament_id__in=tournament_ids,
+                status__in=['confirmed', 'pending'],
+            ).values('tournament_id').annotate(count=Count('id'))
+        }
         
         result = []
         for tournament in tournaments:
-            # Count confirmed registrations
-            registration_count = Registration.objects.filter(
-                tournament=tournament,
-                status__in=['confirmed', 'pending']
-            ).count()
+            registration_count = registration_counts.get(tournament.id, 0)
             
             # Calculate days until registration ends
             days_left = None
@@ -556,32 +566,39 @@ def _get_top_teams(limit=5):
     try:
         from django.apps import apps
         from django.db.models import Count, Q
-        from django.utils import timezone
-        from datetime import timedelta
         
         Team = apps.get_model('organizations', 'Team')
         
         # Get top teams with optimized query
-        teams = Team.objects.filter(
+        teams = list(Team.objects.filter(
             status='ACTIVE',
             visibility='PUBLIC'
         ).annotate(
             members_count=Count('vnext_memberships', filter=Q(vnext_memberships__status='ACTIVE'))
-        ).order_by('-created_at')[:limit]
+        ).order_by('-created_at')[:limit])
+
+        if not teams:
+            return []
+
+        # Batch load game names once to avoid N+1 queries in the loop.
+        game_display_map = {}
+        game_ids = {team.game_id for team in teams if getattr(team, 'game_id', None)}
+        if game_ids:
+            try:
+                from apps.games.models.game import Game as GameModel
+                game_display_map = {
+                    game.id: (game.display_name or game.name or 'N/A')
+                    for game in GameModel.objects.filter(id__in=game_ids)
+                }
+            except Exception:
+                game_display_map = {}
         
         result = []
         for rank, team in enumerate(teams, start=1):
             # Calculate weekly change (placeholder - would need historical data)
             weekly_change = 0  # TODO: Track point changes over time
             
-            # Get game display name from game_id
-            game_display = 'N/A'
-            try:
-                from apps.games.models.game import Game as GameModel
-                game_obj = GameModel.objects.filter(id=team.game_id).first()
-                game_display = game_obj.display_name if game_obj else 'N/A'
-            except Exception:
-                pass
+            game_display = game_display_map.get(getattr(team, 'game_id', None), 'N/A')
             
             result.append({
                 'rank': rank,

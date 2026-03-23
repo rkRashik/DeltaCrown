@@ -8,7 +8,7 @@
 {% block title %}The Hub — {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block tournament_css %}
-<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}">
+<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260324a">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   /* Game Theme CSS Custom Properties */
@@ -24,7 +24,8 @@
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     margin: 0 !important;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 </style>
 {% endblock %}
@@ -59,6 +60,9 @@
     data-payment-verified="{{ hub_payment_verified|yesno:'true,false' }}"
     data-lock-reason="{{ hub_lock_reason|default:''|escape }}"
 >
+
+  <div id="hub-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="hub-live-region-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
   {% comment %}Cinematic Background Layers{% endcomment %}
   <div class="hub-bg-cinematic"></div>
@@ -106,16 +110,6 @@
           <span class="w-1.5 h-1.5 rounded-full ws-dot"></span>
           <span class="ws-label">live</span>
         </span>
-        <style>
-          #hub-ws-indicator.connected .ws-dot { background:#00FF66; box-shadow:0 0 6px #00FF66; }
-          #hub-ws-indicator.connected .ws-label { color:#00FF66; }
-          #hub-ws-indicator.disconnected .ws-dot { background:#ef4444; box-shadow:0 0 6px #ef4444; }
-          #hub-ws-indicator.disconnected .ws-label { color:#ef4444; }
-          #hub-ws-indicator.disconnected .ws-label::after { content:'offline'; }
-          #hub-ws-indicator.connected .ws-label::after { content:'live'; }
-          #hub-ws-indicator .ws-label { font-size:0; }
-          #hub-ws-indicator .ws-label::after { font-size:10px; }
-        </style>
         {% comment %}Status Chip — clickable, opens status detail modal{% endcomment %}
         <button onclick="HubEngine.showStatusModal()" class="hub-status-chip hidden sm:flex" id="hub-status-chip" title="View registration status details">
           <span class="hub-status-dot
@@ -228,7 +222,7 @@
     <main class="flex-1 overflow-y-auto relative" id="hub-viewport">
 
       <div id="hub-tab-lock-overlay" class="hub-tab-lock-overlay" aria-hidden="true">
-        <div class="hub-tab-lock-overlay-panel">
+        <div class="hub-tab-lock-overlay-panel" tabindex="-1">
           <div class="hub-tab-lock-emblem" aria-hidden="true">
             <i data-lucide="lock-keyhole" class="w-6 h-6"></i>
           </div>
@@ -485,7 +479,7 @@
 {% endblock %}
 
 {% block tournament_js %}
-<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260323h"></script>
+<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260324b"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

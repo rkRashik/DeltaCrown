@@ -247,6 +247,12 @@
             <p class="text-[10px] text-gray-600 mt-1">Tickets you submit will appear here</p>
           </div>
         </div>
+        <div class="mt-3 hidden justify-center" id="support-load-more-wrap">
+          <button type="button" id="support-load-more-btn" onclick="HubEngine.loadMoreSupportTickets()"
+                  class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all">
+            Load More Tickets
+          </button>
+        </div>
       </div>
 
       {% comment %}FAQ{% endcomment %}
