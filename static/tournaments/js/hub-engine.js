@@ -101,6 +101,7 @@ const HubEngine = (() => {
         closeMobileSidebar();
         closeContactModal();
         closeStatusModal();
+        closeTicketModal();
         dismissGuide();
       }
     };
@@ -2540,6 +2541,164 @@ const HubEngine = (() => {
   }
 
   // ──────────────────────────────────────────────────────────
+  // VIP Pass Modal
+  // ──────────────────────────────────────────────────────────
+  function openTicketModal() {
+    _openModal('ticketModal', 'hub-ticket-modal-title');
+    _ensureTicketQr();
+  }
+
+  function closeTicketModal() {
+    _closeModal('ticketModal');
+  }
+
+  async function downloadTicketPass() {
+    const card = document.getElementById('hub-ticket-export');
+    if (!card) return;
+
+    const button = document.querySelector('#ticketModal button[onclick="HubEngine.downloadTicketPass()"]');
+    const originalHtml = button ? button.innerHTML : '';
+
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Rendering...';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+      if (typeof html2canvas === 'undefined') {
+        throw new Error('html2canvas is unavailable');
+      }
+
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      _ensureTicketQr();
+
+      await _waitForTicketAssets(card, 2800);
+      card.classList.add('is-exporting');
+
+      const rect = card.getBoundingClientRect();
+      const canvas = await html2canvas(card, {
+        scale: 4,
+        backgroundColor: '#050508',
+        foreignObjectRendering: false,
+        useCORS: true,
+        allowTaint: true,
+        imageTimeout: 0,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+      });
+
+      const link = document.createElement('a');
+      link.download = 'VIP_Pass.png';
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    } catch (err) {
+      console.error('[HubEngine] VIP pass download failed:', err);
+      if (window.showToast) {
+        window.showToast({ type: 'error', message: 'Could not generate VIP pass image. Please try again.' });
+      }
+      _announceLiveMessage('Could not generate VIP pass image. Please try again.', 'assertive');
+    } finally {
+      card.classList.remove('is-exporting');
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+  }
+
+  async function _waitForTicketAssets(root, timeoutMs = 2500) {
+    if (!root) return;
+
+    const waits = [];
+    if (document.fonts && document.fonts.ready) {
+      waits.push(document.fonts.ready.catch(() => null));
+    }
+    waits.push(_waitForImageAssets(root, timeoutMs));
+    waits.push(_waitForTicketQrReady(Math.min(timeoutMs, 1800)));
+
+    await Promise.all(waits);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+
+  function _waitForImageAssets(root, timeoutMs = 2000) {
+    return new Promise((resolve) => {
+      const images = Array.from(root.querySelectorAll('img'));
+      if (!images.length) {
+        resolve();
+        return;
+      }
+
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+
+      const pending = images.filter((img) => !img.complete || img.naturalWidth === 0);
+      if (!pending.length) {
+        finish();
+        return;
+      }
+
+      let remaining = pending.length;
+      const onSettled = () => {
+        remaining -= 1;
+        if (remaining <= 0) finish();
+      };
+
+      pending.forEach((img) => {
+        img.addEventListener('load', onSettled, { once: true });
+        img.addEventListener('error', onSettled, { once: true });
+      });
+
+      setTimeout(finish, timeoutMs);
+    });
+  }
+
+  function _waitForTicketQrReady(timeoutMs = 1500) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      (function check() {
+        const qrRoot = document.getElementById('hub-ticket-qr');
+        if (qrRoot && qrRoot.querySelector('canvas, img')) {
+          resolve();
+          return;
+        }
+        if ((Date.now() - started) >= timeoutMs) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 40);
+      })();
+    });
+  }
+
+  function _ensureTicketQr() {
+    const qrRoot = document.getElementById('hub-ticket-qr');
+    if (!qrRoot || typeof QRCode === 'undefined') return;
+    if (qrRoot.querySelector('canvas, img')) return;
+
+    const slug = _shell?.dataset?.slug || '';
+    qrRoot.innerHTML = '';
+    new QRCode(qrRoot, {
+      text: `${window.location.origin}/tournaments/${slug}/`,
+      width: 150,
+      height: 150,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Contact Admin Modal
   // ──────────────────────────────────────────────────────────
   function showContactModal() {
@@ -2922,6 +3081,9 @@ const HubEngine = (() => {
     // Module 11: Status Detail
     showStatusModal,
     closeStatusModal,
+    openTicketModal,
+    closeTicketModal,
+    downloadTicketPass,
     dismissGuide,
     // Module 12: Support & Disputes
     selectSupportCategory,

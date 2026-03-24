@@ -86,6 +86,55 @@
         user-select: none;
     }
 
+    .ticket-ghost-watermark .ticket-watermark-text {
+        position: absolute;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.09);
+        font-size: clamp(18px, 2.6vw, 36px);
+        opacity: 0.12;
+    }
+
+    .ticket-inline-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        position: relative;
+        z-index: 10;
+        min-height: 1.25rem;
+    }
+
+    .ticket-inline-icon {
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+        margin-top: 0 !important;
+        align-self: center;
+    }
+
+    .ticket-inline-label {
+        display: block;
+        line-height: 1 !important;
+        padding-top: 0;
+        transform: none;
+    }
+
+    .is-exporting .export-drift-fix {
+        transform: translateY(-3px) !important;
+    }
+
+    .dc-wordmark {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #E6C88A;
+        text-shadow: 0 0 12px rgba(230, 200, 138, 0.25);
+    }
+
     #ticket-qr,
     #ticket-qr canvas,
     #ticket-qr img {
@@ -350,7 +399,8 @@
             <div id="ticket-export" class="export-wrapper">
                 <div class="dc-ticket w-full flex flex-col">
                     <div class="ticket-ghost-watermark">
-                        <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="" aria-hidden="true">
+                        <img src="{% static 'img/deltaCrown_logos/logo.png' %}" alt="" aria-hidden="true">
+                        <span class="ticket-watermark-text" aria-hidden="true">DeltaCrown</span>
                     </div>
                     <div class="ticket-top-band"></div>
                     <div class="lanyard-hole"></div>
@@ -374,7 +424,7 @@
                                         <rect x="48" y="200" width="160" height="20" rx="4" fill="url(#dcGrad)" />
                                     </svg>
                                 </div>
-                                <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-6 w-auto opacity-95 drop-shadow-md">
+                                <span class="dc-wordmark text-base">DeltaCrown</span>
                             </div>
 
                             <h3 class="font-display text-2xl md:text-3xl font-black text-white uppercase tracking-wide drop-shadow-lg leading-tight">{{ tournament.name }}</h3>
@@ -382,7 +432,8 @@
                         </div>
                         <div class="text-right">
                             <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
-                                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verified
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
+                                <span class="leading-none block export-drift-fix">Verified</span>
                             </div>
                             <p class="text-[10px] text-gray-500 mt-3 uppercase tracking-widest font-mono">Date: {% now "d M Y" %}</p>
                         </div>
@@ -405,23 +456,27 @@
                             <div class="col-span-2 bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 p-3 rounded-lg relative overflow-hidden group">
                                     <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="wifi" class="w-16 h-16 text-cyan-400"></i></div>
                                     <p class="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Competition Format</p>
-                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10">
+                                    <div class="ticket-inline-row text-sm font-black text-white tracking-wide uppercase">
                                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500 shadow-[0_0_8px_#00E5FF]"></span></span>
-                                        ONLINE
-                                    </p>
+                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">ONLINE</span>
+                                    </div>
                             </div>
                             <div class="col-span-2 bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/20 p-3 rounded-lg relative overflow-hidden group">
                                     <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="server" class="w-16 h-16 text-violet-400"></i></div>
                                     <p class="text-[10px] font-bold text-violet-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Match Venue</p>
-                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10 truncate pb-1 leading-[1.25]">
-                                        <i data-lucide="globe-2" class="w-4 h-4 text-violet-400"></i> DeltaCrown Servers
-                                    </p>
+                                    <div class="ticket-inline-row tracking-wide uppercase">
+                                        <i data-lucide="globe-2" class="ticket-inline-icon text-violet-400"></i>
+                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">DeltaCrown Servers</span>
+                                    </div>
                             </div>
                             {% elif tournament.mode == 'lan' or tournament.mode == 'offline' %}
                             <div class="col-span-2 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 p-3 rounded-lg relative overflow-hidden group">
                                 <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="ticket" class="w-16 h-16 text-amber-400"></i></div>
                                 <p class="text-[10px] font-bold text-amber-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Format</p>
-                                <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> LAN</p>
+                                <div class="ticket-inline-row tracking-wide uppercase">
+                                    <i data-lucide="users" class="ticket-inline-icon text-amber-400"></i>
+                                    <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">LAN</span>
+                                </div>
                             </div>
                             <div class="col-span-2 bg-gradient-to-br from-red-500/5 to-transparent border border-red-500/20 p-3 rounded-lg relative overflow-hidden flex flex-col justify-center">
                                 <p class="text-[10px] font-bold text-red-400 uppercase tracking-[0.15em] mb-1.5">Access Rule</p>
@@ -442,31 +497,47 @@
                             <div class="col-span-2 bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 p-3 rounded-lg relative overflow-hidden group">
                                     <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="git-merge" class="w-16 h-16 text-emerald-400"></i></div>
                                     <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Competition Format</p>
-                                    <p class="text-sm font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10"><i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i> MULTI-STAGE</p>
+                                    <div class="ticket-inline-row tracking-wide uppercase">
+                                        <i data-lucide="layers" class="ticket-inline-icon text-emerald-400"></i>
+                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">MULTI-STAGE</span>
+                                    </div>
                             </div>
                             <div class="col-span-2 bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-3 rounded-lg relative overflow-hidden group">
                                     <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="map" class="w-16 h-16 text-blue-400"></i></div>
                                     <p class="text-[10px] font-bold text-blue-400 uppercase tracking-[0.15em] mb-1.5 relative z-10">Match Venue</p>
-                                    <p class="text-xs font-black text-white flex items-center gap-2 tracking-wide uppercase relative z-10 truncate pb-1 leading-[1.25]"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> Server & Arena</p>
+                                    <div class="ticket-inline-row tracking-wide uppercase">
+                                        <i data-lucide="map-pin" class="ticket-inline-icon text-blue-400"></i>
+                                        <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">Server & Arena</span>
+                                    </div>
                             </div>
                             {% endif %}
 
                             <div class="col-span-2 bg-gradient-to-br from-slate-500/10 to-transparent border border-slate-300/20 p-3 rounded-lg relative overflow-hidden group shadow-[0_0_20px_rgba(148,163,184,0.08)]">
                                 <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="gamepad-2" class="w-16 h-16 text-slate-300"></i></div>
                                 <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Platform</p>
-                                <p class="text-sm font-bold text-white flex items-center gap-1.5 relative z-10"><i data-lucide="gamepad-2" class="w-4 h-4 text-slate-300"></i> {% if platform_display_text %}{{ platform_display_text }}{% else %}Any Platform{% endif %}</p>
+                                <div class="ticket-inline-row">
+                                    <i data-lucide="gamepad-2" class="ticket-inline-icon text-slate-300"></i>
+                                    <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">{% if platform_display_text %}{{ platform_display_text }}{% else %}Any Platform{% endif %}</span>
+                                </div>
                             </div>
-                            <div class="col-span-2 {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}bg-gradient-to-br from-emerald-500/12 to-transparent border-emerald-400/25 shadow-[0_0_22px_rgba(16,185,129,0.14)]{% else %}bg-gradient-to-br from-amber-500/12 to-transparent border-amber-400/25 shadow-[0_0_22px_rgba(245,158,11,0.14)]{% endif %} border p-3 rounded-lg relative overflow-hidden group">
-                                <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="coins" class="w-16 h-16 {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}text-emerald-300{% else %}text-amber-300{% endif %}"></i></div>
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2">Entry Fee</p>
-                                {% if registration.payment_status and registration.payment_status|lower in 'paid,verified,cleared,completed' %}
-                                <p class="text-sm font-bold text-emerald-300 flex items-center gap-1.5 relative z-10"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Paid / Cleared</p>
-                                {% elif registration.payment_status and registration.payment_status|lower == 'pending' %}
-                                <p class="text-sm font-bold text-amber-300 flex items-center gap-1.5 relative z-10"><i data-lucide="clock-3" class="w-4 h-4"></i> Pending</p>
-                                {% elif not tournament.has_entry_fee %}
-                                <p class="text-sm font-bold text-sky-300 flex items-center gap-1.5 relative z-10"><i data-lucide="badge-dollar-sign" class="w-4 h-4"></i> Free</p>
+                            <div class="col-span-2 bg-gradient-to-br from-fuchsia-500/16 via-fuchsia-500/8 to-transparent border border-fuchsia-400/30 p-3 rounded-lg relative overflow-hidden group shadow-[0_0_24px_rgba(217,70,239,0.18)]">
+                                <div class="absolute -right-2 -top-2 opacity-10"><i data-lucide="crown" class="w-16 h-16 text-fuchsia-300"></i></div>
+                                <p class="text-[10px] font-bold text-fuchsia-300 uppercase tracking-[0.15em] mb-2">Access Tier</p>
+                                {% if tournament.mode == 'lan' or tournament.mode == 'offline' %}
+                                <div class="ticket-inline-row">
+                                    <i data-lucide="star" class="ticket-inline-icon text-fuchsia-300"></i>
+                                    <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">ELITE</span>
+                                </div>
+                                {% elif tournament.format == 'solo' %}
+                                <div class="ticket-inline-row">
+                                    <i data-lucide="swords" class="ticket-inline-icon text-fuchsia-300"></i>
+                                    <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">CHALLENGER</span>
+                                </div>
                                 {% else %}
-                                <p class="text-sm font-bold text-amber-300 flex items-center gap-1.5 relative z-10"><i data-lucide="clock-3" class="w-4 h-4"></i> Pending</p>
+                                <div class="ticket-inline-row">
+                                    <i data-lucide="shield" class="ticket-inline-icon text-fuchsia-300"></i>
+                                    <span class="ticket-inline-label text-sm font-black text-white tracking-wide uppercase leading-none block export-drift-fix">CONTENDERS</span>
+                                </div>
                                 {% endif %}
                             </div>
                             <div class="col-span-2">
@@ -744,6 +815,8 @@
             const element = document.getElementById('ticket-export');
             if (!element) throw new Error('Ticket element not found');
 
+            element.classList.add('is-exporting');
+
             const canvas = await html2canvas(element, {
                 scale: 4,
                 backgroundColor: '#050508',
@@ -770,6 +843,11 @@
             }, 3000);
         } catch (err) {
             console.error('Error saving image:', err);
+        } finally {
+            const element = document.getElementById('ticket-export');
+            if (element) {
+                element.classList.remove('is-exporting');
+            }
             btn.innerHTML = originalText;
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();

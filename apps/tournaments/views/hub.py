@@ -452,6 +452,8 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
                 'name': coord_name,
             }
 
+    platform_display_text = _platform_display_text(tournament)
+
     context = {
         'tournament': tournament,
         'registration': registration,
@@ -496,6 +498,7 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
         'reg_count': reg_count,
         'game_name': tournament.game.name if tournament.game else '',
         'game_spec': game_spec,
+        'platform_display_text': platform_display_text,
 
         # Game theme (for per-game visual styling)
         'game_slug': tournament.game.slug if tournament.game else '',
@@ -691,6 +694,49 @@ def _registration_status_label(registration, check_in):
         'needs_review': 'Under Review',
     }
     return status_map.get(registration.status, 'Registered')
+
+
+def _platform_display_text(tournament):
+    """Return platform labels using same normalization as smart success view."""
+    platform_value = getattr(tournament, 'platform', None)
+    if not platform_value:
+        return ''
+
+    platform_choice_map = {
+        str(key).lower(): str(label)
+        for key, label in getattr(Tournament, 'PLATFORM_CHOICES', [])
+    }
+
+    parsed_platforms = None
+    if isinstance(platform_value, list):
+        parsed_platforms = platform_value
+    else:
+        raw_platform = str(platform_value).strip()
+        if raw_platform.startswith('[') and raw_platform.endswith(']'):
+            try:
+                maybe_list = json.loads(raw_platform)
+                if isinstance(maybe_list, list):
+                    parsed_platforms = maybe_list
+            except (TypeError, ValueError, json.JSONDecodeError):
+                parsed_platforms = None
+        if parsed_platforms is None:
+            if ',' in raw_platform:
+                parsed_platforms = [item.strip() for item in raw_platform.split(',') if item and item.strip()]
+            else:
+                parsed_platforms = [raw_platform]
+
+    labels = []
+    for token in parsed_platforms or []:
+        key = str(token).strip().lower()
+        if not key:
+            continue
+        label = platform_choice_map.get(key)
+        if not label:
+            label = str(token).replace('_', ' ').strip().title()
+        if label not in labels:
+            labels.append(label)
+
+    return ', '.join(labels)
 
 
 def _time_ago(dt, now=None):
