@@ -41,6 +41,12 @@ class PaymentListView(TOCBaseView):
             page = 1
         page = max(1, page)
 
+        try:
+            page_size = int(request.query_params.get("page_size", TOCPaymentsService.PAGE_SIZE))
+        except (TypeError, ValueError):
+            page_size = TOCPaymentsService.PAGE_SIZE
+        page_size = max(10, min(page_size, 100))
+
         status_filter = request.query_params.get("status")
         method_filter = request.query_params.get("method")
         search = request.query_params.get("search")
@@ -56,6 +62,7 @@ class PaymentListView(TOCBaseView):
         result = TOCPaymentsService.get_payment_list(
             self.tournament,
             page=page,
+            page_size=page_size,
             status_filter=status_filter,
             method_filter=method_filter,
             search=search,

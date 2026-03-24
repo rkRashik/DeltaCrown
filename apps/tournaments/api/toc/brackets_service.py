@@ -725,7 +725,7 @@ class TOCBracketsService:
 
         DEFAULT_DURATION = timedelta(minutes=60)
         conflicts = []
-        indexed = []
+        by_participant = {}
 
         for m in matches:
             if not m.scheduled_time:
@@ -734,35 +734,38 @@ class TOCBracketsService:
             end = start + DEFAULT_DURATION
             for pid in [m.participant1_id, m.participant2_id]:
                 if pid:
-                    indexed.append({
+                    by_participant.setdefault(pid, []).append({
                         "match_id": m.id,
                         "match_number": m.match_number,
                         "round_number": m.round_number,
-                        "participant_id": pid,
                         "start": start,
                         "end": end,
                     })
 
-        # O(n²) check — fine for tournament scale (<500 matches)
         seen_pairs = set()
-        for i, a in enumerate(indexed):
-            for b in indexed[i + 1:]:
-                if a["participant_id"] != b["participant_id"]:
+        for participant_id, slots in by_participant.items():
+            slots.sort(key=lambda s: s["start"])
+            prev = None
+            for current in slots:
+                if prev is None:
+                    prev = current
                     continue
-                if a["match_id"] == b["match_id"]:
-                    continue
-                # Check overlap
-                if a["start"] < b["end"] and b["start"] < a["end"]:
-                    pair_key = tuple(sorted([a["match_id"], b["match_id"]]))
+
+                if prev["match_id"] != current["match_id"] and prev["end"] > current["start"]:
+                    pair_key = tuple(sorted([prev["match_id"], current["match_id"]]))
                     if pair_key not in seen_pairs:
                         seen_pairs.add(pair_key)
                         conflicts.append({
-                            "match_a": a["match_id"],
-                            "match_b": b["match_id"],
-                            "participant_id": a["participant_id"],
-                            "overlap_start": max(a["start"], b["start"]).isoformat(),
-                            "overlap_end": min(a["end"], b["end"]).isoformat(),
+                            "match_a": prev["match_id"],
+                            "match_b": current["match_id"],
+                            "participant_id": participant_id,
+                            "overlap_start": max(prev["start"], current["start"]).isoformat(),
+                            "overlap_end": min(prev["end"], current["end"]).isoformat(),
                         })
+
+                # Keep the interval that extends furthest right for next overlap checks.
+                if current["end"] > prev["end"]:
+                    prev = current
 
         return conflicts
 

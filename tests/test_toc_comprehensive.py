@@ -201,6 +201,21 @@ class TestTOCURLRouting:
         url = reverse('toc_api:participants', kwargs={'slug': 'test-slug'})
         assert '/api/toc/test-slug/participants/' in url
 
+    def test_participant_hard_block_url_resolves(self):
+        """Participant hard-block endpoint resolves."""
+        url = reverse('toc_api:participant-hard-block', kwargs={'slug': 'test-slug', 'pk': 1})
+        assert '/api/toc/test-slug/participants/1/hard-block/' in url
+
+    def test_participant_unblock_url_resolves(self):
+        """Participant unblock endpoint resolves."""
+        url = reverse('toc_api:participant-unblock', kwargs={'slug': 'test-slug', 'pk': 1})
+        assert '/api/toc/test-slug/participants/1/unblock/' in url
+
+    def test_participant_notify_url_resolves(self):
+        """Participant notify endpoint resolves."""
+        url = reverse('toc_api:participant-notify', kwargs={'slug': 'test-slug', 'pk': 1})
+        assert '/api/toc/test-slug/participants/1/notify/' in url
+
     def test_organizer_tournament_detail_no_longer_exists(self):
         """Legacy organizer_tournament_detail URL is gone (purged in Sprint 0)."""
         with pytest.raises(NoReverseMatch):

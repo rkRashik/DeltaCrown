@@ -6,7 +6,7 @@ Reference: Phase 7, Epic 7.4 - Match Operations Command Center
 
 import pytest
 from unittest.mock import Mock, MagicMock
-from datetime import datetime
+from django.utils import timezone
 
 from apps.tournament_ops.services.match_ops_service import MatchOpsService
 from apps.tournament_ops.dtos import (
@@ -61,7 +61,7 @@ class TestMarkMatchLive:
         mock_match_ops_adapter.get_match_state.return_value = 'PENDING'
         mock_match_ops_adapter.add_operation_log.return_value = MatchOperationLogDTO(
             log_id=1, match_id=100, operator_user_id=1, operator_username='admin',
-            operation_type='LIVE', payload={'previous_state': 'PENDING'}, created_at=datetime.utcnow()
+            operation_type='LIVE', payload={'previous_state': 'PENDING'}, created_at=timezone.now()
         )
         
         # Execute
@@ -119,7 +119,7 @@ class TestPauseMatch:
         mock_match_ops_adapter.get_match_state.return_value = 'LIVE'
         mock_match_ops_adapter.add_operation_log.return_value = MatchOperationLogDTO(
             log_id=2, match_id=100, operator_user_id=1, operator_username='admin',
-            operation_type='PAUSED', payload={'reason': 'Technical issue'}, created_at=datetime.utcnow()
+            operation_type='PAUSED', payload={'reason': 'Technical issue'}, created_at=timezone.now()
         )
         
         result = match_ops_service.pause_match(100, 10, 1, reason='Technical issue')
@@ -140,7 +140,7 @@ class TestPauseMatch:
         mock_match_ops_adapter.get_match_state.return_value = 'LIVE'
         mock_match_ops_adapter.add_operation_log.return_value = MatchOperationLogDTO(
             log_id=2, match_id=100, operator_user_id=1, operator_username='admin',
-            operation_type='PAUSED', payload={'reason': None}, created_at=datetime.utcnow()
+            operation_type='PAUSED', payload={'reason': None}, created_at=timezone.now()
         )
         
         result = match_ops_service.pause_match(100, 10, 1)
@@ -165,7 +165,7 @@ class TestResumeMatch:
         mock_match_ops_adapter.get_match_state.return_value = 'PAUSED'
         mock_match_ops_adapter.add_operation_log.return_value = MatchOperationLogDTO(
             log_id=3, match_id=100, operator_user_id=1, operator_username='admin',
-            operation_type='RESUMED', payload={}, created_at=datetime.utcnow()
+            operation_type='RESUMED', payload={}, created_at=timezone.now()
         )
         
         result = match_ops_service.resume_match(100, 10, 1)
@@ -188,7 +188,7 @@ class TestForceCompleteMatch:
         )
         mock_match_ops_adapter.add_operation_log.return_value = MatchOperationLogDTO(
             log_id=4, match_id=100, operator_user_id=1, operator_username='admin',
-            operation_type='FORCE_COMPLETED', payload={'reason': 'No show'}, created_at=datetime.utcnow()
+            operation_type='FORCE_COMPLETED', payload={'reason': 'No show'}, created_at=timezone.now()
         )
         
         result_data = {'winner': 'team1', 'reason': 'forfeit'}
@@ -228,7 +228,7 @@ class TestAddModeratorNote:
         )
         mock_match_ops_adapter.add_moderator_note.return_value = MatchModeratorNoteDTO(
             note_id=1, match_id=100, author_user_id=1, author_username='admin',
-            content='Test note', created_at=datetime.utcnow()
+            content='Test note', created_at=timezone.now()
         )
         
         note = match_ops_service.add_moderator_note(100, 10, 1, 'Test note')

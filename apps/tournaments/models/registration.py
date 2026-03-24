@@ -234,6 +234,9 @@ class Registration(SoftDeleteModel, TimestampedModel):
             models.Index(fields=['team_id', '-created_at']),
             models.Index(fields=['status', 'registered_at']),
             models.Index(fields=['tournament', 'slot_number']),
+            models.Index(fields=['tournament', 'is_deleted', '-registered_at'], name='reg_tour_del_regd_idx'),
+            models.Index(fields=['tournament', 'is_deleted', 'status'], name='reg_tour_del_stat_idx'),
+            models.Index(fields=['tournament', 'is_deleted', 'checked_in'], name='reg_tour_del_check_idx'),
         ]
         unique_together = [
             ('tournament', 'user'),  # One registration per user per tournament

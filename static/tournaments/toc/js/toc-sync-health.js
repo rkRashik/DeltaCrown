@@ -8,6 +8,15 @@
 
   const $ = (sel) => document.querySelector(sel);
   let lastIssuePrefixes = [];
+  let summaryTimer = null;
+
+  function scheduleHealthSummary() {
+    if (summaryTimer) return;
+    summaryTimer = setTimeout(function () {
+      summaryTimer = null;
+      updateHealthSummary();
+    }, 120);
+  }
 
   function syncNodes() {
     return Array.from(document.querySelectorAll('[id$="-sync-status"]'));
@@ -97,7 +106,7 @@
 
     await Promise.allSettled(ops);
     showToast('All modules refresh requested', 'success');
-    updateHealthSummary();
+    scheduleHealthSummary();
   }
 
   function jumpToFirstIssue() {
@@ -216,7 +225,7 @@
         }
       }
 
-      if (shouldUpdate) updateHealthSummary();
+      if (shouldUpdate) scheduleHealthSummary();
     });
 
     observer.observe(root, {
@@ -231,11 +240,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     hydrateA11y();
     bindActionButtons();
-    updateHealthSummary();
+    scheduleHealthSummary();
     bindObservers();
 
     document.addEventListener('toc:tab-changed', function () {
-      updateHealthSummary();
+      scheduleHealthSummary();
     });
   });
 })();

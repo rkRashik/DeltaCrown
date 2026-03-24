@@ -35,13 +35,17 @@ class TOCCheckinService:
         """Full check-in dashboard data with enriched participant info."""
         from apps.tournaments.models.registration import Registration
 
-        qs = Registration.objects.filter(
-            tournament=tournament,
-            status__in=["confirmed", "auto_approved", "pending"],
-        ).select_related("user")
+        regs = list(
+            Registration.objects.filter(
+                tournament=tournament,
+                status__in=["confirmed", "auto_approved", "pending"],
+            )
+            .select_related("user")
+            .order_by("-checked_in", "-updated_at")
+        )
 
-        total = qs.count()
-        checked_in = qs.filter(checked_in=True).count()
+        total = len(regs)
+        checked_in = sum(1 for r in regs if r.checked_in)
         pending = total - checked_in
 
         # ── Config ──
@@ -80,7 +84,7 @@ class TOCCheckinService:
             pass
 
         # ── Batch-load team metadata ──
-        all_team_ids = list({r.team_id for r in qs if r.team_id})
+        all_team_ids = list({r.team_id for r in regs if r.team_id})
         team_meta: dict[int, dict] = {}
         if all_team_ids:
             OrgTeam = _lazy_org_team()
@@ -106,7 +110,7 @@ class TOCCheckinService:
 
         # ── Batch-load lineup snapshots for player counts ──
         lineup_counts: dict[int, int] = {}
-        for reg in qs:
+        for reg in regs:
             if reg.team_id and reg.lineup_snapshot:
                 lineup_counts[reg.team_id] = len(reg.lineup_snapshot)
 
@@ -132,7 +136,7 @@ class TOCCheckinService:
 
         # ── Build enriched participant list ──
         participants = []
-        for reg in qs.order_by("-checked_in", "-updated_at"):
+        for reg in regs:
             username = "Unknown"
             display_name = ""
             team_name = ""

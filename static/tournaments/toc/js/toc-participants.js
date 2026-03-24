@@ -23,7 +23,10 @@
   let currentOrdering = '-registered_at';
   let debounceTimer = null;
   let systemChecks = {};       // { regId: [flags] }  — cached per tab load
+  let systemChecksLoadedAt = 0;
+  let systemChecksPromise = null;
   let expandedQuickReview = null; // currently expanded row id (or null)
+  const SYSTEM_CHECKS_TTL_MS = 25000;
 
   /* ── Semantic Status Badges ────────────────────────────────────── */
   const STATUS_CONFIG = {
@@ -83,10 +86,21 @@
   }
 
   /** Fetch system checks in background and patch visible check icons */
-  async function loadSystemChecks() {
+  async function loadSystemChecks(options) {
+    const opts = options || {};
+    const now = Date.now();
+    if (!opts.force && systemChecksLoadedAt > 0 && (now - systemChecksLoadedAt) < SYSTEM_CHECKS_TTL_MS) {
+      return;
+    }
+    if (systemChecksPromise) {
+      return systemChecksPromise;
+    }
+
+    systemChecksPromise = (async function () {
     try {
       const data = await TOC.fetch(`${TOC.config.apiBase}/participants/system-checks/`);
       systemChecks = data.per_registration || {};
+      systemChecksLoadedAt = Date.now();
       // Re-render check icons for visible rows
       if (currentData) {
         currentData.results.forEach(row => {
@@ -97,7 +111,12 @@
       }
     } catch (e) {
       console.warn('[TOC.participants] system checks load error:', e);
+    } finally {
+      systemChecksPromise = null;
     }
+    })();
+
+    return systemChecksPromise;
   }
 
   /* ── Render Grid ────────────────────────────────────────────────── */
@@ -140,7 +159,10 @@
     }
 
     tbody.innerHTML = rows.map(row => {
-      const sc = STATUS_CONFIG[row.status] || STATUS_CONFIG.draft;
+      const scBase = STATUS_CONFIG[row.status] || STATUS_CONFIG.draft;
+      const sc = row.is_hard_blocked
+        ? { bg: 'bg-red-600/10', border: 'border-red-600/30', text: 'text-red-300', label: 'Blocked', icon: 'ban' }
+        : scBase;
       const pc = PAYMENT_CONFIG[row.payment_status] || PAYMENT_CONFIG.None;
       const checked = selectedIds.has(row.id) ? 'checked' : '';
       const isAwaitingVerification = ['payment_submitted', 'submitted', 'needs_review'].includes(row.status);
@@ -154,8 +176,8 @@
           </td>
           <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
             <div class="flex items-center gap-2.5">
-              ${row.team_logo_url
-                ? `<img src="${esc(row.team_logo_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+              ${(row.team_logo_url || row.profile_avatar_url)
+                ? `<img src="${esc(row.team_logo_url || row.profile_avatar_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0"
                        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                    <div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
                      <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
@@ -212,7 +234,7 @@
               : esc(row.game_id || '—')}
           </td>
           <td class="px-3 py-2.5 text-right" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
               ${isAwaitingVerification ? `
                 <button onclick="TOC.participants.toggleQuickReview(${row.id})"
                   title="Quick Review" class="w-7 h-7 rounded-lg border border-theme/20 bg-theme/5 hover:bg-theme/15 flex items-center justify-center transition-colors">
@@ -221,6 +243,10 @@
               ${actionButton(row, 'approve', 'check', 'emerald-400', 'Approve')}
               ${actionButton(row, 'reject', 'x', 'red-400', 'Reject')}
               ${actionButton(row, 'dq', 'shield-off', 'amber-400', 'DQ')}
+              ${actionButton(row, 'promote_waitlist', 'arrow-up-circle', 'violet-400', 'Promote')}
+              ${actionButton(row, 'notify', 'megaphone', 'sky-400', 'Alert')}
+              ${actionButton(row, 'hard_block', 'ban', 'rose-400', 'Block')}
+              ${actionButton(row, 'unblock', 'shield-check', 'emerald-300', 'Unblock')}
               ${actionButton(row, 'verify', 'badge-check', 'sky-400', 'Verify Pay')}
             </div>
           </td>
@@ -315,15 +341,32 @@
     const showApprove = ['pending', 'needs_review', 'submitted'].includes(row.status);
     const showReject = ['pending', 'needs_review', 'submitted', 'payment_submitted'].includes(row.status);
     const showDQ = row.status === 'confirmed' || row.status === 'auto_approved';
+    const showPromote = row.status === 'waitlisted';
+    const showNotify = ['waitlisted', 'pending', 'needs_review', 'submitted', 'payment_submitted', 'confirmed', 'auto_approved', 'rejected'].includes(row.status);
+    const showHardBlock = !row.is_hard_blocked;
+    const showUnblock = !!row.is_hard_blocked;
     const showVerify = row.payment_status === 'Pending';
 
     if (action === 'approve' && !showApprove) return '';
     if (action === 'reject' && !showReject) return '';
     if (action === 'dq' && !showDQ) return '';
+    if (action === 'promote_waitlist' && !showPromote) return '';
+    if (action === 'notify' && !showNotify) return '';
+    if (action === 'hard_block' && !showHardBlock) return '';
+    if (action === 'unblock' && !showUnblock) return '';
     if (action === 'verify' && !showVerify) return '';
 
     // Map actions to capabilities for RBAC gating
-    var capMap = { approve: 'manage_registrations', reject: 'manage_registrations', dq: 'manage_registrations', verify: 'approve_payments' };
+    var capMap = {
+      approve: 'manage_registrations',
+      reject: 'manage_registrations',
+      dq: 'manage_registrations',
+      promote_waitlist: 'manage_registrations',
+      notify: 'manage_registrations',
+      hard_block: 'manage_registrations',
+      unblock: 'manage_registrations',
+      verify: 'approve_payments',
+    };
     var capAttr = capMap[action] ? ' data-cap-require="' + capMap[action] + '"' : '';
 
     return `<button onclick="TOC.participants.rowAction('${action}', ${row.id})"
@@ -479,13 +522,47 @@
           TOC.toast('A reason is required for disqualification.', 'warning');
           return;
         }
+        const autoRefund = window.confirm('Refund this participant payment now?');
         endpoint = `${TOC.config.apiBase}/participants/${id}/disqualify/`;
-        body = { reason };
+        body = { reason, auto_refund: autoRefund };
         break;
       }
       case 'verify':
         endpoint = `${TOC.config.apiBase}/participants/${id}/verify-payment/`;
         break;
+      case 'promote_waitlist':
+        endpoint = `${TOC.config.apiBase}/participants/${id}/promote-waitlist/`;
+        break;
+      case 'notify': {
+        const message = await promptReason('Participant alert/message:', false);
+        if (message === null) return;
+        if (!message.trim()) {
+          TOC.toast('Message is required.', 'warning');
+          return;
+        }
+        endpoint = `${TOC.config.apiBase}/participants/${id}/notify/`;
+        body = { subject: 'TOC Alert', message: message.trim() };
+        break;
+      }
+      case 'hard_block': {
+        const reason = await promptReason('Permanent block reason (required):', false);
+        if (reason === null) return;
+        if (!reason.trim()) {
+          TOC.toast('A block reason is required.', 'warning');
+          return;
+        }
+        const autoRefund = window.confirm('Refund this participant payment now?');
+        endpoint = `${TOC.config.apiBase}/participants/${id}/hard-block/`;
+        body = { reason: reason.trim(), auto_refund: autoRefund };
+        break;
+      }
+      case 'unblock': {
+        const note = await promptReason('Unblock note (optional):', true);
+        if (note === null) return;
+        endpoint = `${TOC.config.apiBase}/participants/${id}/unblock/`;
+        body = { reason: (note || '').trim() };
+        break;
+      }
       default:
         return;
     }
@@ -499,7 +576,8 @@
         method: 'POST',
         body: JSON.stringify(body),
       });
-      if (result.ok) {
+      const isSuccess = (typeof result.ok === 'boolean') ? result.ok : !result.error;
+      if (isSuccess) {
         TOC.toast(result.message || 'Action completed.', 'success');
         // Optimistic DOM update — splice the new row data in
         if (result.participant && currentData) {
@@ -641,8 +719,9 @@
       const avatarFallback = `<div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center flex-shrink-0">
             <span class="text-base font-bold text-theme">${initials}</span>
           </div>`;
-      const avatarHtml = ti.logo_url
-        ? `<img src="${esc(ti.logo_url)}" alt="" class="w-10 h-10 rounded-xl object-cover border border-dc-border/50"
+      const avatarSrc = ti.logo_url || d.profile_avatar_url || '';
+      const avatarHtml = avatarSrc
+        ? `<img src="${esc(avatarSrc)}" alt="" class="w-10 h-10 rounded-xl object-cover border border-dc-border/50"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
            <div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
             <span class="text-base font-bold text-theme">${initials}</span>
@@ -885,6 +964,31 @@
           <button onclick="TOC.participants.rowAction('dq', ${d.id}); TOC.drawer.close();"
                   class="flex-1 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="shield-off" class="w-3.5 h-3.5"></i> Disqualify
+          </button>`);
+      }
+      if (d.status === 'waitlisted') {
+        footerActions.push(`
+          <button onclick="TOC.participants.rowAction('promote_waitlist', ${d.id}); TOC.drawer.close();"
+                  class="flex-1 py-2.5 bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-violet-500/20 transition-colors flex items-center justify-center gap-1.5">
+            <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Promote Waitlist
+          </button>`);
+      }
+      footerActions.push(`
+        <button onclick="TOC.participants.rowAction('notify', ${d.id}); TOC.drawer.close();"
+                class="flex-1 py-2.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-sky-500/20 transition-colors flex items-center justify-center gap-1.5">
+          <i data-lucide="megaphone" class="w-3.5 h-3.5"></i> Send Alert
+        </button>`);
+      if (d.is_hard_blocked) {
+        footerActions.push(`
+          <button onclick="TOC.participants.rowAction('unblock', ${d.id}); TOC.drawer.close();"
+                  class="flex-1 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1.5">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Remove Block
+          </button>`);
+      } else {
+        footerActions.push(`
+          <button onclick="TOC.participants.rowAction('hard_block', ${d.id}); TOC.drawer.close();"
+                  class="flex-1 py-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-1.5">
+            <i data-lucide="ban" class="w-3.5 h-3.5"></i> Hard Block
           </button>`);
       }
       if (d.payment && d.payment.status_display === 'Pending') {

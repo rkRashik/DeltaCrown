@@ -12,6 +12,7 @@ PRD: §2.1–§2.7
 from __future__ import annotations
 
 import logging
+import time
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
@@ -53,14 +54,18 @@ class TOCService:
 
         Sprint 27: Added health_score, upcoming_matches, group_progress.
         """
+        t0 = time.perf_counter()
+
         # Gather raw stats from DB
         reg_stats = cls._get_registration_stats(tournament)
         payment_stats = cls._get_payment_stats(tournament)
         dispute_stats = cls._get_dispute_stats(tournament)
         match_stats = cls._get_match_stats(tournament)
+        t_stats = time.perf_counter()
 
         # Lifecycle progress from existing service
         lifecycle = CommandCenterService.get_lifecycle_progress(tournament)
+        t_lifecycle = time.perf_counter()
 
         # Alerts from existing service (inject synthetic IDs)
         raw_alerts = CommandCenterService.get_alerts(
@@ -70,15 +75,19 @@ class TOCService:
             {**alert, 'id': idx}
             for idx, alert in enumerate(raw_alerts)
         ]
+        t_alerts = time.perf_counter()
 
         # Upcoming events from existing service
         events = CommandCenterService.get_upcoming_events(tournament)
+        t_events = time.perf_counter()
 
         # Stat cards for 4-column grid
         stats = cls._build_stat_cards(tournament, reg_stats, payment_stats, match_stats, dispute_stats)
+        t_cards = time.perf_counter()
 
         # Valid transitions from current state
         transitions = cls._get_transitions(tournament)
+        t_transitions = time.perf_counter()
 
         # Frozen state (via config JSONB — proper check)
         is_frozen = cls.is_frozen(tournament)
@@ -92,22 +101,48 @@ class TOCService:
         health_score = cls._compute_health_score(
             tournament, reg_stats, payment_stats, match_stats, dispute_stats, alerts,
         )
+        t_health = time.perf_counter()
 
         # S27: Upcoming matches — next 5 scheduled matches
         upcoming_matches = cls._get_upcoming_matches(tournament)
+        t_upcoming = time.perf_counter()
 
         # S27: Group stage progress (if applicable)
         group_progress = cls._get_group_progress(tournament)
+        t_group = time.perf_counter()
 
         # S28: Countdown timers for key milestones
-        countdowns = cls._get_countdowns(tournament)
+        countdowns = cls._get_countdowns(tournament, upcoming_matches=upcoming_matches)
+        t_countdowns = time.perf_counter()
 
         # S28: Quick-launch actions based on tournament state
         quick_actions = cls._get_quick_actions(tournament)
+        t_actions = time.perf_counter()
 
         # S30: Inline quick stats + recent activity to avoid overview fan-out calls
-        quick_stats = cls._build_quick_stats(tournament, match_stats)
+        quick_stats = cls._build_quick_stats(tournament, reg_stats, match_stats)
         activity_log = cls._get_recent_activity(tournament, limit=25)
+        t_final = time.perf_counter()
+
+        elapsed_ms = (t_final - t0) * 1000.0
+        if elapsed_ms >= 250:
+            logger.info(
+                "TOC overview timings tournament_id=%s elapsed_ms=%.2f stats_ms=%.2f lifecycle_ms=%.2f alerts_ms=%.2f events_ms=%.2f cards_ms=%.2f transitions_ms=%.2f health_ms=%.2f upcoming_ms=%.2f group_ms=%.2f countdowns_ms=%.2f actions_ms=%.2f tail_ms=%.2f",
+                tournament.id,
+                elapsed_ms,
+                (t_stats - t0) * 1000.0,
+                (t_lifecycle - t_stats) * 1000.0,
+                (t_alerts - t_lifecycle) * 1000.0,
+                (t_events - t_alerts) * 1000.0,
+                (t_cards - t_events) * 1000.0,
+                (t_transitions - t_cards) * 1000.0,
+                (t_health - t_transitions) * 1000.0,
+                (t_upcoming - t_health) * 1000.0,
+                (t_group - t_upcoming) * 1000.0,
+                (t_countdowns - t_group) * 1000.0,
+                (t_actions - t_countdowns) * 1000.0,
+                (t_final - t_actions) * 1000.0,
+            )
 
         return {
             'status': tournament.status,
@@ -400,62 +435,78 @@ class TOCService:
             if not gs:
                 return None
 
-            groups = Group.objects.filter(tournament=tournament).order_by('name')
-            total_groups = groups.count()
+            groups = list(
+                Group.objects.filter(tournament=tournament)
+                .prefetch_related('standings')
+                .order_by('name')
+            )
+            total_groups = len(groups)
             if total_groups == 0:
                 return None
 
-            total_matches = Match.objects.filter(
-                tournament=tournament,
-                is_deleted=False,
-                bracket__isnull=True,  # Group-stage matches typically have no bracket
-            ).count()
-            completed_matches = Match.objects.filter(
-                tournament=tournament,
-                is_deleted=False,
-                bracket__isnull=True,
-                state__in=[Match.COMPLETED, 'forfeit'],
-            ).count()
+            group_matches = list(
+                Match.objects.filter(
+                    tournament=tournament,
+                    is_deleted=False,
+                    bracket__isnull=True,
+                ).values('participant1_id', 'participant2_id', 'state')
+            )
 
-            # If bracket-based group matches exist, count them too
+            total_matches = len(group_matches)
+            completed_matches = sum(
+                1 for m in group_matches
+                if m.get('state') in [Match.COMPLETED, 'forfeit']
+            )
+
+            # If bracket-based group matches exist, fall back to all tournament matches.
             if total_matches == 0:
-                total_matches = Match.objects.filter(
-                    tournament=tournament,
-                    is_deleted=False,
-                ).count()
-                completed_matches = Match.objects.filter(
-                    tournament=tournament,
-                    is_deleted=False,
-                    state__in=[Match.COMPLETED, 'forfeit'],
-                ).count()
+                all_matches = list(
+                    Match.objects.filter(
+                        tournament=tournament,
+                        is_deleted=False,
+                    ).values('state')
+                )
+                total_matches = len(all_matches)
+                completed_matches = sum(
+                    1 for m in all_matches
+                    if m.get('state') in [Match.COMPLETED, 'forfeit']
+                )
 
             pct = round((completed_matches / total_matches) * 100) if total_matches > 0 else 0
 
             group_list = []
             for g in groups[:8]:  # Max 8 groups in overview
-                # Per-group match progress: collect team/user IDs in this group
-                g_standings = g.standings.filter(is_deleted=False) if hasattr(g, 'standings') else GroupStanding.objects.none()
-                g_team_ids = set(g_standings.values_list('team_id', flat=True))
-                g_user_ids = set(g_standings.exclude(user__isnull=True).values_list('user_id', flat=True))
+                g_standings = [s for s in g.standings.all() if not getattr(s, 'is_deleted', False)]
+                g_team_ids = {
+                    s.team_id for s in g_standings
+                    if getattr(s, 'team_id', None) not in (None, 0)
+                }
+                g_user_ids = {
+                    s.user_id for s in g_standings
+                    if getattr(s, 'user_id', None)
+                }
 
-                # Count matches where both participants are in this group
-                g_match_qs = Match.objects.filter(
-                    tournament=tournament, is_deleted=False, bracket__isnull=True,
-                )
-                if g_team_ids - {None, 0}:
-                    g_match_qs = g_match_qs.filter(
-                        participant1_id__in=g_team_ids, participant2_id__in=g_team_ids,
-                    )
-                elif g_user_ids:
-                    g_match_qs = g_match_qs.filter(
-                        participant1_id__in=g_user_ids, participant2_id__in=g_user_ids,
-                    )
-                g_total = g_match_qs.count()
-                g_completed = g_match_qs.filter(state__in=[Match.COMPLETED, 'forfeit']).count()
+                g_total = 0
+                g_completed = 0
+                for m in group_matches:
+                    p1 = m.get('participant1_id')
+                    p2 = m.get('participant2_id')
+
+                    if g_team_ids:
+                        in_group = p1 in g_team_ids and p2 in g_team_ids
+                    elif g_user_ids:
+                        in_group = p1 in g_user_ids and p2 in g_user_ids
+                    else:
+                        in_group = False
+
+                    if in_group:
+                        g_total += 1
+                        if m.get('state') in [Match.COMPLETED, 'forfeit']:
+                            g_completed += 1
 
                 group_list.append({
                     'name': g.name or f'Group {g.id}',
-                    'teams': g_standings.count(),
+                    'teams': len(g_standings),
                     'matches_total': g_total,
                     'matches_completed': g_completed,
                 })
@@ -475,17 +526,30 @@ class TOCService:
     @classmethod
     def _get_registration_stats(cls, tournament: Tournament) -> Dict[str, int]:
         qs = Registration.objects.filter(tournament=tournament, is_deleted=False)
+        agg = qs.aggregate(
+            total=models.Count('id'),
+            confirmed=models.Count('id', filter=models.Q(status=Registration.CONFIRMED)),
+            pending=models.Count(
+                'id',
+                filter=models.Q(
+                    status__in=[
+                        Registration.PENDING,
+                        Registration.NEEDS_REVIEW,
+                        Registration.SUBMITTED,
+                    ]
+                ),
+            ),
+            waitlisted=models.Count('id', filter=models.Q(status=Registration.WAITLISTED)),
+            checked_in=models.Count('id', filter=models.Q(checked_in=True)),
+            disqualified=models.Count('id', filter=models.Q(status__in=['rejected', 'no_show'])),
+        )
         return {
-            'total': qs.count(),
-            'confirmed': qs.filter(status=Registration.CONFIRMED).count(),
-            'pending': qs.filter(
-                status__in=[
-                    Registration.PENDING,
-                    Registration.NEEDS_REVIEW,
-                    Registration.SUBMITTED,
-                ]
-            ).count(),
-            'waitlisted': qs.filter(status=Registration.WAITLISTED).count(),
+            'total': agg.get('total') or 0,
+            'confirmed': agg.get('confirmed') or 0,
+            'pending': agg.get('pending') or 0,
+            'waitlisted': agg.get('waitlisted') or 0,
+            'checked_in': agg.get('checked_in') or 0,
+            'disqualified': agg.get('disqualified') or 0,
         }
 
     @classmethod
@@ -493,10 +557,15 @@ class TOCService:
         qs = PaymentVerification.objects.filter(
             registration__tournament=tournament,
         )
+        agg = qs.aggregate(
+            total=models.Count('id'),
+            verified=models.Count('id', filter=models.Q(status=PaymentVerification.Status.VERIFIED)),
+            pending=models.Count('id', filter=models.Q(status=PaymentVerification.Status.PENDING)),
+        )
         return {
-            'total': qs.count(),
-            'verified': qs.filter(status=PaymentVerification.Status.VERIFIED).count(),
-            'pending': qs.filter(status=PaymentVerification.Status.PENDING).count(),
+            'total': agg.get('total') or 0,
+            'verified': agg.get('verified') or 0,
+            'pending': agg.get('pending') or 0,
         }
 
     @classmethod
@@ -504,26 +573,52 @@ class TOCService:
         qs = DisputeRecord.objects.filter(
             submission__match__tournament=tournament,
         )
+        agg = qs.aggregate(
+            total=models.Count('id'),
+            open=models.Count('id', filter=models.Q(status=DisputeRecord.OPEN)),
+            under_review=models.Count('id', filter=models.Q(status=DisputeRecord.UNDER_REVIEW)),
+            resolved=models.Count(
+                'id',
+                filter=models.Q(
+                    status__in=[
+                        DisputeRecord.RESOLVED_FOR_SUBMITTER,
+                        DisputeRecord.RESOLVED_FOR_OPPONENT,
+                    ]
+                ),
+            ),
+        )
         return {
-            'total': qs.count(),
-            'open': qs.filter(status=DisputeRecord.OPEN).count(),
-            'under_review': qs.filter(status=DisputeRecord.UNDER_REVIEW).count(),
-            'resolved': qs.filter(
-                status__in=[
-                    DisputeRecord.RESOLVED_FOR_SUBMITTER,
-                    DisputeRecord.RESOLVED_FOR_OPPONENT,
-                ]
-            ).count(),
+            'total': agg.get('total') or 0,
+            'open': agg.get('open') or 0,
+            'under_review': agg.get('under_review') or 0,
+            'resolved': agg.get('resolved') or 0,
         }
 
     @classmethod
     def _get_match_stats(cls, tournament: Tournament) -> Dict[str, int]:
         qs = Match.objects.filter(tournament=tournament, is_deleted=False)
+        agg = qs.aggregate(
+            total=models.Count('id'),
+            live=models.Count('id', filter=models.Q(state=Match.LIVE)),
+            completed=models.Count('id', filter=models.Q(state=Match.COMPLETED)),
+            scheduled=models.Count('id', filter=models.Q(state=Match.SCHEDULED)),
+            forfeits=models.Count('id', filter=models.Q(state='forfeit')),
+            avg_dur=models.Avg(
+                models.F('completed_at') - models.F('started_at'),
+                filter=models.Q(
+                    state=Match.COMPLETED,
+                    completed_at__isnull=False,
+                    started_at__isnull=False,
+                ),
+            ),
+        )
         return {
-            'total': qs.count(),
-            'live': qs.filter(state=Match.LIVE).count(),
-            'completed': qs.filter(state=Match.COMPLETED).count(),
-            'scheduled': qs.filter(state=Match.SCHEDULED).count(),
+            'total': agg.get('total') or 0,
+            'live': agg.get('live') or 0,
+            'completed': agg.get('completed') or 0,
+            'scheduled': agg.get('scheduled') or 0,
+            'forfeits': agg.get('forfeits') or 0,
+            'avg_dur': agg.get('avg_dur'),
         }
 
     @classmethod
@@ -619,7 +714,12 @@ class TOCService:
     # ── S28: Countdown Timers ─────────────────────────────────────────
 
     @classmethod
-    def _get_countdowns(cls, tournament: Tournament) -> List[Dict[str, Any]]:
+    def _get_countdowns(
+        cls,
+        tournament: Tournament,
+        *,
+        upcoming_matches: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
         """Return countdown timers for key tournament milestones."""
         now = timezone.now()
         countdowns = []
@@ -646,18 +746,36 @@ class TOCService:
                     'type': 'start',
                 })
 
-        # Next match countdown
-        next_match = Match.objects.filter(
-            tournament=tournament,
-            state__in=['scheduled', 'check_in', 'ready'],
-            scheduled_time__gt=now,
-        ).order_by('scheduled_time').first()
+        # Next match countdown (reuse already-fetched upcoming match when available)
+        next_scheduled = None
+        if upcoming_matches:
+            for item in upcoming_matches:
+                raw = item.get('scheduled_time')
+                if not raw:
+                    continue
+                try:
+                    from django.utils.dateparse import parse_datetime
+                    dt = parse_datetime(raw)
+                except Exception:
+                    dt = None
+                if dt and dt > now:
+                    next_scheduled = dt
+                    break
 
-        if next_match and next_match.scheduled_time:
-            delta = next_match.scheduled_time - now
+        if not next_scheduled:
+            next_match = Match.objects.filter(
+                tournament=tournament,
+                state__in=['scheduled', 'check_in', 'ready'],
+                scheduled_time__gt=now,
+            ).order_by('scheduled_time').only('scheduled_time').first()
+            if next_match and next_match.scheduled_time:
+                next_scheduled = next_match.scheduled_time
+
+        if next_scheduled:
+            delta = next_scheduled - now
             countdowns.append({
                 'label': 'Next Match',
-                'target': next_match.scheduled_time.isoformat(),
+                'target': next_scheduled.isoformat(),
                 'seconds_remaining': int(delta.total_seconds()),
                 'type': 'match',
             })
@@ -794,50 +912,33 @@ class TOCService:
     # ── S30: Overview Inline Stats & Activity ───────────────────────
 
     @classmethod
-    def _build_quick_stats(cls, tournament: Tournament, match_stats: Dict[str, int]) -> Dict[str, Any]:
+    def _build_quick_stats(
+        cls,
+        tournament: Tournament,
+        reg_stats: Dict[str, int],
+        match_stats: Dict[str, int],
+    ) -> Dict[str, Any]:
         """Build quick stats payload expected by overview sidebar cards."""
         total_matches = match_stats.get('total', 0)
         completed_matches = match_stats.get('completed', 0)
         completion_pct = round((completed_matches / total_matches) * 100, 1) if total_matches else 0
 
-        reg_agg = Registration.objects.filter(
-            tournament=tournament,
-            is_deleted=False,
-        ).aggregate(
-            total=models.Count('id'),
-            checked_in=models.Count('id', filter=models.Q(checked_in=True)),
-            disqualified=models.Count('id', filter=models.Q(status='disqualified')),
-        )
-        total_regs = reg_agg.get('total') or 0
-        checked_in = reg_agg.get('checked_in') or 0
-        disqualified = reg_agg.get('disqualified') or 0
+        total_regs = reg_stats.get('total', 0)
+        checked_in = reg_stats.get('checked_in', 0)
+        disqualified = reg_stats.get('disqualified', 0)
         dq_rate = round((disqualified / total_regs) * 100, 1) if total_regs else 0
 
-        match_agg = Match.objects.filter(
-            tournament=tournament,
-            is_deleted=False,
-        ).aggregate(
-            forfeits=models.Count('id', filter=models.Q(state='forfeit')),
-            avg_dur=models.Avg(
-                models.F('completed_at') - models.F('started_at'),
-                filter=models.Q(
-                    state=Match.COMPLETED,
-                    completed_at__isnull=False,
-                    started_at__isnull=False,
-                ),
-            ),
-        )
-
         avg_duration_minutes = None
-        if match_agg.get('avg_dur'):
-            avg_duration_minutes = int(match_agg['avg_dur'].total_seconds() // 60)
+        avg_dur = match_stats.get('avg_dur')
+        if avg_dur:
+            avg_duration_minutes = int(avg_dur.total_seconds() // 60)
 
         return {
             'matches': {
                 'completion_pct': completion_pct,
                 'avg_duration_minutes': avg_duration_minutes,
                 'in_progress': match_stats.get('live', 0),
-                'forfeits': match_agg.get('forfeits') or 0,
+                'forfeits': match_stats.get('forfeits', 0) or 0,
             },
             'participants': {
                 'checked_in': checked_in,
@@ -848,21 +949,21 @@ class TOCService:
     @classmethod
     def _get_recent_activity(cls, tournament: Tournament, limit: int = 25) -> List[Dict[str, Any]]:
         """Return lightweight activity log entries for overview without extra API request."""
-        qs = (
+        rows = list(
             AuditLog.objects
             .filter(tournament_id=tournament.id)
-            .select_related('user')
+            .values('id', 'action', 'metadata', 'timestamp', 'user__username')
             .order_by('-timestamp')[:limit]
         )
 
         items: List[Dict[str, Any]] = []
-        for entry in qs:
-            metadata = entry.metadata if isinstance(entry.metadata, dict) else {}
+        for row in rows:
+            metadata = row.get('metadata') if isinstance(row.get('metadata'), dict) else {}
             items.append({
-                'id': entry.pk,
-                'action': entry.action,
-                'username': entry.user.username if entry.user else 'system',
+                'id': row.get('id'),
+                'action': row.get('action'),
+                'username': row.get('user__username') or 'system',
                 'detail': metadata.get('detail') if isinstance(metadata.get('detail'), dict) else {},
-                'created_at': entry.timestamp.isoformat() if entry.timestamp else '',
+                'created_at': row.get('timestamp').isoformat() if row.get('timestamp') else '',
             })
         return items

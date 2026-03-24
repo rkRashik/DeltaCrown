@@ -292,7 +292,7 @@ def get_tournament_leaderboard(tournament_id: int) -> LeaderboardResponseDTO:
         if cache_enabled and entry_dtos:
             cache_data = {
                 "entries": [dto.__dict__ for dto in entry_dtos],
-                "cached_at": datetime.utcnow().isoformat(),
+                "cached_at": timezone.now().isoformat(),
             }
             # TTL: 5 minutes for tournament (real-time updates)
             cache.set(cache_key, cache_data, timeout=300)
@@ -312,7 +312,7 @@ def get_tournament_leaderboard(tournament_id: int) -> LeaderboardResponseDTO:
                 "tournament_id": tournament_id,
                 "count": len(entry_dtos),
                 "cache_hit": False,
-                "queried_at": datetime.utcnow().isoformat(),
+                "queried_at": timezone.now().isoformat(),
             }
         )
 
@@ -370,7 +370,7 @@ def get_player_leaderboard_history(player_id: int) -> PlayerHistoryDTO:
     if cache_enabled:
         cache_data = {
             "snapshots": snapshot_dicts,
-            "cached_at": datetime.utcnow().isoformat(),
+            "cached_at": timezone.now().isoformat(),
         }
         # TTL: 1 hour for player history
         cache.set(cache_key, cache_data, timeout=3600)
@@ -492,7 +492,7 @@ def get_scoped_leaderboard(
     if cache_enabled and entry_dtos:
         cache_data = {
             "entries": [dto.__dict__ for dto in entry_dtos],
-            "cached_at": datetime.utcnow().isoformat(),
+            "cached_at": timezone.now().isoformat(),
         }
         # TTL: 1 hour for seasonal/game-specific, 24 hours for all-time
         ttl = 3600 if scope == "season" else 86400
@@ -508,7 +508,7 @@ def get_scoped_leaderboard(
             "season_id": season_id,
             "count": len(entry_dtos),
             "cache_hit": False,
-            "queried_at": datetime.utcnow().isoformat(),
+            "queried_at": timezone.now().isoformat(),
         }
     )
 

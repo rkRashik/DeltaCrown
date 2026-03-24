@@ -5,7 +5,7 @@ Data Transfer Objects for tournament-related data.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from typing import Dict, Any, Optional, List
 
 from .base import DTOBase
@@ -90,7 +90,7 @@ class TournamentDTO(DTOBase):
             team_size=getattr(model, "team_size", model.get("team_size") if hasattr(model, "get") else 0),
             max_teams=getattr(model, "max_teams", model.get("max_teams") if hasattr(model, "get") else 0),
             status=getattr(model, "status", model.get("status") if hasattr(model, "get") else ""),
-            start_time=getattr(model, "start_time", model.get("start_time") if hasattr(model, "get") else datetime.utcnow()),
+            start_time=getattr(model, "start_time", model.get("start_time") if hasattr(model, "get") else datetime.now(dt_timezone.utc)),
             ruleset=getattr(model, "ruleset", model.get("ruleset") if hasattr(model, "get") else {}),
         )
 

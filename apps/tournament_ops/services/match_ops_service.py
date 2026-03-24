@@ -13,7 +13,7 @@ Reference: Phase 7, Epic 7.4 - Match Operations Command Center
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from django.utils import timezone
 
 from ..adapters import MatchOpsAdapter, StaffingAdapter
 from ..dtos import (
@@ -122,7 +122,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 operator_user_id=operator_user_id,
-                timestamp=datetime.utcnow(),
+                timestamp=timezone.now(),
                 previous_state=current_state
             )
             self.event_publisher.publish(event)
@@ -193,7 +193,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 operator_user_id=operator_user_id,
-                timestamp=datetime.utcnow(),
+                timestamp=timezone.now(),
                 reason=reason
             )
             self.event_publisher.publish(event)
@@ -265,7 +265,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 operator_user_id=operator_user_id,
-                timestamp=datetime.utcnow()
+                timestamp=timezone.now()
             )
             self.event_publisher.publish(event)
         
@@ -344,7 +344,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 operator_user_id=operator_user_id,
-                timestamp=datetime.utcnow(),
+                timestamp=timezone.now(),
                 reason=reason,
                 result_data=result_data
             )
@@ -414,7 +414,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 author_user_id=author_user_id,
-                timestamp=datetime.utcnow(),
+                timestamp=timezone.now(),
                 note_id=note.note_id,
                 note_preview=content[:100]
             )
@@ -481,7 +481,7 @@ class MatchOpsService:
                 match_id=match_id,
                 tournament_id=tournament_id,
                 operator_user_id=operator_user_id,
-                timestamp=datetime.utcnow(),
+                timestamp=timezone.now(),
                 old_result=old_result,
                 new_result=new_result_data,
                 reason=reason

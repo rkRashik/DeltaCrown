@@ -14,7 +14,6 @@ from rest_framework.response import Response
 
 from apps.tournaments.api.toc.base import TOCBaseView
 from apps.tournaments.api.toc.cache_utils import toc_cache_key
-from apps.tournaments.api.toc.serializers import OverviewSerializer
 from apps.tournaments.api.toc.service import TOCService
 
 
@@ -37,7 +36,6 @@ class OverviewAPIView(TOCBaseView):
             return Response(cached_payload)
 
         data = TOCService.get_overview(self.tournament)
-        serializer = OverviewSerializer(data)
-        payload = serializer.data
+        payload = data
         cache.set(cache_key, payload, timeout=10)
         return Response(payload)

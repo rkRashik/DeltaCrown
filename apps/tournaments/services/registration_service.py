@@ -213,18 +213,94 @@ class RegistrationService:
             initial_status = Registration.WAITLISTED
         else:
             initial_status = Registration.PENDING
-        
-        # Create registration
-        # Note: For team registrations, user must be None (XOR constraint)
-        # For guest teams: user is set, team_id is None, is_guest_team=True
-        registration = Registration(
+
+        reusable_registration = RegistrationService._find_reusable_registration(
             tournament=tournament,
-            user=user if (is_guest_team or not team_id) else None,
-            team_id=team_id if not is_guest_team else None,
-            registration_data=merged_data,
-            status=initial_status,
+            user=user,
+            team_id=team_id,
             is_guest_team=is_guest_team,
         )
+        
+        if reusable_registration:
+            # Re-activate previously rejected/cancelled registration instead of
+            # creating a new row, so users can re-apply without DB unique clashes.
+            registration = reusable_registration
+            registration.user = user if (is_guest_team or not team_id) else None
+            registration.team_id = team_id if not is_guest_team else None
+            registration.registration_data = merged_data
+            registration.status = initial_status
+            registration.is_guest_team = is_guest_team
+            registration.checked_in = False
+            registration.checked_in_at = None
+            registration.checked_in_by = None
+            registration.slot_number = None
+            registration.seed = None
+            registration.waitlist_position = None
+
+            if getattr(registration, 'is_deleted', False):
+                registration.is_deleted = False
+                if hasattr(registration, 'deleted_at'):
+                    registration.deleted_at = None
+                if hasattr(registration, 'deleted_by'):
+                    registration.deleted_by = None
+
+            # Payment model is OneToOne with Registration, so re-applying must
+            # reset stale payment state and require a fresh payment submission.
+            existing_payment = None
+            try:
+                existing_payment = registration.payment
+            except Payment.DoesNotExist:
+                existing_payment = None
+
+            if existing_payment:
+                if existing_payment.payment_proof:
+                    try:
+                        existing_payment.payment_proof.delete(save=False)
+                    except Exception:
+                        pass
+                if getattr(existing_payment, 'proof_image', None):
+                    try:
+                        existing_payment.proof_image.delete(save=False)
+                    except Exception:
+                        pass
+
+                existing_payment.status = Payment.EXPIRED
+                existing_payment.transaction_id = ''
+                existing_payment.reference_number = ''
+                existing_payment.payment_method = existing_payment.payment_method or Payment.BKASH
+                existing_payment.admin_notes = ''
+                existing_payment.verified_by = None
+                existing_payment.verified_at = None
+                existing_payment.rejected_by = None
+                existing_payment.rejected_at = None
+                existing_payment.refunded_by = None
+                existing_payment.refunded_at = None
+                existing_payment.reject_reason = ''
+                existing_payment.last_action_reason = 'reapply_reset'
+                existing_payment.notes = {}
+                existing_payment.waived = False
+                existing_payment.waive_reason = ''
+                existing_payment.file_type = ''
+                existing_payment.payer_account_number = ''
+                existing_payment.amount_bdt = None
+                existing_payment.note = ''
+                existing_payment.payment_proof = None
+                existing_payment.proof_image = None
+                existing_payment.idempotency_key = None
+                existing_payment.full_clean()
+                existing_payment.save()
+        else:
+            # Create registration
+            # Note: For team registrations, user must be None (XOR constraint)
+            # For guest teams: user is set, team_id is None, is_guest_team=True
+            registration = Registration(
+                tournament=tournament,
+                user=user if (is_guest_team or not team_id) else None,
+                team_id=team_id if not is_guest_team else None,
+                registration_data=merged_data,
+                status=initial_status,
+                is_guest_team=is_guest_team,
+            )
         
         # Assign waitlist position if waitlisted
         if initial_status == Registration.WAITLISTED:
@@ -263,6 +339,27 @@ class RegistrationService:
         transaction.on_commit(_emit_created)
         
         return registration
+
+    @staticmethod
+    def _find_reusable_registration(
+        tournament: Tournament,
+        user,
+        team_id: Optional[int],
+        is_guest_team: bool,
+    ) -> Optional[Registration]:
+        """Return an old registration row that can be re-used for re-application."""
+        # Include soft-deleted rows so cancelled/deleted registrations can be reactivated.
+        base_qs = Registration.objects.with_deleted().filter(tournament=tournament)
+
+        if team_id is not None and not is_guest_team:
+            base_qs = base_qs.filter(team_id=team_id)
+        else:
+            base_qs = base_qs.filter(user=user)
+
+        return base_qs.filter(
+            models.Q(status__in=[Registration.CANCELLED, Registration.REJECTED]) |
+            models.Q(is_deleted=True)
+        ).order_by('-updated_at', '-id').first()
     
     @staticmethod
     def check_eligibility(
@@ -346,6 +443,22 @@ class RegistrationService:
                     f'Team must have at least {min_roster} active players '
                     f'to register. Currently has {active_members}.'
                 )
+
+        # Hard-block guard: organizer may permanently block a user/team from
+        # this tournament even after disqualification.
+        block_info = RegistrationService._find_active_tournament_block(
+            tournament=tournament,
+            user=user,
+            team_id=team_id,
+            is_guest_team=is_guest_team,
+        )
+        if block_info:
+            reason = block_info.get('reason') if isinstance(block_info, dict) else ''
+            if reason:
+                raise ValidationError(
+                    f"You are blocked from this tournament. Reason: {reason}"
+                )
+            raise ValidationError("You are blocked from this tournament.")
         
         # Check for duplicate registration
         existing_registration = Registration.objects.filter(
@@ -375,6 +488,27 @@ class RegistrationService:
             
             if team_registered:
                 raise ValidationError("This team is already registered for this tournament")
+
+    @staticmethod
+    def _find_active_tournament_block(
+        tournament: Tournament,
+        user,
+        team_id: Optional[int],
+        is_guest_team: bool,
+    ) -> Optional[dict]:
+        """Return active tournament_block metadata for this user/team, if any."""
+        qs = Registration.objects.with_deleted().filter(tournament=tournament)
+        if team_id is not None and not is_guest_team:
+            qs = qs.filter(team_id=team_id)
+        else:
+            qs = qs.filter(user=user)
+
+        for reg in qs.order_by('-updated_at', '-id'):
+            reg_data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+            block = reg_data.get('tournament_block') if isinstance(reg_data.get('tournament_block'), dict) else None
+            if block and block.get('active'):
+                return block
+        return None
     
     @staticmethod
     def _validate_team_registration_permission(team_id: int, user) -> None:
@@ -791,8 +925,15 @@ class RegistrationService:
                 f"Cannot submit payment for registration with status '{registration.get_status_display()}'"
             )
         
-        # Check if payment already exists
-        if hasattr(registration, 'payment'):
+        # Payment is OneToOne with Registration. If a stale non-submitted payment
+        # exists from a prior lifecycle, reuse that row and overwrite fields.
+        existing_payment = None
+        try:
+            existing_payment = registration.payment
+        except Payment.DoesNotExist:
+            existing_payment = None
+
+        if existing_payment and existing_payment.status in [Payment.PENDING, Payment.SUBMITTED]:
             raise ValidationError("Payment has already been submitted for this registration")
         
         # Validate tournament has entry fee
@@ -820,16 +961,39 @@ class RegistrationService:
                 f"Accepted methods: {', '.join(accepted_methods)}"
             )
         
-        # Create payment
-        payment = Payment(
-            registration=registration,
-            payment_method=payment_method,
-            amount=amount,
-            transaction_id=transaction_id,
-            payment_proof=payment_proof,
-            status=Payment.SUBMITTED
-        )
-        
+        if existing_payment:
+            payment = existing_payment
+            payment.payment_method = payment_method
+            payment.amount = amount
+            payment.transaction_id = transaction_id
+            payment.payment_proof = payment_proof
+            payment.status = Payment.SUBMITTED
+            payment.reference_number = ''
+            payment.file_type = ''
+            payment.admin_notes = ''
+            payment.verified_by = None
+            payment.verified_at = None
+            payment.rejected_by = None
+            payment.rejected_at = None
+            payment.refunded_by = None
+            payment.refunded_at = None
+            payment.reject_reason = ''
+            payment.last_action_reason = 'resubmitted_after_reapply'
+            payment.notes = {}
+            payment.waived = False
+            payment.waive_reason = ''
+            payment.idempotency_key = None
+        else:
+            # Create payment
+            payment = Payment(
+                registration=registration,
+                payment_method=payment_method,
+                amount=amount,
+                transaction_id=transaction_id,
+                payment_proof=payment_proof,
+                status=Payment.SUBMITTED
+            )
+
         # Validate
         payment.full_clean()
         payment.save()
@@ -2310,10 +2474,13 @@ class RegistrationService:
         refund_result = None
         if auto_refund:
             try:
-                payment = registration.payments.filter(
-                    status='verified', is_deleted=False
-                ).order_by('-created_at').first()
-                if payment:
+                payment = None
+                try:
+                    payment = registration.payment
+                except Payment.DoesNotExist:
+                    payment = None
+
+                if payment and payment.status == Payment.VERIFIED:
                     RegistrationService.refund_payment(
                         payment_id=payment.id,
                         refunded_by=disqualified_by,

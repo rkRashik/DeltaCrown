@@ -9,7 +9,7 @@ Listens to MatchCompletedEvent and updates user/team statistics + match history 
 
 import logging
 from typing import Optional
-from datetime import datetime
+from django.utils import timezone
 
 from apps.common.events import event_handler, Event
 from apps.core.events.events import MatchCompletedEvent
@@ -150,7 +150,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                 is_forfeit = hasattr(match, 'is_forfeit') and match.is_forfeit
                 
                 # Get completed_at timestamp
-                completed_at = match.completed_at if hasattr(match, 'completed_at') else datetime.utcnow()
+                completed_at = match.completed_at if hasattr(match, 'completed_at') else timezone.now()
                 
                 # Record history for team 1
                 service.record_team_match_history(
@@ -236,7 +236,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                     participant2_assists = result_data.get('participant2_assists', 0)
             
             # Get completed_at timestamp
-            match_completed_at = match.completed_at if hasattr(match, 'completed_at') else datetime.utcnow()
+            match_completed_at = match.completed_at if hasattr(match, 'completed_at') else timezone.now()
             
             # Create stats update DTOs for both participants
             # Update participant 1 stats

@@ -30,8 +30,7 @@ from apps.tournaments.api.toc.participants_service import TOCParticipantService
 from apps.tournaments.api.toc.serializers import (
     BulkActionInputSerializer,
     BulkActionResultSerializer,
-    ParticipantDetailSerializer,
-    ParticipantListSerializer,
+    ParticipantNotifyInputSerializer,
     RejectInputSerializer,
 )
 
@@ -65,8 +64,7 @@ class ParticipantListView(TOCBaseView):
             search=request.query_params.get('search'),
             ordering=request.query_params.get('ordering', '-registered_at'),
         )
-        serializer = ParticipantListSerializer(data)
-        payload = serializer.data
+        payload = data
         cache.set(cache_key, payload, timeout=12)
         return Response(payload)
 
@@ -89,8 +87,7 @@ class ParticipantDetailView(TOCBaseView):
                 tournament=self.tournament,
                 registration_id=pk,
             )
-            serializer = ParticipantDetailSerializer(data)
-            payload = serializer.data
+            payload = data
             cache.set(cache_key, payload, timeout=15)
             return Response(payload)
         except DjangoValidationError as e:
@@ -180,6 +177,106 @@ class DisqualifyView(TOCBaseView):
                 'ok': True,
                 'message': 'Participant disqualified.',
                 'participant': row,
+            })
+        except (DjangoValidationError, Exception) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
+            return Response(
+                {'ok': False, 'error': msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class HardBlockView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/participants/<id>/hard-block/
+    Permanently block participant/team from re-registration in this tournament.
+    """
+
+    def post(self, request, slug, pk):
+        ser = RejectInputSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        reason = (ser.validated_data.get('reason') or '').strip()
+        if not reason:
+            return Response(
+                {'ok': False, 'error': 'Block reason is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            row = TOCParticipantService.hard_block_registration(
+                tournament=self.tournament,
+                registration_id=pk,
+                actor=request.user,
+                reason=reason,
+                auto_refund=bool(request.data.get('auto_refund', False)),
+            )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics', 'payments')
+            return Response({
+                'ok': True,
+                'message': 'Participant hard-blocked from this tournament.',
+                'participant': row,
+            })
+        except (DjangoValidationError, Exception) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
+            return Response(
+                {'ok': False, 'error': msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UnblockView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/participants/<id>/unblock/
+    Lift tournament-specific hard block for this participant/team.
+    """
+
+    def post(self, request, slug, pk):
+        ser = RejectInputSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            row = TOCParticipantService.unblock_registration(
+                tournament=self.tournament,
+                registration_id=pk,
+                actor=request.user,
+                reason=ser.validated_data.get('reason', ''),
+            )
+            bump_toc_scopes(self.tournament.id, 'participants', 'participants_adv', 'overview', 'analytics')
+            return Response({
+                'ok': True,
+                'message': 'Participant block removed.',
+                'participant': row,
+            })
+        except (DjangoValidationError, Exception) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
+            return Response(
+                {'ok': False, 'error': msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class NotifyParticipantView(TOCBaseView):
+    """
+    POST /api/toc/<slug>/participants/<id>/notify/
+    Send direct alert/message to participant roster.
+    """
+
+    def post(self, request, slug, pk):
+        ser = ParticipantNotifyInputSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            result = TOCParticipantService.notify_participant(
+                tournament=self.tournament,
+                registration_id=pk,
+                actor=request.user,
+                subject=ser.validated_data.get('subject', 'TOC Alert'),
+                message=ser.validated_data['message'],
+            )
+            bump_toc_scopes(self.tournament.id, 'participants', 'notifications', 'overview')
+            return Response({
+                'ok': True,
+                'message': f"Alert sent to {result.get('recipient_count', 0)} recipient(s).",
+                'recipient_count': result.get('recipient_count', 0),
+                'participant': result.get('participant'),
             })
         except (DjangoValidationError, Exception) as e:
             msg = e.message if hasattr(e, 'message') else str(e)
@@ -373,6 +470,13 @@ class SystemChecksView(TOCBaseView):
     """
 
     def get(self, request, slug):
+        cache_bucket = int(timezone.now().timestamp() // 20)
+        cache_key = toc_cache_key('participants', self.tournament.id, 'system_checks', cache_bucket)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         data = TOCParticipantService.get_system_checks(self.tournament)
+        cache.set(cache_key, data, timeout=25)
         return Response(data)
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import time
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ValidationError
@@ -24,6 +25,7 @@ from django.utils import timezone
 from apps.tournaments.models.registration import Registration, Payment
 from apps.tournaments.models.payment_verification import PaymentVerification
 from apps.tournaments.models.tournament import Tournament
+from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.checkin_service import CheckinService
 from apps.tournaments.services.registration_verification import RegistrationVerificationService
@@ -45,6 +47,7 @@ class TOCParticipantService:
 
     # ── Page size ─────────────────────────────────────────────────────
     PAGE_SIZE = 50
+    SLOW_LIST_MS = 180
 
     # ── Status groups for quick-filter presets ────────────────────────
     STATUS_ACTIVE = [
@@ -92,10 +95,40 @@ class TOCParticipantService:
 
         Returns: {results: [...], total, page, pages, page_size}
         """
+        t0 = time.perf_counter()
+
         qs = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,
-        ).select_related('user').prefetch_related('payment_verification')
+        ).select_related(
+            'user',
+            'user__profile',
+            'payment_verification',
+        ).only(
+            'id',
+            'registration_number',
+            'team_id',
+            'status',
+            'checked_in',
+            'seed',
+            'slot_number',
+            'waitlist_position',
+            'is_guest_team',
+            'registered_at',
+            'registration_data',
+            'lineup_snapshot',
+            'user__id',
+            'user__username',
+            'user__profile__avatar',
+            'payment_verification__id',
+            'payment_verification__status',
+            'payment_verification__transaction_id',
+            'payment_verification__payer_account_number',
+            'payment_verification__amount_bdt',
+            'payment_verification__method',
+            'payment_verification__proof_image',
+        )
+        t_base_qs = time.perf_counter()
 
         # ── Status filter ──
         if status:
@@ -137,6 +170,7 @@ class TOCParticipantService:
                 | Q(registration_data__team_name__icontains=search)
                 | Q(registration_data__guest_team__team_name__icontains=search)
             )
+        t_filtered = time.perf_counter()
 
         # ── Ordering ──
         allowed_orderings = {
@@ -150,22 +184,45 @@ class TOCParticipantService:
         if ordering not in allowed_orderings:
             ordering = '-registered_at'
         qs = qs.order_by(ordering)
+        t_ordered = time.perf_counter()
 
         # ── Pagination ──
-        total = qs.count()
-        pages = max(1, (total + cls.PAGE_SIZE - 1) // cls.PAGE_SIZE)
+        # Fast-path: for first page, avoid COUNT(*) when the full result fits one page.
+        if page == 1:
+            first_page_probe = list(qs[: cls.PAGE_SIZE + 1])
+            if len(first_page_probe) <= cls.PAGE_SIZE:
+                total = len(first_page_probe)
+                pages = 1
+                registrations = first_page_probe
+            else:
+                total = qs.count()
+                pages = max(1, (total + cls.PAGE_SIZE - 1) // cls.PAGE_SIZE)
+                registrations = first_page_probe[: cls.PAGE_SIZE]
+        else:
+            total = qs.count()
+            pages = max(1, (total + cls.PAGE_SIZE - 1) // cls.PAGE_SIZE)
+            page = min(page, pages)
+            offset = (page - 1) * cls.PAGE_SIZE
+            registrations = list(qs[offset:offset + cls.PAGE_SIZE])
+
         page = max(1, min(page, pages))
-        offset = (page - 1) * cls.PAGE_SIZE
-        registrations = qs[offset:offset + cls.PAGE_SIZE]
+        t_paged = time.perf_counter()
 
         # Build bulk team cache for this page (avoids N+1 for team tournaments)
         team_cache = cls._build_team_cache(registrations)
+        t_team_cache = time.perf_counter()
 
         # Build IGL user_id → game IGN map for team registrations (avoids N+1)
         user_ign_map = cls._build_igl_ign_map(registrations, tournament)
+        t_ign_map = time.perf_counter()
 
-        # Build latest payment map for quick-review payloads (avoids Payment fallback N+1)
-        payment_map = cls._build_latest_payment_map(registrations)
+        # Build Payment fallback map only for rows without PaymentVerification.
+        needs_payment_fallback = any(
+            getattr(r, 'payment_verification', None) is None
+            for r in registrations
+        )
+        payment_map = cls._build_latest_payment_map(registrations) if needs_payment_fallback else {}
+        t_enriched = time.perf_counter()
 
         results = [
             cls._serialize_participant_row(
@@ -176,6 +233,33 @@ class TOCParticipantService:
             )
             for r in registrations
         ]
+        t_serialized = time.perf_counter()
+
+        total_ms = (t_serialized - t0) * 1000
+        if total_ms >= cls.SLOW_LIST_MS:
+            logger.info(
+                "TOC participants list latency ms total=%.2f build_qs=%.2f filters=%.2f ordering=%.2f page_slice=%.2f enrich=%.2f serialize=%.2f page=%s total=%s search=%s status=%s payment=%s checkin=%s",
+                total_ms,
+                (t_base_qs - t0) * 1000,
+                (t_filtered - t_base_qs) * 1000,
+                (t_ordered - t_filtered) * 1000,
+                (t_paged - t_ordered) * 1000,
+                (t_enriched - t_paged) * 1000,
+                (t_serialized - t_enriched) * 1000,
+                page,
+                total,
+                bool(search),
+                status or '',
+                payment or '',
+                checkin or '',
+            )
+            logger.info(
+                "TOC participants enrich breakdown ms team_cache=%.2f ign_map=%.2f payment_map=%.2f fallback_needed=%s",
+                (t_team_cache - t_paged) * 1000,
+                (t_ign_map - t_team_cache) * 1000,
+                (t_enriched - t_ign_map) * 1000,
+                needs_payment_fallback,
+            )
 
         return {
             'results': results,
@@ -196,8 +280,11 @@ class TOCParticipantService:
         lineup/roster, audit timestamps.
         """
         try:
-            reg = Registration.objects.select_related('user').prefetch_related(
+            reg = Registration.objects.select_related(
+                'user',
+                'user__profile',
                 'payment_verification',
+                'payment_verification__verified_by',
             ).get(
                 id=registration_id,
                 tournament=tournament,
@@ -249,6 +336,9 @@ class TOCParticipantService:
 
         # ── Game metadata ──
         game_meta = cls._get_game_meta(tournament)
+        reg_data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        block_meta = reg_data.get('tournament_block') if isinstance(reg_data.get('tournament_block'), dict) else {}
+        is_hard_blocked = bool(block_meta.get('active'))
 
         return {
             'id': reg.id,
@@ -256,11 +346,14 @@ class TOCParticipantService:
             'participant_name': cls._participant_name(reg),
             'user_id': reg.user_id,
             'username': reg.user.username if reg.user else None,
+            'profile_avatar_url': cls._user_avatar_url(reg.user),
             'team_id': reg.team_id,
             'team_info': team_info,
             'team_slug': team_slug,
             'status': reg.status,
             'status_display': reg.get_status_display(),
+            'is_hard_blocked': is_hard_blocked,
+            'hard_block_reason': block_meta.get('reason', '') if is_hard_blocked else '',
             'registered_at': reg.registered_at.isoformat() if reg.registered_at else None,
             'checked_in': reg.checked_in,
             'checked_in_at': reg.checked_in_at.isoformat() if reg.checked_in_at else None,
@@ -330,7 +423,10 @@ class TOCParticipantService:
         """Manually verify a payment."""
         reg = cls._get_registration(tournament, registration_id)
         # RegistrationService.verify_payment expects a Payment ID, not Registration ID
-        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        try:
+            payment = reg.payment
+        except Payment.DoesNotExist:
+            payment = None
         if not payment:
             raise ValidationError("No payment found for this registration.")
         RegistrationService.verify_payment(
@@ -357,6 +453,147 @@ class TOCParticipantService:
         )
         reg.refresh_from_db()
         return cls._serialize_participant_row(reg)
+
+    @classmethod
+    def hard_block_registration(
+        cls,
+        tournament: Tournament,
+        registration_id: int,
+        actor,
+        *,
+        reason: str,
+        auto_refund: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Permanently block this participant from re-registering in this tournament.
+
+        Uses registration_data.tournament_block metadata so eligibility checks can
+        deny future registration attempts for this participant scope.
+        """
+        reg = cls._get_registration(tournament, registration_id)
+        if not reason or not reason.strip():
+            raise ValidationError("A block reason is required.")
+
+        # Ensure current registration is not active in the bracket flow.
+        if reg.status not in [Registration.REJECTED, Registration.CANCELLED]:
+            RegistrationService.disqualify_registration(
+                registration=reg,
+                reason=reason,
+                disqualified_by=actor,
+                auto_refund=auto_refund,
+            )
+            reg.refresh_from_db()
+        elif auto_refund:
+            try:
+                payment = reg.payment
+            except Payment.DoesNotExist:
+                payment = None
+            if payment and payment.status == Payment.VERIFIED:
+                RegistrationService.refund_payment(
+                    payment_id=payment.id,
+                    refunded_by=actor,
+                    reason=f'Auto-refund: hard-block — {reason}',
+                )
+                reg.refresh_from_db()
+
+        data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        data['tournament_block'] = {
+            'active': True,
+            'scope': 'team' if reg.team_id else 'user',
+            'reason': reason.strip(),
+            'blocked_at': timezone.now().isoformat(),
+            'blocked_by': getattr(actor, 'username', str(actor)),
+        }
+        reg.registration_data = data
+        reg.save(update_fields=['registration_data', 'updated_at'])
+
+        reg.refresh_from_db()
+        return cls._serialize_participant_row(reg)
+
+    @classmethod
+    def unblock_registration(
+        cls,
+        tournament: Tournament,
+        registration_id: int,
+        actor,
+        *,
+        reason: str = '',
+    ) -> Dict[str, Any]:
+        """Lift a previously applied tournament-level hard block."""
+        reg = cls._get_registration(tournament, registration_id)
+        data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        block = data.get('tournament_block') if isinstance(data.get('tournament_block'), dict) else {}
+        if not block or not block.get('active'):
+            raise ValidationError("This participant is not hard-blocked.")
+
+        block['active'] = False
+        block['unblocked_at'] = timezone.now().isoformat()
+        block['unblocked_by'] = getattr(actor, 'username', str(actor))
+        if reason:
+            block['unblock_reason'] = reason.strip()
+        data['tournament_block'] = block
+        reg.registration_data = data
+        reg.save(update_fields=['registration_data', 'updated_at'])
+
+        reg.refresh_from_db()
+        return cls._serialize_participant_row(reg)
+
+    @classmethod
+    def notify_participant(
+        cls,
+        tournament: Tournament,
+        registration_id: int,
+        actor,
+        *,
+        message: str,
+        subject: str = '',
+    ) -> Dict[str, Any]:
+        """Send a direct TOC alert/message to a participant or team roster."""
+        reg = cls._get_registration(tournament, registration_id)
+        body = (message or '').strip()
+        if not body:
+            raise ValidationError("Message is required.")
+
+        recipients = set()
+        if reg.user_id:
+            recipients.add(reg.user_id)
+        for entry in (reg.lineup_snapshot or []):
+            uid = entry.get('user_id') if isinstance(entry, dict) else None
+            if uid:
+                recipients.add(uid)
+
+        if not recipients:
+            raise ValidationError("No reachable participant accounts found for this registration.")
+
+        notif = TOCNotificationsService.send_notification(
+            tournament,
+            {
+                'subject': (subject or 'TOC Alert').strip(),
+                'body': body,
+                'target': sorted(recipients),
+                'force_email': True,
+            },
+        )
+
+        # Keep a minimal audit trace on the registration JSON blob.
+        data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        history = data.get('toc_alerts') if isinstance(data.get('toc_alerts'), list) else []
+        history.append({
+            'at': timezone.now().isoformat(),
+            'by': getattr(actor, 'username', str(actor)),
+            'subject': (subject or 'TOC Alert').strip(),
+            'message': body,
+            'recipient_count': notif.get('recipient_count', 0),
+        })
+        data['toc_alerts'] = history[-20:]
+        reg.registration_data = data
+        reg.save(update_fields=['registration_data', 'updated_at'])
+
+        reg.refresh_from_db()
+        return {
+            'participant': cls._serialize_participant_row(reg),
+            'recipient_count': notif.get('recipient_count', 0),
+        }
 
     @classmethod
     def bulk_action(
@@ -493,7 +730,8 @@ class TOCParticipantService:
         qs = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,
-        ).select_related('user').prefetch_related(
+        ).select_related(
+            'user',
             'payment_verification',
         ).order_by('slot_number', 'registered_at')
 
@@ -585,7 +823,12 @@ class TOCParticipantService:
     def _get_registration(cls, tournament: Tournament, reg_id: int) -> Registration:
         """Fetch a single registration, validate it belongs to the tournament."""
         try:
-            return Registration.objects.select_related('user').get(
+            return Registration.objects.select_related(
+                'user',
+                'user__profile',
+                'payment_verification',
+                'payment_verification__verified_by',
+            ).get(
                 id=reg_id,
                 tournament=tournament,
                 is_deleted=False,
@@ -603,6 +846,9 @@ class TOCParticipantService:
     ) -> Dict[str, Any]:
         """Serialize a registration to a grid-row dict."""
         payment_status = cls._payment_status_label(reg)
+        reg_data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        block_meta = reg_data.get('tournament_block') if isinstance(reg_data.get('tournament_block'), dict) else {}
+        is_hard_blocked = bool(block_meta.get('active'))
         game_id = (reg.registration_data or {}).get('game_id', '')
         team_info = (team_cache or {}).get(reg.team_id) if reg.team_id else None
         team_name = cls._participant_name(reg, team_info=team_info)
@@ -633,12 +879,15 @@ class TOCParticipantService:
             'team_name': team_info['name'] if team_info else '',
             'team_tag': team_info['tag'] if team_info else '',
             'team_logo_url': team_info.get('logo_url', '') if team_info else '',
+            'profile_avatar_url': cls._user_avatar_url(reg.user),
             'coordinator': coordinator,
             'coordinator_game_id': coordinator_game_id,
             'username': reg.user.username if reg.user else None,
             'team_id': reg.team_id,
             'status': reg.status,
             'status_display': reg.get_status_display(),
+            'is_hard_blocked': is_hard_blocked,
+            'hard_block_reason': block_meta.get('reason', '') if is_hard_blocked else '',
             'payment_status': payment_status,
             'checked_in': reg.checked_in,
             'seed': reg.seed,
@@ -682,7 +931,10 @@ class TOCParticipantService:
         if payment_map is not None:
             payment = payment_map.get(reg.id)
         if payment is None:
-            payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+            try:
+                payment = reg.payment
+            except Payment.DoesNotExist:
+                payment = None
         if not payment:
             return None
 
@@ -703,20 +955,14 @@ class TOCParticipantService:
 
     @classmethod
     def _build_latest_payment_map(cls, registrations) -> Dict[int, Payment]:
-        """Build {registration_id: latest Payment} map in one query for a registration batch."""
+        """Build {registration_id: Payment} map in one query for a registration batch."""
         reg_ids = [r.id for r in registrations if getattr(r, 'id', None)]
         if not reg_ids:
             return {}
 
-        payments = Payment.objects.filter(
-            registration_id__in=reg_ids,
-        ).order_by('registration_id', '-submitted_at', '-id')
-
-        latest: Dict[int, Payment] = {}
-        for payment in payments:
-            if payment.registration_id not in latest:
-                latest[payment.registration_id] = payment
-        return latest
+        # Payment is OneToOne with Registration, so this returns at most one row per registration.
+        payments = Payment.objects.filter(registration_id__in=reg_ids)
+        return {payment.registration_id: payment for payment in payments}
 
     @classmethod
     def _enrich_lineup_snapshot(cls, reg: Registration, tournament: Tournament) -> List[Dict]:
@@ -885,7 +1131,14 @@ class TOCParticipantService:
             return {}
         try:
             cache: Dict[int, Any] = {}
-            for obj in OrgTeam.objects.filter(id__in=team_ids).select_related('organization'):
+            for obj in OrgTeam.objects.filter(id__in=team_ids).select_related('organization').only(
+                'id',
+                'name',
+                'tag',
+                'logo',
+                'organization__enforce_brand',
+                'organization__logo',
+            ):
                 logo_url = ''
                 try:
                     # Only use actual uploaded logos, not default placeholders
@@ -926,24 +1179,44 @@ class TOCParticipantService:
             return {}
 
         game_dn = ""
+        game_id = None
         try:
+            game_id = tournament.game_id
             game_dn = getattr(tournament.game, 'display_name', '') or ''
         except Exception:
             pass
-        if not game_dn:
+        if not game_dn and not game_id:
             return {}
 
         try:
             from apps.user_profile.models import GameProfile
             ign_map = {}
-            for row in GameProfile.objects.filter(
-                game_display_name__iexact=game_dn,
+            gp_qs = GameProfile.objects.filter(
                 user_id__in=list(igl_user_ids),
-            ).exclude(ign='').values('user_id', 'ign'):
+            ).exclude(ign='')
+            if game_id:
+                gp_qs = gp_qs.filter(game_id=game_id)
+            else:
+                gp_qs = gp_qs.filter(game_display_name__iexact=game_dn)
+
+            for row in gp_qs.values('user_id', 'ign'):
                 ign_map[row['user_id']] = row['ign']
             return ign_map
         except Exception:
             return {}
+
+    @classmethod
+    def _user_avatar_url(cls, user) -> str:
+        """Return uploaded user avatar URL when available."""
+        if not user:
+            return ''
+        try:
+            profile = getattr(user, 'profile', None)
+            if profile and getattr(profile, 'avatar', None):
+                return profile.avatar.url
+        except Exception:
+            return ''
+        return ''
 
     @classmethod
     def _payment_status_label(cls, reg: Registration) -> str:
@@ -1007,7 +1280,10 @@ class TOCParticipantService:
             }
 
         # Fallback: use Payment model directly
-        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        try:
+            payment = reg.payment
+        except Payment.DoesNotExist:
+            payment = None
         if not payment:
             return None
 

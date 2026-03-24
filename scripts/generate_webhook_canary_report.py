@@ -23,7 +23,7 @@ Required metrics JSON structure:
 import argparse
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from pathlib import Path
 from typing import Dict, Any
 
@@ -309,7 +309,7 @@ def fill_template(template: str, metrics: Dict[str, Any], args) -> str:
         "{{rollback_blockers}}": "Address all failed criteria before retry",
         "{{webhook_endpoint}}": "https://receiver.example.com/webhooks",
         "{{webhook_secret_hash}}": "5ce50b41...",
-        "{{generation_time}}": datetime.utcnow().isoformat(),
+        "{{generation_time}}": datetime.now(dt_timezone.utc).isoformat(),
         "{{operator_name}}": args.operator,
     }
     

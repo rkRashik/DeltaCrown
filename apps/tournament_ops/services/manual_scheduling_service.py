@@ -15,6 +15,7 @@ Reference: Phase 7, Epic 7.2 - Manual Scheduling Tools
 
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
+from django.utils import timezone
 
 from apps.tournament_ops.adapters.match_scheduling_adapter import MatchSchedulingAdapter
 from apps.tournament_ops.dtos.scheduling import (
@@ -140,7 +141,7 @@ class ManualSchedulingService:
                     conflict_type=conflict.conflict_type,
                     severity=conflict.severity,
                     message=conflict.message,
-                    detected_at=datetime.utcnow()
+                    detected_at=timezone.now()
                 )
                 self._publish_event(event)
         
@@ -160,7 +161,7 @@ class ManualSchedulingService:
                 old_time=current_match.scheduled_time,
                 new_time=scheduled_time,
                 rescheduled_by_user_id=assigned_by_user_id,
-                rescheduled_at=datetime.utcnow()
+                rescheduled_at=timezone.now()
             )
         else:
             event = MatchScheduledManuallyEvent(
@@ -169,7 +170,7 @@ class ManualSchedulingService:
                 stage_id=updated_match.stage_id,
                 scheduled_time=scheduled_time,
                 assigned_by_user_id=assigned_by_user_id,
-                assigned_at=datetime.utcnow()
+                assigned_at=timezone.now()
             )
         
         self._publish_event(event)
@@ -247,7 +248,7 @@ class ManualSchedulingService:
             shifted_count=shifted_count,
             shifted_match_ids=shifted_ids,
             shifted_by_user_id=assigned_by_user_id,
-            shifted_at=datetime.utcnow()
+            shifted_at=timezone.now()
         )
         self._publish_event(event)
         

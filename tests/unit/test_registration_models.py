@@ -258,8 +258,7 @@ class TestRegistrationModel:
         assert not Registration.objects.filter(id=registration.id).exists()
         
         # Should appear in all_objects (or objects if soft-delete not using separate manager)
-        all_mgr = getattr(Registration, 'all_objects', Registration.objects)
-        assert all_mgr.filter(id=registration.id).exists()
+        assert Registration.objects.with_deleted().filter(id=registration.id).exists()
     
     def test_registration_restore(self, tournament, user):
         """Should restore soft-deleted registration"""
@@ -425,7 +424,7 @@ class TestPaymentModel:
         
         assert payment.status == 'pending'
         assert payment.transaction_id == ''
-        assert payment.payment_proof == ''
+        assert not payment.payment_proof
         assert payment.admin_notes == ''
         assert payment.verified_by is None
         assert payment.verified_at is None
@@ -536,6 +535,8 @@ class TestPaymentModel:
         # Update payment
         import time
         time.sleep(0.1)  # Ensure time difference
+        payment.verified_by = registration.user
+        payment.verified_at = timezone.now()
         payment.status = 'verified'
         payment.save()
         
@@ -661,7 +662,9 @@ class TestRegistrationPaymentIntegration:
             registration=registration,
             payment_method='bkash',
             amount=Decimal('1000.00'),
-            status='verified'
+            status='verified',
+            verified_by=user,
+            verified_at=timezone.now(),
         )
         
         # User cancels registration

@@ -5,12 +5,12 @@ Staff-only endpoints for leaderboard inspection with debug metadata.
 All responses are PII-free (IDs + aggregates only).
 """
 import logging
-from datetime import datetime
 from typing import Dict, Any, Optional
 
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework import status
@@ -126,7 +126,7 @@ def tournament_leaderboard_debug(request, tournament_id: int):
         )
     
     # Track query time
-    start_time = datetime.utcnow()
+    start_time = timezone.now()
     
     # Check cache first (if enabled)
     cache_key = _get_cache_key_tournament(tournament_id)
@@ -161,13 +161,13 @@ def tournament_leaderboard_debug(request, tournament_id: int):
         source = "disabled"
     
     # Calculate query time
-    query_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+    query_time_ms = (timezone.now() - start_time).total_seconds() * 1000
     
     # Build response
     response_data = {
         "tournament_id": tournament_id,
         "source": source,
-        "as_of": datetime.utcnow().isoformat() + "Z",
+        "as_of": timezone.now().isoformat(),
         "entries": entries,
         "debug": {
             "cache_key": cache_key,
@@ -311,7 +311,7 @@ def scoped_leaderboard_debug(request, scope: str):
         cache_ttl = 86400  # 24 hours
     
     # Track query time
-    start_time = datetime.utcnow()
+    start_time = timezone.now()
     
     # Check cache
     cache_hit = False
@@ -338,7 +338,7 @@ def scoped_leaderboard_debug(request, scope: str):
         entries = []
     
     # Calculate query time
-    query_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+    query_time_ms = (timezone.now() - start_time).total_seconds() * 1000
     
     # Build response
     response_data = {
@@ -346,7 +346,7 @@ def scoped_leaderboard_debug(request, scope: str):
         "season_id": season_id,
         "game_code": game_code,
         "entry_count": len(entries),
-        "as_of": datetime.utcnow().isoformat() + "Z",
+        "as_of": timezone.now().isoformat(),
         "entries": entries,
         "debug": {
             "cache_key": cache_key,

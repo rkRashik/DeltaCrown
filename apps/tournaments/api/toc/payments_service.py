@@ -13,6 +13,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -50,6 +51,7 @@ class TOCPaymentsService:
         tournament: Tournament,
         *,
         page: int = 1,
+        page_size: Optional[int] = None,
         status_filter: Optional[str] = None,
         method_filter: Optional[str] = None,
         search: Optional[str] = None,
@@ -60,12 +62,49 @@ class TOCPaymentsService:
 
         Filters: status, method, search (team name, username, txn ID).
         """
+        t0 = time.perf_counter()
+        page_size = max(10, min(page_size or cls.PAGE_SIZE, 100))
+
+        order_map = {
+            "submitted_at": "submitted_at",
+            "-submitted_at": "-submitted_at",
+            "amount": "amount",
+            "-amount": "-amount",
+            "status": "status",
+            "-status": "-status",
+        }
+        safe_ordering = order_map.get(ordering, "-submitted_at")
+
         qs = Payment.objects.filter(
             registration__tournament=tournament,
             registration__is_deleted=False,
         ).select_related(
             "registration__user",
-        ).order_by(ordering)
+            "registration__payment_verification",
+            "verified_by",
+        ).only(
+            "id",
+            "registration_id",
+            "amount",
+            "payment_method",
+            "transaction_id",
+            "status",
+            "payment_proof",
+            "verified_by_id",
+            "verified_at",
+            "reject_reason",
+            "waived",
+            "waive_reason",
+            "submitted_at",
+            "payer_account_number",
+            "registration__id",
+            "registration__registration_number",
+            "registration__user__username",
+            "registration__payment_verification__proof_image",
+            "verified_by__username",
+        ).order_by(safe_ordering)
+
+        t_build = time.perf_counter()
 
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -81,22 +120,61 @@ class TOCPaymentsService:
                 | Q(registration__registration_number__icontains=search)
             )
 
-        total = qs.count()
-        pages = max(1, (total + cls.PAGE_SIZE - 1) // cls.PAGE_SIZE)
-        page = max(1, min(page, pages))
-        offset = (page - 1) * cls.PAGE_SIZE
+        t_filter = time.perf_counter()
+
+        total: Optional[int] = None
+        pages: Optional[int] = None
+        if page == 1 and not status_filter and not method_filter and not search:
+            rows = list(qs[: page_size + 1])
+            has_more = len(rows) > page_size
+            if has_more:
+                rows = rows[:page_size]
+            else:
+                total = len(rows)
+                pages = 1
+        else:
+            total = qs.count()
+            pages = max(1, (total + page_size - 1) // page_size)
+            page = max(1, min(page, pages))
+            offset = (page - 1) * page_size
+            rows = list(qs[offset : offset + page_size])
+            has_more = page < pages
+
+        t_page = time.perf_counter()
 
         results = []
-        for p in qs[offset : offset + cls.PAGE_SIZE]:
+        for p in rows:
             reg = p.registration
             results.append(cls._serialize_payment_row(p, reg))
+
+        t_serialize = time.perf_counter()
+
+        if total is None:
+            total = qs.count() if has_more else len(results)
+        if pages is None:
+            pages = max(1, (total + page_size - 1) // page_size)
+
+        elapsed_ms = (t_serialize - t0) * 1000.0
+        if elapsed_ms >= 250:
+            logger.info(
+                "TOC payments list timings tournament_id=%s elapsed_ms=%.2f build_ms=%.2f filter_ms=%.2f page_ms=%.2f serialize_ms=%.2f page=%s page_size=%s has_more=%s",
+                tournament.id,
+                elapsed_ms,
+                (t_build - t0) * 1000.0,
+                (t_filter - t_build) * 1000.0,
+                (t_page - t_filter) * 1000.0,
+                (t_serialize - t_page) * 1000.0,
+                page,
+                page_size,
+                has_more,
+            )
 
         return {
             "results": results,
             "total": total,
             "page": page,
             "pages": pages,
-            "page_size": cls.PAGE_SIZE,
+            "page_size": page_size,
         }
 
     # ──────────────────────────────────────────────────────────────
@@ -656,7 +734,7 @@ class TOCPaymentsService:
         # Try getting proof from PaymentVerification
         if not proof_url:
             try:
-                pv = reg.payment_verification
+                pv = getattr(reg, "payment_verification", None)
                 if pv and pv.proof_image and hasattr(pv.proof_image, "url"):
                     proof_url = pv.proof_image.url
             except (PaymentVerification.DoesNotExist, AttributeError):

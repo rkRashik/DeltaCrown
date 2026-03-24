@@ -87,12 +87,12 @@ class TestTournamentLeaderboard:
                 "wins": 10,
                 "losses": 2,
                 "win_rate": 83.33,
-                "last_updated": datetime.utcnow(),
+                "last_updated": timezone.now(),
             }
         ]
         cache.set(cache_key, {
             "entries": cached_entries,
-            "cached_at": datetime.utcnow().isoformat(),
+            "cached_at": timezone.now().isoformat(),
         }, timeout=300)
         
         # Call service (should hit cache)
@@ -227,7 +227,7 @@ class TestPlayerHistory:
         ]
         cache.set(cache_key, {
             "snapshots": cached_snapshots,
-            "cached_at": datetime.utcnow().isoformat(),
+            "cached_at": timezone.now().isoformat(),
         }, timeout=3600)
         
         # Call service

@@ -49,7 +49,7 @@ Usage Examples:
 
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ def log_ws_event(
     """
     log_data = {
         'event': event,
-        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'timestamp': datetime.now(dt_timezone.utc).isoformat(),
     }
     
     # Add optional fields (IDs-only)

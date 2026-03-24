@@ -18,7 +18,6 @@ from django.utils import timezone
 
 from apps.tournaments.models.dispute import DisputeRecord, DisputeEvidence
 from apps.tournaments.models.hub_support_ticket import HubSupportTicket
-from apps.tournaments.models.match import Match
 from apps.tournaments.models.tournament import Tournament
 
 logger = logging.getLogger(__name__)
@@ -39,9 +38,8 @@ class TOCDisputesService:
         search: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Get disputes for all matches in this tournament."""
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         qs = DisputeRecord.objects.filter(
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         ).select_related('submission', 'opened_by_user', 'resolved_by_user').order_by('-opened_at')
 
         hub_qs = HubSupportTicket.objects.filter(
@@ -85,10 +83,9 @@ class TOCDisputesService:
 
     @classmethod
     def get_dispute_detail(cls, dispute_id: int, tournament: Tournament) -> Dict[str, Any]:
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.select_related('submission', 'opened_by_user', 'resolved_by_user').get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         team_name_map = cls._build_team_name_map([dispute.opened_by_team_id])
         data = cls._serialize_dispute(dispute, team_name_map=team_name_map)
@@ -142,10 +139,9 @@ class TOCDisputesService:
             team_name_map = cls._build_team_name_map([ticket.team_id])
             return cls._serialize_hub_ticket(ticket, team_name_map=team_name_map)
 
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         # Map ruling to status
         status_map = {
@@ -183,10 +179,9 @@ class TOCDisputesService:
             team_name_map = cls._build_team_name_map([ticket.team_id])
             return cls._serialize_hub_ticket(ticket, team_name_map=team_name_map)
 
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         dispute.status = DisputeRecord.ESCALATED
         dispute.escalated_at = timezone.now()
@@ -215,10 +210,9 @@ class TOCDisputesService:
             team_name_map = cls._build_team_name_map([ticket.team_id])
             return cls._serialize_hub_ticket(ticket, team_name_map=team_name_map)
 
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         dispute.resolved_by_user_id = staff_user_id
         if dispute.status == DisputeRecord.OPEN:
@@ -240,10 +234,9 @@ class TOCDisputesService:
         notes: str = '',
         user_id: int,
     ) -> Dict[str, Any]:
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         ev = DisputeEvidence.objects.create(
             dispute=dispute,
@@ -285,10 +278,9 @@ class TOCDisputesService:
             team_name_map = cls._build_team_name_map([ticket.team_id])
             return cls._serialize_hub_ticket(ticket, team_name_map=team_name_map)
 
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute = DisputeRecord.objects.get(
             pk=dispute_id,
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
         )
         dispute.status = new_status
         dispute.save(update_fields=['status'])
@@ -298,9 +290,8 @@ class TOCDisputesService:
 
     @classmethod
     def get_open_count(cls, tournament: Tournament, source_filter: Optional[str] = None) -> int:
-        match_ids = Match.objects.filter(tournament=tournament).values_list('id', flat=True)
         dispute_qs = DisputeRecord.objects.filter(
-            submission__match_id__in=match_ids,
+            submission__match__tournament=tournament,
             status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED],
         )
         hub_qs = HubSupportTicket.objects.filter(

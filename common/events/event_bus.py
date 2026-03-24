@@ -19,7 +19,7 @@ Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 1, Epic 1.2
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 # Type aliases for clarity
@@ -56,7 +56,7 @@ class Event:
 
     name: str
     payload: Dict[str, Any]
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(dt_timezone.utc))
     user_id: Optional[int] = None
     correlation_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)

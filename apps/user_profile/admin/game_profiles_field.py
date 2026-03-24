@@ -10,7 +10,7 @@ Provides user-friendly game_profiles editing in admin with:
 from django import forms
 from django.core.exceptions import ValidationError
 import json
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 
 VALID_GAME_KEYS = [
@@ -105,7 +105,7 @@ class GameProfilesField(forms.JSONField):
                 'rank': profile.get('rank', ''),
                 'region': profile.get('region', ''),
                 'verified': bool(profile.get('verified', False)),
-                'updated_at': profile.get('updated_at', datetime.utcnow().isoformat() + 'Z'),
+                'updated_at': profile.get('updated_at', datetime.now(dt_timezone.utc).isoformat()),
             }
             
             # Copy any extra metadata

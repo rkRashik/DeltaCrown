@@ -53,6 +53,9 @@ urlpatterns = [
     path('<slug:slug>/participants/<int:pk>/approve/', participants.ApproveView.as_view(), name='participant-approve'),
     path('<slug:slug>/participants/<int:pk>/reject/', participants.RejectView.as_view(), name='participant-reject'),
     path('<slug:slug>/participants/<int:pk>/disqualify/', participants.DisqualifyView.as_view(), name='participant-disqualify'),
+    path('<slug:slug>/participants/<int:pk>/hard-block/', participants.HardBlockView.as_view(), name='participant-hard-block'),
+    path('<slug:slug>/participants/<int:pk>/unblock/', participants.UnblockView.as_view(), name='participant-unblock'),
+    path('<slug:slug>/participants/<int:pk>/notify/', participants.NotifyParticipantView.as_view(), name='participant-notify'),
     path('<slug:slug>/participants/<int:pk>/verify-payment/', participants.VerifyPaymentView.as_view(), name='participant-verify-payment'),
     path('<slug:slug>/participants/<int:pk>/toggle-checkin/', participants.ToggleCheckinView.as_view(), name='participant-toggle-checkin'),
 

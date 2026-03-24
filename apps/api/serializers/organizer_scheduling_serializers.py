@@ -12,7 +12,7 @@ Reference: Phase 7, Epic 7.2 - Manual Scheduling Tools
 """
 
 from rest_framework import serializers
-from datetime import datetime
+from django.utils import timezone
 
 
 class MatchSchedulingItemSerializer(serializers.Serializer):
@@ -76,7 +76,7 @@ class ManualSchedulingRequestSerializer(serializers.Serializer):
     
     def validate_scheduled_time(self, value):
         """Validate scheduled time is in the future."""
-        if value < datetime.utcnow():
+        if value < timezone.now():
             raise serializers.ValidationError("Scheduled time must be in the future")
         return value
 

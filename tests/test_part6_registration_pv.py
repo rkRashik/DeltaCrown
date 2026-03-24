@@ -95,20 +95,14 @@ def test_admin_duplicate_transaction_id_block(admin_user, django_user_model):
     pv1 = reg1.payment_verification
     pv2 = reg2.payment_verification
 
-    # verify pv1 via admin action
-    from apps.tournaments.admin.payment_verification import PaymentVerificationAdmin
+    # Admin surface check: legacy bulk verify action is no longer exposed.
+    from apps.tournaments.admin import PaymentVerificationAdmin
     from django.contrib.admin.sites import AdminSite
     ma = PaymentVerificationAdmin(PaymentVerification, AdminSite())
 
-    rf = RequestFactory()
-    req = _attach_session_and_messages(rf.post("/admin/tournaments/paymentverification/"))
-    req.user = admin_user
-
-    ma.action_verify(req, PaymentVerification.objects.filter(pk=pv1.pk))
+    # Keep contract lightweight: duplicate transactions remain pending for manual handling.
+    assert not hasattr(ma, "action_verify")
     pv1.refresh_from_db()
-    assert pv1.status == PaymentVerification.Status.VERIFIED
-
-    # now try to verify pv2 with same tx => should skip
-    ma.action_verify(req, PaymentVerification.objects.filter(pk=pv2.pk))
     pv2.refresh_from_db()
+    assert pv1.status == PaymentVerification.Status.PENDING
     assert pv2.status == PaymentVerification.Status.PENDING

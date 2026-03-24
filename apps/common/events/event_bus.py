@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger("common.events")
@@ -67,7 +67,7 @@ class Event:
 
     name: str
     payload: Dict[str, Any]
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(dt_timezone.utc))
     user_id: Optional[int] = None
     correlation_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)

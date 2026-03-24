@@ -110,12 +110,15 @@ class ParticipantRowSerializer(serializers.Serializer):
     team_name = serializers.CharField(allow_blank=True, default='')
     team_tag = serializers.CharField(allow_blank=True, default='')
     team_logo_url = serializers.CharField(allow_blank=True, default='')
+    profile_avatar_url = serializers.CharField(allow_blank=True, default='')
     coordinator = serializers.CharField(allow_blank=True, default='')
     coordinator_game_id = serializers.CharField(allow_blank=True, default='')
     username = serializers.CharField(allow_null=True)
     team_id = serializers.IntegerField(allow_null=True)
     status = serializers.CharField()
     status_display = serializers.CharField()
+    is_hard_blocked = serializers.BooleanField(required=False, default=False)
+    hard_block_reason = serializers.CharField(required=False, allow_blank=True, default='')
     payment_status = serializers.CharField()
     checked_in = serializers.BooleanField()
     seed = serializers.IntegerField(allow_null=True)
@@ -159,9 +162,12 @@ class ParticipantDetailSerializer(serializers.Serializer):
     participant_name = serializers.CharField()
     user_id = serializers.IntegerField(allow_null=True)
     username = serializers.CharField(allow_null=True)
+    profile_avatar_url = serializers.CharField(allow_blank=True, default='')
     team_id = serializers.IntegerField(allow_null=True)
     status = serializers.CharField()
     status_display = serializers.CharField()
+    is_hard_blocked = serializers.BooleanField(required=False, default=False)
+    hard_block_reason = serializers.CharField(required=False, allow_blank=True, default='')
     registered_at = serializers.CharField(allow_null=True)
     checked_in = serializers.BooleanField()
     checked_in_at = serializers.CharField(allow_null=True)
@@ -196,6 +202,12 @@ class RejectInputSerializer(serializers.Serializer):
     """Input for reject/DQ actions."""
     reason = serializers.CharField(required=False, default='', allow_blank=True)
     evidence = serializers.CharField(required=False, default='', allow_blank=True)
+
+
+class ParticipantNotifyInputSerializer(serializers.Serializer):
+    """Input for participant alert/message action."""
+    subject = serializers.CharField(required=False, default='TOC Alert', allow_blank=True)
+    message = serializers.CharField(min_length=2)
 
 
 # ── Sprint 3: Participants Advanced Serializers ──────────────────────

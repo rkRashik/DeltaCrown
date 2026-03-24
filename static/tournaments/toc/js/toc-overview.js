@@ -61,6 +61,8 @@
   let _refreshTimer = null;
   let _selectedTransition = null;
   let _lastSyncAt = null;
+  const OVERVIEW_CACHE_KEY = `toc-overview-cache-${CFG.tournamentSlug || 'default'}`;
+  const OVERVIEW_CACHE_TTL_MS = 30000;
 
   const LOADING_IDS = [
     '#stat-participants', '#stat-revenue', '#stat-active-matches', '#stat-open-disputes',
@@ -73,11 +75,16 @@
   //  Main fetch & render
   // ═══════════════════════════════════════════════════════════════
 
-  async function load() {
-    setOverviewLoading(true);
+  async function load(options) {
+    const opts = options || {};
+    const showLoading = !opts.background;
+    if (showLoading) {
+      setOverviewLoading(true);
+    }
     updateSyncStatus('loading');
     try {
       const data = await TOC.fetch(`${API}/overview/`);
+      storeOverviewCache(data);
       render(data);
       _lastSyncAt = new Date();
       updateSyncStatus('ok');
@@ -85,7 +92,31 @@
       console.error('[TOC:overview] Load failed:', e);
       updateSyncStatus('error', e && e.message ? String(e.message) : 'request failed');
       renderError(e);
-      setOverviewLoading(false);
+      if (showLoading) {
+        setOverviewLoading(false);
+      }
+    }
+  }
+
+  function storeOverviewCache(payload) {
+    if (!payload) return;
+    try {
+      localStorage.setItem(OVERVIEW_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: payload }));
+    } catch (e) {
+      // Ignore storage quota and serialization failures.
+    }
+  }
+
+  function loadOverviewCache() {
+    try {
+      const raw = localStorage.getItem(OVERVIEW_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.ts || !parsed.data) return null;
+      if ((Date.now() - parsed.ts) > OVERVIEW_CACHE_TTL_MS) return null;
+      return parsed.data;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -1028,7 +1059,15 @@
   }
 
   function _init() {
-    load();
+    const cached = loadOverviewCache();
+    if (cached) {
+      render(cached);
+      _lastSyncAt = new Date();
+      updateSyncStatus('ok');
+      load({ background: true });
+    } else {
+      load();
+    }
     startAutoRefresh();
   }
 

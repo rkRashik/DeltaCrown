@@ -64,7 +64,7 @@ class TOCStatsService:
         total_registrations = reg_qs.count()
         approved = reg_qs.filter(status="approved").count()
         checked_in = reg_qs.filter(checked_in=True).count()
-        disqualified = reg_qs.filter(status="disqualified").count()
+        disqualified = reg_qs.filter(status__in=["rejected", "no_show"]).count()
         dq_rate = round(disqualified / total_registrations * 100, 1) if total_registrations else 0
 
         # --- Dispute stats ---

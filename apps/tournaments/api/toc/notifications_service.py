@@ -7,11 +7,13 @@ delivery channels, notification log, per-team messaging.
 
 import logging
 import uuid
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.tournaments.models.tournament import Tournament
 
 logger = logging.getLogger("toc.notifications")
+User = get_user_model()
 
 
 class TOCNotificationsService:
@@ -216,6 +218,7 @@ class TOCNotificationsService:
         subject = data.get("subject", "")
         body = data.get("body", "")
         target = data.get("target", "all")  # all, team_id, user_ids
+        force_email = bool(data.get("force_email", False))
 
         # Determine template
         if template_id:
@@ -229,18 +232,34 @@ class TOCNotificationsService:
         body = body.replace("{tournament_name}", tournament.name)
         subject = subject.replace("{tournament_name}", tournament.name)
 
-        # Get recipients
-        regs = Registration.objects.filter(
-            tournament=tournament,
-            status__in=["confirmed", "auto_approved"],
-        )
+        recipient_users_qs = User.objects.none()
         if target and target != "all":
             if isinstance(target, list):
-                regs = regs.filter(user_id__in=target)
+                recipient_users_qs = User.objects.filter(id__in=target)
             elif str(target).isdigit():
-                regs = regs.filter(team_id=int(target))
+                # Treat numeric target as team_id
+                regs = Registration.objects.filter(
+                    tournament=tournament,
+                    team_id=int(target),
+                    user__isnull=False,
+                    is_deleted=False,
+                )
+                recipient_users_qs = User.objects.filter(
+                    id__in=regs.values_list('user_id', flat=True)
+                )
+        else:
+            regs = Registration.objects.filter(
+                tournament=tournament,
+                status__in=["confirmed", "auto_approved"],
+                user__isnull=False,
+                is_deleted=False,
+            )
+            recipient_users_qs = User.objects.filter(
+                id__in=regs.values_list('user_id', flat=True)
+            )
 
-        recipient_count = regs.count()
+        recipient_users = list(recipient_users_qs.distinct())
+        recipient_count = len(recipient_users)
 
         # Log the notification
         log = notif_config.get("log", [])
@@ -264,12 +283,6 @@ class TOCNotificationsService:
         try:
             from apps.notifications.services import emit as notify_emit
 
-            # Collect recipient User objects
-            recipient_users = list(
-                regs.exclude(user__isnull=True)
-                    .values_list("user", flat=True)
-                    .distinct()
-            )
             if recipient_users:
                 emit_kwargs = {
                     "title": subject,
@@ -280,7 +293,7 @@ class TOCNotificationsService:
                     "dedupe": False,
                 }
                 # Only include email params if email channel is enabled
-                if channels.get("email", False):
+                if channels.get("email", False) or force_email:
                     emit_kwargs["email_subject"] = subject
                     emit_kwargs["email_template"] = "notifications/email/tournament_update.html"
                     emit_kwargs["email_ctx"] = {
@@ -318,7 +331,7 @@ class TOCNotificationsService:
             "subject": data.get("subject", ""),
             "body": data.get("body", ""),
             "target": data.get("target", "all"),
-            "send_at": data.get("send_at"),
+            "send_at": data.get("send_at") or data.get("scheduled_for"),
             "status": "pending",
             "created_at": timezone.now().isoformat(),
         }
@@ -389,7 +402,7 @@ class TOCNotificationsService:
             tournament,
             {
                 "subject": data.get("subject", "Team Message"),
-                "body": data.get("body", ""),
+                "body": data.get("body", data.get("message", "")),
                 "target": user_ids,
             },
         )

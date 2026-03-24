@@ -12,7 +12,7 @@ Usage in tests:
 """
 
 from typing import Protocol, Dict, Any, Optional, BinaryIO
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from io import BytesIO
 import hashlib
 import time
@@ -138,7 +138,7 @@ class DummyS3Client:
         self.metadata[Key] = {
             'ETag': f'"{etag}"',  # S3 wraps ETag in quotes
             'ContentLength': len(content),
-            'LastModified': datetime.utcnow(),
+            'LastModified': datetime.now(dt_timezone.utc),
             'Bucket': Bucket,
         }
         

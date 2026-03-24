@@ -293,6 +293,7 @@ class TestTeamRegistrationAPI:
         team = Team.objects.create(
             name="Test Team",
             captain=captain_profile,
+            created_by=captain_user,
             game=tournament.game
         )
         
@@ -325,6 +326,7 @@ class TestTeamRegistrationAPI:
         team = Team.objects.create(
             name="Test Team",
             captain=captain_profile,
+            created_by=captain_user,
             game=tournament.game
         )
         
@@ -355,6 +357,7 @@ class TestTeamRegistrationAPI:
         team = Team.objects.create(
             name="Test Team",
             captain=captain_profile,
+            created_by=captain_user,
             game=tournament.game
         )
         
