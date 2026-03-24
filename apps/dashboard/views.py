@@ -224,9 +224,19 @@ def _build_cc_data(context, user, now):
     # --- Tournaments ---
     tournaments = []
     for tr in context.get('active_tournaments', []):
+        slug = tr.get('slug', '')
         opponent = 'TBD'
-        if nmi and nmi.get('tournament_slug') == tr.get('slug'):
+        if nmi and nmi.get('tournament_slug') == slug:
             opponent = nmi.get('opponent_name', 'TBD')
+        match_lobby_url = ''
+        if (
+            slug
+            and nmi
+            and nmi.get('tournament_slug') == slug
+            and nmi.get('match_id')
+            and nmi.get('state') in ('check_in', 'ready', 'live')
+        ):
+            match_lobby_url = '/tournaments/%s/matches/%s/room/' % (slug, nmi.get('match_id'))
         pp = tr.get('prize_pool')
         try:
             prize_str = '{:,} DC'.format(int(pp)) if pp else '—'
@@ -248,6 +258,12 @@ def _build_cc_data(context, user, now):
             'startDate': _ts(tr.get('tournament_start'), now) if tr.get('tournament_start') else '',
             'platform': tr.get('platform', ''),
             'maxParticipants': tr.get('max_participants', 0),
+            'manageUrl': '/toc/%s/' % slug if slug else '',
+            'canManage': bool(tr.get('can_manage', False)),
+            'hubUrl': '/tournaments/%s/hub/' % slug if slug else '',
+            'canEnterHub': True,
+            'matchLobbyUrl': match_lobby_url,
+            'hasMatchLobby': bool(match_lobby_url),
         })
 
     # --- Inbox (invites + notifications merged) ---
@@ -815,20 +831,56 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         Registration = _safe_model("tournaments.Registration")
         Tournament = _safe_model("tournaments.Tournament")
         Match = _safe_model("tournaments.Match")
+        TournamentStaff = _safe_model("tournaments.TournamentStaff")
+        TournamentStaffAssignment = _safe_model("tournaments.TournamentStaffAssignment")
         if Registration and Tournament:
             excluded_statuses = ["cancelled", "rejected", "draft"]
             reg_filter = Q(is_deleted=False)
             reg_filter &= ~Q(status__in=excluded_statuses)
             reg_filter &= (Q(user=user) | Q(team_id__in=[t["id"] for t in my_teams])) if my_teams else Q(user=user)
 
-            regs = (
+            regs = list(
                 Registration.objects.filter(reg_filter)
                 .select_related("tournament", "tournament__game")
                 .order_by("-created_at")[:8]
             )
+            tournament_ids = [r.tournament_id for r in regs if getattr(r, "tournament_id", None)]
+            legacy_staff_tournament_ids = set()
+            vnext_staff_tournament_ids = set()
+
+            if tournament_ids and TournamentStaff:
+                try:
+                    legacy_staff_tournament_ids = set(
+                        TournamentStaff.objects.filter(
+                            user=user,
+                            is_active=True,
+                            tournament_id__in=tournament_ids,
+                        ).values_list("tournament_id", flat=True)
+                    )
+                except Exception:
+                    legacy_staff_tournament_ids = set()
+
+            if tournament_ids and TournamentStaffAssignment:
+                try:
+                    vnext_staff_tournament_ids = set(
+                        TournamentStaffAssignment.objects.filter(
+                            user=user,
+                            is_active=True,
+                            tournament_id__in=tournament_ids,
+                        ).values_list("tournament_id", flat=True)
+                    )
+                except Exception:
+                    vnext_staff_tournament_ids = set()
+
             for reg in regs:
                 t = reg.tournament
                 if t:
+                    can_manage = bool(
+                        user.is_staff
+                        or getattr(t, "organizer_id", None) == user.id
+                        or t.id in legacy_staff_tournament_ids
+                        or t.id in vnext_staff_tournament_ids
+                    )
                     active_tournaments.append({
                         "id": t.id,
                         "name": t.name,
@@ -846,6 +898,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         "is_live": getattr(t, "status", "") == "live",
                         "platform": getattr(t, "platform", ""),
                         "max_participants": getattr(t, "max_participants", 0),
+                        "can_manage": can_manage,
                     })
             tournament_count = (
                 Registration.objects.filter(reg_filter)

@@ -368,9 +368,31 @@
                       <div class="text-[10px] text-dc-textMuted uppercase font-bold tracking-wider mb-0.5">Opponent</div>
                       <div class="text-sm font-bold text-white font-mono" x-text="tourney.opponent"></div>
                     </div>
-                    <div class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-premium shrink-0"
-                       :class="tourney.isLive ? 'bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger' : 'bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white'">
-                      <span x-text="tourney.isLive ? 'Enter Room' : 'Manage'"></span>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                      <button
+                        x-show="tourney.canManage && tourney.manageUrl"
+                        type="button"
+                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white"
+                        @click.prevent.stop="if (tourney.manageUrl) { window.location.href = tourney.manageUrl }"
+                      >
+                        Manage
+                      </button>
+                      <button
+                        x-show="tourney.canEnterHub && tourney.hubUrl"
+                        type="button"
+                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-accent/90 hover:bg-dc-accent text-white shadow-glow-accent"
+                        @click.prevent.stop="window.location.href = tourney.hubUrl"
+                      >
+                        HUB
+                      </button>
+                      <button
+                        x-show="tourney.hasMatchLobby && tourney.matchLobbyUrl"
+                        type="button"
+                        class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger"
+                        @click.prevent.stop="window.location.href = tourney.matchLobbyUrl"
+                      >
+                        Match Lobby
+                      </button>
                     </div>
                   </div>
                 </div>

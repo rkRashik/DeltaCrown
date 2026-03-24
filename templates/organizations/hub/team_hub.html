@@ -15,6 +15,13 @@
 
 {% block extra_css %}
 <style>
+/* Mobile overflow guard: prevent full-page sideways scroll from decorative bleed. */
+html, body, #main {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+}
+
 /* ===== BASE ===== */
 body {
     background: #030308;
@@ -55,12 +62,17 @@ body::after {
 /* Was: body::before with SVG noise at z:9999 — caused full-page compositing every frame */
 
 /* ===== SECTION AMBIENT LIGHTING (A3 — no blur, paint-friendly) ===== */
-.section-glow { position: relative; }
+.section-glow {
+    position: relative;
+    overflow-x: hidden;
+    overflow-x: clip;
+}
 .section-glow::before {
     content: '';
     position: absolute;
     top: -100px; left: 50%; transform: translateX(-50%);
-    width: 600px; height: 300px;
+    width: min(600px, 92vw);
+    height: 300px;
     border-radius: 50%;
     pointer-events: none;
     opacity: var(--glow-opacity, 0.06);
@@ -517,10 +529,14 @@ body::after {
 }
 
 /* ===== COMPACT MOBILE COMBAT ZONE ===== */
-@media (max-width: 639px) {
-    /* Hide the full grid on mobile, show compact scroll strip */
-    .game-grid-full { display: none; }
-    .game-strip-mobile { display: flex !important; }
+@media (max-width: 767px) {
+    /* Phone view: force-hide large game grid, keep compact strip only. */
+    #combat-zone-section .game-grid-full {
+        display: none !important;
+    }
+    #combat-zone-section .game-strip-mobile {
+        display: flex !important;
+    }
 }
 @media (min-width: 640px) {
     .game-strip-mobile { display: none !important; }

@@ -973,14 +973,15 @@
                 : '';
 
             // Badges
-            var isApiSynced = isApiSyncedPassport(passport, game)
-                || !!(providerData.steam && providerData.steam.persona_name)
-                || !!(providerData.riot && providerData.riot.puuid)
-                || shouldRenderLivePerformance(passport, game);
+            var isProviderLinked = !!(providerData.steam && providerData.steam.persona_name)
+                || !!(providerData.riot && (providerData.riot.puuid || providerData.riot.game_name || providerData.riot.tag_line))
+                || !!(providerData.epic && (providerData.epic.account_id || providerData.epic.epic_id || providerData.epic.display_name));
             var vstatus = String(passport.verification_status || '').toUpperCase();
+            var isVerified = vstatus === 'VERIFIED' && !!passport.is_verified;
+            var isApiSynced = isApiSyncedPassport(passport, game) && isProviderLinked && isVerified;
             var badgeHTML = (vstatus === 'FLAGGED')
                 ? '<span class="bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-red-400 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> FLAGGED</span>'
-                : ((vstatus === 'VERIFIED' || isApiSynced)
+                : (isVerified
                     ? '<span class="bg-white/10 border border-white/5 px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-300 flex items-center gap-1"><i class="fa-solid fa-shield-check"></i> VERIFIED</span>'
                     : '<span class="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-400 flex items-center gap-1"><i class="fa-solid fa-clock"></i> PENDING</span>');
 
@@ -1251,17 +1252,18 @@
 
         if (type === 'select') {
             var optionsMarkup = getFieldOptions(field).map(function (option) {
-                return '<option value="' + escapeHtml(option.value) + '">' + escapeHtml(option.label) + '</option>';
+                return '<option value="' + escapeHtml(option.value) + '" style="color:#0f172a;background:#f8fafc;">' + escapeHtml(option.label) + '</option>';
             }).join('');
 
             return (
                 '<div class="mb-4 relative">' +
                     baseLabel +
-                    '<select id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" class="w-full bg-gray-900/60 border border-slate-600/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition appearance-none cursor-pointer"' + (required ? ' required' : '') + '>' +
-                        '<option value="">Select ' + escapeHtml(label) + '</option>' +
+                    '<select id="gp-field-' + escapeHtml(key) + '" data-id-field="' + escapeHtml(key) + '" class="w-full bg-gray-900/60 border border-slate-600/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition appearance-none cursor-pointer" style="color:#e5edf8;background:rgba(17,24,39,0.78);"' + (required ? ' required' : '') + '>' +
+                        '<option value="" style="color:#64748b;background:#f8fafc;">Select ' + escapeHtml(label) + '</option>' +
                         optionsMarkup +
                     '</select>' +
                     '<div class="absolute right-4 top-[42px] pointer-events-none text-gray-500"><i class="fa-solid fa-chevron-down text-xs"></i></div>' +
+                    '<p id="gp-field-error-' + escapeHtml(key) + '" class="hidden text-[11px] text-red-300 mt-1"></p>' +
                     helpText +
                 '</div>'
             );
@@ -1276,6 +1278,7 @@
                     (minLength ? ' minlength="' + String(minLength) + '"' : '') +
                     (maxLength ? ' maxlength="' + String(maxLength) + '"' : '') +
                 ' />' +
+                '<p id="gp-field-error-' + escapeHtml(key) + '" class="hidden text-[11px] text-red-300 mt-1"></p>' +
                 helpText +
             '</div>'
         );
@@ -1368,6 +1371,9 @@
             }
         }
 
+        // Re-enable live validation feedback for manual-entry fields
+        bindRealtimeFieldValidation(schema);
+
         // Pre-fill only USER_EDITABLE / PREFERENCE fields (locked fields render inline)
         if (isEditMode && schema.length) {
             schema.forEach(function (field) {
@@ -1408,21 +1414,78 @@
         state.editingPassportId = null;
     }
 
+    function setFieldValidationState(fieldKey, message) {
+        var input = document.querySelector('[data-id-field="' + fieldKey + '"]');
+        var errorEl = byId('gp-field-error-' + fieldKey);
+        if (!input) return;
+
+        if (message) {
+            input.classList.add('border-red-400');
+            input.classList.remove('border-emerald-400');
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+            }
+            return;
+        }
+
+        var hasValue = String(input.value || '').trim().length > 0;
+        input.classList.remove('border-red-400');
+        if (hasValue) {
+            input.classList.add('border-emerald-400');
+        } else {
+            input.classList.remove('border-emerald-400');
+        }
+
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.classList.add('hidden');
+        }
+    }
+
+    function bindRealtimeFieldValidation(schema) {
+        if (!Array.isArray(schema)) return;
+
+        schema.forEach(function (field) {
+            var fc = String(field.field_class || '').toUpperCase();
+            if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
+
+            var fieldKey = String(field.key || field.field_name || '').trim();
+            if (!fieldKey) return;
+
+            var input = document.querySelector('[data-id-field="' + fieldKey + '"]');
+            if (!input) return;
+
+            var validateNow = function () {
+                var value = String(input.value || '').trim();
+                var validationError = validateField(field, value);
+                setFieldValidationState(fieldKey, validationError);
+            };
+
+            input.addEventListener('input', validateNow);
+            input.addEventListener('change', validateNow);
+            input.addEventListener('blur', validateNow);
+        });
+    }
+
     function validateField(field, value) {
         const text = String(value == null ? '' : value).trim();
         const fieldKey = field.key || field.field_name || '';
         const fieldLabel = getFieldDisplayLabel(fieldKey, state.selectedGame, field.display_name || field.label);
+        const isRequired = !!(field.required || field.is_required);
+        const minLength = Number(field.min_length || field.minLength || 0);
+        const maxLength = Number(field.max_length || field.maxLength || 0);
 
-        if (field.required && !text) {
+        if (isRequired && !text) {
             return fieldLabel + ' is required.';
         }
 
-        if (field.min_length && text && text.length < Number(field.min_length)) {
-            return fieldLabel + ' must be at least ' + Number(field.min_length) + ' characters.';
+        if (minLength && text && text.length < minLength) {
+            return fieldLabel + ' must be at least ' + minLength + ' characters.';
         }
 
-        if (field.max_length && text.length > Number(field.max_length)) {
-            return fieldLabel + ' must be at most ' + Number(field.max_length) + ' characters.';
+        if (maxLength && text.length > maxLength) {
+            return fieldLabel + ' must be at most ' + maxLength + ' characters.';
         }
 
         if (field.validation_regex && text) {
@@ -1442,6 +1505,7 @@
     function collectMetadataFromForm() {
         var game = state.selectedGame;
         var result = { metadata: {}, errors: [] };
+        var isEditMode = state.modalMode === 'edit';
 
         if (!game) {
             result.errors.push('No game selected.');
@@ -1458,9 +1522,13 @@
         var schema = fieldSchema || (Array.isArray(game.passport_schema) ? game.passport_schema : []);
 
         schema.forEach(function (field) {
-            // Skip locked fields ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â they are not submitted in the form
+            // Skip locked fields; immutable flags should only lock on edit mode.
             var fc = String(field.field_class || '').toUpperCase();
-            if (!fc) fc = (field.immutable || field.locked) ? 'VERIFIED_IDENTITY' : 'USER_EDITABLE';
+            if (!fc) {
+                fc = (isEditMode && (field.immutable || field.locked))
+                    ? 'VERIFIED_IDENTITY'
+                    : 'USER_EDITABLE';
+            }
             if (fc === 'VERIFIED_IDENTITY' || fc === 'API_SYNCED') return;
 
             // Normalise key across both schema formats
@@ -1539,6 +1607,11 @@
             const firstKey = Object.keys(fieldErrors)[0] || '';
             const firstError = firstKey ? fieldErrors[firstKey] : '';
             const message = Array.isArray(firstError) ? firstError[0] : firstError;
+
+            if (firstKey && message) {
+                setFieldValidationState(firstKey, String(message));
+            }
+
             showFormError(message || error.message || 'Unable to save passport right now.');
         } finally {
             if (saveBtn) {
