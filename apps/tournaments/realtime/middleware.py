@@ -303,10 +303,11 @@ class JWTAuthMiddleware:
                 await self._send_auth_error_and_close(send, error_code, error_message)
                 return
         else:
-            # No token provided — allow anonymous read-only passthrough.
-            # The spectator view and public draw pages connect without JWT.
-            # Write actions are gated by _is_organizer() inside consumers.
-            scope['user'] = AnonymousUser()
+            # No JWT in query: preserve session-authenticated user when available.
+            # AuthMiddlewareStack may already have injected an authenticated user.
+            existing_user = scope.get('user')
+            if not existing_user or isinstance(existing_user, AnonymousUser) or not getattr(existing_user, 'is_authenticated', False):
+                scope['user'] = AnonymousUser()
         
         return await self.app(scope, receive, send)
     

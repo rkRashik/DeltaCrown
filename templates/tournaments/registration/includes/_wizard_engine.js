@@ -21,7 +21,11 @@
     // ── Init ──────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         buildSidebar();
-        showStep(0);
+        const requestedStepKey = (runtimeConfig.startStepKey || '').toString().trim();
+        const requestedStepIndex = requestedStepKey
+            ? Math.max(0, stepsConfig.findIndex(step => step.key === requestedStepKey))
+            : 0;
+        showStep(requestedStepIndex);
         updateRosterCounts();
         initBioCounter();
         lucide.createIcons();
@@ -34,7 +38,7 @@
         }
 
         // Auto-validate first step after brief delay
-        setTimeout(() => checkStep(stepsConfig[0].key), 150);
+        setTimeout(() => checkStep(stepsConfig[requestedStepIndex]?.key || stepsConfig[0].key), 150);
     });
 
     // ══════════════════════════════════════════════════════════

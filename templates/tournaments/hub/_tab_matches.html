@@ -8,7 +8,7 @@
   {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
   <div class="flex items-center justify-between border-b border-white/5 pb-6">
     <div>
-      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Match Lobby</h2>
+      <h2 class="font-black text-2xl lg:text-3xl text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Match Lobby</h2>
       <p class="text-sm text-gray-400 mt-1">Check in, view your matchups, and manage active games.</p>
     </div>
   </div>
@@ -99,7 +99,7 @@
     <div id="hub-match-cards" class="space-y-4 hidden"></div>
 
     {% comment %}No matches placeholder{% endcomment %}
-    <div id="matches-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden">
+    <div id="matches-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="crosshair" class="w-8 h-8 text-gray-600"></i>
       </div>
@@ -122,6 +122,14 @@
         <p class="text-sm text-gray-600">No completed matches yet.</p>
       </div>
     </div>
+  </div>
+
+  <div class="lg:hidden">
+    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+      <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-300"></i>
+      Full Match Schedule
+    </h3>
+    <div id="hub-mobile-matches-schedule" class="space-y-3"></div>
   </div>
 
 </div>

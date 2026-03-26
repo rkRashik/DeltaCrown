@@ -8,7 +8,7 @@
   {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
     <div>
-      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Standings</h2>
+      <h2 class="font-black text-2xl lg:text-3xl text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Standings</h2>
       <p class="text-sm text-gray-400 mt-1">Live leaderboard updated automatically after every match.</p>
     </div>
     <div id="standings-format-badge" class="hidden">
@@ -34,7 +34,7 @@
   <div id="hub-standings-container" class="space-y-8 hidden"></div>
 
   {% comment %}── Empty State ─────────────────────────────────────────────{% endcomment %}
-  <div id="standings-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden">
+  <div id="standings-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
     <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
       <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
     </div>
@@ -42,6 +42,21 @@
     <p class="text-sm text-gray-500 max-w-md">
       Standings will be populated once matches have been played and results have been submitted.
     </p>
+  </div>
+
+  <div class="lg:hidden hub-glass rounded-2xl p-4 border border-white/10 space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <h3 class="text-xs font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
+        <i data-lucide="users" class="w-4 h-4 text-cyan-300"></i>
+        Participants & Squad
+      </h3>
+      <button type="button" class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300" onclick="HubEngine.switchTab('support')">
+        Need Help
+      </button>
+    </div>
+    <input id="hub-mobile-standings-search" type="search" placeholder="Search player or team"
+           class="w-full rounded-xl bg-black/35 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-gray-500">
+    <div id="hub-mobile-standings-participants" class="space-y-2"></div>
   </div>
 
 </div>

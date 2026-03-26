@@ -8,7 +8,7 @@
 {% block title %}The Hub — {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block tournament_css %}
-<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260324a">
+<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260326f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
@@ -269,7 +269,7 @@
   <div class="hub-tactical-grid"></div>
 
   {% comment %}Hub Navbar — Replaces site primary nav for immersive experience{% endcomment %}
-  <nav class="hub-navbar" id="hub-navbar">
+  <nav class="hub-navbar hub-app-header" id="hub-navbar">
     <div class="hub-navbar-inner">
       {% comment %}Left: Back + Logo + Tournament Identity{% endcomment %}
       <div class="flex items-center gap-3 min-w-0">
@@ -314,7 +314,7 @@
           <span class="hub-status-dot
             {% if is_checked_in %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
             {% elif user_status == 'Pending Approval' %}bg-[#FFB800] shadow-[0_0_6px_#FFB800]
-            {% elif user_status == 'Confirmed' %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
+            {% elif user_status == 'Registered' %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
             {% else %}bg-[#00F0FF] shadow-[0_0_6px_#00F0FF]{% endif %}"></span>
           <span class="text-[10px] font-bold uppercase tracking-wider" id="hub-status-label">{{ user_status }}</span>
           <i data-lucide="chevron-down" class="w-3 h-3 text-gray-500"></i>
@@ -354,9 +354,11 @@
           <i data-lucide="life-buoy" class="w-4 h-4"></i>
         </a>
 
-        {% comment %}Mobile Sidebar Toggle{% endcomment %}
-        <button class="hub-mobile-toggle lg:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5"
-                onclick="HubEngine.openMobileSidebar()">
+        {% comment %}Mobile Sidebar Toggle (disabled in mobile-first IA){% endcomment %}
+        <button class="hub-mobile-toggle hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5"
+          onclick="HubEngine.openMobileSidebar()"
+          aria-hidden="true"
+          tabindex="-1">
           <i data-lucide="panel-left" class="w-4 h-4 text-gray-400"></i>
         </button>
 
@@ -388,6 +390,7 @@
         </a>
       </div>
     </div>
+
   </nav>
 
   {% if hub_critical_locked %}
@@ -407,7 +410,7 @@
   <div class="flex-1 flex overflow-hidden w-full relative" style="z-index:10;">
 
     {% comment %}Desktop Sidebar{% endcomment %}
-    <aside class="hub-sidebar-desktop w-[240px] xl:w-[270px] flex flex-col hub-glass-heavy border-r border-white/5 shrink-0" style="z-index:20;">
+    <aside id="hub-sidebar-desktop" class="hub-sidebar-desktop w-[240px] xl:w-[270px] flex flex-col hub-glass-heavy border-r border-white/5 shrink-0" style="z-index:20;">
       {% include "tournaments/hub/_sidebar.html" %}
     </aside>
 
@@ -446,9 +449,61 @@
         {% include "tournaments/hub/_tab_overview.html" %}
       </div>
 
+      {% comment %}Tab: Announcements{% endcomment %}
+      <div id="hub-tab-announcements" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_announcements.html" %}
+      </div>
+
       {% comment %}Tab: Match Lobby{% endcomment %}
       <div id="hub-tab-matches" class="hub-tab-content">
         {% include "tournaments/hub/_tab_matches.html" %}
+      </div>
+
+      {% comment %}Tab: Mobile Lobby (Dynamic Action Center){% endcomment %}
+      <div id="hub-tab-lobby" class="hub-tab-content lg:hidden">
+        <div class="p-4 max-w-[900px] mx-auto space-y-4">
+          <div class="hub-glass rounded-2xl p-4 border border-cyan-400/25 hub-mobile-lobby-shell" id="hub-mobile-lobby-panel">
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">Lobby</p>
+                <h3 class="text-lg font-black text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Live Match Command</h3>
+              </div>
+              <span id="hub-mobile-lobby-status" class="hub-badge hub-badge-info">Waiting</span>
+            </div>
+
+            <div id="hub-mobile-lobby-match-head" class="rounded-xl border border-white/10 bg-white/[0.03] p-3 hub-mobile-lobby-match-head">
+              <p id="hub-mobile-lobby-round" class="text-[10px] text-gray-500 uppercase tracking-wider">No active round</p>
+              <p id="hub-mobile-lobby-title" class="text-base font-bold text-white mt-1">No active match yet</p>
+              <p id="hub-mobile-lobby-subtitle" class="text-xs text-gray-400 mt-1">You will be auto-focused here when your match goes live.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="rounded-xl border border-white/10 bg-black/25 p-3 hub-mobile-lobby-metric">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider">Countdown</p>
+                <p id="hub-mobile-lobby-countdown" class="text-xl font-black text-white mt-1" style="font-family:'Space Grotesk',monospace;">--:--</p>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/25 p-3 hub-mobile-lobby-metric hub-mobile-lobby-room-display">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider">Room Code</p>
+                <p id="hub-mobile-lobby-room" class="text-xl font-black text-cyan-300 mt-1" style="font-family:'Space Grotesk',monospace;">TBD</p>
+              </div>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-2">
+              <button id="hub-mobile-lobby-join" type="button" class="w-full py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 font-black text-xs uppercase tracking-[0.12em] hub-mobile-lobby-primary" onclick="HubEngine.switchTab('matches')">
+                Open Match + Submit Result
+              </button>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" class="py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('rulebook')">Rules</button>
+                <button type="button" class="py-2.5 rounded-xl bg-amber-400/10 border border-amber-300/30 text-amber-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('support')">Dispute</button>
+              </div>
+            </div>
+
+            <div id="hub-mobile-lobby-admin-note" class="mt-3 hidden rounded-xl border border-amber-300/25 bg-amber-400/10 p-3">
+              <p class="text-[10px] font-black uppercase tracking-[0.12em] text-amber-200">Admin Note</p>
+              <p id="hub-mobile-lobby-admin-note-text" class="text-xs text-amber-100 mt-1">-</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {% comment %}Tab: Squad Management{% endcomment %}
@@ -498,6 +553,39 @@
 
     </main>
   </div>
+
+  <nav class="hub-mobile-bottom-nav hub-app-dock lg:hidden" aria-label="Mobile Primary Navigation">
+    <button class="hub-nav-btn hub-mobile-bottom-item active" data-hub-tab="overview" onclick="HubEngine.switchTab('overview')">
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Overview</span>
+      </div>
+    </button>
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="matches" onclick="HubEngine.switchTab('matches')">
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="swords" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Matches</span>
+      </div>
+    </button>
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="bracket" onclick="HubEngine.switchTab('bracket')">
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="git-merge" class="w-4 h-4 rotate-90"></i>
+        <span class="hub-nav-label">Bracket</span>
+      </div>
+    </button>
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="standings" onclick="HubEngine.switchTab('standings')">
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Standings</span>
+      </div>
+    </button>
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="lobby" onclick="HubEngine.switchTab('lobby')">
+      <div class="flex flex-col items-center gap-1">
+        <i data-lucide="radio-tower" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Lobby</span>
+      </div>
+    </button>
+  </nav>
 
   {% comment %}Registration Status Detail Modal{% endcomment %}
   <div id="hub-status-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeStatusModal()">
@@ -583,6 +671,66 @@
            class="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] text-xs font-medium text-gray-400 hover:text-white transition-all">
           Close
         </button>
+      </div>
+    </div>
+  </div>
+
+  {% comment %}Alert Detail Modal{% endcomment %}
+  <div id="hub-alert-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeAlertModal()">
+    <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>
+    <div id="hub-alert-modal-shell" class="relative w-full max-w-lg mx-4 hub-glass rounded-2xl border border-cyan-400/20 overflow-hidden bg-[linear-gradient(150deg,rgba(12,22,40,0.95)_0%,rgba(8,16,32,0.96)_100%)]">
+      <div class="relative p-5 sm:p-6 pb-4 border-b border-white/10">
+        <div class="absolute inset-0 bg-gradient-to-b from-cyan-400/10 to-transparent pointer-events-none"></div>
+        <div class="relative flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-[10px] font-black text-cyan-300 uppercase tracking-[0.18em]">Action Center</p>
+            <div class="flex items-center gap-2 mt-2">
+              <span id="hub-alert-modal-icon-wrap" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15 border border-cyan-400/30">
+                <span id="hub-alert-modal-icon" class="text-sm leading-none">🔔</span>
+              </span>
+              <span id="hub-alert-modal-type" class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/15 border border-cyan-400/30 text-cyan-200">Update</span>
+            </div>
+            <h3 id="hub-alert-modal-title" class="text-lg font-black text-white mt-2.5 truncate" style="font-family:Outfit,sans-serif;">Alert</h3>
+            <p id="hub-alert-modal-time" class="text-[10px] text-gray-500 uppercase tracking-widest mt-1" style="font-family:'Space Grotesk',monospace;"></p>
+          </div>
+          <button type="button" onclick="HubEngine.closeAlertModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-5 sm:p-6 space-y-4">
+        <p id="hub-alert-modal-body" class="text-sm text-gray-300 leading-relaxed whitespace-pre-line">No details available for this alert.</p>
+        <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button id="hub-alert-modal-clear"
+             type="button"
+             onclick="HubEngine.requestAlertClear()"
+             class="px-4 py-2 rounded-lg bg-[#ff2a55]/15 hover:bg-[#ff2a55]/25 border border-[#ff2a55]/35 text-[#ff98ad] text-xs font-black uppercase tracking-wider transition-colors text-center">
+            Clear Alert
+          </button>
+          <a id="hub-alert-modal-action"
+             href="#"
+             class="px-4 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-black uppercase tracking-wider transition-colors text-center">
+            Open
+          </a>
+          <button type="button" onclick="HubEngine.closeAlertModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% comment %}Action Center Confirm Modal{% endcomment %}
+  <div id="hub-alert-confirm-modal" class="fixed inset-0 z-[110] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeAlertConfirmModal()">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-[#ff2a55]/25 overflow-hidden bg-[linear-gradient(150deg,rgba(28,10,16,0.94)_0%,rgba(15,10,18,0.97)_100%)]">
+      <div class="p-5 border-b border-white/10">
+        <h3 id="hub-alert-confirm-title" class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">Clear This Alert?</h3>
+        <p id="hub-alert-confirm-copy" class="text-sm text-gray-300 mt-2 leading-relaxed">This will remove this alert from your Action Center.</p>
+      </div>
+      <div class="p-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <button type="button" onclick="HubEngine.closeAlertConfirmModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">Cancel</button>
+        <button type="button" onclick="HubEngine.confirmAlertClear()" class="px-4 py-2 rounded-lg bg-[#ff2a55]/20 hover:bg-[#ff2a55]/30 border border-[#ff2a55]/35 text-[#ff98ad] text-xs font-black uppercase tracking-wider transition-colors">Yes, Clear</button>
       </div>
     </div>
   </div>
@@ -872,7 +1020,7 @@
 {% block tournament_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260324l"></script>
+<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260326u"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

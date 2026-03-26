@@ -26,7 +26,7 @@
   function parseError(e) {
     if (e && e.body && e.body.error) return e.body.error;
     if (e && e.message) return e.message;
-    return 'Unknown error';
+    return 'Something went wrong. Please try again.';
   }
 
   /* --- State ------------------------------------------------ */

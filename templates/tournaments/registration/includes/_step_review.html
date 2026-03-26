@@ -3,8 +3,8 @@
 <div data-wizard-step="review" class="wizard-step step-hidden animate-slide-up">
 
     <div class="mb-6 pb-4 border-b border-white/10">
-        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Review & Submit</h2>
-        <p class="text-sm text-gray-400">Double-check everything before submitting your registration.</p>
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">{% if is_waitlist %}Review & Join Waitlist{% else %}Review & Submit{% endif %}</h2>
+        <p class="text-sm text-gray-400">{% if is_waitlist %}Double-check everything before joining the waitlist queue.{% else %}Double-check everything before submitting your registration.{% endif %}</p>
     </div>
 
     {# Registration summary card #}
@@ -227,7 +227,7 @@
         {% endif %}
 
         {# ── Payment ── #}
-        {% if tournament.has_entry_fee %}
+        {% if requires_payment_now %}
         <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
             <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
                 <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
@@ -259,7 +259,7 @@
         {% endif %}
 
         {# ── Refund Policy ── #}
-        {% if tournament.has_entry_fee and tournament.refund_policy %}
+        {% if requires_payment_now and tournament.refund_policy %}
         <div class="p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10 text-xs text-yellow-400/80 flex items-start gap-2">
             <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i>
             <div>
@@ -302,6 +302,7 @@
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 rules-content scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
                         {{ tournament.rules_text|safe }}
                     </div>
                 </div>
@@ -324,6 +325,7 @@
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
                         {{ form_config.custom_registration_rules|safe }}
                     </div>
                 </div>
@@ -345,6 +347,7 @@
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
                         {{ form_config.custom_tos_text|safe }}
                     </div>
                 </div>
@@ -365,6 +368,7 @@
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="desc-content text-xs text-gray-400 leading-relaxed space-y-2">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
                         {{ form_config.custom_fair_play_text|safe }}
                     </div>
                 </div>
@@ -375,7 +379,7 @@
         <div class="mt-4 p-4 rounded-xl border transition-all duration-300" id="terms-checkbox-card" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.05);">
             <label class="flex items-start gap-3 cursor-pointer group">
                 <div class="relative mt-0.5 shrink-0">
-                    <input type="checkbox" id="terms-checkbox" class="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded transition-all checked:border-green-500 checked:bg-green-500" onchange="validateTerms(); updateTermsCardStyle();">
+                    <input type="checkbox" id="terms-checkbox" name="terms_agreed" value="1" class="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded transition-all checked:border-green-500 checked:bg-green-500" onchange="validateTerms(); updateTermsCardStyle();">
                     <i data-lucide="check" class="absolute top-0.5 left-0.5 w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"></i>
                 </div>
                 <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
@@ -383,7 +387,7 @@
                     <strong class="text-white">terms of service</strong>, and
                     <strong class="text-white">fair play agreement</strong>. I confirm all information is accurate
                     and understand that false information may result in disqualification.
-                    {% if tournament.has_entry_fee %}I acknowledge the refund policy stated above.{% endif %}
+                    {% if requires_payment_now %}I acknowledge the refund policy stated above.{% endif %}
                 </div>
             </label>
         </div>

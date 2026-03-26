@@ -112,6 +112,11 @@ class MessageType:
     BRACKET_UPDATE = 'bracket_update'
     MATCH_STARTED = 'match_started'
     MATCH_COMPLETED = 'match_completed'
+    SUBSCRIBE = 'subscribe'
+    PLAYER_ACTION = 'player_action'
+    ORGANIZER_ACTION = 'organizer_action'
+    ADMIN_ACTION = 'admin_action'
+    UNKNOWN = 'unknown'
 
 
 class ConnectionStatus:
@@ -162,7 +167,12 @@ def record_connection(user_id: int, role: str, scope_type: str, status: str) -> 
     )
 
 
-def record_message(user_id: int, type: str, status: str = 'success') -> None:
+def record_message(
+    user_id: Optional[int] = None,
+    type: Optional[str] = None,
+    status: str = 'success',
+    **kwargs,
+) -> None:
     """
     Record message handling event (counter).
     
@@ -170,21 +180,35 @@ def record_message(user_id: int, type: str, status: str = 'success') -> None:
         user_id: User ID (IDs-only)
         type: Message type (join, leave, score_update, etc.)
         status: Processing status (success, error)
+
+    Compatibility:
+        Accepts legacy kwargs from older callers:
+        - message_type
+        - tournament_id
+        - direction
         
     IDs-Only: user_id only
     """
+    message_type = kwargs.get('message_type') or type or MessageType.UNKNOWN
+    tournament_id = kwargs.get('tournament_id')
+    direction = kwargs.get('direction')
+
     with _metrics_lock:
-        _message_counters[(type, status)] += 1
+        _message_counters[(message_type, status)] += 1
     
-    logger.info(
-        f"WebSocket message handled",
-        extra={
-            'user_id': user_id,
-            'type': type,
-            'status': status,
-            'metric': 'ws_messages_total',
-        }
-    )
+    log_payload = {
+        'user_id': user_id,
+        'type': message_type,
+        'status': status,
+        'tournament_id': tournament_id,
+        'direction': direction,
+        'metric': 'ws_messages_total',
+    }
+
+    if message_type == MessageType.HEARTBEAT:
+        logger.debug("WebSocket message handled", extra=log_payload)
+    else:
+        logger.info("WebSocket message handled", extra=log_payload)
 
 
 def record_ratelimit_event(user_id: int, reason: str, retry_after_ms: int) -> None:
@@ -235,14 +259,42 @@ def record_auth_failure(reason: str, user_id: Optional[int] = None) -> None:
     )
 
 
-@contextmanager
-def record_message_latency(user_id: int, type: str):
+def increment_active_connections(role: str, scope_type: str) -> None:
+    """
+    Backward-compatible no-op shim.
+
+    Active connection gauge is already managed by record_connection(..., status=CONNECTED)
+    and record_connection(..., status=DISCONNECTED). This shim keeps older caller code
+    working without double-counting metrics.
+    """
+    return
+
+
+def decrement_active_connections(role: str, scope_type: str) -> None:
+    """
+    Backward-compatible no-op shim.
+
+    Active connection gauge is already managed by record_connection(..., status=CONNECTED)
+    and record_connection(..., status=DISCONNECTED). This shim keeps older caller code
+    working without double-counting metrics.
+    """
+    return
+
+
+def record_message_latency(
+    user_id: Optional[int] = None,
+    type: Optional[str] = None,
+    message_type: Optional[str] = None,
+    duration_seconds: Optional[float] = None,
+):
     """
     Record message processing latency (histogram).
     
     Args:
         user_id: User ID (IDs-only)
         type: Message type (join, leave, score_update, etc.)
+        message_type: Backward-compatible alias of type
+        duration_seconds: When provided, record direct latency sample.
         
     Usage:
         with record_message_latency(user_id, MessageType.SCORE_UPDATE):
@@ -250,23 +302,46 @@ def record_message_latency(user_id: int, type: str):
             
     IDs-Only: user_id only
     """
-    start_time = datetime.now()
-    try:
-        yield
-    finally:
-        duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+    resolved_type = message_type or type or MessageType.UNKNOWN
+
+    if duration_seconds is not None:
+        duration_ms = max(0.0, float(duration_seconds) * 1000.0)
         with _metrics_lock:
-            _message_latency_histogram[(type,)].append(duration_ms)
-        
-        logger.info(
-            f"WebSocket message latency",
-            extra={
+            _message_latency_histogram[(resolved_type,)].append(duration_ms)
+        latency_payload = {
+            'user_id': user_id,
+            'type': resolved_type,
+            'duration_ms': duration_ms,
+            'metric': 'ws_message_latency_seconds',
+        }
+        if resolved_type == MessageType.HEARTBEAT:
+            logger.debug("WebSocket message latency", extra=latency_payload)
+        else:
+            logger.info("WebSocket message latency", extra=latency_payload)
+        return None
+
+    @contextmanager
+    def _timer():
+        start_time = datetime.now()
+        try:
+            yield
+        finally:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            with _metrics_lock:
+                _message_latency_histogram[(resolved_type,)].append(duration_ms)
+
+            latency_payload = {
                 'user_id': user_id,
-                'type': type,
+                'type': resolved_type,
                 'duration_ms': duration_ms,
                 'metric': 'ws_message_latency_seconds',
             }
-        )
+            if resolved_type == MessageType.HEARTBEAT:
+                logger.debug("WebSocket message latency", extra=latency_payload)
+            else:
+                logger.info("WebSocket message latency", extra=latency_payload)
+
+    return _timer()
 
 
 # =============================================================================

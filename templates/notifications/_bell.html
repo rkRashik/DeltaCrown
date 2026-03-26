@@ -147,8 +147,8 @@
             {% endif %}
           </div>
 
-          <a href="{% if n.url %}{{ n.url }}{% else %}/notifications/{% endif %}" class="text-xs text-cyan-400/60 hover:text-cyan-400 transition mt-1.5 inline-block">
-            View →
+          <a href="{% if n.action_url %}{{ n.action_url }}{% elif n.url %}{{ n.url }}{% else %}/notifications/{% endif %}" class="text-xs text-cyan-400/60 hover:text-cyan-400 transition mt-1.5 inline-block">
+            {{ n.action_label|default:'View' }} →
           </a>
         </div>
       </div>

@@ -116,10 +116,10 @@
           </a>
           {% endif %}
           <div class="flex items-center gap-4 pt-2">
-            <a href="{% if t.id in user_registered_tournaments and t.status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
+            <a href="{% if t.id in user_registered_tournaments and t.status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% elif t.status == 'registration_open' %}{{ t.discovery_eligibility.action_url|default:'#' }}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
                class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition flex items-center gap-2">
               <i data-lucide="{% if t.status == 'live' %}play{% elif t.status == 'registration_open' %}user-plus{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
-              {% if t.id in organizer_tournaments %}Manage{% elif t.id in user_registered_tournaments and t.status == 'live' %}Enter Hub{% elif t.status == 'live' %}Watch Live{% elif t.status == 'registration_open' %}Register Now{% else %}View Details{% endif %}
+              {% if t.id in organizer_tournaments %}Manage{% elif t.id in user_registered_tournaments and t.status == 'live' %}Enter Hub{% elif t.status == 'live' %}Watch Live{% elif t.status == 'registration_open' %}{{ t.discovery_eligibility.action_label|default:'Register Now' }}{% else %}View Details{% endif %}
             </a>
             {% if t.prize_pool %}
             <div class="text-sm font-medium text-white bg-black/50 px-4 py-2 rounded-lg border border-white/10">
@@ -346,7 +346,11 @@
                 <i data-lucide="settings" class="w-4 h-4"></i> Manage Tournament
               </span>
             {% elif t.id in user_registered_tournaments %}
-              {% if t.status == 'live' %}
+              {% if t.user_reg_status == 'waitlisted' %}
+              <span class="w-full py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="hourglass" class="w-4 h-4"></i> On Waitlist{% if t.status == 'registration_open' %} — Awaiting Call-up{% endif %}
+              </span>
+              {% elif t.status == 'live' %}
               <span class="w-full py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 border border-red-500/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 animate-pulse">
                 <i data-lucide="swords" class="w-4 h-4"></i> Enter Tournament Hub
               </span>
@@ -373,8 +377,8 @@
                 <i data-lucide="trophy" class="w-4 h-4"></i> View Results
               </span>
               {% elif t.status == 'registration_open' %}
-              <span class="w-full py-2.5 rounded-lg bg-dc-cyan hover:bg-dc-cyan/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2">
-                <i data-lucide="user-plus" class="w-4 h-4"></i> Register {% if t.participation_type == 'team' %}Team{% endif %} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <span class="w-full py-2.5 rounded-lg {% if t.discovery_eligibility.status == 'full_waitlist' %}bg-amber-400 hover:bg-amber-300 text-black{% else %}bg-dc-cyan hover:bg-dc-cyan/90 text-black{% endif %} font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="{% if t.discovery_eligibility.status == 'full_waitlist' %}hourglass{% else %}user-plus{% endif %}" class="w-4 h-4"></i> {{ t.discovery_eligibility.action_label|default:'Register Now' }} <i data-lucide="arrow-right" class="w-4 h-4"></i>
               </span>
               {% elif t.status == 'registration_closed' %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-amber-500/20 text-amber-400/80 font-bold text-sm transition-all flex items-center justify-center gap-2">

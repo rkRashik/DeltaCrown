@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register — {{ tournament.name }} | DeltaCrown</title>
+    <title>{{ submit_title_label|default:'Register' }} — {{ tournament.name }} | DeltaCrown</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -438,7 +438,7 @@
                             {% include "tournaments/registration/includes/_step_extras.html" %}
                         {% endif %}
 
-                        {% if tournament.has_entry_fee %}
+                        {% if requires_payment_now %}
                             {% include "tournaments/registration/includes/_step_payment.html" %}
                         {% endif %}
 
@@ -455,9 +455,9 @@
                             Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
 
-                        <button type="button" id="btn-submit" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);" onclick="handleSubmit(event)">
+                        <button type="button" id="btn-submit" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="{% if is_waitlist %}background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);{% else %}background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);{% endif %}" onclick="handleSubmit(event)">
                             <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
-                            {% if registration_type == 'team' %}Register Team{% else %}Register Now{% endif %}
+                            {{ submit_action_label|default:'Register Now' }}
                         </button>
                     </div>
                 </div>
@@ -501,7 +501,7 @@
         {% if custom_questions %}
         ,{"key": "extras", "label": "Additional Info", "subtitle": "Tournament-specific questions", "icon": "clipboard-list"}
         {% endif %}
-        {% if tournament.has_entry_fee %}
+        {% if requires_payment_now %}
         ,{"key": "payment", "label": "Payment", "subtitle": "Entry fee", "icon": "credit-card"}
         {% endif %}
         ,{"key": "review", "label": "Review & Submit", "subtitle": "Confirm everything", "icon": "check-circle"}
@@ -514,7 +514,8 @@
         "registrationType": "{{ registration_type }}",
         "isTeam": {% if registration_type == 'team' %}true{% else %}false{% endif %},
         "isGuestTeam": {% if is_guest_team %}true{% else %}false{% endif %},
-        "hasEntryFee": {% if tournament.has_entry_fee %}true{% else %}false{% endif %},
+        "hasEntryFee": {% if requires_payment_now %}true{% else %}false{% endif %},
+        "startStepKey": "{{ start_step_key|default:'' }}",
         "entryFeeAmount": "{{ tournament.entry_fee_amount|default:'0' }}",
         "entryFeeCurrency": "{{ tournament.entry_fee_currency|default:'BDT' }}",
         "deltacoinCanAfford": {% if deltacoin_can_afford %}true{% else %}false{% endif %},

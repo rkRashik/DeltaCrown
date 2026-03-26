@@ -14,6 +14,7 @@ Phase 2: Real-Time Features & Security
 
 import os
 from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
@@ -31,10 +32,14 @@ from apps.tournaments.realtime.middleware_ratelimit import RateLimitMiddleware
 from django.conf import settings
 
 # Build WebSocket middleware stack
-# Base stack: JWT auth → Origin validation → URL routing
-websocket_app = JWTAuthMiddleware(
-    AllowedHostsOriginValidator(
-        URLRouter(tournament_ws_urls + team_ws_urls)
+# Base stack: Origin validation -> session auth -> JWT override -> URL routing.
+# AuthMiddlewareStack must wrap JWT middleware so session user exists when no
+# token is provided (Hub page uses session auth by default).
+websocket_app = AllowedHostsOriginValidator(
+    AuthMiddlewareStack(
+        JWTAuthMiddleware(
+            URLRouter(tournament_ws_urls + team_ws_urls)
+        )
     )
 )
 
@@ -50,9 +55,10 @@ application = ProtocolTypeRouter({
     # WebSocket handler for real-time tournament and team updates
     # Middleware chain (innermost to outermost):
     # 1. URLRouter: Routes to TournamentConsumer (Module 2.2) and TeamConsumer (Module 3.3)
-    # 2. AllowedHostsOriginValidator: Validates host header
-    # 3. RateLimitMiddleware (Module 2.5): Conditionally applied when WS_RATE_ENABLED=True
-    # 4. JWTAuthMiddleware: Validates JWT token and injects user
+    # 2. JWTAuthMiddleware: Validates JWT token and can override user when provided
+    # 3. AuthMiddlewareStack: Session/cookie auth fallback for browser clients
+    # 4. AllowedHostsOriginValidator: Validates host/origin
+    # 5. RateLimitMiddleware (Module 2.5): Conditionally applied when WS_RATE_ENABLED=True
     "websocket": websocket_app,
 })
 

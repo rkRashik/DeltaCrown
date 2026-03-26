@@ -46,6 +46,8 @@ class CheckinOpenView(TOCBaseView):
     def post(self, request, slug):
         window = int(request.data.get("window_minutes", 15))
         result = TOCCheckinService.open_checkin(self.tournament, window_minutes=window)
+        if result.get("error"):
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
         bump_toc_scopes(self.tournament.id, 'checkin', 'participants', 'matches', 'overview')
         return Response(result)
 
@@ -80,10 +82,16 @@ class CheckinForceMatchView(TOCBaseView):
         match_id = request.data.get("match_id")
         if not match_id:
             return Response({"error": "match_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        side = request.data.get("side", 1)
+        side = str(request.data.get("side", "p1")).lower()
+        if side in {"1", "p1", "participant1"}:
+            side = "p1"
+        elif side in {"2", "p2", "participant2"}:
+            side = "p2"
         result = TOCCheckinService.force_checkin_match(
-            self.tournament, match_id=int(match_id), side=int(side),
+            self.tournament, match_id=int(match_id), side=side,
         )
+        if result.get("error"):
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
         bump_toc_scopes(self.tournament.id, 'checkin', 'participants', 'matches', 'overview')
         return Response(result)
 
@@ -93,6 +101,8 @@ class CheckinAutoDQView(TOCBaseView):
 
     def post(self, request, slug):
         result = TOCCheckinService.auto_dq(self.tournament)
+        if result.get("error"):
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
         bump_toc_scopes(self.tournament.id, 'checkin', 'participants', 'matches', 'overview')
         return Response(result)
 

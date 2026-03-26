@@ -84,6 +84,7 @@ class TournamentListView(ListView):
                 tournament, self.request.user if self.request.user.is_authenticated else None
             )
             tournament_eligibility[tournament.id] = eligibility
+            tournament.discovery_eligibility = eligibility
         context['tournament_eligibility'] = tournament_eligibility
 
         if self.request.user.is_authenticated:
@@ -98,6 +99,16 @@ class TournamentListView(ListView):
             ).exclude(
                 status__in=[Registration.CANCELLED, Registration.REJECTED]
             ).values_list('tournament_id', flat=True)
+            user_registration_status_map = {
+                reg.tournament_id: reg.status
+                for reg in Registration.objects.filter(
+                    user=self.request.user,
+                    tournament__in=context['tournament_list'],
+                    is_deleted=False,
+                ).exclude(
+                    status__in=[Registration.CANCELLED, Registration.REJECTED]
+                ).order_by('-created_at')
+            }
 
             team_registrations = set()
             try:
@@ -116,10 +127,22 @@ class TournamentListView(ListView):
                     ).exclude(
                         status__in=[Registration.CANCELLED, Registration.REJECTED]
                     ).values_list('tournament_id', flat=True))
+                    for team_reg in Registration.objects.filter(
+                        team_id__in=user_team_ids,
+                        tournament__in=context['tournament_list'],
+                        tournament__participation_type=Tournament.TEAM,
+                        is_deleted=False,
+                    ).exclude(
+                        status__in=[Registration.CANCELLED, Registration.REJECTED]
+                    ).order_by('-created_at'):
+                        user_registration_status_map.setdefault(team_reg.tournament_id, team_reg.status)
             except Exception:
                 pass
 
             context['user_registered_tournaments'] = set(user_registrations) | team_registrations
+            context['user_registration_status_map'] = user_registration_status_map
+            for tournament in context['tournament_list']:
+                tournament.user_reg_status = user_registration_status_map.get(tournament.id)
 
             # Organizer tournaments — tournaments this user organizes (for "Manage" CTA)
             organizer_tournaments = set(
@@ -180,6 +203,9 @@ class TournamentListView(ListView):
             context['user_registered_tournaments'] = set()
             context['organizer_tournaments'] = set()
             context['my_tournaments_sidebar'] = []
+            context['user_registration_status_map'] = {}
+            for tournament in context['tournament_list']:
+                tournament.user_reg_status = None
 
         all_games = game_service.list_active_games()
         context['games'] = [
@@ -218,10 +244,15 @@ class TournamentListView(ListView):
         ]
 
         # Featured tournaments for hero carousel (max 3, live or featured)
-        context['featured_tournaments'] = Tournament.objects.select_related('game').filter(
+        context['featured_tournaments'] = list(Tournament.objects.select_related('game').filter(
             status__in=['live', 'registration_open', 'published'],
             is_featured=True,
-        ).order_by('-tournament_start')[:3]
+        ).order_by('-tournament_start')[:3])
+        for tournament in context['featured_tournaments']:
+            tournament.discovery_eligibility = RegistrationEligibilityService.check_eligibility(
+                tournament,
+                self.request.user if self.request.user.is_authenticated else None,
+            )
 
         # Latest Winners — from TournamentResult for completed tournaments
         from apps.tournaments.models.result import TournamentResult

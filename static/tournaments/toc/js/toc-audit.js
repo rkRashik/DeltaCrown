@@ -202,9 +202,11 @@
                 incrementBadge('announcements');
             }
 
-            // Refresh audit log if open
-            if (document.getElementById('settings-audit-section')?.open) {
-                debouncedRefresh();
+            // Refresh dedicated Logs tab feed if available and active.
+            if ((window.location.hash || '').replace('#', '') === 'logs' && window.TOC?.logs?.refresh) {
+                window.TOC.logs.refresh();
+            } else if (window.TOC?.logs?.refreshAnomalyBadge) {
+                window.TOC.logs.refreshAnomalyBadge();
             }
         }
     }
@@ -243,7 +245,6 @@
      * Init
      * ──────────────────────────────────────────── */
     function init () {
-        refreshAuditLog();
         connectWebSocket();
     }
 

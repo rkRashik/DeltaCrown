@@ -264,9 +264,14 @@
                     {% if can_register %}
                     <a href="{{ registration_action_url }}"
                        class="block w-full py-4 text-black font-black uppercase tracking-[0.15em] rounded-xl transition-all text-center text-sm hover:scale-[1.02] active:scale-[0.98]"
-                       style="background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8)); box-shadow: 0 4px 24px rgba(var(--game-color-rgb), 0.3), 0 0 60px rgba(var(--game-color-rgb), 0.1);">
+                       style="{% if eligibility_status == 'full_waitlist' %}background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 4px 24px rgba(245, 158, 11, 0.35), 0 0 60px rgba(245, 158, 11, 0.15);{% else %}background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8)); box-shadow: 0 4px 24px rgba(var(--game-color-rgb), 0.3), 0 0 60px rgba(var(--game-color-rgb), 0.1);{% endif %}">
                         {{ registration_action_label }}
                     </a>
+                    {% if eligibility_status == 'full_waitlist' %}
+                    <p class="mt-2 text-[10px] text-amber-300/80 text-center font-semibold uppercase tracking-wider">
+                        Tournament full — join queue for next available slot
+                    </p>
+                    {% endif %}
                     {% elif is_registered %}
                     <a href="{{ registration_action_url }}"
                        class="block w-full py-4 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm hover:bg-indigo-500/20 transition-all">

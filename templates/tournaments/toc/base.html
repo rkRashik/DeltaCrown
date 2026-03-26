@@ -567,16 +567,49 @@
 
                 </div>
 
-                {# ── Activity Log — recent staff actions audit trail ── #}
-                <div class="glass-box rounded-xl flex flex-col max-h-[380px]">
-                    <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
-                        <i data-lucide="scroll-text" class="w-4 h-4 text-dc-text"></i>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Activity Log</h3>
-                        <span id="activity-log-count" class="ml-2 text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {# ── Tournament Feed — live organizer announcements stream ── #}
+                    <div class="glass-box rounded-xl flex flex-col max-h-[420px]">
+                        <div class="p-4 border-b border-dc-borderLight bg-dc-panel/50 shrink-0 space-y-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="radio" class="w-4 h-4 text-theme"></i>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Tournament Feed</h3>
+                                <span id="overview-feed-count" class="ml-2 text-[10px] font-mono text-theme bg-theme-surface px-2 py-0.5 rounded border border-theme-border hidden">0</span>
+                                <button onclick="TOC.overview?.refreshTournamentFeed()" class="ml-auto text-[10px] text-dc-text hover:text-white transition-colors font-mono uppercase tracking-widest">
+                                    <i data-lucide="refresh-cw" class="w-3 h-3 inline-block mr-1"></i>Refresh
+                                </button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <div class="relative flex-1 min-w-[180px]">
+                                    <i data-lucide="search" class="w-3 h-3 text-dc-text absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+                                    <input id="overview-feed-search" type="text" placeholder="Search feed..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-dc-bg border border-dc-border text-xs text-white placeholder:text-dc-text/40 focus:outline-none focus:border-theme/50">
+                                </div>
+                                <div class="flex items-center gap-1" id="overview-feed-filters">
+                                    <button type="button" data-feed-filter="all" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-theme/30 bg-theme/15 text-theme">All</button>
+                                    <button type="button" data-feed-filter="pinned" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-dc-border text-dc-text hover:border-theme/40">Pinned</button>
+                                    <button type="button" data-feed-filter="important" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-dc-border text-dc-text hover:border-theme/40">Important</button>
+                                </div>
+                                <button onclick="TOC.navigate('announcements')" class="text-[10px] text-theme hover:text-white transition-colors font-mono uppercase tracking-widest">Open full feed →</button>
+                            </div>
+                        </div>
+                        <div id="overview-tournament-feed" class="divide-y divide-dc-border/30 flex-1 overflow-y-auto">
+                            <div class="flex items-center justify-center h-24">
+                                <p class="text-xs text-dc-text/50 font-mono">No feed updates yet</p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="activity-log" class="divide-y divide-dc-border/30 flex-1 overflow-y-auto">
-                        <div class="flex items-center justify-center h-24">
-                            <p class="text-xs text-dc-text/50 font-mono">No activity recorded yet</p>
+
+                    {# ── Activity Log — recent staff actions audit trail ── #}
+                    <div class="glass-box rounded-xl flex flex-col max-h-[420px]">
+                        <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
+                            <i data-lucide="scroll-text" class="w-4 h-4 text-dc-text"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Activity Log</h3>
+                            <span id="activity-log-count" class="ml-2 text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                        </div>
+                        <div id="activity-log" class="divide-y divide-dc-border/30 flex-1 overflow-y-auto">
+                            <div class="flex items-center justify-center h-24">
+                                <p class="text-xs text-dc-text/50 font-mono">No activity recorded yet</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -825,6 +858,31 @@
                         <div class="text-center py-8 text-dc-text text-xs">
                             <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
                             <p>Waitlist is empty</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="disqualified-panel" class="glass-box rounded-xl overflow-hidden">
+                    <div class="p-4 border-b border-dc-borderLight flex items-center justify-between bg-dc-panel/50">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shield-x" class="w-4 h-4 text-dc-danger"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Disqualified and Inactive</h3>
+                            <span id="disqualified-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
+                        </div>
+                        <button onclick="TOC.participantsAdv.refreshDisqualified()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                    <div id="disqualified-list" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                        <div id="disqualified-filter-chips" class="flex items-center flex-wrap gap-2 mb-3">
+                            <button data-disq-filter="" class="disq-chip px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[10px] font-bold uppercase tracking-widest">All</button>
+                            <button data-disq-filter="rejected" class="disq-chip px-2 py-1 rounded border border-dc-border text-dc-text text-[10px] font-bold uppercase tracking-widest hover:text-white">Rejected</button>
+                            <button data-disq-filter="cancelled" class="disq-chip px-2 py-1 rounded border border-dc-border text-dc-text text-[10px] font-bold uppercase tracking-widest hover:text-white">Cancelled</button>
+                            <button data-disq-filter="no_show" class="disq-chip px-2 py-1 rounded border border-dc-border text-dc-text text-[10px] font-bold uppercase tracking-widest hover:text-white">No-Show</button>
+                        </div>
+                        <div class="text-center py-8 text-dc-text text-xs">
+                            <i data-lucide="shield-check" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
+                            <p>No disqualified records</p>
                         </div>
                     </div>
                 </div>
@@ -1982,6 +2040,26 @@
                             <div class="text-xs text-dc-text mt-1">Internal staff message</div>
                         </button>
                     </div>
+
+                    <div class="mt-5 pt-4 border-t border-dc-borderLight">
+                        <h4 class="text-xs font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-dc-warning"></i> Smart Cards
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <button onclick="TOC.announcements.openSmartCard('live_group_draw')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                                <div class="text-sm font-bold text-white">📡 Live Group Draw</div>
+                                <div class="text-xs text-dc-text mt-1">Time + link auto template</div>
+                            </button>
+                            <button onclick="TOC.announcements.openSmartCard('stream_live')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                                <div class="text-sm font-bold text-white">🎥 Stream Live</div>
+                                <div class="text-xs text-dc-text mt-1">Instant watch link broadcast</div>
+                            </button>
+                            <button onclick="TOC.announcements.openSmartCard('round_ready')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                                <div class="text-sm font-bold text-white">🔥 Round Ready</div>
+                                <div class="text-xs text-dc-text mt-1">Round-ready callout card</div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2898,32 +2976,15 @@
                     </div>
                 </details>
 
-                {# ═══ 21. Audit Log ═══ #}
-                <details id="settings-audit-section" class="glass-box rounded-xl group">
-                    <summary class="p-5 cursor-pointer flex items-center justify-between select-none">
-                        <span class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="scroll-text" class="w-4 h-4 text-theme"></i> Audit Log</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
-                    </summary>
-                    <div class="px-5 pb-5 space-y-3">
-                        <div class="flex items-center gap-3">
-                            <input id="audit-filter-action" type="text" oninput="TOC.audit.debouncedRefresh()" placeholder="Filter by action..." class="flex-1 bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
-                            <select id="audit-filter-tab" onchange="TOC.audit.refresh()" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
-                                <option value="">All Tabs</option>
-                                <option value="participants">Participants</option>
-                                <option value="payments">Payments</option>
-                                <option value="brackets">Brackets</option>
-                                <option value="matches">Matches</option>
-                                <option value="disputes">Disputes</option>
-                                <option value="settings">Settings</option>
-                                <option value="announcements">Announcements</option>
-                            </select>
-                            <button onclick="TOC.audit.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all">Refresh</button>
-                        </div>
-                        <div id="audit-log-feed" class="space-y-1.5 max-h-[400px] overflow-y-auto">
-                            <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
-                        </div>
+                {% if can_view_logs %}
+                <div class="glass-box rounded-xl border border-theme/20 p-4 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-theme font-bold">Ops Audit</p>
+                        <p class="text-xs text-dc-text mt-1">Need full action history? Open the dedicated Logs menu.</p>
                     </div>
-                </details>
+                    <button onclick="TOC.navigate('logs')" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors">Open Logs</button>
+                </div>
+                {% endif %}
 
                 {# ═══ Danger Zone ═══ #}
                 <div class="flex items-center gap-3 pt-2">
@@ -3029,7 +3090,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 class="text-xl font-display font-bold text-white">Check-in Hub</h2>
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Check-in Hub</h2>
+                        <p id="checkin-required-note" class="text-[10px] font-mono text-dc-text mt-1">Loading check-in requirement...</p>
+                    </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <button data-checkin-action="open" onclick="TOC.checkin.openCheckin()" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="play" class="w-3 h-3"></i> Open Check-in
@@ -3090,8 +3154,17 @@
                     </summary>
                     <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4" id="checkin-config-section">
                         <div>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer mt-5">
+                                <input id="checkin-required-toggle" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Check-In Required
+                            </label>
+                        </div>
+                        <div>
                             <label class="block text-xs text-dc-text mb-1">Window (minutes)</label>
                             <input id="checkin-window-minutes" type="number" min="5" max="120" value="15" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-dc-text mb-1">Close Before Start (minutes)</label>
+                            <input id="checkin-closes-minutes-before" type="number" min="0" max="120" value="0" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer mt-5">
@@ -3741,6 +3814,110 @@
                 </details>
             </div>
 
+            {% if can_view_logs %}
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# ██  SMART LOGS TAB (Admin + Main Organizer Only)             ██ #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div id="view-logs" data-tab-content="logs" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-6">
+                <div class="flex items-center gap-3 text-dc-text">
+                    <i data-lucide="activity" class="w-5 h-5 opacity-30"></i>
+                    <span class="text-xs uppercase tracking-widest opacity-60 font-display">Smart Event Logs</span>
+                </div>
+
+                <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white">Ops Event Ledger</h2>
+                        <p id="logs-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
+                    </div>
+                    <div class="flex items-center flex-wrap gap-2">
+                        <button id="logs-live-toggle" onclick="TOC.logs.toggleLive()" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <i data-lucide="radio" class="w-3 h-3"></i> Live OFF
+                        </button>
+                        <button onclick="TOC.logs.exportJson()" class="px-3 py-2 rounded-lg border border-dc-border text-dc-text text-xs font-bold hover:bg-dc-surface transition-colors flex items-center gap-1">
+                            <i data-lucide="download" class="w-3 h-3"></i> Export JSON
+                        </button>
+                        <button onclick="TOC.logs.refresh()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div id="logs-anomaly-summary" class="glass-box rounded-xl p-4 border border-dc-borderLight">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="siren" class="w-4 h-4 text-dc-warning"></i>
+                            <p class="text-xs font-bold text-white uppercase tracking-widest">Critical Anomaly Detector</p>
+                        </div>
+                        <span id="logs-anomaly-state" class="text-[10px] font-mono px-2 py-0.5 rounded border border-dc-border text-dc-text">Scanning...</span>
+                    </div>
+                    <div id="logs-anomaly-list" class="mt-3 space-y-2 text-xs text-dc-text">
+                        <p class="text-dc-text/70">No anomaly scan results yet.</p>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <button id="logs-repair-dryrun" onclick="TOC.logs.repairCapacityOverflow(false)" class="px-3 py-1.5 rounded border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase tracking-widest hover:bg-dc-warning/10 transition-colors">
+                            Dry-Run Repair
+                        </button>
+                        <button id="logs-repair-apply" onclick="TOC.logs.repairCapacityOverflow(true)" class="px-3 py-1.5 rounded border border-dc-danger/30 text-dc-danger text-[10px] font-bold uppercase tracking-widest hover:bg-dc-danger/10 transition-colors">
+                            Apply Repair
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3" id="logs-kpis-row">
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-total" class="text-lg font-bold text-white">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Events</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-write" class="text-lg font-bold text-theme">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Writes</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-participants" class="text-lg font-bold text-dc-success">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Participants</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-payments" class="text-lg font-bold text-dc-warning">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Payments</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-matches" class="text-lg font-bold text-dc-info">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Matches</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-settings" class="text-lg font-bold text-dc-danger">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Settings</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-disputes" class="text-lg font-bold text-purple-300">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">Disputes</div></div>
+                    <div class="glass-box rounded-xl p-3 text-center"><div id="logs-kpi-system" class="text-lg font-bold text-gray-300">-</div><div class="text-[10px] text-dc-text uppercase tracking-widest">System</div></div>
+                </div>
+
+                <div class="glass-box rounded-xl p-4 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
+                        <input id="logs-filter-action" type="text" placeholder="Filter by action..." class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                        <input id="logs-filter-user" type="text" placeholder="Filter by username..." class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                        <select id="logs-filter-tab" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="">All Tabs</option>
+                            <option value="participants">Participants</option>
+                            <option value="payments">Payments</option>
+                            <option value="brackets">Brackets</option>
+                            <option value="matches">Matches</option>
+                            <option value="disputes">Disputes</option>
+                            <option value="settings">Settings</option>
+                            <option value="announcements">Announcements</option>
+                            <option value="notifications">Notifications</option>
+                            <option value="logs">Logs</option>
+                        </select>
+                        <select id="logs-filter-since" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="">Any time</option>
+                            <option value="15m">Last 15 min</option>
+                            <option value="1h">Last 1 hour</option>
+                            <option value="6h">Last 6 hours</option>
+                            <option value="24h">Last 24 hours</option>
+                            <option value="7d">Last 7 days</option>
+                        </select>
+                        <select id="logs-filter-limit" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <option value="100">100 rows</option>
+                            <option value="250">250 rows</option>
+                            <option value="500">500 rows</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="glass-box rounded-xl overflow-hidden">
+                    <div class="px-4 py-3 border-b border-dc-border bg-dc-panel flex items-center justify-between gap-3">
+                        <p class="text-xs font-bold text-white uppercase tracking-widest">Event Feed</p>
+                        <p id="logs-last-fetch" class="text-[10px] font-mono text-dc-text">Never</p>
+                    </div>
+                    <div id="logs-feed" class="max-h-[620px] overflow-y-auto divide-y divide-dc-border/50">
+                        <div class="flex items-center justify-center h-20"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
 
     {# ── Right slide-out drawer ── #}
     <div id="toc-drawer" class="fixed inset-0 z-[100] hidden">
@@ -3902,6 +4079,7 @@
             isSolo: {{ is_solo|yesno:"true,false" }},
             gameIdLabel: '{{ game_id_label|default:"Game ID" }}',
             isOrganizer: {{ is_organizer|yesno:"true,false" }},
+            canViewLogs: {{ can_view_logs|yesno:"true,false" }},
             isOfficial: {{ is_official|yesno:"true,false" }},
             gameColors: {
                 primary: '{{ game_colors.primary }}',
@@ -3927,6 +4105,7 @@
     <script defer src="{% static 'tournaments/toc/js/toc-stats.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-rbac.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-audit.js' %}"></script>
+    <script defer src="{% static 'tournaments/toc/js/toc-logs.js' %}?v=20260325a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-standings.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-checkin.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-streams.js' %}"></script>

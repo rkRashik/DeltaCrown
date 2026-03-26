@@ -150,10 +150,34 @@
                 clearTimeout(timer);
 
                 if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    const err = new Error(`TOC Fetch ${res.status}: ${text.slice(0, 200)}`);
+                    const ct = (res.headers.get('content-type') || '').toLowerCase();
+                    let userMessage = '';
+                    let payload = null;
+
+                    if (ct.includes('application/json')) {
+                        payload = await res.json().catch(() => null);
+                        if (payload && typeof payload === 'object') {
+                            userMessage = (
+                                payload.user_message
+                                || payload.error
+                                || payload.detail
+                                || payload.message
+                                || ''
+                            );
+                        }
+                    } else {
+                        const text = await res.text().catch(() => '');
+                        userMessage = text ? String(text).slice(0, 240) : '';
+                    }
+
+                    if (!userMessage) {
+                        userMessage = `Request failed (${res.status}). Please try again.`;
+                    }
+
+                    const err = new Error(userMessage);
                     err.status = res.status;
                     err.response = res;
+                    err.payload = payload;
                     throw err;
                 }
 
@@ -165,7 +189,7 @@
             } catch (e) {
                 clearTimeout(timer);
                 if (e.name === 'AbortError') {
-                    throw new Error('TOC Fetch: Request timed out');
+                    throw new Error('The request took too long. Please try again.');
                 }
                 throw e;
             } finally {

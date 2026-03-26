@@ -442,8 +442,8 @@
                     {% endif %}
                     
                     <div class="flex gap-4">
-                        <a href="{{ featured_tournament.url }}" class="flex-1 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-center rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
-                            Register Now
+                        <a href="{{ featured_tournament.registration_action_url|default:featured_tournament.url }}" class="flex-1 px-8 py-4 {% if featured_tournament.eligibility_status == 'full_waitlist' %}bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:shadow-2xl hover:shadow-amber-400/40{% else %}bg-gradient-to-r from-dc-cyan to-dc-purple text-white hover:shadow-2xl hover:shadow-dc-cyan/50{% endif %} font-bold text-center rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                            {{ featured_tournament.registration_action_label|default:'View Details' }}
                         </a>
                         <a href="{{ featured_tournament.url }}" class="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all">
                             View Details
@@ -741,8 +741,8 @@
                                         <p class="text-white font-bold">{{ tournament.status_display }}</p>
                                     {% endif %}
                                 </div>
-                                <a href="{{ tournament.url }}" class="px-6 py-3 bg-dc-cyan hover:bg-dc-purple text-white font-bold rounded-lg transition-colors">
-                                    {% if tournament.status == 'live' or tournament.status == 'registration_open' %}Join Now{% else %}Details{% endif %}
+                                <a href="{{ tournament.registration_action_url|default:tournament.url }}" class="px-6 py-3 {% if tournament.eligibility_status == 'full_waitlist' %}bg-amber-400 hover:bg-amber-300 text-black{% else %}bg-dc-cyan hover:bg-dc-purple text-white{% endif %} font-bold rounded-lg transition-colors">
+                                    {{ tournament.registration_action_label|default:'Details' }}
                                 </a>
                             </div>
                         </div>

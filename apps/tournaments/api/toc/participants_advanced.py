@@ -285,3 +285,48 @@ class WaitlistListView(TOCBaseView):
             return Response(payload)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DisqualifiedListView(TOCBaseView):
+    """GET /api/toc/<slug>/disqualified/"""
+
+    def get(self, request, slug):
+        status_filter = request.query_params.get("status")
+        search = request.query_params.get("search")
+        try:
+            cache_bucket = int(timezone.now().timestamp() // 10)
+            cache_key = toc_cache_key('participants_adv', self.tournament.id, 'disqualified', cache_bucket, status_filter or '', search or '')
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
+
+            results = TOCParticipantsAdvancedService.get_disqualified(
+                self.tournament,
+                status_filter=status_filter,
+                search=search,
+            )
+            payload = {"results": results, "total": len(results)}
+            cache.set(cache_key, payload, timeout=15)
+            return Response(payload)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DisqualifiedMoveToWaitlistView(TOCBaseView):
+    """POST /api/toc/<slug>/participants/<pk>/move-to-waitlist/"""
+
+    def post(self, request, slug, pk):
+        reason = (request.data.get('reason') or '').strip()
+        try:
+            result = TOCParticipantsAdvancedService.move_disqualified_to_waitlist(
+                self.tournament,
+                registration_id=pk,
+                moved_by=request.user,
+                reason=reason,
+            )
+            bump_toc_scopes(self.tournament.id, 'participants_adv', 'participants', 'overview', 'analytics')
+            return Response(result)
+        except ValidationError as e:
+            return Response({"error": str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -41,7 +41,7 @@ class AnnouncementDetailView(TOCBaseView):
         return Response(result)
 
     def delete(self, request, slug, pk):
-        result = TOCAnnouncementsService.delete_announcement(pk)
+        result = TOCAnnouncementsService.delete_announcement(pk, tournament=self.tournament)
         return Response(result)
 
 

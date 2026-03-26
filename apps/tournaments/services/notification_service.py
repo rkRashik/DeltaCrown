@@ -21,6 +21,38 @@ from apps.notifications.models import Notification
 
 class TournamentNotificationService:
     """Service for sending tournament notifications"""
+
+    @staticmethod
+    def _resolve_waitlist_promotion_recipients(registration: Registration):
+        """Return unique users who should receive waitlist-promotion notifications."""
+        recipients = []
+        seen_ids = set()
+
+        if getattr(registration, 'user_id', None) and getattr(registration, 'user', None):
+            recipients.append(registration.user)
+            seen_ids.add(registration.user_id)
+
+        team_id = getattr(registration, 'team_id', None)
+        if team_id:
+            try:
+                from apps.organizations.models import TeamMembership
+
+                member_qs = TeamMembership.objects.filter(
+                    team_id=team_id,
+                    status=TeamMembership.Status.ACTIVE,
+                ).select_related('user')
+
+                for member in member_qs:
+                    user = getattr(member, 'user', None)
+                    if not user or user.id in seen_ids:
+                        continue
+                    recipients.append(user)
+                    seen_ids.add(user.id)
+            except Exception:
+                # Non-blocking: if team membership resolution fails, keep direct registrant notifications.
+                pass
+
+        return recipients
     
     @staticmethod
     def notify_registration_confirmed(registration: Registration):
@@ -219,50 +251,84 @@ class TournamentNotificationService:
             registration: Registration that was promoted
             payment_deadline: Datetime when payment must be completed
         """
-        user = registration.user
         tournament = registration.tournament
+        recipients = TournamentNotificationService._resolve_waitlist_promotion_recipients(registration)
+        if not recipients:
+            return
+
+        payment = getattr(registration, 'payment', None)
+        payment_status = ((getattr(payment, 'status', '') if payment else '') or '').strip().lower()
+        payment_required = bool(tournament.has_entry_fee and payment_status not in {'submitted', 'verified', 'waived'})
+
+        if payment_required:
+            next_step_text = (
+                f"Next step: complete payment by {payment_deadline.strftime('%b %d at %I:%M %p')} to secure your slot."
+            )
+            action_label = 'Complete Payment'
+            action_url = f"/tournaments/registration/{registration.id}/payment/complete/"
+            subject = f"Waitlist Call-Up: Payment Required - {tournament.name}"
+        else:
+            next_step_text = "Next step: open the tournament hub to review status and check-in requirements."
+            action_label = 'Open Hub'
+            action_url = f"/tournaments/{tournament.slug}/hub/"
+            subject = f"Waitlist Call-Up Confirmed - {tournament.name}"
+
+        title = f"Spot Opened: {tournament.name}"
+        message = (
+            f"You have been promoted from the waitlist for {tournament.name}. {next_step_text}"
+        )
         
         # Create in-app notification
-        Notification.objects.create(
-            user=user,
-            title=f"🎉 Promoted from Waitlist: {tournament.name}",
-            message=f"A spot opened up! Complete your payment by {payment_deadline.strftime('%b %d at %I:%M %p')} to secure your spot.",
-            notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/register/payment/",
-            icon='🎉',
-            priority='high'
-        )
+        for recipient in recipients:
+            Notification.objects.create(
+                recipient=recipient,
+                event='waitlist_promoted',
+                type=Notification.Type.GENERIC,
+                title=title,
+                body=message,
+                message=message,
+                url=action_url,
+                action_label=action_label,
+                action_url=action_url,
+                category='tournament',
+                tournament_id=tournament.id,
+            )
         
         # Send email
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
         from django.conf import settings
         
-        subject = f"🎉 You've Been Promoted - {tournament.name}"
-        
         # Calculate deadline hours
         from django.utils import timezone
         time_diff = payment_deadline - timezone.now()
         deadline_hours = int(time_diff.total_seconds() / 3600)
         
-        html_message = render_to_string('tournaments/emails/waitlist_promotion.html', {
-            'user': user,
-            'tournament': tournament,
-            'registration': registration,
-            'payment_deadline': payment_deadline,
-            'deadline_hours': deadline_hours,
-            'payment_url': f"{settings.SITE_URL}/tournaments/{tournament.slug}/register/payment/"
-        })
-        
         try:
-            send_mail(
-                subject=subject,
-                message=f"You've been promoted from the waitlist for {tournament.name}! Complete your payment within {deadline_hours} hours.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                html_message=html_message,
-                fail_silently=True
-            )
+            for recipient in recipients:
+                if not getattr(recipient, 'email', ''):
+                    continue
+                html_message = render_to_string('tournaments/emails/waitlist_promotion.html', {
+                    'user': recipient,
+                    'tournament': tournament,
+                    'registration': registration,
+                    'payment_deadline': payment_deadline,
+                    'deadline_hours': deadline_hours,
+                    'payment_url': f"{settings.SITE_URL}{action_url}",
+                    'payment_required': payment_required,
+                    'next_step_text': next_step_text,
+                })
+                send_mail(
+                    subject=subject,
+                    message=(
+                        f"You have been promoted from the waitlist for {tournament.name}. "
+                        f"{next_step_text}"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient.email],
+                    html_message=html_message,
+                    fail_silently=True
+                )
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -404,7 +470,7 @@ class TournamentNotificationService:
             title=f"❌ Payment Rejected: {tournament.name}",
             message=f"Your payment for {tournament.name} was rejected.{detail} Please resubmit with a valid proof.",
             notification_type='tournament',
-            link=f"/tournaments/{tournament.slug}/register/payment/",
+            link=f"/tournaments/registration/{registration.id}/payment/complete/",
             icon='❌',
             priority='high',
         )

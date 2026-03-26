@@ -637,7 +637,7 @@
                                 <div class="relative z-10">
                                     <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-5 flex items-center gap-2">
                                         <i data-lucide="{% if can_register %}lock-open{% else %}lock{% endif %}" class="w-3.5 h-3.5 text-teal-400"></i>
-                                        {% if is_registered %}Your Registration{% elif can_register %}Register Now{% else %}Registration{% endif %}
+                                        {% if is_registered %}Your Registration{% elif eligibility_status == 'full_waitlist' %}Waitlist Open{% elif can_register %}{{ registration_action_label|default:'Register Now' }}{% else %}Registration{% endif %}
                                     </h4>
 
                                     {% if is_registered and user_registration %}

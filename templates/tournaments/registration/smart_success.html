@@ -369,11 +369,18 @@
 
                 <div>
                     <h2 class="font-display text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        {% if is_waitlisted %}
+                        Waitlist <span class="text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.65)]">Confirmed</span>
+                        {% else %}
                         Entry <span class="text-[#00E5FF] drop-shadow-[0_0_12px_rgba(0,229,255,0.8)]">Secured</span>
+                        {% endif %}
                     </h2>
 
                     <p class="text-sm md:text-base text-gray-400 mt-2 leading-relaxed">
-                        {% if tournament.mode == 'online' %}
+                        {% if is_waitlisted %}
+                            You're now in the waitlist queue{% if waitlist_position %} at position #{{ waitlist_position }}{% endif %}. If a slot opens, you'll get an in-app alert and email call-up.
+                            {% if tournament.has_entry_fee %}Payment is required only after promotion, within {{ waitlist_payment_deadline_hours }} hours.{% endif %}
+                        {% elif tournament.mode == 'online' %}
                             {% if tournament.format == 'solo' %}
                                 Your entry is officially confirmed. Keep an eye on the Tournament Hub for bracket drops, digital check-ins, and live match servers.
                             {% else %}
@@ -393,6 +400,12 @@
                             {% endif %}
                         {% endif %}
                     </p>
+                    {% if is_waitlisted %}
+                    <div class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-500/10 text-amber-300 text-[11px] font-black uppercase tracking-wider border border-amber-500/30">
+                        <i data-lucide="clock-3" class="w-3.5 h-3.5"></i>
+                        <span>Waitlist{% if waitlist_position %} #{{ waitlist_position }}{% endif %}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -431,10 +444,17 @@
                             <p class="text-xs font-bold text-gray-400 uppercase tracking-[0.25em] mt-2">{% if tournament.game and tournament.game.name %}{{ tournament.game.name }} Tournament Access Pass{% elif tournament.game and tournament.game.display_name %}{{ tournament.game.display_name }} Tournament Access Pass{% else %}Tournament Access Pass{% endif %}</p>
                         </div>
                         <div class="text-right">
+                            {% if is_waitlisted %}
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/10 text-amber-300 text-[10px] font-black uppercase tracking-widest border border-amber-500/30">
+                                <i data-lucide="hourglass" class="w-3.5 h-3.5 shrink-0"></i>
+                                <span class="leading-none block export-drift-fix">Waitlisted{% if waitlist_position %} #{{ waitlist_position }}{% endif %}</span>
+                            </div>
+                            {% else %}
                             <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
                                 <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
                                 <span class="leading-none block export-drift-fix">Verified</span>
                             </div>
+                            {% endif %}
                             <p class="text-[10px] text-gray-500 mt-3 uppercase tracking-widest font-mono">Date: {% now "d M Y" %}</p>
                         </div>
                     </div>

@@ -77,6 +77,8 @@ urlpatterns = [
 
     # ── Waitlist (S3-B5/B6 — list helper) ──
     path('<slug:slug>/waitlist/', participants_advanced.WaitlistListView.as_view(), name='waitlist'),
+    path('<slug:slug>/disqualified/', participants_advanced.DisqualifiedListView.as_view(), name='disqualified-list'),
+    path('<slug:slug>/participants/<int:pk>/move-to-waitlist/', participants_advanced.DisqualifiedMoveToWaitlistView.as_view(), name='participant-move-to-waitlist'),
 
     # ── Payments (S4-B1 through S4-B7) ──
     path('<slug:slug>/payments/', payments.PaymentListView.as_view(), name='payments'),
@@ -241,6 +243,7 @@ urlpatterns = [
 
     # ── Audit Log (S11-B2) ──
     path('<slug:slug>/audit-log/', audit.AuditLogView.as_view(), name='audit-log'),
+    path('<slug:slug>/audit-log/repair-capacity-overflow/', audit.CapacityOverflowRepairView.as_view(), name='audit-log-repair-capacity-overflow'),
 
     # ── Standings / Leaderboards (Sprint 28) ──
     path('<slug:slug>/standings/', standings.StandingsDashboardView.as_view(), name='standings'),

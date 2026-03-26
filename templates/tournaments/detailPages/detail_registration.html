@@ -90,9 +90,11 @@ Inspired by Battlefy/FACEIT tournament listings with:
                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-3 py-1.5 rounded border border-white/10 bg-white/5">Coming Soon</span>
                 {% elif show_checkin_info %}
                 <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest px-3 py-1.5 rounded border border-amber-500/20 bg-amber-500/10">Check-In Phase</span>
+                {% elif eligibility_status == 'full_waitlist' %}
+                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest px-3 py-1.5 rounded border border-amber-500/20 bg-amber-500/10">Waitlist Open</span>
                 {% endif %}
                 {% if can_register %}
-                <a href="{{ registration_action_url }}" class="bg-white text-black text-xs font-black uppercase px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+                <a href="{{ registration_action_url }}" class="{% if eligibility_status == 'full_waitlist' %}bg-amber-400 text-black hover:bg-amber-300{% else %}bg-white text-black hover:bg-gray-200{% endif %} text-xs font-black uppercase px-4 py-2 rounded transition-colors">
                     {{ registration_action_label }}
                 </a>
                 {% endif %}
@@ -159,6 +161,7 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <h3 class="text-lg font-display font-bold text-white">About This Tournament</h3>
     </div>
     <div class="desc-content text-sm text-gray-300 leading-relaxed">
+        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
         {{ tournament.description|safe }}
     </div>
 </div>
@@ -361,6 +364,7 @@ Inspired by Battlefy/FACEIT tournament listings with:
 
     {% if tournament.rules_text %}
     <div class="desc-content text-sm text-gray-300 leading-relaxed">
+        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
         {{ tournament.rules_text|safe }}
     </div>
     {% elif tournament.rules_pdf %}

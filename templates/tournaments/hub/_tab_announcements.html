@@ -1,0 +1,96 @@
+{% comment %}
+  Tab: Announcements — Dedicated full feed view
+{% endcomment %}
+
+<div class="p-4 md:p-8 lg:p-10 max-w-[1500px] mx-auto space-y-6">
+  <div class="hub-glass rounded-2xl border border-cyan-400/20 overflow-hidden">
+    <div class="p-5 md:p-6 border-b border-white/10 bg-[linear-gradient(140deg,rgba(0,240,255,0.1)_0%,rgba(10,22,40,0.6)_45%,rgba(255,255,255,0.02)_100%)]">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-lg md:text-2xl font-black text-white uppercase tracking-wide flex items-center gap-2" style="font-family:Outfit,sans-serif;">
+            <i data-lucide="megaphone" class="w-5 h-5 text-cyan-300"></i>
+            Announcements
+          </h2>
+          <p class="text-xs text-gray-400 mt-1">Live tournament updates, organizer notices, and important alerts.</p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-[10px] font-black uppercase tracking-wider text-cyan-200" id="hub-ann-count">
+          {{ announcements|length }} update{{ announcements|length|pluralize }}
+        </span>
+      </div>
+
+      <div class="mt-4 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <div class="relative w-full lg:max-w-xl">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input id="hub-ann-search" type="text" placeholder="Search announcements"
+                 class="w-full bg-black/30 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-cyan-300/50">
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap justify-end" id="hub-ann-filters">
+          <button type="button" data-hub-feed-filter="all" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-400/30 bg-cyan-400/15 text-cyan-200">All</button>
+          <button type="button" data-hub-feed-filter="pinned" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20 text-gray-300 hover:border-cyan-400/30">Pinned</button>
+          <button type="button" data-hub-feed-filter="urgent" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20 text-gray-300 hover:border-[#FF2A55]/40">Urgent</button>
+          <button type="button" onclick="HubEngine.refreshAnnouncements()" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20 text-gray-300 hover:border-cyan-300/40 hover:text-cyan-100">
+            Refresh Now
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-3 flex items-center justify-between gap-3">
+        <p id="hub-ann-last-sync" class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">Waiting for first sync</p>
+      </div>
+    </div>
+
+    <div class="max-h-[65vh] overflow-y-auto p-6 space-y-6" id="hub-announcements-feed">
+      {% for ann in announcements %}
+      <div class="relative pl-6 border-l border-white/5 {% if not forloop.last %}pb-6{% endif %}">
+        <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px]
+          {% if ann.type == 'urgent' %}ann-dot-urgent
+          {% elif ann.type == 'warning' %}ann-dot-warning
+          {% elif ann.type == 'success' %}ann-dot-success
+          {% else %}ann-dot-info{% endif %}"></div>
+
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          {% if ann.is_pinned %}
+            <span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>
+          {% endif %}
+          {% if ann.is_important %}
+            <span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>
+          {% endif %}
+          <span class="px-1.5 py-0.5 rounded
+            {% if ann.type == 'urgent' %}bg-[#FF2A55]/20 text-[#FF2A55]
+            {% elif ann.type == 'warning' %}bg-[#FFB800]/20 text-[#FFB800]
+            {% elif ann.type == 'success' %}bg-[#00FF66]/20 text-[#00FF66]
+            {% else %}bg-white/10 text-gray-300
+            {% endif %} text-[8px] font-black uppercase">
+            {{ ann.type|default:"Info" }}
+          </span>
+          {% if ann.symbol %}
+          <span class="text-sm leading-none">{{ ann.symbol }}</span>
+          {% endif %}
+          <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">{{ ann.time_ago }}</span>
+        </div>
+
+        {% if ann.title %}
+          <p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">
+            {% if ann.icon %}<i data-lucide="{{ ann.icon }}" class="w-3.5 h-3.5 text-cyan-200"></i>{% endif %}
+            <span>{{ ann.title }}</span>
+          </p>
+        {% endif %}
+        <p class="text-xs text-gray-300 leading-relaxed">{{ ann.message }}</p>
+      </div>
+      {% empty %}
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i>
+        <p class="text-sm text-gray-500 font-medium">No announcements yet</p>
+        <p class="text-xs text-gray-600 mt-1">Organizer updates will appear here in real-time.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="hub-ann-load-more-wrap" class="hidden justify-center pb-6 px-6">
+      <button type="button" id="hub-ann-load-more-btn" onclick="HubEngine.loadMoreAnnouncements()"
+              class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all">
+        Load Older
+      </button>
+    </div>
+  </div>
+</div>

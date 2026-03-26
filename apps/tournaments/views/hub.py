@@ -20,6 +20,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.contrib import messages
@@ -30,11 +31,13 @@ from apps.tournaments.models import (
     TournamentLobby,
     CheckIn,
     LobbyAnnouncement,
+    TournamentAnnouncement,
     TournamentSponsor,
     PrizeClaim,
     TournamentStaff,
     HubSupportTicket,
 )
+from apps.notifications.models import Notification
 from apps.tournaments.models.bracket import Bracket, BracketNode
 from apps.tournaments.models.group import Group, GroupStanding
 from apps.tournaments.models.match import Match
@@ -60,7 +63,11 @@ def _is_tournament_staff_or_organizer(user, tournament):
         return True
     # Phase 7 StaffAssignment
     from apps.tournaments.models.staffing import TournamentStaffAssignment
-    if TournamentStaffAssignment.objects.filter(tournament=tournament, user=user).exists():
+    if TournamentStaffAssignment.objects.filter(
+        tournament=tournament,
+        user=user,
+        is_active=True,
+    ).exists():
         return True
     return False
 
@@ -79,6 +86,7 @@ def _get_user_registration(user, tournament):
             Registration.CONFIRMED,
             Registration.AUTO_APPROVED,
             Registration.NEEDS_REVIEW,
+            Registration.WAITLISTED,
         ],
     ).first()
     if reg:
@@ -100,6 +108,7 @@ def _get_user_registration(user, tournament):
             Registration.CONFIRMED,
             Registration.AUTO_APPROVED,
             Registration.NEEDS_REVIEW,
+            Registration.WAITLISTED,
         ],
     ).first()
 
@@ -135,8 +144,20 @@ def _is_registration_verified_for_critical_actions(registration):
 def _critical_lock_reason(registration):
     if not registration:
         return 'Registration required before critical actions are available.'
+
+    payment = getattr(registration, 'payment', None)
+
+    if registration.status == Registration.WAITLISTED:
+        return 'You are currently on the waitlist. Full Hub actions unlock after call-up and payment.'
+
+    if registration.status == Registration.PENDING:
+        if payment and payment.status == 'rejected':
+            return 'Your payment was rejected. Please resubmit payment from Quick Actions to unlock Hub actions.'
+        if payment and payment.status in ('pending', 'submitted'):
+            return 'Payment verification is pending. Critical actions are locked until verification completes.'
+        return 'Complete your tournament payment from Quick Actions to unlock critical Hub actions.'
+
     status_map = {
-        Registration.PENDING: 'Your registration is pending organizer approval. Critical actions are locked.',
         Registration.PAYMENT_SUBMITTED: 'Payment verification is pending. Critical actions are locked until verification completes.',
         Registration.NEEDS_REVIEW: 'Your registration is under manual review. Critical actions are locked for now.',
         Registration.SUBMITTED: 'Your registration submission is still processing. Critical actions are locked.',
@@ -158,6 +179,78 @@ def _forbidden_if_critical_locked(request, tournament, registration):
             'reason': _critical_lock_reason(registration),
         }, status=403)
     return None
+
+
+def _announcement_visuals_from_text(title, message, is_important=False):
+    text = f"{title or ''} {message or ''}".lower()
+    if is_important or any(k in text for k in ('urgent', 'immediate', 'asap', 'critical', 'now')):
+        return {'type': 'urgent', 'icon': 'siren', 'symbol': '🚨'}
+    if any(k in text for k in ('draw', 'group draw', 'bracket', 'seed', 'schedule', 'time')):
+        return {'type': 'warning', 'icon': 'calendar-clock', 'symbol': '📅'}
+    if any(k in text for k in ('live', 'stream', 'broadcast', 'watch')):
+        return {'type': 'info', 'icon': 'radio', 'symbol': '📡'}
+    if any(k in text for k in ('result', 'winner', 'qualified', 'complete', 'final')):
+        return {'type': 'success', 'icon': 'trophy', 'symbol': '🏆'}
+    if any(k in text for k in ('check-in', 'check in', 'attendance', 'confirm')):
+        return {'type': 'warning', 'icon': 'user-check', 'symbol': '✅'}
+    return {'type': 'info', 'icon': 'megaphone', 'symbol': '📣'}
+
+
+def _build_hub_announcements(tournament, now=None, limit=20, offset=0):
+    now = now or timezone.now()
+    items = []
+    limit = max(1, int(limit or 20))
+    offset = max(0, int(offset or 0))
+
+    toc_rows = TournamentAnnouncement.objects.filter(
+        tournament=tournament,
+    ).select_related('created_by').order_by('-is_pinned', '-created_at')[offset:offset + limit]
+
+    for row in toc_rows:
+        visuals = _announcement_visuals_from_text(row.title, row.message, row.is_important)
+        items.append({
+            'id': f'toc-{row.id}',
+            'title': row.title,
+            'message': row.message,
+            'type': visuals['type'],
+            'icon': visuals['icon'],
+            'symbol': visuals['symbol'],
+            'is_pinned': bool(row.is_pinned),
+            'is_important': bool(row.is_important),
+            'posted_by': row.created_by.username if row.created_by else 'Organizer',
+            'created_at': row.created_at.isoformat() if row.created_at else None,
+            'sort_ts': (row.created_at.timestamp() if row.created_at else 0),
+            'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
+        })
+
+    # Fallback to legacy lobby announcements only when no TOC announcements exist.
+    if not items:
+        lobby = getattr(tournament, 'lobby', None)
+        if lobby:
+            legacy_rows = LobbyAnnouncement.objects.filter(
+                lobby=lobby,
+                is_visible=True,
+                is_deleted=False,
+            ).select_related('posted_by').order_by('-is_pinned', '-created_at')[offset:offset + limit]
+            for row in legacy_rows:
+                visuals = _announcement_visuals_from_text(row.title, row.message, row.announcement_type == 'urgent')
+                items.append({
+                    'id': f'lobby-{row.id}',
+                    'title': row.title,
+                    'message': row.message,
+                    'type': row.announcement_type or visuals['type'],
+                    'icon': visuals['icon'],
+                    'symbol': visuals['symbol'],
+                    'is_pinned': bool(row.is_pinned),
+                    'is_important': row.announcement_type == 'urgent',
+                    'posted_by': row.posted_by.username if row.posted_by else 'Organizer',
+                    'created_at': row.created_at.isoformat() if row.created_at else None,
+                    'sort_ts': (row.created_at.timestamp() if row.created_at else 0),
+                    'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
+                })
+
+    items.sort(key=lambda entry: (0 if entry.get('is_pinned') else 1, -float(entry.get('sort_ts') or 0)))
+    return items[:limit]
 
 
 def _build_hub_context(request, tournament, registration, query_suffix=''):
@@ -299,6 +392,7 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
                     'player_role': m.player_role or '',
                     'roster_slot': effective_roster_slot,
                     'is_captain_igl': m.is_tournament_captain,  # Unified flag
+                    '_tm_is_captain': m.is_tournament_captain,
                     'game_id': game_id,
                     'has_passport': has_passport,
                     'avatar_url': _get_avatar_url(m.user),
@@ -357,9 +451,11 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
         if tc_member:
             captain_igl_user_id = tc_member['user_id']
 
-    # Apply unified flag: clear all first, then set the one true captain/IGL
-    for m in squad:
-        m['is_captain_igl'] = (m['user_id'] == captain_igl_user_id) if captain_igl_user_id else False
+    # Apply unified flag only when a canonical captain/IGL could be resolved.
+    # If not resolved, preserve existing flags from snapshot/team membership.
+    if captain_igl_user_id:
+        for m in squad:
+            m['is_captain_igl'] = (m['user_id'] == captain_igl_user_id)
 
     if captain_igl_user_id:
         captain_member = next((m for m in squad if m['user_id'] == captain_igl_user_id), None)
@@ -369,24 +465,7 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
     # ── Announcements ────────────────────────────────────
-    announcements = []
-    if lobby:
-        ann_qs = LobbyAnnouncement.objects.filter(
-            lobby=lobby,
-            is_visible=True,
-            is_deleted=False,
-        ).select_related('posted_by').order_by('-is_pinned', '-created_at')[:20]
-        for a in ann_qs:
-            announcements.append({
-                'id': a.id,
-                'title': a.title,
-                'message': a.message,
-                'type': a.announcement_type,
-                'is_pinned': a.is_pinned,
-                'posted_by': a.posted_by.username if a.posted_by else 'Organizer',
-                'created_at': a.created_at.isoformat(),
-                'time_ago': _time_ago(a.created_at, now),
-            })
+    announcements = _build_hub_announcements(tournament, now=now, limit=20)
 
     # ── Registration count ───────────────────────────────
     reg_count = Registration.objects.filter(
@@ -404,6 +483,135 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
 
     # ── Status detail for modal ──────────────────────────
     status_detail = _build_status_detail(registration, check_in, tournament, now)
+
+    hub_payment_action_url = ''
+    hub_payment_action_label = ''
+    hub_payment_action_hint = ''
+    hub_payment_action_variant = ''
+    hub_payment_action_enabled = False
+    if registration and tournament.has_entry_fee:
+        payment = getattr(registration, 'payment', None)
+        if registration.status == Registration.WAITLISTED:
+            hub_payment_action_hint = 'Payment opens only after you are called up from the waitlist.'
+            hub_payment_action_variant = 'info'
+        elif registration.status in (Registration.PENDING, Registration.NEEDS_REVIEW):
+            if payment and payment.status in ('submitted', 'pending'):
+                hub_payment_action_hint = 'Payment is under verification. You will be notified after review.'
+                hub_payment_action_variant = 'info'
+            else:
+                hub_payment_action_url = reverse('tournaments:payment_complete', kwargs={'registration_id': registration.id})
+                hub_payment_action_enabled = True
+                if payment and payment.status == 'rejected':
+                    hub_payment_action_label = 'Retry Payment'
+                    hub_payment_action_hint = 'Your previous proof was rejected. Resubmit now to regain eligibility.'
+                    hub_payment_action_variant = 'danger'
+                else:
+                    hub_payment_action_label = 'Complete Payment'
+                    hub_payment_action_hint = 'Submit payment now to unlock match lobby and other critical actions.'
+                    hub_payment_action_variant = 'warning'
+        elif registration.status == Registration.PAYMENT_SUBMITTED:
+            hub_payment_action_hint = 'Payment submitted. Verification is in progress.'
+            hub_payment_action_variant = 'info'
+
+    hub_recent_alerts = []
+    if user and user.is_authenticated:
+        payment_status = ((getattr(payment, 'status', '') if registration else '') or '').strip().lower()
+        requires_payment_now = bool(
+            registration
+            and tournament.has_entry_fee
+            and registration.status in (Registration.PENDING, Registration.NEEDS_REVIEW, Registration.SUBMITTED)
+            and payment_status not in {'submitted', 'verified', 'waived'}
+        )
+
+        alert_qs = Notification.objects.filter(
+            recipient=user,
+            tournament_id=tournament.id,
+        ).order_by('-created_at')[:20]
+        seen_alert_keys = set()
+        for alert in alert_qs:
+            target_url = (
+                (getattr(alert, 'action_url', '') or '').strip()
+                or (getattr(alert, 'url', '') or '').strip()
+                or f'/tournaments/{tournament.slug}/hub/'
+            )
+            body_text = (
+                (getattr(alert, 'message', '') or '').strip()
+                or (getattr(alert, 'body', '') or '').strip()
+            )
+            title_text = (getattr(alert, 'title', '') or 'Tournament Alert').strip()
+            action_label = (getattr(alert, 'action_label', '') or '').strip() or 'Open'
+            text_for_classification = f"{title_text} {body_text}".lower()
+            is_waitlist_update = any(token in text_for_classification for token in ('waitlist', 'called up', 'promotion', 'promoted'))
+
+            alert_icon = 'bell-ring'
+            alert_tone = 'info'
+            alert_type_label = 'Update'
+            if any(token in text_for_classification for token in ('reject', 'declin', 'failed', 'invalid')):
+                alert_icon = 'shield-alert'
+                alert_tone = 'danger'
+                alert_type_label = 'Action Required'
+            elif any(token in text_for_classification for token in ('verified', 'confirm', 'approved', 'success')):
+                alert_icon = 'badge-check'
+                alert_tone = 'success'
+                alert_type_label = 'Resolved'
+            elif any(token in text_for_classification for token in ('waitlist', 'called up', 'promotion')):
+                alert_icon = 'users-round'
+                alert_tone = 'warning'
+                alert_type_label = 'Queue Update'
+            elif any(token in text_for_classification for token in ('payment', 'proof', 'verification', 'receipt')):
+                alert_icon = 'receipt-text'
+                alert_tone = 'warning'
+                alert_type_label = 'Payment'
+
+            if action_label.lower() in {'open', 'view', 'details', 'see details'}:
+                if is_waitlist_update and requires_payment_now:
+                    action_label = 'Complete Payment'
+                    target_url = reverse('tournaments:payment_complete', kwargs={'registration_id': registration.id})
+                elif 'payment' in text_for_classification and any(token in text_for_classification for token in ('reject', 'failed', 'invalid', 'resubmit', 'retry')):
+                    action_label = 'Retry Payment'
+                elif alert_tone == 'success':
+                    action_label = 'View Confirmation'
+                elif is_waitlist_update:
+                    action_label = 'Check Status'
+                else:
+                    action_label = 'Open Hub'
+
+            # Hide stale success confirmations that conflict with current registration/payment state.
+            is_stale_success = (
+                alert_tone == 'success'
+                and any(token in text_for_classification for token in ('payment', 'verified', 'registration', 'confirmed', 'all set'))
+            )
+            if registration and registration.status == Registration.WAITLISTED and is_stale_success and not is_waitlist_update:
+                continue
+            if registration and requires_payment_now and is_stale_success and not is_waitlist_update:
+                continue
+
+            dedupe_key = (
+                title_text.lower(),
+                body_text.lower(),
+                target_url,
+                action_label.lower(),
+            )
+            if dedupe_key in seen_alert_keys:
+                continue
+            seen_alert_keys.add(dedupe_key)
+            hub_recent_alerts.append({
+                'id': alert.id,
+                'title': title_text,
+                'body': body_text,
+                'target_url': target_url,
+                'action_label': action_label,
+                'icon': alert_icon,
+                'tone': alert_tone,
+                'type_label': alert_type_label,
+                'time_ago': _time_ago(alert.created_at, now),
+                'created_at_display': timezone.localtime(alert.created_at).strftime('%d %b %Y, %I:%M %p'),
+                'is_read': bool(getattr(alert, 'is_read', False)),
+            })
+            if len(hub_recent_alerts) >= 5:
+                break
+
+    hub_primary_alert = hub_recent_alerts[0] if hub_recent_alerts else None
 
     # ── Team info ────────────────────────────────────────
     team = None
@@ -546,6 +754,13 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
         'hub_critical_locked': hub_critical_locked,
         'hub_payment_verified': hub_payment_verified,
         'hub_lock_reason': hub_lock_reason,
+        'hub_payment_action_url': hub_payment_action_url,
+        'hub_payment_action_label': hub_payment_action_label,
+        'hub_payment_action_hint': hub_payment_action_hint,
+        'hub_payment_action_variant': hub_payment_action_variant,
+        'hub_payment_action_enabled': hub_payment_action_enabled,
+        'hub_recent_alerts': hub_recent_alerts,
+        'hub_primary_alert': hub_primary_alert,
     }
     return context
 
@@ -584,8 +799,18 @@ def _build_status_detail(registration, check_in, tournament, now):
 
     if status in ('confirmed', 'auto_approved'):
         steps.append({'label': 'Registration Confirmed', 'done': True, 'icon': 'check-circle'})
+    elif status == 'waitlisted':
+        steps.append({'label': 'On Waitlist Queue', 'done': False, 'icon': 'hourglass', 'active': True})
     elif status == 'pending':
-        steps.append({'label': 'Awaiting Organizer Approval', 'done': False, 'icon': 'clock', 'active': True})
+        payment = getattr(registration, 'payment', None)
+        if payment and payment.status == 'rejected':
+            steps.append({'label': 'Payment Rejected — Retry Required', 'done': False, 'icon': 'alert-triangle', 'active': True, 'error': True})
+        elif payment and payment.status in ('pending', 'submitted'):
+            steps.append({'label': 'Payment Under Review', 'done': False, 'icon': 'credit-card', 'active': True})
+        elif tournament.has_entry_fee:
+            steps.append({'label': 'Payment Required', 'done': False, 'icon': 'wallet', 'active': True})
+        else:
+            steps.append({'label': 'Awaiting Organizer Approval', 'done': False, 'icon': 'clock', 'active': True})
     elif status == 'payment_submitted':
         steps.append({'label': 'Payment Under Review', 'done': False, 'icon': 'credit-card', 'active': True})
     elif status == 'needs_review':
@@ -692,6 +917,7 @@ def _registration_status_label(registration, check_in):
         'pending': 'Pending Approval',
         'payment_submitted': 'Payment Under Review',
         'needs_review': 'Under Review',
+        'waitlisted': 'Waitlisted',
     }
     return status_map.get(registration.status, 'Registered')
 
@@ -910,30 +1136,66 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
-        lobby = getattr(tournament, 'lobby', None)
-        if not lobby:
-            return _json_response({'announcements': []}, cache_control='private, max-age=15')
+        try:
+            limit = int(request.GET.get('limit', '20'))
+        except (TypeError, ValueError):
+            limit = 20
+        limit = max(5, min(limit, 100))
+
+        try:
+            offset = int(request.GET.get('offset', '0'))
+        except (TypeError, ValueError):
+            offset = 0
+        offset = max(0, offset)
 
         now = timezone.now()
-        ann_qs = LobbyAnnouncement.objects.filter(
-            lobby=lobby,
-            is_visible=True,
-            is_deleted=False,
-        ).select_related('posted_by').order_by('-is_pinned', '-created_at')[:20]
+        data_plus_one = _build_hub_announcements(tournament, now=now, limit=limit + 1, offset=offset)
+        has_more = len(data_plus_one) > limit
+        data = data_plus_one[:limit]
 
-        data = []
-        for a in ann_qs:
-            data.append({
-                'id': a.id,
-                'title': a.title,
-                'message': a.message,
-                'type': a.announcement_type,
-                'is_pinned': a.is_pinned,
-                'posted_by': a.posted_by.username if a.posted_by else 'Organizer',
-                'created_at': a.created_at.isoformat(),
-                'time_ago': _time_ago(a.created_at, now),
-            })
-        return _json_response({'announcements': data}, cache_control='private, max-age=15')
+        return _json_response({
+            'announcements': data,
+            'meta': {
+                'limit': limit,
+                'offset': offset,
+                'returned': len(data),
+                'has_more': has_more,
+                'next_offset': (offset + len(data)) if has_more else None,
+            },
+        }, cache_control='private, max-age=15')
+
+
+class HubAlertDeleteAPIView(LoginRequiredMixin, View):
+    """POST: delete a single Action Center alert for the current user."""
+
+    def post(self, request, slug, notification_id):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return JsonResponse({'success': False, 'error': 'not_registered'}, status=403)
+
+        deleted_count, _ = Notification.objects.filter(
+            id=notification_id,
+            recipient=request.user,
+            tournament_id=tournament.id,
+        ).delete()
+        return JsonResponse({'success': deleted_count > 0, 'deleted_count': deleted_count})
+
+
+class HubAlertsClearAPIView(LoginRequiredMixin, View):
+    """POST: clear all Action Center alerts for this tournament and user."""
+
+    def post(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return JsonResponse({'success': False, 'error': 'not_registered'}, status=403)
+
+        deleted_count, _ = Notification.objects.filter(
+            recipient=request.user,
+            tournament_id=tournament.id,
+        ).delete()
+        return JsonResponse({'success': True, 'deleted_count': deleted_count})
 
 
 class HubRosterAPIView(LoginRequiredMixin, View):
@@ -1073,6 +1335,10 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
 
         # ── Rules ──────────────────────────────────────
         rules = {
@@ -1814,10 +2080,6 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
-        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
-        if lock_resp:
-            return lock_resp
-
         try:
             page = max(int(request.GET.get('page', '1')), 1)
         except (TypeError, ValueError):
@@ -1828,21 +2090,84 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
             page_size = 40
         page_size = max(1, min(page_size, 100))
 
+        include_member_avatars = (request.GET.get('include_member_avatars') or '').strip().lower() in {'1', 'true', 'yes'}
+        include_profile_avatars = (request.GET.get('include_profile_avatars') or '').strip().lower() in {'1', 'true', 'yes'}
+
+        sort = (request.GET.get('sort') or 'joined_desc').strip().lower()
+        allowed_sort = {'joined_desc', 'joined_asc', 'seed_asc', 'seed_desc'}
+        if sort not in allowed_sort:
+            sort = 'joined_desc'
+
         is_team = tournament.participation_type == 'team'
 
-        # Fetch confirmed registrations
+        # Fetch confirmed registrations (ordered base queryset)
         confirmed_regs_qs = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False,
             status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
-        ).select_related('user').order_by('created_at')
-        confirmed_regs = list(confirmed_regs_qs)
+        ).select_related('user')
+
+        if sort == 'joined_asc':
+            confirmed_regs_qs = confirmed_regs_qs.order_by('created_at')
+        elif sort == 'seed_asc':
+            confirmed_regs_qs = confirmed_regs_qs.annotate(
+                _seed_is_null=models.Case(
+                    models.When(seed__isnull=True, then=1),
+                    default=0,
+                    output_field=models.IntegerField(),
+                )
+            ).order_by('_seed_is_null', 'seed', 'created_at')
+        elif sort == 'seed_desc':
+            confirmed_regs_qs = confirmed_regs_qs.annotate(
+                _seed_is_null=models.Case(
+                    models.When(seed__isnull=True, then=1),
+                    default=0,
+                    output_field=models.IntegerField(),
+                )
+            ).order_by('_seed_is_null', '-seed', '-created_at')
+        else:
+            confirmed_regs_qs = confirmed_regs_qs.order_by('-created_at')
 
         # Check if user's own registration is unverified (not in confirmed list)
         user_reg_confirmed = registration.status in ('confirmed', 'auto_approved') if registration else False
-        seen_ids = set()
+        include_unverified_self = bool(registration and not user_reg_confirmed)
 
         participants = []
+
+        # Pagination math with optional unverified-self row pinned at the top.
+        confirmed_total = confirmed_regs_qs.count()
+        total_count = confirmed_total + (1 if include_unverified_self else 0)
+        start = (page - 1) * page_size
+        end = start + page_size
+
+        confirmed_offset = start
+        confirmed_limit = page_size
+
+        if include_unverified_self:
+            if start == 0:
+                # Add self first, then fill the remaining page from confirmed rows.
+                user_entry = self._build_participant(
+                    registration, is_team, registration, tournament, request.user,
+                    verified=False,
+                    prefetch=None,
+                    include_profile_avatars=include_profile_avatars,
+                )
+                if user_entry:
+                    participants.append(user_entry)
+                confirmed_limit = max(page_size - len(participants), 0)
+                confirmed_offset = 0
+            else:
+                # Page 2+ shifts by one because page 1 included the self row.
+                confirmed_offset = max(start - 1, 0)
+
+        confirmed_page_regs = list(
+            confirmed_regs_qs[confirmed_offset:confirmed_offset + confirmed_limit]
+        ) if confirmed_limit > 0 else []
+
+        regs_for_prefetch = list(confirmed_page_regs)
+        if include_unverified_self and registration and start == 0:
+            regs_for_prefetch.append(registration)
+
         prefetch = {
             'teams_by_id': {},
             'member_counts': {},
@@ -1854,9 +2179,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
         if is_team:
             from apps.organizations.models import Team, TeamMembership as TM
 
-            team_ids = {reg.team_id for reg in confirmed_regs if reg.team_id}
-            if registration and registration.team_id:
-                team_ids.add(registration.team_id)
+            team_ids = {reg.team_id for reg in regs_for_prefetch if reg.team_id}
 
             if team_ids:
                 prefetch['teams_by_id'] = {
@@ -1871,24 +2194,25 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     ).values('team_id').annotate(count=models.Count('id'))
                 }
 
-                members = TM.objects.filter(
-                    team_id__in=team_ids,
-                    status=TM.Status.ACTIVE,
-                ).select_related('user', 'user__profile').order_by('team_id', 'id')
+                if include_member_avatars:
+                    members = TM.objects.filter(
+                        team_id__in=team_ids,
+                        status=TM.Status.ACTIVE,
+                    ).select_related('user', 'user__profile').order_by('team_id', 'id')
 
-                avatar_map = {}
-                for member in members:
-                    slots = avatar_map.setdefault(member.team_id, [])
-                    if len(slots) >= 5:
-                        continue
-                    avatar = ''
-                    if hasattr(member.user, 'profile') and hasattr(member.user.profile, 'avatar') and member.user.profile.avatar:
-                        avatar = member.user.profile.avatar.url
-                    slots.append({
-                        'initial': (member.user.get_full_name() or member.user.username)[:1].upper(),
-                        'avatar_url': avatar,
-                    })
-                prefetch['team_member_avatars'] = avatar_map
+                    avatar_map = {}
+                    for member in members:
+                        slots = avatar_map.setdefault(member.team_id, [])
+                        if len(slots) >= 5:
+                            continue
+                        avatar = ''
+                        if hasattr(member.user, 'profile') and hasattr(member.user.profile, 'avatar') and member.user.profile.avatar:
+                            avatar = member.user.profile.avatar.url
+                        slots.append({
+                            'initial': (member.user.get_full_name() or member.user.username)[:1].upper(),
+                            'avatar_url': avatar,
+                        })
+                    prefetch['team_member_avatars'] = avatar_map
 
                 prefetch['checked_in_team_ids'] = set(
                     CheckIn.objects.filter(
@@ -1899,9 +2223,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     ).values_list('team_id', flat=True)
                 )
         else:
-            user_ids = {reg.user_id for reg in confirmed_regs if reg.user_id}
-            if registration and registration.user_id:
-                user_ids.add(registration.user_id)
+            user_ids = {reg.user_id for reg in regs_for_prefetch if reg.user_id}
             if user_ids:
                 prefetch['checked_in_user_ids'] = set(
                     CheckIn.objects.filter(
@@ -1912,44 +2234,30 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     ).values_list('user_id', flat=True)
                 )
 
-        # If user's team is NOT confirmed, add it first with "pending" status
-        if registration and not user_reg_confirmed:
-            user_entry = self._build_participant(
-                registration, is_team, registration, tournament, request.user,
-                verified=False,
-                prefetch=prefetch,
-            )
-            if user_entry:
-                participants.append(user_entry)
-                seen_ids.add(registration.id)
-
-        for reg in confirmed_regs:
-            if reg.id in seen_ids:
-                continue
+        for reg in confirmed_page_regs:
             entry = self._build_participant(
                 reg, is_team, registration, tournament, request.user,
                 verified=True,
                 prefetch=prefetch,
+                include_profile_avatars=include_profile_avatars,
             )
             if entry:
                 participants.append(entry)
 
-        total_count = len(participants)
-        start = (page - 1) * page_size
-        end = start + page_size
-        paged = participants[start:end]
-
         return _json_response({
-            'participants': paged,
+            'participants': participants,
             'total': total_count,
             'max_participants': tournament.max_participants,
             'is_team': is_team,
+            'sort': sort,
+            'include_member_avatars': include_member_avatars,
+            'include_profile_avatars': include_profile_avatars,
             'page': page,
             'page_size': page_size,
             'has_more': end < total_count,
         }, cache_control='private, max-age=30')
 
-    def _build_participant(self, reg, is_team, user_registration, tournament, current_user, verified=True, prefetch=None):
+    def _build_participant(self, reg, is_team, user_registration, tournament, current_user, verified=True, prefetch=None, include_profile_avatars=True):
         """Build a single participant dict for the API response."""
         prefetch = prefetch or {}
         status_label = ''
@@ -2006,7 +2314,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
             except Team.DoesNotExist:
                 return None
         else:
-            avatar_url = _get_avatar_url(reg.user)
+            avatar_url = _get_avatar_url(reg.user) if include_profile_avatars else ''
             user_slug = getattr(reg.user, 'username', '')
             checked_in_user_ids = prefetch.get('checked_in_user_ids', set())
             checked_in = reg.user_id in checked_in_user_ids if checked_in_user_ids else CheckIn.objects.filter(

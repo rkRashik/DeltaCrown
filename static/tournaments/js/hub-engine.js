@@ -16,12 +16,14 @@
 const HubEngine = (() => {
   // ── Config ──────────────────────────────────────────────
   const POLL_STATE_INTERVAL   = 20_000;   // 20s
-  const POLL_ANN_INTERVAL     = 45_000;   // 45s
+  const POLL_ANN_INTERVAL     = 15_000;   // 15s
+  const POLL_STATE_INTERVAL_WS = 45_000;  // 45s when WS is healthy
+  const POLL_ANN_INTERVAL_WS   = 60_000;  // 60s safety poll when WS is healthy
   const COUNTDOWN_TICK        = 1_000;    // 1s
   const HUB_TABS = new Set([
-    'overview', 'matches', 'squad', 'schedule',
+    'overview', 'announcements', 'matches', 'squad', 'schedule',
     'bracket', 'standings', 'prizes', 'resources',
-    'participants', 'rulebook', 'support',
+    'participants', 'rulebook', 'support', 'lobby',
   ]);
   const TAB_ALIASES = {
     disputes: 'support',
@@ -30,13 +32,16 @@ const HubEngine = (() => {
   };
   const LOCKED_TABS_WHEN_UNVERIFIED = new Set([
     'matches',
+    'lobby',
     'squad',
     'schedule',
     'bracket',
     'standings',
     'prizes',
-    'participants',
+    'resources',
   ]);
+  const SIDEBAR_COLLAPSE_KEY = 'hub_sidebar_collapsed';
+  const PARTICIPANTS_SORT_KEY = 'hub_participants_sort';
 
   // ── State ───────────────────────────────────────────────
   let _shell       = null;
@@ -54,30 +59,144 @@ const HubEngine = (() => {
   let _matchesCache      = null;
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
+  let _participantsSort = 'joined_desc';
   let _supportTicketsLoaded = false;
   let _participantsPage = 1;
   let _participantsHasMore = false;
-  const _participantsPageSize = 40;
+  const _participantsPageSize = 24;
   let _supportTicketsPage = 1;
   let _supportTicketsHasMore = false;
   const _supportTicketsPageSize = 20;
   let _openModalId = null;
   let _modalReturnFocusEl = null;
   let _mobileSidebarReturnFocusEl = null;
+  let _announcementItems = [];
+  let _announcementFilter = 'all';
+  let _announcementSearch = '';
+  let _announcementSearchTimer = null;
+  let _announcementHasMore = false;
+  let _announcementLastUpdatedAt = null;
+  let _announcementLoading = false;
+  let _announcementScrollTimer = null;
 
   // S27: WebSocket connection for real-time sync
   let _ws = null;
   let _wsReconnectTimer = null;
   let _wsReconnectAttempts = 0;
   let _wsPingId = null;
+  let _wsConnected = false;
   let _resizeTimer = null;
   let _onKeyDown = null;
   let _onWindowResize = null;
   let _onHashChange = null;
   let _onPopState = null;
   let _onVisibilityChange = null;
+  let _mobileLobbyAutoFocused = false;
+  let _onViewportScroll = null;
+  let _onViewportTouchStart = null;
+  let _onViewportPointerDown = null;
+  let _mobileChromeIdleTimer = null;
+  let _lastViewportScrollTop = 0;
   const WS_RECONNECT_MAX = 3;
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
+
+  function _isMobileViewport() {
+    return window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
+  }
+
+  function _showMobileChrome({ keepDockVisible = false, immediate = false } = {}) {
+    if (!_shell) return;
+    if (immediate) {
+      _shell.classList.add('hub-mobile-dock-snap');
+      setTimeout(() => {
+        if (_shell) _shell.classList.remove('hub-mobile-dock-snap');
+      }, 110);
+    }
+    _shell.classList.remove('hub-mobile-chrome-hidden');
+    if (keepDockVisible) {
+      _shell.classList.remove('hub-mobile-dock-idle');
+    }
+  }
+
+  function _scheduleMobileDockIdle() {
+    if (!_shell || !_isMobileViewport()) return;
+    if (_mobileChromeIdleTimer) clearTimeout(_mobileChromeIdleTimer);
+    _mobileChromeIdleTimer = setTimeout(() => {
+      _shell.classList.add('hub-mobile-dock-idle');
+    }, 3000);
+  }
+
+  function _initMobileChromeGestures() {
+    const viewport = document.getElementById('hub-viewport');
+    if (!viewport || !_shell) return;
+
+    _lastViewportScrollTop = viewport.scrollTop || 0;
+
+    _onViewportScroll = () => {
+      if (!_isMobileViewport()) return;
+
+      const current = viewport.scrollTop || 0;
+      const delta = current - _lastViewportScrollTop;
+
+      if (delta > 6 && current > 16) {
+        _shell.classList.add('hub-mobile-chrome-hidden');
+        _shell.classList.remove('hub-mobile-dock-idle');
+      } else if (delta < -4 || current <= 8) {
+        _showMobileChrome({ keepDockVisible: true });
+      }
+
+      _lastViewportScrollTop = Math.max(0, current);
+      _scheduleMobileDockIdle();
+    };
+
+    _onViewportTouchStart = () => {
+      if (!_isMobileViewport()) return;
+      _showMobileChrome({ keepDockVisible: true, immediate: true });
+      _scheduleMobileDockIdle();
+    };
+
+    _onViewportPointerDown = () => {
+      if (!_isMobileViewport()) return;
+      _showMobileChrome({ keepDockVisible: true, immediate: true });
+      _scheduleMobileDockIdle();
+    };
+
+    viewport.addEventListener('scroll', _onViewportScroll, { passive: true });
+    viewport.addEventListener('touchstart', _onViewportTouchStart, { passive: true });
+    viewport.addEventListener('pointerdown', _onViewportPointerDown, { passive: true });
+
+    if (!_isMobileViewport()) {
+      _shell.classList.remove('hub-mobile-chrome-hidden', 'hub-mobile-dock-idle');
+      return;
+    }
+
+    _showMobileChrome({ keepDockVisible: true });
+    _scheduleMobileDockIdle();
+  }
+
+  function _emitToast(type, message) {
+    const safeType = String(type || 'info').toLowerCase();
+    const safeMessage = (message == null) ? '' : String(message);
+    if (!safeMessage) return;
+
+    if (window.Toast && typeof window.Toast[safeType] === 'function') {
+      window.Toast[safeType](safeMessage);
+      return;
+    }
+
+    if (typeof window.showToast === 'function') {
+      try {
+        window.showToast(safeMessage, safeType);
+      } catch (err) {
+        window.showToast(safeMessage);
+      }
+      return;
+    }
+
+    if (safeType === 'error' || safeType === 'warning') {
+      console.warn(`[Hub] ${safeType}:`, safeMessage);
+    }
+  }
 
   // ── Init ────────────────────────────────────────────────
   function init() {
@@ -88,6 +207,11 @@ const HubEngine = (() => {
 
     // Start countdown
     _startCountdown();
+    _bindFeedControls();
+    _bindParticipantsControls();
+    _bindResourcesQuickNav();
+    _initDesktopSidebar();
+    _initMobileChromeGestures();
 
     // Start polling (auto-pauses in background tab)
     _startPolling();
@@ -99,6 +223,8 @@ const HubEngine = (() => {
     _onKeyDown = (e) => {
       if (e.key === 'Escape') {
         closeMobileSidebar();
+        closeAlertConfirmModal();
+        closeAlertModal();
         closeContactModal();
         closeStatusModal();
         closeTicketModal();
@@ -118,6 +244,20 @@ const HubEngine = (() => {
     _onWindowResize = () => {
       clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(_redrawBracketLines, 150);
+
+      if (!_shell) return;
+
+      if (_isMobileViewport()) {
+        _showMobileChrome({ keepDockVisible: true });
+        _scheduleMobileDockIdle();
+        return;
+      }
+
+      _shell.classList.remove('hub-mobile-chrome-hidden', 'hub-mobile-dock-idle');
+      if (_mobileChromeIdleTimer) {
+        clearTimeout(_mobileChromeIdleTimer);
+        _mobileChromeIdleTimer = null;
+      }
     };
     window.addEventListener('resize', _onWindowResize);
 
@@ -295,6 +435,19 @@ const HubEngine = (() => {
       _fetchMatches();
     }
     if (normalizedTab === 'participants' && !_participantsCache) {
+      _fetchParticipants({ reset: true });
+    }
+    if (normalizedTab === 'lobby') {
+      if (!_matchesCache) {
+        _fetchMatches();
+      } else {
+        _renderMobileLobby(_matchesCache);
+      }
+    }
+    if (normalizedTab === 'matches') {
+      _fetchScheduleMatches();
+    }
+    if (normalizedTab === 'standings' && !_participantsCache) {
       _fetchParticipants({ reset: true });
     }
     if (normalizedTab === 'support') {
@@ -534,9 +687,7 @@ const HubEngine = (() => {
         if (_shell) _shell.dataset.isCheckedIn = 'true';
 
         // Show toast if available
-        if (window.showToast) {
-          window.showToast({ type: 'success', message: 'Successfully checked in!' });
-        }
+        _emitToast('success', 'Successfully checked in!');
 
         // Re-init icons
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -545,9 +696,7 @@ const HubEngine = (() => {
         _pollState();
       } else {
         const errMsg = data.error || 'Check-in failed. Please try again.';
-        if (window.showToast) {
-          window.showToast({ type: 'error', message: errMsg });
-        }
+        _emitToast('error', errMsg);
         // Re-enable buttons
         document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
           btn.disabled = false;
@@ -557,9 +706,7 @@ const HubEngine = (() => {
       }
     } catch (err) {
       console.error('[HubEngine] Check-in error:', err);
-      if (window.showToast) {
-        window.showToast({ type: 'error', message: 'Network error. Please try again.' });
-      }
+      _emitToast('error', 'Network error. Please try again.');
       document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
         btn.disabled = false;
         btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now';
@@ -572,12 +719,20 @@ const HubEngine = (() => {
   // State Polling
   // ──────────────────────────────────────────────────────────
   function _startPolling() {
+    const stateInterval = _wsConnected ? POLL_STATE_INTERVAL_WS : POLL_STATE_INTERVAL;
+    const annInterval = _wsConnected ? POLL_ANN_INTERVAL_WS : POLL_ANN_INTERVAL;
+
     if (!_pollStateId) {
-      _pollStateId = setInterval(_pollState, POLL_STATE_INTERVAL);
+      _pollStateId = setInterval(_pollState, stateInterval);
     }
     if (!_pollAnnId) {
-      _pollAnnId = setInterval(_pollAnnouncements, POLL_ANN_INTERVAL);
+      _pollAnnId = setInterval(_pollAnnouncements, annInterval);
     }
+  }
+
+  function _restartPolling() {
+    _stopPolling();
+    _startPolling();
   }
 
   function _stopPolling() {
@@ -643,22 +798,204 @@ const HubEngine = (() => {
   // ──────────────────────────────────────────────────────────
   // Announcements Polling
   // ──────────────────────────────────────────────────────────
-  async function _pollAnnouncements() {
+  async function _pollAnnouncements({ append = false, forceLimit = null } = {}) {
     const url = _shell?.dataset.apiAnnouncements;
     if (!url) return;
+    if (_announcementLoading) return;
+
+    const currentCount = Array.isArray(_announcementItems) ? _announcementItems.length : 0;
+    const offset = append ? currentCount : 0;
+    const pageLimit = Number(forceLimit) > 0
+      ? Number(forceLimit)
+      : (_currentTab === 'announcements' ? 60 : 20);
+
+    _announcementLoading = true;
+    _toggleAnnouncementLoadMoreLoading(append, true);
 
     try {
-      const resp = await fetch(url, { credentials: 'same-origin' });
+      const requestUrl = new URL(url, window.location.origin);
+      requestUrl.searchParams.set('limit', String(pageLimit));
+      requestUrl.searchParams.set('offset', String(offset));
+
+      const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
       if (!resp.ok) return;
       const data = await resp.json();
 
-      if (!data.announcements || !data.announcements.length) return;
+      const announcements = Array.isArray(data.announcements) ? data.announcements : [];
+      const meta = data.meta || {};
+      _announcementHasMore = Boolean(meta.has_more);
 
+      if (append) {
+        const existingIds = new Set(_announcementItems.map((item) => item.id));
+        announcements.forEach((item) => {
+          if (!existingIds.has(item.id)) {
+            _announcementItems.push(item);
+          }
+        });
+      } else {
+        _announcementItems = announcements;
+      }
+
+      _announcementLastUpdatedAt = new Date();
+      _updateAnnouncementSyncLabel();
+      _toggleAnnouncementLoadMoreLoading(append, false);
+      _renderAnnouncementsFeed(_announcementItems);
+
+    } catch (err) {
+      console.warn('[HubEngine] Announcements poll failed:', err.message);
+    } finally {
+      _announcementLoading = false;
+      _toggleAnnouncementLoadMoreLoading(append, false);
+    }
+  }
+
+  function _bindFeedControls() {
+    const searchInput = document.getElementById('hub-ann-search');
+    if (searchInput && searchInput.dataset.bound !== '1') {
+      searchInput.dataset.bound = '1';
+      searchInput.addEventListener('input', () => {
+        clearTimeout(_announcementSearchTimer);
+        _announcementSearchTimer = setTimeout(() => {
+          _announcementSearch = (searchInput.value || '').trim().toLowerCase();
+          _renderAnnouncementsFeed(_announcementItems);
+        }, 160);
+      });
+    }
+
+    const filters = document.getElementById('hub-ann-filters');
+    if (filters && filters.dataset.bound !== '1') {
+      filters.dataset.bound = '1';
+      filters.querySelectorAll('[data-hub-feed-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          _announcementFilter = btn.getAttribute('data-hub-feed-filter') || 'all';
+          _renderAnnouncementsFeed(_announcementItems);
+        });
+      });
+    }
+
+    const feed = document.getElementById('hub-announcements-feed');
+    if (feed && feed.dataset.boundScroll !== '1') {
+      feed.dataset.boundScroll = '1';
+      feed.addEventListener('scroll', () => {
+        if (_currentTab !== 'announcements') return;
+        if (_announcementLoading || !_announcementHasMore) return;
+
+        clearTimeout(_announcementScrollTimer);
+        _announcementScrollTimer = setTimeout(() => {
+          const nearBottom = feed.scrollTop + feed.clientHeight >= (feed.scrollHeight - 140);
+          if (nearBottom) {
+            loadMoreAnnouncements();
+          }
+        }, 80);
+      });
+    }
+  }
+
+  function _updateAnnouncementSyncLabel() {
+    const stamp = document.getElementById('hub-ann-last-sync');
+    if (!stamp) return;
+    if (!_announcementLastUpdatedAt) {
+      stamp.textContent = 'Waiting for first sync';
+      return;
+    }
+    stamp.textContent = `Synced ${_announcementLastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  function _toggleAnnouncementLoadMoreLoading(isLoadingMore, isLoading) {
+    const btn = document.getElementById('hub-ann-load-more-btn');
+    if (!btn) return;
+
+    btn.disabled = isLoading;
+    if (isLoading && isLoadingMore) {
+      btn.textContent = 'Loading older updates...';
+    } else {
+      btn.textContent = 'Load Older';
+    }
+  }
+
+  function loadMoreAnnouncements() {
+    if (_announcementLoading || !_announcementHasMore) return;
+    _pollAnnouncements({ append: true, forceLimit: 40 });
+  }
+
+  function refreshAnnouncements() {
+    if (_announcementLoading) return;
+    _pollAnnouncements({ append: false });
+  }
+
+  function _initDesktopSidebar() {
+    const shell = document.getElementById('hub-shell');
+    if (!shell) return;
+
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSE_KEY);
+    if (stored === '1') {
+      shell.classList.add('hub-sidebar-collapsed');
+    }
+
+    document.querySelectorAll('.hub-sidebar-desktop .hub-nav-btn').forEach((btn) => {
+      const labelEl = btn.querySelector('.hub-nav-label') || btn.querySelector('span');
+      const label = (labelEl?.textContent || '').trim();
+      if (label) {
+        btn.setAttribute('data-nav-label', label);
+      }
+    });
+
+    _syncSidebarToggleIcon();
+  }
+
+  function _syncSidebarToggleIcon() {
+    const shell = document.getElementById('hub-shell');
+    if (!shell) return;
+
+    const collapsed = shell.classList.contains('hub-sidebar-collapsed');
+
+    document.querySelectorAll('[data-hub-sidebar-toggle]').forEach((btn) => {
+      const icon = btn.querySelector('i[data-lucide]');
+      if (icon) {
+        icon.setAttribute('data-lucide', collapsed ? 'panel-left-open' : 'panel-left-close');
+      }
+      btn.setAttribute('title', collapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function toggleDesktopSidebar() {
+    const shell = document.getElementById('hub-shell');
+    if (!shell) return;
+    shell.classList.toggle('hub-sidebar-collapsed');
+    const collapsed = shell.classList.contains('hub-sidebar-collapsed');
+    localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? '1' : '0');
+    _syncSidebarToggleIcon();
+  }
+
+  function openAnnouncementsPanel() {
+    switchTab('announcements');
+    requestAnimationFrame(() => {
       const feed = document.getElementById('hub-announcements-feed');
       if (!feed) return;
+      feed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      feed.classList.add('hub-ann-focus');
+      setTimeout(() => feed.classList.remove('hub-ann-focus'), 1200);
+    });
+  }
 
-      // Rebuild feed
-      const html = data.announcements.map((ann, i) => {
+  function _renderAnnouncementsFeed(items) {
+      const feed = document.getElementById('hub-announcements-feed');
+
+      const source = Array.isArray(items) ? items : [];
+      const filtered = source.filter((ann) => {
+        if (_announcementFilter === 'pinned' && !ann.is_pinned) return false;
+        if (_announcementFilter === 'urgent' && String(ann.type || '').toLowerCase() !== 'urgent') return false;
+        if (_announcementSearch) {
+          const title = String(ann.title || '').toLowerCase();
+          const message = String(ann.message || '').toLowerCase();
+          if (!title.includes(_announcementSearch) && !message.includes(_announcementSearch)) return false;
+        }
+        return true;
+      });
+
+      const html = filtered.map((ann, i) => {
         const dotClass = ann.type === 'urgent' ? 'ann-dot-urgent'
                        : ann.type === 'warning' ? 'ann-dot-warning'
                        : ann.type === 'success' ? 'ann-dot-success'
@@ -669,33 +1006,94 @@ const HubEngine = (() => {
                         : ann.type === 'success' ? 'bg-[#00FF66]/20 text-[#00FF66]'
                         : 'bg-white/10 text-gray-300';
 
-        const isLast = i === data.announcements.length - 1;
+        const isLast = i === filtered.length - 1;
 
         return `
           <div class="relative pl-6 border-l border-white/5 ${isLast ? '' : 'pb-6'}">
             <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px] ${dotClass}"></div>
             <div class="flex items-center gap-2 mb-1 flex-wrap">
               ${ann.is_pinned ? '<span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>' : ''}
+              ${ann.is_important ? '<span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>' : ''}
               <span class="px-1.5 py-0.5 rounded ${typeClass} text-[8px] font-black uppercase">${_esc(ann.type || 'Info')}</span>
+              ${ann.symbol ? `<span class="text-sm leading-none">${_esc(ann.symbol)}</span>` : ''}
               <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">${_esc(ann.time_ago)}</span>
             </div>
-            ${ann.title ? `<p class="font-bold text-white text-sm mb-1">${_esc(ann.title)}</p>` : ''}
+            ${ann.title ? `<p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">${ann.icon ? `<i data-lucide="${_esc(ann.icon)}" class="w-3.5 h-3.5 text-cyan-200"></i>` : ''}<span>${_esc(ann.title)}</span></p>` : ''}
             <p class="text-xs text-gray-400 leading-relaxed">${_esc(ann.message)}</p>
           </div>`;
       }).join('');
 
-      feed.innerHTML = html;
+      if (feed) {
+        feed.innerHTML = html || '<div class="flex flex-col items-center justify-center py-12 text-center"><i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i><p class="text-sm text-gray-500 font-medium">No feed updates for this filter</p><p class="text-xs text-gray-600 mt-1">Try another filter or search keyword.</p></div>';
+      }
+
+      _renderOverviewAnnouncements(source);
 
       // Update count
       const countEl = document.getElementById('hub-ann-count');
       if (countEl) {
-        const n = data.announcements.length;
-        countEl.textContent = `${n} update${n !== 1 ? 's' : ''}`;
+        const n = filtered.length;
+        const total = source.length;
+        countEl.textContent = n === total
+          ? `${n} update${n !== 1 ? 's' : ''}`
+          : `${n}/${total} updates`;
       }
 
-    } catch (err) {
-      console.warn('[HubEngine] Announcements poll failed:', err.message);
+      const loadMoreWrap = document.getElementById('hub-ann-load-more-wrap');
+      if (loadMoreWrap) {
+        loadMoreWrap.classList.toggle('hidden', !_announcementHasMore);
+        loadMoreWrap.classList.toggle('flex', _announcementHasMore);
+      }
+
+      const filters = document.getElementById('hub-ann-filters');
+      if (filters) {
+        filters.querySelectorAll('[data-hub-feed-filter]').forEach((btn) => {
+          const active = btn.getAttribute('data-hub-feed-filter') === _announcementFilter;
+          btn.classList.toggle('bg-cyan-400/15', active);
+          btn.classList.toggle('text-cyan-200', active);
+          btn.classList.toggle('border-cyan-400/30', active);
+          btn.classList.toggle('border-white/20', !active);
+          btn.classList.toggle('text-gray-300', !active);
+        });
+      }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+
+  function _renderOverviewAnnouncements(items) {
+      const feed = document.getElementById('hub-overview-announcements-feed');
+      if (!feed) return;
+
+      const source = Array.isArray(items) ? items.slice(0, 5) : [];
+      const html = source.map((ann, i) => {
+        const dotClass = ann.type === 'urgent' ? 'ann-dot-urgent'
+                       : ann.type === 'warning' ? 'ann-dot-warning'
+                       : ann.type === 'success' ? 'ann-dot-success'
+                       : 'ann-dot-info';
+
+        const typeClass = ann.type === 'urgent' ? 'bg-[#FF2A55]/20 text-[#FF2A55]'
+                        : ann.type === 'warning' ? 'bg-[#FFB800]/20 text-[#FFB800]'
+                        : ann.type === 'success' ? 'bg-[#00FF66]/20 text-[#00FF66]'
+                        : 'bg-white/10 text-gray-300';
+
+        const isLast = i === source.length - 1;
+
+        return `
+          <div class="relative pl-6 border-l border-white/5 ${isLast ? '' : 'pb-6'}">
+            <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px] ${dotClass}"></div>
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              ${ann.is_pinned ? '<span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>' : ''}
+              ${ann.is_important ? '<span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>' : ''}
+              <span class="px-1.5 py-0.5 rounded ${typeClass} text-[8px] font-black uppercase">${_esc(ann.type || 'Info')}</span>
+              ${ann.symbol ? `<span class="text-sm leading-none">${_esc(ann.symbol)}</span>` : ''}
+              <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">${_esc(ann.time_ago || '')}</span>
+            </div>
+            ${ann.title ? `<p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">${ann.icon ? `<i data-lucide="${_esc(ann.icon)}" class="w-3.5 h-3.5 text-cyan-200"></i>` : ''}<span>${_esc(ann.title)}</span></p>` : ''}
+            <p class="text-xs text-gray-400 leading-relaxed">${_esc(ann.message || '')}</p>
+          </div>`;
+      }).join('');
+
+      feed.innerHTML = html || '<div class="flex flex-col items-center justify-center py-12 text-center"><i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i><p class="text-sm text-gray-500 font-medium">No announcements yet</p><p class="text-xs text-gray-600 mt-1">Organizer updates will appear here.</p></div>';
   }
 
   // ──────────────────────────────────────────────────────────
@@ -788,9 +1186,7 @@ const HubEngine = (() => {
     const msgEl = document.getElementById('squad-toast-msg');
     if (!toast || !msgEl) {
       // Fallback to global toast
-      if (window.showToast) {
-        window.showToast({ type: isError ? 'error' : 'success', message });
-      }
+      _emitToast(isError ? 'error' : 'success', message);
       return;
     }
 
@@ -1118,6 +1514,7 @@ const HubEngine = (() => {
     const hasSupportInfo = !!data.support_info;
 
     if (!hasRules && !hasSocial && !hasSponsors && !hasContact && !hasSupportInfo) {
+      _syncResourcesQuickNav({ hasRules: false, hasSocial: false, hasSponsors: false });
       _setResourcesEmptyState(
         'No resources available yet',
         'The organizer has not published any resources for this tournament yet.',
@@ -1125,6 +1522,12 @@ const HubEngine = (() => {
       );
       return;
     }
+
+    _syncResourcesQuickNav({
+      hasRules: Boolean(hasRules),
+      hasSocial: Boolean(hasSocial || hasContact || hasSupportInfo),
+      hasSponsors: Boolean(hasSponsors),
+    });
 
     // ── Rules ──
     if (hasRules) {
@@ -1176,9 +1579,9 @@ const HubEngine = (() => {
       const grid = document.getElementById('social-links-grid');
       if (grid && hasSocial) {
         const iconMap = {
-          discord: 'message-circle', twitter: 'twitter', instagram: 'instagram',
-          youtube: 'youtube', facebook: 'facebook', tiktok: 'music',
-          website: 'globe', twitch: 'tv', youtube_stream: 'play-circle',
+          discord: 'message-circle', twitter: 'at-sign', instagram: 'camera',
+          youtube: 'play', facebook: 'users', tiktok: 'music',
+          website: 'globe', twitch: 'tv', youtube_stream: 'radio',
         };
         const subtitleMap = {
           discord: 'Community',
@@ -1192,7 +1595,17 @@ const HubEngine = (() => {
           youtube_stream: 'Live',
         };
         let html = '';
-        data.social_links.forEach((link, idx) => {
+        const seenSocial = new Set();
+        const uniqueLinks = data.social_links.filter((link) => {
+          const normUrl = String(link.url || '').trim().toLowerCase();
+          if (!normUrl) return false;
+          const dedupeKey = `${link.key || ''}|${normUrl}`;
+          if (seenSocial.has(dedupeKey)) return false;
+          seenSocial.add(dedupeKey);
+          return true;
+        });
+
+        uniqueLinks.forEach((link, idx) => {
           const icon = iconMap[link.key] || 'link';
           const sub = subtitleMap[link.key] || 'Channel';
           html += `
@@ -1287,6 +1700,51 @@ const HubEngine = (() => {
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _bindResourcesQuickNav() {
+    const nav = document.getElementById('resources-quick-nav');
+    if (!nav || nav.dataset.bound === '1') return;
+
+    nav.dataset.bound = '1';
+    nav.querySelectorAll('[data-hub-resource-target]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-hub-resource-target');
+        if (!targetId) return;
+
+        const target = document.getElementById(targetId);
+        if (!target || target.classList.contains('hidden')) return;
+
+        nav.querySelectorAll('[data-hub-resource-target]').forEach((b) => {
+          const isActive = b === btn;
+          b.classList.toggle('bg-cyan-400/15', isActive);
+          b.classList.toggle('text-cyan-200', isActive);
+          b.classList.toggle('border-cyan-400/30', isActive);
+          b.classList.toggle('border-white/15', !isActive);
+          b.classList.toggle('text-gray-300', !isActive);
+        });
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function _syncResourcesQuickNav(flags) {
+    const nav = document.getElementById('resources-quick-nav');
+    if (!nav) return;
+
+    const map = {
+      rules: Boolean(flags?.hasRules),
+      social: Boolean(flags?.hasSocial),
+      sponsors: Boolean(flags?.hasSponsors),
+    };
+
+    nav.querySelectorAll('[data-hub-resource-key]').forEach((btn) => {
+      const key = btn.getAttribute('data-hub-resource-key');
+      const enabled = Boolean(map[key]);
+      btn.classList.toggle('hidden', !enabled);
+      btn.disabled = !enabled;
+    });
   }
 
   // Smart content renderer: detects HTML vs plain/markdown
@@ -1932,6 +2390,9 @@ const HubEngine = (() => {
       }
     }
 
+    _renderMobileMatchesSchedule(data);
+    _renderMobileLobby(data);
+
     // Match history
     const historyEl = document.getElementById('hub-match-history');
     if (historyEl) {
@@ -1998,6 +2459,151 @@ const HubEngine = (() => {
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _renderMobileMatchesSchedule(data) {
+    const wrap = document.getElementById('hub-mobile-matches-schedule');
+    if (!wrap) return;
+
+    const allMatches = [
+      ...(data?.active_matches || []),
+      ...(data?.match_history || []),
+    ];
+
+    if (!allMatches.length) {
+      wrap.innerHTML = '<div class="hub-glass rounded-xl p-4 text-center text-xs text-gray-500">No scheduled matches yet.</div>';
+      return;
+    }
+
+    const sorted = allMatches.slice().sort((a, b) => {
+      if (!a.scheduled_at && !b.scheduled_at) return 0;
+      if (!a.scheduled_at) return 1;
+      if (!b.scheduled_at) return -1;
+      return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+    });
+
+    const html = sorted.slice(0, 10).map((m) => {
+      const timeLabel = m.scheduled_at
+        ? new Date(m.scheduled_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : 'Unscheduled';
+      const stateColor = m.state === 'live'
+        ? 'text-[#FF2A55]'
+        : m.state === 'completed'
+          ? 'text-gray-400'
+          : 'text-cyan-300';
+      const title = m.is_staff_view
+        ? `${_esc(m.p1_name || 'TBD')} vs ${_esc(m.p2_name || 'TBD')}`
+        : `vs ${_esc(m.opponent_name || 'TBD')}`;
+
+      return `
+        <div class="hub-glass rounded-xl p-3 border border-white/10">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
+            <span class="text-[10px] font-bold uppercase tracking-wider ${stateColor}">${_esc(m.state_display || m.state || 'scheduled')}</span>
+          </div>
+          <p class="text-sm font-bold text-white mt-1">${title}</p>
+          <p class="text-[11px] text-gray-400 mt-1">${timeLabel}</p>
+        </div>`;
+    }).join('');
+
+    wrap.innerHTML = html;
+  }
+
+  function _renderMobileLobby(data) {
+    const panel = document.getElementById('hub-mobile-lobby-panel');
+    if (!panel) return;
+
+    const statusEl = document.getElementById('hub-mobile-lobby-status');
+    const roundEl = document.getElementById('hub-mobile-lobby-round');
+    const titleEl = document.getElementById('hub-mobile-lobby-title');
+    const subtitleEl = document.getElementById('hub-mobile-lobby-subtitle');
+    const countdownEl = document.getElementById('hub-mobile-lobby-countdown');
+    const roomEl = document.getElementById('hub-mobile-lobby-room');
+    const joinBtn = document.getElementById('hub-mobile-lobby-join');
+    const noteWrap = document.getElementById('hub-mobile-lobby-admin-note');
+    const noteText = document.getElementById('hub-mobile-lobby-admin-note-text');
+
+    const allMatches = data?.active_matches || [];
+    const live = allMatches.find((m) => String(m.state || '').toLowerCase() === 'live');
+    const ready = allMatches.find((m) => String(m.state || '').toLowerCase() === 'ready');
+    const target = live || ready || allMatches[0] || null;
+
+    if (!target) {
+      if (statusEl) {
+        statusEl.className = 'hub-badge hub-badge-neutral';
+        statusEl.textContent = 'Waiting';
+      }
+      if (roundEl) roundEl.textContent = 'No active round';
+      if (titleEl) titleEl.textContent = 'No active match yet';
+      if (subtitleEl) subtitleEl.textContent = 'You will be auto-focused here when your match goes live.';
+      if (countdownEl) countdownEl.textContent = '--:--';
+      if (roomEl) roomEl.textContent = 'TBD';
+      if (joinBtn) {
+        joinBtn.textContent = 'Open Match + Submit Result';
+      }
+      if (noteWrap) noteWrap.classList.add('hidden');
+      return;
+    }
+
+    const stateRaw = String(target.state || '').toLowerCase();
+    const isLive = stateRaw === 'live';
+    const isReady = stateRaw === 'ready';
+
+    if (statusEl) {
+      statusEl.className = `hub-badge ${isLive ? 'hub-badge-danger' : isReady ? 'hub-badge-live' : 'hub-badge-info'}`;
+      statusEl.textContent = isLive ? 'Live' : (target.state_display || 'Ready');
+    }
+    if (roundEl) roundEl.textContent = `${target.round_name || 'Round'} · Match ${target.match_number || ''}`;
+    if (titleEl) {
+      const p1 = target.p1_name || 'Team A';
+      const p2 = target.p2_name || target.opponent_name || 'Team B';
+      titleEl.textContent = `${p1} vs ${p2}`;
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = isLive
+        ? 'Match is live now. Submit results immediately after completion.'
+        : 'Lobby is warming up. Prepare your team and join when ready.';
+    }
+
+    const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
+    if (countdownEl) {
+      if (isLive) {
+        countdownEl.textContent = 'LIVE';
+      } else if (scheduled && !Number.isNaN(scheduled.getTime())) {
+        const diffMs = Math.max(0, scheduled.getTime() - Date.now());
+        const mins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(mins / 60);
+        const rem = mins % 60;
+        countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+      } else {
+        countdownEl.textContent = '--:--';
+      }
+    }
+
+    const roomCode = target.lobby_info?.lobby_code || target.lobby_code || 'Pending';
+    if (roomEl) roomEl.textContent = roomCode;
+
+    if (joinBtn) {
+      joinBtn.textContent = roomCode && roomCode !== 'Pending'
+        ? `Join Lobby ${roomCode}`
+        : 'Open Match + Submit Result';
+    }
+
+    const note = target.admin_note || target.note || '';
+    if (noteWrap && noteText) {
+      if (note) {
+        noteText.textContent = note;
+        noteWrap.classList.remove('hidden');
+      } else {
+        noteWrap.classList.add('hidden');
+      }
+    }
+
+    if (_isMobileViewport() && isLive && !_mobileLobbyAutoFocused && _currentTab !== 'lobby') {
+      _mobileLobbyAutoFocused = true;
+      switchTab('lobby');
+      _showWsToast('Your match is live. Opening Lobby.', 'info');
+    }
   }
 
   function _renderMatchLobbyEmptyState() {
@@ -2201,6 +2807,9 @@ const HubEngine = (() => {
       const requestUrl = new URL(url, window.location.origin);
       requestUrl.searchParams.set('page', String(_participantsPage));
       requestUrl.searchParams.set('page_size', String(_participantsPageSize));
+      requestUrl.searchParams.set('sort', _participantsSort);
+      requestUrl.searchParams.set('include_member_avatars', '1');
+      requestUrl.searchParams.set('include_profile_avatars', '1');
 
       const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -2253,6 +2862,31 @@ const HubEngine = (() => {
     wrap.classList.toggle('flex', shouldShow);
   }
 
+  function _participantMetaPill(p) {
+    const source = p || {};
+    const meta = [];
+
+    const country = source.country_code || source.country || '';
+    const region = source.region_code || source.region || '';
+    const role = source.player_role || source.role || '';
+    const platform = source.platform || '';
+
+    if (country) meta.push(String(country).toUpperCase());
+    else if (region) meta.push(String(region));
+
+    if (role) meta.push(String(role));
+    if (platform) meta.push(String(platform));
+    if (source.seed) meta.push(`Seed #${source.seed}`);
+
+    if (!meta.length) {
+      meta.push(source.type === 'team' ? 'Team' : 'Solo');
+    }
+
+    meta.push('Verified');
+
+    return `<span class="px-2 py-0.5 rounded border border-white/10 bg-white/5 text-[9px] font-bold text-gray-300 uppercase tracking-widest inline-flex items-center gap-1">${_esc(meta.join(' • '))}</span>`;
+  }
+
   function _renderParticipants(list) {
     _hide('participants-skeleton');
     _hide('participants-empty');
@@ -2277,22 +2911,16 @@ const HubEngine = (() => {
       const youBorder = p.is_you ? ' border-[#00F0FF]/30' : ' border-white/5';
       const youBadge = p.is_you ? `<span class="px-1.5 py-0.5 rounded bg-[#00F0FF]/20 text-[#00F0FF] text-[8px] font-black uppercase ml-1">You</span>` : '';
       const checkedIn = p.checked_in ? '<span class="w-2 h-2 rounded-full bg-[#00FF66] shadow-[0_0_5px_#00FF66] ml-auto shrink-0"></span>' : '';
-      const seedBadge = p.seed ? `<span class="text-[10px] text-gray-600 ml-auto">#${p.seed}</span>` : '';
       const memberCount = (isTeam && p.member_count) ? `<p class="text-[10px] text-gray-500 uppercase tracking-widest" style="font-family:'Space Grotesk',monospace;">${p.member_count} Member${p.member_count !== 1 ? 's' : ''}</p>` : '';
-      const statusBadge = (!p.verified && p.status_label)
-        ? `<span class="px-1.5 py-0.5 rounded bg-[#FFB800]/15 text-[#FFB800] text-[8px] font-black uppercase border border-[#FFB800]/20 ml-1">${_esc(p.status_label)}</span>`
-        : '';
-      const verifiedBadge = p.verified === true && !p.is_you
-        ? '<span class="w-2 h-2 rounded-full bg-[#00F0FF]/40 shrink-0" title="Verified"></span>'
-        : '';
+      const metaPill = _participantMetaPill(p);
 
       // Stacked member avatars (team mode)
       let avatarStack = '';
       if (isTeam && p.member_avatars && p.member_avatars.length > 0) {
         avatarStack = '<div class="flex -space-x-2 overflow-hidden mt-3">';
-        p.member_avatars.forEach(ma => {
+        p.member_avatars.slice(0, 3).forEach(ma => {
           if (ma.avatar_url) {
-            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}">`;
+            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async">`;
           } else {
             avatarStack += `<div class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">${_esc(ma.initial)}</div>`;
           }
@@ -2302,17 +2930,16 @@ const HubEngine = (() => {
 
       // Logo / avatar
       const logo = p.logo_url
-        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${_esc(p.name)}">`
+        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async">`
         : `<span class="font-black text-xl" style="font-family:Outfit,sans-serif;">${_esc(p.tag)}</span>`;
       const logoColorClass = p.is_you ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-gray-400';
 
       // Wrap in link if detail_url exists
       const href = p.detail_url ? ` href="${_esc(p.detail_url)}"` : '';
       const tag = p.detail_url ? 'a' : 'div';
-      const unverifiedClass = (p.verified === false) ? ' opacity-80 border-dashed' : '';
 
       html += `
-        <${tag}${href} class="hub-glass p-5 rounded-xl border${youBorder}${unverifiedClass} hover:border-white/20 transition-all group cursor-pointer block" data-participant-name="${_esc(p.name.toLowerCase())}">
+        <${tag}${href} class="hub-glass p-5 rounded-xl border${youBorder} hover:border-white/20 transition-all group cursor-pointer block" data-participant-name="${_esc(p.name.toLowerCase())}">
           <div class="flex items-center gap-4 mb-1">
             <div class="w-12 h-12 rounded-lg ${logoColorClass} flex items-center justify-center overflow-hidden border border-white/10 shrink-0 group-hover:scale-110 transition-transform">
               ${logo}
@@ -2321,9 +2948,9 @@ const HubEngine = (() => {
               <div class="flex items-start gap-1 flex-wrap">
                 <h3 class="font-bold text-white text-lg group-hover:text-[#00F0FF] transition-colors break-words whitespace-normal leading-tight" style="font-family:Outfit,sans-serif;">${_esc(p.name)}</h3>
                 ${youBadge}
-                ${statusBadge}
                 ${checkedIn}
               </div>
+              <div class="mt-1">${metaPill}</div>
               ${memberCount}
             </div>
           </div>
@@ -2333,7 +2960,46 @@ const HubEngine = (() => {
 
     grid.innerHTML = html;
     grid.classList.remove('hidden');
+    _renderMobileStandingsParticipants(list);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function _renderMobileStandingsParticipants(list) {
+    const wrap = document.getElementById('hub-mobile-standings-participants');
+    if (!wrap) return;
+
+    const source = Array.isArray(list) ? list : [];
+    if (!source.length) {
+      wrap.innerHTML = '<div class="text-xs text-gray-500 text-center py-4">No participant data yet.</div>';
+      return;
+    }
+
+    const html = source.slice(0, 12).map((p) => {
+      const name = _esc(p.name || 'Participant');
+      const tag = _esc(p.tag || '?');
+      const avatar = p.logo_url
+        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async">`
+        : `<span class="font-black text-sm" style="font-family:Outfit,sans-serif;">${tag}</span>`;
+      const metaPill = _participantMetaPill(p);
+      const seed = p.seed ? `<span class="text-[10px] text-slate-400 font-semibold">#${p.seed}</span>` : '';
+      return `
+        <div class="rounded-2xl border border-white/10 bg-[rgba(13,20,32,0.68)] p-3.5 shadow-[0_12px_24px_rgba(0,0,0,0.32)]">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-10 h-10 rounded-full border border-cyan-200/25 bg-cyan-400/10 flex items-center justify-center overflow-hidden shrink-0">
+                ${avatar}
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-white truncate">${name}</p>
+                <div class="mt-1">${metaPill}</div>
+              </div>
+            </div>
+            ${seed}
+          </div>
+        </div>`;
+    }).join('');
+
+    wrap.innerHTML = html;
   }
 
   function filterParticipants(query) {
@@ -2361,6 +3027,47 @@ const HubEngine = (() => {
     _updateParticipantsLoadMoreVisibility();
   }
 
+  function _bindParticipantsControls() {
+    const sortSelect = document.getElementById('participants-sort');
+    if (sortSelect && sortSelect.dataset.bound !== '1') {
+      sortSelect.dataset.bound = '1';
+      try {
+        const storedSort = window.localStorage?.getItem(PARTICIPANTS_SORT_KEY);
+        if (storedSort) {
+          _participantsSort = storedSort;
+        }
+      } catch (e) {
+        // Ignore localStorage failures.
+      }
+      sortSelect.value = _participantsSort;
+      sortSelect.addEventListener('change', () => {
+        _participantsSort = sortSelect.value || 'joined_desc';
+        try {
+          window.localStorage?.setItem(PARTICIPANTS_SORT_KEY, _participantsSort);
+        } catch (e) {
+          // Ignore localStorage failures.
+        }
+        _fetchParticipants({ reset: true });
+      });
+    }
+
+    const mobileSearch = document.getElementById('hub-mobile-standings-search');
+    if (mobileSearch && mobileSearch.dataset.bound !== '1') {
+      mobileSearch.dataset.bound = '1';
+      mobileSearch.addEventListener('input', () => {
+        const q = (mobileSearch.value || '').toLowerCase().trim();
+        if (!q) {
+          _renderMobileStandingsParticipants(_participantsAll);
+          return;
+        }
+        const filtered = (_participantsAll || []).filter((p) =>
+          String(p.name || '').toLowerCase().includes(q) || String(p.tag || '').toLowerCase().includes(q)
+        );
+        _renderMobileStandingsParticipants(filtered);
+      });
+    }
+  }
+
   // ──────────────────────────────────────────────────────────
   // S27: WebSocket — Real-Time Sync
   // ──────────────────────────────────────────────────────────
@@ -2370,7 +3077,16 @@ const HubEngine = (() => {
     if (!tid) { console.warn('[Hub] No tournament ID for WS'); return; }
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${proto}://${location.host}/ws/tournament/${tid}/`;
+    let url = `${proto}://${location.host}/ws/tournament/${tid}/`;
+    let jwt = null;
+    try {
+      jwt = window.localStorage?.getItem('access_token') || window.sessionStorage?.getItem('access_token') || null;
+    } catch (e) {
+      jwt = null;
+    }
+    if (jwt) {
+      url += `?token=${encodeURIComponent(jwt)}`;
+    }
 
     try {
       _ws = new WebSocket(url);
@@ -2382,6 +3098,8 @@ const HubEngine = (() => {
     _ws.onopen = () => {
       console.info('[Hub] WS connected');
       _wsReconnectAttempts = 0;
+      _wsConnected = true;
+      _restartPolling();
       // Add a visual connection indicator
       const ind = document.getElementById('hub-ws-indicator');
       if (ind) { ind.classList.remove('disconnected'); ind.classList.add('connected'); }
@@ -2398,8 +3116,14 @@ const HubEngine = (() => {
 
     _ws.onclose = (evt) => {
       _ws = null;
+      _wsConnected = false;
+      _restartPolling();
       const ind = document.getElementById('hub-ws-indicator');
       if (ind) { ind.classList.remove('connected'); ind.classList.add('disconnected'); }
+      if (evt.code === 4001 || evt.code === 4002 || evt.code === 4003) {
+        console.info(`[Hub] WS auth unavailable (${evt.code}) — using poll fallback`);
+        return;
+      }
       // Auto-reconnect with exponential backoff (skip if clean close)
       if (evt.code !== 1000 && _wsReconnectAttempts < WS_RECONNECT_MAX) {
         const delay = WS_RECONNECT_BASE * Math.pow(2, _wsReconnectAttempts);
@@ -2449,6 +3173,20 @@ const HubEngine = (() => {
       case 'match_update':
         _matchesCache = null;
         _refreshActiveTab(['matches', 'schedule']);
+        break;
+
+      case 'announcement_refresh':
+        _pollAnnouncements();
+        break;
+
+      case 'ping':
+        // Server heartbeat ping; reply immediately to avoid timeout close (4004).
+        if (_ws && _ws.readyState === WebSocket.OPEN) {
+          _ws.send(JSON.stringify({
+            type: 'pong',
+            timestamp: msg.timestamp || Date.now(),
+          }));
+        }
         break;
 
       case 'pong':
@@ -2508,6 +3246,14 @@ const HubEngine = (() => {
     if (_countdownId) clearInterval(_countdownId);
     if (_wsPingId) clearInterval(_wsPingId);
     if (_resizeTimer) clearTimeout(_resizeTimer);
+    if (_mobileChromeIdleTimer) clearTimeout(_mobileChromeIdleTimer);
+
+    const viewport = document.getElementById('hub-viewport');
+    if (viewport) {
+      if (_onViewportScroll) viewport.removeEventListener('scroll', _onViewportScroll);
+      if (_onViewportTouchStart) viewport.removeEventListener('touchstart', _onViewportTouchStart);
+      if (_onViewportPointerDown) viewport.removeEventListener('pointerdown', _onViewportPointerDown);
+    }
 
     if (_onKeyDown) document.removeEventListener('keydown', _onKeyDown);
     if (_onWindowResize) window.removeEventListener('resize', _onWindowResize);
@@ -2521,6 +3267,10 @@ const HubEngine = (() => {
     _onHashChange = null;
     _onPopState = null;
     _onVisibilityChange = null;
+    _onViewportScroll = null;
+    _onViewportTouchStart = null;
+    _onViewportPointerDown = null;
+    _mobileChromeIdleTimer = null;
     _wsPingId = null;
     _resizeTimer = null;
 
@@ -2538,6 +3288,251 @@ const HubEngine = (() => {
 
   function closeStatusModal() {
     _closeModal('hub-status-modal');
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Action Center Alert Modal
+  // ──────────────────────────────────────────────────────────
+  function openAlertModal(source) {
+    const titleEl = document.getElementById('hub-alert-modal-title');
+    const bodyEl = document.getElementById('hub-alert-modal-body');
+    const timeEl = document.getElementById('hub-alert-modal-time');
+    const actionEl = document.getElementById('hub-alert-modal-action');
+    const typeEl = document.getElementById('hub-alert-modal-type');
+    const iconEl = document.getElementById('hub-alert-modal-icon');
+    const iconWrapEl = document.getElementById('hub-alert-modal-icon-wrap');
+    const modalShell = document.getElementById('hub-alert-modal-shell');
+    if (!titleEl || !bodyEl || !timeEl || !actionEl || !typeEl || !iconEl || !iconWrapEl || !modalShell) return;
+
+    const dataset = source && source.dataset ? source.dataset : {};
+    const title = (dataset.alertTitle || '').trim() || 'Tournament Alert';
+    const body = (dataset.alertBody || '').trim() || 'No details available for this alert.';
+    const time = (dataset.alertTime || '').trim();
+    const targetUrl = (dataset.alertTargetUrl || '').trim() || '/notifications/';
+    const actionLabel = (dataset.alertActionLabel || '').trim() || 'Open';
+    const alertId = Number(dataset.alertId || 0);
+    const tone = (dataset.alertTone || 'info').trim().toLowerCase();
+    const typeLabel = (dataset.alertTypeLabel || 'Update').trim();
+    const iconName = (dataset.alertIcon || 'bell-ring').trim().toLowerCase();
+
+    const iconByName = {
+      'shield-alert': '⛔',
+      'badge-check': '✅',
+      'users-round': '👥',
+      'receipt-text': '🧾',
+      'bell-ring': '🔔',
+    };
+    const iconByTone = {
+      danger: '⛔',
+      warning: '⚠',
+      success: '✅',
+      info: '🔔',
+    };
+
+    const toneStyles = {
+      danger: { text: '#ff8aa0', border: 'rgba(255,42,85,.35)', bg: 'rgba(255,42,85,.16)', shell: 'rgba(255,42,85,.22)' },
+      warning: { text: '#ffd56e', border: 'rgba(255,184,0,.35)', bg: 'rgba(255,184,0,.16)', shell: 'rgba(255,184,0,.22)' },
+      success: { text: '#66ffae', border: 'rgba(0,255,102,.35)', bg: 'rgba(0,255,102,.16)', shell: 'rgba(0,255,102,.22)' },
+      info: { text: '#a5f3fc', border: 'rgba(34,211,238,.35)', bg: 'rgba(34,211,238,.16)', shell: 'rgba(34,211,238,.22)' },
+    };
+
+    const selectedTone = toneStyles[tone] ? tone : 'info';
+    const toneStyle = toneStyles[selectedTone];
+
+    const applyTone = (el, bgAlpha = toneStyle.bg) => {
+      el.style.backgroundColor = bgAlpha;
+      el.style.borderColor = toneStyle.border;
+      el.style.color = toneStyle.text;
+    };
+    applyTone(typeEl);
+    applyTone(iconWrapEl);
+    applyTone(actionEl, toneStyle.bg);
+    modalShell.style.borderColor = toneStyle.shell;
+
+    titleEl.textContent = title;
+    bodyEl.textContent = body;
+    timeEl.textContent = time;
+    typeEl.textContent = typeLabel;
+    iconEl.textContent = iconByName[iconName] || iconByTone[selectedTone] || '🔔';
+    actionEl.textContent = actionLabel;
+    actionEl.href = targetUrl;
+
+    const clearBtn = document.getElementById('hub-alert-modal-clear');
+    if (clearBtn) {
+      const hasAlertId = alertId > 0;
+      clearBtn.dataset.alertId = hasAlertId ? String(alertId) : '';
+      clearBtn.disabled = !hasAlertId;
+      clearBtn.classList.toggle('opacity-50', !hasAlertId);
+      clearBtn.classList.toggle('cursor-not-allowed', !hasAlertId);
+    }
+
+    _openModal('hub-alert-modal', 'hub-alert-modal-title');
+  }
+
+  function closeAlertModal() {
+    _closeModal('hub-alert-modal');
+  }
+
+  function requestAlertClear() {
+    const clearBtn = document.getElementById('hub-alert-modal-clear');
+    const alertId = Number(clearBtn?.dataset?.alertId || 0);
+    if (!alertId) return;
+
+    const alertTitle = (document.getElementById('hub-alert-modal-title')?.textContent || '').trim();
+    const confirmCopy = document.getElementById('hub-alert-confirm-copy');
+    const confirmRoot = document.getElementById('hub-alert-confirm-modal');
+    if (!confirmRoot) return;
+
+    if (confirmCopy) {
+      confirmCopy.textContent = `This will remove "${alertTitle || 'this alert'}" from your Action Center.`;
+    }
+    confirmRoot.dataset.alertId = String(alertId);
+    _openModal('hub-alert-confirm-modal', 'hub-alert-confirm-title');
+  }
+
+  function closeAlertConfirmModal() {
+    _closeModal('hub-alert-confirm-modal');
+  }
+
+  let _pendingAlertDelete = null;
+
+  function _removeUndoBar() {
+    const existing = document.getElementById('hub-alert-undo-bar');
+    if (existing) existing.remove();
+  }
+
+  function _showUndoBar({ message, onUndo }) {
+    _removeUndoBar();
+    const bar = document.createElement('div');
+    bar.id = 'hub-alert-undo-bar';
+    bar.className = 'fixed bottom-4 right-4 z-[120] hub-glass rounded-xl border border-cyan-400/30 bg-[#0a1728]/95 px-4 py-3 shadow-[0_12px_40px_rgba(2,8,24,.55)]';
+    bar.innerHTML = `
+      <div class="flex items-center gap-3">
+        <p class="text-xs text-gray-100">${_esc(message || 'Alert cleared.')}</p>
+        <button type="button" id="hub-alert-undo-btn" class="px-2.5 py-1 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-[10px] font-black uppercase tracking-wider">Undo</button>
+      </div>`;
+    document.body.appendChild(bar);
+
+    const undoBtn = document.getElementById('hub-alert-undo-btn');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => {
+        try {
+          if (typeof onUndo === 'function') onUndo();
+        } finally {
+          _removeUndoBar();
+        }
+      }, { once: true });
+    }
+  }
+
+  async function _persistAlertDelete(slug, alertId) {
+    const resp = await fetch(`/tournaments/${slug}/hub/api/alerts/${alertId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': _csrfToken,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'same-origin',
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.success) {
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+    return data;
+  }
+
+  async function confirmAlertClear() {
+    const slug = _shell?.dataset?.slug || '';
+    const confirmRoot = document.getElementById('hub-alert-confirm-modal');
+    const alertId = Number(confirmRoot?.dataset?.alertId || 0);
+    if (!slug || !alertId) return;
+
+    try {
+      if (_pendingAlertDelete?.timerId) {
+        clearTimeout(_pendingAlertDelete.timerId);
+        _pendingAlertDelete = null;
+        _removeUndoBar();
+      }
+
+      closeAlertConfirmModal();
+      closeAlertModal();
+
+      const row = document.querySelector(`[data-hub-alert-row="${alertId}"]`);
+      if (row) {
+        row.remove();
+      }
+
+      const deletionState = {
+        slug,
+        alertId,
+        undone: false,
+        timerId: null,
+      };
+      _pendingAlertDelete = deletionState;
+
+      _showUndoBar({
+        message: 'Alert cleared. Undo within 5 seconds.',
+        onUndo: async () => {
+          deletionState.undone = true;
+          if (deletionState.timerId) clearTimeout(deletionState.timerId);
+          _pendingAlertDelete = null;
+          await refreshActionCenter();
+          _emitToast('success', 'Alert restored.');
+        },
+      });
+
+      deletionState.timerId = setTimeout(async () => {
+        if (deletionState.undone) return;
+        try {
+          await _persistAlertDelete(slug, alertId);
+          _removeUndoBar();
+          await refreshActionCenter();
+          _emitToast('success', 'Alert removed.');
+        } catch (persistErr) {
+          console.error('[HubEngine] Failed to persist alert delete:', persistErr);
+          await refreshActionCenter();
+          _emitToast('error', 'Could not remove alert. It has been restored.');
+        } finally {
+          if (_pendingAlertDelete === deletionState) {
+            _pendingAlertDelete = null;
+          }
+        }
+      }, 5000);
+    } catch (err) {
+      console.error('[HubEngine] Failed to clear alert:', err);
+      _emitToast('error', 'Could not clear alert. Please try again.');
+    }
+  }
+
+  async function refreshActionCenter() {
+    const actionCenter = document.getElementById('hub-action-center');
+    if (!actionCenter) return;
+
+    try {
+      const refreshUrl = new URL(window.location.href);
+      refreshUrl.searchParams.set('_ac_refresh', String(Date.now()));
+      const resp = await fetch(refreshUrl.toString(), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const nextActionCenter = doc.getElementById('hub-action-center');
+      if (nextActionCenter) {
+        actionCenter.replaceWith(nextActionCenter);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      } else {
+        actionCenter.remove();
+      }
+    } catch (err) {
+      console.error('[HubEngine] Failed to refresh Action Center:', err);
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -2599,9 +3594,7 @@ const HubEngine = (() => {
       link.click();
     } catch (err) {
       console.error('[HubEngine] VIP pass download failed:', err);
-      if (window.showToast) {
-        window.showToast({ type: 'error', message: 'Could not generate VIP pass image. Please try again.' });
-      }
+      _emitToast('error', 'Could not generate VIP pass image. Please try again.');
       _announceLiveMessage('Could not generate VIP pass image. Please try again.', 'assertive');
     } finally {
       card.classList.remove('is-exporting');
@@ -2754,9 +3747,7 @@ const HubEngine = (() => {
   }
 
   function _showLockToast() {
-    if (window.showToast) {
-      window.showToast({ type: 'warning', message: _getLockReason() });
-    }
+    _emitToast('warning', _getLockReason());
     _announceLiveMessage(_getLockReason(), 'assertive');
   }
 
@@ -3064,6 +4055,8 @@ const HubEngine = (() => {
     performCheckIn,
     openMobileSidebar,
     closeMobileSidebar,
+    toggleDesktopSidebar,
+    openAnnouncementsPanel,
     swapToSub,
     swapToStarter,
     bracketZoom,
@@ -3075,7 +4068,14 @@ const HubEngine = (() => {
     // Module 9: Participants
     filterParticipants,
     loadMoreParticipants,
+    loadMoreAnnouncements,
+    refreshAnnouncements,
     // Module 10: Contact & Guide
+    openAlertModal,
+    closeAlertModal,
+    requestAlertClear,
+    closeAlertConfirmModal,
+    confirmAlertClear,
     showContactModal,
     closeContactModal,
     // Module 11: Status Detail

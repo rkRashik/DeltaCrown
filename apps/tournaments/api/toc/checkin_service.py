@@ -31,6 +31,19 @@ class TOCCheckinService:
     """All read/write operations for the Check-in Hub tab."""
 
     @staticmethod
+    def _base_checkin_config(tournament: Tournament, config: dict | None = None) -> tuple[dict, bool, int, int]:
+        cfg = config or tournament.config or {}
+        checkin = cfg.get("checkin", {}) if isinstance(cfg, dict) else {}
+        checkin_required = bool(getattr(tournament, "enable_check_in", False))
+        window_minutes = int(
+            checkin.get("window_minutes")
+            or getattr(tournament, "check_in_minutes_before", 30)
+            or 30
+        )
+        closes_before = int(getattr(tournament, "check_in_closes_minutes_before", 0) or 0)
+        return checkin, checkin_required, window_minutes, closes_before
+
+    @staticmethod
     def get_checkin_dashboard(tournament: Tournament, round_number: int = 0) -> dict:
         """Full check-in dashboard data with enriched participant info."""
         from apps.tournaments.models.registration import Registration
@@ -50,11 +63,13 @@ class TOCCheckinService:
 
         # ── Config ──
         config = tournament.config or {}
-        checkin_config = config.get("checkin", {})
-        checkin_open = checkin_config.get("is_open", False)
+        checkin_config, checkin_required, checkin_window_minutes, closes_before = TOCCheckinService._base_checkin_config(
+            tournament,
+            config,
+        )
+        checkin_open = bool(checkin_config.get("is_open", False)) and checkin_required
         checkin_deadline = checkin_config.get("deadline", None)
         auto_dq_enabled = checkin_config.get("auto_dq", False)
-        checkin_window_minutes = checkin_config.get("window_minutes", 30)
         per_round_checkin = checkin_config.get("per_round", False)
 
         # ── Time calculations ──
@@ -187,9 +202,12 @@ class TOCCheckinService:
             "config": {
                 "open": checkin_open,
                 "is_open": checkin_open,
+                "checkin_required": checkin_required,
                 "deadline": checkin_deadline,
                 "auto_dq": auto_dq_enabled,
                 "window_minutes": checkin_window_minutes,
+                "check_in_minutes_before": checkin_window_minutes,
+                "check_in_closes_minutes_before": closes_before,
                 "per_round": per_round_checkin,
             },
             "game_meta": game_meta,
@@ -208,18 +226,26 @@ class TOCCheckinService:
     @staticmethod
     def open_checkin(tournament: Tournament, window_minutes: int = 30) -> dict:
         """Open the check-in window."""
+        if not bool(getattr(tournament, "enable_check_in", False)):
+            return {"error": "Check-in is disabled for this tournament."}
+
         config = tournament.config or {}
-        deadline = timezone.now() + timedelta(minutes=window_minutes)
+        effective_window = int(window_minutes or getattr(tournament, "check_in_minutes_before", 30) or 30)
+        deadline = timezone.now() + timedelta(minutes=effective_window)
         config["checkin"] = {
             "is_open": True,
             "deadline": deadline.isoformat(),
-            "window_minutes": window_minutes,
+            "window_minutes": effective_window,
             "auto_dq": config.get("checkin", {}).get("auto_dq", False),
             "per_round": config.get("checkin", {}).get("per_round", False),
             "opened_at": timezone.now().isoformat(),
         }
         tournament.config = config
-        tournament.save(update_fields=["config"])
+        update_fields = ["config"]
+        if getattr(tournament, "check_in_minutes_before", None) != effective_window:
+            tournament.check_in_minutes_before = effective_window
+            update_fields.append("check_in_minutes_before")
+        tournament.save(update_fields=update_fields)
         logger.info(f"Check-in opened for {tournament.slug}, deadline={deadline}")
         # Fire auto-notification for check-in open
         try:
@@ -227,7 +253,12 @@ class TOCCheckinService:
             TOCNotificationsService.fire_auto_event(tournament, "checkin_open")
         except Exception:
             pass
-        return {"status": "open", "deadline": deadline.isoformat(), "window_minutes": window_minutes}
+        return {
+            "status": "open",
+            "deadline": deadline.isoformat(),
+            "window_minutes": effective_window,
+            "checkin_required": bool(getattr(tournament, "enable_check_in", False)),
+        }
 
     @staticmethod
     def close_checkin(tournament: Tournament) -> dict:
@@ -246,7 +277,10 @@ class TOCCheckinService:
             TOCNotificationsService.fire_auto_event(tournament, "checkin_closed")
         except Exception:
             pass
-        return {"status": "closed"}
+        return {
+            "status": "closed",
+            "checkin_required": bool(getattr(tournament, "enable_check_in", False)),
+        }
 
     @staticmethod
     def force_checkin(tournament: Tournament, participant_id: int) -> dict:
@@ -287,6 +321,9 @@ class TOCCheckinService:
         """Auto-disqualify teams that haven't checked in after deadline."""
         from apps.tournaments.models.registration import Registration
 
+        if not bool(getattr(tournament, "enable_check_in", False)):
+            return {"error": "Check-in is disabled for this tournament."}
+
         config = tournament.config or {}
         checkin = config.get("checkin", {})
         if checkin.get("is_open"):
@@ -306,19 +343,48 @@ class TOCCheckinService:
     def update_checkin_config(tournament: Tournament, data: dict) -> dict:
         """Update check-in configuration."""
         config = tournament.config or {}
-        checkin = config.get("checkin", {})
+        checkin, checkin_required, window_minutes, _closes_before = TOCCheckinService._base_checkin_config(
+            tournament,
+            config,
+        )
+        update_fields = ["config"]
+
+        if "checkin_required" in data:
+            checkin_required = bool(data["checkin_required"])
+            if tournament.enable_check_in != checkin_required:
+                tournament.enable_check_in = checkin_required
+                update_fields.append("enable_check_in")
+            if not checkin_required:
+                checkin["is_open"] = False
 
         if "auto_dq" in data:
             checkin["auto_dq"] = bool(data["auto_dq"])
         if "per_round" in data:
             checkin["per_round"] = bool(data["per_round"])
         if "window_minutes" in data:
-            checkin["window_minutes"] = int(data["window_minutes"])
+            window_minutes = int(data["window_minutes"])
+            checkin["window_minutes"] = window_minutes
+            if getattr(tournament, "check_in_minutes_before", None) != window_minutes:
+                tournament.check_in_minutes_before = window_minutes
+                update_fields.append("check_in_minutes_before")
+        if "check_in_closes_minutes_before" in data:
+            closes_before = int(data["check_in_closes_minutes_before"])
+            if getattr(tournament, "check_in_closes_minutes_before", None) != closes_before:
+                tournament.check_in_closes_minutes_before = closes_before
+                update_fields.append("check_in_closes_minutes_before")
 
         config["checkin"] = checkin
         tournament.config = config
-        tournament.save(update_fields=["config"])
-        return {"config": checkin}
+        tournament.save(update_fields=sorted(set(update_fields)))
+        return {
+            "config": {
+                **checkin,
+                "checkin_required": bool(getattr(tournament, "enable_check_in", False)),
+                "window_minutes": int(getattr(tournament, "check_in_minutes_before", window_minutes) or window_minutes),
+                "check_in_minutes_before": int(getattr(tournament, "check_in_minutes_before", window_minutes) or window_minutes),
+                "check_in_closes_minutes_before": int(getattr(tournament, "check_in_closes_minutes_before", 0) or 0),
+            }
+        }
 
     @staticmethod
     def blast_reminder(tournament: Tournament) -> dict:

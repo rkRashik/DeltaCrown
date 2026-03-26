@@ -164,6 +164,9 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             logger.warning(
                 f"Unauthenticated WebSocket connection attempt to tournament {self.tournament_id}"
             )
+            # Accept then close so browser receives explicit close code (4001)
+            # instead of generic 1006 and can stop reconnect loops.
+            await self.accept()
             await self.close(code=4001)  # 4001: Authentication required
             return
         

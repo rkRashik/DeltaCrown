@@ -304,13 +304,26 @@ class TOCParticipantsAdvancedService:
         if not reg:
             raise ValidationError("No waitlisted registration to promote.")
 
+        payment = getattr(reg, 'payment', None)
+        payment_status = ((getattr(payment, 'status', '') if payment else '') or '').strip().lower()
+        payment_required = bool(tournament.has_entry_fee and payment_status not in {'submitted', 'verified', 'waived'})
+
+        if payment_required:
+            next_step = 'Next step: complete payment from Hub to secure the slot.'
+        else:
+            next_step = 'Next step: open Hub and confirm readiness/check-in status.'
+
+        participant_label = reg.user.username if reg.user else f"registration #{reg.id}"
+
         return {
             "id": reg.id,
             "participant_name": reg.user.username if reg.user else "Unknown",
             "status": reg.status,
             "status_display": reg.get_status_display(),
             "waitlist_position": reg.waitlist_position,
-            "message": f"Promoted {reg.user.username if reg.user else 'registration'} from waitlist.",
+            "message": f"Done: promoted {participant_label} from waitlist. {next_step}",
+            "next_step": next_step,
+            "payment_required": payment_required,
         }
 
     # ──────────────────────────────────────────────────────────────
@@ -335,13 +348,25 @@ class TOCParticipantsAdvancedService:
                 "message": "Waitlist is empty or tournament is at capacity.",
             }
 
+        payment = getattr(reg, 'payment', None)
+        payment_status = ((getattr(payment, 'status', '') if payment else '') or '').strip().lower()
+        payment_required = bool(tournament.has_entry_fee and payment_status not in {'submitted', 'verified', 'waived'})
+        next_step = (
+            'Next step: complete payment from Hub to secure the slot.'
+            if payment_required else
+            'Next step: open Hub and confirm readiness/check-in status.'
+        )
+        participant_label = reg.user.username if reg.user else f"registration #{reg.id}"
+
         return {
             "promoted": True,
             "id": reg.id,
             "participant_name": reg.user.username if reg.user else "Unknown",
             "status": reg.status,
             "status_display": reg.get_status_display(),
-            "message": f"Auto-promoted {reg.user.username if reg.user else 'registration'} from waitlist.",
+            "message": f"Done: auto-promoted {participant_label} from waitlist. {next_step}",
+            "next_step": next_step,
+            "payment_required": payment_required,
         }
 
     # ──────────────────────────────────────────────────────────────
@@ -457,6 +482,91 @@ class TOCParticipantsAdvancedService:
             }
             for r in qs
         ]
+
+    @classmethod
+    def get_disqualified(
+        cls,
+        tournament: Tournament,
+        *,
+        status_filter: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get disqualified/inactive registrations for separate TOC handling."""
+        qs = Registration.objects.filter(
+            tournament=tournament,
+            status__in=[Registration.REJECTED, Registration.CANCELLED, Registration.NO_SHOW],
+            is_deleted=False,
+        ).select_related("user").order_by("-updated_at", "-created_at")
+
+        if search:
+            qs = qs.filter(
+                Q(user__username__icontains=search)
+                | Q(registration_number__icontains=search)
+            )
+
+        if status_filter in {Registration.REJECTED, Registration.CANCELLED, Registration.NO_SHOW}:
+            qs = qs.filter(status=status_filter)
+
+        results = []
+        for r in qs:
+            reg_data = r.registration_data if isinstance(r.registration_data, dict) else {}
+            results.append(
+                {
+                    "id": r.id,
+                    "participant_name": r.user.username if r.user else "Unknown",
+                    "username": r.user.username if r.user else None,
+                    "registration_number": r.registration_number or "",
+                    "status": r.status,
+                    "status_display": r.get_status_display(),
+                    "slot_number": r.slot_number,
+                    "checked_in": bool(r.checked_in),
+                    "waitlist_position": r.waitlist_position,
+                    "disqualified_at": reg_data.get("disqualified_at"),
+                    "disqualification_reason": reg_data.get("disqualification_reason", ""),
+                }
+            )
+        return results
+
+    @classmethod
+    @transaction.atomic
+    def move_disqualified_to_waitlist(
+        cls,
+        tournament: Tournament,
+        registration_id: int,
+        *,
+        moved_by,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Move an inactive/disqualified registration to waitlist for possible reinstatement."""
+        reg = Registration.objects.select_related("user").get(
+            id=registration_id,
+            tournament=tournament,
+            is_deleted=False,
+        )
+
+        if reg.status not in [Registration.REJECTED, Registration.CANCELLED, Registration.NO_SHOW]:
+            raise ValidationError("Only inactive/disqualified registrations can be moved to waitlist.")
+
+        previous_status = reg.status
+        reg = RegistrationService.add_to_waitlist(registration_id=reg.id)
+
+        reg_data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
+        reg_data['moved_to_waitlist_at'] = timezone.now().isoformat()
+        reg_data['moved_to_waitlist_by'] = getattr(moved_by, 'username', str(moved_by))
+        reg_data['moved_to_waitlist_from_status'] = previous_status
+        if reason:
+            reg_data['moved_to_waitlist_reason'] = reason.strip()
+        reg.registration_data = reg_data
+        reg.save(update_fields=['registration_data', 'updated_at'])
+
+        return {
+            "id": reg.id,
+            "participant_name": reg.user.username if reg.user else "Unknown",
+            "status": reg.status,
+            "status_display": reg.get_status_display(),
+            "waitlist_position": reg.waitlist_position,
+            "message": "Participant moved to waitlist successfully.",
+        }
 
     # ──────────────────────────────────────────────────────────────
     # Private serializers

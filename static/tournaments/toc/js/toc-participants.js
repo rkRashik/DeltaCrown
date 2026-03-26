@@ -482,19 +482,19 @@
     }
 
     try {
-      const result = await TOC.fetch(`${TOC.config.apiBase}/participants/bulk-action/`, {
+        const result = await TOC.fetch(`${TOC.config.apiBase}/participants/bulk-action/`, {
         method: 'POST',
         body: JSON.stringify({ action, ids, reason }),
       });
-      TOC.toast(`${result.processed}/${result.total_requested} ${action}d successfully.`, 'success');
+        TOC.toast(`Done: ${result.processed}/${result.total_requested} participants updated.`, 'success');
       if (result.errors && result.errors.length > 0) {
-        TOC.toast(`${result.errors.length} failed — check console.`, 'warning');
+          TOC.toast(`Completed with ${result.errors.length} issue(s).`, 'warning');
         console.warn('[TOC.participants] Bulk errors:', result.errors);
       }
       selectedIds.clear();
       load();
     } catch (err) {
-      TOC.toast(`Bulk ${action} failed: ${err.message || err}`, 'error');
+          TOC.toast((err && err.message) ? err.message : 'Could not complete the bulk action. Please try again.', 'error');
     }
   }
 
@@ -578,7 +578,7 @@
       });
       const isSuccess = (typeof result.ok === 'boolean') ? result.ok : !result.error;
       if (isSuccess) {
-        TOC.toast(result.message || 'Action completed.', 'success');
+        TOC.toast(result.message || 'Done: action completed successfully.', 'success');
         // Optimistic DOM update — splice the new row data in
         if (result.participant && currentData) {
           const idx = currentData.results.findIndex(r => r.id === id);
@@ -595,11 +595,12 @@
         }
       } else {
         if (tr) tr.style.opacity = '1';
-        TOC.toast(result.error || 'Action failed.', 'error');
+        TOC.toast(result.error || 'Could not complete this action. Please try again.', 'error');
       }
     } catch (err) {
       if (tr) tr.style.opacity = '1';
-      TOC.toast(`Action failed: ${err.message || err}`, 'error');
+      const msg = (err && err.message) ? err.message : 'Could not complete the action. Please try again.';
+      TOC.toast(msg, 'error');
     }
   }
 
@@ -682,7 +683,7 @@
       });
       if (result.ok) {
         const state = result.participant?.checked_in ? 'checked in' : 'checked out';
-        TOC.toast(`Participant ${state}.`, 'success');
+        TOC.toast(`Done: participant ${state}.`, 'success');
         // Merge server truth back into state
         if (result.participant && currentData) {
           const idx = currentData.results.findIndex(r => r.id === id);
@@ -693,11 +694,11 @@
           }
         }
       } else {
-        TOC.toast(result.error || 'Check-in toggle failed.', 'error');
+        TOC.toast(result.error || 'Could not complete the check-in toggle.', 'error');
         load(); // revert on failure
       }
     } catch (err) {
-      TOC.toast(`Check-in failed: ${err.message || err}`, 'error');
+        TOC.toast((err && err.message) ? err.message : 'Could not complete the check-in action.', 'error');
       load(); // revert on failure
     }
   }

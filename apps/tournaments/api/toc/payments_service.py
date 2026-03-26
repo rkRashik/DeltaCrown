@@ -40,6 +40,11 @@ class TOCPaymentsService:
     """
 
     PAGE_SIZE = 50
+    INACTIVE_REGISTRATION_STATUSES = (
+        Registration.REJECTED,
+        Registration.CANCELLED,
+        Registration.NO_SHOW,
+    )
 
     # ──────────────────────────────────────────────────────────────
     # S4-B1: Paginated Payment List
@@ -78,6 +83,8 @@ class TOCPaymentsService:
         qs = Payment.objects.filter(
             registration__tournament=tournament,
             registration__is_deleted=False,
+        ).exclude(
+            registration__status__in=cls.INACTIVE_REGISTRATION_STATUSES,
         ).select_related(
             "registration__user",
             "registration__payment_verification",
@@ -194,6 +201,11 @@ class TOCPaymentsService:
             id=payment_id,
             registration__tournament=tournament,
         )
+
+        if payment.registration.status in cls.INACTIVE_REGISTRATION_STATUSES:
+            raise ValidationError(
+                "Cannot verify payment for a disqualified/cancelled participant."
+            )
 
         RegistrationService.verify_payment(
             payment_id=payment.id,
@@ -319,6 +331,8 @@ class TOCPaymentsService:
         payments = Payment.objects.filter(
             registration__tournament=tournament,
             registration__is_deleted=False,
+        ).exclude(
+            registration__status__in=cls.INACTIVE_REGISTRATION_STATUSES,
         )
 
         agg = payments.aggregate(
@@ -395,6 +409,8 @@ class TOCPaymentsService:
         payments = Payment.objects.filter(
             registration__tournament=tournament,
             registration__is_deleted=False,
+        ).exclude(
+            registration__status__in=cls.INACTIVE_REGISTRATION_STATUSES,
         ).select_related("registration__user").order_by("-submitted_at")
 
         output = io.StringIO()

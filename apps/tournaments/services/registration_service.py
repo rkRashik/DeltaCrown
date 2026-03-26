@@ -336,6 +336,12 @@ class RegistrationService:
                 is_waitlisted=initial_status == Registration.WAITLISTED,
                 source="registration_service",
             )
+            if initial_status == Registration.WAITLISTED and registration.user_id:
+                try:
+                    from apps.tournaments.services.notification_service import TournamentNotificationService
+                    TournamentNotificationService.notify_added_to_waitlist(registration)
+                except Exception as notify_exc:
+                    logger.warning("Failed waitlist-added notification for registration %s: %s", registration.id, notify_exc)
         transaction.on_commit(_emit_created)
         
         return registration
@@ -814,7 +820,8 @@ class RegistrationService:
         
         if active_count >= tournament.max_participants:
             raise ValidationError(
-                "Cannot promote from waitlist: tournament is still at capacity."
+                "Cannot promote from waitlist: tournament is still at capacity. "
+                "Free one slot first (cancel/reject/disqualify an active registration), then promote again."
             )
         
         if registration_id:
@@ -857,6 +864,14 @@ class RegistrationService:
             "Promoted registration %d from waitlist position %s (by %s)",
             reg.id, old_position, promoted_by,
         )
+
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            deadline_hours = tournament.payment_deadline_hours or 48
+            payment_deadline = timezone.now() + timezone.timedelta(hours=deadline_hours)
+            TournamentNotificationService.notify_waitlist_promotion(reg, payment_deadline)
+        except Exception as notify_exc:
+            logger.warning("Failed waitlist-promotion notification for registration %s: %s", reg.id, notify_exc)
         
         return reg
     
@@ -1330,12 +1345,28 @@ class RegistrationService:
             payment = Payment.objects.select_related('registration').get(id=payment_id)
         except Payment.DoesNotExist:
             raise ValidationError(f"Payment with ID {payment_id} not found")
+
+        registration = payment.registration
+
+        # Block verification for registrations that are no longer eligible to occupy
+        # an active slot. This prevents disqualified/cancelled/no-show entries from
+        # being moved back to confirmed via direct or bulk payment verification flows.
+        allowed_registration_statuses = {
+            Registration.PENDING,
+            Registration.PAYMENT_SUBMITTED,
+        }
+        if registration.status not in allowed_registration_statuses:
+            raise ValidationError(
+                "Payment cannot be verified because this registration is not in a payable state."
+            )
+
+        if payment.status not in {Payment.PENDING, Payment.SUBMITTED}:
+            raise ValidationError("Only pending or submitted payments can be verified")
         
         # Use model method to verify
         payment.verify(verified_by=verified_by, admin_notes=admin_notes)
         
         # Update registration status to CONFIRMED
-        registration = payment.registration
         registration.status = Registration.CONFIRMED
         registration.save(update_fields=['status'])
         
@@ -2459,13 +2490,29 @@ class RegistrationService:
         # Update status
         old_status = registration.status
         registration.status = Registration.REJECTED
+
+        # Ensure disqualified registrations never hold active operational capacity.
+        registration.checked_in = False
+        registration.checked_in_at = None
+        registration.checked_in_by = None
+        registration.slot_number = None
+        registration.waitlist_position = None
         
         # Add disqualification tracking
         registration.registration_data['disqualified_at'] = timezone.now().isoformat()
         registration.registration_data['disqualified_by'] = disqualified_by.username if hasattr(disqualified_by, 'username') else str(disqualified_by)
         registration.registration_data['disqualification_reason'] = reason
         registration.registration_data['auto_refunded'] = auto_refund
-        registration.save()
+        registration.save(update_fields=[
+            'status',
+            'checked_in',
+            'checked_in_at',
+            'checked_in_by',
+            'slot_number',
+            'waitlist_position',
+            'registration_data',
+            'updated_at',
+        ])
         
         # Keep roster locked (they're still disqualified from this tournament)
         # Unlock will happen after tournament ends

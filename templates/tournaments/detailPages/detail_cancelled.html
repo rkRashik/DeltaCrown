@@ -36,7 +36,7 @@ Simple read-only template showing cancellation notice and preserved tournament i
         {% endif %}
     </p>
 
-    {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+    {% if tournament.has_entry_fee and tournament.entry_fee_amount and tournament.entry_fee_amount > 0 %}
     <div class="mt-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 max-w-sm mx-auto">
         <div class="flex items-center gap-2 justify-center text-emerald-400 text-xs font-bold">
             <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
@@ -67,11 +67,11 @@ Simple read-only template showing cancellation notice and preserved tournament i
         </div>
         <div>
             <p class="text-gray-600 mb-0.5">Max Slots</p>
-            <p class="text-white font-bold">{{ tournament.max_slots|default:"—" }}</p>
+            <p class="text-white font-bold">{{ tournament.max_participants|default:"—" }}</p>
         </div>
         <div>
             <p class="text-gray-600 mb-0.5">Entry Fee</p>
-            <p class="text-white font-bold">{% if tournament.entry_fee %}৳{{ tournament.entry_fee|intcomma }}{% else %}Free{% endif %}</p>
+            <p class="text-white font-bold">{% if tournament.has_entry_fee and tournament.entry_fee_amount %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}</p>
         </div>
         <div>
             <p class="text-gray-600 mb-0.5">Prize Pool</p>

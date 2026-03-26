@@ -13,6 +13,7 @@ from typing import Any
 from django.utils import timezone
 
 from apps.tournaments.models import Tournament, TournamentAnnouncement
+from apps.tournaments.realtime.broadcast import broadcast_event
 
 logger = logging.getLogger("toc.announcements")
 
@@ -63,6 +64,11 @@ class TOCAnnouncementsService:
             is_pinned=data.get("is_pinned", False),
             is_important=data.get("is_important", False),
         )
+        TOCAnnouncementsService._emit_hub_refresh(
+            tournament=tournament,
+            action="created",
+            announcement_id=ann.id,
+        )
         return {
             "id": ann.id,
             "title": ann.title,
@@ -76,11 +82,28 @@ class TOCAnnouncementsService:
             if field in data:
                 setattr(ann, field, data[field])
         ann.save()
+        TOCAnnouncementsService._emit_hub_refresh(
+            tournament=ann.tournament,
+            action="updated",
+            announcement_id=ann.id,
+        )
         return {"id": ann.id, "updated": True}
 
     @staticmethod
-    def delete_announcement(announcement_id: int) -> dict:
+    def delete_announcement(announcement_id: int, tournament: Tournament | None = None) -> dict:
+        ann = TournamentAnnouncement.objects.filter(pk=announcement_id).only("id", "tournament_id").first()
+        tournament_ref = tournament
+        if ann and tournament_ref is None:
+            tournament_ref = ann.tournament
+
         TournamentAnnouncement.objects.filter(pk=announcement_id).delete()
+
+        if tournament_ref:
+            TOCAnnouncementsService._emit_hub_refresh(
+                tournament=tournament_ref,
+                action="deleted",
+                announcement_id=announcement_id,
+            )
         return {"deleted": True}
 
     # ------------------------------------------------------------------
@@ -130,6 +153,12 @@ class TOCAnnouncementsService:
             notified = len(notifications)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Notification push failed: %s", exc)
+
+        TOCAnnouncementsService._emit_hub_refresh(
+            tournament=tournament,
+            action="broadcast",
+            announcement_id=ann.id,
+        )
 
         return {"id": ann.id, "notified": notified}
 
@@ -210,3 +239,23 @@ class TOCAnnouncementsService:
             "pinned": qs.filter(is_pinned=True).count(),
             "important": qs.filter(is_important=True).count(),
         }
+
+    @staticmethod
+    def _emit_hub_refresh(
+        tournament: Tournament,
+        action: str,
+        announcement_id: int,
+    ) -> None:
+        """Trigger lightweight real-time feed refresh on connected Hub clients."""
+        try:
+            broadcast_event(
+                tournament_id=tournament.id,
+                event_type="announcement_refresh",
+                data={
+                    "announcement_id": announcement_id,
+                    "action": action,
+                    "ts": timezone.now().isoformat(),
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("announcement_refresh broadcast skipped: %s", exc)

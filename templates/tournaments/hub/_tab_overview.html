@@ -4,114 +4,214 @@
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1600px] mx-auto space-y-8">
-  <div class="w-full rounded-[2rem] p-1 relative overflow-hidden group">
-    {% comment %}Outer glow ring{% endcomment %}
-    <div class="absolute inset-0 bg-gradient-to-r
-      {% if check_in_status == 'open' and not is_checked_in %}from-[#00F0FF]/20 via-transparent to-[#7000FF]/10
-      {% elif is_checked_in %}from-[#00FF66]/15 via-transparent to-[#00FF66]/5
-      {% else %}from-white/5 via-transparent to-white/5{% endif %}"></div>
-
-    <div class="bg-[#08080C]/90 backdrop-blur-xl rounded-[30px] p-6 lg:p-10 relative overflow-hidden border border-white/5">
-      <div class="flex flex-col lg:flex-row items-center justify-between gap-8">
-
-        {% comment %}Left: Phase Info{% endcomment %}
-        <div class="relative z-10 flex-1 w-full">
-          {% if phase_event.type == 'danger' %}
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2A55]/10 border border-[#FF2A55]/20 mb-4">
-              <span class="w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>
-              <span class="text-[10px] font-bold text-[#FF2A55] uppercase tracking-widest">{{ phase_event.label }}</span>
-            </div>
-          {% elif phase_event.type == 'success' %}
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/20 mb-4">
-              <span class="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
-              <span class="text-[10px] font-bold text-[#00FF66] uppercase tracking-widest">{{ phase_event.label }}</span>
-            </div>
-          {% else %}
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/20 mb-4">
-              <span class="w-2 h-2 rounded-full bg-[#00F0FF]"></span>
-              <span class="text-[10px] font-bold text-[#00F0FF] uppercase tracking-widest">{{ phase_event.label }}</span>
-            </div>
-          {% endif %}
-
-          <h1 class="font-black text-2xl lg:text-4xl text-white tracking-tight uppercase mb-2" style="font-family:Outfit,sans-serif;">
-            {% if tournament.status == 'live' %}
-              Tournament In Progress
-            {% elif tournament.status == 'registration_open' %}
-              Registration Open
-            {% elif tournament.status == 'registration_closed' %}
-              Awaiting Start
-            {% elif tournament.status == 'completed' %}
-              Tournament Complete
-            {% else %}
-              {{ tournament.name }}
-            {% endif %}
-          </h1>
-          <p class="text-gray-400 font-medium flex items-center gap-2 flex-wrap">
-            {% if game_name %}<span>{{ game_name }}</span><span class="w-1 h-1 rounded-full bg-gray-600"></span>{% endif %}
-            <span>{{ reg_count }} participant{{ reg_count|pluralize }}</span>
-            {% if tournament.format %}<span class="w-1 h-1 rounded-full bg-gray-600"></span><span>{{ tournament.get_format_display|default:tournament.format }}</span>{% endif %}
-          </p>
-        </div>
-
-        {% comment %}Center: Countdown Timer{% endcomment %}
-        {% if phase_event.target %}
-        <div class="relative z-10 text-center shrink-0 w-full lg:w-auto border-y lg:border-y-0 lg:border-x border-white/10 py-6 lg:py-0 lg:px-12">
-          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">{{ phase_event.label }} In</p>
-          <div class="flex items-center justify-center gap-2 digital-clock" id="hub-countdown" data-target="{{ phase_event.target }}">
-            <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}">
-              <span class="countdown-val" id="hub-cd-hours">--</span>
-            </div>
-            <span class="text-xl text-gray-600 font-bold">:</span>
-            <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}">
-              <span class="countdown-val" id="hub-cd-minutes">--</span>
-            </div>
-            <span class="text-xl text-gray-600 font-bold">:</span>
-            <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}">
-              <span class="countdown-val" id="hub-cd-seconds">--</span>
-            </div>
+  <div class="hub-overview-bento-grid grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
+    <div class="lg:col-span-7 hub-overview-bento-hero rounded-3xl p-5 md:p-6 relative overflow-hidden">
+      <div class="relative z-10">
+        {% if phase_event.type == 'danger' %}
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2A55]/15 border border-[#FF2A55]/25 mb-3">
+            <span class="w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>
+            <span class="text-[10px] font-black text-[#FF8AA0] uppercase tracking-widest">{{ phase_event.label }}</span>
           </div>
-        </div>
+        {% elif phase_event.type == 'success' %}
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/25 mb-3">
+            <span class="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
+            <span class="text-[10px] font-black text-[#66FFAE] uppercase tracking-widest">{{ phase_event.label }}</span>
+          </div>
+        {% else %}
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/25 mb-3">
+            <span class="w-2 h-2 rounded-full bg-[#00F0FF]"></span>
+            <span class="text-[10px] font-black text-[#8AF6FF] uppercase tracking-widest">{{ phase_event.label }}</span>
+          </div>
         {% endif %}
 
-        {% comment %}Right: Check-In CTA{% endcomment %}
-        <div class="relative z-10 shrink-0 w-full lg:w-auto text-center lg:text-right">
-          {% if check_in_status == 'open' and not is_checked_in %}
-            <button id="hub-checkin-btn"
-                    class="hub-checkin-btn ready clip-slant w-full lg:w-auto flex items-center justify-center gap-3"
-                    {% if hub_critical_locked %}disabled{% endif %}
-                    onclick="HubEngine.performCheckIn()">
-              <i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now
-            </button>
-            <p class="text-[10px] text-gray-500 mt-3" style="font-family:'Space Grotesk',monospace;">
-              {% if hub_critical_locked %}
-                Locked until verification completes
-              {% else %}
-                Window closes in {{ check_in_countdown }}s
-              {% endif %}
-            </p>
-          {% elif is_checked_in %}
-            <div class="hub-checkin-btn done clip-slant w-full lg:w-auto flex items-center justify-center gap-3">
-              <i data-lucide="check" class="w-5 h-5"></i> Checked In
-            </div>
-            <p class="text-[10px] text-[#00FF66] mt-3">You're all set. Stand by.</p>
-          {% elif check_in_status == 'not_open' %}
-            <div class="hub-checkin-btn disabled clip-slant w-full lg:w-auto flex items-center justify-center gap-3">
-              <i data-lucide="clock" class="w-5 h-5"></i> Check-In Not Open
-            </div>
-          {% elif check_in_status == 'closed' %}
-            <div class="hub-checkin-btn disabled clip-slant w-full lg:w-auto flex items-center justify-center gap-3">
-              <i data-lucide="lock" class="w-5 h-5"></i> Check-In Closed
-            </div>
+        <h1 class="font-black text-2xl md:text-3xl text-white tracking-tight uppercase mb-2 hub-mobile-heading" style="font-family:Outfit,sans-serif;">
+          {% if tournament.status == 'live' %}
+            Tournament In Progress
+          {% elif tournament.status == 'registration_open' %}
+            Registration Open
+          {% elif tournament.status == 'registration_closed' %}
+            Awaiting Start
+          {% elif tournament.status == 'completed' %}
+            Tournament Complete
           {% else %}
-            <div class="hub-checkin-btn disabled clip-slant w-full lg:w-auto flex items-center justify-center gap-3">
-              <i data-lucide="minus" class="w-5 h-5"></i> No Check-In Required
-            </div>
+            {{ tournament.name }}
           {% endif %}
+        </h1>
+
+        <div class="flex items-center gap-2 flex-wrap text-xs text-gray-300 font-medium">
+          {% if game_name %}<span>{{ game_name }}</span><span class="w-1 h-1 rounded-full bg-gray-600"></span>{% endif %}
+          <span>{{ reg_count }} participant{{ reg_count|pluralize }}</span>
+          {% if tournament.format %}<span class="w-1 h-1 rounded-full bg-gray-600"></span><span>{{ tournament.get_format_display|default:tournament.format }}</span>{% endif %}
         </div>
 
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button id="openTicketModal" type="button" onclick="HubEngine.openTicketModal()" class="w-full rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider bg-cyan-400/15 border border-cyan-300/30 text-cyan-100 hover:bg-cyan-400/25 transition-all duration-200 ease-out active:scale-95">
+            View Pass
+          </button>
+          {% if check_in_status == 'open' and not is_checked_in %}
+          <button id="hub-checkin-btn"
+                  class="w-full rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider bg-[#00FF66]/14 border border-[#00FF66]/30 text-[#7DFFBD] hover:bg-[#00FF66]/22 transition-all duration-200 ease-out active:scale-95"
+                  {% if hub_critical_locked %}disabled{% endif %}
+                  onclick="HubEngine.performCheckIn()">
+            Check In
+          </button>
+          {% elif is_checked_in %}
+          <div class="w-full rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider bg-[#00FF66]/10 border border-[#00FF66]/25 text-[#66FFAE] text-center">
+            Checked In
+          </div>
+          {% else %}
+          <button type="button" onclick="HubEngine.switchTab('schedule')" class="w-full rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider bg-white/8 border border-white/15 text-gray-200 hover:bg-white/12 transition-all duration-200 ease-out active:scale-95">
+            Timeline
+          </button>
+          {% endif %}
+        </div>
       </div>
     </div>
+
+    <div class="lg:col-span-5 grid grid-cols-2 gap-3">
+      <div class="hub-overview-bento-card rounded-2xl p-3.5">
+        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Participants</p>
+        <p class="text-2xl font-black text-white mt-1" id="hub-reg-count" style="font-family:Outfit,sans-serif;">{{ reg_count }}</p>
+      </div>
+
+      <div class="hub-overview-bento-card rounded-2xl p-3.5">
+        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</p>
+        <p class="text-sm font-black text-cyan-200 mt-2 uppercase tracking-wide">{{ user_status }}</p>
+      </div>
+
+      {% if phase_event.target %}
+      <div class="hub-overview-bento-card rounded-2xl p-3.5 col-span-2">
+        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{{ phase_event.label }} In</p>
+        <div class="flex items-center justify-center gap-2 digital-clock" id="hub-countdown" data-target="{{ phase_event.target }}">
+          <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span class="countdown-val" id="hub-cd-hours">--</span></div>
+          <span class="text-lg text-gray-600 font-bold">:</span>
+          <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span class="countdown-val" id="hub-cd-minutes">--</span></div>
+          <span class="text-lg text-gray-600 font-bold">:</span>
+          <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span class="countdown-val" id="hub-cd-seconds">--</span></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
   </div>
+
+  {% if hub_primary_alert %}
+  <div id="hub-action-center" class="hub-glass rounded-2xl p-4 md:p-5 border border-cyan-500/25 bg-[linear-gradient(150deg,rgba(16,27,47,0.92)_0%,rgba(9,17,35,0.96)_65%,rgba(10,28,36,0.92)_100%)] shadow-[0_16px_44px_rgba(0,240,255,0.11)]">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15 border border-cyan-400/25">
+          <i data-lucide="radar" class="w-4 h-4 text-cyan-300"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-[10px] font-black text-cyan-300 uppercase tracking-[0.2em]">Action Center</p>
+          <p class="text-xs text-gray-400 truncate">Smart TOC alerts with quick visual meaning</p>
+          {% if status_detail.raw_status == 'waitlisted' and tournament.has_entry_fee %}
+          <div class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-amber-300/35 bg-amber-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-amber-200">
+            <i data-lucide="clock-3" class="w-3 h-3"></i>
+            Payment Not Required Until Call-Up
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <a href="/notifications/" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-[0.14em] text-gray-200 transition-colors">
+        All Alerts
+      </a>
+    </div>
+
+    <div class="mt-3 rounded-xl border border-white/10 bg-black/25 p-3 md:p-4" data-hub-alert-row="{{ hub_primary_alert.id }}">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3 min-w-0">
+          <span class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg
+            {% if hub_primary_alert.tone == 'danger' %}bg-[#ff2a55]/15 border border-[#ff2a55]/35 text-[#ff8aa0]
+            {% elif hub_primary_alert.tone == 'success' %}bg-[#00ff66]/15 border border-[#00ff66]/35 text-[#66ffae]
+            {% elif hub_primary_alert.tone == 'warning' %}bg-[#ffb800]/15 border border-[#ffb800]/35 text-[#ffd56e]
+            {% else %}bg-cyan-500/15 border border-cyan-400/35 text-cyan-200{% endif %}">
+            <i data-lucide="{{ hub_primary_alert.icon|default:'bell-ring' }}" class="w-4 h-4"></i>
+          </span>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider
+                {% if hub_primary_alert.tone == 'danger' %}bg-[#ff2a55]/15 border border-[#ff2a55]/30 text-[#ff8aa0]
+                {% elif hub_primary_alert.tone == 'success' %}bg-[#00ff66]/15 border border-[#00ff66]/30 text-[#66ffae]
+                {% elif hub_primary_alert.tone == 'warning' %}bg-[#ffb800]/15 border border-[#ffb800]/30 text-[#ffd56e]
+                {% else %}bg-cyan-500/15 border border-cyan-400/30 text-cyan-200{% endif %}">
+                {{ hub_primary_alert.type_label|default:'Update' }}
+              </span>
+              <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">{{ hub_primary_alert.time_ago }}</span>
+            </div>
+            <h3 class="text-sm md:text-base font-black text-white leading-tight truncate">{{ hub_primary_alert.title }}</h3>
+            {% if hub_primary_alert.body %}
+            <p class="text-xs text-gray-300 mt-1 leading-relaxed">{{ hub_primary_alert.body|truncatechars:100 }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="shrink-0 flex items-center gap-1.5">
+          <button type="button"
+            onclick="HubEngine.openAlertModal(this)"
+            data-alert-id="{{ hub_primary_alert.id }}"
+            data-alert-title="{{ hub_primary_alert.title|escapejs }}"
+            data-alert-body="{{ hub_primary_alert.body|default:''|escapejs }}"
+            data-alert-time="{{ hub_primary_alert.created_at_display|default:hub_primary_alert.time_ago|escapejs }}"
+            data-alert-target-url="{{ hub_primary_alert.target_url|escapejs }}"
+            data-alert-action-label="{{ hub_primary_alert.action_label|default:'Open'|escapejs }}"
+            data-alert-tone="{{ hub_primary_alert.tone|default:'info'|escapejs }}"
+            data-alert-type-label="{{ hub_primary_alert.type_label|default:'Update'|escapejs }}"
+            data-alert-icon="{{ hub_primary_alert.icon|default:'bell-ring'|escapejs }}"
+            class="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-[10px] font-black uppercase tracking-[0.14em] transition-colors">
+            View
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {% if hub_recent_alerts|length > 1 %}
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+      {% for alert in hub_recent_alerts|slice:'1:' %}
+      <div class="group w-full rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] px-3 py-2 transition-colors" data-hub-alert-row="{{ alert.id }}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start gap-2 min-w-0">
+            <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md
+              {% if alert.tone == 'danger' %}bg-[#ff2a55]/12 text-[#ff8aa0]
+              {% elif alert.tone == 'success' %}bg-[#00ff66]/12 text-[#66ffae]
+              {% elif alert.tone == 'warning' %}bg-[#ffb800]/12 text-[#ffd56e]
+              {% else %}bg-cyan-500/12 text-cyan-200{% endif %}">
+              <i data-lucide="{{ alert.icon|default:'bell-ring' }}" class="w-3.5 h-3.5"></i>
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-white truncate">{{ alert.title }}</p>
+              <div class="flex items-center gap-1.5 mt-1">
+                <span class="text-[9px] uppercase tracking-wider font-black
+                  {% if alert.tone == 'danger' %}text-[#ff8aa0]
+                  {% elif alert.tone == 'success' %}text-[#66ffae]
+                  {% elif alert.tone == 'warning' %}text-[#ffd56e]
+                  {% else %}text-cyan-200{% endif %}">{{ alert.type_label|default:'Update' }}</span>
+                <span class="text-[10px] text-gray-500">{{ alert.time_ago }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button type="button"
+              onclick="HubEngine.openAlertModal(this)"
+              data-alert-id="{{ alert.id }}"
+              data-alert-title="{{ alert.title|escapejs }}"
+              data-alert-body="{{ alert.body|default:''|escapejs }}"
+              data-alert-time="{{ alert.created_at_display|default:alert.time_ago|escapejs }}"
+              data-alert-target-url="{{ alert.target_url|escapejs }}"
+              data-alert-action-label="{{ alert.action_label|default:'Open'|escapejs }}"
+              data-alert-tone="{{ alert.tone|default:'info'|escapejs }}"
+              data-alert-type-label="{{ alert.type_label|default:'Update'|escapejs }}"
+              data-alert-icon="{{ alert.icon|default:'bell-ring'|escapejs }}"
+              class="h-7 w-7 inline-flex items-center justify-center rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-200 transition-colors"
+              title="View alert details">
+              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 
   {% comment %}── Live Stream Embed ────────────────────────────────────{% endcomment %}
   {% if tournament.stream_youtube_url or tournament.stream_twitch_url %}
@@ -256,7 +356,7 @@
         <span class="w-2.5 h-2.5 rounded-full
           {% if is_checked_in %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
           {% elif user_status == 'Pending Approval' %}bg-[#FFB800] shadow-[0_0_6px_#FFB800]
-          {% elif user_status == 'Confirmed' %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
+          {% elif user_status == 'Registered' %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
           {% else %}bg-[var(--game-primary)]{% endif %}"></span>
         <span class="text-sm font-bold text-white">{{ user_status }}</span>
       </div>
@@ -268,6 +368,16 @@
     <div class="hub-widget-card">
       <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Quick Actions</p>
       <div class="flex flex-wrap gap-2">
+        {% if hub_payment_action_enabled and hub_payment_action_url %}
+        <a href="{{ hub_payment_action_url }}"
+           class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg {% if hub_payment_action_variant == 'danger' %}bg-[#FF2A55]/12 border border-[#FF2A55]/35 text-[#FF8DA4] hover:bg-[#FF2A55]/20{% else %}bg-[#FFB800]/12 border border-[#FFB800]/35 text-[#FFD56A] hover:bg-[#FFB800]/20{% endif %} text-[10px] font-black uppercase tracking-wider transition-colors">
+          <i data-lucide="wallet" class="w-3 h-3"></i> {{ hub_payment_action_label|default:'Complete Payment' }}
+        </a>
+        {% elif hub_payment_action_hint %}
+        <span class="inline-flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg {% if hub_payment_action_variant == 'warning' %}bg-[#FFB800]/10 border border-[#FFB800]/25 text-[#FFD56A]{% elif hub_payment_action_variant == 'danger' %}bg-[#FF2A55]/10 border border-[#FF2A55]/25 text-[#FF8DA4]{% else %}bg-white/5 border border-white/10 text-gray-300{% endif %} text-[10px] font-semibold leading-relaxed">
+          <i data-lucide="info" class="w-3 h-3 mt-0.5 shrink-0"></i> {{ hub_payment_action_hint }}
+        </span>
+        {% endif %}
         {% if discord_url %}
         <a href="{{ discord_url }}" target="_blank" rel="noopener"
            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#5865F2] text-[10px] font-bold hover:bg-[#5865F2]/20 transition-colors">
@@ -288,19 +398,20 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
 
-    {% comment %}── Announcements Feed ───────────────────────────────────{% endcomment %}
+    {% comment %}── Announcements Snapshot (Latest 5) ────────────────────{% endcomment %}
     <div class="lg:col-span-2 hub-glass rounded-2xl flex flex-col min-h-[350px]">
-      <div class="p-6 border-b border-white/5 flex items-center justify-between">
+      <div class="p-6 border-b border-white/5 flex items-center justify-between gap-3">
         <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-          <i data-lucide="radio" class="w-4 h-4 text-[#00FF66]"></i> Tournament Feed
+          <i data-lucide="radio" class="w-4 h-4 text-[#00FF66]"></i> Tournament Feed (Latest)
         </h3>
-        <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;" id="hub-ann-count">
-          {{ announcements|length }} update{{ announcements|length|pluralize }}
-        </span>
+        <button type="button" onclick="HubEngine.switchTab('announcements')"
+                class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-cyan-400/30 bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25 transition-colors">
+          View All
+        </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-6 space-y-6" id="hub-announcements-feed">
-        {% for ann in announcements %}
+      <div class="flex-1 overflow-y-auto p-6 space-y-6" id="hub-overview-announcements-feed">
+        {% for ann in announcements|slice:":5" %}
         <div class="relative pl-6 border-l border-white/5 {% if not forloop.last %}pb-6{% endif %}">
           <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px]
             {% if ann.type == 'urgent' %}ann-dot-urgent
@@ -312,6 +423,9 @@
             {% if ann.is_pinned %}
               <span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>
             {% endif %}
+            {% if ann.is_important %}
+              <span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>
+            {% endif %}
             <span class="px-1.5 py-0.5 rounded
               {% if ann.type == 'urgent' %}bg-[#FF2A55]/20 text-[#FF2A55]
               {% elif ann.type == 'warning' %}bg-[#FFB800]/20 text-[#FFB800]
@@ -320,10 +434,16 @@
               {% endif %} text-[8px] font-black uppercase">
               {{ ann.type|default:"Info" }}
             </span>
+            {% if ann.symbol %}
+            <span class="text-sm leading-none">{{ ann.symbol }}</span>
+            {% endif %}
             <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">{{ ann.time_ago }}</span>
           </div>
           {% if ann.title %}
-            <p class="font-bold text-white text-sm mb-1">{{ ann.title }}</p>
+            <p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">
+              {% if ann.icon %}<i data-lucide="{{ ann.icon }}" class="w-3.5 h-3.5 text-cyan-200"></i>{% endif %}
+              <span>{{ ann.title }}</span>
+            </p>
           {% endif %}
           <p class="text-xs text-gray-400 leading-relaxed">{{ ann.message }}</p>
         </div>
@@ -331,7 +451,7 @@
         <div class="flex flex-col items-center justify-center py-12 text-center">
           <i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i>
           <p class="text-sm text-gray-500 font-medium">No announcements yet</p>
-          <p class="text-xs text-gray-600 mt-1">Organizer updates will appear here in real-time.</p>
+          <p class="text-xs text-gray-600 mt-1">Organizer updates will appear here.</p>
         </div>
         {% endfor %}
       </div>
@@ -410,25 +530,25 @@
       {% comment %}── Quick Stats ────────────────────────────────────────{% endcomment %}
       <div class="hub-glass rounded-2xl p-6">
         <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Tournament Info</h3>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">Game</span>
-            <span class="text-xs font-bold text-white">{{ game_name|default:"-" }}</span>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Game</p>
+            <p class="text-sm font-black text-white mt-1 truncate">{{ game_name|default:"-" }}</p>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">Participants</span>
-            <span class="text-xs font-bold text-white" id="hub-reg-count">{{ reg_count }}</span>
+          <div class="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Participants</p>
+            <p class="text-sm font-black text-white mt-1">{{ reg_count }}</p>
           </div>
           {% if tournament.format %}
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">Format</span>
-            <span class="text-xs font-bold text-white">{{ tournament.get_format_display|default:tournament.format }}</span>
+          <div class="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2.5 col-span-2">
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Format</p>
+            <p class="text-sm font-black text-white mt-1">{{ tournament.get_format_display|default:tournament.format }}</p>
           </div>
           {% endif %}
           {% if tournament.max_participants %}
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">Max Slots</span>
-            <span class="text-xs font-bold text-white">{{ tournament.max_participants }}</span>
+          <div class="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2.5 col-span-2">
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Max Slots</p>
+            <p class="text-sm font-black text-white mt-1">{{ tournament.max_participants }}</p>
           </div>
           {% endif %}
         </div>

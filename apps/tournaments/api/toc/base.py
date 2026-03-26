@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.tournaments.models.tournament import Tournament
+from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 
 
 logger = logging.getLogger("toc.request")
@@ -37,7 +38,13 @@ class TOCBaseView(APIView):
     def get_tournament(self):
         slug = self.kwargs.get('slug')
         try:
-            return Tournament.objects.select_related('game', 'organizer').get(slug=slug)
+            tournament = Tournament.objects.select_related('game', 'organizer').get(slug=slug)
+            try:
+                TournamentLifecycleService.auto_advance(tournament)
+                tournament.refresh_from_db(fields=['status'])
+            except Exception:
+                pass
+            return tournament
         except Tournament.DoesNotExist:
             raise Http404(f'Tournament not found: {slug}')
 

@@ -53,15 +53,19 @@
             return;
         }
         container.innerHTML = announcements.map(a => {
+            const visuals = inferAnnouncementVisual(a);
             const pinIcon = a.is_pinned ? '<i data-lucide="pin" class="w-3.5 h-3.5 text-dc-warning"></i>' : '';
             const importantBadge = a.is_important ? '<span class="px-2 py-0.5 text-xs rounded-full bg-dc-danger/10 text-dc-danger">Important</span>' : '';
+            const typeBadge = '<span class="px-2 py-0.5 text-xs rounded-full ' + visuals.tone + '">' + visuals.label + '</span>';
             const timeAgo = relativeTime(a.created_at);
             return `
                 <div class="glass-box rounded-xl p-5 space-y-3 ${a.is_important ? 'border-l-2 border-l-dc-danger' : ''}">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-2">
                             ${pinIcon}
-                            <h4 class="font-bold text-white text-sm">${a.title}</h4>
+                            <span class="text-base leading-none">${visuals.symbol}</span>
+                            <h4 class="font-bold text-white text-sm flex items-center gap-1.5"><i data-lucide="${visuals.icon}" class="w-3.5 h-3.5 text-theme"></i>${a.title}</h4>
+                            ${typeBadge}
                             ${importantBadge}
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
@@ -231,23 +235,28 @@
 
     function openQuickComms() {
         const templates = [
-            { key: 'match_starting', label: 'Matches Starting Soon', icon: 'play-circle' },
-            { key: 'check_in_reminder', label: 'Check-In Reminder', icon: 'bell' },
-            { key: 'schedule_update', label: 'Schedule Updated', icon: 'calendar' },
-            { key: 'bracket_published', label: 'Bracket Published', icon: 'git-branch' },
-            { key: 'results_finalized', label: 'Results Finalized', icon: 'trophy' },
+            { key: 'match_starting', label: 'Matches Starting Soon', icon: 'play-circle', symbol: '⚔️', mode: 'quick' },
+            { key: 'check_in_reminder', label: 'Check-In Reminder', icon: 'bell', symbol: '✅', mode: 'quick' },
+            { key: 'schedule_update', label: 'Schedule Updated', icon: 'calendar', symbol: '🗓️', mode: 'quick' },
+            { key: 'bracket_published', label: 'Bracket Published', icon: 'git-branch', symbol: '🧩', mode: 'quick' },
+            { key: 'results_finalized', label: 'Results Finalized', icon: 'trophy', symbol: '🏆', mode: 'quick' },
+            { key: 'live_group_draw', label: 'Live Group Draw Notice', icon: 'radio', symbol: '📡', mode: 'form' },
+            { key: 'stream_live', label: 'Stream Is Live', icon: 'tv', symbol: '🎥', mode: 'form' },
+            { key: 'round_ready', label: 'Round Ready Callout', icon: 'swords', symbol: '🔥', mode: 'form' },
         ];
         const html = `
             <div class="space-y-4">
                 <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
                     <i data-lucide="zap" class="w-5 h-5 text-dc-warning"></i> Quick Comms
                 </h3>
-                <p class="text-xs text-dc-text">One-click broadcast with pre-built templates.</p>
+                <p class="text-xs text-dc-text">One-click + smart parameter templates for faster organizer communication.</p>
                 <div class="space-y-2">
                     ${templates.map(t => `
-                        <button onclick="TOC.announcements.sendQuickComm('${t.key}')" class="w-full p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left flex items-center gap-3">
+                        <button onclick="TOC.announcements.openSmartCard('${t.key}')" class="w-full p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left flex items-center gap-3">
+                            <span class="text-base leading-none">${t.symbol || '📣'}</span>
                             <i data-lucide="${t.icon}" class="w-5 h-5 text-theme shrink-0"></i>
                             <span class="text-sm font-bold text-white">${t.label}</span>
+                            <span class="ml-auto text-[10px] uppercase tracking-wider ${t.mode === 'quick' ? 'text-dc-success' : 'text-dc-warning'}">${t.mode === 'quick' ? 'One Tap' : 'Smart Card'}</span>
                         </button>
                     `).join('')}
                 </div>
@@ -265,6 +274,105 @@
         } catch (e) { window.TOC?.toast?.('Quick Comm failed', 'error'); }
     }
 
+    function openSmartCard(templateKey) {
+        const forms = {
+            live_group_draw: {
+                title: '📡 Live Group Draw will happen at {time}',
+                message: '🎯 Live group draw starts at {time}. Join now: {link}',
+                fields: [
+                    { id: 'time', label: 'Draw Time', placeholder: '8:30 PM (GMT+6)' },
+                    { id: 'link', label: 'Live Draw Link', placeholder: 'https://...' },
+                ],
+            },
+            stream_live: {
+                title: '🎥 Stream is now LIVE',
+                message: '📺 We are live now. Watch here: {link}',
+                fields: [
+                    { id: 'link', label: 'Stream Link', placeholder: 'https://...' },
+                ],
+            },
+            round_ready: {
+                title: '🔥 Round {round} is ready',
+                message: '⚔️ Round {round} matches are ready. Check match lobby and report on time.',
+                fields: [
+                    { id: 'round', label: 'Round Number/Name', placeholder: 'R2 / Quarter Final' },
+                ],
+            },
+        };
+
+        const cfg = forms[templateKey];
+        if (!cfg) {
+            sendQuickComm(templateKey);
+            return;
+        }
+
+        const fieldsHtml = cfg.fields.map(f =>
+            '<div><label class="block text-xs text-dc-text mb-1">' + f.label + '</label>' +
+            '<input id="smart-' + f.id + '" type="text" placeholder="' + f.placeholder + '" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
+        ).join('');
+
+        showOverlay(
+            '<div class="space-y-4">' +
+                '<h3 class="font-display font-bold text-white text-lg">Smart Announcement Card</h3>' +
+                '<p class="text-xs text-dc-text">Auto-generate a polished announcement with your input.</p>' +
+                fieldsHtml +
+                '<button onclick="TOC.announcements.sendSmartCard(\'' + templateKey + '\')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Publish Smart Card</button>' +
+            '</div>'
+        );
+    }
+
+    async function sendSmartCard(templateKey) {
+        const forms = {
+            live_group_draw: {
+                title: '📡 Live Group Draw will happen at {time}',
+                message: '🎯 Live group draw starts at {time}. Join now: {link}',
+                required: ['time', 'link'],
+            },
+            stream_live: {
+                title: '🎥 Stream is now LIVE',
+                message: '📺 We are live now. Watch here: {link}',
+                required: ['link'],
+            },
+            round_ready: {
+                title: '🔥 Round {round} is ready',
+                message: '⚔️ Round {round} matches are ready. Check match lobby and report on time.',
+                required: ['round'],
+            },
+        };
+        const cfg = forms[templateKey];
+        if (!cfg) return;
+
+        const values = {};
+        for (const key of cfg.required) {
+            values[key] = (document.getElementById('smart-' + key)?.value || '').trim();
+            if (!values[key]) {
+                window.TOC?.toast?.('Please fill all required fields.', 'error');
+                return;
+            }
+        }
+
+        let title = cfg.title;
+        let message = cfg.message;
+        Object.keys(values).forEach((key) => {
+            title = title.replaceAll('{' + key + '}', values[key]);
+            message = message.replaceAll('{' + key + '}', values[key]);
+        });
+
+        try {
+            await API.post('announcements/broadcast/', {
+                title,
+                message,
+                is_important: true,
+                targets: 'all',
+            });
+            closeOverlay();
+            refresh();
+            window.TOC?.toast?.('Smart announcement published.', 'success');
+        } catch (e) {
+            window.TOC?.toast?.('Smart card publish failed', 'error');
+        }
+    }
+
     /* ------------------------------------------------------------------ */
     /*  Helpers                                                            */
     /* ------------------------------------------------------------------ */
@@ -276,6 +384,23 @@
         if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
         return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    function inferAnnouncementVisual(item) {
+        const text = String((item?.title || '') + ' ' + (item?.message || '')).toLowerCase();
+        if (item?.is_important || text.includes('urgent') || text.includes('critical')) {
+            return { symbol: '🚨', icon: 'siren', label: 'Urgent', tone: 'bg-dc-danger/10 text-dc-danger' };
+        }
+        if (text.includes('draw') || text.includes('schedule') || text.includes('time')) {
+            return { symbol: '🗓️', icon: 'calendar-clock', label: 'Schedule', tone: 'bg-dc-warning/10 text-dc-warning' };
+        }
+        if (text.includes('stream') || text.includes('live')) {
+            return { symbol: '📡', icon: 'radio', label: 'Live', tone: 'bg-dc-info/10 text-dc-info' };
+        }
+        if (text.includes('result') || text.includes('winner') || text.includes('qualified')) {
+            return { symbol: '🏆', icon: 'trophy', label: 'Result', tone: 'bg-dc-success/10 text-dc-success' };
+        }
+        return { symbol: '📣', icon: 'megaphone', label: 'Update', tone: 'bg-theme/10 text-theme' };
     }
 
     function showOverlay(html) {
@@ -320,6 +445,8 @@
         broadcast,
         confirmBroadcast,
         openQuickComms,
+        openSmartCard,
+        sendSmartCard,
         sendQuickComm,
     };
 })();

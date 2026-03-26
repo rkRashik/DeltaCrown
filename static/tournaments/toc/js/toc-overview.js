@@ -61,6 +61,10 @@
   let _refreshTimer = null;
   let _selectedTransition = null;
   let _lastSyncAt = null;
+  let _overviewFeedItems = [];
+  let _overviewFeedFilter = 'all';
+  let _overviewFeedSearch = '';
+  let _overviewFeedDebounce = null;
   const OVERVIEW_CACHE_KEY = `toc-overview-cache-${CFG.tournamentSlug || 'default'}`;
   const OVERVIEW_CACHE_TTL_MS = 30000;
 
@@ -139,11 +143,13 @@
     renderCountdowns(payload.countdowns || []);
     renderQuickStats(payload.quick_stats || null);
     renderActivityLog(payload.activity_log || []);
+    renderTournamentFeed(payload.tournament_feed || []);
     updateGlobalStatus(payload);
 
     // Backward compatibility fallback when backend doesn't provide bundled data yet.
     if (!payload.quick_stats) loadQuickStats();
     if (!Array.isArray(payload.activity_log)) loadActivityLog();
+    if (!Array.isArray(payload.tournament_feed)) loadTournamentFeed();
 
     setOverviewLoading(false);
   }
@@ -484,6 +490,112 @@
     } catch (e) {
       console.warn('[TOC:overview] Activity log fetch failed:', e);
     }
+  }
+
+  async function loadTournamentFeed() {
+    try {
+      var data = await TOC.fetch(API + '/announcements/?search=&pinned=false');
+      renderTournamentFeed(Array.isArray(data && data.announcements) ? data.announcements : []);
+    } catch (e) {
+      console.warn('[TOC:overview] Tournament feed fetch failed:', e);
+    }
+  }
+
+  function wireTournamentFeedControls() {
+    var search = $('#overview-feed-search');
+    if (search && search.dataset.bound !== '1') {
+      search.dataset.bound = '1';
+      search.addEventListener('input', function () {
+        clearTimeout(_overviewFeedDebounce);
+        _overviewFeedDebounce = setTimeout(function () {
+          _overviewFeedSearch = (search.value || '').trim().toLowerCase();
+          renderTournamentFeed(_overviewFeedItems);
+        }, 180);
+      });
+    }
+
+    var filterWrap = $('#overview-feed-filters');
+    if (filterWrap && filterWrap.dataset.bound !== '1') {
+      filterWrap.dataset.bound = '1';
+      filterWrap.querySelectorAll('[data-feed-filter]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          _overviewFeedFilter = btn.getAttribute('data-feed-filter') || 'all';
+          renderTournamentFeed(_overviewFeedItems);
+        });
+      });
+    }
+  }
+
+  function renderTournamentFeed(feedItems) {
+    var container = $('#overview-tournament-feed');
+    var countBadge = $('#overview-feed-count');
+    if (!container) return;
+
+    var items = Array.isArray(feedItems) ? feedItems : [];
+    _overviewFeedItems = items;
+
+    var filtered = items.filter(function (item) {
+      if (_overviewFeedFilter === 'pinned' && !item.is_pinned) return false;
+      if (_overviewFeedFilter === 'important' && !item.is_important) return false;
+      if (_overviewFeedSearch) {
+        var title = String(item.title || '').toLowerCase();
+        var message = String(item.message || '').toLowerCase();
+        if (!title.includes(_overviewFeedSearch) && !message.includes(_overviewFeedSearch)) return false;
+      }
+      return true;
+    });
+
+    if (countBadge) {
+      countBadge.textContent = filtered.length;
+      countBadge.classList.toggle('hidden', filtered.length === 0);
+    }
+
+    var filterWrap = $('#overview-feed-filters');
+    if (filterWrap) {
+      filterWrap.querySelectorAll('[data-feed-filter]').forEach(function (btn) {
+        var isActive = btn.getAttribute('data-feed-filter') === _overviewFeedFilter;
+        btn.classList.toggle('bg-theme/15', isActive);
+        btn.classList.toggle('text-theme', isActive);
+        btn.classList.toggle('border-theme/30', isActive);
+        btn.classList.toggle('border-dc-border', !isActive);
+        btn.classList.toggle('text-dc-text', !isActive);
+      });
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = '' +
+        '<div class="flex flex-col items-center justify-center h-32 text-center">' +
+          '<i data-lucide="radio" class="w-8 h-8 text-dc-text mb-3 opacity-40"></i>' +
+          '<p class="text-sm text-dc-text">No feed updates for this filter.</p>' +
+        '</div>';
+      _reinitIcons();
+      return;
+    }
+
+    container.innerHTML = filtered.map(function (entry) {
+      var created = entry.created_at ? new Date(entry.created_at) : null;
+      var rel = created ? _timeAgo(created) : '';
+      var visual = _feedVisual(entry);
+      return '' +
+        '<article class="px-4 py-3 hover:bg-white/[0.02] transition-colors">' +
+          '<div class="flex items-start justify-between gap-3">' +
+            '<div class="min-w-0">' +
+              '<div class="flex items-center gap-1.5 mb-1 flex-wrap">' +
+                '<span class="text-base leading-none">' + visual.symbol + '</span>' +
+                '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ' + visual.tone + '">' + _esc(visual.label) + '</span>' +
+                (entry.is_pinned ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-dc-warning/15 border border-dc-warning/25 text-dc-warning">Pinned</span>' : '') +
+                (entry.is_important ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-dc-danger/15 border border-dc-danger/25 text-dc-danger">Important</span>' : '') +
+                (entry.author ? '<span class="text-[10px] font-mono text-dc-text">' + _esc(entry.author) + '</span>' : '') +
+              '</div>' +
+              '<h4 class="text-sm text-white font-bold truncate flex items-center gap-1.5"><i data-lucide="' + _esc(visual.icon) + '" class="w-3.5 h-3.5 text-theme"></i><span>' + _esc(entry.title || 'Update') + '</span></h4>' +
+              '<p class="text-xs text-dc-text mt-1 leading-relaxed">' + _esc(entry.message || '') + '</p>' +
+            '</div>' +
+            (rel ? '<span class="text-[10px] font-mono text-theme bg-theme/10 border border-theme/20 rounded px-2 py-0.5 shrink-0">' + rel + '</span>' : '') +
+          '</div>' +
+        '</article>';
+    }).join('');
+
+    _reinitIcons();
   }
 
   function renderActivityLog(entries) {
@@ -943,6 +1055,34 @@
     return `${mins}m`;
   }
 
+  function _timeAgo(date) {
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) return _relativeTime(date);
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 60) return 'just now';
+    if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+    return `${Math.floor(sec / 86400)}d ago`;
+  }
+
+  function _feedVisual(entry) {
+    const text = String((entry && entry.title) || '') + ' ' + String((entry && entry.message) || '');
+    const t = text.toLowerCase();
+    if ((entry && entry.is_important) || t.includes('urgent') || t.includes('critical')) {
+      return { symbol: '🚨', icon: 'siren', label: 'Urgent', tone: 'bg-dc-danger/10 text-dc-danger border border-dc-danger/20' };
+    }
+    if (t.includes('draw') || t.includes('schedule') || t.includes('time')) {
+      return { symbol: '🗓️', icon: 'calendar-clock', label: 'Schedule', tone: 'bg-dc-warning/10 text-dc-warning border border-dc-warning/20' };
+    }
+    if (t.includes('stream') || t.includes('live')) {
+      return { symbol: '📡', icon: 'radio', label: 'Live', tone: 'bg-dc-info/10 text-dc-info border border-dc-info/20' };
+    }
+    if (t.includes('result') || t.includes('winner') || t.includes('qualified')) {
+      return { symbol: '🏆', icon: 'trophy', label: 'Result', tone: 'bg-dc-success/10 text-dc-success border border-dc-success/20' };
+    }
+    return { symbol: '📣', icon: 'megaphone', label: 'Update', tone: 'bg-theme/10 text-theme border border-theme/20' };
+  }
+
   // ═══════════════════════════════════════════════════════════════
   //  Countdown Timers
   // ═══════════════════════════════════════════════════════════════
@@ -1049,6 +1189,7 @@
     refreshActionQueue: function () { load(); },
     refreshActivityLog: loadActivityLog,
     refreshQuickStats: loadQuickStats,
+    refreshTournamentFeed: loadTournamentFeed,
   };
 
   // Auto-init when DOM ready
@@ -1059,6 +1200,7 @@
   }
 
   function _init() {
+    wireTournamentFeedControls();
     const cached = loadOverviewCache();
     if (cached) {
       render(cached);

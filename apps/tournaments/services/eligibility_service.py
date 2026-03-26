@@ -24,6 +24,25 @@ class RegistrationEligibilityService:
     
     Provides a single source of truth for registration eligibility checks.
     """
+
+    CAPACITY_BLOCKING_STATUSES = (
+        Registration.PENDING,
+        Registration.PAYMENT_SUBMITTED,
+        Registration.CONFIRMED,
+    )
+
+    @staticmethod
+    def _is_full_capacity(tournament: Tournament) -> bool:
+        """Evaluate capacity from live registrations to avoid stale denormalized counters."""
+        if tournament.max_participants <= 0:
+            return False
+
+        active_count = Registration.objects.filter(
+            tournament=tournament,
+            status__in=RegistrationEligibilityService.CAPACITY_BLOCKING_STATUSES,
+            is_deleted=False,
+        ).count()
+        return active_count >= tournament.max_participants
     
     @staticmethod
     def check_eligibility(tournament: Tournament, user: Optional[User]) -> Dict:
@@ -143,17 +162,18 @@ class RegistrationEligibilityService:
             })
             return result
         
-        # Check if tournament is full
-        if tournament.is_full():
+        # Check capacity using live registrations so CTA state matches rendered slots.
+        is_full_capacity = RegistrationEligibilityService._is_full_capacity(tournament)
+        if is_full_capacity:
             # Allow waitlist registration ΓÇö don't block, just hint
             result.update({
                 'can_register': True,
                 'reason': 'This tournament is full. You will be placed on the waitlist.',
                 'status': 'full_waitlist',
-                'action_url': f'/tournaments/{tournament.slug}/register/',
+                'action_url': f'/tournaments/{tournament.slug}/register/?waitlist=1',
                 'action_label': 'Join Waitlist',
             })
-            # Don't return ΓÇö continue to team checks below
+            # Don't return ΓÇö team tournaments may still fail eligibility checks below.
         
         # Team tournament eligibility checks
         if tournament.participation_type == Tournament.TEAM:
@@ -200,14 +220,23 @@ class RegistrationEligibilityService:
                 })
                 return result
         
-        # User is eligible to register
-        result.update({
-            'can_register': True,
-            'reason': '',
-            'status': 'eligible',
-            'action_url': f'/tournaments/{tournament.slug}/register/',
-            'action_label': 'Register Now',
-        })
+        # User is eligible to register (or join waitlist if full).
+        if is_full_capacity:
+            result.update({
+                'can_register': True,
+                'reason': 'This tournament is full. You will be placed on the waitlist.',
+                'status': 'full_waitlist',
+                'action_url': f'/tournaments/{tournament.slug}/register/?waitlist=1',
+                'action_label': 'Join Waitlist',
+            })
+        else:
+            result.update({
+                'can_register': True,
+                'reason': '',
+                'status': 'eligible',
+                'action_url': f'/tournaments/{tournament.slug}/register/',
+                'action_label': 'Register Now',
+            })
         
         return result
     

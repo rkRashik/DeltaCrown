@@ -62,7 +62,7 @@
                     <div class="flex flex-col items-center justify-center py-12 text-center">
                         <i data-lucide="alert-triangle" class="w-10 h-10 text-dc-danger mb-3"></i>
                         <p class="text-sm font-bold text-dc-danger">Failed to load data</p>
-                        <p class="text-xs text-dc-text mt-1 mb-4">${esc(err.message || 'Unknown error')}</p>
+                        <p class="text-xs text-dc-text mt-1 mb-4">${esc(err.message || 'Something went wrong while loading this section.')}</p>
                         <button onclick="location.reload()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-xs hover:bg-dc-surface transition-all">
                             <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i> Retry
                         </button>

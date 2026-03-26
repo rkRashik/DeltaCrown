@@ -897,6 +897,13 @@
 
             // Update sidebar context badges to reflect saved values
             _syncSidebarBadges(payload);
+            document.dispatchEvent(new CustomEvent('toc:checkin-config-updated', {
+                detail: {
+                    checkin_required: payload.enable_check_in,
+                    check_in_minutes_before: payload.check_in_minutes_before,
+                    check_in_closes_minutes_before: payload.check_in_closes_minutes_before,
+                },
+            }));
         } catch (e) {
             const payload = await _extractErrorPayload(e);
             const err = payload && payload.error;
@@ -988,6 +995,24 @@
         const on = document.getElementById('toggle-entry-fee')?.checked || false;
         const det = document.getElementById('fee-details');
         if (det) det.classList.toggle('hidden', !on);
+    }
+
+    function applyExternalCheckinConfig (cfg) {
+        const feat = document.getElementById('settings-features');
+        if (!feat || !cfg) return;
+
+        const nextRequired = cfg.checkin_required;
+        const nextWindow = cfg.check_in_minutes_before != null ? cfg.check_in_minutes_before : cfg.window_minutes;
+        const nextCloses = cfg.check_in_closes_minutes_before;
+
+        if (nextRequired !== undefined) setVal(feat, 'enable_check_in', !!nextRequired);
+        if (nextWindow !== undefined && nextWindow !== null) setVal(feat, 'check_in_minutes_before', Number(nextWindow));
+        if (nextCloses !== undefined && nextCloses !== null) setVal(feat, 'check_in_closes_minutes_before', Number(nextCloses));
+
+        syncCheckInVisibility();
+        _captureSectionSnapshot('settings-features');
+        _setSectionState('settings-features', 'clean');
+        _refreshGlobalDirtyFromSections();
     }
 
     /* ==================================================================
@@ -1860,7 +1885,7 @@
                 window.location.href = `/tournaments/${result.slug}/manage/`;
             }, 1200);
         } catch (e) {
-            toast('Clone failed: ' + (e?.data?.error || 'Unknown error'), 'error');
+            toast((e && e.message) ? e.message : 'Could not clone the tournament right now. Please try again.', 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Clone Tournament'; }
         }
     }
@@ -1943,6 +1968,10 @@
         return _settingsInflight;
     }
 
+    document.addEventListener('toc:checkin-config-updated', function (e) {
+        applyExternalCheckinConfig(e && e.detail ? e.detail : null);
+    });
+
     // Public API
     window.TOC = window.TOC || {};
     window.TOC.settings = {
@@ -1954,6 +1983,7 @@
         syncCheckInVisibility,
         syncNoShowVisibility,
         syncFeeVisibility,
+        applyExternalCheckinConfig,
         syncVetoVisibility,
         addVetoStep,
         removeVetoStep,

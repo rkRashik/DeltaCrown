@@ -29,6 +29,7 @@ import factory
 from factory.django import DjangoModelFactory
 from django.contrib.auth import get_user_model
 
+from apps.games.models import Game
 from apps.organizations.models import (
     Organization,
     OrganizationMembership,
@@ -49,6 +50,22 @@ from apps.organizations.choices import (
 )
 
 User = get_user_model()
+
+
+class GameFactory(DjangoModelFactory):
+    """Lightweight factory for canonical games.Game model used by org tests."""
+
+    class Meta:
+        model = Game
+
+    name = factory.Sequence(lambda n: f"Test Game {n}")
+    display_name = factory.LazyAttribute(lambda obj: obj.name)
+    slug = factory.Sequence(lambda n: f"test-game-{n}")
+    short_code = factory.Sequence(lambda n: f"TG{n:03d}")
+    category = 'FPS'
+    game_type = 'TEAM_VS_TEAM'
+    platforms = factory.LazyFunction(lambda: ['PC'])
+    is_active = True
 
 
 class UserFactory(DjangoModelFactory):

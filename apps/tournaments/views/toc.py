@@ -18,6 +18,7 @@ from django.views.generic import TemplateView
 
 from apps.tournaments.api.toc.settings_service import TOCSettingsService
 from apps.tournaments.models.tournament import Tournament
+from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 
 
 class TOCView(LoginRequiredMixin, TemplateView):
@@ -44,9 +45,15 @@ class TOCView(LoginRequiredMixin, TemplateView):
     def get_tournament(self):
         slug = self.kwargs.get('slug')
         try:
-            return Tournament.objects.select_related('game', 'organizer').get(
+            tournament = Tournament.objects.select_related('game', 'organizer').get(
                 slug=slug
             )
+            try:
+                TournamentLifecycleService.auto_advance(tournament)
+                tournament.refresh_from_db(fields=['status'])
+            except Exception:
+                pass
+            return tournament
         except Tournament.DoesNotExist:
             raise Http404(f'Tournament not found: {slug}')
 
@@ -91,6 +98,11 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['is_organizer'] = (t.organizer_id == self.request.user.id)
         ctx['is_frozen'] = bool((t.config or {}).get('frozen'))
         ctx['is_official'] = getattr(t, 'is_official', False)
+        ctx['can_view_logs'] = bool(
+            self.request.user.is_superuser
+            or self.request.user.is_staff
+            or t.organizer_id == self.request.user.id
+        )
 
         # Inject user capabilities for frontend RBAC enforcement
         user = self.request.user
@@ -144,7 +156,12 @@ class TOCView(LoginRequiredMixin, TemplateView):
             base_tabs.append({'id': 'lobby', 'label': 'Lobbies', 'icon': 'server', 'group': 'Competition'})
         base_tabs.extend([
             {'id': 'disputes', 'label': 'Disputes', 'icon': 'scale', 'group': 'Platform'},
+            {'id': 'announcements', 'label': 'Announcements', 'icon': 'megaphone', 'group': 'Platform'},
             {'id': 'notifications', 'label': 'Notifications', 'icon': 'bell', 'group': 'Platform'},
+        ])
+        if ctx['can_view_logs']:
+            base_tabs.append({'id': 'logs', 'label': 'Logs', 'icon': 'activity', 'group': 'Platform'})
+        base_tabs.extend([
             {'id': 'rules', 'label': 'Rules & Info', 'icon': 'book-open', 'group': 'Platform'},
             {'id': 'settings', 'label': 'Settings', 'icon': 'settings', 'group': 'Platform'},
         ])

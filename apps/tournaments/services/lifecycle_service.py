@@ -389,6 +389,16 @@ class TournamentLifecycleService:
                     logger.warning("Auto-advance REG_CLOSED→LIVE failed for %s: %s", tournament.id, e)
             return None
 
+        # LIVE → COMPLETED  (when tournament_end is past)
+        if status == Tournament.LIVE:
+            if tournament.tournament_end and now >= tournament.tournament_end:
+                try:
+                    cls.transition(tournament.id, Tournament.COMPLETED, reason='Auto: tournament ended')
+                    return Tournament.COMPLETED
+                except ValidationError as e:
+                    logger.warning("Auto-advance LIVE→COMPLETED failed for %s: %s", tournament.id, e)
+            return None
+
         return None
 
     @classmethod
@@ -407,6 +417,7 @@ class TournamentLifecycleService:
             Tournament.PUBLISHED,
             Tournament.REGISTRATION_OPEN,
             Tournament.REGISTRATION_CLOSED,
+            Tournament.LIVE,
         ]
         qs = Tournament.objects.filter(
             status__in=advanceable_statuses,

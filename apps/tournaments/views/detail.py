@@ -108,6 +108,8 @@ class TournamentDetailView(DetailView):
             context['is_registered'] = False
             context['user_registration'] = None
             context['eligibility_status'] = 'completed'
+            context['registration_action_url'] = f'/tournaments/{tournament.slug}/'
+            context['registration_action_label'] = 'View Details'
         else:
             from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
             eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
@@ -117,13 +119,11 @@ class TournamentDetailView(DetailView):
             context['user_registration'] = eligibility['registration']
             context['eligibility_status'] = eligibility['status']
 
-        # Registration action URL — Smart Registration handles both solo and team
-        if tournament.participation_type == Tournament.TEAM:
-            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'
-            context['registration_action_label'] = 'Register Team'
-        else:
-            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'
-            context['registration_action_label'] = 'Register Now'
+            # Use centralized eligibility action contract to keep CTA state consistent
+            # across full/waitlist/open/locked states.
+            default_label = 'Register Team' if tournament.participation_type == Tournament.TEAM else 'Register Now'
+            context['registration_action_url'] = eligibility.get('action_url') or f'/tournaments/{tournament.slug}/register/'
+            context['registration_action_label'] = eligibility.get('action_label') or default_label
 
         if context.get('user_registration') is not None:
             context['registration_action_url'] = f'/tournaments/{tournament.slug}/lobby/'

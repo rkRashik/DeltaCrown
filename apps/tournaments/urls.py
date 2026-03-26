@@ -114,6 +114,8 @@ from apps.tournaments.views.hub import (
     HubStateAPIView,
     HubCheckInAPIView,
     HubAnnouncementsAPIView,
+    HubAlertDeleteAPIView,
+    HubAlertsClearAPIView,
     HubRosterAPIView,
     HubSquadAPIView,
     HubResourcesAPIView,
@@ -247,7 +249,15 @@ urlpatterns = [
     
     # Payment handling for tournament registration
     path('registration/<int:registration_id>/payment/upload/', PaymentProofUploadView.as_view(), name='payment_upload'),
-    path('registration/<int:registration_id>/payment/retry/', PaymentRetryView.as_view(), name='payment_retry'),
+    path(
+        'registration/<int:registration_id>/payment/retry/',
+        RedirectView.as_view(
+            url='/tournaments/registration/%(registration_id)s/payment/complete/',
+            permanent=True,
+        ),
+        name='payment_retry_legacy',
+    ),
+    path('registration/<int:registration_id>/payment/complete/', PaymentRetryView.as_view(), name='payment_complete'),
     
     # Legacy Registration success (backward compatibility)
     path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success'),
@@ -295,6 +305,8 @@ urlpatterns = [
     path('<slug:slug>/hub/api/state/', HubStateAPIView.as_view(), name='hub_state_api'),
     path('<slug:slug>/hub/api/check-in/', HubCheckInAPIView.as_view(), name='hub_checkin_api'),
     path('<slug:slug>/hub/api/announcements/', HubAnnouncementsAPIView.as_view(), name='hub_announcements_api'),
+    path('<slug:slug>/hub/api/alerts/clear/', HubAlertsClearAPIView.as_view(), name='hub_alerts_clear_api'),
+    path('<slug:slug>/hub/api/alerts/<int:notification_id>/delete/', HubAlertDeleteAPIView.as_view(), name='hub_alert_delete_api'),
     path('<slug:slug>/hub/api/roster/', HubRosterAPIView.as_view(), name='hub_roster_api'),
     path('<slug:slug>/hub/api/squad/', HubSquadAPIView.as_view(), name='hub_squad_api'),
     path('<slug:slug>/hub/api/resources/', HubResourcesAPIView.as_view(), name='hub_resources_api'),

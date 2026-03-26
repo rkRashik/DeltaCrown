@@ -107,7 +107,7 @@ class TOCAuditMiddleware:
             "roles": "settings",
             "permissions": "settings",
             "economy": "payments",
-            "audit-log": "settings",
+            "audit-log": "logs",
         }
         prefix = endpoint.split("/")[0] if endpoint else ""
         return tab_map.get(prefix, "unknown")

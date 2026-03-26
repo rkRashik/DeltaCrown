@@ -134,11 +134,16 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         
         # Waitlist info
         is_waitlist = eligibility and eligibility.get('status') == 'full_waitlist'
+        waitlist_mode_requested = str(request.GET.get('waitlist', '')).strip().lower() in ('1', 'true', 'yes')
         waitlist_count = Registration.objects.filter(
             tournament=tournament,
             status=Registration.WAITLISTED,
             is_deleted=False,
         ).count() if is_waitlist else 0
+        requires_payment_now = bool(tournament.has_entry_fee and not is_waitlist)
+        submit_action_label = 'Join Waitlist' if is_waitlist else ('Register Team' if is_team else 'Register Now')
+        submit_title_label = 'Join Waitlist' if is_waitlist else 'Register'
+        start_step_key = 'review' if (is_waitlist and waitlist_mode_requested and not is_team) else ''
 
         # Game theme
         canonical_slug = game_service.normalize_slug(tournament.game.slug)
@@ -315,7 +320,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         # DeltaCoin check
         deltacoin_can_afford = False
         deltacoin_balance = 0
-        if tournament.has_entry_fee:
+        if requires_payment_now:
             try:
                 dc_check = PaymentService.can_use_deltacoin(user, int(tournament.entry_fee_amount))
                 deltacoin_can_afford = dc_check['can_afford']
@@ -337,7 +342,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             section_flags.append(('team', team is not None))
         section_flags.append(('contact', True))   # always has a default
         section_flags.append(('details', True))    # read-only info
-        if tournament.has_entry_fee:
+        if requires_payment_now:
             section_flags.append(('payment', False))  # needs user action
         section_flags.append(('terms', False))  # needs checkboxes
 
@@ -395,7 +400,12 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'max_guest_teams': getattr(tournament, 'max_guest_teams', 0),
             # Waitlist context
             'is_waitlist': is_waitlist,
+            'waitlist_mode_requested': waitlist_mode_requested,
             'waitlist_count': waitlist_count,
+            'requires_payment_now': requires_payment_now,
+            'submit_action_label': submit_action_label,
+            'submit_title_label': submit_title_label,
+            'start_step_key': start_step_key,
             # Display name override
             'allow_display_name_override': getattr(tournament, 'allow_display_name_override', False),
             # ── NEW: Form configuration (organizer-defined) ──
@@ -771,6 +781,11 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         # Collect form data
         form_data = request.POST
 
+        # Server-side consent enforcement: reject direct POSTs without explicit agreement.
+        terms_agreed = str(form_data.get('terms_agreed', '')).strip().lower()
+        if terms_agreed not in ('1', 'true', 'on', 'yes'):
+            raise ValidationError("You must accept the rules and terms before submitting.")
+
         # ── Load form configuration for toggle-aware processing ──
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
 
@@ -786,6 +801,8 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'platform_server': form_data.get('platform_server', '').strip(),
             'rank': form_data.get('rank', '').strip(),
             'preferred_contact': form_data.get('preferred_contact', 'discord'),
+            'terms_agreed': True,
+            'terms_agreed_at': timezone.now().isoformat(),
         }
 
         # ── Coordinator delegation (v3 flow) ──
@@ -1106,7 +1123,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 logger.error(f"Failed to capture lineup snapshot for reg {registration.id if registration else '?'}: {e}", exc_info=True)
 
         # Handle payment
-        if tournament.has_entry_fee:
+        if tournament.has_entry_fee and registration.status != Registration.WAITLISTED:
             self._process_payment(request, registration, tournament)
 
         # ── Save Custom Question Answers ──
@@ -1365,6 +1382,16 @@ class SmartRegistrationSuccessView(LoginRequiredMixin, View):
             (getattr(registration, 'registration_number', '') or '').strip()
             or str(registration.id)
         )
+        is_waitlisted = registration.status == Registration.WAITLISTED
+        waitlist_position = registration.waitlist_position
+        if is_waitlisted and not waitlist_position:
+            waitlist_position = Registration.objects.filter(
+                tournament=tournament,
+                status=Registration.WAITLISTED,
+                is_deleted=False,
+                created_at__lte=registration.created_at,
+            ).count() or None
+        payment_deadline_hours = int(getattr(tournament, 'payment_deadline_hours', 0) or 48)
 
         platform_value = getattr(tournament, 'platform', None)
         platform_labels: list[str] = []
@@ -1422,6 +1449,9 @@ class SmartRegistrationSuccessView(LoginRequiredMixin, View):
             'discord_url': discord_url,
             'official_discord_url': OFFICIAL_DISCORD_URL,
             'registration_code': registration_code,
+            'is_waitlisted': is_waitlisted,
+            'waitlist_position': waitlist_position,
+            'waitlist_payment_deadline_hours': payment_deadline_hours,
             'platform_display_text': platform_display_text,
             'ticket_secret_code': ticket_secret_code,
             'ticket_qr_payload': qr_payload,

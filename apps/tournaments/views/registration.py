@@ -20,6 +20,8 @@ Original Implementation:
     Step 5: Review & confirm
 """
 
+import re
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
@@ -27,10 +29,14 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.utils.timesince import timesince
+from django.db.models import Q
 
-from apps.tournaments.models import Tournament, Registration
+from apps.tournaments.models import Tournament, Registration, Payment
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.organizations.models import Team, TeamMembership
+from apps.notifications.models import Notification
 
 
 class TournamentRegistrationView(LoginRequiredMixin, View):
@@ -371,9 +377,11 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 deltacoin_can_afford = False
                 try:
                     from apps.economy.models import DeltaCrownWallet
-                    wallet = DeltaCrownWallet.objects.get(user=user)
-                    deltacoin_balance = wallet.cached_balance
-                    deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
+                    profile = getattr(user, 'profile', None)
+                    if profile:
+                        wallet = DeltaCrownWallet.objects.get(profile=profile)
+                        deltacoin_balance = wallet.cached_balance
+                        deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
                 except DeltaCrownWallet.DoesNotExist:
                     pass
                 
@@ -566,7 +574,10 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                         from apps.economy.models import DeltaCrownWallet
                         from decimal import Decimal
                         try:
-                            wallet = DeltaCrownWallet.objects.get(user=user)
+                            profile = getattr(user, 'profile', None)
+                            if not profile:
+                                raise DeltaCrownWallet.DoesNotExist
+                            wallet = DeltaCrownWallet.objects.get(profile=profile)
                             if wallet.cached_balance < tournament.entry_fee_amount:
                                 result['valid'] = False
                                 result['errors']['payment_method'] = f'Insufficient DeltaCoin balance. You have {wallet.cached_balance} DC but need {tournament.entry_fee_amount} DC.'
@@ -632,7 +643,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                     except ValidationError as e:
                         messages.error(request, f"DeltaCoin payment failed: {str(e)}")
                         # Registration exists but payment failed - user needs to retry
-                        return redirect('tournaments:payment_retry', registration_id=registration.id)
+                        return redirect('tournaments:payment_complete', registration_id=registration.id)
                 
                 else:
                     # Manual payment method (bKash, Nagad, etc.) - needs proof upload
@@ -711,12 +722,25 @@ class PaymentProofUploadView(LoginRequiredMixin, View):
         tournament = registration.tournament
         
         # Check if registration is in a state that needs payment
-        if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED]:
+        if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.NEEDS_REVIEW]:
             messages.info(request, "This registration does not need payment proof.")
             return redirect('tournaments:detail', slug=tournament.slug)
         
-        # Get existing payment if any
+        # Ensure payment row exists so upload/resubmit works after waitlist call-up.
         payment = getattr(registration, 'payment', None)
+        if not payment and tournament.has_entry_fee:
+            fallback_method = 'bkash'
+            accepted_methods = getattr(tournament, 'payment_methods', None) or []
+            if isinstance(accepted_methods, list) and accepted_methods:
+                first = str(accepted_methods[0]).strip().lower()
+                if first in {'bkash', 'nagad', 'rocket', 'bank', 'deltacoin'}:
+                    fallback_method = first
+            payment = Payment.objects.create(
+                registration=registration,
+                payment_method=fallback_method,
+                amount=tournament.entry_fee_amount,
+                status=Payment.PENDING,
+            )
         
         context = {
             'tournament': tournament,
@@ -739,6 +763,21 @@ class PaymentProofUploadView(LoginRequiredMixin, View):
         tournament = registration.tournament
         
         try:
+            # Ensure a Payment record exists before submitting proof.
+            if not hasattr(registration, 'payment') and tournament.has_entry_fee:
+                fallback_method = 'bkash'
+                accepted_methods = getattr(tournament, 'payment_methods', None) or []
+                if isinstance(accepted_methods, list) and accepted_methods:
+                    first = str(accepted_methods[0]).strip().lower()
+                    if first in {'bkash', 'nagad', 'rocket', 'bank', 'deltacoin'}:
+                        fallback_method = first
+                Payment.objects.create(
+                    registration=registration,
+                    payment_method=fallback_method,
+                    amount=tournament.entry_fee_amount,
+                    status=Payment.PENDING,
+                )
+
             # Get uploaded file
             payment_proof_file = request.FILES.get('payment_proof')
             if not payment_proof_file:
@@ -776,7 +815,17 @@ class PaymentRetryView(LoginRequiredMixin, View):
     Payment retry page when DeltaCoin payment fails.
     """
     
-    template_name = 'tournaments/public/registration/payment_retry.html'
+    template_name = 'tournaments/public/registration/payment_complete.html'
+
+    @staticmethod
+    def _resolve_fallback_method(tournament):
+        fallback_method = 'bkash'
+        accepted_methods = getattr(tournament, 'payment_methods', None) or []
+        if isinstance(accepted_methods, list) and accepted_methods:
+            first = str(accepted_methods[0]).strip().lower()
+            if first in {'bkash', 'nagad', 'rocket', 'bank', 'deltacoin'}:
+                fallback_method = first
+        return fallback_method
     
     def get(self, request, registration_id):
         """Render payment retry options."""
@@ -788,6 +837,15 @@ class PaymentRetryView(LoginRequiredMixin, View):
         )
         
         tournament = registration.tournament
+
+        payment = getattr(registration, 'payment', None)
+        if not payment and tournament.has_entry_fee:
+            payment = Payment.objects.create(
+                registration=registration,
+                payment_method=self._resolve_fallback_method(tournament),
+                amount=tournament.entry_fee_amount,
+                status=Payment.PENDING,
+            )
         
         # Get DeltaCoin balance
         from decimal import Decimal
@@ -796,19 +854,166 @@ class PaymentRetryView(LoginRequiredMixin, View):
         deltacoin_balance = Decimal('0.00')
         deltacoin_can_afford = False
         try:
-            wallet = DeltaCrownWallet.objects.get(user=request.user)
-            deltacoin_balance = wallet.cached_balance
-            deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
+            profile = getattr(request.user, 'profile', None)
+            if profile:
+                wallet = DeltaCrownWallet.objects.get(profile=profile)
+                deltacoin_balance = wallet.cached_balance
+                deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
         except DeltaCrownWallet.DoesNotExist:
             pass
-        
+
+        payment_alert = Notification.objects.filter(
+            recipient=request.user,
+            tournament_id=tournament.id,
+        ).filter(
+            Q(title__icontains='payment')
+            | Q(title__icontains='verification')
+            | Q(title__icontains='waitlist')
+            | Q(title__icontains='called up')
+            | Q(title__icontains='rejected')
+            | Q(message__icontains='payment')
+            | Q(message__icontains='verification')
+            | Q(message__icontains='waitlist')
+            | Q(message__icontains='called up')
+            | Q(message__icontains='rejected')
+        ).order_by('-created_at').first()
+
+        alert_context = None
+        is_waitlist_callup_alert = False
+        if payment_alert:
+            alert_title = (payment_alert.title or '').strip()
+            alert_body = ((payment_alert.message or payment_alert.body) or '').strip()
+            alert_text = f"{alert_title} {alert_body}".lower()
+            is_waitlist_callup_alert = any(token in alert_text for token in ('waitlist', 'promoted', 'promotion', 'called up'))
+            alert_context = {
+                'title': alert_title or 'Payment Update',
+                'body': alert_body,
+                'time_ago': timesince(payment_alert.created_at, timezone.now()) + ' ago',
+            }
+
+        payment_status = ((getattr(payment, 'status', '') if payment else '') or '').strip().lower()
+        payment_page_mode = 'resubmit' if payment_status == Payment.REJECTED else 'complete'
+        payment_page_title = 'Complete Registration Payment'
+        payment_page_subtitle = 'Finish payment now to secure your tournament slot.'
+        if payment_page_mode == 'resubmit':
+            payment_page_title = 'Resubmit Payment With Verified Destinations'
+            payment_page_subtitle = 'Your previous proof was rejected. Resubmit with valid details to continue.'
+        elif is_waitlist_callup_alert:
+            payment_page_title = 'Complete Payment To Secure Your Promoted Slot'
+            payment_page_subtitle = 'You were called up from the waitlist. Submit payment within the deadline to lock your spot.'
+
+        manual_option_details = []
+        manual_methods = []
+        try:
+            from apps.tournaments.models import TournamentPaymentMethod
+
+            configured_methods = TournamentPaymentMethod.objects.filter(tournament=tournament)
+            # Field names vary across historical migrations; prefer modern names.
+            if hasattr(TournamentPaymentMethod, 'is_enabled'):
+                configured_methods = configured_methods.filter(is_enabled=True)
+            elif hasattr(TournamentPaymentMethod, 'is_active'):
+                configured_methods = configured_methods.filter(is_active=True)
+            configured_methods = configured_methods.order_by('display_order')
+
+            for method in configured_methods:
+                method_type = (
+                    getattr(method, 'method', None)
+                    or getattr(method, 'method_type', None)
+                    or ''
+                ).strip().lower()
+                normalized_type = 'bank' if method_type == 'bank_transfer' else method_type
+                if normalized_type not in {'bkash', 'nagad', 'rocket', 'bank'}:
+                    continue
+
+                account = ''
+                instructions = ''
+                if normalized_type == 'bkash':
+                    account = (getattr(method, 'bkash_account_number', '') or '').strip()
+                    instructions = (getattr(method, 'bkash_instructions', '') or '').strip() or 'Send Money to this number, then upload receipt proof.'
+                elif normalized_type == 'nagad':
+                    account = (getattr(method, 'nagad_account_number', '') or '').strip()
+                    instructions = (getattr(method, 'nagad_instructions', '') or '').strip() or 'Send Money to this number, then upload receipt proof.'
+                elif normalized_type == 'rocket':
+                    account = (getattr(method, 'rocket_account_number', '') or '').strip()
+                    instructions = (getattr(method, 'rocket_instructions', '') or '').strip() or 'Send Money to this number, then upload receipt proof.'
+                elif normalized_type == 'bank':
+                    bank_name = (getattr(method, 'bank_name', '') or '').strip()
+                    bank_account = (getattr(method, 'bank_account_number', '') or '').strip()
+                    bank_branch = (getattr(method, 'bank_branch', '') or '').strip()
+                    account = ' - '.join([part for part in (bank_name, bank_account, bank_branch) if part])
+                    instructions = (getattr(method, 'bank_instructions', '') or '').strip() or 'Complete bank transfer, then upload transaction receipt.'
+
+                manual_option_details.append({
+                    'value': normalized_type,
+                    'label': (
+                        method.get_method_display()
+                        if hasattr(method, 'get_method_display')
+                        else method.get_method_type_display()
+                        if hasattr(method, 'get_method_type_display')
+                        else normalized_type.title()
+                    ),
+                    'account': account,
+                    'instructions': instructions,
+                })
+        except Exception:
+            manual_option_details = []
+
+        if not manual_option_details:
+            # Fallback so users still see where to pay if method config is incomplete.
+            manual_option_details = [
+                {
+                    'value': 'bkash',
+                    'label': 'bKash',
+                    'account': 'Contact organizer',
+                    'instructions': 'Request organizer payment number and upload your payment proof here.',
+                },
+                {
+                    'value': 'nagad',
+                    'label': 'Nagad',
+                    'account': 'Contact organizer',
+                    'instructions': 'Request organizer payment number and upload your payment proof here.',
+                },
+                {
+                    'value': 'rocket',
+                    'label': 'Rocket',
+                    'account': 'Contact organizer',
+                    'instructions': 'Request organizer payment number and upload your payment proof here.',
+                },
+            ]
+
+        seen_manual = set()
+        for option in manual_option_details:
+            value = (option.get('value') or '').strip().lower()
+            if not value or value in seen_manual:
+                continue
+            seen_manual.add(value)
+            manual_methods.append(value)
+
+        selected_manual_method = ''
+        if payment and payment.payment_method:
+            selected_manual_method = (payment.payment_method or '').strip().lower()
+            if selected_manual_method == 'bank_transfer':
+                selected_manual_method = 'bank'
+        if selected_manual_method not in manual_methods:
+            selected_manual_method = manual_methods[0] if manual_methods else 'bkash'
+
         context = {
             'tournament': tournament,
             'registration': registration,
+            'payment': payment,
             'entry_fee': tournament.entry_fee_amount,
             'deltacoin_balance': deltacoin_balance,
             'deltacoin_can_afford': deltacoin_can_afford,
             'deltacoin_shortfall': max(Decimal('0.00'), tournament.entry_fee_amount - deltacoin_balance),
+            'alert_context': alert_context,
+            'manual_methods': manual_methods,
+            'manual_option_details': manual_option_details,
+            'selected_manual_method': selected_manual_method,
+            'sender_account_prefill': (getattr(payment, 'payer_account_number', '') if payment else '') or '',
+            'payment_page_mode': payment_page_mode,
+            'payment_page_title': payment_page_title,
+            'payment_page_subtitle': payment_page_subtitle,
+            'is_waitlist_callup_alert': is_waitlist_callup_alert,
         }
         
         return render(request, self.template_name, context)
@@ -835,7 +1040,85 @@ class PaymentRetryView(LoginRequiredMixin, View):
                 return redirect('tournaments:detail', slug=tournament.slug)
             except ValidationError as e:
                 messages.error(request, f"Payment failed: {str(e)}")
-                return redirect('tournaments:payment_retry', registration_id=registration_id)
-        else:
-            # Redirect to manual payment proof upload
-            return redirect('tournaments:payment_upload', registration_id=registration_id)
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+        if payment_method == 'manual':
+            payment_proof_file = request.FILES.get('payment_proof')
+            if not payment_proof_file:
+                messages.error(request, 'Please upload a payment proof file to continue.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+            selected_manual_method = (request.POST.get('manual_method') or '').strip().lower()
+            if selected_manual_method not in {'bkash', 'nagad', 'rocket', 'bank'}:
+                selected_manual_method = self._resolve_fallback_method(tournament)
+
+            reference_number = (request.POST.get('reference_number') or '').strip()
+            sender_account_number = (request.POST.get('sender_account_number') or '').strip()
+            notes = (request.POST.get('notes') or '').strip()
+
+            if len(reference_number) < 6:
+                messages.error(request, 'Transaction ID is required and must be at least 6 characters.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+            if len(reference_number) > 100:
+                messages.error(request, 'Transaction ID is too long. Maximum length is 100 characters.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+            if not re.fullmatch(r'[A-Za-z0-9_-]{6,100}', reference_number):
+                messages.error(request, 'Transaction ID may contain only letters, numbers, dash, and underscore.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+            if not sender_account_number:
+                messages.error(request, 'Sender number/account is required for manual payment verification.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+            normalized_sender = ''.join(ch for ch in sender_account_number if ch.isdigit())
+            if len(normalized_sender) < 8:
+                messages.error(request, 'Sender number/account looks invalid. Please provide a valid number/account.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+            if len(sender_account_number) > 32:
+                messages.error(request, 'Sender number/account is too long. Maximum length is 32 characters.')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+            if selected_manual_method in {'bkash', 'nagad', 'rocket'}:
+                if not re.fullmatch(r'01\d{9}', normalized_sender):
+                    messages.error(request, 'Sender number must be a valid 11-digit mobile number (01XXXXXXXXX).')
+                    return redirect('tournaments:payment_complete', registration_id=registration_id)
+            elif selected_manual_method == 'bank':
+                has_digit = any(ch.isdigit() for ch in sender_account_number)
+                bank_value = sender_account_number.replace(' ', '')
+                if len(bank_value) < 8 or not has_digit:
+                    messages.error(request, 'Bank sender account must include digits and be at least 8 characters long.')
+                    return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+            payment = getattr(registration, 'payment', None)
+            if not payment:
+                payment = Payment.objects.create(
+                    registration=registration,
+                    payment_method=selected_manual_method,
+                    amount=tournament.entry_fee_amount,
+                    status=Payment.PENDING,
+                )
+            elif payment.payment_method != selected_manual_method:
+                payment.payment_method = selected_manual_method
+                payment.save(update_fields=['payment_method', 'updated_at'])
+            try:
+                RegistrationService.submit_payment_proof(
+                    registration_id=registration.id,
+                    payment_proof_file=payment_proof_file,
+                    reference_number=reference_number,
+                    notes=notes,
+                )
+                payment.refresh_from_db()
+                payment.payer_account_number = sender_account_number
+                payment.amount_bdt = int(round(float(tournament.entry_fee_amount)))
+                if notes:
+                    payment.note = notes[:255]
+                payment.save(update_fields=['payer_account_number', 'amount_bdt', 'note', 'updated_at'])
+                messages.success(request, 'Payment proof submitted successfully. Organizer verification is now in progress.')
+                return redirect('tournaments:tournament_hub', slug=tournament.slug)
+            except ValidationError as e:
+                messages.error(request, f'Payment proof submission failed: {str(e)}')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+            except Exception as e:
+                messages.error(request, f'Payment proof submission failed: {str(e)}')
+                return redirect('tournaments:payment_complete', registration_id=registration_id)
+
+        return redirect('tournaments:payment_upload', registration_id=registration_id)

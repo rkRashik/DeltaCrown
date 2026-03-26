@@ -27,6 +27,7 @@ from apps.tournaments.models.match import Match
 from apps.tournaments.models.dispute import DisputeRecord
 from apps.tournaments.models.payment_verification import PaymentVerification
 from apps.tournaments.models import AuditLog
+from apps.tournaments.api.toc.announcements_service import TOCAnnouncementsService
 from apps.tournaments.services.command_center_service import CommandCenterService
 from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
 
@@ -122,6 +123,7 @@ class TOCService:
         # S30: Inline quick stats + recent activity to avoid overview fan-out calls
         quick_stats = cls._build_quick_stats(tournament, reg_stats, match_stats)
         activity_log = cls._get_recent_activity(tournament, limit=25)
+        tournament_feed = TOCAnnouncementsService.list_announcements(tournament=tournament)[:12]
         t_final = time.perf_counter()
 
         elapsed_ms = (t_final - t0) * 1000.0
@@ -161,6 +163,7 @@ class TOCService:
             'quick_actions': quick_actions,
             'quick_stats': quick_stats,
             'activity_log': activity_log,
+            'tournament_feed': tournament_feed,
         }
 
     # ── S1-S2: Transition Validation & Execution ──────────────────────

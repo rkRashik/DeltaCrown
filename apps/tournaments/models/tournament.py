@@ -761,11 +761,27 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         Returns:
             Number of available spots (0 if full or over-subscribed)
         """
-        return max(0, self.max_participants - self.total_registrations)
+        return max(0, self.max_participants - self.active_registration_count())
+
+    def active_registration_count(self) -> int:
+        """Return live active registration count used for capacity checks."""
+        from apps.tournaments.models.registration import Registration
+
+        return Registration.objects.filter(
+            tournament=self,
+            status__in=[
+                Registration.PENDING,
+                Registration.PAYMENT_SUBMITTED,
+                Registration.CONFIRMED,
+            ],
+            is_deleted=False,
+        ).count()
     
     def is_full(self) -> bool:
         """Check if tournament has reached capacity."""
-        return self.total_registrations >= self.max_participants
+        if self.max_participants <= 0:
+            return False
+        return self.active_registration_count() >= self.max_participants
     
     # =========================================================================
     # STAGE TRACKING FOR MULTI-STAGE TOURNAMENTS (GROUP_PLAYOFF format)

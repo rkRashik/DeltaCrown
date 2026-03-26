@@ -511,13 +511,34 @@ def _get_featured_tournaments(limit=3):
             row['tournament_id']: row['count']
             for row in Registration.objects.filter(
                 tournament_id__in=tournament_ids,
-                status__in=['confirmed', 'pending'],
+                status__in=['pending', 'payment_submitted', 'confirmed'],
+                is_deleted=False,
             ).values('tournament_id').annotate(count=Count('id'))
         }
         
         result = []
         for tournament in tournaments:
             registration_count = registration_counts.get(tournament.id, 0)
+            max_teams = tournament.max_participants if hasattr(tournament, 'max_participants') else None
+            is_full = bool(max_teams and registration_count >= max_teams)
+
+            if tournament.status == 'registration_open':
+                if is_full:
+                    action_label = 'Join Waitlist'
+                    action_url = f"/tournaments/{tournament.slug}/register/?waitlist=1"
+                    eligibility_status = 'full_waitlist'
+                else:
+                    action_label = 'Register Now'
+                    action_url = f"/tournaments/{tournament.slug}/register/"
+                    eligibility_status = 'eligible'
+            elif tournament.status == 'live':
+                action_label = 'Watch Live'
+                action_url = f"/tournaments/{tournament.slug}/"
+                eligibility_status = 'live'
+            else:
+                action_label = 'View Details'
+                action_url = f"/tournaments/{tournament.slug}/"
+                eligibility_status = 'view_details'
             
             # Calculate days until registration ends
             days_left = None
@@ -533,9 +554,13 @@ def _get_featured_tournaments(limit=3):
                 'game_slug': tournament.game.slug if hasattr(tournament, 'game') and tournament.game else '',
                 'prize_pool': f"à§³{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
                 'registration_count': registration_count,
-                'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
+                'max_teams': max_teams,
+                'is_full': is_full,
                 'status': tournament.status,
                 'status_display': tournament.get_status_display() if hasattr(tournament, 'get_status_display') else tournament.status.upper(),
+                'eligibility_status': eligibility_status,
+                'registration_action_label': action_label,
+                'registration_action_url': action_url,
                 'days_left': days_left,
                 'tournament_start': tournament.tournament_start if hasattr(tournament, 'tournament_start') else None,
                 'registration_end': tournament.registration_end,
@@ -654,8 +679,29 @@ def _get_featured_tournament():
         # Count registrations
         registration_count = Registration.objects.filter(
             tournament=tournament,
-            status__in=['confirmed', 'pending']
+            status__in=['pending', 'payment_submitted', 'confirmed'],
+            is_deleted=False,
         ).count()
+        max_teams = tournament.max_participants if hasattr(tournament, 'max_participants') else None
+        is_full = bool(max_teams and registration_count >= max_teams)
+
+        if tournament.status == 'registration_open':
+            if is_full:
+                action_label = 'Join Waitlist'
+                action_url = f"/tournaments/{tournament.slug}/register/?waitlist=1"
+                eligibility_status = 'full_waitlist'
+            else:
+                action_label = 'Register Now'
+                action_url = f"/tournaments/{tournament.slug}/register/"
+                eligibility_status = 'eligible'
+        elif tournament.status == 'live':
+            action_label = 'Watch Live'
+            action_url = f"/tournaments/{tournament.slug}/"
+            eligibility_status = 'live'
+        else:
+            action_label = 'View Details'
+            action_url = f"/tournaments/{tournament.slug}/"
+            eligibility_status = 'view_details'
         
         # Calculate days until registration ends
         days_left = None
@@ -676,8 +722,12 @@ def _get_featured_tournament():
             'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
             'prize_pool_value': float(tournament.prize_pool) if tournament.prize_pool else None,
             'registration_count': registration_count,
-            'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
+            'max_teams': max_teams,
+            'is_full': is_full,
             'status': tournament.status,
+            'eligibility_status': eligibility_status,
+            'registration_action_label': action_label,
+            'registration_action_url': action_url,
             'days_left': days_left,
             'hours_left': hours_left,
             'tournament_start': tournament.tournament_start if hasattr(tournament, 'tournament_start') else None,

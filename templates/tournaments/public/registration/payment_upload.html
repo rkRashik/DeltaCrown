@@ -1,0 +1,54 @@
+{% extends "tournaments/base.html" %}
+
+{% block title %}Upload Payment Proof | {{ tournament.name }}{% endblock %}
+
+{% block tournament_content %}
+<div class="max-w-3xl mx-auto px-4 py-10">
+  <div class="rounded-2xl border border-white/10 bg-[#0b0b11] p-6 md:p-8 shadow-xl">
+    <p class="text-[11px] uppercase tracking-[0.2em] text-amber-300 font-black">Manual Verification</p>
+    <h1 class="mt-2 text-2xl md:text-3xl font-black text-white">Upload Payment Proof</h1>
+    <p class="mt-3 text-sm text-gray-400 leading-relaxed">
+      Submit a clear screenshot or PDF receipt. Your registration will move to payment review after upload.
+    </p>
+
+    <div class="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-gray-300">
+      <p>Entry Fee: <span class="font-bold text-white">{{ entry_fee }}</span></p>
+      {% if payment and payment.get_status_display %}
+      <p class="mt-1">Current Payment Status: <span class="font-bold text-white">{{ payment.get_status_display }}</span></p>
+      {% endif %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs uppercase tracking-widest text-gray-400 mb-2">Payment Proof (Image/PDF)</label>
+        <input type="file" name="payment_proof" accept=".jpg,.jpeg,.png,.pdf,image/*,application/pdf" required
+               class="w-full rounded-xl border border-white/15 bg-white/5 text-white px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase tracking-widest text-gray-400 mb-2">Reference / Transaction ID</label>
+        <input type="text" name="reference_number" maxlength="100" placeholder="e.g. BKASH1234ABC"
+               class="w-full rounded-xl border border-white/15 bg-white/5 text-white px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase tracking-widest text-gray-400 mb-2">Notes (Optional)</label>
+        <textarea name="notes" rows="3" placeholder="Any context for verifier"
+                  class="w-full rounded-xl border border-white/15 bg-white/5 text-white px-3 py-2"></textarea>
+      </div>
+
+      <button type="submit"
+              class="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black uppercase tracking-wider transition">
+        Submit Payment Proof
+      </button>
+    </form>
+
+    <div class="mt-5 flex flex-wrap gap-3">
+      <a href="{% url 'tournaments:payment_complete' registration_id=registration.id %}" class="text-xs font-bold text-gray-300 hover:text-white">Back to Payment Options</a>
+      <a href="{% url 'tournaments:tournament_hub' slug=tournament.slug %}" class="text-xs font-bold text-gray-500 hover:text-gray-300">Back to Hub</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,320 @@
+{% extends "tournaments/base.html" %}
+
+{% block title %}Complete Registration Payment | {{ tournament.name }}{% endblock %}
+
+{% block tournament_content %}
+<div class="relative max-w-6xl mx-auto px-3 sm:px-5 py-6 sm:py-10">
+  <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div class="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl"></div>
+    <div class="absolute top-24 -right-20 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl"></div>
+  </div>
+
+  <section class="rounded-3xl border border-white/10 bg-[linear-gradient(140deg,#0a1024_0%,#0c162d_48%,#1b1208_100%)] shadow-[0_30px_90px_rgba(2,8,24,.58)] p-4 sm:p-6 lg:p-8">
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div>
+        <p class="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-cyan-300 font-black">Registration Payment</p>
+        <h1 class="mt-1 text-2xl sm:text-3xl font-black text-white leading-tight">{{ payment_page_title|default:'Complete Registration Payment' }}</h1>
+        <p class="mt-2 text-sm text-gray-300 max-w-3xl">{{ payment_page_subtitle|default:'Complete payment now to secure your tournament slot.' }}</p>
+      </div>
+      <div class="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">
+        <p class="text-[10px] uppercase tracking-[0.14em] text-cyan-300 font-black">Entry Fee</p>
+        <p class="text-xl font-black text-white mt-0.5">{{ entry_fee }}</p>
+      </div>
+    </div>
+
+    {% if alert_context %}
+    <div class="mt-5 rounded-2xl border border-amber-300/30 bg-amber-200/10 p-3 sm:p-4">
+      <div class="flex items-start gap-3">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-300/20 border border-amber-300/35 text-amber-200">!</span>
+        <div class="min-w-0">
+          <p class="text-[10px] uppercase tracking-[0.16em] text-amber-200 font-black">Latest Alert</p>
+          <p class="text-sm font-bold text-white mt-0.5">{{ alert_context.title }}</p>
+          {% if alert_context.body %}<p class="text-sm text-gray-200 mt-1.5 leading-relaxed">{{ alert_context.body }}</p>{% endif %}
+          <p class="text-[10px] text-gray-400 mt-2">{{ alert_context.time_ago }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <div class="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+        <p class="text-[10px] uppercase tracking-wider text-gray-500">Registration</p>
+        <p class="mt-1 text-sm font-black text-white">{{ registration.get_status_display }}</p>
+      </div>
+      <div class="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+        <p class="text-[10px] uppercase tracking-wider text-gray-500">Payment Status</p>
+        <p class="mt-1 text-sm font-black text-white">{% if payment %}{{ payment.get_status_display }}{% else %}Pending{% endif %}</p>
+      </div>
+      <div class="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+        <p class="text-[10px] uppercase tracking-wider text-gray-500">Next Stage</p>
+        <p class="mt-1 text-sm font-black text-cyan-200">Organizer Review Queue</p>
+      </div>
+    </div>
+
+    <div class="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 overflow-auto">
+      <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-200 flex items-center justify-center">1</span> Choose Method</span>
+      <span class="text-gray-600">/</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-200 flex items-center justify-center">2</span> Send Payment</span>
+      <span class="text-gray-600">/</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-200 flex items-center justify-center">3</span> Submit Proof</span>
+    </div>
+
+    <div class="mt-5 grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-4 items-start">
+      <form id="manual-payment-form" method="post" enctype="multipart/form-data" class="rounded-2xl border border-amber-400/30 bg-[linear-gradient(160deg,rgba(54,35,9,.46),rgba(25,16,4,.64))] p-4 sm:p-5 space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="payment_method" value="manual" />
+
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[10px] uppercase tracking-[0.16em] text-amber-300 font-black">Manual Payment</p>
+            <h3 class="text-xl font-black text-white mt-1">Payment Channel + Proof Upload</h3>
+            <p class="text-xs text-gray-300 mt-1">Use the exact account details below and submit receipt proof with sender info.</p>
+          </div>
+          <span class="text-xl" aria-hidden="true">🧾</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="manual-method-cards">
+          {% for option in manual_option_details %}
+          <button type="button"
+                  class="manual-method-card text-left rounded-xl border px-3 py-3 transition-colors border-white/15 bg-black/25 hover:border-cyan-300/40"
+                  data-value="{{ option.value }}"
+                  data-label="{{ option.label|escape }}"
+                  data-account="{{ option.account|default:'Contact organizer'|escape }}"
+                  data-instructions="{{ option.instructions|default:'Follow organizer instructions and upload valid proof.'|escape }}">
+            <p class="text-xs font-black text-white">{{ option.label }}</p>
+            <p class="text-[10px] text-gray-400 mt-1 line-clamp-2">{{ option.account|default:'Contact organizer' }}</p>
+          </button>
+          {% endfor %}
+        </div>
+
+        <select id="manual-method-select" name="manual_method" class="hidden" aria-hidden="true">
+          {% for option in manual_option_details %}
+          <option value="{{ option.value }}"
+            data-label="{{ option.label|escape }}"
+            data-account="{{ option.account|default:'Contact organizer'|escape }}"
+            data-instructions="{{ option.instructions|default:'Follow organizer instructions and upload valid proof.'|escape }}"
+            {% if selected_manual_method == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="rounded-xl border border-amber-400/20 bg-black/25 p-3">
+          <p class="text-[10px] uppercase tracking-[0.12em] text-gray-400 font-bold">Send Payment To</p>
+          <p id="manual-account-display" class="text-sm sm:text-base font-black text-cyan-200 mt-1">Contact organizer</p>
+          <p id="manual-instructions-display" class="text-xs text-gray-300 mt-1.5 leading-relaxed">Follow organizer instructions and upload valid proof.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-1.5 font-bold">Payment Proof (JPG, PNG, PDF)</label>
+            <input id="manual-proof-input" type="file" name="payment_proof" accept=".jpg,.jpeg,.png,.pdf,image/*,application/pdf" required
+              class="w-full rounded-lg border border-white/20 bg-[#10182f] text-white px-3 py-2 text-sm" />
+            <p id="manual-proof-error" class="text-[10px] text-rose-300 mt-1 hidden"></p>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-1.5 font-bold">Sender Number / Account</label>
+            <input id="manual-sender-input" type="text" name="sender_account_number" required maxlength="32" minlength="8" placeholder="e.g. 017XXXXXXXX"
+              value="{{ sender_account_prefill|default:'' }}"
+              class="w-full rounded-lg border border-white/20 bg-[#10182f] text-white px-3 py-2 text-sm" />
+            <p id="manual-sender-error" class="text-[10px] text-rose-300 mt-1 hidden"></p>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-1.5 font-bold">Transaction ID</label>
+            <input id="manual-reference-input" type="text" name="reference_number" maxlength="100" minlength="6" required placeholder="e.g. BKASH1234ABC"
+              class="w-full rounded-lg border border-white/20 bg-[#10182f] text-white px-3 py-2 text-sm" />
+            <p id="manual-reference-error" class="text-[10px] text-rose-300 mt-1 hidden"></p>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-1.5 font-bold">Notes (Optional)</label>
+            <input type="text" name="notes" placeholder="Any verifier note"
+              class="w-full rounded-lg border border-white/20 bg-[#10182f] text-white px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
+          <p class="text-[10px] text-gray-400" id="manual-form-live-status">Fill all required fields to enable submission.</p>
+        </div>
+
+        <button id="manual-submit-btn" type="submit" class="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black uppercase tracking-[0.08em] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+          Submit For Verification
+        </button>
+      </form>
+
+      <form method="post" class="rounded-2xl border border-cyan-400/25 bg-[linear-gradient(160deg,rgba(8,48,66,.45),rgba(3,22,34,.62))] p-4 sm:p-5 space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="payment_method" value="deltacoin" />
+
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[10px] uppercase tracking-[0.16em] text-cyan-300 font-black">Instant Payment</p>
+            <h3 class="text-xl font-black text-white mt-1">Pay With DeltaCoin</h3>
+            <p class="text-xs text-gray-300 mt-1">Instant confirmation when wallet balance is sufficient.</p>
+          </div>
+          <span class="text-xl" aria-hidden="true">⚡</span>
+        </div>
+
+        <div class="rounded-xl border border-cyan-400/20 bg-black/25 p-3">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-300">Wallet Balance</span>
+            <span class="font-black text-white">{{ deltacoin_balance }} DC</span>
+          </div>
+          <div class="flex items-center justify-between text-sm mt-1">
+            <span class="text-gray-300">Required</span>
+            <span class="font-black text-white">{{ entry_fee }}</span>
+          </div>
+          {% if deltacoin_can_afford %}
+          <p class="mt-2 text-xs text-emerald-300">Sufficient balance found. Instant confirmation available.</p>
+          {% else %}
+          <p class="mt-2 text-xs text-amber-300">Need {{ deltacoin_shortfall }} more DC to complete instant payment.</p>
+          {% endif %}
+        </div>
+
+        <button type="submit" {% if not deltacoin_can_afford %}disabled{% endif %}
+          class="w-full py-3 rounded-xl {% if deltacoin_can_afford %}bg-cyan-400 hover:bg-cyan-300 text-black{% else %}bg-slate-700 text-slate-300 cursor-not-allowed{% endif %} font-black uppercase tracking-[0.08em] transition-colors">
+          Confirm DeltaCoin Payment
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+      <a href="{% url 'tournaments:tournament_hub' slug=tournament.slug %}" class="font-bold text-gray-200 hover:text-white">Back to Hub</a>
+      <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="font-bold text-gray-400 hover:text-gray-200">Tournament Details</a>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    const manualForm = document.getElementById('manual-payment-form');
+    const select = document.getElementById('manual-method-select');
+    const cardsWrap = document.getElementById('manual-method-cards');
+    const cards = cardsWrap ? Array.from(cardsWrap.querySelectorAll('.manual-method-card')) : [];
+    const accountEl = document.getElementById('manual-account-display');
+    const instructionsEl = document.getElementById('manual-instructions-display');
+    const senderInput = document.getElementById('manual-sender-input');
+    const referenceInput = document.getElementById('manual-reference-input');
+    const proofInput = document.getElementById('manual-proof-input');
+    const submitBtn = document.getElementById('manual-submit-btn');
+    const liveStatus = document.getElementById('manual-form-live-status');
+    const senderErr = document.getElementById('manual-sender-error');
+    const referenceErr = document.getElementById('manual-reference-error');
+    const proofErr = document.getElementById('manual-proof-error');
+    if (!select || !accountEl || !instructionsEl || !manualForm || !senderInput || !referenceInput || !proofInput || !submitBtn) return;
+
+    const setError = (el, msg) => {
+      if (!el) return;
+      if (!msg) {
+        el.classList.add('hidden');
+        el.textContent = '';
+      } else {
+        el.classList.remove('hidden');
+        el.textContent = msg;
+      }
+    };
+
+    const normalizeMethod = () => String(select.value || '').toLowerCase();
+
+    const applyMethodDetails = () => {
+      const selected = select.options[select.selectedIndex];
+      if (!selected) return;
+      accountEl.textContent = selected.dataset.account || 'Contact organizer';
+      instructionsEl.textContent = selected.dataset.instructions || 'Follow organizer instructions and upload valid proof.';
+
+      cards.forEach((btn) => {
+        const active = String(btn.dataset.value || '').toLowerCase() === normalizeMethod();
+        btn.classList.toggle('border-cyan-300/50', active);
+        btn.classList.toggle('bg-cyan-500/10', active);
+        btn.classList.toggle('border-white/15', !active);
+        btn.classList.toggle('bg-black/25', !active);
+      });
+    };
+
+    const validateSender = () => {
+      const method = normalizeMethod();
+      const raw = String(senderInput.value || '').trim();
+      const digits = raw.replace(/\D/g, '');
+      let err = '';
+
+      if (!raw) {
+        err = 'Sender number/account is required.';
+      } else if (raw.length > 32) {
+        err = 'Sender number/account is too long (max 32 chars).';
+      } else if (method === 'bank') {
+        if (raw.replace(/\s+/g, '').length < 8 || !/\d/.test(raw)) {
+          err = 'Bank sender account must include digits and be at least 8 characters.';
+        }
+      } else if (!/^01\d{9}$/.test(digits)) {
+        err = 'Use a valid 11-digit mobile number (01XXXXXXXXX).';
+      }
+
+      setError(senderErr, err);
+      return !err;
+    };
+
+    const validateReference = () => {
+      const val = String(referenceInput.value || '').trim();
+      let err = '';
+      if (!val) err = 'Transaction ID is required.';
+      else if (!/^[A-Za-z0-9_-]{6,100}$/.test(val)) err = 'Use 6-100 chars (letters, numbers, dash, underscore).';
+      setError(referenceErr, err);
+      return !err;
+    };
+
+    const validateProof = () => {
+      const file = proofInput.files && proofInput.files[0] ? proofInput.files[0] : null;
+      let err = '';
+      if (!file) {
+        err = 'Payment proof file is required.';
+      } else {
+        const lower = String(file.name || '').toLowerCase();
+        if (!/\.(jpg|jpeg|png|pdf)$/.test(lower)) err = 'Allowed file types: JPG, PNG, PDF.';
+        else if (file.size > (5 * 1024 * 1024)) err = 'File is too large. Maximum size is 5MB.';
+      }
+      setError(proofErr, err);
+      return !err;
+    };
+
+    const validateAll = () => {
+      const okSender = validateSender();
+      const okRef = validateReference();
+      const okProof = validateProof();
+      const ok = okSender && okRef && okProof;
+      submitBtn.disabled = !ok;
+      if (liveStatus) {
+        liveStatus.textContent = ok
+          ? 'All checks passed. You can submit now.'
+          : 'Please fix highlighted fields to continue.';
+      }
+      return ok;
+    };
+
+    cards.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const value = String(btn.dataset.value || '').toLowerCase();
+        const option = Array.from(select.options).find((o) => String(o.value || '').toLowerCase() === value);
+        if (option) {
+          select.value = option.value;
+          applyMethodDetails();
+          validateAll();
+        }
+      });
+    });
+
+    select.addEventListener('change', () => {
+      applyMethodDetails();
+      validateAll();
+    });
+    senderInput.addEventListener('input', validateAll);
+    senderInput.addEventListener('blur', validateAll);
+    referenceInput.addEventListener('input', validateAll);
+    referenceInput.addEventListener('blur', validateAll);
+    proofInput.addEventListener('change', validateAll);
+
+    manualForm.addEventListener('submit', (event) => {
+      if (!validateAll()) event.preventDefault();
+    });
+
+    applyMethodDetails();
+    validateAll();
+  })();
+</script>
+{% endblock %}

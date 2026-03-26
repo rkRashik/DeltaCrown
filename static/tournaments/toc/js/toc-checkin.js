@@ -60,7 +60,11 @@
     el('pending', s.pending || 0);
     el('missing', s.not_checked_in || 0);
     el('total', s.total || 0);
-    el('status', data.config?.open ? 'Open' : 'Closed');
+    if (data.config?.checkin_required === false) {
+      el('status', 'Not Required');
+    } else {
+      el('status', data.config?.open ? 'Open' : 'Closed');
+    }
   }
 
   /* ─────────────────────── Progress ring ──────────────────────────── */
@@ -133,6 +137,12 @@
   function updateStatusButtons(config) {
     const openBtn = $('[data-checkin-action="open"]');
     const closeBtn = $('[data-checkin-action="close"]');
+    const required = config.checkin_required !== false;
+    if (!required) {
+      openBtn?.classList.add('opacity-50', 'pointer-events-none');
+      closeBtn?.classList.add('opacity-50', 'pointer-events-none');
+      return;
+    }
     if (config.open) {
       openBtn?.classList.add('opacity-50', 'pointer-events-none');
       closeBtn?.classList.remove('opacity-50', 'pointer-events-none');
@@ -318,17 +328,34 @@
   /* ─────────────────────────── Config form ─────────────────────────── */
 
   function renderConfig(config) {
+    const required = $('#checkin-required-toggle');
     const wm = $('#checkin-window-minutes');
+    const closes = $('#checkin-closes-minutes-before');
     const adq = $('#checkin-auto-dq');
     const pr = $('#checkin-per-round');
+    const note = $('#checkin-required-note');
+    if (required) required.checked = config.checkin_required !== false;
     if (wm) wm.value = config.window_minutes || 15;
+    if (closes) closes.value = config.check_in_closes_minutes_before || 0;
     if (adq) adq.checked = !!config.auto_dq;
     if (pr) pr.checked = !!config.per_round;
+    if (note) {
+      note.textContent = config.checkin_required === false
+        ? 'Check-in is currently disabled in tournament settings.'
+        : 'Check-in is required. Configure runtime behavior below.';
+      note.className = config.checkin_required === false
+        ? 'text-[10px] font-mono text-dc-warning mt-1'
+        : 'text-[10px] font-mono text-dc-text mt-1';
+    }
   }
 
   /* ─────────────────────────── Actions ────────────────────────────── */
 
   async function openCheckin() {
+    if (dashData?.config?.checkin_required === false) {
+      toast('Enable Check-In Required first in config/settings.', 'warning');
+      return;
+    }
     const mins = parseInt($('#checkin-window-minutes')?.value || '15');
     try {
       await API.post('checkin/open/', { window_minutes: mins });
@@ -405,13 +432,17 @@
 
   async function saveConfig() {
     const data = {
+      checkin_required: $('#checkin-required-toggle')?.checked !== false,
       window_minutes: parseInt($('#checkin-window-minutes')?.value || '15'),
+      check_in_closes_minutes_before: parseInt($('#checkin-closes-minutes-before')?.value || '0'),
       auto_dq: $('#checkin-auto-dq')?.checked || false,
       per_round: $('#checkin-per-round')?.checked || false,
     };
     try {
-      await API.post('checkin/config/', data);
+      const res = await API.post('checkin/config/', data);
+      document.dispatchEvent(new CustomEvent('toc:checkin-config-updated', { detail: res?.config || data }));
       toast('Config saved', 'success');
+      refresh();
     } catch (e) {
       toast('Save failed', 'error');
     }
@@ -441,5 +472,11 @@
 
   document.addEventListener('toc:tab-changed', (e) => {
     if (e.detail?.tab === 'checkin') refresh();
+  });
+
+  document.addEventListener('toc:checkin-config-updated', () => {
+    if ((window.location.hash || '').replace('#', '') === 'checkin') {
+      refresh();
+    }
   });
 })();

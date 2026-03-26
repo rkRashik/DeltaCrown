@@ -31,6 +31,7 @@ from enum import Enum
 from typing import Optional
 from rest_framework import permissions
 from django.contrib.auth import get_user_model
+from channels.db import database_sync_to_async
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -359,4 +360,4 @@ async def check_websocket_action_permission(user, action_type: str) -> bool:
             return
     """
     required_role = get_required_role_for_action(action_type)
-    return check_tournament_role(user, required_role)
+    return await database_sync_to_async(check_tournament_role)(user, required_role)

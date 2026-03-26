@@ -234,6 +234,20 @@ def log_message(
     Example:
         >>> log_message(user_id=123, tournament_id=456, message_type='score_update', duration_ms=12)
     """
+    if message_type == 'heartbeat':
+        logger.debug(
+            "WebSocket event: WS_MESSAGE",
+            extra={
+                'event': EventType.WS_MESSAGE,
+                'timestamp': datetime.now(dt_timezone.utc).isoformat(),
+                'user_id': user_id,
+                'tournament_id': tournament_id,
+                'message_type': message_type,
+                'duration_ms': duration_ms,
+            },
+        )
+        return
+
     log_ws_event(
         event=EventType.WS_MESSAGE,
         user_id=user_id,

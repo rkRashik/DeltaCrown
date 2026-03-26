@@ -18,12 +18,22 @@
         {% if tournament.max_participants %}<span class="text-gray-600">&middot; {{ tournament.max_participants }} max</span>{% endif %}
       </p>
     </div>
-    <div class="relative w-full sm:w-64">
-      <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
-      <input type="text" id="participants-search"
-             class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00F0FF]/30 transition-colors"
-             placeholder="Search {% if is_team %}teams{% else %}participants{% endif %}..." autocomplete="off"
-             oninput="HubEngine.filterParticipants(this.value)">
+    <div class="flex w-full sm:w-auto items-center gap-2">
+      <label for="participants-sort" class="sr-only">Sort participants</label>
+      <select id="participants-sort"
+              class="w-40 px-3 py-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-gray-200 focus:outline-none focus:border-[#00F0FF]/30 transition-colors">
+        <option value="joined_desc">Newest Joined</option>
+        <option value="joined_asc">Oldest Joined</option>
+        <option value="seed_asc">Seed: High Priority</option>
+        <option value="seed_desc">Seed: Low Priority</option>
+      </select>
+      <div class="relative w-full sm:w-64">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+        <input type="text" id="participants-search"
+               class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00F0FF]/30 transition-colors"
+               placeholder="Search {% if is_team %}teams{% else %}participants{% endif %}..." autocomplete="off"
+               oninput="HubEngine.filterParticipants(this.value)">
+      </div>
     </div>
   </div>
 

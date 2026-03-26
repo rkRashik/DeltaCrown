@@ -130,6 +130,10 @@ class TOCParticipantService:
         )
         t_base_qs = time.perf_counter()
 
+        # Default operational view hides inactive/disqualified rows.
+        if not status:
+            qs = qs.exclude(status__in=cls.STATUS_INACTIVE)
+
         # ── Status filter ──
         if status:
             if status == 'active':
@@ -146,14 +150,25 @@ class TOCParticipantService:
         # ── Payment filter ──
         if payment == 'verified':
             qs = qs.filter(
-                payment_verification__status=PaymentVerification.Status.VERIFIED,
+                Q(payment_verification__status=PaymentVerification.Status.VERIFIED)
+                | Q(
+                    payment_verification__isnull=True,
+                    payment__status__in=[Payment.VERIFIED, Payment.WAIVED],
+                )
             )
         elif payment == 'pending':
             qs = qs.filter(
-                payment_verification__status=PaymentVerification.Status.PENDING,
+                Q(payment_verification__status=PaymentVerification.Status.PENDING)
+                | Q(
+                    payment_verification__isnull=True,
+                    payment__status__in=[Payment.PENDING, Payment.SUBMITTED],
+                )
             )
         elif payment == 'none':
-            qs = qs.filter(payment_verification__isnull=True)
+            qs = qs.filter(
+                payment_verification__isnull=True,
+                payment__isnull=True,
+            )
 
         # ── Check-in filter ──
         if checkin == 'yes':
@@ -760,7 +775,7 @@ class TOCParticipantService:
         payment_map = cls._build_latest_payment_map(all_regs)
 
         for reg in all_regs:
-            payment_status = cls._payment_status_label(reg)
+            payment_status = cls._payment_status_label(reg, payment_map=payment_map)
             game_id = (reg.registration_data or {}).get('game_id', '')
             reg_data = reg.registration_data or {}
 
@@ -845,7 +860,7 @@ class TOCParticipantService:
         payment_map: dict = None,
     ) -> Dict[str, Any]:
         """Serialize a registration to a grid-row dict."""
-        payment_status = cls._payment_status_label(reg)
+        payment_status = cls._payment_status_label(reg, payment_map=payment_map)
         reg_data = reg.registration_data if isinstance(reg.registration_data, dict) else {}
         block_meta = reg_data.get('tournament_block') if isinstance(reg_data.get('tournament_block'), dict) else {}
         is_hard_blocked = bool(block_meta.get('active'))
@@ -1219,11 +1234,41 @@ class TOCParticipantService:
         return ''
 
     @classmethod
-    def _payment_status_label(cls, reg: Registration) -> str:
+    def _payment_status_label(
+        cls,
+        reg: Registration,
+        payment_map: Optional[Dict[int, Payment]] = None,
+    ) -> str:
         """Get human-readable payment status for a registration."""
         try:
             pv = reg.payment_verification
-            return pv.get_status_display() if pv else 'None'
+            if pv:
+                return pv.get_status_display()
+        except Exception:
+            pass
+
+        payment = None
+        if payment_map is not None:
+            payment = payment_map.get(reg.id)
+        if payment is None:
+            try:
+                payment = reg.payment
+            except Payment.DoesNotExist:
+                payment = None
+
+        if not payment:
+            return 'None'
+
+        status_value = ((getattr(payment, 'status', '') or '')).strip().lower()
+        if status_value in {Payment.VERIFIED, Payment.WAIVED}:
+            return 'Verified'
+        if status_value in {Payment.PENDING, Payment.SUBMITTED}:
+            return 'Pending'
+        if status_value == Payment.REJECTED:
+            return 'Rejected'
+
+        try:
+            return payment.get_status_display() if hasattr(payment, 'get_status_display') else 'None'
         except Exception:
             return 'None'
 
