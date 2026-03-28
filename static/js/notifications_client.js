@@ -10,6 +10,8 @@
     page: 1,
     hasNext: true,
     initialized: false,
+    sseDisabled: false,
+    sseFastFailureCount: 0,
   };
 
   const AudioEngine = (function () {
@@ -406,11 +408,15 @@
   }
 
   function connectSSE() {
-    if (!window.EventSource) return;
+    if (!window.EventSource || state.sseDisabled) return;
     let source;
+    let receivedMessage = false;
+    const openedAt = Date.now();
     try {
       source = new EventSource("/notifications/stream/");
       source.onmessage = function (evt) {
+        receivedMessage = true;
+        state.sseFastFailureCount = 0;
         try {
           const data = JSON.parse(evt.data);
           if (Array.isArray(data.new_items) && data.new_items.length) prependIncoming(data.new_items);
@@ -420,6 +426,16 @@
       };
       source.onerror = function () {
         source.close();
+        const lifetimeMs = Date.now() - openedAt;
+        if (!receivedMessage && lifetimeMs < 1500) {
+          state.sseFastFailureCount += 1;
+          if (state.sseFastFailureCount >= 3) {
+            state.sseDisabled = true;
+            return;
+          }
+        } else {
+          state.sseFastFailureCount = 0;
+        }
         setTimeout(connectSSE, 5000);
       };
     } catch (e) {}

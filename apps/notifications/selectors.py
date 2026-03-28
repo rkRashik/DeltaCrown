@@ -84,6 +84,7 @@ def build_notification_queryset(user) -> QuerySet[Notification]:
         .select_related("recipient")
         .only(
             "id",
+            "event",
             "type",
             "category",
             "notification_type",
@@ -917,7 +918,7 @@ def map_notifications_to_payload(items: Iterable[Notification]) -> list[dict]:
 
 
 def get_feed_page(user, page: int = 1, page_size: int = 20) -> NotificationFeedPage:
-    safe_page_size = max(1, min(page_size, 50))
+    safe_page_size = max(1, min(page_size, 25))
     paginator = Paginator(build_notification_queryset(user), safe_page_size)
     current_page = paginator.get_page(page)
     mapped = map_notifications_to_payload(current_page.object_list)
