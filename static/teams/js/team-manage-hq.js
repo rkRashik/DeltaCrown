@@ -1638,7 +1638,7 @@
 
     init() {
       this.pollBadge();
-      this._pollTimer = setInterval(() => this.pollBadge(), 30_000);
+      this._pollTimer = setInterval(() => this.pollBadge(), 60_000);
       // Close panel on outside click
       document.addEventListener("click", (e) => {
         const wrap = qs("#notifBellWrap");
@@ -1649,6 +1649,7 @@
     },
 
     async pollBadge() {
+      if (document.hidden) return;
       try {
         const res = await fetch("/notifications/api/unread-count/", { credentials: "same-origin" });
         const data = await res.json();

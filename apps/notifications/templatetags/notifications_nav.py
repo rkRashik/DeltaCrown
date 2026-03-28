@@ -1,5 +1,6 @@
 from django import template
 from django.apps import apps
+from apps.notifications.unread_cache import get_unread_count_for_user
 
 register = template.Library()
 
@@ -25,7 +26,7 @@ def notifications_bell(context, limit=6):
     items = list(
         Notification.objects.filter(recipient=user).order_by("-created_at")[: int(limit)]
     )
-    unread_count = Notification.objects.filter(recipient=user, is_read=False).count()
+    unread_count = get_unread_count_for_user(user)
 
     # ── Enrich team invite notifications with team details ──
     invite_details = {}

@@ -9,11 +9,11 @@ from django.apps import apps
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from .decorators import require_auth_json
 from .selectors import get_feed_page, get_preview_payload
 from .services import NotificationActionError, NotificationActionService
+from .unread_cache import get_unread_count_for_user, invalidate_unread_count_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +175,7 @@ def _build_invite_details(items):
 @login_required
 def list_view(request):
     u = _user(request.user)
-    unread_count = Notification.objects.filter(recipient=u, is_read=False).count()
+    unread_count = get_unread_count_for_user(u)
     return render(request, "notifications/inbox.html", {"unread_count": unread_count})
 
 
@@ -188,6 +188,8 @@ def mark_all_read(request):
     u = _user(request.user)
     if request.method == "POST":
         updated_count = Notification.objects.filter(recipient=u, is_read=False).update(is_read=True)
+        if updated_count:
+            invalidate_unread_count_for_user(u)
         return JsonResponse({
             "success": True,
             "message": "All notifications marked as read.",
@@ -210,6 +212,7 @@ def mark_read(request, pk):
     if request.method == "POST" and was_unread:
         n.is_read = True
         n.save(update_fields=["is_read"])
+        invalidate_unread_count_for_user(u)
     
     # Return JSON for AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
@@ -226,12 +229,10 @@ def mark_read(request, pk):
 
 
 @login_required
-@cache_page(30)
 def unread_count(request):
     u = _user(request.user)
-    count = 0
     try:
-        count = Notification.objects.filter(recipient=u, is_read=False).count()
+        count = get_unread_count_for_user(u)
     except Exception:
         count = 0
     return JsonResponse({"count": count})
@@ -268,7 +269,7 @@ def nav_preview(request):
     
     try:
         items = get_preview_payload(u, limit=10)
-        unread_count = Notification.objects.filter(recipient=u, is_read=False).count()
+        unread_count = get_unread_count_for_user(u)
         
         # Count pending follow requests
         pending_follow_requests = 0
@@ -349,7 +350,7 @@ def api_preview(request):
 
     user = _user(request.user)
     items = get_preview_payload(user, limit=limit)
-    unread_count = Notification.objects.filter(recipient=user, is_read=False).count()
+    unread_count = get_unread_count_for_user(user)
     return JsonResponse({"success": True, "items": items, "count": len(items), "unread_count": unread_count})
 
 
@@ -389,6 +390,8 @@ def api_mark_read(request):
         is_read=read_state,
         read_at=timezone.now() if read_state else None,
     )
+    if updated:
+        invalidate_unread_count_for_user(_user(request.user))
     return JsonResponse({"success": True, "updated_count": updated, "read": read_state})
 
 
@@ -415,6 +418,7 @@ def api_toggle_read(request):
     n.is_read = new_state
     n.read_at = timezone.now() if new_state else None
     n.save(update_fields=["is_read", "read_at"])
+    invalidate_unread_count_for_user(_user(request.user))
     return JsonResponse({"success": True, "id": notification_id, "read": new_state})
 
 
@@ -442,6 +446,8 @@ def api_delete(request):
         recipient=_user(request.user),
         id__in=ids,
     ).delete()
+    if deleted_count:
+        invalidate_unread_count_for_user(_user(request.user))
     return JsonResponse({"success": True, "deleted_count": deleted_count})
 
 
@@ -450,6 +456,8 @@ def api_delete(request):
 def api_clear(request):
     """Delete all notifications for current user."""
     deleted_count, _ = Notification.objects.filter(recipient=_user(request.user)).delete()
+    if deleted_count:
+        invalidate_unread_count_for_user(_user(request.user))
     return JsonResponse({"success": True, "deleted_count": deleted_count})
 
 
@@ -504,6 +512,7 @@ def api_action(request, action_id):
         action_id,
         result.get("consumed_notifications", 0),
     )
+    invalidate_unread_count_for_user(actor)
     return JsonResponse(
         {
             "success": True,
@@ -525,6 +534,7 @@ def delete_notification(request, pk):
     u = _user(request.user)
     n = get_object_or_404(Notification, id=pk, recipient=u)
     n.delete()
+    invalidate_unread_count_for_user(u)
     
     # Check if AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -547,6 +557,8 @@ def clear_all_notifications(request):
     """
     u = _user(request.user)
     deleted_count = Notification.objects.filter(recipient=u).delete()[0]
+    if deleted_count:
+        invalidate_unread_count_for_user(u)
     
     # Check if AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -723,6 +735,7 @@ def accept_team_invite_inline(request, invite_id):
                 action_type="team_invite",
                 is_read=False,
             ).update(is_read=True)
+            invalidate_unread_count_for_user(user)
 
         # Notify team owner
         try:
@@ -781,6 +794,7 @@ def decline_team_invite_inline(request, invite_id):
             action_type="team_invite",
             is_read=False,
         ).update(is_read=True)
+        invalidate_unread_count_for_user(user)
 
         return JsonResponse({
             "success": True,

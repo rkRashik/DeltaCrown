@@ -78,6 +78,19 @@ def is_neon_database_url(url_string):
 
     return (urlparse(url_string).hostname or '').endswith('neon.tech')
 
+
+def is_supabase_pooler_database_url(url_string):
+    """Return True when the database host points at a Supabase transaction pooler."""
+    if not url_string:
+        return False
+
+    url_string = url_string.strip()
+    if url_string.startswith(('"', "'")) and url_string.endswith(('"', "'")):
+        url_string = url_string[1:-1]
+
+    host = (urlparse(url_string).hostname or '').lower()
+    return host.endswith('pooler.supabase.com')
+
 def get_database_environment():
     """
     Get database URL and environment label.
@@ -161,11 +174,11 @@ _TIER_CACHE_MAX_CONNECTIONS = {
     "pro": 400,
 }[DEPLOYMENT_TIER]
 
-_TIER_DB_CONN_MAX_AGE_NEON = {
-    # Neon suspends idle compute and silently drops connections; reusing them
-    # causes "SSL SYSCALL error: EOF detected".  CONN_MAX_AGE=0 forces Django to
-    # open a fresh connection per request — slightly slower but always reliable.
-    # Override per-deploy with the DB_CONN_MAX_AGE_NEON env var if needed.
+_TIER_DB_CONN_MAX_AGE_POOLED = {
+    # Transaction poolers (Neon/Supabase) can drop or recycle backend sockets.
+    # CONN_MAX_AGE=0 avoids stale-connection reuse against pooled endpoints.
+    # Override with DB_CONN_MAX_AGE_POOLED, DB_CONN_MAX_AGE_NEON, or
+    # DB_CONN_MAX_AGE_SUPABASE_POOLER when needed.
     "free": 0,
     "starter": 0,
     "pro": 0,
@@ -497,7 +510,17 @@ else:
 
 # CRITICAL: Keep auth/session flow independent from Redis/cache outages.
 # Free-tier Redis quotas or DNS/connectivity issues must not break session middleware.
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+_SESSION_ENGINE_OVERRIDE = os.getenv("SESSION_ENGINE", "").strip()
+if _SESSION_ENGINE_OVERRIDE:
+    SESSION_ENGINE = _SESSION_ENGINE_OVERRIDE
+elif not DEBUG:
+    # cached_db keeps DB as source-of-truth while dramatically reducing read load.
+    # It works with Redis (preferred) and degrades to configured cache backend.
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+else:
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+SESSION_CACHE_ALIAS = os.getenv("SESSION_CACHE_ALIAS", "default")
 
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
@@ -540,14 +563,26 @@ if not db_config:
     raise ImproperlyConfigured(f"Failed to parse database URL for {db_label} environment")
 
 is_neon_database = is_neon_database_url(database_url)
+is_supabase_pooler_database = is_supabase_pooler_database_url(database_url)
+is_pooled_database = is_neon_database or is_supabase_pooler_database
 
 # Apply optimized connection settings
-# Neon can suspend idle compute and close sockets from under the app. Default to
-# CONN_MAX_AGE=0 so each request/task gets a fresh connection; keep health checks
-# enabled so any explicit nonzero override still validates reused sockets first.
+# Pooled DB endpoints (Neon/Supabase pooler) can recycle backend connections.
+# Keep CONN_MAX_AGE=0 by default for pooled endpoints; keep health checks enabled
+# so any explicit nonzero override still validates reused sockets first.
 if is_neon_database:
     db_config['CONN_MAX_AGE'] = int(
-        os.getenv('DB_CONN_MAX_AGE_NEON', str(_TIER_DB_CONN_MAX_AGE_NEON))
+        os.getenv(
+            'DB_CONN_MAX_AGE_NEON',
+            os.getenv('DB_CONN_MAX_AGE_POOLED', str(_TIER_DB_CONN_MAX_AGE_POOLED)),
+        )
+    )
+elif is_supabase_pooler_database:
+    db_config['CONN_MAX_AGE'] = int(
+        os.getenv(
+            'DB_CONN_MAX_AGE_SUPABASE_POOLER',
+            os.getenv('DB_CONN_MAX_AGE_POOLED', str(_TIER_DB_CONN_MAX_AGE_POOLED)),
+        )
     )
 else:
     db_config['CONN_MAX_AGE'] = int(
@@ -555,8 +590,8 @@ else:
     )
 db_config['CONN_HEALTH_CHECKS'] = os.getenv('DB_CONN_HEALTH_CHECKS', 'True').lower() == 'true'
 
-# Connection hardening for Neon (handles cold-start EOF / timeout)
-if is_neon_database:
+# Connection hardening for pooled endpoints (handles pooler timeout / dropped sockets)
+if is_pooled_database:
     db_config.setdefault('OPTIONS', {}).update({
         'sslmode': 'require',
         'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),  # fail fast on pooler/cold-start stalls
@@ -945,6 +980,7 @@ NOTIFICATIONS_EMAIL_ENABLED = False  # set True to email in addition to in-app
 # Disable long-lived SSE by default on Daphne/Render to avoid request timeout churn.
 # Frontends use polling as the primary live update mechanism.
 NOTIFICATIONS_SSE_ENABLED = os.getenv("NOTIFICATIONS_SSE_ENABLED", "0") == "1"
+NOTIFICATIONS_UNREAD_CACHE_TTL = int(os.getenv("NOTIFICATIONS_UNREAD_CACHE_TTL", "15"))
 
 
 

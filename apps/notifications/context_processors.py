@@ -1,6 +1,5 @@
-﻿from django.apps import apps
-
-from deltacrown.middleware.bot_probe import is_bot_probe_path
+﻿from deltacrown.middleware.bot_probe import is_bot_probe_path
+from .unread_cache import get_unread_count_for_user
 
 
 def _get_unread_count_for_user(user) -> int:
@@ -8,10 +7,7 @@ def _get_unread_count_for_user(user) -> int:
     Your Notification.recipient FK points to accounts.User (not UserProfile),
     so count by the authenticated request.user directly.
     """
-    if not user or not getattr(user, "is_authenticated", False):
-        return 0
-    Notification = apps.get_model("notifications", "Notification")
-    return Notification.objects.filter(recipient=user, is_read=False).count()
+    return get_unread_count_for_user(user)
 
 
 def notification_counts(request):
