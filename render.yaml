@@ -49,7 +49,7 @@ services:
       - key: DAPHNE_ACCESS_LOG
         value: "0"
       - key: DAPHNE_HTTP_TIMEOUT
-        value: "60"
+        value: "86400"
       # Keep embedded server/access logs quieter by default
       - key: DJANGO_SERVER_LOG_LEVEL
         value: "WARNING"

@@ -95,10 +95,9 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 # ── Start web server (foreground) ───────────────────────────────────
-# Keep connection lifetimes bounded so abandoned websocket/app state does not
-# linger forever on memory-constrained plans.
+# Keep websocket lifetimes bounded; allow long-lived HTTP for SSE streams.
 PORT="${PORT:-8000}"
-HTTP_TIMEOUT="${DAPHNE_HTTP_TIMEOUT:-60}"
+HTTP_TIMEOUT="${DAPHNE_HTTP_TIMEOUT:-86400}"
 DAPHNE_ARGS=(
     -b 0.0.0.0
     -p "$PORT"

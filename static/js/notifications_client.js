@@ -12,6 +12,7 @@
     initialized: false,
     sseDisabled: false,
     sseFastFailureCount: 0,
+    sseReconnectDelayMs: 5000,
   };
 
   const AudioEngine = (function () {
@@ -414,9 +415,14 @@
     const openedAt = Date.now();
     try {
       source = new EventSource("/notifications/stream/");
+      source.onopen = function () {
+        state.sseFastFailureCount = 0;
+        state.sseReconnectDelayMs = 5000;
+      };
       source.onmessage = function (evt) {
         receivedMessage = true;
         state.sseFastFailureCount = 0;
+        state.sseReconnectDelayMs = 5000;
         try {
           const data = JSON.parse(evt.data);
           if (Array.isArray(data.new_items) && data.new_items.length) prependIncoming(data.new_items);
@@ -429,14 +435,18 @@
         const lifetimeMs = Date.now() - openedAt;
         if (!receivedMessage && lifetimeMs < 1500) {
           state.sseFastFailureCount += 1;
-          if (state.sseFastFailureCount >= 3) {
-            state.sseDisabled = true;
-            return;
-          }
         } else {
           state.sseFastFailureCount = 0;
         }
-        setTimeout(connectSSE, 5000);
+
+        // Keep retrying on transient network/proxy failures, but back off
+        // when repeated fast failures indicate endpoint pressure.
+        if (state.sseFastFailureCount >= 3) {
+          state.sseReconnectDelayMs = Math.min(state.sseReconnectDelayMs * 2, 60000);
+        } else {
+          state.sseReconnectDelayMs = 5000;
+        }
+        setTimeout(connectSSE, state.sseReconnectDelayMs);
       };
     } catch (e) {}
   }
