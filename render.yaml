@@ -31,6 +31,10 @@ services:
       # - Set SUPABASE_DIRECT_DATABASE_URL to a direct/db host URL if pooler host is unreachable.
       - key: SUPABASE_POOLER_PORT_FALLBACK
         value: "1"
+      - key: SUPABASE_PREFER_DIRECT_CONNECTION
+        value: "1"
+      - key: DB_MIGRATION_MAX_ATTEMPTS
+        value: "3"
       - key: SUPABASE_DIRECT_DATABASE_URL
         sync: false
       # Redis — Upstash (set in Render dashboard as REDIS_URL)

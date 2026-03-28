@@ -33,6 +33,9 @@ import psycopg2
 url = os.environ.get("DATABASE_URL_PROBE", "")
 try:
     conn = psycopg2.connect(url, connect_timeout=5)
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
     conn.close()
 except Exception as exc:
     print(f"[render] DB probe failed: {exc}", file=sys.stderr)
@@ -40,7 +43,64 @@ except Exception as exc:
 PY
 }
 
-maybe_switch_supabase_pooler_port() {
+is_supabase_pooler_6543_url() {
+    local target_url="$1"
+    case "$target_url" in
+        *".pooler.supabase.com:6543/"*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+derive_supabase_direct_url_from_pooler() {
+    local current_url="$1"
+    DATABASE_URL_PROBE="$current_url" python - <<'PY'
+import os
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
+
+url = os.environ.get("DATABASE_URL_PROBE", "")
+try:
+    parsed = urlsplit(url)
+    host = parsed.hostname or ""
+    username = parsed.username or ""
+    if not host.endswith(".pooler.supabase.com") or not username.startswith("postgres."):
+        print("")
+        raise SystemExit(0)
+
+    project_ref = username.split(".", 1)[1]
+    password = parsed.password or ""
+    auth = "postgres"
+    if password:
+        auth += ":" + quote(unquote(password), safe="")
+
+    direct_host = f"db.{project_ref}.supabase.co"
+    netloc = f"{auth}@{direct_host}:5432"
+    print(urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment)))
+except Exception:
+    print("")
+PY
+}
+
+build_supabase_fallback_url() {
+    local current_url="$1"
+    local fallback_url="${SUPABASE_DIRECT_DATABASE_URL:-}"
+    if [ -z "$fallback_url" ]; then
+        fallback_url="$(derive_supabase_direct_url_from_pooler "$current_url")"
+    fi
+    if [ -z "$fallback_url" ]; then
+        fallback_url="$(printf '%s' "$current_url" | sed 's/:6543\//:5432\//')"
+    fi
+    if [ "$fallback_url" = "$current_url" ]; then
+        printf ''
+        return
+    fi
+    printf '%s' "$fallback_url"
+}
+
+select_database_url_for_startup() {
     local current_url="${DATABASE_URL:-}"
     if [ -z "$current_url" ]; then
         return
@@ -48,40 +108,77 @@ maybe_switch_supabase_pooler_port() {
     if [ "${SUPABASE_POOLER_PORT_FALLBACK:-1}" != "1" ]; then
         return
     fi
+    if ! is_supabase_pooler_6543_url "$current_url"; then
+        return
+    fi
 
-    case "$current_url" in
-        *".pooler.supabase.com:6543/"*)
-            ;;
-        *)
+    local fallback_url
+    fallback_url="$(build_supabase_fallback_url "$current_url")"
+
+    local prefer_direct="${SUPABASE_PREFER_DIRECT_CONNECTION:-1}"
+    local primary_candidate="$current_url"
+    local secondary_candidate="$fallback_url"
+    if [ "$prefer_direct" = "1" ] && [ -n "$fallback_url" ]; then
+        primary_candidate="$fallback_url"
+        secondary_candidate="$current_url"
+    fi
+
+    for candidate in "$primary_candidate" "$secondary_candidate"; do
+        if [ -z "$candidate" ]; then
+            continue
+        fi
+        echo "[render] Probing candidate DATABASE_URL endpoint…"
+        if probe_database_url "$candidate"; then
+            if [ "$candidate" != "$current_url" ]; then
+                export DATABASE_URL="$candidate"
+                echo "[render] Switched DATABASE_URL endpoint for startup readiness."
+            else
+                echo "[render] Keeping current DATABASE_URL endpoint."
+            fi
             return
-            ;;
-    esac
+        fi
+    done
 
-    echo "[render] Probing Supabase pooler on port 6543…"
-    if probe_database_url "$current_url"; then
-        echo "[render] Supabase pooler probe succeeded on 6543."
-        return
-    fi
-
-    local fallback_url="${SUPABASE_DIRECT_DATABASE_URL:-}"
-    if [ -z "$fallback_url" ]; then
-        fallback_url="$(printf '%s' "$current_url" | sed 's/:6543\//:5432\//')"
-    fi
-    if [ "$fallback_url" = "$current_url" ]; then
-        echo "[render] No 5432 fallback URL available; keeping existing DATABASE_URL."
-        return
-    fi
-
-    echo "[render] Pooler probe failed; trying fallback on port 5432…"
-    if probe_database_url "$fallback_url"; then
-        export DATABASE_URL="$fallback_url"
-        echo "[render] Switched DATABASE_URL to 5432 fallback for this deploy."
-    else
-        echo "[render] 5432 fallback probe failed; keeping existing DATABASE_URL."
-    fi
+    echo "[render] No database candidate passed startup probe; keeping existing DATABASE_URL."
 }
 
-maybe_switch_supabase_pooler_port
+run_migrations_with_retry() {
+    local max_attempts="${DB_MIGRATION_MAX_ATTEMPTS:-3}"
+    local attempt=1
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        echo "[render] Running migrations (attempt ${attempt}/${max_attempts})…"
+        if python manage.py migrate --noinput; then
+            echo "[render] Migrations completed successfully."
+            return 0
+        fi
+
+        echo "[render] Migration attempt ${attempt} failed."
+        local current_url="${DATABASE_URL:-}"
+        if is_supabase_pooler_6543_url "$current_url"; then
+            local fallback_url
+            fallback_url="$(build_supabase_fallback_url "$current_url")"
+            if [ -n "$fallback_url" ] && [ "$fallback_url" != "$current_url" ]; then
+                echo "[render] Trying migration fallback endpoint…"
+                if probe_database_url "$fallback_url"; then
+                    export DATABASE_URL="$fallback_url"
+                    echo "[render] Switched DATABASE_URL for migration retry."
+                else
+                    echo "[render] Migration fallback endpoint probe failed."
+                fi
+            fi
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            sleep 2
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    return 1
+}
+
+select_database_url_for_startup
 
 # ── Collect static files ────────────────────────────────────────────
 echo "[render] Collecting static files…"
@@ -89,8 +186,10 @@ python manage.py collectstatic --noinput
 
 # ── Run migrations ──────────────────────────────────────────────────
 if [ "${ENABLE_MIGRATIONS_ON_START:-1}" = "1" ]; then
-    echo "[render] Running migrations…"
-    python manage.py migrate --noinput
+    if ! run_migrations_with_retry; then
+        echo "[render] Migrations failed after all retry attempts."
+        exit 1
+    fi
 else
     echo "[render] ENABLE_MIGRATIONS_ON_START=0 — skipping migrations."
 fi
