@@ -1,20 +1,330 @@
 from __future__ import annotations
 
 import os
+import logging
 from typing import Iterable, Optional, Any, Dict
 
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
+from django.core.exceptions import PermissionDenied
 from django.template.exceptions import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.db import transaction
+from django.utils import timezone
 
 User = get_user_model()
 FROM_EMAIL = os.getenv("DeltaCrownEmail", "no-reply@deltacrown.local")
+logger = logging.getLogger(__name__)
 
 Notification = apps.get_model("notifications", "Notification")
+
+
+class NotificationActionError(Exception):
+    """Raised when a notification action cannot be processed safely."""
+
+    def __init__(self, message: str, *, status_code: int = 400, error_code: str = "action_error"):
+        super().__init__(message)
+        self.status_code = status_code
+        self.error_code = error_code
+
+
+class NotificationActionService:
+    """Executes actionable notification commands from action IDs."""
+
+    @staticmethod
+    def execute(user: User, action_id: str) -> dict:
+        parts = (action_id or "").split("_")
+        if len(parts) < 3:
+            raise NotificationActionError(
+                "Unsupported action identifier.",
+                status_code=400,
+                error_code="invalid_action_id",
+            )
+
+        namespace, verb, object_id_raw = parts[0], parts[1], parts[-1]
+        if not object_id_raw.isdigit():
+            raise NotificationActionError(
+                "Invalid action target.",
+                status_code=400,
+                error_code="invalid_action_target",
+            )
+        object_id = int(object_id_raw)
+
+        if namespace == "follow":
+            if verb in {"accept", "approve"}:
+                return NotificationActionService._approve_follow_request(user, object_id)
+            if verb in {"reject", "decline"}:
+                return NotificationActionService._reject_follow_request(user, object_id)
+        elif namespace == "invite":
+            if verb in {"accept", "approve"}:
+                return NotificationActionService._accept_team_invite(user, object_id)
+            if verb in {"reject", "decline"}:
+                return NotificationActionService._decline_team_invite(user, object_id)
+        elif namespace == "open":
+            return NotificationActionService._consume_open_action(user, object_id)
+
+        raise NotificationActionError(
+            "Action is not supported.",
+            status_code=400,
+            error_code="unsupported_action",
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def _approve_follow_request(user: User, follow_request_id: int) -> dict:
+        FollowRequest = apps.get_model("user_profile", "FollowRequest")
+        try:
+            from apps.user_profile.services.follow_service import FollowService
+
+            FollowService.approve_follow_request(target_user=user, request_id=follow_request_id)
+        except FollowRequest.DoesNotExist as exc:
+            raise NotificationActionError(
+                "Follow request not found.",
+                status_code=404,
+                error_code="follow_request_not_found",
+            ) from exc
+        except PermissionDenied as exc:
+            raise NotificationActionError(
+                "Not authorized to approve this follow request.",
+                status_code=403,
+                error_code="follow_request_forbidden",
+            ) from exc
+        except ValueError as exc:
+            raise NotificationActionError(
+                str(exc),
+                status_code=409,
+                error_code="follow_request_already_processed",
+            ) from exc
+
+        consumed = NotificationActionService._consume_action_notifications(
+            user=user,
+            action_object_id=follow_request_id,
+            action_type="follow_request",
+            notification_type=Notification.Type.FOLLOW_REQUEST,
+        )
+        return {
+            "message": "Follow request approved.",
+            "consumed_notifications": consumed,
+            "resource_id": follow_request_id,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def _reject_follow_request(user: User, follow_request_id: int) -> dict:
+        FollowRequest = apps.get_model("user_profile", "FollowRequest")
+        try:
+            from apps.user_profile.services.follow_service import FollowService
+
+            FollowService.reject_follow_request(target_user=user, request_id=follow_request_id)
+        except FollowRequest.DoesNotExist as exc:
+            raise NotificationActionError(
+                "Follow request not found.",
+                status_code=404,
+                error_code="follow_request_not_found",
+            ) from exc
+        except PermissionDenied as exc:
+            raise NotificationActionError(
+                "Not authorized to reject this follow request.",
+                status_code=403,
+                error_code="follow_request_forbidden",
+            ) from exc
+        except ValueError as exc:
+            raise NotificationActionError(
+                str(exc),
+                status_code=409,
+                error_code="follow_request_already_processed",
+            ) from exc
+
+        consumed = NotificationActionService._consume_action_notifications(
+            user=user,
+            action_object_id=follow_request_id,
+            action_type="follow_request",
+            notification_type=Notification.Type.FOLLOW_REQUEST,
+        )
+        return {
+            "message": "Follow request rejected.",
+            "consumed_notifications": consumed,
+            "resource_id": follow_request_id,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def _accept_team_invite(user: User, invite_id: int) -> dict:
+        TeamInvite = apps.get_model("organizations", "TeamInvite")
+        TeamMembership = apps.get_model("organizations", "TeamMembership")
+
+        try:
+            invite = TeamInvite.objects.select_related("team").select_for_update().get(id=invite_id)
+        except TeamInvite.DoesNotExist as exc:
+            raise NotificationActionError(
+                "Team invite not found.",
+                status_code=404,
+                error_code="team_invite_not_found",
+            ) from exc
+
+        if invite.invited_user_id != user.id:
+            raise NotificationActionError(
+                "Not authorized to respond to this invite.",
+                status_code=403,
+                error_code="team_invite_forbidden",
+            )
+
+        if invite.status != "PENDING":
+            raise NotificationActionError(
+                "Invite is no longer pending.",
+                status_code=409,
+                error_code="team_invite_already_processed",
+            )
+
+        now = timezone.now()
+        if invite.expires_at and invite.expires_at < now:
+            invite.status = "EXPIRED"
+            invite.save(update_fields=["status"])
+            raise NotificationActionError(
+                "This invite has expired.",
+                status_code=409,
+                error_code="team_invite_expired",
+            )
+
+        team = invite.team
+        if not team.organization_id:
+            existing = TeamMembership.objects.filter(
+                user=user,
+                game_id=team.game_id,
+                organization_id__isnull=True,
+                status="ACTIVE",
+            ).exclude(team=team).first()
+            if existing:
+                raise NotificationActionError(
+                    "You already have an active independent team for this game.",
+                    status_code=409,
+                    error_code="independent_team_conflict",
+                )
+
+        invite.status = "ACCEPTED"
+        invite.responded_at = now
+        invite.save(update_fields=["status", "responded_at"])
+
+        membership, created = TeamMembership.objects.get_or_create(
+            team=team,
+            user=user,
+            defaults={
+                "role": invite.role,
+                "status": "ACTIVE",
+                "game_id": team.game_id,
+                "organization_id": team.organization_id,
+            },
+        )
+        if not created:
+            membership.role = invite.role
+            membership.status = "ACTIVE"
+            membership.game_id = team.game_id
+            membership.organization_id = team.organization_id
+            membership.save(update_fields=["role", "status", "game_id", "organization_id"])
+
+        consumed = NotificationActionService._consume_action_notifications(
+            user=user,
+            action_object_id=invite_id,
+            action_type="team_invite",
+            notification_type=Notification.Type.INVITE_SENT,
+        )
+
+        return {
+            "message": f"You joined {team.name}.",
+            "consumed_notifications": consumed,
+            "resource_id": invite_id,
+            "team_slug": team.slug,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def _decline_team_invite(user: User, invite_id: int) -> dict:
+        TeamInvite = apps.get_model("organizations", "TeamInvite")
+        try:
+            invite = TeamInvite.objects.select_for_update().get(id=invite_id)
+        except TeamInvite.DoesNotExist as exc:
+            raise NotificationActionError(
+                "Team invite not found.",
+                status_code=404,
+                error_code="team_invite_not_found",
+            ) from exc
+
+        if invite.invited_user_id != user.id:
+            raise NotificationActionError(
+                "Not authorized to respond to this invite.",
+                status_code=403,
+                error_code="team_invite_forbidden",
+            )
+
+        if invite.status != "PENDING":
+            raise NotificationActionError(
+                "Invite is no longer pending.",
+                status_code=409,
+                error_code="team_invite_already_processed",
+            )
+
+        invite.status = "DECLINED"
+        invite.responded_at = timezone.now()
+        invite.save(update_fields=["status", "responded_at"])
+
+        consumed = NotificationActionService._consume_action_notifications(
+            user=user,
+            action_object_id=invite_id,
+            action_type="team_invite",
+            notification_type=Notification.Type.INVITE_SENT,
+        )
+        return {
+            "message": "Invite declined.",
+            "consumed_notifications": consumed,
+            "resource_id": invite_id,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def _consume_open_action(user: User, notification_id: int) -> dict:
+        notification = Notification.objects.select_for_update().filter(
+            id=notification_id,
+            recipient=user,
+        ).first()
+        if not notification:
+            raise NotificationActionError(
+                "Notification not found.",
+                status_code=404,
+                error_code="notification_not_found",
+            )
+
+        notification.is_read = True
+        notification.is_actionable = False
+        notification.read_at = notification.read_at or timezone.now()
+        notification.save(update_fields=["is_read", "is_actionable", "read_at"])
+        return {
+            "message": "Notification consumed.",
+            "consumed_notifications": 1,
+            "resource_id": notification_id,
+            "action_url": notification.action_url or notification.url,
+        }
+
+    @staticmethod
+    def _consume_action_notifications(
+        *,
+        user: User,
+        action_object_id: int,
+        action_type: str,
+        notification_type: str,
+    ) -> int:
+        now = timezone.now()
+        return Notification.objects.filter(
+            recipient=user,
+            action_object_id=action_object_id,
+            action_type=action_type,
+            type=notification_type,
+        ).update(
+            is_actionable=False,
+            is_read=True,
+            read_at=now,
+        )
 
 
 def _infer_category_from_event(event_str: str) -> str:

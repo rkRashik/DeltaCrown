@@ -14,6 +14,13 @@ urlpatterns = [
     # API endpoints
     path("api/unread-count/", views.unread_count, name="api_unread_count"),  # Real-time polling
     path("api/nav-preview/", views.nav_preview, name="nav_preview"),
+    path("api/feed/", views.api_feed, name="api_feed"),
+    path("api/preview/", views.api_preview, name="api_preview"),
+    path("api/mark-read/", views.api_mark_read, name="api_mark_read"),
+    path("api/toggle-read/", views.api_toggle_read, name="api_toggle_read"),
+    path("api/delete/", views.api_delete, name="api_delete"),
+    path("api/clear/", views.api_clear, name="api_clear"),
+    path("api/action/<str:action_id>/", views.api_action, name="api_action"),
     # Follow request inline actions
     path("api/follow-request/<int:request_id>/accept/", views.accept_follow_request_inline, name="accept_follow_request_inline"),
     path("api/follow-request/<int:request_id>/reject/", views.reject_follow_request_inline, name="reject_follow_request_inline"),

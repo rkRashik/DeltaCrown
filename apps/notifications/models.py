@@ -4,7 +4,33 @@ from django.conf import settings
 from django.db import models
 
 
+_ALLOWED_NOTIFICATION_TYPES = (
+    "TOURNAMENT",
+    "ECONOMY",
+    "SOCIAL",
+    "TEAM",
+    "SYSTEM",
+    "WARNING",
+)
+
+
 class Notification(models.Model):
+    ALLOWED_NOTIFICATION_TYPES = _ALLOWED_NOTIFICATION_TYPES
+
+    class NotificationCategory(models.TextChoices):
+        TOURNAMENT = "TOURNAMENT", "Tournament"
+        TEAM = "TEAM", "Team"
+        ECONOMY = "ECONOMY", "Economy"
+        SOCIAL = "SOCIAL", "Social"
+        SYSTEM = "SYSTEM", "System"
+        WARNING = "WARNING", "Warning"
+
+    class Priority(models.TextChoices):
+        LOW = "LOW", "Low"
+        NORMAL = "NORMAL", "Normal"
+        HIGH = "HIGH", "High"
+        CRITICAL = "CRITICAL", "Critical"
+
     class Type(models.TextChoices):
         REG_CONFIRMED = "reg_confirmed", "Registration confirmed"
         BRACKET_READY = "bracket_ready", "Bracket generated"
@@ -44,9 +70,15 @@ class Notification(models.Model):
 
     title = models.CharField(max_length=140)
     body = models.TextField(blank=True)
+    html_text = models.TextField(blank=True)
     url = models.CharField(max_length=300, blank=True)
+    avatar_url = models.URLField(max_length=500, blank=True)
+    image_url = models.URLField(max_length=500, blank=True)
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
     is_delivered = models.BooleanField(default=False, help_text="Whether notification was successfully delivered via SSE/WebSocket")
+    is_actionable = models.BooleanField(default=False, db_index=True)
+    priority = models.CharField(max_length=16, choices=Priority.choices, default=Priority.NORMAL, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     recipient = models.ForeignKey(
@@ -58,8 +90,24 @@ class Notification(models.Model):
     # Phase 4: Additional fields for actionable notifications
     action_label = models.CharField(max_length=255, blank=True, help_text="CTA button text (e.g., 'View Request', 'Approve')")
     action_url = models.CharField(max_length=500, blank=True, help_text="URL for primary action button")
-    category = models.CharField(max_length=100, blank=True, db_index=True, help_text="Notification category (e.g., 'social', 'system')")
+    category = models.CharField(
+        max_length=20,
+        choices=NotificationCategory.choices,
+        default=NotificationCategory.SYSTEM,
+        blank=True,
+        db_index=True,
+        help_text="Frontend notification category taxonomy",
+    )
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NotificationCategory.choices,
+        default=NotificationCategory.SYSTEM,
+        blank=True,
+        db_index=True,
+        help_text="Structured frontend notification category for smart rendering",
+    )
     message = models.TextField(blank=True, help_text="Alternative message text for display")
+    action_data = models.JSONField(default=dict, blank=True, help_text="Structured CTA payload for Accept/Decline or other actions")
     
     # Phase 4 Step 2.1: Stable linkage to action objects (e.g., FollowRequest ID for follow_request notifications)
     action_object_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="ID of related object (e.g., FollowRequest.id for follow_request type)")
@@ -75,16 +123,58 @@ class Notification(models.Model):
         indexes = [
             models.Index(fields=["recipient", "is_read", "created_at"]),
             models.Index(fields=["recipient", "type"]),
+            models.Index(fields=["recipient", "category", "created_at"]),
+            models.Index(fields=["recipient", "priority", "is_read"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                name="notifications_category_allowed_values",
+                check=models.Q(category__in=_ALLOWED_NOTIFICATION_TYPES),
+            ),
+            models.CheckConstraint(
+                name="notifications_notification_type_allowed_values",
+                check=models.Q(notification_type__in=_ALLOWED_NOTIFICATION_TYPES),
+            ),
         ]
 
     def __str__(self) -> str:
         return f"{self.event or self.type}: {self.title}"
 
     def save(self, *args, **kwargs):
+        category_map = {
+            "tournament": self.NotificationCategory.TOURNAMENT,
+            "tournaments": self.NotificationCategory.TOURNAMENT,
+            "team": self.NotificationCategory.TEAM,
+            "teams": self.NotificationCategory.TEAM,
+            "economy": self.NotificationCategory.ECONOMY,
+            "bounties": self.NotificationCategory.ECONOMY,
+            "social": self.NotificationCategory.SOCIAL,
+            "follow": self.NotificationCategory.SOCIAL,
+            "system": self.NotificationCategory.SYSTEM,
+            "warning": self.NotificationCategory.WARNING,
+        }
         if not self.event:
             self.event = self.type or self.Type.GENERIC
         if self.type not in self.Type.values:
             self.type = self.Type.GENERIC
+        if self.category:
+            normalized_category = category_map.get(str(self.category).lower())
+            if normalized_category:
+                self.category = normalized_category
+        if self.notification_type:
+            normalized_notification_type = category_map.get(str(self.notification_type).lower())
+            if normalized_notification_type:
+                self.notification_type = normalized_notification_type
+        if self.category not in self.NotificationCategory.values:
+            self.category = self.NotificationCategory.SYSTEM
+        if self.notification_type not in self.NotificationCategory.values:
+            self.notification_type = self.category or self.NotificationCategory.SYSTEM
+        if not self.category:
+            self.category = self.notification_type or self.NotificationCategory.SYSTEM
+        if self.is_read and self.read_at is None:
+            from django.utils import timezone
+
+            self.read_at = timezone.now()
         super().save(*args, **kwargs)
 
 

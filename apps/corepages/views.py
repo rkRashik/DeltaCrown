@@ -31,5 +31,4 @@ def community(request):
 
 @login_required
 def notifications_index(request):
-    # You can hydrate from your model later; render empty safely
-    return render(request, "notifications/list.html", {"notifications": []})
+    return render(request, "notifications/inbox.html", {})

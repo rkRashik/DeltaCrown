@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown | Smart Notifications</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Rajdhani', 'sans-serif'],
+                    },
+                    colors: {
+                        dc: {
+                            dark: '#06090F',
+                            card: '#0D1424',
+                            cardhover: '#131D33',
+                            border: '#1E293B',
+                            gold: '#F59E0B',
+                            goldglow: 'rgba(245, 158, 11, 0.15)',
+                            accent: '#3B82F6',
+                            danger: '#EF4444',
+                            success: '#10B981',
+                            purple: '#A855F7',
+                            emerald: '#10B981'
+                        }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(245, 158, 11, 0.15)',
+                        'glow-accent': '0 0 20px rgba(59, 130, 246, 0.15)',
+                        'dropdown': '0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.05)',
+                        'sheet': '0 -10px 40px rgba(0, 0, 0, 0.8)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'swipe-out': 'swipeOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        swipeOut: {
+                            '0%': { transform: 'translateX(0)', opacity: '1', maxHeight: '200px', margin: '0.75rem 0', padding: '1.25rem' },
+                            '50%': { transform: 'translateX(-100%)', opacity: '0', maxHeight: '200px', margin: '0.75rem 0', padding: '1.25rem' },
+                            '100%': { transform: 'translateX(-100%)', opacity: '0', maxHeight: '0px', margin: '0px', padding: '0px', overflow: 'hidden', border: 'none' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Pro Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Advanced Glassmorphism */
+        .glass {
+            background: rgba(13, 20, 36, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-dropdown {
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.95) 0%, rgba(6, 9, 15, 0.98) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-sheet {
+            background: linear-gradient(180deg, rgba(20, 27, 43, 0.98) 0%, rgba(6, 9, 15, 1) 100%);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: #06090F;
+            color: #E2E8F0;
+            overscroll-behavior-y: none;
+        }
+
+        /* Smart Contextual Highlights */
+        .hl-user { color: #60A5FA; font-weight: 600; cursor: pointer; transition: all 0.2s; position: relative;}
+        .hl-user:hover { color: #93C5FD; text-shadow: 0 0 8px rgba(96, 165, 250, 0.4); }
+        .hl-team { color: #A855F7; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .hl-team:hover { color: #C084FC; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
+        .hl-tourney { color: #F59E0B; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .hl-tourney:hover { color: #FCD34D; text-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+        .hl-amount { color: #10B981; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.05em; }
+
+        /* Notification Card Utilities */
+        .swipe-container { position: relative; border-radius: 1rem; margin-bottom: 0.75rem; overflow: hidden; transition: max-height 0.4s, margin 0.4s; }
+
+        /* Mobile Swipe Background */
+        .swipe-action-bg {
+            position: absolute; top: 0; right: 0; bottom: 0; width: 100%;
+            background: linear-gradient(90deg, #0D1424 0%, #EF4444 100%);
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 1.5rem;
+            opacity: 0; transition: opacity 0.2s; z-index: 0; border-radius: 1rem;
+        }
+
+        /* Card Content Layer */
+        .swipe-content {
+            position: relative; z-index: 1;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s, border-color 0.4s, box-shadow 0.4s;
+            width: 100%; border-radius: 1rem;
+        }
+        .swiping .swipe-content { transition: none; }
+
+        /* Desktop Hover Actions Menu */
+        .desktop-actions {
+            opacity: 0; transform: translateX(10px) scale(0.95);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .group:hover .desktop-actions {
+            opacity: 1; transform: translateX(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Read/Unread State Transitions */
+        .is-read .swipe-content { background-color: rgba(13, 20, 36, 0.4) !important; border-color: rgba(255,255,255,0.02) !important; box-shadow: none !important; }
+        .is-read .notif-title { color: #94A3B8 !important; }
+        .is-read .unread-dot { opacity: 0; transform: scale(0); }
+        .unread-dot { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(1); transform-origin: center; }
+
+        /* Group Headers */
+        .time-group-header { display: flex; align-items: center; margin: 1.5rem 0 0.75rem 0; }
+        .time-group-header::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); margin-left: 1rem; }
+
+        /* Segmented Control Animation */
+        .segment-active-bg {
+            position: absolute; height: 100%; top: 0; left: 0;
+            background: rgba(255,255,255,0.1); border-radius: 0.375rem;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col overflow-x-hidden relative">
+
+    <div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none -z-10"></div>
+    <div class="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-yellow-900/10 blur-[120px] pointer-events-none -z-10"></div>
+
+    <nav class="glass sticky top-0 z-40 h-16 flex items-center px-4 md:px-8 shadow-sm">
+        <div class="flex-1 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-dc-gold to-orange-600 flex items-center justify-center shadow-glow border border-yellow-400/20">
+                <span class="font-display font-bold text-dc-dark text-xl leading-none pt-0.5">D</span>
+            </div>
+            <span class="font-display font-extrabold text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 hidden sm:block uppercase">DeltaCrown</span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-6">
+            <a href="#" class="text-sm font-semibold text-slate-400 hover:text-white transition hidden md:block">Dashboard</a>
+            <a href="#" class="text-sm font-semibold text-slate-400 hover:text-white transition hidden sm:block">Tournaments</a>
+            <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
+
+            <div class="relative flex items-center justify-center" id="nav-notification-wrapper">
+                <button id="bell-btn" class="relative p-2 rounded-xl hover:bg-white/10 transition text-slate-300 hover:text-white focus:outline-none focus:ring-1 focus:ring-dc-gold/50 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="unread-badge" class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-gold opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-dc-gold border border-dc-dark shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+                    </span>
+                </button>
+
+                <div id="notif-dropdown" class="hidden sm:flex absolute top-full right-0 mt-4 w-[420px] glass-dropdown rounded-2xl shadow-dropdown flex-col origin-top-right z-50 transition-opacity duration-200 opacity-0 pointer-events-none">
+                    <div class="p-4 border-b border-white/10 bg-gradient-to-r from-white/[0.03] to-transparent">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-display font-bold text-xl text-white tracking-wide flex items-center gap-2">
+                                Updates
+                                <span class="bg-dc-gold/20 text-dc-gold text-[10px] px-2 py-0.5 rounded-full font-sans font-bold shadow-[0_0_10px_rgba(245,158,11,0.2)] top-badge-count">0 NEW</span>
+                            </h3>
+                            <button class="text-xs font-medium text-slate-400 hover:text-dc-gold transition flex items-center gap-1 group" onclick="markAllRead()">
+                                <svg class="w-3.5 h-3.5 group-hover:text-dc-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Mark all read
+                            </button>
+                        </div>
+
+                        <div class="flex p-1 bg-black/40 rounded-lg border border-white/5 relative" id="dropdown-segments">
+                            <div class="segment-active-bg" id="segment-highlighter" style="width: 33.33%; transform: translateX(0);"></div>
+                            <button class="segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-white transition relative z-10" data-index="0" data-filter="ALL">All</button>
+                            <button class="segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-slate-400 hover:text-white transition relative z-10" data-index="1" data-filter="UNREAD">Unread</button>
+                            <button class="segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-slate-400 hover:text-white transition relative z-10" data-index="2" data-filter="TEAM">Invites</button>
+                        </div>
+                    </div>
+
+                    <div id="dropdown-feed" class="max-h-[420px] overflow-y-auto flex flex-col"></div>
+
+                    <a href="#" class="block w-full text-center py-3 bg-dc-dark hover:bg-dc-card text-dc-gold hover:text-white text-sm font-semibold transition-colors border-t border-white/10 group rounded-b-2xl">
+                        View Complete Inbox
+                        <span class="inline-block transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </a>
+                </div>
+            </div>
+
+            <button class="w-10 h-10 rounded-xl overflow-hidden border border-white/10 hover:border-dc-gold hover:shadow-glow transition ml-2 relative group">
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition"></div>
+            </button>
+        </div>
+    </nav>
+
+    <div id="mobile-sheet-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="mobile-sheet" class="fixed bottom-0 left-0 right-0 h-[85vh] glass-sheet rounded-t-3xl z-50 transform translate-y-full transition-transform duration-300 flex flex-col sm:hidden">
+        <div class="w-full pt-3 pb-2 flex justify-center cursor-pointer" id="mobile-sheet-handle">
+            <div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
+        </div>
+
+        <div class="px-5 pb-4 border-b border-white/10">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-display font-extrabold text-2xl text-white tracking-wide">Notifications</h3>
+                <button id="close-sheet-btn" class="p-2 rounded-full bg-white/5 text-slate-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="flex p-1 bg-black/40 rounded-xl border border-white/5 relative" id="mobile-segments">
+                <div class="segment-active-bg" id="mobile-segment-highlighter" style="width: 33.33%; transform: translateX(0);"></div>
+                <button class="mobile-segment-btn flex-1 text-sm font-semibold py-2 rounded-lg text-white transition relative z-10" data-index="0" data-filter="ALL">All</button>
+                <button class="mobile-segment-btn flex-1 text-sm font-semibold py-2 rounded-lg text-slate-400 transition relative z-10" data-index="1" data-filter="UNREAD">Unread</button>
+                <button class="mobile-segment-btn flex-1 text-sm font-semibold py-2 rounded-lg text-slate-400 transition relative z-10" data-index="2" data-filter="TEAM">Invites</button>
+            </div>
+        </div>
+
+        <div id="mobile-feed" class="flex-1 overflow-y-auto pb-6 px-2"></div>
+    </div>
+
+    <main class="flex-1 max-w-[1400px] w-full mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8 mt-2">
+
+        <aside class="w-full lg:w-72 flex-shrink-0">
+            <div class="sticky top-28">
+                <div class="mb-8 hidden lg:block">
+                    <h1 class="font-display font-extrabold text-4xl text-white tracking-tight">Inbox</h1>
+                    <p class="text-slate-400 text-sm mt-1">Manage your competitive alerts</p>
+                </div>
+
+                <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
+                    <button class="filter-btn active w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition bg-dc-card text-white border border-dc-gold/30 shadow-[0_0_15px_rgba(245,158,11,0.1)] shrink-0" data-filter="ALL">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-dc-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            All Notifications
+                        </div>
+                        <span class="bg-white/10 text-slate-300 text-[10px] px-2 py-0.5 rounded-full filter-count-all">0</span>
+                    </button>
+
+                    <button class="filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white border border-transparent transition shrink-0" data-filter="TOURNAMENT">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Tournaments
+                        </div>
+                        <span class="bg-dc-card text-transparent text-[10px] px-2 py-0.5 rounded-full filter-count-tournament transition-colors">0</span>
+                    </button>
+
+                    <button class="filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white border border-transparent transition shrink-0" data-filter="TEAM">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Teams & Orgs
+                        </div>
+                        <span class="bg-dc-accent text-white text-[10px] px-2 py-0.5 rounded-full font-bold filter-count-team shadow-glow-accent">0</span>
+                    </button>
+
+                    <button class="filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white border border-transparent transition shrink-0" data-filter="ECONOMY">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Economy
+                        </div>
+                        <span class="bg-dc-card text-transparent text-[10px] px-2 py-0.5 rounded-full filter-count-economy transition-colors">0</span>
+                    </button>
+
+                    <button class="filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white border border-transparent transition shrink-0" data-filter="SOCIAL">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                            Social
+                        </div>
+                        <span class="bg-dc-card text-transparent text-[10px] px-2 py-0.5 rounded-full filter-count-social transition-colors">0</span>
+                    </button>
+
+                    <div class="mt-4 p-3 rounded-xl bg-blue-900/10 border border-blue-500/20 text-xs text-blue-300 hidden sm:flex lg:hidden items-center gap-2">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        Swipe cards left to dismiss
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <section class="flex-1 flex flex-col gap-6 pb-20">
+
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <p class="text-sm text-slate-400 font-medium" id="feed-count">Loading feed...</p>
+                <div class="flex gap-4">
+                    <button onclick="markAllRead()" class="text-sm font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Mark all as read
+                    </button>
+                </div>
+            </div>
+
+            <div id="main-feed" class="flex flex-col gap-0 relative">
+                </div>
+
+            <button id="load-more-btn" class="mt-4 py-4 w-full rounded-xl border border-white/5 bg-white/[0.02] text-slate-300 hover:text-white hover:bg-white/[0.05] hover:border-white/10 transition font-semibold text-sm flex items-center justify-center gap-2 group">
+                Load Historical Data
+                <svg class="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+        </section>
+    </main>
+
+    <script>
+        // --- AUDIO ENGINE (Web Audio API) ---
+        const AudioEngine = (function() {
+            let ctx = null;
+            function init() {
+                if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'suspended') ctx.resume();
+            }
+            return {
+                play: function(type) {
+                    try {
+                        init();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+
+                        const now = ctx.currentTime;
+                        if (type === 'read') {
+                            // Soft, high-pitched pop
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(800, now);
+                            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                            osc.start(now); osc.stop(now + 0.1);
+                        } else if (type === 'delete') {
+                            // Swift, lower whoosh
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(200, now);
+                            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                            gain.gain.setValueAtTime(0.3, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                            osc.start(now); osc.stop(now + 0.2);
+                        } else if (type === 'action') {
+                            // Bright chime
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(600, now);
+                            osc.frequency.setValueAtTime(900, now + 0.1);
+                            gain.gain.setValueAtTime(0, now);
+                            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                            osc.start(now); osc.stop(now + 0.3);
+                        }
+                    } catch(e) { console.warn("Audio not supported or interaction required first."); }
+                }
+            }
+        })();
+
+        // --- 1. CONFIGURATION & ICONS ---
+        const ICONS = {
+            TOURNAMENT: `<svg class="w-5 h-5 text-dc-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>`,
+            ECONOMY: `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+            SOCIAL: `<svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>`,
+            TEAM: `<svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>`,
+            SYSTEM: `<svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+            WARNING: `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`
+        };
+
+        const CATEGORY_COLORS = {
+            TOURNAMENT: 'bg-gradient-to-br from-yellow-500/20 to-orange-600/10 border-yellow-500/20 shadow-[inset_0_0_10px_rgba(245,158,11,0.1)]',
+            ECONOMY: 'bg-gradient-to-br from-emerald-500/20 to-teal-600/10 border-emerald-500/20 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]',
+            SOCIAL: 'bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border-blue-500/20 shadow-[inset_0_0_10px_rgba(59,130,246,0.1)]',
+            TEAM: 'bg-gradient-to-br from-purple-500/20 to-fuchsia-600/10 border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.1)]',
+            SYSTEM: 'bg-gradient-to-br from-slate-500/20 to-slate-700/10 border-slate-500/20',
+            WARNING: 'bg-gradient-to-br from-red-500/20 to-rose-700/10 border-red-500/20'
+        };
+
+        const ACTION_ICONS = {
+            'check': `<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
+            'x': `<svg class="w-4 h-4 mr-1.5 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>`,
+            'log-in': `<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>`,
+            'eye': `<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`
+        };
+
+        // --- 2. DATA GENERATION ---
+        const now = new Date();
+        const generateTime = (minutesAgo) => new Date(now.getTime() - minutesAgo * 60000).toISOString();
+
+        let allNotifications = [
+            { id: 'n1', type: 'ECONOMY', read: false, timestamp: generateTime(5), title: 'Payment Verified', htmlText: `Your entry fee payment via <span class="font-medium text-white">bKash</span> for <span class="hl-tourney">eFootball Genesis Cup</span> has been confirmed. You're all set!`, image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80', actionLink: '#' },
+            { id: 'n2', type: 'TOURNAMENT', read: false, timestamp: generateTime(12), title: 'Registration Confirmed', htmlText: `You're officially registered for <span class="hl-tourney">eFootball Genesis Cup</span>. Watch your dashboard for scheduling updates.`, image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80', actionLink: '#' },
+            { id: 'n3', type: 'TEAM', read: false, timestamp: generateTime(45), isInvite: true, title: 'Team Join Request', htmlText: `<span class="hl-user" onclick="event.preventDefault(); window.location='#'">@Khatarnak</span> requested to join <span class="hl-team">Bhailog Syndicate</span> as a Starter.`, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80', actions: [{ label: 'Accept', style: 'primary', icon: 'check', id: 'acc_n3' }, { label: 'Decline', style: 'secondary', icon: 'x', id: 'dec_n3' }] },
+            { id: 'n7', type: 'SOCIAL', read: false, timestamp: generateTime(1440), title: 'New Follower', htmlText: `<span class="hl-user">@SIUU</span> started following your profile.`, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', actionLink: '#' }
+        ];
+
+        const types = ['TOURNAMENT', 'ECONOMY', 'SOCIAL', 'TEAM', 'SYSTEM', 'WARNING'];
+        const tourneys = ['Winter Royale', 'Dhaka Masters LAN', 'Valorant Open #4', 'PUBG Mobile Pro League', 'CS2 Cash Cup', 'Free Fire Invitational'];
+        for(let i = 8; i <= 25; i++) {
+            let minsAgo = i * 60 + Math.floor(Math.random() * 300);
+            if (i > 15) minsAgo += 1440;
+
+            const type = types[Math.floor(Math.random() * types.length)];
+            const tourney = tourneys[Math.floor(Math.random() * tourneys.length)];
+
+            let htmlText = `Interaction registered in <span class="hl-tourney">${tourney}</span> context.`;
+            let title = 'System Update';
+
+            if(type === 'TOURNAMENT') { title = 'Match Reminder'; htmlText = `Your match in <span class="hl-tourney">${tourney}</span> starts in 30 minutes. Check-in is now open.`; }
+            else if (type === 'ECONOMY') { title = 'DeltaCoin Received'; htmlText = `You received <span class="hl-amount">50 DC</span> for placing Top 4 in <span class="hl-tourney">${tourney}</span>.`; }
+
+            allNotifications.push({ id: `n${i}`, type: type, read: true, timestamp: generateTime(minsAgo), title: title, htmlText: htmlText, actions: null, actionLink: null, isInvite: false });
+        }
+
+        // --- 3. UTILITIES & DATA MANAGEMENT ---
+        function formatTimeAgo(isoString) {
+            const diffMins = Math.floor((new Date() - new Date(isoString)) / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHrs = Math.floor(diffMins / 60);
+            if (diffHrs < 24) return `${diffHrs}h ago`;
+            if (diffHrs < 48) return `Yesterday`;
+            return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getTimeGroup(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfYesterday = new Date(startOfToday);
+            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+            if (date >= startOfToday) return 'Today';
+            if (date >= startOfYesterday) return 'Yesterday';
+            return 'Older';
+        }
+
+        function updateCounts() {
+            document.querySelector('.filter-count-all').textContent = allNotifications.length;
+            document.querySelector('.filter-count-tournament').textContent = allNotifications.filter(n => n.type === 'TOURNAMENT').length;
+            document.querySelector('.filter-count-team').textContent = allNotifications.filter(n => n.type === 'TEAM').length;
+            document.querySelector('.filter-count-economy').textContent = allNotifications.filter(n => n.type === 'ECONOMY').length;
+            document.querySelector('.filter-count-social').textContent = allNotifications.filter(n => n.type === 'SOCIAL').length;
+
+            const unreadCount = allNotifications.filter(n => !n.read).length;
+            document.querySelectorAll('#unread-badge').forEach(b => b.classList.toggle('hidden', unreadCount === 0));
+            document.querySelectorAll('.top-badge-count').forEach(b => {
+                b.textContent = `${unreadCount} NEW`;
+                b.classList.toggle('hidden', unreadCount === 0);
+            });
+        }
+
+        // Interactions (Dynamic DOM Updates)
+        function toggleReadStatus(event, id) {
+            event.preventDefault(); event.stopPropagation();
+            AudioEngine.play('read');
+
+            const n = allNotifications.find(x => x.id === id);
+            if (!n) return;
+            n.read = !n.read;
+
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                card.classList.toggle('is-read', n.read);
+                // Dynamically swap the read/unread icon based on the state
+                const readBtn = card.querySelector('.btn-read-toggle');
+                if(readBtn) {
+                    readBtn.innerHTML = n.read ?
+                        `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>` :
+                        `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                    readBtn.setAttribute('title', n.read ? 'Mark as Unread' : 'Mark as Read');
+                }
+            }
+            updateCounts();
+        }
+
+        function deleteNotification(event, id) {
+            if(event) { event.preventDefault(); event.stopPropagation(); }
+            AudioEngine.play('delete');
+
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                // Apply swipe out animation which smoothly shrinks the margins and height
+                card.classList.add('animate-swipe-out');
+                setTimeout(() => {
+                    allNotifications = allNotifications.filter(n => n.id !== id);
+                    card.remove();
+                    updateCounts();
+
+                    // If no more notifications in the group, we could clean up the header here
+                }, 400); // Wait for the 400ms animation
+            }
+        }
+
+        function handleActionClick(event, id, actionType) {
+            event.preventDefault(); event.stopPropagation();
+            AudioEngine.play('action');
+
+            const btn = event.currentTarget;
+            btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+            setTimeout(() => deleteNotification(null, id), 500);
+        }
+
+        function markAllRead() {
+            AudioEngine.play('read');
+            allNotifications.forEach(n => n.read = true);
+            document.querySelectorAll('.swipe-container, .dropdown-item').forEach(el => el.classList.add('is-read'));
+            updateCounts();
+        }
+
+        // --- 4. RENDER PIPELINE ---
+        function createCardHTML(n, context = 'main') {
+            const isUnread = !n.read;
+            const catColor = CATEGORY_COLORS[n.type];
+            const catIcon = ICONS[n.type];
+            const timeAgo = formatTimeAgo(n.timestamp);
+
+            const baseClasses = context === 'main' ? 'swipe-container group cursor-pointer' : 'dropdown-item group cursor-pointer';
+            const stateClass = isUnread ? '' : 'is-read';
+            const innerClasses = context === 'main'
+                ? `swipe-content p-5 border bg-dc-card/90 border-dc-gold/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]`
+                : `p-4 border-b border-white/5 last:border-0 bg-white/[0.02]`;
+
+            const unreadDot = context === 'main' ? `<div class="unread-dot w-2.5 h-2.5 rounded-full bg-dc-gold absolute top-5 right-5 shadow-[0_0_8px_rgba(245,158,11,0.8)] z-10"></div>` : '';
+
+            let sideImage = '';
+            const imgSize = context === 'main' ? 'w-12 h-12' : 'w-10 h-10';
+            if (n.avatar) sideImage = `<img src="${n.avatar}" class="${imgSize} rounded-full object-cover border border-white/10 shrink-0">`;
+            else if (n.image) sideImage = `<img src="${n.image}" class="${imgSize} rounded-xl object-cover border border-white/10 shrink-0">`;
+            else sideImage = `<div class="${imgSize} rounded-xl ${catColor} flex items-center justify-center shrink-0 border border-white/5">${catIcon}</div>`;
+
+            let actionHtml = '';
+            if (n.actions) {
+                actionHtml = `<div class="flex gap-2 mt-3 relative z-20">`;
+                n.actions.forEach(act => {
+                    const btnClass = act.style === 'primary'
+                        ? 'bg-dc-accent hover:bg-blue-500 text-white shadow-glow-accent border border-blue-400/30'
+                        : 'bg-dc-card hover:bg-dc-cardhover text-slate-200 border border-white/10 group-hover:border-white/20';
+                    const padding = context === 'main' ? 'px-5 py-2' : 'px-3 py-1.5';
+                    actionHtml += `<button onclick="handleActionClick(event, '${n.id}', '${act.label}')" class="${padding} flex items-center rounded-xl ${context==='main'?'text-sm':'text-xs'} font-semibold transition-all ${btnClass}">${ACTION_ICONS[act.icon] || ''}${act.label}</button>`;
+                });
+                actionHtml += `</div>`;
+            }
+
+            const wrapperTag = n.actionLink ? 'a' : 'div';
+            const hrefAttr = n.actionLink ? `href="${n.actionLink}" onclick="if(!event.defaultPrevented) AudioEngine.play('action')"` : '';
+
+            // Hover Actions (Desktop ONLY for main feed)
+            const desktopActions = context === 'main' ? `
+                <div class="desktop-actions absolute top-4 right-8 flex items-center gap-2 z-30">
+                    <button onclick="toggleReadStatus(event, '${n.id}')" class="btn-read-toggle p-2 rounded-lg bg-dc-dark/80 backdrop-blur-md border border-white/10 hover:border-dc-gold hover:text-dc-gold text-slate-300 shadow-lg transition" title="${isUnread ? 'Mark as Read' : 'Mark as Unread'}">
+                        ${isUnread ?
+                            `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` :
+                            `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>`
+                        }
+                    </button>
+                    <button onclick="deleteNotification(event, '${n.id}')" class="p-2 rounded-lg bg-dc-dark/80 backdrop-blur-md border border-white/10 hover:border-red-500 hover:text-red-500 text-slate-300 shadow-lg transition" title="Clear Notification">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+                <div class="${baseClasses} ${stateClass} animate-fade-in" style="animation-fill-mode: both;" id="card-${n.id}" data-id="${n.id}">
+                    ${context === 'main' ? `
+                    <div class="swipe-action-bg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </div>` : ''}
+
+                    <${wrapperTag} ${hrefAttr} class="${innerClasses} flex gap-4 relative">
+                        ${unreadDot}
+                        ${desktopActions}
+                        ${sideImage}
+                        <div class="flex-1 min-w-0 flex flex-col justify-center">
+                            <div class="flex justify-between items-start gap-2 mb-1 pr-12">
+                                <h4 class="notif-title font-display font-bold ${context==='main'?'text-base':'text-sm'} text-white group-hover:text-dc-gold transition-colors flex items-center gap-2">
+                                    ${n.title}
+                                </h4>
+                                <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap pt-0.5">${timeAgo}</span>
+                            </div>
+                            <p class="${context==='main'?'text-sm':'text-[13px] leading-snug'} text-slate-400 group-hover:text-slate-300 transition-colors">${n.htmlText}</p>
+                            ${actionHtml}
+                        </div>
+                    </${wrapperTag}>
+                </div>
+            `;
+        }
+
+        let currentMainFilter = 'ALL';
+        let currentDropFilter = 'ALL';
+
+        function renderMainFeed(filterType) {
+            currentMainFilter = filterType;
+            const container = document.getElementById('main-feed');
+            container.innerHTML = '';
+
+            let filtered = filterType === 'ALL' ? allNotifications : allNotifications.filter(n => n.type === filterType);
+            filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            document.getElementById('feed-count').innerHTML = `Showing <strong class="text-white">${filtered.length}</strong> alerts`;
+
+            if(filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="py-20 flex flex-col items-center justify-center text-slate-500 border border-white/5 rounded-3xl bg-white/[0.01] animate-fade-in">
+                        <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                        </div>
+                        <p class="font-display font-bold text-xl text-slate-300">All Caught Up</p>
+                    </div>`;
+                return;
+            }
+
+            let currentGroup = '';
+            let htmlBuffer = '';
+            filtered.forEach((n, index) => {
+                const group = getTimeGroup(n.timestamp);
+                if (group !== currentGroup) {
+                    htmlBuffer += `<div class="time-group-header text-xs font-bold tracking-widest text-slate-500 uppercase">${group}</div>`;
+                    currentGroup = group;
+                }
+                // Add staggered animation delay
+                let cardHtml = createCardHTML(n, 'main');
+                cardHtml = cardHtml.replace('animate-fade-in"', `animate-fade-in" style="animation-delay: ${index * 30}ms;"`);
+                htmlBuffer += cardHtml;
+            });
+            container.innerHTML = htmlBuffer;
+            attachSwipeListeners();
+        }
+
+        function renderDropdownFeed(filterType) {
+            currentDropFilter = filterType;
+            let filtered = filterType === 'UNREAD' ? allNotifications.filter(n => !n.read) :
+                           filterType === 'TEAM' ? allNotifications.filter(n => n.isInvite) : allNotifications;
+
+            filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const displaySet = filtered.slice(0, 8);
+
+            const html = displaySet.length === 0 ? `<div class="py-12 text-center text-slate-500 text-sm">Nothing to see here.</div>` : displaySet.map(n => createCardHTML(n, 'dropdown')).join('');
+            document.getElementById('dropdown-feed').innerHTML = html;
+            document.getElementById('mobile-feed').innerHTML = html;
+        }
+
+        // --- 5. GESTURES & INTERACTIONS ---
+        function attachSwipeListeners() {
+            document.querySelectorAll('.swipe-container').forEach(cardContainer => {
+                const swipeContent = cardContainer.querySelector('.swipe-content');
+                const actionBg = cardContainer.querySelector('.swipe-action-bg');
+                const id = cardContainer.dataset.id;
+
+                let startX = 0; let currentX = 0; let isDragging = false;
+                const threshold = 120; // Trigger length for delete
+
+                cardContainer.addEventListener('touchstart', e => {
+                    startX = e.touches[0].clientX;
+                    isDragging = true;
+                    cardContainer.classList.add('swiping');
+                }, {passive: true});
+
+                cardContainer.addEventListener('touchmove', e => {
+                    if (!isDragging) return;
+                    currentX = e.touches[0].clientX;
+                    const diff = startX - currentX;
+                    if (diff > 0) {
+                        e.preventDefault();
+                        const move = diff > threshold ? threshold + (diff - threshold) * 0.15 : diff;
+                        swipeContent.style.transform = `translateX(-${move}px)`;
+                        actionBg.style.opacity = Math.min(diff / threshold, 1).toString();
+                    }
+                }, {passive: false});
+
+                cardContainer.addEventListener('touchend', () => {
+                    isDragging = false;
+                    cardContainer.classList.remove('swiping');
+                    const diff = startX - currentX;
+
+                    if (diff > threshold) {
+                        swipeContent.style.transform = `translateX(-100%)`;
+                        actionBg.style.opacity = '1';
+                        setTimeout(() => deleteNotification(null, id), 200);
+                    } else {
+                        swipeContent.style.transform = `translateX(0)`;
+                        actionBg.style.opacity = '0';
+                    }
+                });
+            });
+        }
+
+        // --- 6. INITIALIZATION & UI BINDING ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainFeed = document.getElementById('main-feed');
+            mainFeed.innerHTML = Array(4).fill(0).map(() => `
+                <div class="p-5 border border-white/5 rounded-2xl bg-dc-card mb-3 flex gap-4">
+                    <div class="w-12 h-12 rounded-xl skeleton shrink-0"></div>
+                    <div class="flex-1 space-y-3 py-1"><div class="h-4 skeleton rounded w-1/3"></div><div class="space-y-2"><div class="h-3 skeleton rounded w-full"></div><div class="h-3 skeleton rounded w-5/6"></div></div></div>
+                </div>`).join('');
+            updateCounts();
+
+            setTimeout(() => {
+                renderMainFeed('ALL');
+                renderDropdownFeed('ALL');
+            }, 600);
+
+            // Filter Bindings
+            document.querySelectorAll('aside .filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    AudioEngine.play('read');
+                    document.querySelectorAll('aside .filter-btn').forEach(b => {
+                        b.classList.remove('bg-dc-card', 'text-white', 'border-dc-gold/30', 'shadow-[0_0_15px_rgba(245,158,11,0.1)]');
+                        b.classList.add('text-slate-400', 'border-transparent');
+                        const bdg = b.querySelector('span');
+                        if(bdg) bdg.classList.replace('bg-dc-accent', 'bg-dc-card');
+                        if(bdg) bdg.classList.replace('text-white', 'text-transparent');
+                        if(bdg) bdg.classList.remove('shadow-glow-accent', 'bg-white/10', 'text-slate-300');
+                    });
+
+                    const t = e.currentTarget;
+                    t.classList.add('bg-dc-card', 'text-white', 'border-dc-gold/30', 'shadow-[0_0_15px_rgba(245,158,11,0.1)]');
+                    t.classList.remove('text-slate-400', 'border-transparent');
+
+                    const bdg = t.querySelector('span');
+                    if(bdg) {
+                        bdg.classList.remove('bg-dc-card', 'text-transparent');
+                        if(t.dataset.filter === 'ALL') bdg.classList.add('bg-white/10', 'text-slate-300');
+                        else bdg.classList.add('bg-dc-accent', 'text-white', 'shadow-glow-accent');
+                    }
+                    renderMainFeed(t.dataset.filter);
+                });
+            });
+
+            // FIXED: Mobile Sheet & Dropdown Triggers
+            const mobileOverlay = document.getElementById('mobile-sheet-overlay');
+            const mobileSheet = document.getElementById('mobile-sheet');
+            const dropdown = document.getElementById('notif-dropdown');
+            const bellBtn = document.getElementById('bell-btn');
+
+            // Toggle Logic for Bell Button
+            bellBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('unread-badge').classList.add('hidden');
+
+                if (window.innerWidth < 640) {
+                    // Mobile
+                    mobileOverlay.classList.remove('hidden');
+                    void mobileOverlay.offsetWidth;
+                    mobileOverlay.classList.replace('opacity-0', 'opacity-100');
+                    mobileSheet.classList.remove('translate-y-full');
+                } else {
+                    // Desktop Toggle
+                    if (dropdown.classList.contains('hidden')) {
+                        // Open dropdown
+                        dropdown.classList.remove('hidden');
+                        void dropdown.offsetWidth; // Force reflow
+                        dropdown.classList.replace('opacity-0', 'opacity-100');
+                        dropdown.classList.replace('pointer-events-none', 'pointer-events-auto');
+                    } else {
+                        // Close dropdown
+                        dropdown.classList.replace('opacity-100', 'opacity-0');
+                        dropdown.classList.replace('pointer-events-auto', 'pointer-events-none');
+                        setTimeout(() => dropdown.classList.add('hidden'), 200);
+                    }
+                }
+            });
+
+            const closeSheet = () => {
+                mobileSheet.classList.add('translate-y-full');
+                mobileOverlay.classList.replace('opacity-100', 'opacity-0');
+                setTimeout(() => mobileOverlay.classList.add('hidden'), 300);
+            };
+            document.getElementById('close-sheet-btn').addEventListener('click', closeSheet);
+            mobileOverlay.addEventListener('click', closeSheet);
+
+            // Close dropdown if clicking outside
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth >= 640) {
+                    const wrapper = document.getElementById('nav-notification-wrapper');
+                    if (!wrapper.contains(e.target) && !dropdown.classList.contains('hidden')) {
+                        dropdown.classList.replace('opacity-100', 'opacity-0');
+                        dropdown.classList.replace('pointer-events-auto', 'pointer-events-none');
+                        setTimeout(() => dropdown.classList.add('hidden'), 200);
+                    }
+                }
+            });
+
+            // Segmented Filters
+            function setupSegments(containerId, highlighterId, btnClass) {
+                const highlighter = document.getElementById(highlighterId);
+                document.querySelectorAll(`#${containerId} .${btnClass}`).forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        AudioEngine.play('read');
+                        const idx = parseInt(e.target.dataset.index);
+                        highlighter.style.transform = `translateX(${idx * 100}%)`;
+                        document.querySelectorAll(`#${containerId} .${btnClass}`).forEach(b => {
+                            b.classList.replace('text-white', 'text-slate-400');
+                        });
+                        e.target.classList.replace('text-slate-400', 'text-white');
+                        renderDropdownFeed(e.target.dataset.filter);
+                    });
+                });
+            }
+            setupSegments('dropdown-segments', 'segment-highlighter', 'segment-btn');
+            setupSegments('mobile-segments', 'mobile-segment-highlighter', 'mobile-segment-btn');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<div id="dc-notif-menu" class="dc-dropdown absolute top-full right-0 mt-4 w-[420px]">
+  <div class="dc-notif-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+    <div class="p-4 border-b border-white/10 bg-gradient-to-r from-white/[0.03] to-transparent">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-display font-bold text-xl text-white tracking-wide flex items-center gap-2">
+          Updates
+          <span id="dc-notif-header-count" class="bg-dc-gold/20 text-dc-gold text-[10px] px-2 py-0.5 rounded-full font-sans font-bold" {% if nav_unread_count == 0 %}style="display:none"{% endif %}>{% if nav_unread_count > 0 %}{{ nav_unread_count }} NEW{% endif %}</span>
+        </h3>
+        <button id="dc-mark-read-btn" class="text-xs font-medium text-slate-400 hover:text-dc-gold transition">Mark all read</button>
+      </div>
+      <div class="flex p-1 bg-black/40 rounded-lg border border-white/5 relative" id="dc-dropdown-segments">
+        <div class="dc-segment-active-bg" id="dc-segment-highlighter" style="width: 33.33%; transform: translateX(0);"></div>
+        <button class="dc-segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-white transition relative z-10" data-index="0" data-filter="ALL">All</button>
+        <button class="dc-segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-slate-400 hover:text-white transition relative z-10" data-index="1" data-filter="UNREAD">Unread</button>
+        <button class="dc-segment-btn flex-1 text-xs font-semibold py-1.5 rounded-md text-slate-400 hover:text-white transition relative z-10" data-index="2" data-filter="TEAM">Invites</button>
+      </div>
+    </div>
+    <div id="dc-notif-content" class="max-h-[420px] overflow-y-auto flex flex-col"></div>
+    <a href="/notifications/" class="block w-full text-center py-3 bg-[#06090F] hover:bg-[#0D1424] text-dc-gold hover:text-white text-sm font-semibold transition-colors border-t border-white/10">View Complete Inbox</a>
+  </div>
+</div>

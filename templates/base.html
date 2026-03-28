@@ -50,7 +50,8 @@
               primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"},
               delta: { base:'#020204', surface:'#0A0A0F', highlight:'#12121A', gold:'#FFD700', violet:'#6C00FF', electric:'#00E5FF', success:'#10B981', danger:'#EF4444' },
               'dc-cyan':'#06b6d4','dc-purple':'#8b5cf6','dc-gold':'#facc15','dc-dark':'#050505','dc-bg':'#030303',
-              'dc-surface':'#0d0d0d','dc-card':'#111111','dc-card-hover':'#181818','dc-border':'rgba(255,255,255,0.08)','val-red':'#ff4655',
+              'dc-surface':'#0d0d0d','dc-card':'#111111','dc-card-hover':'#181818','dc-cardhover':'#131D33',
+              'dc-border':'rgba(255,255,255,0.08)','dc-goldglow':'rgba(245, 158, 11, 0.15)','dc-accent':'#3B82F6','dc-emerald':'#10B981','val-red':'#ff4655',
             },
             fontFamily: {
               sans:['Inter','ui-sans-serif','system-ui','sans-serif'],
@@ -69,11 +70,28 @@
               'pulse-slow':'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'float':'float 6s ease-in-out infinite',
               'shimmer':'shimmer 2.5s linear infinite',
+              'fade-in':'fadeIn 0.3s ease-out forwards',
+              'swipe-out':'swipeOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             },
             boxShadow: {
+              'glow':'0 0 20px rgba(245, 158, 11, 0.15)',
+              'glow-accent':'0 0 20px rgba(59, 130, 246, 0.15)',
+              'dropdown':'0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.05)',
+              'sheet':'0 -10px 40px rgba(0, 0, 0, 0.8)',
               'glow-gold':'0 0 30px rgba(255, 215, 0, 0.1)',
               'glow-cyan':'0 0 15px rgba(6, 182, 212, 0.15)',
               'glow-purple':'0 0 15px rgba(139, 92, 246, 0.15)',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              swipeOut: {
+                '0%': { transform: 'translateX(0)', opacity: '1', maxHeight: '200px', margin: '0.75rem 0', padding: '1.25rem' },
+                '50%': { transform: 'translateX(-100%)', opacity: '0', maxHeight: '200px', margin: '0.75rem 0', padding: '1.25rem' },
+                '100%': { transform: 'translateX(-100%)', opacity: '0', maxHeight: '0px', margin: '0px', padding: '0px', overflow: 'hidden', border: 'none' },
+              },
             },
           },
         },
@@ -83,6 +101,7 @@
     <link rel="stylesheet" href="{% static 'dist/tailwind.css' %}?v=20260225" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+    <link rel="stylesheet" href="{% static 'siteui/css/notifications_v2050.css' %}?v=2.3-20260328a">
     <!-- Phase 9A-24: Toastify.js for modern toast notifications -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css">
 
@@ -121,7 +140,7 @@
     <script src="{% static 'siteui/js/debug.js' %}"></script>
     <script src="{% static 'siteui/js/theme.js' %}"></script>
     <script src="{% static 'siteui/js/esports-theme-toggle.js' %}"></script>
-    <script src="{% static 'siteui/js/notifications.js' %}?v=2"></script>
+    <script src="{% static 'js/notifications_client.js' %}?v=2.3-20260328b"></script>
     <script src="{% static 'siteui/js/components.js' %}"></script>
     <script src="{% static 'siteui/js/motion.js' %}"></script>
     <script src="{% static 'siteui/js/tournaments.js' %}"></script>

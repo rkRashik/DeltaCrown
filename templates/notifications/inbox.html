@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | DeltaCrown{% endblock %}
+{% block og_title %}Notifications | DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none -z-10"></div>
+<div class="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-yellow-900/10 blur-[120px] pointer-events-none -z-10"></div>
+
+<section class="dc-notif-page-wrap max-w-[1700px] w-full mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-col lg:flex-row gap-8">
+  <aside class="w-full lg:w-72 flex-shrink-0">
+    <div class="sticky top-28">
+      <div class="mb-6 hidden lg:block">
+        <h1 class="font-display font-extrabold text-4xl text-white tracking-tight">Inbox</h1>
+        <p class="text-slate-400 text-sm mt-1">Manage your competitive alerts</p>
+      </div>
+
+      <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 dc-scrollbar-hide">
+        <button class="dc-filter-btn active w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-white bg-white/6 shrink-0" data-filter="ALL">
+          <span>All Notifications</span>
+          <span class="dc-filter-count" data-count="ALL">0</span>
+        </button>
+
+        <button class="dc-filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white shrink-0" data-filter="TOURNAMENT">
+          <span>Tournaments</span>
+          <span class="dc-filter-count" data-count="TOURNAMENT">0</span>
+        </button>
+
+        <button class="dc-filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white shrink-0" data-filter="TEAM">
+          <span>Teams & Orgs</span>
+          <span class="dc-filter-count" data-count="TEAM">0</span>
+        </button>
+
+        <button class="dc-filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white shrink-0" data-filter="ECONOMY">
+          <span>Economy</span>
+          <span class="dc-filter-count" data-count="ECONOMY">0</span>
+        </button>
+
+        <button class="dc-filter-btn w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:bg-white/5 hover:text-white shrink-0" data-filter="SOCIAL">
+          <span>Social</span>
+          <span class="dc-filter-count" data-count="SOCIAL">0</span>
+        </button>
+      </nav>
+    </div>
+  </aside>
+
+  <section class="flex-1 flex flex-col gap-6 pb-16">
+    <div class="flex justify-between items-center border-b border-white/10 pb-4">
+      <p class="text-sm text-slate-400 font-medium" id="dc-feed-count">Loading feed...</p>
+      <div class="flex gap-4">
+        <button id="dc-page-mark-all" class="text-sm font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+          <i class="fa-solid fa-check-double text-emerald-400"></i>
+          Mark all as read
+        </button>
+        <button id="dc-page-clear-all" class="text-sm font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+          <i class="fa-regular fa-trash-can text-red-400"></i>
+          Clear all
+        </button>
+      </div>
+    </div>
+
+    <div id="dc-main-feed" class="flex flex-col gap-0 relative"></div>
+
+    <button id="dc-load-more-btn" class="mt-2 py-4 w-full rounded-xl border border-white/5 bg-white/[0.02] text-slate-300 hover:text-white hover:bg-white/[0.05] hover:border-white/10 transition font-semibold text-sm flex items-center justify-center gap-2 group">
+      Load Historical Data
+      <i class="fa-solid fa-chevron-down group-hover:translate-y-1 transition-transform"></i>
+    </button>
+  </section>
+</section>
+{% endblock %}

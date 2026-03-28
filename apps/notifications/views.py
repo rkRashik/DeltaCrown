@@ -1,9 +1,9 @@
 ﻿import logging
+import json
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
-from django.template.loader import render_to_string
 from django.urls import reverse
 from django.apps import apps
 from django.contrib import messages
@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from .decorators import require_auth_json
+from .selectors import get_feed_page, get_preview_payload
+from .services import NotificationActionError, NotificationActionService
 
 logger = logging.getLogger(__name__)
 
@@ -173,10 +175,8 @@ def _build_invite_details(items):
 @login_required
 def list_view(request):
     u = _user(request.user)
-    qs = Notification.objects.filter(recipient=u).order_by("-created_at")
-    page = Paginator(qs, 15).get_page(request.GET.get("page"))
-    _attach_notification_ui(list(page.object_list))
-    return render(request, "notifications/list_modern.html", {"page": page})
+    unread_count = Notification.objects.filter(recipient=u, is_read=False).count()
+    return render(request, "notifications/inbox.html", {"unread_count": unread_count})
 
 
 @require_auth_json
@@ -267,10 +267,7 @@ def nav_preview(request):
     u = _user(request.user)
     
     try:
-        # Get recent notifications (limit 10 for dropdown)
-        notifications = list(Notification.objects.filter(recipient=u).order_by("-created_at")[:10])
-        
-        # Count unread
+        items = get_preview_payload(u, limit=10)
         unread_count = Notification.objects.filter(recipient=u, is_read=False).count()
         
         # Count pending follow requests
@@ -286,40 +283,15 @@ def nav_preview(request):
         except Exception as e:
             logger.warning(f"Failed to fetch pending follow requests: {e}")
         
-        # Serialize notifications
-        items = []
-        for n in notifications:
-            item = {
-                "id": n.id,
-                "type": n.type,
-                "event": n.event,
-                "title": n.title,
-                "message": getattr(n, 'message', '') or n.body,
-                "url": n.url,
-                "created_at": n.created_at.isoformat(),
-                "is_read": n.is_read,
-                "action_label": getattr(n, 'action_label', '') or "",
-                "action_url": getattr(n, 'action_url', '') or ""
-            }
-            # Include follow_request_id for follow_request notifications
-            if n.type == 'follow_request' and hasattr(n, 'action_object_id') and n.action_object_id:
-                item["follow_request_id"] = n.action_object_id
-            # Include invite_id for team invite notifications
-            if n.type == 'invite_sent' and hasattr(n, 'action_object_id') and n.action_object_id:
-                item["invite_id"] = n.action_object_id
-                item["action_type"] = getattr(n, 'action_type', '') or ''
-            items.append(item)
-
-        invite_details = _build_invite_details(notifications)
-        html = render_to_string(
-            "notifications/_bell.html",
-            {
-                "items": notifications,
-                "unread_count": unread_count,
-                "invite_details": invite_details,
-            },
-            request=request,
-        )
+        html_rows = []
+        for item in items:
+            html_rows.append(
+                "<div class='notification-dropdown-item p-4 border-b border-white/10'>"
+                f"<div class='text-sm text-white font-semibold'>{item.get('title', 'Notification')}</div>"
+                f"<div class='text-xs text-slate-400 mt-1'>{item.get('htmlText', '')}</div>"
+                "</div>"
+            )
+        html = "".join(html_rows) if html_rows else "<div class='p-8 text-center text-slate-500 text-sm'>No new notifications</div>"
         
         return JsonResponse({
             "success": True,
@@ -333,6 +305,213 @@ def nav_preview(request):
             "success": False,
             "error": str(e)
         }, status=500)
+
+
+@require_auth_json
+def api_feed(request):
+    """Consolidated feed endpoint for the modern notifications page."""
+    if request.method != "GET":
+        return JsonResponse({"success": False, "error": "method_not_allowed"}, status=405)
+
+    try:
+        page = int(request.GET.get("page", 1))
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.GET.get("page_size", 20))
+    except (TypeError, ValueError):
+        page_size = 20
+
+    feed = get_feed_page(_user(request.user), page=page, page_size=page_size)
+    return JsonResponse(
+        {
+            "success": True,
+            "items": feed.items,
+            "page": feed.page,
+            "page_size": feed.page_size,
+            "total": feed.total,
+            "has_next": feed.has_next,
+        }
+    )
+
+
+@require_auth_json
+def api_preview(request):
+    """Top-N payload endpoint for bell dropdown and mobile sheet previews."""
+    if request.method != "GET":
+        return JsonResponse({"success": False, "error": "method_not_allowed"}, status=405)
+
+    try:
+        limit = int(request.GET.get("limit", 8))
+    except (TypeError, ValueError):
+        limit = 8
+
+    user = _user(request.user)
+    items = get_preview_payload(user, limit=limit)
+    unread_count = Notification.objects.filter(recipient=user, is_read=False).count()
+    return JsonResponse({"success": True, "items": items, "count": len(items), "unread_count": unread_count})
+
+
+@require_POST
+@require_auth_json
+def api_mark_read(request):
+    """
+    Mark one or many notifications as read/unread.
+    Request body supports {"id": int} or {"ids": [int, ...]} and optional {"read": bool}.
+    """
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"success": False, "error": "invalid_json"}, status=400)
+
+    ids = payload.get("ids")
+    mark_all = bool(payload.get("mark_all", False))
+    read_state = payload.get("read", True)
+    if not isinstance(read_state, bool):
+        read_state = True
+
+    if ids is None:
+        single_id = payload.get("id")
+        ids = [single_id] if single_id is not None else []
+
+    ids = [nid for nid in ids if isinstance(nid, int)]
+    if not ids and not mark_all:
+        return JsonResponse({"success": False, "error": "no_ids_provided"}, status=400)
+
+    base_qs = Notification.objects.filter(recipient=_user(request.user))
+    if not mark_all:
+        base_qs = base_qs.filter(id__in=ids)
+
+    updated = base_qs.update(
+        is_read=read_state,
+        read_at=timezone.now() if read_state else None,
+    )
+    return JsonResponse({"success": True, "updated_count": updated, "read": read_state})
+
+
+@require_POST
+@require_auth_json
+def api_toggle_read(request):
+    """Toggle a single notification read/unread state."""
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"success": False, "error": "invalid_json"}, status=400)
+
+    notification_id = payload.get("id")
+    if not isinstance(notification_id, int):
+        return JsonResponse({"success": False, "error": "invalid_notification_id"}, status=400)
+
+    n = Notification.objects.filter(recipient=_user(request.user), id=notification_id).first()
+    if not n:
+        return JsonResponse({"success": False, "error": "not_found"}, status=404)
+
+    new_state = not bool(n.is_read)
+    n.is_read = new_state
+    n.read_at = timezone.now() if new_state else None
+    n.save(update_fields=["is_read", "read_at"])
+    return JsonResponse({"success": True, "id": notification_id, "read": new_state})
+
+
+@require_POST
+@require_auth_json
+def api_delete(request):
+    """Delete one or many notifications for current user."""
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"success": False, "error": "invalid_json"}, status=400)
+
+    ids = payload.get("ids")
+    if ids is None:
+        single_id = payload.get("id")
+        ids = [single_id] if single_id is not None else []
+
+    ids = [nid for nid in ids if isinstance(nid, int)]
+    if not ids:
+        return JsonResponse({"success": False, "error": "no_ids_provided"}, status=400)
+
+    deleted_count, _ = Notification.objects.filter(
+        recipient=_user(request.user),
+        id__in=ids,
+    ).delete()
+    return JsonResponse({"success": True, "deleted_count": deleted_count})
+
+
+@require_POST
+@require_auth_json
+def api_clear(request):
+    """Delete all notifications for current user."""
+    deleted_count, _ = Notification.objects.filter(recipient=_user(request.user)).delete()
+    return JsonResponse({"success": True, "deleted_count": deleted_count})
+
+
+@require_POST
+@require_auth_json
+def api_action(request, action_id):
+    """Execute actionable notification commands for follow requests and team invites."""
+    actor = _user(request.user)
+    logger.info(
+        "notification_action_started user_id=%s action_id=%s",
+        actor.id,
+        action_id,
+    )
+    try:
+        result = NotificationActionService.execute(actor, action_id)
+    except NotificationActionError as exc:
+        logger.info(
+            "notification_action_rejected user_id=%s action_id=%s error_code=%s status=%s",
+            actor.id,
+            action_id,
+            exc.error_code,
+            exc.status_code,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "action_id": action_id,
+                "error": str(exc),
+                "error_code": exc.error_code,
+            },
+            status=exc.status_code,
+        )
+    except Exception:
+        logger.exception(
+            "notification_action_failed user_id=%s action_id=%s",
+            actor.id,
+            action_id,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "action_id": action_id,
+                "error": "Action execution failed.",
+                "error_code": "action_execution_failed",
+            },
+            status=500,
+        )
+
+    logger.info(
+        "notification_action_succeeded user_id=%s action_id=%s consumed=%s",
+        actor.id,
+        action_id,
+        result.get("consumed_notifications", 0),
+    )
+    return JsonResponse(
+        {
+            "success": True,
+            "action_id": action_id,
+            "status": "processed",
+            **result,
+        }
+    )
 
 
 @require_POST

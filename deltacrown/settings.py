@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import socket
 import dj_database_url
 from urllib.parse import urlparse, parse_qs
 from django.core.exceptions import ImproperlyConfigured
@@ -126,6 +127,25 @@ def get_sanitized_db_info(db_url=None):
         'database': parsed.path.lstrip('/') if parsed.path else 'unknown',
         'user': parsed.username or 'unknown',
     }
+
+
+def _database_host_resolves(db_url: str) -> bool:
+    """Return True when the DB hostname resolves via local DNS."""
+    try:
+        host = (urlparse(db_url).hostname or '').strip()
+    except Exception:
+        return False
+
+    if not host:
+        return False
+
+    try:
+        socket.getaddrinfo(host, None)
+        return True
+    except socket.gaierror:
+        return False
+    except Exception:
+        return False
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
@@ -494,6 +514,18 @@ WSGI_APPLICATION = "deltacrown.wsgi.application"
 
 # Determine which database to use
 database_url, db_label = get_database_environment()
+
+# Local dev safety valve: if Neon DNS is temporarily unavailable, fall back to
+# DATABASE_URL_TEST to keep runserver usable. This path is DEBUG-only and opt-in.
+if DEBUG and db_label == 'PROD':
+    _allow_dns_fallback = os.getenv('DB_FALLBACK_TO_TEST_ON_DNS_FAILURE', '1').lower() == 'true' or os.getenv('DB_FALLBACK_TO_TEST_ON_DNS_FAILURE', '1') == '1'
+    _fallback_test_url = os.getenv('DATABASE_URL_TEST', '')
+    if _allow_dns_fallback and _fallback_test_url and not _database_host_resolves(database_url):
+        sys.stderr.write(
+            "\n⚠️ DATABASE_URL host DNS lookup failed in DEBUG mode; using DATABASE_URL_TEST fallback.\n\n"
+        )
+        database_url = _fallback_test_url
+        db_label = 'TEST_FALLBACK'
 
 if not database_url:
     raise ImproperlyConfigured(
