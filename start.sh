@@ -19,6 +19,67 @@ DAPHNE_APP_CLOSE_TIMEOUT="${DAPHNE_APPLICATION_CLOSE_TIMEOUT:-5}"
 
 echo "[render] Startup profile: migrations=${ENABLE_MIGRATIONS_ON_START:-1} celery=${ENABLE_CELERY_WORKER:-1} beat=${ENABLE_CELERY_BEAT:-0} discord=${ENABLE_DISCORD_BOT:-0} access_log=${DAPHNE_ACCESS_LOG:-0} celery_pool=${CELERY_POOL} celery_concurrency=${CELERY_CONCURRENCY} prefetch=${CELERY_PREFETCH_MULTIPLIER}"
 
+probe_database_url() {
+    local target_url="$1"
+    DATABASE_URL_PROBE="$target_url" python - <<'PY'
+import os
+import sys
+
+import psycopg2
+
+url = os.environ.get("DATABASE_URL_PROBE", "")
+try:
+    conn = psycopg2.connect(url, connect_timeout=5)
+    conn.close()
+except Exception as exc:
+    print(f"[render] DB probe failed: {exc}", file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+maybe_switch_supabase_pooler_port() {
+    local current_url="${DATABASE_URL:-}"
+    if [ -z "$current_url" ]; then
+        return
+    fi
+    if [ "${SUPABASE_POOLER_PORT_FALLBACK:-1}" != "1" ]; then
+        return
+    fi
+
+    case "$current_url" in
+        *".pooler.supabase.com:6543/"*)
+            ;;
+        *)
+            return
+            ;;
+    esac
+
+    echo "[render] Probing Supabase pooler on port 6543…"
+    if probe_database_url "$current_url"; then
+        echo "[render] Supabase pooler probe succeeded on 6543."
+        return
+    fi
+
+    local fallback_url="${SUPABASE_DIRECT_DATABASE_URL:-}"
+    if [ -z "$fallback_url" ]; then
+        fallback_url="$(printf '%s' "$current_url" | sed 's/:6543\//:5432\//')"
+    fi
+    if [ "$fallback_url" = "$current_url" ]; then
+        echo "[render] No 5432 fallback URL available; keeping existing DATABASE_URL."
+        return
+    fi
+
+    echo "[render] Pooler probe failed; trying fallback on port 5432…"
+    if probe_database_url "$fallback_url"; then
+        export DATABASE_URL="$fallback_url"
+        echo "[render] Switched DATABASE_URL to 5432 fallback for this deploy."
+    else
+        echo "[render] 5432 fallback probe failed; keeping existing DATABASE_URL."
+    fi
+}
+
+maybe_switch_supabase_pooler_port
+
 # ── Migrations ──────────────────────────────────────────────────────
 if [ "${ENABLE_MIGRATIONS_ON_START:-1}" = "1" ]; then
     echo "[render] Running migrations…"

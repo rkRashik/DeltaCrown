@@ -26,6 +26,13 @@ services:
         fromDatabase:
           name: deltacrown-db
           property: connectionString
+      # Supabase pooler fallback controls (optional):
+      # - Keep SUPABASE_POOLER_PORT_FALLBACK=1 to auto-try :5432 when :6543 times out.
+      # - Set SUPABASE_DIRECT_DATABASE_URL to a direct/db host URL if pooler host is unreachable.
+      - key: SUPABASE_POOLER_PORT_FALLBACK
+        value: "1"
+      - key: SUPABASE_DIRECT_DATABASE_URL
+        sync: false
       # Redis — Upstash (set in Render dashboard as REDIS_URL)
       # Used by: CHANNEL_LAYERS, Celery broker, Cache
       - key: REDIS_URL
