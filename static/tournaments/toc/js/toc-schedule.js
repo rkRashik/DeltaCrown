@@ -458,6 +458,8 @@
     const duration = getDuration(m);
     const p1Win = m.winner_id && m.winner_id === m.participant1_id;
     const p2Win = m.winner_id && m.winner_id === m.participant2_id;
+    const roomUrl = m.id ? buildLobbyUrl(m.id, false) : '';
+    const adminRoomUrl = m.id ? buildLobbyUrl(m.id, true) : '';
 
     return `
       <div class="bg-dc-bg border ${hasConflict ? 'border-dc-danger/60 shadow-[0_0_12px_rgba(255,42,85,0.15)]' : 'border-dc-border'} rounded-xl p-4 hover:border-dc-borderLight transition-all group relative" data-match-id="${m.id}">
@@ -497,6 +499,8 @@
                 ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded-md border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
                 : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded-md border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
               : ''}
+            ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded-md border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
+            ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded-md border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
             ${m.stream_url ? '<a href="' + _esc(m.stream_url) + '" target="_blank" class="text-dc-danger hover:text-white transition-colors" title="Watch Stream"><i data-lucide="tv" class="w-3.5 h-3.5"></i></a>' : ''}
           </div>
         </div>
@@ -527,7 +531,7 @@
               <th class="text-left text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-3 min-w-[160px]">Team 2</th>
               ${listHeader('state', 'Status', 'w-24')}
               ${listHeader('time', 'Scheduled', 'w-36')}
-              <th class="text-center text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-3 w-20">Actions</th>
+              <th class="text-center text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-3 min-w-[280px]">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-dc-border/30">
@@ -550,6 +554,8 @@
     const time = formatTime(m.scheduled_time);
     const p1Win = m.winner_id && m.winner_id === m.participant1_id;
     const p2Win = m.winner_id && m.winner_id === m.participant2_id;
+    const roomUrl = m.id ? buildLobbyUrl(m.id, false) : '';
+    const adminRoomUrl = m.id ? buildLobbyUrl(m.id, true) : '';
 
     return `
       <tr class="hover:bg-white/[0.02] transition-colors ${hasConflict ? 'bg-dc-danger/5' : ''}" data-match-id="${m.id}">
@@ -571,12 +577,14 @@
         <td class="px-3 py-3"><span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${si.color}">${si.label}</span></td>
         <td class="px-3 py-3 font-mono text-[10px] text-dc-text">${time}</td>
         <td class="px-3 py-3 text-center">
-          <div class="flex items-center justify-center gap-1.5">
+          <div class="flex items-center justify-center gap-1.5 flex-wrap">
             ${canReschedule(m)
               ? (m.scheduled_time
                 ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
                 : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
               : ''}
+            ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
+            ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
             ${m.stream_url ? '<a href="' + _esc(m.stream_url) + '" target="_blank" class="p-1 text-dc-text hover:text-dc-danger transition-colors" title="Stream"><i data-lucide="tv" class="w-3.5 h-3.5"></i></a>' : ''}
             <button onclick="TOC.navigate('matches')" class="p-1 text-dc-text hover:text-white transition-colors rounded" title="View Match Detail"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></button>
           </div>
@@ -687,6 +695,8 @@
     const si = MATCH_STATES[m.state] || MATCH_STATES.scheduled;
     const hasConflict = state.conflictMatchIds.has(m.id);
     const timeOnly = m.scheduled_time ? new Date(m.scheduled_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'No time';
+    const roomUrl = m.id ? buildLobbyUrl(m.id, false) : '';
+    const adminRoomUrl = m.id ? buildLobbyUrl(m.id, true) : '';
 
     return `
       <div class="bg-dc-bg border ${hasConflict ? 'border-dc-danger/60' : 'border-dc-border'} rounded-lg p-3 hover:border-dc-borderLight transition-all group relative">
@@ -705,11 +715,15 @@
         </div>
         <div class="flex items-center justify-between gap-2">
           <span class="text-[9px] font-mono text-dc-text">${timeOnly}</span>
-          ${canReschedule(m)
-            ? (m.scheduled_time
-              ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
-              : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
-            : ''}
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            ${canReschedule(m)
+              ? (m.scheduled_time
+                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+              : ''}
+            ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
+            ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
+          </div>
         </div>
       </div>`;
   }
@@ -819,6 +833,12 @@
 
   function canReschedule(m) {
     return m.state !== 'completed' && m.state !== 'forfeit' && m.state !== 'cancelled';
+  }
+
+  function buildLobbyUrl(matchId, isAdminView) {
+    if (!matchId) return '';
+    const base = '/tournaments/' + encodeURIComponent(slug) + '/matches/' + encodeURIComponent(String(matchId)) + '/room/';
+    return isAdminView ? (base + '?admin=1') : base;
   }
 
   function openReschedule(matchId, currentTime) {

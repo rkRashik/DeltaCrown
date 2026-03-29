@@ -96,6 +96,7 @@ from apps.tournaments.views import checkin
 from apps.tournaments.views.match_room import (
     MatchRoomView,
     MatchCheckInView,
+    MatchRoomWorkflowView,
 )
 from apps.tournaments.views.result_submission import (
     SubmitResultView,
@@ -273,6 +274,7 @@ urlpatterns = [
     # Match Room / Battlefield (Participant-only interactive room)
     path('<slug:slug>/matches/<int:match_id>/room/', MatchRoomView.as_view(), name='match_room'),
     path('<slug:slug>/matches/<int:match_id>/room/check-in/', MatchCheckInView.as_view(), name='match_room_checkin'),
+    path('<slug:slug>/matches/<int:match_id>/room/workflow/', MatchRoomWorkflowView.as_view(), name='match_room_workflow'),
     # FE-T-018: Tournament Results Page
     path('<slug:slug>/results/', TournamentResultsView.as_view(), name='results'),
     

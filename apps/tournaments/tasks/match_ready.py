@@ -56,12 +56,16 @@ def _marker_signature(marker_key: str, scheduled_time) -> str:
     ignore_result=True,
 )
 def notify_match_ready(self):
+    return run_match_ready_reminder_sweep()
+
+
+def run_match_ready_reminder_sweep(now=None):
     """Scan candidate matches and fire windowed reminder notifications."""
     from apps.tournaments.api.toc.brackets_service import TOCBracketsService
     from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
     from apps.tournaments.models.match import Match
 
-    now = timezone.now()
+    now = now or timezone.now()
     window_start = now + timedelta(minutes=SUPPORT_WINDOW_MINUTES)
     window_end = now + timedelta(minutes=SUPPORT_WINDOW_MAX_MINUTES)
 

@@ -40,6 +40,7 @@ from typing import Dict, Any, Optional
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
 from django.conf import settings
+from django.utils import timezone
 from apps.tournaments.security import (
     TournamentRole,
     get_user_tournament_role,
@@ -173,6 +174,31 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 match.participant1_id, 
                 match.participant2_id
             ]
+            self.participant_side = None
+            if self.user.id == match.participant1_id:
+                self.participant_side = 1
+            elif self.user.id == match.participant2_id:
+                self.participant_side = 2
+
+            # Team tournaments: participant slots may store team IDs.
+            if not self.is_participant:
+                from apps.organizations.models import TeamMembership
+
+                user_team_ids = await database_sync_to_async(
+                    lambda: set(
+                        TeamMembership.objects.filter(
+                            user=self.user,
+                            status=TeamMembership.Status.ACTIVE,
+                        ).values_list('team_id', flat=True)
+                    )
+                )()
+
+                if match.participant1_id in user_team_ids:
+                    self.is_participant = True
+                    self.participant_side = 1
+                elif match.participant2_id in user_team_ids:
+                    self.is_participant = True
+                    self.participant_side = 2
             
             # Authorization check:
             # - Participants, organizers, admins: Full access
@@ -453,6 +479,20 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             f"match_id={event['data'].get('match_id')}, "
             f"state={event['data'].get('old_state')} → {event['data'].get('new_state')}"
         )
+
+    async def match_room_event(self, event: Dict[str, Any]):
+        """Relay premium match room workflow events."""
+        await self.send_json({
+            'type': 'match_room_event',
+            'data': event.get('data', {}),
+        })
+
+    async def match_chat_event(self, event: Dict[str, Any]):
+        """Relay realtime match chat messages."""
+        await self.send_json({
+            'type': 'match_chat',
+            'data': event.get('data', {}),
+        })
     
     # =========================================================================
     # Client Message Handling
@@ -468,6 +508,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             - pong: Response to server ping (heartbeat)
             - ping: Client-initiated keepalive
             - subscribe: Subscribe confirmation (no-op)
+            - chat_message: In-room chat broadcast (participants/staff)
         
         Args:
             content: Parsed JSON message from client
@@ -534,6 +575,58 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     'message': 'Successfully subscribed to match updates',
                 }
             })
+            return
+
+        # =====================================================================
+        # Realtime lobby chat
+        # =====================================================================
+
+        if message_type == 'chat_message':
+            text = str(content.get('text') or '').strip()
+            if not text:
+                await self.send_json({
+                    'type': 'error',
+                    'code': 'chat_message_empty',
+                    'message': 'Chat message cannot be empty.',
+                })
+                return
+
+            if len(text) > 400:
+                await self.send_json({
+                    'type': 'error',
+                    'code': 'chat_message_too_long',
+                    'message': 'Chat message cannot exceed 400 characters.',
+                })
+                return
+
+            can_chat = (
+                self.is_participant
+                or self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN)
+            )
+            if not can_chat:
+                await self.send_json({
+                    'type': 'error',
+                    'code': 'chat_forbidden',
+                    'message': 'You are not allowed to send chat messages in this room.',
+                })
+                return
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'match_chat_event',
+                    'data': {
+                        'message_id': f"{self.match_id}:{self.user.id}:{int(timezone.now().timestamp() * 1000)}",
+                        'match_id': self.match_id,
+                        'user_id': self.user.id,
+                        'username': self.user.username,
+                        'side': self.participant_side,
+                        'is_staff': bool(self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN)),
+                        'text': text,
+                        'timestamp': timezone.now().isoformat(),
+                    },
+                }
+            )
             return
         
         # =====================================================================

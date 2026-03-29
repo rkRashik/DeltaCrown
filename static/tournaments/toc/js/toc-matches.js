@@ -626,9 +626,15 @@
 
     // Match room link
     var roomLink = $('#detail-room-link');
+    var roomLinkAdmin = $('#detail-room-link-admin');
+    var roomUrl = '/tournaments/' + slug + '/matches/' + m.id + '/room/';
     if (roomLink) {
-      roomLink.href = '/tournaments/' + slug + '/matches/' + m.id + '/room/';
+      roomLink.href = roomUrl;
       roomLink.classList.remove('hidden');
+    }
+    if (roomLinkAdmin) {
+      roomLinkAdmin.href = roomUrl + '?admin=1';
+      roomLinkAdmin.classList.remove('hidden');
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
