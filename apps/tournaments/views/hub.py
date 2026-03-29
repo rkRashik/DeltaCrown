@@ -992,6 +992,45 @@ def _get_avatar_url(user):
     return f"https://ui-avatars.com/api/?name={user.username[:2]}&background=0A0A0E&color=fff&size=64"
 
 
+def _build_participant_media_map(tournament, participant_ids):
+    """Return {participant_id: logo_or_avatar_url} for team or solo tournaments."""
+    normalized_ids = set()
+    for raw_id in participant_ids or []:
+        if not raw_id:
+            continue
+        try:
+            normalized_ids.add(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+
+    if not normalized_ids:
+        return {}
+
+    media_map = {}
+    is_team = tournament.participation_type == 'team'
+
+    if is_team:
+        from apps.organizations.models import Team
+
+        for team in Team.objects.filter(id__in=normalized_ids).only('id', 'logo'):
+            logo_url = ''
+            try:
+                if hasattr(team, 'logo') and team.logo:
+                    logo_url = team.logo.url
+            except Exception:
+                logo_url = ''
+            media_map[team.id] = logo_url
+        return media_map
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    users = User.objects.filter(id__in=normalized_ids).select_related('profile')
+    for user in users:
+        media_map[user.id] = _get_avatar_url(user)
+    return media_map
+
+
 def _json_response(payload, status=200, cache_control=None):
     resp = JsonResponse(payload, status=status)
     if cache_control:
@@ -1604,9 +1643,9 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             }
 
     Bracket vs Group Behavior:
-        This view only returns bracket-based data. For group-stage standings,
-        use HubStandingsAPIView which handles both group and bracket-derived
-        standings.
+        If a bracket exists, rounds are returned as bracket rounds.
+        If no bracket exists (group-stage/round-robin schedules), rounds are
+        grouped by group + round and include per-match group metadata.
 
     Double Elimination:
         For double_elimination format, round_name includes prefixes
@@ -1683,27 +1722,73 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 },
             }, cache_control='private, max-age=15')
 
+        participant_ids = {
+            pid
+            for match in matches
+            for pid in (match.participant1_id, match.participant2_id)
+            if pid
+        }
+        participant_media_map = _build_participant_media_map(tournament, participant_ids)
+
+        def _coerce_group_id(raw_group_id):
+            if raw_group_id in (None, ''):
+                return None
+            try:
+                return int(raw_group_id)
+            except (TypeError, ValueError):
+                return None
+
+        group_name_by_id = {}
+        if bracket is None and has_groups:
+            group_name_by_id = {
+                group.id: group.name
+                for group in groups_qs.only('id', 'name')
+            }
+
+        def _extract_group_meta(match_obj):
+            lobby = match_obj.lobby_info or {}
+            group_id = _coerce_group_id(lobby.get('group_id'))
+            group_name = str(
+                lobby.get('group_label')
+                or lobby.get('group_name')
+                or group_name_by_id.get(group_id)
+                or ''
+            ).strip()
+            if not group_name and group_id in group_name_by_id:
+                group_name = group_name_by_id[group_id]
+            return group_id, group_name
+
         rounds = {}
+        group_sections = {}
         for m in matches:
-            rn = m.round_number
-            if rn not in rounds:
-                if bracket is not None:
-                    round_name = bracket.get_round_name(rn)
+            rn = m.round_number or 0
+            group_id = None
+            group_name = ''
+
+            if bracket is not None:
+                round_key = f'bracket:{rn}'
+                round_name = bracket.get_round_name(rn)
+            else:
+                group_id, group_name = _extract_group_meta(m)
+                group_key = group_id if group_id is not None else (group_name.lower() if group_name else 'ungrouped')
+                round_key = f'group:{group_key}:{rn}'
+                if group_name and rn:
+                    round_name = f'{group_name} - Round {rn}'
+                elif group_name:
+                    round_name = group_name
                 else:
-                    lobby = m.lobby_info or {}
-                    group_label = lobby.get('group_label') or lobby.get('group_name')
-                    if group_label and rn:
-                        round_name = f'{group_label} - Round {rn}'
-                    elif group_label:
-                        round_name = group_label
-                    else:
-                        round_name = f'Round {rn}' if rn else 'Round'
-                rounds[rn] = {
+                    round_name = f'Round {rn}' if rn else 'Round'
+
+            if round_key not in rounds:
+                rounds[round_key] = {
                     'round_number': rn,
                     'round_name': round_name,
+                    'group_id': group_id,
+                    'group_name': group_name or None,
                     'matches': [],
                 }
-            rounds[rn]['matches'].append({
+
+            serialized_match = {
                 'id': m.id,
                 'match_number': m.match_number,
                 'state': m.state,
@@ -1713,17 +1798,76 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'name': m.participant1_name or 'TBD',
                     'score': m.participant1_score,
                     'is_winner': m.winner_id == m.participant1_id if m.winner_id else False,
+                    'logo_url': participant_media_map.get(m.participant1_id, ''),
                 },
                 'participant2': {
                     'id': m.participant2_id,
                     'name': m.participant2_name or 'TBD',
                     'score': m.participant2_score,
                     'is_winner': m.winner_id == m.participant2_id if m.winner_id else False,
+                    'logo_url': participant_media_map.get(m.participant2_id, ''),
                 },
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
-            })
+            }
 
-        return _json_response({
+            if bracket is None:
+                serialized_match.update({
+                    'group_id': group_id,
+                    'group_name': group_name or None,
+                })
+
+            rounds[round_key]['matches'].append(serialized_match)
+
+            if bracket is None:
+                section_key = group_id if group_id is not None else (group_name.lower() if group_name else 'ungrouped')
+                section_name = group_name or (f'Group {group_id}' if group_id is not None else 'Ungrouped')
+                if section_key not in group_sections:
+                    group_sections[section_key] = {
+                        'group_id': group_id,
+                        'group_name': section_name,
+                        'rounds': {},
+                    }
+                if rn not in group_sections[section_key]['rounds']:
+                    group_sections[section_key]['rounds'][rn] = {
+                        'round_number': rn,
+                        'round_name': f'Round {rn}' if rn else 'Round',
+                        'matches': [],
+                    }
+                group_sections[section_key]['rounds'][rn]['matches'].append(serialized_match)
+
+        rounds_payload = list(rounds.values())
+        if bracket is None:
+            rounds_payload = sorted(
+                rounds_payload,
+                key=lambda r: (
+                    1 if not r.get('group_name') else 0,
+                    (r.get('group_name') or '').lower(),
+                    r.get('round_number') or 0,
+                ),
+            )
+
+        group_stage_payload = None
+        if bracket is None:
+            groups_payload = []
+            for section in sorted(
+                group_sections.values(),
+                key=lambda g: (1 if not g.get('group_name') else 0, (g.get('group_name') or '').lower()),
+            ):
+                rounds_list = [
+                    section['rounds'][round_number]
+                    for round_number in sorted(section['rounds'].keys())
+                ]
+                groups_payload.append({
+                    'group_id': section['group_id'],
+                    'group_name': section['group_name'],
+                    'rounds': rounds_list,
+                })
+            group_stage_payload = {
+                'has_groups': has_groups,
+                'groups': groups_payload,
+            }
+
+        response_payload = {
             'generated': True,
             'generated_mode': 'bracket' if bracket is not None else 'group_stage',
             'format': bracket.format if bracket is not None else tournament.format,
@@ -1731,8 +1875,12 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             'total_rounds': bracket.total_rounds if bracket is not None else len(rounds),
             'total_matches': bracket.total_matches if bracket is not None else len(matches),
             'is_finalized': bracket.is_finalized if bracket is not None else False,
-            'rounds': list(rounds.values()),
-        }, cache_control='private, max-age=15')
+            'rounds': rounds_payload,
+        }
+        if group_stage_payload is not None:
+            response_payload['group_stage'] = group_stage_payload
+
+        return _json_response(response_payload, cache_control='private, max-age=15')
 
 
 # ────────────────────────────────────────────────────────────
@@ -1829,17 +1977,24 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                 standings = GroupStanding.objects.filter(
                     group=group,
                     is_deleted=False,
-                ).select_related('user').order_by('rank', '-points', '-goal_difference', 'id')
+                ).select_related('user', 'user__profile').order_by('rank', '-points', '-goal_difference', 'id')
 
-                team_name_map = {}
+                team_meta_map = {}
                 if is_team:
                     team_ids = [s.team_id for s in standings if s.team_id]
                     if team_ids:
                         from apps.organizations.models import Team
-                        team_name_map = {
-                            team_id: team_name
-                            for team_id, team_name in Team.objects.filter(id__in=team_ids).values_list('id', 'name')
-                        }
+                        for team in Team.objects.filter(id__in=team_ids).only('id', 'name', 'logo'):
+                            logo_url = ''
+                            try:
+                                if hasattr(team, 'logo') and team.logo:
+                                    logo_url = team.logo.url
+                            except Exception:
+                                logo_url = ''
+                            team_meta_map[team.id] = {
+                                'name': team.name,
+                                'logo_url': logo_url,
+                            }
 
                 seen_participants = set()
 
@@ -1855,16 +2010,21 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
 
                     name = ''
                     is_you = False
+                    logo_url = ''
                     if is_team and s.team_id:
-                        name = team_name_map.get(s.team_id, f'Team #{s.team_id}')
+                        team_meta = team_meta_map.get(s.team_id, {})
+                        name = team_meta.get('name', f'Team #{s.team_id}')
+                        logo_url = team_meta.get('logo_url', '')
                         is_you = registration and s.team_id == registration.team_id
                     elif s.user_id:
                         name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'
+                        logo_url = _get_avatar_url(s.user) if s.user else ''
                         is_you = s.user_id == request.user.id
 
                     rows.append({
                         'rank': s.rank,
                         'name': name,
+                        'logo_url': logo_url,
                         'is_you': is_you,
                         'matches_played': s.matches_played,
                         'won': s.matches_won,
@@ -1941,12 +2101,14 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         participant_id = None
         if registration:
             participant_id = registration.team_id if is_team else request.user.id
+        participant_media_map = _build_participant_media_map(tournament, stats.keys())
 
         rows = []
         for pid, s in stats.items():
             rows.append({
                 'participant_id': pid,
                 'name': s['name'],
+                'logo_url': participant_media_map.get(pid, ''),
                 'is_you': pid == participant_id if participant_id else False,
                 'wins': s['wins'],
                 'losses': s['losses'],
@@ -2039,6 +2201,9 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         is_team = tournament.participation_type == 'team'
         view_mode = _resolve_hub_view_mode(request, tournament, registration)
         is_staff_view = view_mode['is_staff_view']
+        requested_scope = (request.GET.get('scope') or '').strip().lower()
+        include_all_matches = requested_scope == 'all'
+        show_full_matchup = is_staff_view or include_all_matches
         participant_id = (registration.team_id if registration else None) if is_team else request.user.id
 
         # Get user's matches (staff/organizers see ALL matches)
@@ -2046,11 +2211,19 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             tournament=tournament,
             is_deleted=False,
         )
-        if not is_staff_view:
+        if not is_staff_view and not include_all_matches:
             user_matches = user_matches.filter(
                 models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
             )
-        user_matches = user_matches.order_by('round_number', 'match_number')
+        user_matches = list(user_matches.order_by('round_number', 'match_number'))
+
+        participant_ids = {
+            pid
+            for match in user_matches
+            for pid in (match.participant1_id, match.participant2_id)
+            if pid
+        }
+        participant_media_map = _build_participant_media_map(tournament, participant_ids)
 
         # Pre-fetch bracket once for round name lookups (avoid N+1)
         bracket = None
@@ -2062,12 +2235,20 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         active = []
         history = []
         for m in user_matches:
+            is_my_match = bool(participant_id and (m.participant1_id == participant_id or m.participant2_id == participant_id))
+
             if is_staff_view:
                 # Staff/organizer sees both sides — no "your" vs "opponent"
                 is_p1 = True  # default perspective: p1 on left
                 opponent_name = m.participant2_name
                 your_score = m.participant1_score
                 opponent_score = m.participant2_score
+                is_winner = None
+            elif include_all_matches and not is_my_match:
+                is_p1 = False
+                opponent_name = m.participant2_name or m.participant1_name
+                your_score = None
+                opponent_score = None
                 is_winner = None
             else:
                 is_p1 = m.participant1_id == participant_id
@@ -2120,12 +2301,27 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'p2_score': m.participant2_score,
                 'is_winner': is_winner,
                 'winner_name': m.winner_name if hasattr(m, 'winner_name') else None,
-                'is_staff_view': is_staff_view,
+                'is_staff_view': show_full_matchup,
+                'is_my_match': is_my_match,
                 'lobby_info': m.lobby_info or {},
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'game_scores': raw_gs,
                 'best_of': best_of,
+                'p1_logo_url': participant_media_map.get(m.participant1_id, ''),
+                'p2_logo_url': participant_media_map.get(m.participant2_id, ''),
             }
+
+            if include_all_matches and not is_staff_view and not is_my_match:
+                match_data['lobby_info'] = {}
+
+            if is_my_match and not is_staff_view and not include_all_matches:
+                opponent_pid = m.participant2_id if is_p1 else m.participant1_id
+                match_data['opponent_logo_url'] = participant_media_map.get(opponent_pid, '')
+            elif is_my_match:
+                opponent_pid = m.participant2_id if is_p1 else m.participant1_id
+                match_data['opponent_logo_url'] = participant_media_map.get(opponent_pid, '')
+            else:
+                match_data['opponent_logo_url'] = ''
 
             if m.state in ('completed', 'forfeit'):
                 history.append(match_data)

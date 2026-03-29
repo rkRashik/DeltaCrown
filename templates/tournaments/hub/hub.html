@@ -254,6 +254,7 @@
      data-is-checked-in="{{ is_checked_in|yesno:'true,false' }}"
      data-is-captain="{{ is_captain|yesno:'true,false' }}"
      data-is-team="{{ is_team|yesno:'true,false' }}"
+     data-is-staff-view="{{ is_staff_view|yesno:'true,false' }}"
      data-roster-locked="{{ roster_locked|yesno:'true,false' }}"
     data-critical-locked="{{ hub_critical_locked|yesno:'true,false' }}"
     data-payment-verified="{{ hub_payment_verified|yesno:'true,false' }}"
@@ -289,9 +290,9 @@
             {{ tournament.name|truncatechars:40 }}
           </span>
           <div class="flex items-center gap-2 mt-0.5">
-            <span class="hub-badge hub-badge-{% if tournament.status == 'live' %}live{% elif tournament.status == 'completed' %}neutral{% else %}info{% endif %}">
-              {% if tournament.status == 'live' %}<span class="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse"></span>{% endif %}
-              {{ tournament.get_status_display|default:tournament.status }}
+            <span id="hub-tournament-status-badge" class="hub-badge hub-badge-{% if tournament.status == 'live' %}live{% elif tournament.status == 'completed' %}neutral{% else %}info{% endif %}">
+              <span id="hub-tournament-status-dot" class="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse {% if tournament.status != 'live' %}hidden{% endif %}"></span>
+              <span id="hub-tournament-status-text">{{ tournament.get_status_display|default:tournament.status }}</span>
             </span>
             {% if game_name %}
               <span class="text-[10px] text-gray-500 hidden md:inline" style="font-family:'Space Grotesk',monospace;">{{ game_name }}</span>

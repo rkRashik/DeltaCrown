@@ -1300,6 +1300,7 @@ body.hub-mobile-nav-open {
 .bk-ub { color: #00FF66; border-left-color: #00FF66; background: rgba(0,255,102,0.04); }
 .bk-lb { color: #FF2A55; border-left-color: #FF2A55; background: rgba(255,42,85,0.04); }
 .bk-gf { color: #FFB800; border-left-color: #FFB800; background: rgba(255,184,0,0.04); }
+.bk-group { color: #00F0FF; border-left-color: #00F0FF; background: rgba(0,240,255,0.04); }
 
 /* ── Section Container (horizontal flex of rounds) ── */
 .bk-section {
@@ -1308,6 +1309,12 @@ body.hub-mobile-nav-open {
   overflow-x: auto;
   padding: 0.5rem 0 1rem;
   position: relative;
+}
+.bk-group-section {
+  margin-bottom: 1.25rem;
+}
+.bk-group-section:last-child {
+  margin-bottom: 0;
 }
 
 /* ── Round Column ── */
@@ -1404,6 +1411,38 @@ body.hub-mobile-nav-open {
   padding: 5px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.035);
 }
+.bk-team-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+.bk-team-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.bk-team-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.bk-team-avatar-initial {
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #6B7280;
+  text-transform: uppercase;
+  line-height: 1;
+}
 .bk-name {
   font-size: 0.7rem;
   font-weight: 600;
@@ -1411,7 +1450,7 @@ body.hub-mobile-nav-open {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 145px;
+  max-width: 128px;
 }
 .bk-w .bk-name { color: #FFFFFF; }
 .bk-sc {
@@ -1561,6 +1600,13 @@ body.hub-mobile-nav-open {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.stnd-team-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .stnd-team-initial {
   font-size: 0.65rem;
@@ -2017,8 +2063,15 @@ body.hub-mobile-nav-open {
     margin: 2px 0;
   }
   .bk-name {
-    max-width: 110px;
+    max-width: 90px;
     font-size: 0.6rem;
+  }
+  .bk-team-avatar {
+    width: 16px;
+    height: 16px;
+  }
+  .bk-team-avatar-initial {
+    font-size: 0.45rem;
   }
   .bk-sc {
     font-size: 0.65rem;

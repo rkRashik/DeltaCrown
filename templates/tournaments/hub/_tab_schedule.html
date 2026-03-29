@@ -125,11 +125,27 @@
         <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Match Schedule</h3>
         <p class="text-sm text-gray-400 mt-1">Upcoming and recent match times for your team.</p>
       </div>
-      <button onclick="HubEngine.refreshScheduleMatches && HubEngine.refreshScheduleMatches()"
-              class="hub-glass px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
-              title="Refresh schedule">
-        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i>
-      </button>
+      <div class="flex items-center gap-2">
+        {% if not is_staff_view %}
+        <div id="schedule-match-filter" class="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <button type="button"
+                  data-schedule-filter="my"
+                  class="hub-schedule-filter-btn active px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider text-cyan-200 bg-cyan-400/15 border border-cyan-300/25 transition-colors">
+            My Matches
+          </button>
+          <button type="button"
+                  data-schedule-filter="all"
+                  class="hub-schedule-filter-btn px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider text-gray-400 border border-transparent hover:text-white transition-colors">
+            All Matches
+          </button>
+        </div>
+        {% endif %}
+        <button onclick="HubEngine.refreshScheduleMatches && HubEngine.refreshScheduleMatches()"
+                class="hub-glass px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
+                title="Refresh schedule">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i>
+        </button>
+      </div>
     </div>
 
     {% comment %}Skeleton loader{% endcomment %}

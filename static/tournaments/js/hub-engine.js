@@ -57,6 +57,7 @@ const HubEngine = (() => {
   let _bracketCache      = null;
   let _standingsCache    = null;
   let _matchesCache      = null;
+  let _matchesCacheFetchedAt = 0;
   let _participantsCache = null;
   let _participantsAll   = [];  // for search filtering
   let _participantsSort = 'joined_desc';
@@ -78,6 +79,9 @@ const HubEngine = (() => {
   let _announcementLastUpdatedAt = null;
   let _announcementLoading = false;
   let _announcementScrollTimer = null;
+  let _lastPolledState = null;
+  let _scheduleFilter = 'all';
+  let _overviewMatchRefreshInFlight = false;
 
   // S27: WebSocket connection for real-time sync
   let _ws = null;
@@ -209,9 +213,16 @@ const HubEngine = (() => {
     _startCountdown();
     _bindFeedControls();
     _bindParticipantsControls();
+    _bindScheduleControls();
     _bindResourcesQuickNav();
     _initDesktopSidebar();
     _initMobileChromeGestures();
+
+    _scheduleFilter = _shell?.dataset.isStaffView === 'true' ? 'all' : 'my';
+    _setScheduleFilter(_scheduleFilter, { rerender: false });
+    _syncTournamentStatusUi(_shell?.dataset.tournamentStatus || '');
+    _renderOverviewActionCard(_matchesCache, null);
+    _refreshOverviewActionCard({ forceFetch: true });
 
     // Start polling (auto-pauses in background tab)
     _startPolling();
@@ -754,6 +765,15 @@ const HubEngine = (() => {
       const resp = await fetch(url, { credentials: 'same-origin' });
       if (!resp.ok) return;
       const data = await resp.json();
+      _lastPolledState = data;
+
+      if (data.tournament_status) {
+        _syncTournamentStatusUi(data.tournament_status);
+      }
+
+      if (data.phase_event) {
+        _updateOverviewPhaseEvent(data.phase_event);
+      }
 
       // Update reg count
       const regEl = document.getElementById('hub-reg-count');
@@ -766,6 +786,10 @@ const HubEngine = (() => {
       if (statusEl && data.user_status) {
         statusEl.textContent = data.user_status;
       }
+      const overviewStatusEl = document.getElementById('hub-overview-status-label');
+      if (overviewStatusEl && data.user_status) {
+        overviewStatusEl.textContent = data.user_status;
+      }
 
       // Update check-in state if it changed
       if (data.check_in) {
@@ -777,17 +801,36 @@ const HubEngine = (() => {
       }
 
       // Update countdown target if phase changed
-      if (data.phase_event && data.phase_event.target) {
-        const cdEl = document.getElementById('hub-countdown');
-        if (cdEl) {
+      const cdEl = document.getElementById('hub-countdown');
+      if (cdEl) {
+        if (data.phase_event && data.phase_event.target) {
           const current = cdEl.getAttribute('data-target');
+          cdEl.classList.remove('hidden');
           if (current !== data.phase_event.target) {
             cdEl.setAttribute('data-target', data.phase_event.target);
             // Restart countdown
             if (_countdownId) clearInterval(_countdownId);
             _startCountdown();
           }
+        } else {
+          cdEl.setAttribute('data-target', '');
+          cdEl.classList.add('hidden');
+          _setCountdown('--', '--', '--');
+          if (_countdownId) {
+            clearInterval(_countdownId);
+            _countdownId = null;
+          }
         }
+      }
+
+      _renderOverviewActionCard(_matchesCache, data);
+
+      const status = String(data.tournament_status || '').toLowerCase();
+      const shouldRefreshOverviewMatch = ['live', 'check_in', 'registration_closed', 'registration_open'].includes(status)
+        || !_matchesCache;
+      const isStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 25000;
+      if (shouldRefreshOverviewMatch && isStale) {
+        _refreshOverviewActionCard({ forceFetch: true, stateData: data });
       }
 
     } catch (err) {
@@ -1789,6 +1832,359 @@ const HubEngine = (() => {
     return num + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
+  function _initials(name, maxChars = 2) {
+    const safe = String(name || '').trim();
+    if (!safe) return '?';
+    const parts = safe.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase().slice(0, maxChars);
+    }
+    return safe.slice(0, maxChars).toUpperCase();
+  }
+
+  function _renderAvatarInner(name, mediaUrl, initialClass = 'stnd-team-initial', imageClass = 'stnd-team-avatar-img') {
+    const safeName = _esc(name || 'Participant');
+    if (mediaUrl) {
+      return `<img src="${_esc(mediaUrl)}" class="${imageClass}" alt="${safeName}" loading="lazy" decoding="async">`;
+    }
+    return `<span class="${initialClass}">${_esc(_initials(name, 2))}</span>`;
+  }
+
+  function _humanTournamentStatus(rawStatus) {
+    const status = String(rawStatus || '').toLowerCase();
+    const labels = {
+      registration_open: 'Registration Open',
+      registration_closed: 'Registration Closed',
+      check_in: 'Check-In',
+      live: 'Live',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+      draft: 'Draft',
+      published: 'Published',
+    };
+    return labels[status] || (status ? (status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')) : 'Status');
+  }
+
+  function _statusBadgeClass(rawStatus) {
+    const status = String(rawStatus || '').toLowerCase();
+    if (status === 'live') return 'hub-badge-live';
+    if (status === 'check_in') return 'hub-badge-warning';
+    if (status === 'completed' || status === 'cancelled') return 'hub-badge-neutral';
+    return 'hub-badge-info';
+  }
+
+  function _overviewTitleFromStatus(rawStatus) {
+    const status = String(rawStatus || '').toLowerCase();
+    if (status === 'live') return 'LIVE / IN PROGRESS';
+    if (status === 'registration_open') return 'REGISTRATION OPEN';
+    if (status === 'registration_closed' || status === 'check_in') return 'AWAITING START';
+    if (status === 'completed') return 'TOURNAMENT COMPLETE';
+    return '';
+  }
+
+  function _syncTournamentStatusUi(rawStatus) {
+    const status = String(rawStatus || '').toLowerCase();
+    if (!status) return;
+
+    if (_shell) {
+      _shell.dataset.tournamentStatus = status;
+    }
+
+    const badge = document.getElementById('hub-tournament-status-badge');
+    if (badge) {
+      badge.className = `hub-badge ${_statusBadgeClass(status)}`;
+    }
+
+    const badgeText = document.getElementById('hub-tournament-status-text');
+    if (badgeText) {
+      badgeText.textContent = _humanTournamentStatus(status);
+    }
+
+    const dot = document.getElementById('hub-tournament-status-dot');
+    if (dot) {
+      const isLive = status === 'live';
+      dot.classList.toggle('hidden', !isLive);
+      dot.className = `w-1.5 h-1.5 rounded-full ${isLive ? 'bg-[#00FF66] animate-pulse' : 'bg-transparent hidden'}`;
+    }
+
+    const overviewTitle = document.getElementById('hub-overview-title');
+    const nextTitle = _overviewTitleFromStatus(status);
+    if (overviewTitle && nextTitle) {
+      overviewTitle.textContent = nextTitle;
+    }
+  }
+
+  function _updateOverviewPhaseEvent(phaseEvent) {
+    const labelEl = document.getElementById('hub-overview-phase-label');
+    if (labelEl && phaseEvent?.label) {
+      labelEl.textContent = phaseEvent.label;
+    }
+
+    const timeLabel = document.getElementById('hub-overview-action-time-label');
+    if (timeLabel && phaseEvent?.label) {
+      if (!document.getElementById('hub-overview-action-time')?.dataset.matchTime) {
+        timeLabel.textContent = `${phaseEvent.label} In`;
+      }
+    }
+
+    const pill = document.getElementById('hub-overview-phase-pill');
+    if (!pill) return;
+
+    const type = String(phaseEvent?.type || 'info').toLowerCase();
+    const styles = {
+      danger: {
+        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2A55]/15 border border-[#FF2A55]/25 mb-3',
+        label: 'text-[10px] font-black text-[#FF8AA0] uppercase tracking-widest',
+        dot: 'w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse',
+      },
+      success: {
+        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/25 mb-3',
+        label: 'text-[10px] font-black text-[#66FFAE] uppercase tracking-widest',
+        dot: 'w-2 h-2 rounded-full bg-[#00FF66] animate-pulse',
+      },
+      info: {
+        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/25 mb-3',
+        label: 'text-[10px] font-black text-[#8AF6FF] uppercase tracking-widest',
+        dot: 'w-2 h-2 rounded-full bg-[#00F0FF]',
+      },
+    };
+    const current = styles[type] || styles.info;
+    pill.className = current.wrap;
+
+    const dotEl = pill.querySelector('span');
+    if (dotEl) {
+      dotEl.className = current.dot;
+    }
+
+    if (labelEl) {
+      labelEl.className = current.label;
+    }
+  }
+
+  function _formatCountdownLabel(targetDate) {
+    if (!(targetDate instanceof Date) || Number.isNaN(targetDate.getTime())) {
+      return 'TBD';
+    }
+    const diffMs = targetDate.getTime() - Date.now();
+    if (diffMs <= 0) return 'Now';
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const mins = totalMinutes % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${String(mins).padStart(2, '0')}m`;
+    return `${mins}m`;
+  }
+
+  function _pickOverviewTargetMatch(matches) {
+    const all = Array.isArray(matches) ? matches : [];
+    if (!all.length) return null;
+
+    const nonTerminal = all.filter((m) => !['completed', 'forfeit', 'cancelled'].includes(String(m?.state || '').toLowerCase()));
+    if (!nonTerminal.length) return null;
+
+    const live = nonTerminal.find((m) => String(m?.state || '').toLowerCase() === 'live');
+    if (live) return live;
+
+    const ready = nonTerminal.find((m) => ['ready', 'check_in', 'pending_result'].includes(String(m?.state || '').toLowerCase()));
+    if (ready) return ready;
+
+    const scheduled = nonTerminal
+      .filter((m) => m?.scheduled_at)
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+    if (scheduled.length) {
+      const now = Date.now();
+      const upcoming = scheduled.find((m) => {
+        const dt = new Date(m.scheduled_at);
+        return !Number.isNaN(dt.getTime()) && dt.getTime() >= now;
+      });
+      return upcoming || scheduled[0];
+    }
+
+    return nonTerminal[0];
+  }
+
+  function _renderOverviewActionCard(matchPayload, stateData = null) {
+    const card = document.getElementById('hub-overview-action-card');
+    if (!card) return;
+
+    const status = String(stateData?.tournament_status || _shell?.dataset.tournamentStatus || '').toLowerCase();
+    const source = matchPayload || _matchesCache || {};
+    const allMatches = [
+      ...(source.active_matches || []),
+      ...(source.match_history || []),
+    ];
+    const target = _pickOverviewTargetMatch(allMatches);
+
+    const badge = document.getElementById('hub-overview-action-badge');
+    const title = document.getElementById('hub-overview-action-title');
+    const subtitle = document.getElementById('hub-overview-action-subtitle');
+    const timeLabel = document.getElementById('hub-overview-action-time-label');
+    const timeValue = document.getElementById('hub-overview-action-time');
+    const actionBtn = document.getElementById('hub-overview-action-btn');
+    const statusLabel = document.getElementById('hub-overview-status-label');
+
+    if (statusLabel && stateData?.user_status) {
+      statusLabel.textContent = stateData.user_status;
+    }
+
+    if (!target) {
+      if (badge) {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
+        badge.textContent = status === 'live' ? 'Live Window' : 'Standby';
+      }
+      if (title) {
+        title.textContent = status === 'live' ? 'LIVE / IN PROGRESS' : 'Waiting For Matchups';
+      }
+      if (subtitle) {
+        subtitle.textContent = status === 'live'
+          ? 'The tournament is live. Waiting for your next matchup assignment.'
+          : 'As soon as matches are generated, your next action will appear here.';
+      }
+      if (timeLabel) {
+        const phaseLabel = stateData?.phase_event?.label;
+        timeLabel.textContent = phaseLabel ? `${phaseLabel} In` : 'Next Update';
+      }
+      if (timeValue) {
+        timeValue.dataset.matchTime = '';
+        timeValue.textContent = stateData?.phase_event?.target ? '--:--' : 'Awaiting schedule';
+      }
+      if (actionBtn) {
+        actionBtn.textContent = 'View Schedule';
+        actionBtn.onclick = () => switchTab('schedule');
+      }
+      return;
+    }
+
+    const targetState = String(target.state || '').toLowerCase();
+    const isLive = targetState === 'live';
+    const isReady = ['ready', 'check_in'].includes(targetState);
+    const isStaffPerspective = Boolean(target.is_staff_view);
+    const matchup = isStaffPerspective
+      ? `${target.p1_name || 'TBD'} vs ${target.p2_name || 'TBD'}`
+      : `vs ${target.opponent_name || 'TBD'}`;
+
+    if (badge) {
+      if (isLive) {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
+        badge.textContent = 'Live';
+      } else if (isReady) {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
+        badge.textContent = 'Ready';
+      } else {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
+        badge.textContent = 'Up Next';
+      }
+    }
+
+    if (title) {
+      title.textContent = isLive ? `Live Match: ${matchup}` : `Next Match: ${matchup}`;
+    }
+
+    const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
+    if (subtitle) {
+      const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
+      const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
+        ? `Scheduled ${scheduled.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+        : 'Schedule time pending.';
+      subtitle.textContent = `${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+    }
+
+    if (timeLabel) {
+      timeLabel.textContent = isLive ? 'Status' : 'Starts In';
+    }
+
+    if (timeValue) {
+      if (isLive) {
+        timeValue.dataset.matchTime = 'live';
+        timeValue.textContent = 'LIVE NOW';
+      } else {
+        timeValue.dataset.matchTime = 'countdown';
+        timeValue.textContent = _formatCountdownLabel(scheduled);
+      }
+    }
+
+    if (actionBtn) {
+      actionBtn.textContent = isLive || isReady ? 'Open Match Lobby' : 'View Schedule';
+      actionBtn.onclick = () => switchTab(isLive || isReady ? 'matches' : 'schedule');
+    }
+  }
+
+  async function _refreshOverviewActionCard({ forceFetch = false, stateData = null } = {}) {
+    const freshEnough = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < 25000;
+    if (!forceFetch && freshEnough) {
+      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
+      return;
+    }
+
+    if (_overviewMatchRefreshInFlight) {
+      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
+      return;
+    }
+
+    const url = _shell?.dataset.apiMatches;
+    if (!url) {
+      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
+      return;
+    }
+
+    _overviewMatchRefreshInFlight = true;
+    try {
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      _matchesCache = data;
+      _matchesCacheFetchedAt = Date.now();
+      _renderOverviewActionCard(data, stateData || _lastPolledState);
+    } catch (err) {
+      console.warn('[HubEngine] Overview action fetch failed:', err.message);
+      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
+    } finally {
+      _overviewMatchRefreshInFlight = false;
+    }
+  }
+
+  function _bindScheduleControls() {
+    const filterWrap = document.getElementById('schedule-match-filter');
+    if (!filterWrap || filterWrap.dataset.bound === '1') {
+      _setScheduleFilter(_scheduleFilter, { rerender: false });
+      return;
+    }
+
+    filterWrap.dataset.bound = '1';
+    filterWrap.querySelectorAll('[data-schedule-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = btn.getAttribute('data-schedule-filter') || 'all';
+        _setScheduleFilter(next, { rerender: true });
+      });
+    });
+
+    _setScheduleFilter(_scheduleFilter, { rerender: false });
+  }
+
+  function _setScheduleFilter(nextFilter, { rerender = true } = {}) {
+    const isStaffView = _shell?.dataset.isStaffView === 'true';
+    const normalized = String(nextFilter || '').toLowerCase() === 'my' ? 'my' : 'all';
+    _scheduleFilter = isStaffView ? 'all' : normalized;
+
+    document.querySelectorAll('#schedule-match-filter [data-schedule-filter]').forEach((btn) => {
+      const key = btn.getAttribute('data-schedule-filter') || 'all';
+      const active = key === _scheduleFilter;
+      btn.className = active
+        ? 'hub-schedule-filter-btn active px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider text-cyan-200 bg-cyan-400/15 border border-cyan-300/25 transition-colors'
+        : 'hub-schedule-filter-btn px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider text-gray-400 border border-transparent hover:text-white transition-colors';
+    });
+
+    if (!rerender) return;
+
+    if (_scheduleMatchesCache) {
+      _renderScheduleMatches(_scheduleMatchesCache);
+      return;
+    }
+    _fetchScheduleMatches();
+  }
+
   // ──────────────────────────────────────────────────────────
   // Utilities
   // ──────────────────────────────────────────────────────────
@@ -2046,11 +2442,15 @@ const HubEngine = (() => {
       } else {
         standings.forEach((row) => {
           const gd = Number(row?.goal_difference || 0);
+          const avatarInner = _renderAvatarInner(row?.name || 'TBD', row?.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
           html += `
                 <tr class="stnd-row${row?.is_you ? ' stnd-row-you' : ''}">
                   <td class="stnd-td stnd-td-rank">${row?.rank ?? '-'}</td>
                   <td class="stnd-td stnd-td-team">
-                    <span class="stnd-team-name">${_esc(row?.name || 'TBD')}${row?.is_you ? ' <span class="stnd-you">YOU</span>' : ''}</span>
+                    <div class="stnd-team-cell">
+                      <div class="stnd-team-avatar">${avatarInner}</div>
+                      <span class="stnd-team-name">${_esc(row?.name || 'TBD')}${row?.is_you ? ' <span class="stnd-you">YOU</span>' : ''}</span>
+                    </div>
                   </td>
                   <td class="stnd-td">${row?.matches_played ?? 0}</td>
                   <td class="stnd-td stnd-w">${row?.won ?? 0}</td>
@@ -2155,8 +2555,106 @@ const HubEngine = (() => {
     const fmtEl = document.getElementById('bracket-format-label');
     if (fmtEl && data.format_display) fmtEl.textContent = data.format_display;
 
+    // ── Match card renderer ──
+    function matchHTML(m) {
+      const p1 = m.participant1 || { name: 'TBD', score: null, is_winner: false };
+      const p2 = m.participant2 || { name: 'TBD', score: null, is_winner: false };
+      const st = m.state === 'live' ? 'bk-live' : (m.state === 'completed' || m.state === 'forfeit') ? 'bk-done' : '';
+      const matchNum = m.match_number ? `<span class="bk-mnum">M${m.match_number}</span>` : '';
+      const liveBadge = m.state === 'live'
+        ? '<span class="bk-badge-live"><span class="bk-dot"></span>LIVE</span>' : '';
+      const p1Avatar = _renderAvatarInner(p1.name || 'TBD', p1.logo_url || '', 'bk-team-avatar-initial', 'bk-team-avatar-img');
+      const p2Avatar = _renderAvatarInner(p2.name || 'TBD', p2.logo_url || '', 'bk-team-avatar-initial', 'bk-team-avatar-img');
+      return `<div class="bk-match ${st}" data-mid="${m.id || ''}">
+        <div class="bk-match-head">${matchNum}${liveBadge}</div>
+        <div class="bk-team${p1.is_winner ? ' bk-w' : ''}">
+          <span class="bk-team-meta"><span class="bk-team-avatar">${p1Avatar}</span><span class="bk-name">${_esc(p1.name)}</span></span>
+          <span class="bk-sc">${p1.score != null ? p1.score : '-'}</span>
+        </div>
+        <div class="bk-team${p2.is_winner ? ' bk-w' : ''}">
+          <span class="bk-team-meta"><span class="bk-team-avatar">${p2Avatar}</span><span class="bk-name">${_esc(p2.name)}</span></span>
+          <span class="bk-sc">${p2.score != null ? p2.score : '-'}</span>
+        </div>
+      </div>`;
+    }
+
+    function normalizeGroupRoundName(groupName, roundName, roundNumber) {
+      if (!roundName) return roundNumber ? `Round ${roundNumber}` : 'Round';
+      const prefix = `${groupName} - `;
+      if (groupName && roundName.startsWith(prefix)) {
+        return roundName.slice(prefix.length);
+      }
+      return roundName;
+    }
+
+    function buildGroupSectionsFromRounds(rounds) {
+      const grouped = {};
+      (rounds || []).forEach((round) => {
+        const matches = Array.isArray(round?.matches) ? round.matches : [];
+        const firstMatch = matches[0] || {};
+        const groupName = round?.group_name || firstMatch.group_name || 'Ungrouped';
+
+        if (!grouped[groupName]) {
+          grouped[groupName] = {
+            group_name: groupName,
+            rounds: [],
+          };
+        }
+
+        grouped[groupName].rounds.push({
+          round_number: round?.round_number || 0,
+          round_name: normalizeGroupRoundName(groupName, round?.round_name, round?.round_number),
+          matches,
+        });
+      });
+
+      return Object.values(grouped).map((group) => {
+        group.rounds.sort((a, b) => (a.round_number || 0) - (b.round_number || 0));
+        return group;
+      });
+    }
+
     const fmt = (data.format || '').toLowerCase();
     const isDE = fmt.includes('double');
+
+    const explicitGroupSections = Array.isArray(data.group_stage?.groups) ? data.group_stage.groups : [];
+    const shouldRenderGroupStage = data.generated_mode === 'group_stage'
+      && (explicitGroupSections.length > 0 || data.rounds.some((round) => !!round?.group_name));
+
+    if (shouldRenderGroupStage) {
+      const groupSections = explicitGroupSections.length > 0
+        ? explicitGroupSections
+        : buildGroupSectionsFromRounds(data.rounds);
+
+      let groupedHtml = '';
+      groupSections.forEach((group) => {
+        const rounds = Array.isArray(group?.rounds) ? group.rounds : [];
+        if (!rounds.length) return;
+
+        const maxMatches = Math.max(...rounds.map((round) => (round.matches || []).length), 1);
+        const secH = Math.max(maxMatches * 92, 200);
+
+        groupedHtml += `<div class="bk-label bk-group">${_esc(group?.group_name || 'Group')}</div>`;
+        groupedHtml += `<div class="bk-section bk-group-section" data-sec="bk-group">`;
+        rounds.forEach((round) => {
+          const title = round?.round_name || (round?.round_number ? `Round ${round.round_number}` : 'Round');
+          groupedHtml += `<div class="bk-col">`;
+          groupedHtml += `<div class="bk-col-title">${_esc(title)}</div>`;
+          groupedHtml += `<div class="bk-col-body" style="height:${secH}px">`;
+          (round.matches || []).forEach((match) => { groupedHtml += matchHTML(match); });
+          groupedHtml += `</div></div>`;
+        });
+        groupedHtml += `</div>`;
+      });
+
+      tree.innerHTML = groupedHtml;
+
+      requestAnimationFrame(() => {
+        tree.querySelectorAll('.bk-group-section').forEach((sec) => _drawBracketConnectors(sec));
+      });
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
 
     // Split rounds into UB, LB, GF sections for double elimination
     let sections = [];
@@ -2173,27 +2671,6 @@ const HubEngine = (() => {
       if (gf.length) sections.push({ label: 'GRAND FINAL',   cls: 'bk-gf', icon: '👑', rounds: gf });
     } else {
       sections.push({ label: '', cls: '', icon: '', rounds: data.rounds });
-    }
-
-    // ── Match card renderer ──
-    function matchHTML(m) {
-      const p1 = m.participant1 || { name: 'TBD', score: null, is_winner: false };
-      const p2 = m.participant2 || { name: 'TBD', score: null, is_winner: false };
-      const st = m.state === 'live' ? 'bk-live' : (m.state === 'completed' || m.state === 'forfeit') ? 'bk-done' : '';
-      const matchNum = m.match_number ? `<span class="bk-mnum">M${m.match_number}</span>` : '';
-      const liveBadge = m.state === 'live'
-        ? '<span class="bk-badge-live"><span class="bk-dot"></span>LIVE</span>' : '';
-      return `<div class="bk-match ${st}" data-mid="${m.id || ''}">
-        <div class="bk-match-head">${matchNum}${liveBadge}</div>
-        <div class="bk-team${p1.is_winner ? ' bk-w' : ''}">
-          <span class="bk-name">${_esc(p1.name)}</span>
-          <span class="bk-sc">${p1.score != null ? p1.score : '-'}</span>
-        </div>
-        <div class="bk-team${p2.is_winner ? ' bk-w' : ''}">
-          <span class="bk-name">${_esc(p2.name)}</span>
-          <span class="bk-sc">${p2.score != null ? p2.score : '-'}</span>
-        </div>
-      </div>`;
     }
 
     // ── Build HTML for all sections ──
@@ -2380,6 +2857,7 @@ const HubEngine = (() => {
         const mapW = row.map_wins || 0;
         const mapL = row.map_losses || 0;
         const rdSign = row.round_diff > 0 ? '+' : '';
+        const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
 
         html += `<tr class="stnd-row${youCls}" style="background:${bg}">`;
         // Placement
@@ -2387,7 +2865,7 @@ const HubEngine = (() => {
         // Team
         html += `<td class="stnd-td stnd-td-team">`;
         html += `<div class="stnd-team-cell">`;
-        html += `<div class="stnd-team-avatar" style="border-color:${tc}30"><span class="stnd-team-initial">${_esc((row.name || '?').charAt(0))}</span></div>`;
+        html += `<div class="stnd-team-avatar" style="border-color:${tc}30">${avatarInner}</div>`;
         html += `<div class="stnd-team-info"><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></div>`;
         html += `</div></td>`;
         // Series record (W-L)
@@ -2427,9 +2905,10 @@ const HubEngine = (() => {
           const youCls = row.is_you ? ' stnd-row-you' : '';
           const youTag = row.is_you ? ` <span class="stnd-you">YOU</span>` : '';
           const qualCls = row.rank <= 2 ? 'stnd-qualified' : row.rank <= 4 ? 'stnd-playoff' : '';
+          const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
           html += `<tr class="stnd-row${youCls}">`;
           html += `<td class="stnd-td stnd-td-rank ${qualCls}">${row.rank}</td>`;
-          html += `<td class="stnd-td stnd-td-team"><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></td>`;
+          html += `<td class="stnd-td stnd-td-team"><div class="stnd-team-cell"><div class="stnd-team-avatar">${avatarInner}</div><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></div></td>`;
           html += `<td class="stnd-td">${row.matches_played}</td>`;
           html += `<td class="stnd-td stnd-w">${row.won}</td>`;
           html += `<td class="stnd-td">${row.drawn}</td>`;
@@ -2467,6 +2946,7 @@ const HubEngine = (() => {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _matchesCache = data;
+      _matchesCacheFetchedAt = Date.now();
       _hide('matches-skeleton');
       _renderMatches(data);
     } catch (err) {
@@ -2478,6 +2958,7 @@ const HubEngine = (() => {
 
   function _renderMatches(data) {
     _hide('matches-skeleton');
+    _renderOverviewActionCard(data, _lastPolledState);
 
     const isStaff = data.active_matches?.some(m => m.is_staff_view) || data.match_history?.some(m => m.is_staff_view);
 
@@ -2779,7 +3260,6 @@ const HubEngine = (() => {
   let _scheduleMatchesCache = null;
 
   async function _fetchScheduleMatches() {
-    // Reuse the matches API — it returns all match data with scheduled_at
     const url = _shell?.dataset.apiMatches;
     if (!url) return;
 
@@ -2793,13 +3273,17 @@ const HubEngine = (() => {
     if (list) list.classList.add('hidden');
 
     try {
-      // Use matches cache if available, otherwise fetch
-      let data = _matchesCache;
+      let data = _scheduleMatchesCache;
       if (!data) {
-        const resp = await fetch(url, { credentials: 'same-origin' });
+        const requestUrl = new URL(url, window.location.origin);
+        if (_shell?.dataset.isStaffView !== 'true') {
+          requestUrl.searchParams.set('scope', 'all');
+        }
+
+        const resp = await fetch(requestUrl.toString(), { credentials: 'same-origin' });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         data = await resp.json();
-        _matchesCache = data;
+        _scheduleMatchesCache = data;
       }
       _renderScheduleMatches(data);
     } catch (err) {
@@ -2822,14 +3306,27 @@ const HubEngine = (() => {
       ...(data.match_history || [])
     ];
 
-    if (allMatches.length === 0) {
-      if (empty) empty.classList.remove('hidden');
+    const isParticipantView = _shell?.dataset.isStaffView !== 'true';
+    const filteredMatches = isParticipantView && _scheduleFilter === 'my'
+      ? allMatches.filter((m) => Boolean(m.is_my_match))
+      : allMatches;
+
+    if (filteredMatches.length === 0) {
+      if (empty) {
+        empty.classList.remove('hidden');
+        empty.innerHTML = `
+          <i data-lucide="calendar-off" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+          <p class="text-sm text-gray-500">${_scheduleFilter === 'my' ? 'No personal matches scheduled yet.' : 'No matches scheduled yet.'}</p>
+          <p class="text-xs text-gray-600 mt-1">${_scheduleFilter === 'my' ? 'Switch to All Matches to browse the full event timetable.' : 'Match times will appear here once the bracket is generated.'}</p>
+        `;
+      }
       if (list) list.classList.add('hidden');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
     // Sort by scheduled_at (earliest first), unscheduled at end
-    const sorted = allMatches.sort((a, b) => {
+    const sorted = filteredMatches.slice().sort((a, b) => {
       if (!a.scheduled_at && !b.scheduled_at) return 0;
       if (!a.scheduled_at) return 1;
       if (!b.scheduled_at) return -1;
@@ -2909,7 +3406,7 @@ const HubEngine = (() => {
 
   // Public helper for refresh button
   function refreshScheduleMatches() {
-    _matchesCache = null;
+    _scheduleMatchesCache = null;
     _fetchScheduleMatches();
   }
 
@@ -3289,7 +3786,10 @@ const HubEngine = (() => {
         _bracketCache = null;
         _standingsCache = null;
         _matchesCache = null;
+        _scheduleMatchesCache = null;
+        _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         break;
 
       case 'match_completed':
@@ -3297,14 +3797,20 @@ const HubEngine = (() => {
         _matchesCache = null;
         _standingsCache = null;
         _bracketCache = null;
+        _scheduleMatchesCache = null;
+        _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         // Show a toast notification
         _showWsToast('Match completed', 'info');
         break;
 
       case 'match_update':
         _matchesCache = null;
+        _scheduleMatchesCache = null;
+        _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['matches', 'schedule']);
+        _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         break;
 
       case 'announcement_refresh':
