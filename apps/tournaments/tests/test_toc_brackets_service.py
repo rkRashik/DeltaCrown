@@ -1,11 +1,13 @@
 import pytest
 from datetime import timedelta
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from apps.organizations.models import Team
 from apps.tournaments.api.toc.brackets_service import TOCBracketsService
-from apps.tournaments.models import Game, GroupStanding, Match, Tournament
+from apps.tournaments.models import Game, GroupStage, GroupStanding, Match, Tournament
 from apps.tournaments.services.group_stage_service import GroupStageService
 
 User = get_user_model()
@@ -115,6 +117,75 @@ def test_generate_group_matches_allows_stale_pending_state_when_assignments_exis
     assert result["generated_matches"] == 6
     drawn_group_stage.refresh_from_db()
     assert drawn_group_stage.state == "active"
+
+
+@pytest.mark.django_db
+def test_generate_group_matches_uses_active_groups_not_stage_created_at_cutoff(
+    tournament,
+    organizer,
+    drawn_group_stage,
+):
+    # Reproduce real TOC configure flow where GroupStage.created_at can be newer than groups.
+    GroupStage.objects.filter(id=drawn_group_stage.id).update(
+        created_at=timezone.now() + timedelta(minutes=5)
+    )
+    drawn_group_stage.refresh_from_db()
+    drawn_group_stage.state = "pending"
+    drawn_group_stage.save(update_fields=["state"])
+
+    result = TOCBracketsService.generate_group_matches(tournament, {}, organizer)
+
+    assert result["generated_matches"] == 6
+
+
+@pytest.mark.django_db
+def test_generate_group_matches_returns_specific_reason_for_underpopulated_group(
+    tournament,
+    organizer,
+    drawn_group_stage,
+):
+    standings_qs = GroupStanding.objects.filter(
+        group__tournament=tournament,
+        is_deleted=False,
+    ).order_by("id")
+    keeper = standings_qs.first()
+    assert keeper is not None
+    standings_qs.exclude(id=keeper.id).update(is_deleted=True)
+
+    with pytest.raises(ValueError, match="Group A has only 1 active participant"):
+        TOCBracketsService.generate_group_matches(tournament, {}, organizer)
+
+
+@pytest.mark.django_db
+def test_group_generate_matches_api_returns_structured_validation_payload(
+    tournament,
+    organizer,
+    drawn_group_stage,
+):
+    standings_qs = GroupStanding.objects.filter(
+        group__tournament=tournament,
+        is_deleted=False,
+    ).order_by("id")
+    keeper = standings_qs.first()
+    assert keeper is not None
+    standings_qs.exclude(id=keeper.id).update(is_deleted=True)
+
+    client = APIClient()
+    client.force_login(organizer)
+    url = reverse("toc_api:groups-generate-matches", kwargs={"slug": tournament.slug})
+
+    response = client.post(url, data={}, format="json")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert "active participant" in payload.get("error", "")
+    assert payload.get("code") in {
+        "group_generation_blocked",
+        "group_generation_zero_output",
+    }
+    details = payload.get("details") or {}
+    blocked = details.get("blocked_groups") or []
+    assert blocked and blocked[0].get("group_name") == "Group A"
 
 
 @pytest.mark.django_db

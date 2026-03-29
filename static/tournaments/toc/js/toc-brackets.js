@@ -24,7 +24,14 @@
 
   /** Parse error body from API — returns human-readable message */
   function parseError(e) {
-    if (e && e.body && e.body.error) return e.body.error;
+    var payload = (e && e.payload && typeof e.payload === 'object')
+      ? e.payload
+      : ((e && e.body && typeof e.body === 'object') ? e.body : null);
+    if (payload && payload.error) return payload.error;
+    var blocked = payload && payload.details && Array.isArray(payload.details.blocked_groups)
+      ? payload.details.blocked_groups
+      : [];
+    if (blocked.length && blocked[0] && blocked[0].reason) return blocked[0].reason;
     if (e && e.message) return e.message;
     return 'Something went wrong. Please try again.';
   }

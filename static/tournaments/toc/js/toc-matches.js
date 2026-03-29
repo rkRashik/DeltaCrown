@@ -46,7 +46,12 @@
   function parseApiError(err) {
     if (!err) return 'Something went wrong. Please try again.';
     if (err.payload && typeof err.payload === 'object') {
-      return err.payload.error || err.payload.detail || err.payload.message || err.message || 'Something went wrong. Please try again.';
+      if (err.payload.error) return err.payload.error;
+      var blocked = err.payload.details && Array.isArray(err.payload.details.blocked_groups)
+        ? err.payload.details.blocked_groups
+        : [];
+      if (blocked.length && blocked[0] && blocked[0].reason) return blocked[0].reason;
+      return err.payload.detail || err.payload.message || err.message || 'Something went wrong. Please try again.';
     }
     return err.message || 'Something went wrong. Please try again.';
   }

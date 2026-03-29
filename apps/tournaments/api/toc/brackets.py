@@ -22,7 +22,7 @@ from rest_framework.response import Response
 
 from .base import TOCBaseView
 from .cache_utils import bump_toc_scopes, toc_cache_key
-from .brackets_service import TOCBracketsService
+from .brackets_service import GroupMatchGenerationError, TOCBracketsService
 from .serializers import (
     AutoScheduleInputSerializer,
     BreakInsertInputSerializer,
@@ -387,7 +387,27 @@ class GroupGenerateMatchesView(TOCBaseView):
             )
             bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data, status=status.HTTP_201_CREATED)
-        except (ValueError, ValidationError) as e:
+        except GroupMatchGenerationError as e:
+            payload = {
+                "error": str(e),
+                "code": e.code,
+                "details": e.details,
+            }
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            payload = {"error": str(e)}
+            if hasattr(e, "message_dict") and isinstance(e.message_dict, dict):
+                payload = {
+                    "error": e.message_dict.get("error", [str(e)])[0] if isinstance(e.message_dict.get("error"), list) else e.message_dict.get("error", str(e)),
+                    "details": e.message_dict,
+                }
+            elif hasattr(e, "messages") and isinstance(e.messages, list) and e.messages:
+                payload = {
+                    "error": str(e.messages[0]),
+                    "details": e.messages,
+                }
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )

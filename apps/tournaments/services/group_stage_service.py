@@ -50,6 +50,30 @@ logger = logging.getLogger(__name__)
 
 class GroupStageService:
     """Service for group stage tournament logic."""
+
+    @staticmethod
+    def _active_groups_for_stage(stage) -> List[Group]:
+        """Return the current non-deleted group set for a stage's tournament.
+
+        Group records are currently tournament-scoped (no FK to GroupStage), so the
+        active set must be resolved via soft-delete status, not stage timestamps.
+        """
+        groups = list(
+            Group.objects.filter(
+                tournament=stage.tournament,
+                is_deleted=False,
+            ).order_by('display_order', 'id')
+        )
+        if groups:
+            return groups
+
+        # Legacy safety fallback for older datasets without consistent soft-delete flags.
+        return list(
+            Group.objects.filter(
+                tournament=stage.tournament,
+                created_at__gte=stage.created_at,
+            ).order_by('display_order', 'id')
+        )
     
     @staticmethod
     @transaction.atomic
@@ -818,13 +842,8 @@ class GroupStageService:
         from apps.tournaments.models import GroupStage
         
         stage = GroupStage.objects.select_related('tournament').get(id=stage_id)
-        
-        # Get groups for this specific GroupStage (created after the GroupStage itself)
-        # NOTE: Groups don't have FK to GroupStage, so we infer by created_at timestamps
-        groups = list(Group.objects.filter(
-            tournament=stage.tournament,
-            created_at__gte=stage.created_at
-        ).order_by('display_order'))
+
+        groups = GroupStageService._active_groups_for_stage(stage)
         
         if len(groups) != stage.num_groups:
             raise ValidationError(f"Expected {stage.num_groups} groups, found {len(groups)}")
@@ -892,12 +911,7 @@ class GroupStageService:
             raise ValidationError("rounds must be at least 1")
 
         stage = GroupStage.objects.select_related('tournament').get(id=stage_id)
-        # Get groups for this specific GroupStage (created after the GroupStage itself)
-        groups = Group.objects.filter(
-            tournament=stage.tournament,
-            created_at__gte=stage.created_at,
-            is_deleted=False,
-        ).prefetch_related('standings')
+        groups = GroupStageService._active_groups_for_stage(stage)
         total_matches = 0
 
         for group in groups:

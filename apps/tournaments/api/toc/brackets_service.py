@@ -31,6 +31,15 @@ from apps.tournaments.services.group_stage_service import GroupStageService
 logger = logging.getLogger(__name__)
 
 
+class GroupMatchGenerationError(ValueError):
+    """Structured validation failure for group match generation requests."""
+
+    def __init__(self, message: str, *, details: Optional[Dict[str, Any]] = None, code: str = "group_generation_blocked"):
+        super().__init__(message)
+        self.details = details or {}
+        self.code = code
+
+
 class TOCBracketsService:
     """TOC-level bracket, group-stage, and qualifier operations."""
 
@@ -89,6 +98,69 @@ class TOCBracketsService:
                 ids.append(match.id)
 
         return ids
+
+    @staticmethod
+    def _group_generation_diagnostics(groups: List[Dict[str, Any]], rounds: int) -> Dict[str, Any]:
+        """Summarize group readiness and expected output for match generation."""
+        blocked_groups: List[Dict[str, Any]] = []
+        ready_groups: List[Dict[str, Any]] = []
+        expected_matches = 0
+
+        for group in groups:
+            standings = group.get("standings") or []
+            participant_keys = set()
+            orphan_entries = 0
+
+            for standing in standings:
+                team_id = (standing or {}).get("team_id")
+                user_id = (standing or {}).get("user_id")
+                if team_id not in (None, "", 0):
+                    participant_keys.add(f"team:{team_id}")
+                elif user_id not in (None, "", 0):
+                    participant_keys.add(f"user:{user_id}")
+                else:
+                    orphan_entries += 1
+
+            participant_count = len(participant_keys)
+            group_name = group.get("name") or f"Group {group.get('id')}"
+
+            if participant_count < 2:
+                reason = (
+                    f"{group_name} has only {participant_count} active participant"
+                    f"{'s' if participant_count != 1 else ''}."
+                )
+                if orphan_entries > 0:
+                    reason += (
+                        f" {orphan_entries} roster entr"
+                        f"{'ies are' if orphan_entries != 1 else 'y is'} missing linked team/user IDs."
+                    )
+                blocked_groups.append({
+                    "group_id": group.get("id"),
+                    "group_name": group_name,
+                    "participant_count": participant_count,
+                    "orphan_entries": orphan_entries,
+                    "reason": reason,
+                })
+                continue
+
+            group_expected = ((participant_count * (participant_count - 1)) // 2) * rounds
+            expected_matches += group_expected
+            ready_groups.append({
+                "group_id": group.get("id"),
+                "group_name": group_name,
+                "participant_count": participant_count,
+                "expected_matches": group_expected,
+            })
+
+        return {
+            "rounds": rounds,
+            "group_count": len(groups),
+            "ready_group_count": len(ready_groups),
+            "blocked_group_count": len(blocked_groups),
+            "expected_matches": expected_matches,
+            "ready_groups": ready_groups,
+            "blocked_groups": blocked_groups,
+        }
 
     # ── Bracket generation / management ────────────────────────
 
@@ -412,10 +484,34 @@ class TOCBracketsService:
         if rounds not in (1, 2):
             raise ValueError("rounds must be 1 or 2.")
 
+        diagnostics = TOCBracketsService._group_generation_diagnostics(groups, rounds)
+        if diagnostics["ready_group_count"] <= 0:
+            blocked = diagnostics.get("blocked_groups") or []
+            if blocked:
+                raise GroupMatchGenerationError(
+                    blocked[0].get("reason") or "No groups are eligible for match generation.",
+                    details=diagnostics,
+                    code="group_generation_blocked",
+                )
+            raise GroupMatchGenerationError(
+                "No active groups with at least 2 participants were found.",
+                details=diagnostics,
+                code="group_generation_blocked",
+            )
+
         generated = GroupStageService.generate_group_matches(stage.id, rounds=rounds)
         if generated <= 0:
-            raise ValueError(
-                "No matches were generated. Make sure groups are drawn and each group has at least 2 participants."
+            blocked = diagnostics.get("blocked_groups") or []
+            if blocked:
+                raise GroupMatchGenerationError(
+                    blocked[0].get("reason") or "No matches were generated due to invalid group rosters.",
+                    details=diagnostics,
+                    code="group_generation_zero_output",
+                )
+            raise GroupMatchGenerationError(
+                "No matches were generated even though groups appear eligible. Reset and draw groups again, then retry.",
+                details=diagnostics,
+                code="group_generation_zero_output",
             )
 
         if stage.state != "active":
@@ -426,6 +522,7 @@ class TOCBracketsService:
             "status": "generated",
             "generated_matches": generated,
             "rounds": rounds,
+            "generation_summary": diagnostics,
             "groups": TOCBracketsService.get_groups(tournament).get("groups", []),
         }
 
