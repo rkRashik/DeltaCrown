@@ -32,7 +32,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView
 
-from apps.tournaments.models import Match
+from apps.tournaments.models import Match, MatchResultSubmission
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,18 @@ PHASES = {
     "results",
     "completed",
 }
+
+RESULT_SUBMISSION_EDITABLE_STATUSES = {
+    MatchResultSubmission.STATUS_PENDING,
+    MatchResultSubmission.STATUS_CONFIRMED,
+    MatchResultSubmission.STATUS_DISPUTED,
+    MatchResultSubmission.STATUS_AUTO_CONFIRMED,
+}
+
+
+def _is_truthy(value: Any) -> bool:
+    token = str(value or "").strip().lower()
+    return token in {"1", "true", "yes", "y", "on"}
 
 
 def _safe_dict(value: Any) -> Dict[str, Any]:
@@ -348,7 +360,7 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     return lobby_info, workflow, runtime, changed
 
 
-def _resolve_match_room_access(user, match: Match) -> Dict[str, Any]:
+def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool = False) -> Dict[str, Any]:
     if not user or not user.is_authenticated:
         return {
             "allowed": False,
@@ -381,6 +393,7 @@ def _resolve_match_room_access(user, match: Match) -> Dict[str, Any]:
     return {
         "allowed": bool(is_staff or user_side in (1, 2)),
         "is_staff": is_staff,
+        "admin_mode": bool(is_staff and admin_mode_requested),
         "user_side": user_side,
         "user_id": user.id,
     }
@@ -401,6 +414,85 @@ def _serialize_match_snapshot(match: Match) -> Dict[str, Any]:
     }
 
 
+def _submission_team_id_for_side(match: Match, side: int) -> Optional[int]:
+    if side == 1:
+        return match.participant1_id
+    if side == 2:
+        return match.participant2_id
+    return None
+
+
+def _safe_submission_proof_url(submission: MatchResultSubmission) -> str:
+    proof = getattr(submission, "proof_screenshot", None)
+    if proof:
+        try:
+            return str(proof.url or "")
+        except Exception:
+            pass
+    return str(submission.proof_screenshot_url or "")
+
+
+def _serialize_side_submission(submission: MatchResultSubmission, side: int) -> Dict[str, Any]:
+    payload = _safe_dict(submission.raw_result_payload)
+    score_p1 = payload.get("score_p1")
+    score_p2 = payload.get("score_p2")
+
+    if score_p1 is None or score_p2 is None:
+        score_for = payload.get("score_for")
+        score_against = payload.get("score_against")
+        if side == 1:
+            score_p1 = score_for
+            score_p2 = score_against
+        else:
+            score_p1 = score_against
+            score_p2 = score_for
+
+    if side == 1:
+        score_for = score_p1
+        score_against = score_p2
+    else:
+        score_for = score_p2
+        score_against = score_p1
+
+    return {
+        "submission_id": submission.id,
+        "status": submission.status,
+        "score_for": score_for,
+        "score_against": score_against,
+        "score_p1": score_p1,
+        "score_p2": score_p2,
+        "note": str(submission.submitter_notes or ""),
+        "proof_screenshot_url": _safe_submission_proof_url(submission),
+        "submitted_at": submission.submitted_at.isoformat() if submission.submitted_at else None,
+    }
+
+
+def _side_submission_map(match: Match) -> Dict[int, MatchResultSubmission]:
+    teams = {
+        1: match.participant1_id,
+        2: match.participant2_id,
+    }
+    team_ids = [tid for tid in teams.values() if tid]
+    if not team_ids:
+        return {}
+
+    rows = (
+        MatchResultSubmission.objects.filter(match=match, submitted_by_team_id__in=team_ids)
+        .order_by("-submitted_at")
+    )
+
+    resolved: Dict[int, MatchResultSubmission] = {}
+    for row in rows:
+        for side, team_id in teams.items():
+            if team_id and row.submitted_by_team_id == team_id and side not in resolved:
+                resolved[side] = row
+                break
+        if len(resolved) == 2:
+            break
+
+    return resolved
+
+
 def _build_room_payload(
     match: Match,
     access: Dict[str, Any],
@@ -409,6 +501,14 @@ def _build_room_payload(
     runtime: Dict[str, Any],
 ) -> Dict[str, Any]:
     user_side = access.get("user_side")
+    workflow_payload = _safe_dict(workflow)
+    merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
+    for side, submission in _side_submission_map(match).items():
+        merged_submissions[str(side)] = _serialize_side_submission(submission, side)
+    if merged_submissions:
+        workflow_payload["result_submissions"] = merged_submissions
+
+    admin_suffix = "?admin=1" if access.get("admin_mode") else ""
 
     return {
         "match": {
@@ -454,17 +554,22 @@ def _build_room_payload(
             "server": str(lobby_info.get("server") or ""),
             "game_mode": str(lobby_info.get("game_mode") or ""),
         },
-        "workflow": workflow,
+        "announcements": lobby_info.get("system_announcements") if isinstance(lobby_info.get("system_announcements"), list) else [],
+        "workflow": workflow_payload,
         "me": {
             "user_id": access.get("user_id"),
             "side": user_side,
             "is_staff": bool(access.get("is_staff")),
+            "admin_mode": bool(access.get("admin_mode")),
             "can_edit_credentials": bool(access.get("is_staff") or user_side == 1),
             "can_submit_result": bool(access.get("is_staff") or user_side in (1, 2)),
+            "can_force_phase": bool(access.get("admin_mode")),
+            "can_override_result": bool(access.get("admin_mode")),
+            "can_broadcast_system": bool(access.get("admin_mode")),
         },
         "urls": {
-            "workflow": reverse("tournaments:match_room_workflow", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
-            "check_in": reverse("tournaments:match_room_checkin", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
+            "workflow": reverse("tournaments:match_room_workflow", kwargs={"slug": match.tournament.slug, "match_id": match.id}) + admin_suffix,
+            "check_in": reverse("tournaments:match_room_checkin", kwargs={"slug": match.tournament.slug, "match_id": match.id}) + admin_suffix,
             "submit_result": reverse("tournaments:submit_result", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
             "report_dispute": reverse("tournaments:report_dispute", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
         },
@@ -499,7 +604,7 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
     """Participant/staff premium match room."""
 
     model = Match
-    template_name = "tournaments/match_room/room.html"
+    template_name = "tournaments/match_room/room_v2.html"
     context_object_name = "match"
     pk_url_kwarg = "match_id"
 
@@ -525,7 +630,12 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.access = _resolve_match_room_access(request.user, self.object)
+        admin_mode_requested = _is_truthy(request.GET.get("admin"))
+        self.access = _resolve_match_room_access(
+            request.user,
+            self.object,
+            admin_mode_requested=admin_mode_requested,
+        )
 
         if not self.access["allowed"]:
             messages.warning(request, "Only match participants and staff can access the match lobby.")
@@ -671,7 +781,11 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
     def get(self, request, slug, match_id):
         match = self._load_match(slug, match_id)
-        access = _resolve_match_room_access(request.user, match)
+        access = _resolve_match_room_access(
+            request.user,
+            match,
+            admin_mode_requested=_is_truthy(request.GET.get("admin")),
+        )
         if not access["allowed"]:
             return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
@@ -680,12 +794,19 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
         return JsonResponse({"success": True, "room": payload})
 
     def post(self, request, slug, match_id):
-        try:
-            body = json.loads(request.body or "{}")
-            if not isinstance(body, dict):
-                body = {}
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "error": "invalid_json"}, status=400)
+        body: Dict[str, Any] = {}
+        files = request.FILES
+
+        content_type = str(request.content_type or "").lower()
+        if "application/json" in content_type:
+            try:
+                parsed = json.loads(request.body or "{}")
+                if isinstance(parsed, dict):
+                    body = parsed
+            except json.JSONDecodeError:
+                return JsonResponse({"success": False, "error": "invalid_json"}, status=400)
+        else:
+            body = dict(request.POST.items())
 
         action = str(body.get("action") or "").strip().lower()
         if not action:
@@ -697,7 +818,11 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             match = self._load_match(slug, match_id)
             match = Match.objects.select_for_update().get(pk=match.pk)
 
-            access = _resolve_match_room_access(request.user, match)
+            access = _resolve_match_room_access(
+                request.user,
+                match,
+                admin_mode_requested=_is_truthy(request.GET.get("admin")),
+            )
             if not access["allowed"]:
                 return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
@@ -712,6 +837,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     runtime=runtime,
                     action=action,
                     payload=body,
+                    files=files,
                 )
             except ValueError as exc:
                 return JsonResponse({"success": False, "error": str(exc)}, status=400)
@@ -732,7 +858,11 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
         # Rebuild payload after commit.
         match = self._load_match(slug, match_id)
-        access = _resolve_match_room_access(request.user, match)
+        access = _resolve_match_room_access(
+            request.user,
+            match,
+            admin_mode_requested=_is_truthy(request.GET.get("admin")),
+        )
         lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=False)
         room_payload = _build_room_payload(match, access, lobby_info, workflow, runtime)
 
@@ -756,11 +886,72 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
         runtime: Dict[str, Any],
         action: str,
         payload: Dict[str, Any],
+        files,
     ) -> Tuple[bool, str]:
         phase = str(workflow.get("phase") or "coin_toss")
         mode = str(workflow.get("mode") or runtime["phase_mode"])
         actor_side = self._resolve_actor_side(access, payload)
         is_staff = bool(access.get("is_staff"))
+
+        def _latest_submission_for_side(side: int) -> Optional[MatchResultSubmission]:
+            team_id = _submission_team_id_for_side(match, side)
+            if not team_id:
+                return None
+            return (
+                MatchResultSubmission.objects.filter(match=match, submitted_by_team_id=team_id)
+                .order_by("-submitted_at")
+                .first()
+            )
+
+        def _persist_side_submission(
+            *,
+            side: int,
+            score_for: int,
+            score_against: int,
+            note: str,
+            proof_file,
+            proof_url: str,
+        ) -> MatchResultSubmission:
+            team_id = _submission_team_id_for_side(match, side)
+            if not team_id:
+                raise ValueError("Unable to resolve participant team for submission.")
+
+            score_p1 = score_for if side == 1 else score_against
+            score_p2 = score_against if side == 1 else score_for
+
+            submission_payload = {
+                "side": side,
+                "score_for": score_for,
+                "score_against": score_against,
+                "score_p1": score_p1,
+                "score_p2": score_p2,
+                "submitted_at": timezone.now().isoformat(),
+            }
+
+            submission = _latest_submission_for_side(side)
+            if submission and submission.status not in RESULT_SUBMISSION_EDITABLE_STATUSES:
+                submission = None
+
+            if submission is None:
+                submission = MatchResultSubmission(
+                    match=match,
+                    submitted_by_user_id=access.get("user_id"),
+                    submitted_by_team_id=team_id,
+                    source=MatchResultSubmission.SOURCE_MANUAL,
+                )
+
+            submission.raw_result_payload = submission_payload
+            submission.submitter_notes = note
+            submission.status = MatchResultSubmission.STATUS_PENDING
+            submission.source = MatchResultSubmission.SOURCE_MANUAL
+
+            if proof_url:
+                submission.proof_screenshot_url = proof_url
+            if proof_file is not None:
+                submission.proof_screenshot = proof_file
+
+            submission.save()
+            return submission
 
         changed = False
         message = "Workflow updated."
@@ -1008,17 +1199,30 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             score_for = self._parse_int(payload.get("score_for"), "score_for")
             score_against = self._parse_int(payload.get("score_against"), "score_against")
+            note = str(payload.get("note") or "").strip()
+            proof_url = str(payload.get("proof_screenshot_url") or payload.get("evidence_url") or "").strip()
+            proof_file = files.get("proof") or files.get("proof_file") or files.get("evidence")
+
+            if proof_file is not None:
+                content_type = str(getattr(proof_file, "content_type", "") or "").lower()
+                if content_type and not content_type.startswith("image/"):
+                    raise ValueError("Only image files are allowed for proof upload.")
+                if int(getattr(proof_file, "size", 0) or 0) > 10 * 1024 * 1024:
+                    raise ValueError("Proof image exceeds 10MB limit.")
+
+            submission = _persist_side_submission(
+                side=actor_side,
+                score_for=score_for,
+                score_against=score_against,
+                note=note,
+                proof_file=proof_file,
+                proof_url=proof_url,
+            )
 
             submissions = _safe_dict(workflow.get("result_submissions"))
             submissions.setdefault("1", None)
             submissions.setdefault("2", None)
-            submissions[str(actor_side)] = {
-                "score_for": score_for,
-                "score_against": score_against,
-                "note": str(payload.get("note") or "").strip(),
-                "submitted_at": timezone.now().isoformat(),
-                "submitted_by_side": actor_side,
-            }
+            submissions[str(actor_side)] = _serialize_side_submission(submission, actor_side)
             workflow["result_submissions"] = submissions
             workflow["phase"] = "results"
             workflow["result_status"] = "pending"
@@ -1035,6 +1239,9 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     and int(side_1.get("score_against", -1)) == int(side_2.get("score_for", -2))
                 )
 
+                sub_1 = _latest_submission_for_side(1)
+                sub_2 = _latest_submission_for_side(2)
+
                 if mirrored:
                     p1_score = int(side_1.get("score_for", 0))
                     p2_score = int(side_1.get("score_against", 0))
@@ -1042,6 +1249,14 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     match.participant2_score = p2_score
 
                     if p1_score == p2_score:
+                        for side_sub in (sub_1, sub_2):
+                            if not side_sub:
+                                continue
+                            side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                            side_sub.confirmed_at = timezone.now()
+                            side_sub.confirmed_by_user_id = access.get("user_id")
+                            side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+
                         workflow["result_status"] = "tie_pending_review"
                         workflow["phase"] = "results"
                         match.state = Match.PENDING_RESULT
@@ -1060,6 +1275,20 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                         if not match.completed_at:
                             match.completed_at = timezone.now()
 
+                        for side_sub in (sub_1, sub_2):
+                            if not side_sub:
+                                continue
+                            side_sub.status = MatchResultSubmission.STATUS_FINALIZED
+                            side_sub.confirmed_at = timezone.now()
+                            side_sub.confirmed_by_user_id = access.get("user_id")
+                            side_sub.finalized_at = timezone.now()
+                            side_sub.save(update_fields=[
+                                "status",
+                                "confirmed_at",
+                                "confirmed_by_user",
+                                "finalized_at",
+                            ])
+
                         workflow["result_status"] = "verified"
                         workflow["phase"] = "completed"
                         workflow["final_result"] = {
@@ -1070,6 +1299,14 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                         }
                         message = "Result verified and match completed."
                 else:
+                    for side_sub in (sub_1, sub_2):
+                        if not side_sub:
+                            continue
+                        side_sub.status = MatchResultSubmission.STATUS_DISPUTED
+                        side_sub.confirmed_at = timezone.now()
+                        side_sub.confirmed_by_user_id = access.get("user_id")
+                        side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+
                     workflow["result_status"] = "mismatch"
                     workflow["phase"] = "results"
                     match.state = Match.PENDING_RESULT
@@ -1078,8 +1315,8 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             changed = True
 
         elif action == "admin_override_result":
-            if not is_staff:
-                raise ValueError("Only staff can override results.")
+            if not is_staff or not access.get("admin_mode"):
+                raise ValueError("Admin mode is required for score override.")
 
             p1_score = self._parse_int(payload.get("participant1_score"), "participant1_score")
             p2_score = self._parse_int(payload.get("participant2_score"), "participant2_score")
@@ -1112,17 +1349,78 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 }
                 message = "Admin override finalized the match result."
 
+            submission_status = (
+                MatchResultSubmission.STATUS_CONFIRMED
+                if p1_score == p2_score
+                else MatchResultSubmission.STATUS_FINALIZED
+            )
+
+            latest_submissions = MatchResultSubmission.objects.filter(match=match).order_by("-submitted_at")[:8]
+            for existing in latest_submissions:
+                existing.status = submission_status
+                existing.confirmed_at = timezone.now()
+                existing.confirmed_by_user_id = access.get("user_id")
+                if submission_status == MatchResultSubmission.STATUS_FINALIZED:
+                    existing.finalized_at = timezone.now()
+                existing.save(update_fields=[
+                    "status",
+                    "confirmed_at",
+                    "confirmed_by_user",
+                    "finalized_at",
+                ])
+
+            MatchResultSubmission.objects.create(
+                match=match,
+                submitted_by_user_id=access.get("user_id"),
+                submitted_by_team_id=None,
+                raw_result_payload={
+                    "score_p1": p1_score,
+                    "score_p2": p2_score,
+                    "admin_override": True,
+                    "resolved_at": timezone.now().isoformat(),
+                },
+                submitter_notes=str(payload.get("note") or "Admin override from match room."),
+                status=submission_status,
+                source=MatchResultSubmission.SOURCE_ADMIN_OVERRIDE,
+                confirmed_at=timezone.now(),
+                confirmed_by_user_id=access.get("user_id"),
+                finalized_at=timezone.now() if submission_status == MatchResultSubmission.STATUS_FINALIZED else None,
+            )
+
             changed = True
 
         elif action == "advance_phase":
-            if not is_staff:
-                raise ValueError("Only staff can force phase transitions.")
+            if not is_staff or not access.get("admin_mode"):
+                raise ValueError("Admin mode is required for forced phase transitions.")
             next_phase = str(payload.get("phase") or "").strip().lower()
             if next_phase not in PHASES:
                 raise ValueError("Invalid phase value.")
             workflow["phase"] = next_phase
             changed = True
             message = f"Phase moved to {next_phase}."
+
+        elif action == "system_announcement":
+            if not is_staff or not access.get("admin_mode"):
+                raise ValueError("Admin mode is required for system announcements.")
+
+            announcement = str(payload.get("message") or payload.get("text") or "").strip()
+            if not announcement:
+                raise ValueError("Announcement message is required.")
+            if len(announcement) > 280:
+                raise ValueError("Announcement cannot exceed 280 characters.")
+
+            log_rows = lobby_info.get("system_announcements")
+            if not isinstance(log_rows, list):
+                log_rows = []
+            log_rows.append({
+                "message": announcement,
+                "by_user_id": access.get("user_id"),
+                "at": timezone.now().isoformat(),
+            })
+            lobby_info["system_announcements"] = log_rows[-30:]
+
+            changed = True
+            message = f"System announcement: {announcement}"
 
         else:
             raise ValueError("Unsupported action.")
