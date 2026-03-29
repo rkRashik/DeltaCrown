@@ -122,6 +122,31 @@ def _build_cc_data(context, user, now):
     # --- Action Items (dynamic, not hardcoded) ---
     action_items = []
     nmi = context.get('next_match_info')
+    lobby_alert = None
+    imminent = context.get('imminent_lobby_alert')
+    if isinstance(imminent, dict) and imminent.get('match_id') and imminent.get('match_room_url'):
+        try:
+            starts_in_minutes = int(imminent.get('starts_in_minutes', 0) or 0)
+        except (TypeError, ValueError):
+            starts_in_minutes = 0
+        starts_in_minutes = max(starts_in_minutes, 0)
+        lobby_alert = {
+            'id': 'lobby-alert-%s' % imminent.get('match_id'),
+            'title': 'Enter Match Lobby',
+            'message': '%s vs %s starts in about %s minutes.' % (
+                imminent.get('tournament_name', 'Your match'),
+                imminent.get('opponent_name', 'TBD'),
+                starts_in_minutes,
+            ),
+            'btnText': 'Enter Match Lobby',
+            'btnUrl': imminent.get('match_room_url'),
+            'tournament': imminent.get('tournament_name', ''),
+            'opponent': imminent.get('opponent_name', 'TBD'),
+            'lobbyCode': imminent.get('lobby_code', ''),
+            'startsInLabel': '%s min' % starts_in_minutes,
+            'startsInMinutes': starts_in_minutes,
+            'gameIcon': imminent.get('game_icon', ''),
+        }
     if nmi:
         if nmi.get('is_live'):
             action_items.append({
@@ -534,6 +559,7 @@ def _build_cc_data(context, user, now):
             'hasWallet': context['wallet'].get('has_wallet', False),
             'recentTxns': recent_txns,
         },
+        'matchLobbyAlert': lobby_alert,
         'actionItems': action_items,
         'myOrgs': my_orgs,
         'teams': teams_out,
@@ -827,6 +853,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     active_tournaments = []
     tournament_count = 0
     next_match_info = None  # User's upcoming match with room link
+    imminent_lobby_alert = None
     try:
         Registration = _safe_model("tournaments.Registration")
         Tournament = _safe_model("tournaments.Tournament")
@@ -919,6 +946,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 .first()
             )
             if nm:
+                nm_lobby_info = nm.lobby_info if isinstance(nm.lobby_info, dict) else {}
+                nm_lobby_code = (nm_lobby_info.get('lobby_code') or nm_lobby_info.get('code') or '').strip()
+                nm_lobby_status = str(nm_lobby_info.get('status') or '').strip().lower()
+                nm_lobby_open = bool(nm_lobby_code) and nm_lobby_status not in {'closed', 'completed', 'cancelled'}
                 next_match_info = {
                     "match_id": nm.id,
                     "tournament_name": nm.tournament.name if nm.tournament else "",
@@ -927,7 +958,51 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     "scheduled_time": nm.scheduled_time,
                     "state": nm.state,
                     "is_live": nm.state == "live",
+                    "match_room_url": '/tournaments/%s/matches/%s/room/' % (nm.tournament.slug, nm.id) if nm.tournament else '',
+                    "lobby_code": nm_lobby_code,
+                    "lobby_status": nm_lobby_status,
+                    "lobby_open": nm_lobby_open,
+                    "game_icon": _img_url(nm.tournament.game, "icon") if nm.tournament and nm.tournament.game else None,
                 }
+
+            window_start = now + timedelta(minutes=15)
+            window_end = now + timedelta(minutes=60)
+            window_matches = (
+                Match.objects.filter(
+                    q_participant,
+                    state__in=["scheduled", "check_in", "ready"],
+                    is_deleted=False,
+                    scheduled_time__gte=window_start,
+                    scheduled_time__lte=window_end,
+                )
+                .select_related("tournament", "tournament__game")
+                .order_by("scheduled_time", "round_number", "match_number")[:8]
+            )
+            for wm in window_matches:
+                lobby_info = wm.lobby_info if isinstance(wm.lobby_info, dict) else {}
+                lobby_code = (lobby_info.get('lobby_code') or lobby_info.get('code') or '').strip()
+                lobby_status = str(lobby_info.get('status') or '').strip().lower()
+                lobby_open = bool(lobby_code) and lobby_status not in {'closed', 'completed', 'cancelled'}
+                if not lobby_open:
+                    continue
+
+                starts_in_minutes = max(int((wm.scheduled_time - now).total_seconds() // 60), 0)
+                if starts_in_minutes < 15 or starts_in_minutes > 60:
+                    continue
+
+                imminent_lobby_alert = {
+                    "match_id": wm.id,
+                    "tournament_name": wm.tournament.name if wm.tournament else "",
+                    "tournament_slug": wm.tournament.slug if wm.tournament else "",
+                    "opponent_name": wm.participant2_name if wm.participant1_id == user.id or wm.participant1_id in user_team_ids else wm.participant1_name,
+                    "scheduled_time": wm.scheduled_time,
+                    "starts_in_minutes": starts_in_minutes,
+                    "lobby_code": lobby_code,
+                    "lobby_status": lobby_status,
+                    "match_room_url": '/tournaments/%s/matches/%s/room/' % (wm.tournament.slug, wm.id) if wm.tournament else '',
+                    "game_icon": _img_url(wm.tournament.game, "icon") if wm.tournament and wm.tournament.game else None,
+                }
+                break
     except Exception:
         logger.debug("Dashboard: tournaments query failed", exc_info=True)
 
@@ -1267,6 +1342,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         "active_tournaments": active_tournaments,
         "tournament_count": tournament_count,
         "next_match_info": next_match_info,
+        "imminent_lobby_alert": imminent_lobby_alert,
         # Leaderboard
         "leaderboard_data": leaderboard_data,
         # Economy

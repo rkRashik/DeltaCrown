@@ -60,8 +60,14 @@ class TOCLobbyService:
             })
 
         # Server pool summary
-        active_servers = [s for s in servers if s.get("status") == "online"]
-        idle_servers = [s for s in servers if s.get("status") == "idle"]
+        active_servers = [
+            s for s in servers
+            if str(s.get("status", "")).lower() in {"online", "ready", "available", "in_use", "busy", "active"}
+        ]
+        idle_servers = [
+            s for s in servers
+            if str(s.get("status", "")).lower() in {"idle", "available", "ready"}
+        ]
 
         return {
             "servers": servers,
@@ -218,7 +224,14 @@ class TOCLobbyService:
         """Update lobby configuration."""
         config = tournament.config or {}
         lobby = config.get("lobby", {})
-        for key in ["auto_create", "default_region", "spectator_slots_default", "anticheat_required"]:
+        for key in [
+            "auto_create",
+            "default_region",
+            "spectator_slots_default",
+            "anticheat_required",
+            "chat_enabled",
+            "auto_close_minutes",
+        ]:
             if key in data:
                 lobby[key] = data[key]
         config["lobby"] = lobby

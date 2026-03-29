@@ -13,12 +13,11 @@ with a single, SPA-style page driven by JSON API endpoints for real-time data.
 
 import json
 import logging
-import time
 from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import models, connection
+from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -49,13 +48,6 @@ from apps.tournaments.services.lobby_service import LobbyService
 from apps.tournaments.services.match_lobby_service import ensure_match_lobby_info, hydrate_match_lobby_info
 
 logger = logging.getLogger(__name__)
-
-_RESCHEDULE_SCHEMA_CACHE_TTL_SECONDS = 120
-_reschedule_schema_cache = {
-    'checked_at': 0.0,
-    'available': True,
-    'missing_columns': [],
-}
 
 
 # ────────────────────────────────────────────────────────────
@@ -1081,57 +1073,6 @@ def _participant_reschedule_policy(tournament):
         'deadline_minutes_before': deadline_minutes,
         'deadline_hours_before': round(deadline_minutes / 60, 2),
     }
-
-
-def _reschedule_schema_available(force_refresh=False):
-    """
-    Return whether runtime DB schema supports participant reschedule fields.
-
-    This prevents Hub 500s when code is deployed before migrations complete.
-    """
-    now_monotonic = time.monotonic()
-    cache_age = now_monotonic - _reschedule_schema_cache['checked_at']
-    if not force_refresh and cache_age < _RESCHEDULE_SCHEMA_CACHE_TTL_SECONDS:
-        return (
-            bool(_reschedule_schema_cache['available']),
-            list(_reschedule_schema_cache['missing_columns']),
-        )
-
-    required_columns = {'proposer_side', 'reviewed_at', 'response_note', 'expires_at'}
-    missing_columns = []
-    available = True
-
-    try:
-        table_name = RescheduleRequest._meta.db_table
-        with connection.cursor() as cursor:
-            table_description = connection.introspection.get_table_description(cursor, table_name)
-
-        present_columns = {
-            getattr(col, 'name', col[0])
-            for col in table_description
-        }
-        missing_columns = sorted(required_columns.difference(present_columns))
-        available = not missing_columns
-
-        if missing_columns:
-            logger.warning(
-                "Participant reschedule schema is not ready. Missing columns on %s: %s",
-                table_name,
-                ', '.join(missing_columns),
-            )
-    except Exception as exc:
-        available = False
-        missing_columns = sorted(required_columns)
-        logger.warning(
-            "Failed to introspect participant reschedule schema. "
-            "Temporarily disabling participant rescheduling endpoints. Error: %s",
-            exc,
-        )
-
-    _reschedule_schema_cache['checked_at'] = now_monotonic
-    _reschedule_schema_cache['available'] = available
-    _reschedule_schema_cache['missing_columns'] = missing_columns
-    return available, missing_columns
 
 
 def _set_participant_reschedule_policy(tournament, *, allow, deadline_minutes, updated_by_id=None):
@@ -2505,15 +2446,8 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             pass
 
         reschedule_policy = _participant_reschedule_policy(tournament)
-        schema_ready, missing_columns = _reschedule_schema_available()
-        reschedule_enabled = bool(
-            reschedule_policy['allow_participant_rescheduling'] and schema_ready
-        )
-        reschedule_disabled_reason = (
-            'schema_not_migrated'
-            if reschedule_policy['allow_participant_rescheduling'] and not schema_ready
-            else None
-        )
+        reschedule_enabled = bool(reschedule_policy['allow_participant_rescheduling'])
+        reschedule_disabled_reason = None if reschedule_enabled else 'participant_rescheduling_disabled'
         reschedule_deadline_minutes = reschedule_policy['deadline_minutes_before']
         now = timezone.now()
 
@@ -2647,9 +2581,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'p2_logo_url': participant_media_map.get(m.participant2_id, ''),
                 'reschedule': {
                     'enabled': bool(reschedule_enabled),
-                    'schema_ready': bool(schema_ready),
                     'disabled_reason': reschedule_disabled_reason,
-                    'missing_columns': missing_columns,
                     'deadline_minutes_before': int(reschedule_deadline_minutes),
                     'deadline_at': deadline_at.isoformat() if deadline_at else None,
                     'my_side': my_side,
@@ -2664,9 +2596,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 match_data['match_room_url'] = ''
                 match_data['reschedule'] = {
                     'enabled': bool(reschedule_enabled),
-                    'schema_ready': bool(schema_ready),
                     'disabled_reason': reschedule_disabled_reason,
-                    'missing_columns': missing_columns,
                     'deadline_minutes_before': int(reschedule_deadline_minutes),
                     'deadline_at': deadline_at.isoformat() if deadline_at else None,
                     'my_side': None,
@@ -2707,17 +2637,10 @@ class HubRescheduleSettingsAPIView(LoginRequiredMixin, View):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
         policy = _participant_reschedule_policy(tournament)
-        schema_ready, missing_columns = _reschedule_schema_available()
         return _json_response({
             **policy,
             'can_manage': bool(is_staff),
-            'schema_ready': bool(schema_ready),
-            'disabled_reason': (
-                'schema_not_migrated'
-                if policy['allow_participant_rescheduling'] and not schema_ready
-                else None
-            ),
-            'missing_columns': missing_columns,
+            'disabled_reason': None if policy['allow_participant_rescheduling'] else 'participant_rescheduling_disabled',
         }, cache_control='private, max-age=20')
 
     def post(self, request, slug):
@@ -2771,14 +2694,6 @@ class HubMatchRescheduleProposalAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
-
-        schema_ready, missing_columns = _reschedule_schema_available()
-        if not schema_ready:
-            return _json_response({
-                'error': 'reschedule_schema_not_ready',
-                'missing_columns': missing_columns,
-                'message': 'Participant rescheduling is temporarily unavailable while migrations are being applied.',
-            }, status=503, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:
@@ -2898,14 +2813,6 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
-
-        schema_ready, missing_columns = _reschedule_schema_available()
-        if not schema_ready:
-            return _json_response({
-                'error': 'reschedule_schema_not_ready',
-                'missing_columns': missing_columns,
-                'message': 'Participant rescheduling is temporarily unavailable while migrations are being applied.',
-            }, status=503, cache_control='no-store')
 
         lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
         if lock_resp:

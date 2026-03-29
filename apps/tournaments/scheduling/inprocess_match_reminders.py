@@ -61,6 +61,9 @@ def _should_start_scheduler() -> bool:
     blocked_commands = {
         "makemigrations",
         "migrate",
+        "showmigrations",
+        "sqlmigrate",
+        "check",
         "collectstatic",
         "shell",
         "dbshell",

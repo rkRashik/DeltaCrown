@@ -12,6 +12,7 @@ document.addEventListener('alpine:init', () => {
       // ── Reactive State (hydrated from Django context) ──
       user:       raw.user       || { name: '', username: '', avatar: '', banner: '', isVerified: false, lftStatus: 'NOT_LOOKING', reputation: 0, level: 1, xp: 0 },
       wallet:     raw.wallet     || { balance: 0, pending: 0, currency: 'DC', bdtEquiv: 0, hasWallet: false, recentTxns: [] },
+      matchLobbyAlert: raw.matchLobbyAlert || null,
       actionItems: raw.actionItems || [],
       myOrgs:     raw.myOrgs     || [],
       teams:      raw.teams      || [],
@@ -67,6 +68,10 @@ document.addEventListener('alpine:init', () => {
 
       dismissAction(id) {
         this.actionItems = this.actionItems.filter(item => item.id !== id);
+      },
+
+      dismissMatchLobbyAlert() {
+        this.matchLobbyAlert = null;
       },
 
       markRead(id) {

@@ -149,6 +149,46 @@
 
   <div class="pt-4 sm:pt-6 pb-24 md:pb-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
 
+    <div x-show="matchLobbyAlert" x-transition class="mb-5 sm:mb-6 animate-slide-up">
+      <div class="premium-card rounded-2xl p-4 sm:p-5 border border-dc-danger/35 bg-[linear-gradient(135deg,rgba(244,63,94,0.14)_0%,rgba(14,14,18,0.95)_55%,rgba(16,16,20,0.98)_100%)]">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+          <div class="flex items-start gap-3 min-w-0 flex-1">
+            <div class="w-11 h-11 rounded-xl bg-dc-danger/20 border border-dc-danger/35 text-dc-danger flex items-center justify-center shrink-0 shadow-glow-danger">
+              <i class="fa-solid fa-door-open text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-black uppercase tracking-[0.22em] text-dc-danger">Priority Alert</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-dc-danger/20 border border-dc-danger/35 text-[10px] font-bold text-rose-100" x-text="matchLobbyAlert.startsInLabel"></span>
+              </div>
+              <h2 class="text-lg sm:text-xl font-black text-white mt-1 leading-tight" x-text="matchLobbyAlert.title"></h2>
+              <p class="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed" x-text="matchLobbyAlert.message"></p>
+              <div class="mt-2 flex items-center gap-2 text-[11px] text-dc-textMuted font-mono">
+                <img x-show="matchLobbyAlert.gameIcon" :src="matchLobbyAlert.gameIcon" class="game-icon-sm" alt="Game">
+                <span x-text="matchLobbyAlert.tournament"></span>
+                <span class="text-white/30">•</span>
+                <span x-text="matchLobbyAlert.opponent"></span>
+                <template x-if="matchLobbyAlert.lobbyCode">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/30 border border-white/15 text-[10px] text-rose-100">
+                    Code: <strong class="font-bold" x-text="matchLobbyAlert.lobbyCode"></strong>
+                  </span>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button @click="navigateAction({ btnUrl: matchLobbyAlert.btnUrl })" class="bg-dc-danger hover:bg-rose-600 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wide transition-all active:scale-[0.98] shadow-glow-danger">
+              Enter Match Lobby
+            </button>
+            <button @click="dismissMatchLobbyAlert()" class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-dc-textMuted hover:text-white transition-colors">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {# ═══════════════ HEADER ═══════════════ #}
     <header class="mb-6 sm:mb-8 animate-slide-up stagger-1">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
