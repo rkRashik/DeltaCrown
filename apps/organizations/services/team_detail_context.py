@@ -4,7 +4,9 @@ Team Detail Context Builder
 Provides schema-resilient context generation for team_detail.html template.
 Implements the Team Detail Page Contract (docs/contracts/TEAM_DETAIL_PAGE_CONTRACT.md).
 """
+import hashlib
 from typing import Optional, Dict, Any, List
+from urllib.parse import quote
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils.html import escape
@@ -16,12 +18,44 @@ from apps.games.services import GameService
 
 # Fallback URLs for missing images
 FALLBACK_URLS = {
-    'team_logo': '/static/img/teams/placeholder-logo.png',
     'team_banner': '/static/img/teams/placeholder-banner.png',
-    'org_logo': '/static/img/orgs/placeholder-logo.png',
-    'user_avatar': '/static/img/users/default-avatar.png',
     'stream_thumbnail': '/static/img/streams/placeholder-thumbnail.png',
 }
+
+
+def _build_initials(label: str, fallback: str = 'DC') -> str:
+    value = (label or '').strip()
+    if not value:
+        return fallback
+
+    parts = [part for part in value.split() if part]
+    if len(parts) >= 2:
+        initials = (parts[0][0] + parts[1][0]).upper()
+    else:
+        compact = ''.join(ch for ch in value if ch.isalnum())
+        initials = (compact[:2] or value[:2] or fallback).upper()
+
+    return ''.join(ch for ch in initials if ch.isalnum())[:2] or fallback
+
+
+def _fallback_avatar_bg(seed: str) -> str:
+    palette = ['#1f2937', '#0f4c81', '#0b6e4f', '#7c2d12', '#5b21b6', '#065f46']
+    digest = hashlib.sha256((seed or 'deltacrown').encode('utf-8')).hexdigest()
+    return palette[int(digest[:2], 16) % len(palette)]
+
+
+def _build_initials_avatar_data_uri(label: str, *, seed: Optional[str] = None, fallback: str = 'DC') -> str:
+    initials = _build_initials(label, fallback=fallback)
+    bg = _fallback_avatar_bg(seed or label)
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">'
+        f'<rect width="128" height="128" fill="{bg}"/>'
+        f'<text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle" '
+        'fill="#ffffff" font-family="Arial, sans-serif" font-size="46" font-weight="700">'
+        f'{initials}</text>'
+        '</svg>'
+    )
+    return f'data:image/svg+xml;utf8,{quote(svg)}'
 
 
 def get_team_detail_context(
@@ -118,12 +152,19 @@ def get_team_detail_context(
 
 def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
     """Build team identity context (Tier 1 + Tier 2 if authorized)."""
+    team_name = getattr(team, 'name', 'Unknown Team')
+    team_logo_fallback = _build_initials_avatar_data_uri(
+        team_name,
+        seed=getattr(team, 'slug', '') or team_name,
+        fallback='TM',
+    )
+
     # Tier 1: Always present (even for private teams)
     team_data = {
-        'name': getattr(team, 'name', 'Unknown Team'),
+        'name': team_name,
         'slug': getattr(team, 'slug', ''),
         'tag': getattr(team, 'tag', ''),
-        'logo_url': _safe_image_url(getattr(team, 'logo', None), FALLBACK_URLS['team_logo']),
+        'logo_url': _safe_image_url(getattr(team, 'logo', None), team_logo_fallback),
         'banner_url': _safe_image_url(getattr(team, 'banner', None), FALLBACK_URLS['team_banner']),
         'visibility': _get_team_visibility(team),
         'game': _safe_game_context(team),
@@ -198,11 +239,17 @@ def _build_organization_context(team: Team) -> Optional[Dict[str, Any]]:
             ranking = getattr(org, 'ranking', None)
             empire_score = getattr(ranking, 'empire_score', 0) if ranking else 0
             global_rank = getattr(ranking, 'global_rank', None) if ranking else None
+            org_name = getattr(org, 'name', '')
+            org_logo_fallback = _build_initials_avatar_data_uri(
+                org_name or 'Organization',
+                seed=getattr(org, 'slug', '') or org_name,
+                fallback='OR',
+            )
             
             return {
-                'name': getattr(org, 'name', ''),
+                'name': org_name,
                 'slug': getattr(org, 'slug', ''),
-                'logo_url': _safe_image_url(getattr(org, 'logo', None), FALLBACK_URLS['org_logo']),
+                'logo_url': _safe_image_url(getattr(org, 'logo', None), org_logo_fallback),
                 'badge_url': _safe_image_url(getattr(org, 'badge', None), ''),
                 'url': f'/orgs/{getattr(org, "slug", "")}/' if getattr(org, 'slug', '') else '',
                 'hub_url': f'/orgs/{getattr(org, "slug", "")}/hub/' if getattr(org, 'slug', '') else '',
@@ -233,7 +280,7 @@ def _build_viewer_context(viewer: Optional[User], role: str) -> Dict[str, Any]:
             'is_authenticated': False,
             'username': 'Anonymous',
             'role': 'PUBLIC',
-            'avatar_url': FALLBACK_URLS['user_avatar'],
+            'avatar_url': _build_initials_avatar_data_uri('Anonymous', seed='anonymous', fallback='AN'),
         }
 
 
@@ -909,7 +956,7 @@ def _build_announcements_context(team: Team, is_restricted: bool) -> List[Dict[s
                 'type': getattr(ann, 'announcement_type', 'general'),
                 'pinned': getattr(ann, 'pinned', False),
                 'author_name': ann.author.username if ann.author else 'System',
-                'author_avatar': _get_user_avatar(ann.author) if ann.author else FALLBACK_URLS['user_avatar'],
+                'author_avatar': _get_user_avatar(ann.author) if ann.author else _build_initials_avatar_data_uri('System', seed='system', fallback='SY'),
                 'created_at': ann.created_at,
             }
             for ann in announcements
@@ -1470,14 +1517,21 @@ def _is_team_member_or_staff(team: Team, viewer: Optional[User]) -> bool:
 
 def _get_user_avatar(user: User) -> str:
     """Get user avatar URL with fallback."""
+    username = getattr(user, 'username', 'User') if user else 'User'
+    display_name = username
+
     try:
         if hasattr(user, 'profile') and user.profile:
+            display_name = getattr(user.profile, 'display_name', '') or display_name
             avatar = getattr(user.profile, 'avatar', None)
-            return _safe_image_url(avatar, FALLBACK_URLS['user_avatar'])
+            return _safe_image_url(
+                avatar,
+                _build_initials_avatar_data_uri(display_name, seed=username, fallback='US'),
+            )
     except AttributeError:
         pass
     
-    return FALLBACK_URLS['user_avatar']
+    return _build_initials_avatar_data_uri(display_name, seed=username, fallback='US')
 
 
 def _safe_int(value) -> int:

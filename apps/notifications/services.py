@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import logging
+import hashlib
+import json
 from typing import Iterable, Optional, Any, Dict
 
 from django.apps import apps
@@ -11,7 +13,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import PermissionDenied
 from django.template.exceptions import TemplateDoesNotExist
 from django.template.loader import render_to_string
-from django.db import transaction
+from django.db import transaction, connection, IntegrityError
 from django.utils import timezone
 
 User = get_user_model()
@@ -19,6 +21,225 @@ FROM_EMAIL = os.getenv("DeltaCrownEmail", "no-reply@deltacrown.local")
 logger = logging.getLogger(__name__)
 
 Notification = apps.get_model("notifications", "Notification")
+_NOTIFICATION_MODEL_FIELDS = {
+    f.name for f in Notification._meta.get_fields() if hasattr(f, "name")
+}
+
+_CATEGORY_NORMALIZATION_MAP = {
+    "tournament": "TOURNAMENT",
+    "tournaments": "TOURNAMENT",
+    "team": "TEAM",
+    "teams": "TEAM",
+    "economy": "ECONOMY",
+    "bounties": "ECONOMY",
+    "social": "SOCIAL",
+    "follow": "SOCIAL",
+    "system": "SYSTEM",
+    "warning": "WARNING",
+}
+
+_PRIORITY_LEVEL_MAP = {
+    "LOW": 0,
+    "NORMAL": 1,
+    "HIGH": 2,
+    "CRITICAL": 3,
+}
+
+
+def _normalize_notification_category_value(raw_value: Any, fallback: str = "SYSTEM") -> str:
+    if raw_value is None:
+        return fallback
+
+    normalized = _CATEGORY_NORMALIZATION_MAP.get(str(raw_value).strip().lower())
+    if normalized:
+        return normalized
+
+    candidate = str(raw_value).strip().upper()
+    if candidate in {"TOURNAMENT", "TEAM", "ECONOMY", "SOCIAL", "SYSTEM", "WARNING"}:
+        return candidate
+
+    return fallback
+
+
+def _generate_dedupe_key_from_kwargs(kwargs: Dict[str, Any]) -> str:
+    recipient = kwargs.get("recipient")
+    recipient_id = getattr(recipient, "id", None)
+    event = str(kwargs.get("event") or kwargs.get("type") or "generic").strip().lower()
+    title = str(kwargs.get("title") or "").strip()
+    body = str(kwargs.get("body") or "").strip()
+    url = str(kwargs.get("url") or "").strip()
+    tournament_id = kwargs.get("tournament_id")
+    match_id = kwargs.get("match_id")
+    action_object_id = kwargs.get("action_object_id")
+
+    material = "|".join(
+        [
+            event,
+            str(recipient_id or ""),
+            str(tournament_id or ""),
+            str(match_id or ""),
+            str(action_object_id or ""),
+            title,
+            body,
+            url,
+            timezone.now().strftime("%Y%m%d%H%M%S%f"),
+        ]
+    )
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
+    event_prefix = "".join(ch for ch in event if ch.isalnum() or ch == "_")[:24] or "generic"
+    return f"{event_prefix}:{digest}"
+
+
+def _create_notification_with_dedupe_fallback(**kwargs):
+    """
+    Create a notification row and backfill dedupe_key when legacy ORM models
+    run against stricter Postgres schemas where dedupe_key is NOT NULL.
+    """
+    dedupe_key_override = kwargs.pop("dedupe_key", None)
+
+    try:
+        # Keep integrity failures scoped to a savepoint so callers inside
+        # outer atomic blocks can still run the SQL fallback.
+        with transaction.atomic():
+            return Notification.objects.create(**kwargs)
+    except IntegrityError as exc:
+        error_text = str(exc).lower()
+        if connection.vendor != "postgresql" or "dedupe_key" not in error_text or "null" not in error_text:
+            raise
+
+        recipient = kwargs.get("recipient")
+        recipient_id = getattr(recipient, "id", None)
+        if not recipient_id:
+            raise
+
+        tournament_id = kwargs.get("tournament_id")
+        if tournament_id is None and kwargs.get("tournament") is not None:
+            tournament_id = getattr(kwargs.get("tournament"), "id", None)
+
+        match_id = kwargs.get("match_id")
+        if match_id is None and kwargs.get("match") is not None:
+            match_id = getattr(kwargs.get("match"), "id", None)
+
+        category = _normalize_notification_category_value(kwargs.get("category"), fallback="SYSTEM")
+        notification_type = _normalize_notification_category_value(
+            kwargs.get("notification_type"),
+            fallback=category,
+        )
+        priority = str(kwargs.get("priority") or "NORMAL").upper()
+        if priority not in _PRIORITY_LEVEL_MAP:
+            priority = "NORMAL"
+
+        dedupe_key = str(dedupe_key_override or _generate_dedupe_key_from_kwargs(kwargs))
+        created_at = timezone.now()
+        read_at = kwargs.get("read_at")
+        is_read = bool(kwargs.get("is_read", False))
+        if is_read and read_at is None:
+            read_at = created_at
+
+        action_data_value = kwargs.get("action_data")
+        action_data_json = json.dumps(action_data_value if action_data_value is not None else {})
+
+        insert_columns = [
+            "recipient_id",
+            "event",
+            "type",
+            "title",
+            "body",
+            "html_text",
+            "url",
+            "avatar_url",
+            "image_url",
+            "is_read",
+            "is_delivered",
+            "is_actionable",
+            "priority",
+            "created_at",
+            "action_label",
+            "action_url",
+            "category",
+            "notification_type",
+            "message",
+            "action_data",
+            "action_object_id",
+            "action_type",
+            "tournament_id",
+            "match_id",
+            "dedupe_key",
+            "payload_version",
+            "priority_level",
+            "read_at",
+        ]
+        insert_values = [
+            recipient_id,
+            str(kwargs.get("event") or kwargs.get("type") or "generic"),
+            str(kwargs.get("type") or "generic"),
+            str(kwargs.get("title") or "")[:140],
+            str(kwargs.get("body") or ""),
+            str(kwargs.get("html_text") or ""),
+            str(kwargs.get("url") or ""),
+            str(kwargs.get("avatar_url") or ""),
+            str(kwargs.get("image_url") or ""),
+            is_read,
+            bool(kwargs.get("is_delivered", False)),
+            bool(kwargs.get("is_actionable", False)),
+            priority,
+            created_at,
+            str(kwargs.get("action_label") or ""),
+            str(kwargs.get("action_url") or ""),
+            category,
+            notification_type,
+            str(kwargs.get("message") or kwargs.get("body") or ""),
+            action_data_json,
+            kwargs.get("action_object_id"),
+            str(kwargs.get("action_type") or ""),
+            tournament_id,
+            match_id,
+            dedupe_key,
+            1,
+            _PRIORITY_LEVEL_MAP[priority],
+            read_at,
+        ]
+
+        if "fingerprint" in _NOTIFICATION_MODEL_FIELDS:
+            insert_columns.append("fingerprint")
+            insert_values.append(str(kwargs.get("fingerprint") or ""))
+
+        with connection.cursor() as schema_cursor:
+            table_columns = {
+                col.name for col in connection.introspection.get_table_description(
+                    schema_cursor,
+                    "notifications_notification",
+                )
+            }
+
+        filtered = [
+            (col, val)
+            for col, val in zip(insert_columns, insert_values)
+            if col in table_columns
+        ]
+        if not filtered or "dedupe_key" not in table_columns:
+            raise
+
+        insert_columns = [col for col, _ in filtered]
+        insert_values = [val for _, val in filtered]
+
+        placeholders = ", ".join(["%s"] * len(insert_columns))
+        columns_sql = ",\n                    ".join(insert_columns)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                INSERT INTO notifications_notification (
+                    {columns_sql}
+                )
+                VALUES ({placeholders})
+                RETURNING id
+                """,
+                insert_values,
+            )
+            notification_id = cursor.fetchone()[0]
+
+        return Notification.objects.get(id=notification_id)
 
 
 class NotificationActionError(Exception):
@@ -479,23 +700,21 @@ def notify(
         if user is not None:
             with transaction.atomic():
                 if has_fp and fingerprint:
-                    obj, was_created = Notification.objects.get_or_create(
-                        recipient=user,
-                        fingerprint=fingerprint,
-                        defaults={
-                            "type": type_str,
-                            "event": event_str,
-                            "title": title or "",
-                            "body": body or "",
-                            "url": url or "",
-                            "tournament": tournament,
-                            "match": match,
-                        },
-                    )
-                    if was_created:
-                        created += 1
-                    else:
+                    if Notification.objects.filter(recipient=user, fingerprint=fingerprint).exists():
                         skipped += 1
+                    else:
+                        _create_notification_with_dedupe_fallback(
+                            recipient=user,
+                            fingerprint=fingerprint,
+                            type=type_str,
+                            event=event_str,
+                            title=title or "",
+                            body=body or "",
+                            url=url or "",
+                            tournament=tournament,
+                            match=match,
+                        )
+                        created += 1
                 else:
                     # Fallback dedupe tuple (works even when fingerprint column isn't present)
                     if dedupe:
@@ -509,7 +728,7 @@ def notify(
                         if exists:
                             skipped += 1
                         else:
-                            Notification.objects.create(
+                            _create_notification_with_dedupe_fallback(
                                 recipient=user,
                                 type=type_str,
                                 event=event_str,
@@ -521,7 +740,7 @@ def notify(
                             )
                             created += 1
                     else:
-                        Notification.objects.create(
+                        _create_notification_with_dedupe_fallback(
                             recipient=user,
                             type=type_str,
                             event=event_str,
@@ -672,7 +891,7 @@ class NotificationService:
             
             # Always create in-app notification
             if 'in_app' in channels:
-                notification = Notification.objects.create(
+                notification = _create_notification_with_dedupe_fallback(
                     recipient=user,
                     type=notification_type,
                     event=notification_type,
@@ -1200,7 +1419,7 @@ class NotificationService:
             display_name = follower_profile.display_name or follower_user.username
             
             # Create notification
-            notification = Notification.objects.create(
+            notification = _create_notification_with_dedupe_fallback(
                 recipient=followee_user,
                 type=Notification.Type.USER_FOLLOWED,
                 event='user_followed',
@@ -1210,7 +1429,8 @@ class NotificationService:
                 action_label="View Profile",
                 action_url=f"/@{follower_user.username}/",
                 category="social",
-                message=f"{display_name} started following you."
+                message=f"{display_name} started following you.",
+                dedupe_key=f"user_followed:{followee_user.id}:{follower_user.id}:{timezone.now().strftime('%Y%m%d%H%M%S%f')}"
             )
             
             logger.info(

@@ -10,6 +10,8 @@ Date: January 22, 2026
 """
 
 import logging
+import hashlib
+from urllib.parse import quote
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -22,6 +24,57 @@ from apps.user_profile.models_main import Follow, UserProfile
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+
+def _build_initials(label: str, fallback: str = 'DC') -> str:
+    value = (label or '').strip()
+    if not value:
+        return fallback
+
+    parts = [chunk for chunk in value.split() if chunk]
+    if len(parts) >= 2:
+        initials = (parts[0][0] + parts[1][0]).upper()
+    else:
+        compact = ''.join(ch for ch in value if ch.isalnum())
+        initials = (compact[:2] or value[:2] or fallback).upper()
+
+    return ''.join(ch for ch in initials if ch.isalnum())[:2] or fallback
+
+
+def _avatar_bg_color(seed: str) -> str:
+    palette = ['#1f2937', '#0f4c81', '#0b6e4f', '#7c2d12', '#5b21b6', '#065f46']
+    digest = hashlib.sha256((seed or 'deltacrown').encode('utf-8')).hexdigest()
+    return palette[int(digest[:2], 16) % len(palette)]
+
+
+def _fallback_avatar_data_uri(display_name: str, username: str = '') -> str:
+    label = display_name or username or 'DeltaCrown'
+    initials = _build_initials(label, fallback='DC')
+    bg = _avatar_bg_color(username or label)
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">'
+        f'<rect width="96" height="96" fill="{bg}"/>'
+        f'<text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle" '
+        'fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700">'
+        f'{initials}</text>'
+        '</svg>'
+    )
+    return f'data:image/svg+xml;utf8,{quote(svg)}'
+
+
+def _safe_avatar_url(user, profile) -> str:
+    if profile and getattr(profile, 'avatar', None):
+        try:
+            return profile.avatar.url
+        except Exception:
+            pass
+
+    display_name = ''
+    if profile:
+        display_name = getattr(profile, 'display_name', '') or ''
+    if not display_name:
+        display_name = user.get_full_name() or user.username
+    return _fallback_avatar_data_uri(display_name, user.username)
 
 
 @login_required
@@ -109,7 +162,7 @@ def get_followers_list(request, username):
                 'id': follower.id,
                 'username': follower.username,
                 'display_name': profile.display_name if profile else follower.get_full_name() or follower.username,
-                'avatar_url': profile.avatar.url if (profile and profile.avatar) else '/static/img/user_avatar/default-avatar.png',
+                'avatar_url': _safe_avatar_url(follower, profile),
                 'bio': profile.bio[:100] if profile and profile.bio else None,
                 'verified': profile.kyc_status == 'verified' if profile else False,
                 'is_following': follow.is_followed_by_viewer,
@@ -131,6 +184,9 @@ def get_followers_list(request, username):
         
         return JsonResponse({
             'success': True,
+            'followers': users_data,
+            'users': users_data,
+            'pagination': pagination,
             'data': {
                 'users': users_data,
                 'pagination': pagination
@@ -238,7 +294,7 @@ def get_following_list(request, username):
                 'id': followed_user.id,
                 'username': followed_user.username,
                 'display_name': profile.display_name if profile else followed_user.get_full_name() or followed_user.username,
-                'avatar_url': profile.avatar.url if (profile and profile.avatar) else '/static/img/user_avatar/default-avatar.png',
+                'avatar_url': _safe_avatar_url(followed_user, profile),
                 'bio': profile.bio[:100] if profile and profile.bio else None,
                 'verified': profile.kyc_status == 'verified' if profile else False,
                 'is_following': follow.is_followed_by_viewer,
@@ -260,6 +316,9 @@ def get_following_list(request, username):
         
         return JsonResponse({
             'success': True,
+            'following': users_data,
+            'users': users_data,
+            'pagination': pagination,
             'data': {
                 'users': users_data,
                 'pagination': pagination
@@ -334,7 +393,7 @@ def get_mutual_followers(request, username):
                 'id': follower.id,
                 'username': follower.username,
                 'display_name': profile.display_name if profile else follower.username,
-                'avatar_url': profile.avatar.url if (profile and profile.avatar) else '/static/img/user_avatar/default-avatar.png',
+                'avatar_url': _safe_avatar_url(follower, profile),
                 'profile_url': f'/@{follower.username}/'
             })
         

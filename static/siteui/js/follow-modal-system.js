@@ -91,9 +91,6 @@ class FollowSystemV2 {
         modal.classList.remove('hidden');
         setTimeout(() => modal.classList.add('active'), 10);
         
-        // Load data
-        this.loadFollowers(username, 1);
-        
         // Setup search (remove old listener to prevent duplicates)
         if (search) {
             const newSearch = search.cloneNode(true);
@@ -111,6 +108,9 @@ class FollowSystemV2 {
         list.parentNode.replaceChild(newList, list);
         newList.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
         newList.addEventListener('scroll', () => this.handleScroll(newList));
+
+        // Load data after replacing list node so render target stays attached.
+        this.loadFollowers(username, 1);
     }
     
     openFollowingModal(username) {
@@ -136,9 +136,6 @@ class FollowSystemV2 {
         modal.classList.remove('hidden');
         setTimeout(() => modal.classList.add('active'), 10);
         
-        // Load data
-        this.loadFollowing(username, 1);
-        
         // Setup search (remove old listener to prevent duplicates)
         if (search) {
             const newSearch = search.cloneNode(true);
@@ -156,6 +153,9 @@ class FollowSystemV2 {
         list.parentNode.replaceChild(newList, list);
         newList.innerHTML = '<div class="loading-skeleton"></div>'.repeat(5);
         newList.addEventListener('scroll', () => this.handleScroll(newList));
+
+        // Load data after replacing list node so render target stays attached.
+        this.loadFollowing(username, 1);
     }
     
     closeModal() {
@@ -305,8 +305,15 @@ class FollowSystemV2 {
             
             if (data.success) {
                 listEl.innerHTML = '';
-                
-                if (data.data.users.length === 0) {
+
+                const users = (data.data && data.data.users)
+                    ? data.data.users
+                    : (data.followers || data.following || data.users || []);
+                const hasNext = (data.data && data.data.pagination)
+                    ? data.data.pagination.has_next
+                    : (data.has_more || false);
+
+                if (!users.length) {
                     listEl.innerHTML = `
                         <div class="empty-state">
                             <i class="fa-solid fa-search text-3xl opacity-30 mb-2"></i>
@@ -314,12 +321,12 @@ class FollowSystemV2 {
                         </div>
                     `;
                 } else {
-                    data.data.users.forEach(user => {
+                    users.forEach(user => {
                         listEl.appendChild(this.createUserCard(user));
                     });
                 }
                 
-                this.hasMore = data.data.pagination.has_next;
+                this.hasMore = !!hasNext;
             }
         } catch (error) {
             console.error('Error searching:', error);
@@ -351,10 +358,16 @@ class FollowSystemV2 {
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
         try {
+            const csrfToken = this.getCsrfToken();
+            if (!csrfToken) {
+                throw new Error('Missing CSRF token. Please refresh and try again.');
+            }
+
             const response = await fetch(`/api/profile/${username}/follow/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': this.getCookie('csrftoken'),
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                     'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin'
@@ -403,10 +416,16 @@ class FollowSystemV2 {
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
         try {
+            const csrfToken = this.getCsrfToken();
+            if (!csrfToken) {
+                throw new Error('Missing CSRF token. Please refresh and try again.');
+            }
+
             const response = await fetch(`/api/profile/${username}/unfollow/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': this.getCookie('csrftoken'),
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                     'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin'
@@ -448,6 +467,10 @@ class FollowSystemV2 {
     createUserCard(user) {
         const card = document.createElement('div');
         card.className = 'user-card';
+
+        const displayName = user.display_name || user.username || 'User';
+        const fallbackAvatar = this.createFallbackAvatarDataUri(displayName);
+        const avatarUrl = this.normalizeAvatarUrl(user.avatar_url, displayName);
         
         let actionButton = '';
         if (!user.is_self) {
@@ -476,10 +499,10 @@ class FollowSystemV2 {
         
         card.innerHTML = `
             <a href="${user.profile_url}" class="user-info">
-                <img src="${user.avatar_url}" alt="${user.display_name}" class="user-avatar">
+                <img src="${avatarUrl}" alt="${displayName}" class="user-avatar" onerror="this.onerror=null;this.src='${fallbackAvatar}'">
                 <div class="user-details">
                     <div class="user-name">
-                        ${user.display_name}
+                        ${displayName}
                         ${user.verified ? '<i class="fa-solid fa-badge-check text-cyan-400 ml-1"></i>' : ''}
                     </div>
                     <div class="user-username">@${user.username} ${mutualBadge}</div>
@@ -513,6 +536,71 @@ class FollowSystemV2 {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    getInitials(label) {
+        const value = String(label || '').trim();
+        if (!value) return 'DC';
+
+        const parts = value.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+
+        const compact = value.replace(/[^A-Za-z0-9]/g, '');
+        return (compact.slice(0, 2) || value.slice(0, 2) || 'DC').toUpperCase();
+    }
+
+    getAvatarBgColor(seedText) {
+        const palette = ['#1f2937', '#0f4c81', '#0b6e4f', '#7c2d12', '#5b21b6', '#065f46'];
+        const seed = String(seedText || 'dc');
+        let total = 0;
+        for (let i = 0; i < seed.length; i += 1) {
+            total = (total + seed.charCodeAt(i)) % 997;
+        }
+        return palette[total % palette.length];
+    }
+
+    createFallbackAvatarDataUri(label) {
+        const initials = this.getInitials(label);
+        const bg = this.getAvatarBgColor(label);
+        const svg = `\n<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">\n  <rect width="96" height="96" fill="${bg}"/>\n  <text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700">${initials}</text>\n</svg>`;
+        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    normalizeAvatarUrl(rawUrl, displayName) {
+        const fallback = this.createFallbackAvatarDataUri(displayName);
+        const url = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+        if (!url) return fallback;
+
+        const isLegacyMissing = /\/static\/img\/(?:orgs\/placeholder-logo\.png|users\/default-avatar\.png|user_avatar\/default-avatar\.png)$/i.test(url);
+        return isLegacyMissing ? fallback : url;
+    }
+
+    getCsrfToken() {
+        const isValidCsrfToken = (token) => {
+            if (!token || typeof token !== 'string') return false;
+            const normalized = token.trim();
+            if (!/^[A-Za-z0-9]+$/.test(normalized)) return false;
+            return normalized.length === 32 || normalized.length === 64;
+        };
+
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && isValidCsrfToken(meta.content)) {
+            return meta.content.trim();
+        }
+
+        const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (hiddenInput && isValidCsrfToken(hiddenInput.value)) {
+            return hiddenInput.value.trim();
+        }
+
+        const cookieToken = this.getCookie('csrftoken');
+        if (isValidCsrfToken(cookieToken)) {
+            return cookieToken.trim();
+        }
+
+        return '';
     }
     
     getCookie(name) {

@@ -1627,26 +1627,38 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         try:
             bracket = Bracket.objects.get(tournament=tournament)
         except Bracket.DoesNotExist:
+            bracket = None
+
+        # Build rounds data from matches
+        matches_qs = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        )
+        if bracket is not None:
+            matches_qs = matches_qs.filter(bracket=bracket)
+        else:
+            # Round-robin/group-derived schedules may not have a Bracket row.
+            matches_qs = matches_qs.filter(bracket__isnull=True)
+
+        matches = list(matches_qs.order_by('round_number', 'match_number', 'id'))
+        if not matches:
             return _json_response({
                 'generated': False,
                 'format': tournament.format,
                 'format_display': tournament.get_format_display(),
             }, cache_control='private, max-age=15')
 
-        # Build rounds data from matches
-        matches = Match.objects.filter(
-            tournament=tournament,
-            bracket=bracket,
-            is_deleted=False,
-        ).order_by('round_number', 'match_number')
-
         rounds = {}
         for m in matches:
             rn = m.round_number
             if rn not in rounds:
+                if bracket is not None:
+                    round_name = bracket.get_round_name(rn)
+                else:
+                    round_name = m.stage_label or (f'Round {rn}' if rn else 'Round')
                 rounds[rn] = {
                     'round_number': rn,
-                    'round_name': bracket.get_round_name(rn),
+                    'round_name': round_name,
                     'matches': [],
                 }
             rounds[rn]['matches'].append({
@@ -1671,11 +1683,11 @@ class HubBracketAPIView(LoginRequiredMixin, View):
 
         return _json_response({
             'generated': True,
-            'format': bracket.format,
-            'format_display': bracket.get_format_display(),
-            'total_rounds': bracket.total_rounds,
-            'total_matches': bracket.total_matches,
-            'is_finalized': bracket.is_finalized,
+            'format': bracket.format if bracket is not None else tournament.format,
+            'format_display': bracket.get_format_display() if bracket is not None else tournament.get_format_display(),
+            'total_rounds': bracket.total_rounds if bracket is not None else len(rounds),
+            'total_matches': bracket.total_matches if bracket is not None else len(matches),
+            'is_finalized': bracket.is_finalized if bracket is not None else False,
             'rounds': list(rounds.values()),
         }, cache_control='private, max-age=15')
 

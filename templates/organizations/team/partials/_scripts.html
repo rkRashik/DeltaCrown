@@ -369,12 +369,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // CSRF_COOKIE_HTTPONLY=True means JS can't read the cookie.
   // Read from <meta name="csrf-token"> (set in base.html) first.
   function getCookie(name) {
+    function isValidCsrfToken(token) {
+      if (!token || typeof token !== 'string') return false;
+      const normalized = token.trim();
+      if (!/^[A-Za-z0-9]+$/.test(normalized)) return false;
+      return normalized.length === 32 || normalized.length === 64;
+    }
+
     if (name === 'csrftoken') {
       const meta = document.querySelector('meta[name="csrf-token"]');
-      if (meta && meta.content) return meta.content;
+      if (meta && isValidCsrfToken(meta.content)) return meta.content.trim();
+
       const el = document.querySelector('[name=csrfmiddlewaretoken]');
-      if (el && el.value) return el.value;
+      if (el && isValidCsrfToken(el.value)) return el.value.trim();
     }
+
     let v = null;
     if (document.cookie) {
       document.cookie.split(';').forEach(c => {
@@ -383,6 +392,11 @@ document.addEventListener("DOMContentLoaded", () => {
           v = decodeURIComponent(c.substring(name.length + 1));
       });
     }
+
+    if (name === 'csrftoken') {
+      return isValidCsrfToken(v) ? v.trim() : '';
+    }
+
     return v;
   }
 
@@ -652,10 +666,7 @@ function dcClosePlayerPopup() {
   if (!followBtn) return;
 
   function getCsrfToken() {
-    const el = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (el) return el.value;
-    const m = document.cookie.match(/csrftoken=([^;]+)/);
-    return m ? m[1] : '';
+    return getCookie('csrftoken') || '';
   }
 
   function setFollowState(isFollowing, count) {
@@ -685,10 +696,16 @@ function dcClosePlayerPopup() {
     followBtn.disabled = true;
 
     try {
+      const csrfToken = getCsrfToken();
+      if (!csrfToken) {
+        throw new Error('Missing CSRF token');
+      }
+
       const resp = await fetch(`/api/vnext/teams/${slug}/follow/`, {
         method: 'POST',
         headers: {
-          'X-CSRFToken': getCsrfToken(),
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
           'Content-Type': 'application/json',
         },
         credentials: 'same-origin',
