@@ -44,6 +44,7 @@ def notify_match_ready(self):
     Runs every 5 minutes via Celery Beat.
     """
     from apps.tournaments.models.match import Match
+    from apps.tournaments.api.toc.brackets_service import TOCBracketsService
     from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
 
     now = timezone.now()
@@ -65,17 +66,30 @@ def notify_match_ready(self):
             continue
 
         try:
+            target_user_ids = TOCBracketsService._match_participant_user_ids(tournament, match)
+            if not target_user_ids:
+                continue
+
+            minutes_until = max(
+                0,
+                int((match.scheduled_time - now).total_seconds() // 60),
+            ) if match.scheduled_time else NOTIFY_WINDOW_MIN_MINUTES
+
             TOCNotificationsService.fire_auto_event(
                 tournament,
                 'match_ready',
                 {
+                    'target_user_ids': target_user_ids,
                     'match_id': match.id,
                     'round': match.round_number,
                     'match_number': match.match_number,
                     'participant1': match.participant1_name or str(match.participant1_id),
                     'participant2': match.participant2_name or str(match.participant2_id),
                     'scheduled_time': str(match.scheduled_time),
-                    'minutes_until': NOTIFY_WINDOW_MIN_MINUTES,
+                    'minutes_until': minutes_until,
+                    'force_email': True,
+                    'dedupe': False,
+                    'url': f'/tournaments/{tournament.slug}/hub/',
                 },
             )
             count += 1

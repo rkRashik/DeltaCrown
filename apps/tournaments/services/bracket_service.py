@@ -421,9 +421,12 @@ class BracketService:
         
         # Normalize format: Tournament uses underscores, Bracket uses hyphens
         bracket_format = bracket_format.replace('_', '-')
-        # Handle group_playoff -> group-stage mapping
+        # GROUP_PLAYOFF tournaments must transition from group results into a
+        # knockout bracket, not attempt direct "group-stage" bracket creation.
         if bracket_format == 'group-playoff':
-            bracket_format = 'group-stage'
+            from apps.tournaments.services.tournament_service import TournamentService
+
+            return TournamentService.transition_to_knockout_stage(tournament_id)
         
         # Validate bracket format
         valid_formats = [choice[0] for choice in Bracket.FORMAT_CHOICES]
@@ -490,7 +493,7 @@ class BracketService:
     def generate_knockout_from_groups(
         tournament_id: int,
         bracket_format: Optional[str] = None,
-        seeding_method: str = "ranked",
+        seeding_method: str = "group_standings",
     ) -> Bracket:
         """
         Generate a knockout bracket using group stage results as input.
@@ -519,6 +522,7 @@ class BracketService:
             ... )
             >>> print(f"Knockout bracket created with {bracket.participant_count} participants")
         """
+        from apps.games.services import game_service
         from apps.tournaments.services.group_stage_service import GroupStageService
         
         # Load tournament
@@ -543,12 +547,19 @@ class BracketService:
         if not advancers_by_group:
             raise ValidationError("No advancers found from group stage")
         
-        # Flatten advancers into a list with seeding info
+        # Flatten advancers into a list with seeding info.
+        ordered_groups = list(advancers_by_group.items())
+        group_order = {
+            group_name: index
+            for index, (group_name, _) in enumerate(ordered_groups)
+        }
         advancers = []
-        for group_name, standings in advancers_by_group.items():
+        advancers_by_group_name: Dict[str, List[Dict]] = {}
+        for group_name, standings in ordered_groups:
             for standing in standings:
                 advancer = {
                     "group": group_name,
+                    "group_index": group_order[group_name],
                     "group_position": standing.rank,  # Position within group (1, 2, 3...)
                     "points": float(standing.points),
                     "team_id": standing.team_id,
@@ -593,11 +604,22 @@ class BracketService:
                         advancer["total_kills"] = getattr(standing, 'total_kills', 0)
                 
                 advancers.append(advancer)
+                advancers_by_group_name.setdefault(group_name, []).append(advancer)
+
+        for group_name in advancers_by_group_name:
+            advancers_by_group_name[group_name].sort(
+                key=lambda item: (
+                    item.get("group_position", 999),
+                    -item.get("points", 0),
+                )
+            )
         
         # Sort advancers by group position first, then by points and game-specific stats
-        # Uses game_service.get_tiebreakers() which reads from GameTournamentConfig (Phase 3.2)
-        game_slug = tournament.game.slug
-        tiebreakers = game_service.get_tiebreakers(tournament.game)
+        # Uses game_service.get_tiebreakers() which reads from GameTournamentConfig.
+        try:
+            tiebreakers = game_service.get_tiebreakers(tournament.game) or []
+        except Exception:
+            tiebreakers = []
         
         # Build sort key from tiebreakers config
         def sort_key(advancer):
@@ -613,17 +635,54 @@ class BracketService:
                 else:
                     key.append(float(value) if value else 999)
             
+            # Deterministic tie-break across groups.
+            key.append(advancer.get("group_index", 0))
+
             return tuple(key)
-        
-        advancers.sort(key=sort_key)
-        
-        # Assign seeds based on sorted order
-        for i, advancer in enumerate(advancers, start=1):
-            advancer["seed"] = i
+
+        seeding_mode = str(seeding_method or "").replace('-', '_').lower()
+        use_cross_match_seeding = (
+            seeding_mode in {"group_standings", "cross_match", "cross_group"}
+            and len(ordered_groups) >= 2
+            and len(ordered_groups) % 2 == 0
+            and all(len(advancers_by_group_name.get(group_name, [])) == 2 for group_name, _ in ordered_groups)
+        )
+
+        if use_cross_match_seeding:
+            # Pair adjacent groups for projected cross-match seeding:
+            # A1 vs B2, B1 vs A2, C1 vs D2, D1 vs C2, ...
+            next_low_seed = 1
+            next_high_seed = len(advancers)
+
+            for idx in range(0, len(ordered_groups), 2):
+                group_a_name, _ = ordered_groups[idx]
+                group_b_name, _ = ordered_groups[idx + 1]
+                group_a_advancers = advancers_by_group_name.get(group_a_name, [])
+                group_b_advancers = advancers_by_group_name.get(group_b_name, [])
+
+                if len(group_a_advancers) != 2 or len(group_b_advancers) != 2:
+                    use_cross_match_seeding = False
+                    break
+
+                # Sorted index 0 = winner, 1 = runner-up.
+                group_a_advancers[0]["seed"] = next_low_seed
+                group_b_advancers[0]["seed"] = next_low_seed + 1
+                group_a_advancers[1]["seed"] = next_high_seed - 1
+                group_b_advancers[1]["seed"] = next_high_seed
+
+                next_low_seed += 2
+                next_high_seed -= 2
+
+        if not use_cross_match_seeding:
+            advancers.sort(key=sort_key)
+
+            # Assign seeds based on sorted order.
+            for i, advancer in enumerate(advancers, start=1):
+                advancer["seed"] = i
         
         # Build participants list for generate_bracket()
         participants = []
-        for adv in advancers:
+        for adv in sorted(advancers, key=lambda item: item.get("seed", 9999)):
             # Participant ID is either team_id or user_id
             pid = adv["team_id"] or adv["user_id"]
             if pid is None:
@@ -645,10 +704,16 @@ class BracketService:
         # Determine bracket format
         if bracket_format is None:
             # Default to single elimination
-            bracket_format = Bracket.SINGLE_ELIM
+            bracket_format = Bracket.SINGLE_ELIMINATION
+
+        bracket_format = str(bracket_format).replace('_', '-')
+        if bracket_format == 'single-elim':
+            bracket_format = Bracket.SINGLE_ELIMINATION
+        elif bracket_format == 'double-elim':
+            bracket_format = Bracket.DOUBLE_ELIMINATION
         
         # Validate bracket format
-        if bracket_format not in [Bracket.SINGLE_ELIM, Bracket.DOUBLE_ELIM]:
+        if bracket_format not in [Bracket.SINGLE_ELIMINATION, Bracket.DOUBLE_ELIMINATION]:
             raise ValidationError(
                 f"Invalid bracket format '{bracket_format}'. "
                 f"For GROUP_PLAYOFF knockout stage, use 'single-elimination' or 'double-elimination'"

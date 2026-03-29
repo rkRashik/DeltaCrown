@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.organizations.models import Team
 from apps.tournaments.api.toc.brackets_service import TOCBracketsService
-from apps.tournaments.models import Game, GroupStage, GroupStanding, Match, Tournament
+from apps.tournaments.models import Bracket, BracketNode, Game, Group, GroupStage, GroupStanding, Match, Registration, Tournament
 from apps.tournaments.services.group_stage_service import GroupStageService
 
 User = get_user_model()
@@ -225,3 +225,315 @@ def test_generate_group_matches_ignores_unscoped_bracketless_matches(tournament,
     result = TOCBracketsService.generate_group_matches(tournament, {}, organizer)
     assert result["generated_matches"] == 6
     assert Match.objects.filter(tournament=tournament).count() == 7
+
+
+@pytest.mark.django_db
+def test_auto_schedule_avoids_concurrent_participant_overlap(tournament, organizer):
+    base_start = timezone.now().replace(minute=0, second=0, microsecond=0)
+
+    m1 = Match.objects.create(
+        tournament=tournament,
+        round_number=1,
+        match_number=1,
+        participant1_id=11,
+        participant1_name="Player 11",
+        participant2_id=12,
+        participant2_name="Player 12",
+        state=Match.SCHEDULED,
+    )
+    m2 = Match.objects.create(
+        tournament=tournament,
+        round_number=1,
+        match_number=2,
+        participant1_id=11,
+        participant1_name="Player 11",
+        participant2_id=13,
+        participant2_name="Player 13",
+        state=Match.SCHEDULED,
+    )
+    m3 = Match.objects.create(
+        tournament=tournament,
+        round_number=1,
+        match_number=3,
+        participant1_id=14,
+        participant1_name="Player 14",
+        participant2_id=15,
+        participant2_name="Player 15",
+        state=Match.SCHEDULED,
+    )
+
+    result = TOCBracketsService.auto_schedule(
+        tournament,
+        {
+            "start_time": base_start.isoformat(),
+            "match_duration_minutes": 60,
+            "break_minutes": 0,
+            "max_concurrent": 2,
+            "round_break_minutes": 0,
+        },
+        organizer,
+    )
+
+    assert result["scheduled"] == 3
+
+    m1.refresh_from_db()
+    m2.refresh_from_db()
+    m3.refresh_from_db()
+
+    # Player 11 appears in m1 and m2, so these cannot share a slot.
+    assert m1.scheduled_time != m2.scheduled_time
+
+    # Parallelism should still happen for disjoint participants.
+    unique_slots = {m1.scheduled_time, m2.scheduled_time, m3.scheduled_time}
+    assert len(unique_slots) == 2
+
+    conflicts = TOCBracketsService._detect_schedule_conflicts([m1, m2, m3])
+    assert conflicts == []
+
+
+@pytest.mark.django_db
+def test_generate_bracket_group_playoff_blocks_before_group_matches_exist(
+    tournament,
+    organizer,
+    drawn_group_stage,
+):
+    with pytest.raises(ValueError, match="group-stage matches are generated"):
+        TOCBracketsService.generate_bracket(
+            tournament,
+            organizer,
+            {"seeding_method": "group_standings"},
+        )
+
+
+@pytest.mark.django_db
+def test_generate_bracket_group_playoff_uses_cross_group_seeding(tournament, organizer):
+    teams = [
+        Team.objects.create(
+            name=f"Playoff Team {i}",
+            tag=f"P{i}",
+            slug=f"playoff-team-{i}",
+            game=tournament.game.slug,
+        )
+        for i in range(1, 5)
+    ]
+
+    stage = GroupStageService.create_groups(
+        tournament_id=tournament.id,
+        num_groups=2,
+        group_size=2,
+        advancement_count_per_group=2,
+    )
+    GroupStageService.auto_balance_groups(
+        stage_id=stage.id,
+        participant_ids=[team.id for team in teams],
+        is_team=True,
+    )
+    GroupStageService.generate_group_matches(stage.id, rounds=1)
+
+    groups = list(Group.objects.filter(tournament=tournament, is_deleted=False).order_by("display_order"))
+    assert len(groups) == 2
+
+    group_a_match = Match.objects.get(
+        tournament=tournament,
+        bracket__isnull=True,
+        lobby_info__group_id=groups[0].id,
+    )
+    group_b_match = Match.objects.get(
+        tournament=tournament,
+        bracket__isnull=True,
+        lobby_info__group_id=groups[1].id,
+    )
+
+    # Force deterministic final tables: participant1 wins in each group.
+    for match in (group_a_match, group_b_match):
+        match.participant1_score = 2
+        match.participant2_score = 0
+        match.winner_id = match.participant1_id
+        match.loser_id = match.participant2_id
+        match.state = Match.COMPLETED
+        match.completed_at = timezone.now()
+        match.save(
+            update_fields=[
+                "participant1_score",
+                "participant2_score",
+                "winner_id",
+                "loser_id",
+                "state",
+                "completed_at",
+            ]
+        )
+
+    TOCBracketsService.generate_bracket(
+        tournament,
+        organizer,
+        {"seeding_method": "group_standings"},
+    )
+
+    bracket = Bracket.objects.get(tournament=tournament)
+    round_one_nodes = list(
+        BracketNode.objects.filter(bracket=bracket, round_number=1).order_by("match_number_in_round")
+    )
+    assert len(round_one_nodes) == 2
+
+    expected_pair_a = frozenset({group_a_match.participant1_id, group_b_match.participant2_id})
+    expected_pair_b = frozenset({group_b_match.participant1_id, group_a_match.participant2_id})
+    actual_pairs = {
+        frozenset({node.participant1_id, node.participant2_id})
+        for node in round_one_nodes
+    }
+    assert actual_pairs == {expected_pair_a, expected_pair_b}
+
+
+@pytest.mark.django_db
+def test_draw_groups_respects_notify_toggle(tournament, organizer, monkeypatch):
+    GroupStageService.create_groups(
+        tournament_id=tournament.id,
+        num_groups=2,
+        group_size=2,
+        advancement_count_per_group=1,
+    )
+
+    fired_events = []
+
+    def _fake_draw_groups(*args, **kwargs):
+        return None
+
+    def _fake_fire_auto_event(_tournament, event, context=None):
+        fired_events.append((event, context or {}))
+
+    monkeypatch.setattr(GroupStageService, "draw_groups", staticmethod(_fake_draw_groups))
+
+    monkeypatch.setattr(
+        "apps.tournaments.api.toc.notifications_service.TOCNotificationsService.fire_auto_event",
+        _fake_fire_auto_event,
+    )
+
+    TOCBracketsService.draw_groups(
+        tournament,
+        {"method": "random", "notify_participants": False},
+        organizer,
+    )
+    assert fired_events == []
+
+    stage = GroupStage.objects.get(tournament=tournament)
+    stage.state = "pending"
+    stage.save(update_fields=["state"])
+
+    TOCBracketsService.draw_groups(
+        tournament,
+        {"method": "random", "notify_participants": True, "force_email": True},
+        organizer,
+    )
+    assert len(fired_events) == 1
+    assert fired_events[0][0] == "group_draw_complete"
+    assert fired_events[0][1].get("force_email") is True
+
+
+@pytest.mark.django_db
+def test_auto_schedule_fires_schedule_generated_event_when_enabled(tournament, organizer, monkeypatch):
+    Match.objects.create(
+        tournament=tournament,
+        round_number=1,
+        match_number=1,
+        participant1_id=101,
+        participant1_name="Alpha",
+        participant2_id=102,
+        participant2_name="Bravo",
+        state=Match.SCHEDULED,
+    )
+
+    fired_events = []
+
+    def _fake_fire_auto_event(_tournament, event, context=None):
+        fired_events.append((event, context or {}))
+
+    monkeypatch.setattr(
+        "apps.tournaments.api.toc.notifications_service.TOCNotificationsService.fire_auto_event",
+        _fake_fire_auto_event,
+    )
+
+    result = TOCBracketsService.auto_schedule(
+        tournament,
+        {
+            "start_time": timezone.now().isoformat(),
+            "match_duration_minutes": 30,
+            "break_minutes": 5,
+            "max_concurrent": 1,
+            "round_break_minutes": 0,
+            "notify_participants": True,
+            "force_email": True,
+        },
+        organizer,
+    )
+
+    assert result["scheduled"] == 1
+    assert result["notified_participants"] is True
+    assert len(fired_events) == 1
+    assert fired_events[0][0] == "schedule_generated"
+    assert fired_events[0][1].get("force_email") is True
+
+
+@pytest.mark.django_db
+def test_send_match_reminders_targets_upcoming_registered_participants(
+    tournament,
+    organizer,
+    monkeypatch,
+):
+    player_one = User.objects.create_user(
+        username="reminder-player-1",
+        email="reminder-player-1@test.com",
+        password="pass123",
+    )
+    player_two = User.objects.create_user(
+        username="reminder-player-2",
+        email="reminder-player-2@test.com",
+        password="pass123",
+    )
+
+    Registration.objects.create(
+        tournament=tournament,
+        user=player_one,
+        status=Registration.CONFIRMED,
+        registration_data={},
+    )
+    Registration.objects.create(
+        tournament=tournament,
+        user=player_two,
+        status=Registration.CONFIRMED,
+        registration_data={},
+    )
+
+    Match.objects.create(
+        tournament=tournament,
+        round_number=1,
+        match_number=1,
+        participant1_id=player_one.id,
+        participant1_name=player_one.username,
+        participant2_id=player_two.id,
+        participant2_name=player_two.username,
+        state=Match.SCHEDULED,
+        scheduled_time=timezone.now() + timedelta(minutes=20),
+    )
+
+    fired_events = []
+
+    def _fake_fire_auto_event(_tournament, event, context=None):
+        fired_events.append((event, context or {}))
+
+    monkeypatch.setattr(
+        "apps.tournaments.api.toc.notifications_service.TOCNotificationsService.fire_auto_event",
+        _fake_fire_auto_event,
+    )
+
+    result = TOCBracketsService.send_match_reminders(
+        tournament,
+        {"minutes_ahead": 30, "force_email": True},
+        organizer,
+    )
+
+    assert result["reminders_sent"] == 1
+    assert result["recipients_notified"] == 2
+    assert len(fired_events) == 1
+    assert fired_events[0][0] == "match_ready"
+    assert sorted(fired_events[0][1].get("target_user_ids", [])) == sorted([player_one.id, player_two.id])
+

@@ -1148,8 +1148,16 @@
       variant: 'warning',
       onConfirm: async function () {
         try {
-          await API.post('groups/draw/', { method: 'random' });
+          var notifyParticipants = window.confirm('Do you want to notify all participants via email/app that the group draw is complete?');
+          await API.post('groups/draw/', {
+            method: 'random',
+            notify_participants: notifyParticipants,
+            force_email: notifyParticipants,
+          });
           toast('Groups drawn successfully', 'success');
+          if (notifyParticipants) {
+            toast('Participants were notified via app/email.', 'info');
+          }
           toast('Next step: generate round-robin matches for each group.', 'info');
           refreshGroups();
         } catch (e) { toast(parseError(e), 'error'); }

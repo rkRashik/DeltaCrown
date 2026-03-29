@@ -491,10 +491,13 @@
             <span class="font-mono">${time}</span>
             ${duration ? '<span class="text-dc-text/40">· ' + duration + '</span>' : ''}
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-2">
+            ${canReschedule(m)
+              ? (m.scheduled_time
+                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded-md border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded-md border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+              : ''}
             ${m.stream_url ? '<a href="' + _esc(m.stream_url) + '" target="_blank" class="text-dc-danger hover:text-white transition-colors" title="Watch Stream"><i data-lucide="tv" class="w-3.5 h-3.5"></i></a>' : ''}
-            ${canReschedule(m) && !m.scheduled_time ? '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="text-[9px] text-green-400 hover:text-green-300 transition-colors opacity-0 group-hover:opacity-100" title="Schedule Match"><i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i></button>' : ''}
-            ${canReschedule(m) ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="text-[9px] text-dc-text hover:text-theme transition-colors opacity-0 group-hover:opacity-100" title="Reschedule"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i></button>' : ''}
           </div>
         </div>
       </div>`;
@@ -568,9 +571,12 @@
         <td class="px-3 py-3"><span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${si.color}">${si.label}</span></td>
         <td class="px-3 py-3 font-mono text-[10px] text-dc-text">${time}</td>
         <td class="px-3 py-3 text-center">
-          <div class="flex items-center justify-center gap-1">
-            ${canReschedule(m) && !m.scheduled_time ? '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="p-1 text-green-400 hover:text-green-300 transition-colors rounded" title="Schedule Match"><i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i></button>' : ''}
-            ${canReschedule(m) ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="p-1 text-dc-text hover:text-theme transition-colors rounded" title="Reschedule"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i></button>' : ''}
+          <div class="flex items-center justify-center gap-1.5">
+            ${canReschedule(m)
+              ? (m.scheduled_time
+                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+              : ''}
             ${m.stream_url ? '<a href="' + _esc(m.stream_url) + '" target="_blank" class="p-1 text-dc-text hover:text-dc-danger transition-colors" title="Stream"><i data-lucide="tv" class="w-3.5 h-3.5"></i></a>' : ''}
             <button onclick="TOC.navigate('matches')" class="p-1 text-dc-text hover:text-white transition-colors rounded" title="View Match Detail"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></button>
           </div>
@@ -697,10 +703,13 @@
           <span class="font-mono font-bold text-dc-text">${m.participant1_score ?? '—'} : ${m.participant2_score ?? '—'}</span>
           <span class="text-dc-textBright truncate max-w-[100px] text-right">${_esc(m.participant2_name || 'TBD')}</span>
         </div>
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <span class="text-[9px] font-mono text-dc-text">${timeOnly}</span>
-          ${canReschedule(m) && !m.scheduled_time ? '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="text-[9px] text-green-400 hover:text-green-300 transition-colors opacity-0 group-hover:opacity-100" title="Schedule"><i data-lucide="calendar-plus" class="w-3 h-3"></i></button>' : ''}
-          ${canReschedule(m) ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="text-[9px] text-dc-text hover:text-theme transition-colors opacity-0 group-hover:opacity-100"><i data-lucide="edit-3" class="w-3 h-3"></i></button>' : ''}
+          ${canReschedule(m)
+            ? (m.scheduled_time
+              ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+              : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+            : ''}
         </div>
       </div>`;
   }
@@ -955,6 +964,29 @@
     toast('Downloading schedule as .ics calendar file…', 'success');
   }
 
+  async function sendReminders() {
+    const rawWindow = window.prompt('Send reminders for matches starting within how many minutes?', '45');
+    if (rawWindow === null) return;
+
+    const minutesAhead = parseInt(rawWindow, 10);
+    if (!Number.isFinite(minutesAhead) || minutesAhead < 1 || minutesAhead > 240) {
+      toast('Please enter a value between 1 and 240 minutes.', 'error');
+      return;
+    }
+
+    const forceEmail = window.confirm('Send reminders via both in-app notifications and email?');
+
+    try {
+      const result = await API.post('schedule/send-reminders/', {
+        minutes_ahead: minutesAhead,
+        force_email: forceEmail,
+      });
+      toast(result?.message || 'Reminders sent', 'success');
+    } catch (e) {
+      toast(e.message || 'Failed to send reminders', 'error');
+    }
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    *  User Guide / Help Panel
    * ═══════════════════════════════════════════════════════════════ */
@@ -994,7 +1026,7 @@
               <span class="w-6 h-6 rounded-lg bg-theme/20 flex items-center justify-center text-[10px] font-black text-theme">3</span>
               <h4 class="text-sm font-bold text-white">Manual Scheduling</h4>
             </div>
-            <p class="text-[10px] text-dc-text leading-relaxed">Click the <i data-lucide="calendar-plus" class="w-3 h-3 inline text-green-400"></i> icon on any match card to set a specific time. You can also set a check-in window so players get notified before the match.</p>
+            <p class="text-[10px] text-dc-text leading-relaxed">Use the visible <strong class="text-white">Schedule</strong> or <strong class="text-white">Edit Time</strong> button on each match card/row to set a specific kickoff. You can also set a check-in window so players get notified before the match.</p>
           </div>
 
           <div class="bg-dc-panel border border-dc-borderLight rounded-xl p-4">
@@ -1079,23 +1111,31 @@
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Start Date & Time</label>
           <input id="as-start" type="datetime-local" value="${defaultStart}" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Match Duration</label>
-            <div class="relative">
-              <input id="as-duration" type="number" value="60" min="5" max="480" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 pr-12 text-white text-xs focus:border-theme outline-none">
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-dc-text">min</span>
+            <div class="flex gap-2">
+              <input id="as-duration" type="number" value="60" min="1" step="1" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
+              <select id="as-duration-unit" class="w-24 bg-dc-bg border border-dc-border rounded-lg px-2 py-2.5 text-white text-xs focus:border-theme outline-none">
+                <option value="minutes" selected>Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
             </div>
           </div>
           <div>
             <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Break Between</label>
-            <div class="relative">
-              <input id="as-break" type="number" value="15" min="0" max="120" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 pr-12 text-white text-xs focus:border-theme outline-none">
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-dc-text">min</span>
+            <div class="flex gap-2">
+              <input id="as-break" type="number" value="15" min="0" step="1" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
+              <select id="as-break-unit" class="w-24 bg-dc-bg border border-dc-border rounded-lg px-2 py-2.5 text-white text-xs focus:border-theme outline-none">
+                <option value="minutes" selected>Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
             </div>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Concurrent Matches</label>
             <input id="as-concurrent" type="number" value="${defaultConcurrent}" min="1" max="32" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
@@ -1103,9 +1143,13 @@
           </div>
           <div>
             <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Round Break</label>
-            <div class="relative">
-              <input id="as-round-break" type="number" value="30" min="0" max="480" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 pr-12 text-white text-xs focus:border-theme outline-none">
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-dc-text">min</span>
+            <div class="flex gap-2">
+              <input id="as-round-break" type="number" value="30" min="0" step="1" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
+              <select id="as-round-break-unit" class="w-24 bg-dc-bg border border-dc-border rounded-lg px-2 py-2.5 text-white text-xs focus:border-theme outline-none">
+                <option value="minutes" selected>Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
             </div>
             <p class="text-[9px] text-dc-text/60 mt-1">Extra pause between rounds</p>
           </div>
@@ -1156,10 +1200,25 @@
 
     // Live estimate calculator
     const updateEstimate = () => {
-      const dur = parseInt($('#as-duration')?.value) || 60;
-      const brk = parseInt($('#as-break')?.value) || 15;
+      const dur = convertScheduleInputToMinutes(
+        $('#as-duration')?.value,
+        $('#as-duration-unit')?.value,
+        60,
+        1,
+      );
+      const brk = convertScheduleInputToMinutes(
+        $('#as-break')?.value,
+        $('#as-break-unit')?.value,
+        15,
+        0,
+      );
       const conc = parseInt($('#as-concurrent')?.value) || 1;
-      const roundBreak = parseInt($('#as-round-break')?.value) || 30;
+      const roundBreak = convertScheduleInputToMinutes(
+        $('#as-round-break')?.value,
+        $('#as-round-break-unit')?.value,
+        30,
+        0,
+      );
       const roundVal = $('#as-round')?.value;
       const rescheduleExisting = $('#as-reschedule-existing')?.checked;
       let matchCount = 0;
@@ -1192,7 +1251,18 @@
     };
 
     setTimeout(() => {
-      ['as-duration', 'as-break', 'as-concurrent', 'as-round', 'as-round-break', 'as-start', 'as-reschedule-existing'].forEach(id => {
+      [
+        'as-duration',
+        'as-duration-unit',
+        'as-break',
+        'as-break-unit',
+        'as-concurrent',
+        'as-round',
+        'as-round-break',
+        'as-round-break-unit',
+        'as-start',
+        'as-reschedule-existing',
+      ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', updateEstimate);
         if (el) el.addEventListener('change', updateEstimate);
@@ -1205,13 +1275,32 @@
     const startVal = $('#as-start')?.value;
     if (!startVal) { toast('Start time required', 'error'); return; }
 
+    const notifyParticipants = window.confirm('Do you want to notify all participants via email/app when the schedule is generated?');
+
     const payload = {
       start_time: new Date(startVal).toISOString(),
-      match_duration_minutes: parseInt($('#as-duration')?.value) || 60,
-      break_minutes: parseInt($('#as-break')?.value) || 15,
+      match_duration_minutes: convertScheduleInputToMinutes(
+        $('#as-duration')?.value,
+        $('#as-duration-unit')?.value,
+        60,
+        1,
+      ),
+      break_minutes: convertScheduleInputToMinutes(
+        $('#as-break')?.value,
+        $('#as-break-unit')?.value,
+        15,
+        0,
+      ),
       max_concurrent: parseInt($('#as-concurrent')?.value) || 1,
-      round_break_minutes: parseInt($('#as-round-break')?.value) || 30,
+      round_break_minutes: convertScheduleInputToMinutes(
+        $('#as-round-break')?.value,
+        $('#as-round-break-unit')?.value,
+        30,
+        0,
+      ),
       reschedule_existing: !!$('#as-reschedule-existing')?.checked,
+      notify_participants: notifyParticipants,
+      force_email: notifyParticipants,
     };
 
     const roundVal = $('#as-round')?.value;
@@ -1399,6 +1488,22 @@
     } catch { return ''; }
   }
 
+  const TIME_UNIT_FACTORS = {
+    minutes: 1,
+    hours: 60,
+    days: 1440,
+  };
+
+  function convertScheduleInputToMinutes(rawValue, rawUnit, fallbackMinutes, minMinutes) {
+    const unit = TIME_UNIT_FACTORS[rawUnit] ? rawUnit : 'minutes';
+    const factor = TIME_UNIT_FACTORS[unit];
+    const parsed = Number.parseFloat(rawValue);
+    if (!Number.isFinite(parsed)) return fallbackMinutes;
+    const minutes = Math.round(parsed * factor);
+    const minAllowed = Number.isFinite(minMinutes) ? minMinutes : 0;
+    return Math.max(minAllowed, minutes);
+  }
+
   function _setText(sel, val) { const el = $(sel); if (el) el.textContent = val; }
 
   function _reinitIcons() {
@@ -1480,6 +1585,7 @@
     confirmManualSchedule,
     openUserGuide,
     exportICS,
+    sendReminders,
     closeOverlay,
   };
 

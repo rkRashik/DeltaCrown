@@ -1,0 +1,13 @@
+DELTA CROWN - TOURNAMENT OPS UPDATE
+
+{{ subject|default:"Tournament Update" }}
+
+{{ body|default:"There is a new update for your tournament." }}
+
+Tournament: {{ tournament_name|default:"DeltaCrown Event" }}
+Event: {{ event_name|default:"Lifecycle Notification" }}
+Sent: {{ generated_at|date:"F j, Y g:i A" }}
+
+{% if cta_url %}{{ cta_label|default:"Open Tournament Hub" }}: {{ cta_url }}{% endif %}
+
+You are receiving this because you are registered in this tournament on DeltaCrown.

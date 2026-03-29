@@ -1778,6 +1778,9 @@
                         <button onclick="TOC.schedule.exportICS()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Download schedule as iCalendar (.ics)">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i> Export .ics
                         </button>
+                        <button onclick="TOC.schedule.sendReminders()" data-cap-require="manage_brackets" class="px-3 py-2 bg-dc-panel border border-dc-warning/40 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1.5" title="Send reminders for upcoming matches">
+                            <i data-lucide="bell" class="w-3.5 h-3.5"></i> Notify Participants
+                        </button>
                         <button onclick="TOC.schedule.openAutoSchedule()" data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
                         </button>

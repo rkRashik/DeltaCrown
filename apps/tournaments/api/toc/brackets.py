@@ -31,6 +31,7 @@ from .serializers import (
     GroupDrawInputSerializer,
     GroupMatchGenerateInputSerializer,
     PipelineCreateInputSerializer,
+    ScheduleReminderInputSerializer,
     SeedReorderInputSerializer,
 )
 
@@ -57,8 +58,9 @@ class BracketGenerateView(TOCBaseView):
 
     def post(self, request, slug):
         try:
+            payload = request.data if isinstance(request.data, dict) else {}
             data = TOCBracketsService.generate_bracket(
-                self.tournament, request.user
+                self.tournament, request.user, payload
             )
             bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data, status=status.HTTP_201_CREATED)
@@ -255,6 +257,25 @@ class ScheduleAutoGenerateView(TOCBaseView):
         )
         bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
         return Response(data)
+
+
+class ScheduleSendRemindersView(TOCBaseView):
+    """POST /api/toc/<slug>/schedule/send-reminders/"""
+
+    def post(self, request, slug):
+        ser = ScheduleReminderInputSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            data = TOCBracketsService.send_match_reminders(
+                self.tournament,
+                ser.validated_data,
+                request.user,
+            )
+            return Response(data)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class ScheduleBulkShiftView(TOCBaseView):

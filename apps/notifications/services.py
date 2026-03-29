@@ -615,6 +615,25 @@ def _to_user_model(target: Any) -> Optional[User]:
     return None
 
 
+def _normalize_email_template_slug(template_slug: str) -> str:
+    """Accept either bare slug or full template path and normalize to slug."""
+    slug = str(template_slug or "").strip()
+    if not slug:
+        return ""
+
+    slug = slug.replace("\\", "/")
+    prefix = "notifications/email/"
+    if slug.startswith(prefix):
+        slug = slug[len(prefix):]
+
+    if slug.endswith(".html"):
+        slug = slug[:-5]
+    elif slug.endswith(".txt"):
+        slug = slug[:-4]
+
+    return slug.strip("/")
+
+
 def _send_templated_email(to_email: Optional[str], subject: str, template_slug: str, ctx: Dict[str, Any]) -> bool:
     """
     Render & send multipart email:
@@ -624,14 +643,18 @@ def _send_templated_email(to_email: Optional[str], subject: str, template_slug: 
     
     PHASE 5B: This function should only be called after enforcement checks pass.
     """
-    if not to_email:
+    if not to_email or not template_slug:
         return False
+    normalized_slug = _normalize_email_template_slug(template_slug)
+    if not normalized_slug:
+        return False
+
     try:
-        txt = render_to_string(f"notifications/email/{template_slug}.txt", ctx)
+        txt = render_to_string(f"notifications/email/{normalized_slug}.txt", ctx)
     except TemplateDoesNotExist:
         return False
     try:
-        html = render_to_string(f"notifications/email/{template_slug}.html", ctx)
+        html = render_to_string(f"notifications/email/{normalized_slug}.html", ctx)
     except TemplateDoesNotExist:
         html = None
 

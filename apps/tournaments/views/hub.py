@@ -1038,6 +1038,48 @@ def _json_response(payload, status=200, cache_control=None):
     return resp
 
 
+def _group_projection_token(group_name: str) -> str:
+    """Convert group names into compact projection labels (e.g. Group A -> A)."""
+    raw = str(group_name or '').strip()
+    if not raw:
+        return ''
+
+    lower = raw.lower()
+    if lower.startswith('group '):
+        token = raw[6:].strip()
+        if token:
+            return token
+
+    return raw
+
+
+def _build_projected_cross_match_pairs(groups) -> list[dict[str, str]]:
+    """Build projected seeding placeholders for adjacent group cross-matches."""
+    pairs: list[dict[str, str]] = []
+    if not groups or len(groups) < 2:
+        return pairs
+
+    ordered = sorted(groups, key=lambda group: (group.display_order, group.id))
+    for idx in range(0, len(ordered), 2):
+        if idx + 1 >= len(ordered):
+            break
+
+        group_a = ordered[idx]
+        group_b = ordered[idx + 1]
+        token_a = _group_projection_token(group_a.name)
+        token_b = _group_projection_token(group_b.name)
+        if not token_a or not token_b:
+            continue
+
+        pairs.append({'p1_label': f'{token_a}1', 'p2_label': f'{token_b}2'})
+
+        # Only render runner-up cross-match when both groups advance >= 2.
+        if min(int(group_a.advancement_count or 0), int(group_b.advancement_count or 0)) >= 2:
+            pairs.append({'p1_label': f'{token_b}1', 'p2_label': f'{token_a}2'})
+
+    return pairs
+
+
 # ────────────────────────────────────────────────────────────
 # Views
 # ────────────────────────────────────────────────────────────
@@ -1668,8 +1710,9 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         except Bracket.DoesNotExist:
             bracket = None
 
-        groups_qs = Group.objects.filter(tournament=tournament, is_deleted=False)
-        has_groups = groups_qs.exists()
+        groups_qs = Group.objects.filter(tournament=tournament, is_deleted=False).order_by('display_order', 'id')
+        group_rows = list(groups_qs)
+        has_groups = len(group_rows) > 0
         groups_drawn = False
         if has_groups:
             groups_drawn = GroupStanding.objects.filter(
@@ -1677,6 +1720,9 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 group__is_deleted=False,
                 is_deleted=False,
             ).exists()
+        projected_pairs = []
+        if tournament.format == Tournament.GROUP_PLAYOFF and has_groups:
+            projected_pairs = _build_projected_cross_match_pairs(group_rows)
 
         # Build rounds data from matches
         matches_qs = Match.objects.filter(
@@ -1719,6 +1765,8 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'groups_drawn': groups_drawn,
                     'status': group_status,
                     'message': group_message,
+                    'projected_seeding_pairs': projected_pairs,
+                    'projected_seeding_title': 'Projected Seeding (Cross-Match)' if projected_pairs else '',
                 },
             }, cache_control='private, max-age=15')
 
@@ -1847,6 +1895,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             )
 
         group_stage_payload = None
+        group_context_payload = None
         if bracket is None:
             groups_payload = []
             for section in sorted(
@@ -1867,6 +1916,30 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 'groups': groups_payload,
             }
 
+            terminal_states = {
+                Match.COMPLETED,
+                Match.FORFEIT,
+                Match.CANCELLED,
+            }
+            legacy_no_show = getattr(Match, 'NO_SHOW', None)
+            if legacy_no_show:
+                terminal_states.add(legacy_no_show)
+
+            all_group_matches_complete = bool(matches) and all(m.state in terminal_states for m in matches)
+            if has_groups and tournament.format == Tournament.GROUP_PLAYOFF:
+                group_context_payload = {
+                    'has_groups': has_groups,
+                    'groups_drawn': groups_drawn,
+                    'status': 'group_stage_complete' if all_group_matches_complete else 'group_stage_active',
+                    'message': (
+                        'Group stage complete. Playoff bracket generation is ready.'
+                        if all_group_matches_complete
+                        else 'Group stage is active. Playoff bracket slots are projected from current group ordering.'
+                    ),
+                    'projected_seeding_pairs': projected_pairs,
+                    'projected_seeding_title': 'Projected Seeding (Cross-Match)' if projected_pairs else '',
+                }
+
         response_payload = {
             'generated': True,
             'generated_mode': 'bracket' if bracket is not None else 'group_stage',
@@ -1879,6 +1952,8 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         }
         if group_stage_payload is not None:
             response_payload['group_stage'] = group_stage_payload
+        if group_context_payload is not None:
+            response_payload['group_context'] = group_context_payload
 
         return _json_response(response_payload, cache_control='private, max-age=15')
 

@@ -26,8 +26,20 @@ class TOCNotificationsService:
         notif_config = config.get("notifications", {})
 
         templates = notif_config.get("templates", TOCNotificationsService._default_templates())
+        if templates:
+            template_ids = {str(t.get("id")) for t in templates}
+            templates = list(templates) + [
+                t for t in TOCNotificationsService._default_templates()
+                if str(t.get("id")) not in template_ids
+            ]
         scheduled = notif_config.get("scheduled", [])
         auto_rules = notif_config.get("auto_rules", TOCNotificationsService._default_auto_rules())
+        if auto_rules:
+            existing_events = {str(r.get("event")) for r in auto_rules}
+            auto_rules = list(auto_rules) + [
+                r for r in TOCNotificationsService._default_auto_rules()
+                if str(r.get("event")) not in existing_events
+            ]
         channels = notif_config.get("channels", {"in_app": True, "email": False, "discord": False})
         log = notif_config.get("log", [])
 
@@ -63,9 +75,9 @@ class TOCNotificationsService:
         return [
             {
                 "id": "match_ready",
-                "name": "Match Ready",
-                "subject": "Your match is ready!",
-                "body": "Your match in {tournament_name} is ready. Head to the match room now.",
+                "name": "Match Reminder",
+                "subject": "Your match is starting soon",
+                "body": "Your match is starting soon in {tournament_name}. Be ready to play.",
                 "trigger": "match_ready",
                 "enabled": True,
             },
@@ -121,8 +133,16 @@ class TOCNotificationsService:
                 "id": "group_draw_complete",
                 "name": "Group Draw Complete",
                 "subject": "Group Draw Complete",
-                "body": "The group draw for {tournament_name} is complete. Check your group assignment.",
+                "body": "The groups have been drawn for {tournament_name}. Check your group assignment.",
                 "trigger": "group_draw_complete",
+                "enabled": True,
+            },
+            {
+                "id": "schedule_generated",
+                "name": "Schedule Generated",
+                "subject": "Match schedule is live",
+                "body": "The match schedule is live for {tournament_name}. Check your upcoming match times.",
+                "trigger": "schedule_generated",
                 "enabled": True,
             },
             {
@@ -147,6 +167,7 @@ class TOCNotificationsService:
             {"id": "auto_bracket_generated", "event": "bracket_generated", "template_id": "bracket_generated", "enabled": True},
             {"id": "auto_bracket_published", "event": "bracket_published", "template_id": "bracket_published", "enabled": True},
             {"id": "auto_group_draw", "event": "group_draw_complete", "template_id": "group_draw_complete", "enabled": True},
+            {"id": "auto_schedule_generated", "event": "schedule_generated", "template_id": "schedule_generated", "enabled": True},
         ]
 
     @staticmethod
@@ -218,7 +239,15 @@ class TOCNotificationsService:
         subject = data.get("subject", "")
         body = data.get("body", "")
         target = data.get("target", "all")  # all, team_id, user_ids
+        event_name = str(data.get("event") or "tournament_update")
+        notification_url = data.get("url") or f"/tournaments/{tournament.slug}/hub/"
         force_email = bool(data.get("force_email", False))
+        dedupe = bool(data.get("dedupe", False))
+        email_template = data.get("email_template") or "notifications/email/tournament_update.html"
+        email_subject = data.get("email_subject") or subject
+        email_cta_label = data.get("email_cta_label") or "View Tournament Hub"
+        context_values = data.get("context") if isinstance(data.get("context"), dict) else {}
+        extra_email_ctx = data.get("email_ctx") if isinstance(data.get("email_ctx"), dict) else {}
 
         # Determine template
         if template_id:
@@ -227,10 +256,19 @@ class TOCNotificationsService:
             if tmpl:
                 subject = subject or tmpl["subject"]
                 body = body or tmpl["body"]
+                email_subject = email_subject or tmpl["subject"]
 
         # Replace placeholders
-        body = body.replace("{tournament_name}", tournament.name)
-        subject = subject.replace("{tournament_name}", tournament.name)
+        placeholders = {
+            "tournament_name": tournament.name,
+            "event_name": event_name.replace("_", " ").title(),
+            **context_values,
+        }
+        for key, value in placeholders.items():
+            body = body.replace("{" + key + "}", str(value))
+            subject = subject.replace("{" + key + "}", str(value))
+
+        email_subject = (email_subject or subject).replace("{tournament_name}", tournament.name)
 
         recipient_users_qs = User.objects.none()
         if target and target != "all":
@@ -265,8 +303,10 @@ class TOCNotificationsService:
         log = notif_config.get("log", [])
         entry = {
             "id": f"notif-{uuid.uuid4().hex[:8]}",
+            "event": event_name,
             "subject": subject,
             "body": body[:200],
+            "url": notification_url,
             "target": str(target),
             "recipient_count": recipient_count,
             "sent_at": timezone.now().isoformat(),
@@ -287,19 +327,24 @@ class TOCNotificationsService:
                 emit_kwargs = {
                     "title": subject,
                     "body": body,
-                    "event": "tournament_update",
+                    "event": event_name,
                     "tournament": tournament,
-                    "url": f"/tournaments/{tournament.slug}/hub/",
-                    "dedupe": False,
+                    "url": notification_url,
+                    "dedupe": dedupe,
                 }
                 # Only include email params if email channel is enabled
                 if channels.get("email", False) or force_email:
-                    emit_kwargs["email_subject"] = subject
-                    emit_kwargs["email_template"] = "notifications/email/tournament_update.html"
+                    emit_kwargs["email_subject"] = email_subject
+                    emit_kwargs["email_template"] = email_template
                     emit_kwargs["email_ctx"] = {
                         "tournament_name": tournament.name,
                         "subject": subject,
                         "body": body,
+                        "event_name": event_name.replace("_", " ").title(),
+                        "cta_url": notification_url,
+                        "cta_label": email_cta_label,
+                        "generated_at": timezone.now(),
+                        **extra_email_ctx,
                     }
                 notify_emit(recipient_users, **emit_kwargs)
                 logger.info("Dispatched notification '%s' to %d users via emit()", subject, len(recipient_users))
@@ -309,9 +354,10 @@ class TOCNotificationsService:
         # ── Also dispatch to Discord webhook (announcements) ──
         try:
             from apps.tournaments.services.discord_webhook import DiscordWebhookService
-            DiscordWebhookService.send_event_async(tournament, 'announcement', {
+            DiscordWebhookService.send_event_async(tournament, event_name, {
                 'subject': subject,
                 'body': body,
+                'url': notification_url,
             })
         except Exception as e:
             logger.warning("Discord webhook dispatch failed for announcement: %s", e)
@@ -428,16 +474,56 @@ class TOCNotificationsService:
             config = tournament.config or {}
             notif_config = config.get("notifications", {})
 
-            # Get auto-rules — fall back to defaults
-            auto_rules = notif_config.get("auto_rules", cls._default_auto_rules())
-            templates = notif_config.get("templates", cls._default_templates())
+            # Get auto-rules/templates and backfill missing defaults for legacy configs.
+            default_rules = cls._default_auto_rules()
+            stored_rules = notif_config.get("auto_rules") or []
+            if stored_rules:
+                existing_events = {str(r.get("event")) for r in stored_rules}
+                auto_rules = list(stored_rules) + [
+                    r for r in default_rules
+                    if str(r.get("event")) not in existing_events
+                ]
+            else:
+                auto_rules = default_rules
+
+            default_templates = cls._default_templates()
+            stored_templates = notif_config.get("templates") or []
+            if stored_templates:
+                existing_template_ids = {str(t.get("id")) for t in stored_templates}
+                templates = list(stored_templates) + [
+                    t for t in default_templates
+                    if str(t.get("id")) not in existing_template_ids
+                ]
+            else:
+                templates = default_templates
 
             # Find matching enabled rule for this event
             matching_rules = [r for r in auto_rules if r.get("event") == event and r.get("enabled", True)]
             if not matching_rules:
                 return  # No rule for this event, skip silently
 
-            ctx = context or {}
+            ctx = dict(context or {})
+            target_user_ids = ctx.pop("target_user_ids", None)
+            target_override = ctx.pop("target", None)
+            target = target_user_ids if isinstance(target_user_ids, list) else target_override
+            if target is None:
+                target = "all"
+
+            force_email = bool(ctx.pop("force_email", False))
+            dedupe = bool(ctx.pop("dedupe", False))
+            notification_url = ctx.pop("url", f"/tournaments/{tournament.slug}/hub/")
+            email_template = ctx.pop("email_template", "notifications/email/tournament_update.html")
+            email_cta_label = ctx.pop("email_cta_label", "View Tournament Hub")
+            email_ctx = ctx.pop("email_ctx", {})
+            if not isinstance(email_ctx, dict):
+                email_ctx = {}
+
+            # Explicit empty audience means do not dispatch this event.
+            if isinstance(target, list) and not target:
+                return
+
+            sent_subject = ""
+            sent_body = ""
             for rule in matching_rules:
                 template_id = rule.get("template_id")
                 tmpl = next((t for t in templates if t.get("id") == template_id and t.get("enabled", True)), None)
@@ -460,18 +546,32 @@ class TOCNotificationsService:
                     subject = subject.replace("{" + key + "}", str(val))
 
                 cls.send_notification(tournament, {
+                    "event": event,
                     "subject": subject,
                     "body": body,
-                    "target": "all",
+                    "target": target,
+                    "url": notification_url,
+                    "force_email": force_email,
+                    "dedupe": dedupe,
+                    "email_template": email_template,
+                    "email_cta_label": email_cta_label,
+                    "context": ctx,
+                    "email_ctx": {
+                        **email_ctx,
+                        "notification_rule": rule.get("id", ""),
+                    },
                 })
+                sent_subject = subject
+                sent_body = body
                 logger.info("Auto-notification fired: event=%s, template=%s for %s", event, template_id, tournament.slug)
 
             # ── Also dispatch to Discord webhook async (if configured) ──
             try:
                 from apps.tournaments.services.discord_webhook import DiscordWebhookService
                 discord_ctx = dict(ctx) if ctx else {}
-                discord_ctx['subject'] = subject if 'subject' not in discord_ctx else discord_ctx['subject']
-                discord_ctx['body'] = body if 'body' not in discord_ctx else discord_ctx['body']
+                discord_ctx['subject'] = sent_subject if 'subject' not in discord_ctx else discord_ctx['subject']
+                discord_ctx['body'] = sent_body if 'body' not in discord_ctx else discord_ctx['body']
+                discord_ctx['url'] = notification_url if 'url' not in discord_ctx else discord_ctx['url']
                 DiscordWebhookService.send_event_async(tournament, event, discord_ctx)
             except Exception as discord_err:
                 logger.warning("Discord webhook dispatch failed for %s/%s: %s", tournament.slug, event, discord_err)

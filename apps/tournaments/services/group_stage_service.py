@@ -660,7 +660,7 @@ class GroupStageService:
             standings = GroupStanding.objects.filter(
                 group=group,
                 is_deleted=False
-            ).order_by('rank').select_related('team', 'user')
+            ).order_by('rank').select_related('user')
             
             # Get top N based on advancement_count
             advancement_count = group.advancement_count

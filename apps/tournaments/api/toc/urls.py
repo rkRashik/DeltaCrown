@@ -113,6 +113,7 @@ urlpatterns = [
     path('<slug:slug>/schedule/', brackets.ScheduleGetView.as_view(), name='schedule'),
     path('<slug:slug>/schedule/export.ics', brackets.ScheduleExportICSView.as_view(), name='schedule-export-ics'),
     path('<slug:slug>/schedule/auto-generate/', brackets.ScheduleAutoGenerateView.as_view(), name='schedule-auto-generate'),
+    path('<slug:slug>/schedule/send-reminders/', brackets.ScheduleSendRemindersView.as_view(), name='schedule-send-reminders'),
     path('<slug:slug>/schedule/bulk-shift/', brackets.ScheduleBulkShiftView.as_view(), name='schedule-bulk-shift'),
     path('<slug:slug>/schedule/add-break/', brackets.ScheduleAddBreakView.as_view(), name='schedule-add-break'),
     path('<slug:slug>/schedule/<int:pk>/reschedule/', brackets.ScheduleRescheduleMatchView.as_view(), name='schedule-reschedule-match'),

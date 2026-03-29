@@ -600,7 +600,7 @@ class TournamentService:
             >>> bracket = TournamentService.transition_to_knockout_stage(tournament_id=123)
             >>> print(f"Knockout bracket created with {bracket.participant_count} participants")
         """
-        from apps.tournaments.models import Match, Group
+        from apps.tournaments.models import Match, Group, GroupStage
         from apps.tournaments.services.group_stage_service import GroupStageService
         from apps.tournaments.services.bracket_service import BracketService
         
@@ -624,15 +624,29 @@ class TournamentService:
                 f"Tournament '{tournament.name}' is already in knockout stage"
             )
         
-        # Ensure all group stage matches are completed
-        # Group stage matches have bracket=NULL
-        incomplete_matches = Match.objects.filter(
+        # Ensure group-stage matches have been generated and all are finished.
+        # Group-stage matches have bracket=NULL.
+        group_stage_matches = Match.objects.filter(
             tournament=tournament,
             bracket__isnull=True,  # Group stage matches
             is_deleted=False
-        ).exclude(
-            state__in=[Match.COMPLETED, Match.CANCELLED, Match.NO_SHOW]
         )
+
+        if not group_stage_matches.exists():
+            raise ValidationError(
+                "Cannot transition to knockout stage before group-stage matches are generated."
+            )
+
+        terminal_states = {
+            Match.COMPLETED,
+            Match.FORFEIT,
+            Match.CANCELLED,
+        }
+        legacy_no_show = getattr(Match, "NO_SHOW", None)
+        if legacy_no_show:
+            terminal_states.add(legacy_no_show)
+
+        incomplete_matches = group_stage_matches.exclude(state__in=list(terminal_states))
         
         if incomplete_matches.exists():
             count = incomplete_matches.count()
@@ -658,16 +672,24 @@ class TournamentService:
             f"Recalculating standings for {groups.count()} groups in tournament '{tournament.name}'"
         )
         
-        for group in groups:
+        group_stage = GroupStage.objects.filter(tournament=tournament).first()
+        if group_stage:
             try:
-                GroupStageService.calculate_standings(
-                    group_id=group.id,
-                    game_slug=tournament.game.slug
-                )
+                GroupStageService.calculate_group_standings(group_stage.id)
             except Exception as e:
-                raise ValidationError(
-                    f"Failed to calculate standings for {group.name}: {str(e)}"
-                )
+                raise ValidationError(f"Failed to calculate group standings: {str(e)}")
+        else:
+            # Legacy fallback for datasets without GroupStage rows.
+            for group in groups:
+                try:
+                    GroupStageService.calculate_standings(
+                        group_id=group.id,
+                        game_slug=tournament.game.slug
+                    )
+                except Exception as e:
+                    raise ValidationError(
+                        f"Failed to calculate standings for {group.name}: {str(e)}"
+                    )
         
         # Generate knockout bracket from group results
         logger.info(f"Generating knockout bracket for tournament '{tournament.name}'")
@@ -677,7 +699,7 @@ class TournamentService:
             config = tournament.config or {}
             knockout_config = config.get("knockout_config", {})
             bracket_format = knockout_config.get("format", "single-elimination")
-            seeding_method = knockout_config.get("seeding_method", "ranked")
+            seeding_method = knockout_config.get("seeding_method", "group_standings")
             
             bracket = BracketService.generate_knockout_from_groups(
                 tournament_id=tournament_id,
@@ -688,7 +710,7 @@ class TournamentService:
             raise ValidationError(f"Failed to generate knockout bracket: {str(e)}")
         
         # Update tournament stage tracking
-        tournament.set_current_stage(Tournament.STAGE_KNOCKOUT, save=False)
+        tournament.set_current_stage(Tournament.STAGE_KNOCKOUT, save=True)
         
         # Add stage history entries
         tournament.add_stage_history_entry(
@@ -703,10 +725,16 @@ class TournamentService:
             started_at=timezone.now().isoformat(),
             bracket_id=bracket.id
         )
+
+        # Ensure current_stage remains stamped after history updates.
+        config = tournament.config or {}
+        config["current_stage"] = Tournament.STAGE_KNOCKOUT
+        tournament.config = config
+        tournament.save(update_fields=["config"])
         
         logger.info(
             f"Tournament '{tournament.name}' transitioned to knockout stage. "
-            f"Bracket ID: {bracket.id}, Participants: {bracket.participant_count}"
+            f"Bracket ID: {bracket.id}, Participants: {bracket.total_participants}"
         )
         
         # Notify participants who advanced to the knockout stage (Module 2.x)

@@ -484,6 +484,8 @@ class GroupDrawInputSerializer(serializers.Serializer):
         choices=['random', 'seeded', 'manual'],
         default='random',
     )
+    notify_participants = serializers.BooleanField(required=False, default=True)
+    force_email = serializers.BooleanField(required=False, default=True)
 
 
 class GroupMatchGenerateInputSerializer(serializers.Serializer):
@@ -515,7 +517,18 @@ class AutoScheduleInputSerializer(serializers.Serializer):
     match_duration_minutes = serializers.IntegerField(default=30, min_value=5)
     break_minutes = serializers.IntegerField(default=10, min_value=0)
     max_concurrent = serializers.IntegerField(default=1, min_value=1)
+    round_break_minutes = serializers.IntegerField(default=30, min_value=0)
     round_number = serializers.IntegerField(required=False, allow_null=True)
+    reschedule_existing = serializers.BooleanField(required=False, default=False)
+    notify_participants = serializers.BooleanField(required=False, default=True)
+    force_email = serializers.BooleanField(required=False, default=True)
+
+
+class ScheduleReminderInputSerializer(serializers.Serializer):
+    """Input for sending reminders to participants for upcoming matches."""
+    minutes_ahead = serializers.IntegerField(required=False, default=30, min_value=1, max_value=240)
+    include_live = serializers.BooleanField(required=False, default=False)
+    force_email = serializers.BooleanField(required=False, default=True)
 
 
 class BulkShiftInputSerializer(serializers.Serializer):

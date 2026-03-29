@@ -19,6 +19,7 @@ from apps.tournaments.models import (
     GroupStanding,
     Match,
     Registration,
+    Tournament,
     TournamentStage,
 )
 from apps.tournaments.models.qualifier_pipeline import (
@@ -163,24 +164,78 @@ class TOCBracketsService:
             "blocked_groups": blocked_groups,
         }
 
+    @staticmethod
+    def _registered_user_ids_for_participant_ids(tournament, participant_ids: List[int]) -> List[int]:
+        """Resolve registration user IDs for participant IDs (user IDs for solo, team IDs for team events)."""
+        ids = [int(pid) for pid in participant_ids if pid]
+        if not ids:
+            return []
+
+        regs = Registration.objects.filter(
+            tournament=tournament,
+            status__in=["confirmed", "auto_approved"],
+            is_deleted=False,
+            user__isnull=False,
+        ).filter(
+            Q(user_id__in=ids) | Q(team_id__in=ids)
+        )
+        return list(regs.values_list("user_id", flat=True).distinct())
+
+    @staticmethod
+    def _match_participant_user_ids(tournament, match: Match) -> List[int]:
+        """Resolve participant user IDs for a match from registered users."""
+        participant_ids = [match.participant1_id, match.participant2_id]
+        return TOCBracketsService._registered_user_ids_for_participant_ids(
+            tournament,
+            [pid for pid in participant_ids if pid],
+        )
+
     # ── Bracket generation / management ────────────────────────
 
     @staticmethod
-    def generate_bracket(tournament, user) -> Dict[str, Any]:
+    def generate_bracket(tournament, user, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Generate bracket from confirmed registrations + seeding.
 
         Sprint 29: Added re-generation guard — prevents accidental
         destruction of an existing bracket. Must reset first.
         """
+        data = data or {}
+
         existing = Bracket.objects.filter(tournament=tournament).first()
         if existing:
             raise ValueError(
                 "A bracket already exists. Reset the current bracket "
                 "before generating a new one."
             )
-        bracket = BracketService.generate_bracket_universal_safe(
-            tournament_id=tournament.id,
-        )
+
+        if tournament.format == Tournament.GROUP_PLAYOFF:
+            from apps.tournaments.services.tournament_service import TournamentService
+
+            requested_format = data.get("bracket_format") or data.get("format")
+            requested_seeding = data.get("seeding_method")
+
+            if requested_format or requested_seeding:
+                config = tournament.config or {}
+                knockout_config = dict(config.get("knockout_config") or {})
+                if requested_format:
+                    knockout_config["format"] = str(requested_format).replace("_", "-")
+                if requested_seeding:
+                    knockout_config["seeding_method"] = str(requested_seeding)
+                config["knockout_config"] = knockout_config
+                tournament.config = config
+                tournament.save(update_fields=["config"])
+
+            try:
+                bracket = TournamentService.transition_to_knockout_stage(tournament.id)
+            except Exception as exc:
+                raise ValueError(str(exc))
+        else:
+            bracket = BracketService.generate_bracket_universal_safe(
+                tournament_id=tournament.id,
+                bracket_format=data.get("bracket_format") or data.get("format"),
+                seeding_method=data.get("seeding_method"),
+            )
+
         # Fire auto-notification for bracket generation
         try:
             from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
@@ -503,12 +558,25 @@ class TOCBracketsService:
         # Update stage state
         stage.state = 'active'
         stage.save(update_fields=['state'])
+
+        notify_participants = bool(data.get("notify_participants", True))
+        force_email = bool(data.get("force_email", notify_participants))
+
         # Fire auto-notification for group draw completion
-        try:
-            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
-            TOCNotificationsService.fire_auto_event(tournament, "group_draw_complete")
-        except Exception:
-            pass
+        if notify_participants:
+            try:
+                from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+                TOCNotificationsService.fire_auto_event(
+                    tournament,
+                    "group_draw_complete",
+                    {
+                        "force_email": force_email,
+                        "dedupe": False,
+                        "url": f"/tournaments/{tournament.slug}/hub/",
+                    },
+                )
+            except Exception:
+                pass
         return TOCBracketsService.get_groups(tournament)
 
     @staticmethod
@@ -832,6 +900,8 @@ class TOCBracketsService:
         round_break = int(data.get("round_break_minutes", 30))
         round_filter = data.get("round_number")
         reschedule_existing = data.get("reschedule_existing", False)
+        notify_participants = bool(data.get("notify_participants", True))
+        force_email = bool(data.get("force_email", notify_participants))
 
         # Parse start time with validation
         if start_time_str:
@@ -864,45 +934,174 @@ class TOCBracketsService:
         match_delta = timedelta(minutes=match_duration + break_between)
         round_delta = timedelta(minutes=round_break)
 
-        slot_counter = 0
+        matches = list(matches)
+        matches_by_round = {}
+        for match in matches:
+            round_number = match.round_number or 0
+            matches_by_round.setdefault(round_number, []).append(match)
+
         scheduled = 0
-        prev_round = None
         round_starts = {}
 
-        for match in matches:
-            # Add round break when transitioning to a new round
-            if prev_round is not None and match.round_number != prev_round:
-                # Finish current slot row
-                if slot_counter > 0:
-                    current_time += match_delta
-                    slot_counter = 0
-                # Add round break
+        def _match_participant_ids(match_obj):
+            ids = set()
+            if match_obj.participant1_id:
+                ids.add(match_obj.participant1_id)
+            if match_obj.participant2_id:
+                ids.add(match_obj.participant2_id)
+            return ids
+
+        ordered_rounds = sorted(matches_by_round.keys())
+        for idx, round_number in enumerate(ordered_rounds):
+            round_matches = matches_by_round[round_number]
+            round_start = current_time
+            round_starts[round_number] = round_start.isoformat()
+
+            # Each slot tracks assigned participants so a participant cannot be
+            # scheduled in two concurrent matches.
+            slots = []
+
+            for match in round_matches:
+                participant_ids = _match_participant_ids(match)
+                target_slot = None
+
+                for slot in slots:
+                    if slot['count'] >= max_concurrent:
+                        continue
+                    if participant_ids and slot['participants'].intersection(participant_ids):
+                        continue
+                    target_slot = slot
+                    break
+
+                if target_slot is None:
+                    slot_start = round_start + (match_delta * len(slots))
+                    target_slot = {
+                        'start': slot_start,
+                        'count': 0,
+                        'participants': set(),
+                    }
+                    slots.append(target_slot)
+
+                match.scheduled_time = target_slot['start']
+                match.save(update_fields=["scheduled_time"])
+                scheduled += 1
+
+                target_slot['count'] += 1
+                if participant_ids:
+                    target_slot['participants'].update(participant_ids)
+
+            current_time = round_start + (match_delta * len(slots))
+            if idx < len(ordered_rounds) - 1:
                 current_time += round_delta
-                round_starts[match.round_number] = current_time.isoformat()
 
-            if prev_round is None:
-                round_starts[match.round_number] = current_time.isoformat()
+        latest_start = max(
+            (match.scheduled_time for match in matches if match.scheduled_time),
+            default=None,
+        )
+        est_end = (
+            latest_start + timedelta(minutes=match_duration)
+            if latest_start
+            else current_time
+        )
 
-            match.scheduled_time = current_time
-            match.save(update_fields=["scheduled_time"])
-            scheduled += 1
-            slot_counter += 1
+        if scheduled > 0 and notify_participants:
+            try:
+                from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
 
-            if slot_counter >= max_concurrent:
-                current_time += match_delta
-                slot_counter = 0
-
-            prev_round = match.round_number
-
-        # Compute estimated end
-        est_end = current_time + timedelta(minutes=match_duration)
+                TOCNotificationsService.fire_auto_event(
+                    tournament,
+                    "schedule_generated",
+                    {
+                        "scheduled_count": scheduled,
+                        "round_count": len(round_starts),
+                        "force_email": force_email,
+                        "dedupe": False,
+                        "url": f"/tournaments/{tournament.slug}/hub/",
+                    },
+                )
+            except Exception:
+                pass
 
         return {
             "scheduled": scheduled,
             "start_time": round_starts.get(min(round_starts.keys())) if round_starts else None,
             "estimated_end": est_end.isoformat(),
             "round_starts": round_starts,
+            "notified_participants": bool(scheduled > 0 and notify_participants),
             "message": f"{scheduled} matches scheduled across {len(round_starts)} round(s).",
+        }
+
+    @staticmethod
+    def send_match_reminders(tournament, data: Dict, user) -> Dict[str, Any]:
+        """Send reminders for upcoming scheduled matches."""
+        from datetime import timedelta
+
+        minutes_ahead = int(data.get("minutes_ahead", 30))
+        if minutes_ahead < 1 or minutes_ahead > 240:
+            raise ValueError("minutes_ahead must be between 1 and 240.")
+
+        include_live = bool(data.get("include_live", False))
+        force_email = bool(data.get("force_email", True))
+
+        now = timezone.now()
+        window_end = now + timedelta(minutes=minutes_ahead)
+
+        states = [Match.SCHEDULED, Match.CHECK_IN, Match.READY]
+        if include_live:
+            states.append(Match.LIVE)
+
+        upcoming_matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            scheduled_time__isnull=False,
+            scheduled_time__gte=now,
+            scheduled_time__lte=window_end,
+            state__in=states,
+        ).order_by("scheduled_time", "round_number", "match_number")
+
+        from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+        reminders_sent = 0
+        recipients_notified = 0
+
+        for match in upcoming_matches:
+            target_user_ids = TOCBracketsService._match_participant_user_ids(tournament, match)
+            if not target_user_ids:
+                continue
+
+            try:
+                scheduled_display = timezone.localtime(match.scheduled_time).strftime("%b %d, %Y %I:%M %p")
+            except Exception:
+                scheduled_display = str(match.scheduled_time)
+
+            TOCNotificationsService.fire_auto_event(
+                tournament,
+                "match_ready",
+                {
+                    "target_user_ids": target_user_ids,
+                    "participant1": match.participant1_name or "Participant 1",
+                    "participant2": match.participant2_name or "Participant 2",
+                    "round_number": match.round_number or 0,
+                    "match_number": match.match_number or 0,
+                    "scheduled_time": scheduled_display,
+                    "minutes_until": minutes_ahead,
+                    "force_email": force_email,
+                    "dedupe": False,
+                    "url": f"/tournaments/{tournament.slug}/hub/",
+                },
+            )
+            reminders_sent += 1
+            recipients_notified += len(target_user_ids)
+
+        return {
+            "reminders_sent": reminders_sent,
+            "recipients_notified": recipients_notified,
+            "minutes_ahead": minutes_ahead,
+            "message": (
+                f"Sent reminders for {reminders_sent} upcoming match(es)."
+                if reminders_sent
+                else "No upcoming matches found in the selected window."
+            ),
         }
 
     @staticmethod
