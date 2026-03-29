@@ -645,6 +645,19 @@ class TestTOCService:
         assert 'stats' in result
         assert 'transitions' in result
         assert 'alerts' in result
+        assert 'lifecycle_stepper' in result
+
+    def test_get_overview_includes_lifecycle_stepper_guidance(self, tournament):
+        """Overview payload includes current lifecycle step and next action guidance."""
+        from apps.tournaments.api.toc.service import TOCService
+
+        result = TOCService.get_overview(tournament)
+        stepper = result.get('lifecycle_stepper') or {}
+
+        assert isinstance(stepper, dict)
+        assert isinstance(stepper.get('steps'), list)
+        assert any(step.get('status') == 'active' for step in stepper.get('steps', []))
+        assert (stepper.get('next_action') or {}).get('label')
 
     def test_get_overview_status_matches(self, tournament):
         """Overview status matches tournament's actual status."""

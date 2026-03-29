@@ -76,6 +76,7 @@ class OverviewSerializer(serializers.Serializer):
     health_score = serializers.DictField(required=False, default=dict)
     upcoming_matches = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     group_progress = serializers.DictField(required=False, allow_null=True, default=None)
+    lifecycle_stepper = serializers.DictField(required=False, allow_null=True, default=None)
     countdowns = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     quick_actions = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     quick_stats = serializers.DictField(required=False)

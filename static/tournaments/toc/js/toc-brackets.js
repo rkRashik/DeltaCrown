@@ -44,6 +44,16 @@
     };
   }
 
+  function areGroupsDrawn(data) {
+    var stageState = (data && data.stage && data.stage.state) ? String(data.stage.state).toLowerCase() : '';
+    if (stageState === 'active' || stageState === 'completed') return true;
+    var groups = (data && data.groups) ? data.groups : [];
+    return groups.some(function (g) {
+      var standings = g && g.standings ? g.standings : [];
+      return standings.length > 0 || !!(g && (g.is_drawn || g.is_finalized));
+    });
+  }
+
   /* --- State ------------------------------------------------ */
   let bracketData  = null;
   let groupsData   = null;
@@ -238,8 +248,7 @@
     var drawBtn      = document.querySelector('#btn-group-draw');
     var resetBtn     = document.querySelector('#btn-group-reset');
     var genMatchesBtn = document.querySelector('#btn-group-generate-matches');
-    var stageState   = (groupsData && groupsData.stage) ? groupsData.stage.state : 'pending';
-    var isDrawn      = stageState === 'active' || stageState === 'completed';
+    var isDrawn      = areGroupsDrawn(groupsData);
     var matchStats   = getGroupMatchStats(groupsData);
     var hasMatches   = matchStats.total > 0;
 
@@ -1091,8 +1100,7 @@
   }
 
   function generateGroupMatches() {
-    var stageState = (groupsData && groupsData.stage) ? groupsData.stage.state : 'pending';
-    if (!(stageState === 'active' || stageState === 'completed')) {
+    if (!areGroupsDrawn(groupsData)) {
       toast('Draw groups first, then generate matches.', 'error');
       return;
     }

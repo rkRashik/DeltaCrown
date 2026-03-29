@@ -127,11 +127,12 @@
   function render(data) {
     const payload = data || {};
     const lifecycle = payload.lifecycle || { stages: [], progress_pct: 0 };
+    const lifecycleStepper = payload.lifecycle_stepper || null;
     const transitions = Array.isArray(payload.transitions) ? payload.transitions : [];
     const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
     const events = Array.isArray(payload.events) ? payload.events : [];
 
-    renderLifecycle(lifecycle, transitions);
+    renderLifecycle(lifecycle, transitions, lifecycleStepper);
     renderStats(Array.isArray(payload.stats) ? payload.stats : []);
     renderAlerts(alerts);
     renderEvents(events);
@@ -197,40 +198,114 @@
   //  S1-F2: Lifecycle Pipeline
   // ═══════════════════════════════════════════════════════════════
 
-  function renderLifecycle(lifecycle, transitions) {
+  function renderLifecycle(lifecycle, transitions, lifecycleStepper) {
     const container = $('#lifecycle-stages');
+    const nextActionEl = $('#lifecycle-next-action');
     if (!container) return;
 
     const stages = lifecycle.stages || [];
+    const steps = Array.isArray(lifecycleStepper && lifecycleStepper.steps) ? lifecycleStepper.steps : [];
+    const hasStepper = steps.length > 0;
     const hasTransitions = transitions && transitions.some(t => t.can_transition);
     const btnAdvance = $('#btn-transition');
 
-    container.innerHTML = stages.map((s, i) => {
-      const isActive = s.status === 'active';
-      const isDone = s.status === 'done';
-      const isCancelled = s.status === 'cancelled';
+    if (hasStepper) {
+      const activeIndex = steps.findIndex((s) => s.status === 'active');
 
-      let dotClass = 'bg-dc-border';
-      let textClass = 'text-dc-text';
-      let lineClass = 'bg-dc-border';
+      container.innerHTML = `
+        <div class="flex items-start min-w-full">
+          ${steps.map((step, i) => {
+            const status = step.status || 'pending';
+            const isDone = status === 'done';
+            const isActive = status === 'active';
+            const markerClass = isDone
+              ? 'bg-dc-success/20 border-dc-success/50 text-dc-success'
+              : isActive
+                ? 'bg-theme-surface border-theme text-theme shadow-[0_0_20px_var(--color-primary-muted)]'
+                : 'bg-dc-bg border-dc-border text-dc-text';
+            const labelClass = isDone
+              ? 'text-dc-success'
+              : isActive
+                ? 'text-white font-black'
+                : 'text-dc-text';
+            const connectorDone = activeIndex >= 0 ? i < activeIndex : isDone;
+            const connector = i < steps.length - 1
+              ? `<div class="h-0.5 flex-1 mt-4 mx-2 ${connectorDone ? 'bg-dc-success/60' : 'bg-dc-border'}"></div>`
+              : '';
+            const iconName = isDone ? 'check' : (step.icon || 'circle');
 
-      if (isDone) { dotClass = 'bg-dc-success'; textClass = 'text-dc-success'; lineClass = 'bg-dc-success'; }
-      else if (isActive) { dotClass = 'bg-theme shadow-[0_0_10px_var(--color-primary)]'; textClass = 'text-theme font-bold'; }
-      else if (isCancelled) { dotClass = 'bg-dc-danger'; textClass = 'text-dc-danger'; }
-
-      const connector = i < stages.length - 1
-        ? `<div class="flex-1 h-0.5 ${isDone ? 'bg-dc-success' : 'bg-dc-border'} mx-1"></div>`
-        : '';
-
-      return `
-        <div class="flex items-center ${i < stages.length - 1 ? 'flex-1' : ''}">
-          <div class="flex flex-col items-center gap-1.5 min-w-[60px]">
-            <div class="w-3 h-3 rounded-full ${dotClass} ${isActive ? 'animate-pulse' : ''} shrink-0"></div>
-            <span class="text-[9px] ${textClass} uppercase tracking-widest whitespace-nowrap">${s.name}</span>
-          </div>
-          ${connector}
+            return `
+              <div class="flex items-start ${i < steps.length - 1 ? 'flex-1' : ''}">
+                <div class="flex flex-col items-center gap-2 min-w-[96px]">
+                  <div class="w-8 h-8 rounded-xl border ${markerClass} flex items-center justify-center ${isActive ? 'animate-pulse' : ''}">
+                    <i data-lucide="${_esc(iconName)}" class="w-4 h-4"></i>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-[9px] uppercase tracking-[0.18em] ${labelClass}">${_esc(step.label || step.key || '')}</p>
+                    <p class="text-[8px] mt-0.5 font-mono uppercase tracking-widest ${isDone ? 'text-dc-success/80' : isActive ? 'text-theme' : 'text-dc-text/60'}">${_esc(status)}</p>
+                  </div>
+                </div>
+                ${connector}
+              </div>`;
+          }).join('')}
         </div>`;
-    }).join('');
+
+      if (nextActionEl) {
+        const nextAction = lifecycleStepper && lifecycleStepper.next_action;
+        if (nextAction && nextAction.label) {
+          const tab = (nextAction.tab || '').trim();
+          const tabLabel = _tabLabel(tab);
+          nextActionEl.classList.remove('hidden');
+          nextActionEl.innerHTML = `
+            <div class="mt-4 rounded-xl border border-theme/25 bg-theme/5 px-4 py-3">
+              <div class="flex items-start gap-3">
+                <div class="w-7 h-7 rounded-lg bg-theme/20 border border-theme/35 text-theme flex items-center justify-center shrink-0">
+                  <i data-lucide="move-right" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[9px] uppercase tracking-[0.2em] text-theme font-black">Next Action</p>
+                  <p class="text-xs text-white mt-1 leading-relaxed">${_esc(nextAction.label)}</p>
+                </div>
+                ${tab ? `<button class="shrink-0 px-3 py-1.5 rounded-lg bg-theme-surface border border-theme/40 text-[10px] font-black uppercase tracking-widest text-theme hover:bg-theme hover:text-dc-bg transition-colors" onclick="TOC.navigate('${_attr(tab)}')">Open ${_esc(tabLabel)}</button>` : ''}
+              </div>
+            </div>`;
+        } else {
+          nextActionEl.classList.add('hidden');
+          nextActionEl.innerHTML = '';
+        }
+      }
+    } else {
+      container.innerHTML = stages.map((s, i) => {
+        const isActive = s.status === 'active';
+        const isDone = s.status === 'done';
+        const isCancelled = s.status === 'cancelled';
+
+        let dotClass = 'bg-dc-border';
+        let textClass = 'text-dc-text';
+
+        if (isDone) { dotClass = 'bg-dc-success'; textClass = 'text-dc-success'; }
+        else if (isActive) { dotClass = 'bg-theme shadow-[0_0_10px_var(--color-primary)]'; textClass = 'text-theme font-bold'; }
+        else if (isCancelled) { dotClass = 'bg-dc-danger'; textClass = 'text-dc-danger'; }
+
+        const connector = i < stages.length - 1
+          ? `<div class="flex-1 h-0.5 ${isDone ? 'bg-dc-success' : 'bg-dc-border'} mx-1"></div>`
+          : '';
+
+        return `
+          <div class="flex items-center ${i < stages.length - 1 ? 'flex-1' : ''}">
+            <div class="flex flex-col items-center gap-1.5 min-w-[60px]">
+              <div class="w-3 h-3 rounded-full ${dotClass} ${isActive ? 'animate-pulse' : ''} shrink-0"></div>
+              <span class="text-[9px] ${textClass} uppercase tracking-widest whitespace-nowrap">${s.name}</span>
+            </div>
+            ${connector}
+          </div>`;
+      }).join('');
+
+      if (nextActionEl) {
+        nextActionEl.classList.add('hidden');
+        nextActionEl.innerHTML = '';
+      }
+    }
 
     // Show/hide Advance button
     if (btnAdvance) {
@@ -1081,6 +1156,13 @@
       return { symbol: '🏆', icon: 'trophy', label: 'Result', tone: 'bg-dc-success/10 text-dc-success border border-dc-success/20' };
     }
     return { symbol: '📣', icon: 'megaphone', label: 'Update', tone: 'bg-theme/10 text-theme border border-theme/20' };
+  }
+
+  function _tabLabel(tab) {
+    if (!tab) return 'Tab';
+    return String(tab)
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
   // ═══════════════════════════════════════════════════════════════

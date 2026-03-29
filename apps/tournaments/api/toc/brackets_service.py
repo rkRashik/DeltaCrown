@@ -256,10 +256,13 @@ class TOCBracketsService:
         result_groups = []
         total_matches = 0
         total_completed = 0
+        has_drawn_assignments = False
         for g in groups:
             standings = GroupStanding.objects.filter(
                 group=g, is_deleted=False
             ).order_by("rank")
+            if standings.exists():
+                has_drawn_assignments = True
 
             g_stats = match_stats.get(g.id, {"total": 0, "completed": 0})
             g_total = int(g_stats.get("total") or 0)
@@ -283,6 +286,11 @@ class TOCBracketsService:
                 ],
             })
 
+        stage_state = stage.state
+        # Backfill draw state if standings exist but stage flag is stale (e.g. legacy/live-draw flows).
+        if stage_state not in ("active", "completed") and has_drawn_assignments:
+            stage_state = "active"
+
         return {
             "exists": True,
             "stage": {
@@ -291,7 +299,7 @@ class TOCBracketsService:
                 "num_groups": stage.num_groups,
                 "group_size": stage.group_size,
                 "format": stage.format,
-                "state": stage.state,
+                "state": stage_state,
                 "advancement_count_per_group": stage.advancement_count_per_group,
                 "draw_audit": (stage.config or {}).get("draw_audit"),
                 "matches_total": total_matches,
@@ -370,13 +378,17 @@ class TOCBracketsService:
         stage = GroupStage.objects.filter(tournament=tournament).first()
         if not stage:
             raise ValueError("Configure groups first.")
-        if stage.state not in ("active", "completed"):
-            raise ValueError("Draw groups first, then generate matches.")
 
         groups_snapshot = TOCBracketsService.get_groups(tournament)
         groups = groups_snapshot.get("groups", [])
         if not groups:
             raise ValueError("No groups configured.")
+
+        stage_snapshot = groups_snapshot.get("stage") or {}
+        stage_state = str(stage_snapshot.get("state") or stage.state or "").lower()
+        has_drawn_assignments = any(bool(g.get("standings")) for g in groups)
+        if stage_state not in ("active", "completed") and not has_drawn_assignments:
+            raise ValueError("Draw groups first, then generate matches.")
 
         stage_group_ids = {
             TOCBracketsService._coerce_group_id(g.get("id"))
@@ -406,8 +418,9 @@ class TOCBracketsService:
                 "No matches were generated. Make sure groups are drawn and each group has at least 2 participants."
             )
 
-        stage.state = "active"
-        stage.save(update_fields=["state"])
+        if stage.state != "active":
+            stage.state = "active"
+            stage.save(update_fields=["state"])
 
         return {
             "status": "generated",

@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.utils import timezone
 
 from apps.tournaments.models.tournament import Tournament, TournamentVersion
@@ -50,8 +50,8 @@ class TOCService:
         Assemble the full overview payload for the Command Center tab.
 
         Returns a dict matching OverviewSerializer shape:
-        {status, status_display, is_frozen, freeze_reason, lifecycle, stats, alerts, events, transitions,
-         health_score, upcoming_matches, group_progress}
+        {status, status_display, is_frozen, freeze_reason, lifecycle, lifecycle_stepper, stats, alerts,
+         events, transitions, health_score, upcoming_matches, group_progress}
 
         Sprint 27: Added health_score, upcoming_matches, group_progress.
         """
@@ -120,6 +120,14 @@ class TOCService:
         quick_actions = cls._get_quick_actions(tournament)
         t_actions = time.perf_counter()
 
+        # S30: Organizer lifecycle stepper guidance
+        lifecycle_stepper = cls._build_lifecycle_stepper(
+            tournament=tournament,
+            reg_stats=reg_stats,
+            match_stats=match_stats,
+            group_progress=group_progress,
+        )
+
         # S30: Inline quick stats + recent activity to avoid overview fan-out calls
         quick_stats = cls._build_quick_stats(tournament, reg_stats, match_stats)
         activity_log = cls._get_recent_activity(tournament, limit=25)
@@ -152,6 +160,7 @@ class TOCService:
             'is_frozen': is_frozen,
             'freeze_reason': freeze_reason,
             'lifecycle': lifecycle,
+            'lifecycle_stepper': lifecycle_stepper,
             'stats': stats,
             'alerts': alerts,
             'events': events,
@@ -439,73 +448,55 @@ class TOCService:
                 return None
 
             groups = list(
-                Group.objects.filter(tournament=tournament)
-                .prefetch_related('standings')
-                .order_by('name')
+                Group.objects.filter(tournament=tournament, is_deleted=False)
+                .prefetch_related(
+                    Prefetch(
+                        'standings',
+                        queryset=GroupStanding.objects.filter(is_deleted=False),
+                    )
+                )
+                .order_by('display_order', 'name')
             )
             total_groups = len(groups)
             if total_groups == 0:
                 return None
 
-            group_matches = list(
-                Match.objects.filter(
-                    tournament=tournament,
-                    is_deleted=False,
-                    bracket__isnull=True,
-                ).values('participant1_id', 'participant2_id', 'state')
-            )
+            group_ids = {g.id for g in groups}
+            per_group_counts = {
+                gid: {'total': 0, 'completed': 0}
+                for gid in group_ids
+            }
+            group_matches = Match.objects.filter(
+                tournament=tournament,
+                is_deleted=False,
+                bracket__isnull=True,
+            ).only('state', 'lobby_info')
+            for match in group_matches.iterator():
+                raw_group_id = (match.lobby_info or {}).get('group_id')
+                try:
+                    group_id = int(raw_group_id)
+                except (TypeError, ValueError):
+                    continue
+                if group_id not in per_group_counts:
+                    continue
+                per_group_counts[group_id]['total'] += 1
+                if match.state in [Match.COMPLETED, Match.FORFEIT]:
+                    per_group_counts[group_id]['completed'] += 1
 
-            total_matches = len(group_matches)
-            completed_matches = sum(
-                1 for m in group_matches
-                if m.get('state') in [Match.COMPLETED, 'forfeit']
-            )
-
-            # If bracket-based group matches exist, fall back to all tournament matches.
-            if total_matches == 0:
-                all_matches = list(
-                    Match.objects.filter(
-                        tournament=tournament,
-                        is_deleted=False,
-                    ).values('state')
-                )
-                total_matches = len(all_matches)
-                completed_matches = sum(
-                    1 for m in all_matches
-                    if m.get('state') in [Match.COMPLETED, 'forfeit']
-                )
-
+            total_matches = sum(c['total'] for c in per_group_counts.values())
+            completed_matches = sum(c['completed'] for c in per_group_counts.values())
             pct = round((completed_matches / total_matches) * 100) if total_matches > 0 else 0
 
             group_list = []
+            has_drawn_assignments = False
             for g in groups[:8]:  # Max 8 groups in overview
-                g_standings = [s for s in g.standings.all() if not getattr(s, 'is_deleted', False)]
-                g_team_ids = {
-                    s.team_id for s in g_standings
-                    if getattr(s, 'team_id', None) not in (None, 0)
-                }
-                g_user_ids = {
-                    s.user_id for s in g_standings
-                    if getattr(s, 'user_id', None)
-                }
+                g_standings = list(g.standings.all())
+                if g_standings:
+                    has_drawn_assignments = True
 
-                g_total = 0
-                g_completed = 0
-                for m in group_matches:
-                    p1 = m.get('participant1_id')
-                    p2 = m.get('participant2_id')
-
-                    if g_team_ids:
-                        in_group = p1 in g_team_ids and p2 in g_team_ids
-                    elif g_user_ids:
-                        in_group = p1 in g_user_ids and p2 in g_user_ids
-                    else:
-                        in_group = False
-
-                    if in_group:
-                        g_total += 1
-                        if m.get('state') in [Match.COMPLETED, 'forfeit']:
-                            g_completed += 1
+                g_counts = per_group_counts.get(g.id, {'total': 0, 'completed': 0})
+                g_total = int(g_counts['total'])
+                g_completed = int(g_counts['completed'])
 
                 group_list.append({
                     'name': g.name or f'Group {g.id}',
@@ -514,8 +505,12 @@ class TOCService:
                     'matches_completed': g_completed,
                 })
 
+            state = gs.state
+            if state not in ('active', 'completed') and has_drawn_assignments:
+                state = 'active'
+
             return {
-                'state': gs.state,
+                'state': state,
                 'total_groups': total_groups,
                 'total_matches': total_matches,
                 'completed_matches': completed_matches,
@@ -525,6 +520,143 @@ class TOCService:
         except Exception as e:
             logger.warning("Failed to compute group progress: %s", e)
             return None
+
+    @classmethod
+    def _build_lifecycle_stepper(
+        cls,
+        *,
+        tournament: Tournament,
+        reg_stats: Dict[str, int],
+        match_stats: Dict[str, int],
+        group_progress: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Build organizer guidance for lifecycle progression in the Overview tab."""
+        status = str(tournament.status or '').lower()
+        fmt = str(tournament.format or '').lower().replace('-', '_')
+        is_group_flow = fmt in ('group_playoff', 'group_stage')
+
+        groups_drawn = False
+        group_matches_generated = False
+        if group_progress:
+            gp_state = str(group_progress.get('state') or '').lower()
+            groups_drawn = gp_state in ('active', 'completed') or any(
+                int(g.get('teams') or 0) > 0 for g in (group_progress.get('groups') or [])
+            )
+            group_matches_generated = int(group_progress.get('total_matches') or 0) > 0
+
+        scheduled_matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            scheduled_time__isnull=False,
+        ).count()
+
+        setup_done = status not in ('draft', 'pending_approval')
+        registration_done = status in ('registration_closed', 'live', 'completed', 'archived', 'cancelled')
+        scheduling_done = scheduled_matches > 0
+        live_done = status in ('live', 'completed', 'archived')
+        completed_done = status in ('completed', 'archived')
+
+        if is_group_flow:
+            steps = [
+                {'key': 'setup', 'label': 'Setup', 'icon': 'settings-2'},
+                {'key': 'registration', 'label': 'Registration', 'icon': 'users'},
+                {'key': 'draw_groups', 'label': 'Draw Groups', 'icon': 'shuffle'},
+                {'key': 'generate_matches', 'label': 'Generate Matches', 'icon': 'swords'},
+                {'key': 'scheduling', 'label': 'Scheduling', 'icon': 'calendar-days'},
+                {'key': 'live', 'label': 'Live', 'icon': 'radio'},
+                {'key': 'completed', 'label': 'Completed', 'icon': 'flag'},
+            ]
+            done_map = {
+                'setup': setup_done,
+                'registration': registration_done,
+                'draw_groups': groups_drawn,
+                'generate_matches': group_matches_generated,
+                'scheduling': scheduling_done,
+                'live': live_done,
+                'completed': completed_done,
+            }
+        else:
+            steps = [
+                {'key': 'setup', 'label': 'Setup', 'icon': 'settings-2'},
+                {'key': 'registration', 'label': 'Registration', 'icon': 'users'},
+                {'key': 'generate_bracket', 'label': 'Generate Bracket', 'icon': 'git-branch'},
+                {'key': 'scheduling', 'label': 'Scheduling', 'icon': 'calendar-days'},
+                {'key': 'live', 'label': 'Live', 'icon': 'radio'},
+                {'key': 'completed', 'label': 'Completed', 'icon': 'flag'},
+            ]
+            done_map = {
+                'setup': setup_done,
+                'registration': registration_done,
+                'generate_bracket': int(match_stats.get('total') or 0) > 0,
+                'scheduling': scheduling_done,
+                'live': live_done,
+                'completed': completed_done,
+            }
+
+        if status in ('completed', 'archived'):
+            current_key = 'completed'
+        elif status == 'live':
+            current_key = 'live'
+        else:
+            current_key = next((step['key'] for step in steps if not done_map.get(step['key'], False)), steps[-1]['key'])
+
+        rendered_steps = []
+        for step in steps:
+            key = step['key']
+            if key == current_key:
+                step_status = 'active'
+            elif done_map.get(key):
+                step_status = 'done'
+            else:
+                step_status = 'pending'
+
+            rendered_steps.append({
+                **step,
+                'status': step_status,
+            })
+
+        action_map = {
+            'setup': {
+                'label': 'Finalize settings and publish your tournament shell.',
+                'tab': 'settings',
+            },
+            'registration': {
+                'label': 'Monitor registrations and lock the roster when ready.',
+                'tab': 'participants',
+            },
+            'draw_groups': {
+                'label': 'Run the group draw so participants are assigned into pools.',
+                'tab': 'brackets',
+            },
+            'generate_matches': {
+                'label': 'Generate round-robin matches from the completed group draw.',
+                'tab': 'matches',
+            },
+            'generate_bracket': {
+                'label': 'Generate the tournament bracket from confirmed participants.',
+                'tab': 'brackets',
+            },
+            'scheduling': {
+                'label': 'Set match times and stations before going live.',
+                'tab': 'schedule',
+            },
+            'live': {
+                'label': 'Tournament is live. Monitor matches and resolve disputes quickly.',
+                'tab': 'matches',
+            },
+            'completed': {
+                'label': 'Tournament lifecycle is complete. Review analytics and archive notes.',
+                'tab': 'overview',
+            },
+        }
+        next_action = action_map.get(current_key, action_map['setup'])
+
+        return {
+            'format': 'group' if is_group_flow else 'bracket',
+            'current_key': current_key,
+            'steps': rendered_steps,
+            'next_action': next_action,
+        }
 
     @classmethod
     def _get_registration_stats(cls, tournament: Tournament) -> Dict[str, int]:

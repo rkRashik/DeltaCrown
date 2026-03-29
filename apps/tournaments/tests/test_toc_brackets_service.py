@@ -91,6 +91,33 @@ def test_generate_group_matches_requires_drawn_stage(tournament, organizer):
 
 
 @pytest.mark.django_db
+def test_get_groups_infers_drawn_state_from_existing_standings(tournament, drawn_group_stage):
+    drawn_group_stage.state = "pending"
+    drawn_group_stage.save(update_fields=["state"])
+
+    snapshot = TOCBracketsService.get_groups(tournament)
+
+    assert snapshot["exists"] is True
+    assert snapshot["stage"]["state"] == "active"
+
+
+@pytest.mark.django_db
+def test_generate_group_matches_allows_stale_pending_state_when_assignments_exist(
+    tournament,
+    organizer,
+    drawn_group_stage,
+):
+    drawn_group_stage.state = "pending"
+    drawn_group_stage.save(update_fields=["state"])
+
+    result = TOCBracketsService.generate_group_matches(tournament, {}, organizer)
+
+    assert result["generated_matches"] == 6
+    drawn_group_stage.refresh_from_db()
+    assert drawn_group_stage.state == "active"
+
+
+@pytest.mark.django_db
 def test_generate_group_matches_guard_prevents_duplicates(tournament, organizer, drawn_group_stage):
     first = TOCBracketsService.generate_group_matches(tournament, {}, organizer)
     assert first["generated_matches"] == 6

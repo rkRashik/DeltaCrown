@@ -43,6 +43,70 @@
 
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
 
+  function parseApiError(err) {
+    if (!err) return 'Something went wrong. Please try again.';
+    if (err.payload && typeof err.payload === 'object') {
+      return err.payload.error || err.payload.detail || err.payload.message || err.message || 'Something went wrong. Please try again.';
+    }
+    return err.message || 'Something went wrong. Please try again.';
+  }
+
+  function groupsAreDrawn(groupsPayload) {
+    var stageState = (groupsPayload && groupsPayload.stage && groupsPayload.stage.state)
+      ? String(groupsPayload.stage.state).toLowerCase()
+      : '';
+    if (stageState === 'active' || stageState === 'completed') return true;
+    var groups = (groupsPayload && groupsPayload.groups) ? groupsPayload.groups : [];
+    return groups.some(function (g) {
+      var standings = g && g.standings ? g.standings : [];
+      return standings.length > 0 || !!(g && (g.is_drawn || g.is_finalized));
+    });
+  }
+
+  function getGroupMatchStats(groupsPayload) {
+    var groups = (groupsPayload && groupsPayload.groups) ? groupsPayload.groups : [];
+    var total = 0;
+    groups.forEach(function (g) {
+      total += parseInt(g && g.matches_total != null ? g.matches_total : 0, 10) || 0;
+    });
+    return { total: total };
+  }
+
+  async function generateMatchesFromEmptyState() {
+    try {
+      toast('Checking group stage state...', 'info');
+      var groupsPayload = await API.get('groups/');
+      if (!groupsPayload || !groupsPayload.exists || !(groupsPayload.groups || []).length) {
+        toast('No group stage is configured yet. Open Competition to configure groups first.', 'error');
+        if (window.TOC && typeof window.TOC.navigate === 'function') window.TOC.navigate('brackets');
+        return;
+      }
+
+      if (!groupsAreDrawn(groupsPayload)) {
+        toast('Groups are not drawn yet. Draw groups first, then generate matches.', 'error');
+        if (window.TOC && typeof window.TOC.navigate === 'function') window.TOC.navigate('brackets');
+        return;
+      }
+
+      var rounds = (groupsPayload.stage && groupsPayload.stage.format === 'double_round_robin') ? 2 : 1;
+      var stats = getGroupMatchStats(groupsPayload);
+      var payload = { rounds: rounds };
+      if (stats.total > 0) payload.allow_regenerate = true;
+
+      toast(stats.total > 0 ? 'Re-generating group matches...' : 'Generating group matches...', 'info');
+      var data = await API.post('groups/generate-matches/', payload);
+      var generated = (data && data.generated_matches) ? data.generated_matches : 0;
+      toast((generated ? generated + ' group matches generated.' : 'Group matches generated.') + ' Refreshing matches...', 'success');
+
+      await refresh({ force: true });
+      if (window.TOC && window.TOC.brackets && typeof window.TOC.brackets.refreshGroups === 'function') {
+        window.TOC.brackets.refreshGroups();
+      }
+    } catch (e) {
+      toast(parseApiError(e), 'error');
+    }
+  }
+
   let allMatches = [];
   let filteredMatches = [];
   let selectedMatchId = null;
@@ -301,9 +365,13 @@
         '<div class="w-16 h-16 rounded-2xl bg-dc-border/10 mx-auto mb-4 flex items-center justify-center">' +
         '<i data-lucide="swords" class="w-8 h-8 text-dc-border/50"></i></div>' +
         '<h3 class="text-sm font-bold text-dc-text/60 mb-2">No Matches Yet</h3>' +
-        '<p class="text-xs text-dc-text/40 mb-4">Matches haven\'t been generated for this tournament. To begin, ensure groups/brackets are finalized, then go to the Schedule tab.</p>' +
-        '<button onclick="TOC.switchTab && TOC.switchTab(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
+        '<p class="text-xs text-dc-text/40 mb-5">Matches have not been generated for this tournament yet. Generate them here, then continue with scheduling.</p>' +
+        '<div class="flex flex-col sm:flex-row items-center justify-center gap-2">' +
+        '<button onclick="TOC.matches.generateMatchesFromEmptyState()" class="px-4 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">' +
+        '<i data-lucide="swords" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Generate Matches</button>' +
+        '<button onclick="TOC.navigate && TOC.navigate(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
         '<i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Go to Schedule</button>' +
+        '</div>' +
         '</div></div>';
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
@@ -1683,6 +1751,7 @@
   window.TOC.matches = {
     init: init, refresh: refresh, debouncedRefresh: debouncedRefresh,
     selectMatch: selectMatch, clearDetail: clearDetail, filterGroup: filterGroup,
+    generateMatchesFromEmptyState: generateMatchesFromEmptyState,
     switchDetailTab: switchDetailTab,
     markLive: markLive, pause: pause, resume: resume, forceComplete: forceComplete,
     submitScore: submitScore,
