@@ -987,6 +987,85 @@
     }
   }
 
+  async function openParticipantRescheduleSettings() {
+    let settings = {
+      allow_participant_rescheduling: false,
+      deadline_minutes_before: 120,
+    };
+
+    try {
+      const data = await API.get('schedule/participant-rescheduling/');
+      if (data && typeof data === 'object') {
+        settings = {
+          allow_participant_rescheduling: !!data.allow_participant_rescheduling,
+          deadline_minutes_before: parseInt(data.deadline_minutes_before, 10) || 120,
+        };
+      }
+    } catch (e) {
+      toast(e.message || 'Failed to load participant reschedule settings', 'error');
+      return;
+    }
+
+    const html = `
+      <div class="p-6 space-y-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-dc-info/10 border border-dc-info/20 flex items-center justify-center">
+            <i data-lucide="handshake" class="w-5 h-5 text-dc-info"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-black text-lg text-white">Participant Rescheduling</h3>
+            <p class="text-[10px] text-dc-text font-mono">Configure team-vs-team negotiation window</p>
+          </div>
+        </div>
+
+        <label class="flex items-start gap-3 cursor-pointer bg-dc-panel border border-dc-borderLight rounded-xl p-3">
+          <input id="prs-enabled" type="checkbox" ${settings.allow_participant_rescheduling ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded bg-dc-bg border-dc-border accent-theme">
+          <span>
+            <span class="text-xs font-bold text-white block">Allow participant initiated reschedule proposals</span>
+            <span class="text-[10px] text-dc-text">When enabled, each side can propose new times from the Hub and the opponent can accept/reject.</span>
+          </span>
+        </label>
+
+        <div>
+          <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Proposal Deadline (minutes before match)</label>
+          <div class="relative">
+            <input id="prs-deadline-minutes" type="number" min="5" max="10080" value="${settings.deadline_minutes_before}" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 pr-14 text-white text-xs focus:border-theme outline-none">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-dc-text">minutes</span>
+          </div>
+          <p class="text-[9px] text-dc-text/60 mt-1">Example: 120 means participants can propose changes until 2 hours before kickoff.</p>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="TOC.schedule.closeOverlay('participant-reschedule-settings-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button onclick="TOC.schedule.saveParticipantRescheduleSettings()" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Settings</button>
+        </div>
+      </div>`;
+
+    showOverlay('participant-reschedule-settings-overlay', html);
+  }
+
+  async function saveParticipantRescheduleSettings() {
+    const allow = !!$('#prs-enabled')?.checked;
+    const rawDeadline = $('#prs-deadline-minutes')?.value;
+    const deadlineMinutes = parseInt(rawDeadline, 10);
+
+    if (!Number.isFinite(deadlineMinutes) || deadlineMinutes < 5 || deadlineMinutes > 10080) {
+      toast('Deadline must be between 5 and 10080 minutes.', 'error');
+      return;
+    }
+
+    try {
+      await API.put('schedule/participant-rescheduling/', {
+        allow_participant_rescheduling: allow,
+        deadline_minutes_before: deadlineMinutes,
+      });
+      toast('Participant reschedule settings updated', 'success');
+      closeOverlay('participant-reschedule-settings-overlay');
+    } catch (e) {
+      toast(e.message || 'Failed to update participant reschedule settings', 'error');
+    }
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    *  User Guide / Help Panel
    * ═══════════════════════════════════════════════════════════════ */
@@ -1584,6 +1663,8 @@
     openManualSchedule,
     confirmManualSchedule,
     openUserGuide,
+    openParticipantRescheduleSettings,
+    saveParticipantRescheduleSettings,
     exportICS,
     sendReminders,
     closeOverlay,

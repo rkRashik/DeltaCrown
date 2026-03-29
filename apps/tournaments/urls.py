@@ -123,6 +123,9 @@ from apps.tournaments.views.hub import (
     HubBracketAPIView,
     HubStandingsAPIView,
     HubMatchesAPIView,
+    HubRescheduleSettingsAPIView,
+    HubMatchRescheduleProposalAPIView,
+    HubMatchRescheduleRespondAPIView,
     HubParticipantsAPIView,
     HubSupportAPIView,
 )
@@ -314,6 +317,9 @@ urlpatterns = [
     path('<slug:slug>/hub/api/bracket/', HubBracketAPIView.as_view(), name='hub_bracket_api'),
     path('<slug:slug>/hub/api/standings/', HubStandingsAPIView.as_view(), name='hub_standings_api'),
     path('<slug:slug>/hub/api/matches/', HubMatchesAPIView.as_view(), name='hub_matches_api'),
+    path('<slug:slug>/hub/api/reschedule/settings/', HubRescheduleSettingsAPIView.as_view(), name='hub_reschedule_settings_api'),
+    path('<slug:slug>/hub/api/matches/<int:match_id>/reschedule/propose/', HubMatchRescheduleProposalAPIView.as_view(), name='hub_match_reschedule_propose_api'),
+    path('<slug:slug>/hub/api/matches/<int:match_id>/reschedule/respond/', HubMatchRescheduleRespondAPIView.as_view(), name='hub_match_reschedule_respond_api'),
     path('<slug:slug>/hub/api/participants/', HubParticipantsAPIView.as_view(), name='hub_participants_api'),
     path('<slug:slug>/hub/api/support/', HubSupportAPIView.as_view(), name='hub_support_api'),
 

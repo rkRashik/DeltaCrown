@@ -29,6 +29,7 @@ from apps.tournaments.models.qualifier_pipeline import (
 )
 from apps.tournaments.services.bracket_service import BracketService
 from apps.tournaments.services.group_stage_service import GroupStageService
+from apps.tournaments.services.match_lobby_service import hydrate_match_lobby_info
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +190,126 @@ class TOCBracketsService:
             tournament,
             [pid for pid in participant_ids if pid],
         )
+
+    @staticmethod
+    def _participant_reschedule_settings(tournament) -> Dict[str, Any]:
+        """Read participant-driven rescheduling policy from tournament config."""
+        config = tournament.config if isinstance(tournament.config, dict) else {}
+        policy = config.get("participant_rescheduling")
+        if not isinstance(policy, dict):
+            policy = {}
+
+        allow = bool(policy.get("allow_participant_rescheduling", False))
+
+        raw_deadline_minutes = policy.get("deadline_minutes_before")
+        if raw_deadline_minutes is None:
+            raw_deadline_hours = policy.get("deadline_hours_before")
+            if raw_deadline_hours is None:
+                deadline_minutes = 120
+            else:
+                try:
+                    deadline_minutes = int(float(raw_deadline_hours) * 60)
+                except (TypeError, ValueError):
+                    deadline_minutes = 120
+        else:
+            try:
+                deadline_minutes = int(raw_deadline_minutes)
+            except (TypeError, ValueError):
+                deadline_minutes = 120
+
+        deadline_minutes = max(5, min(deadline_minutes, 10080))
+
+        return {
+            "allow_participant_rescheduling": allow,
+            "deadline_minutes_before": deadline_minutes,
+        }
+
+    @staticmethod
+    def get_participant_reschedule_settings(tournament) -> Dict[str, Any]:
+        """Public settings payload for TOC schedule controls."""
+        settings = TOCBracketsService._participant_reschedule_settings(tournament)
+        settings["deadline_hours_before"] = round(settings["deadline_minutes_before"] / 60, 2)
+        return settings
+
+    @staticmethod
+    def update_participant_reschedule_settings(tournament, data: Dict[str, Any], user) -> Dict[str, Any]:
+        """Persist participant rescheduling policy under tournament.config."""
+        current = TOCBracketsService._participant_reschedule_settings(tournament)
+        allow = current["allow_participant_rescheduling"]
+        deadline_minutes = current["deadline_minutes_before"]
+
+        if "allow_participant_rescheduling" in data:
+            allow = bool(data.get("allow_participant_rescheduling"))
+
+        if "deadline_minutes_before" in data:
+            try:
+                deadline_minutes = int(data.get("deadline_minutes_before"))
+            except (TypeError, ValueError):
+                raise ValueError("deadline_minutes_before must be a number.")
+        elif "deadline_hours_before" in data:
+            try:
+                deadline_minutes = int(float(data.get("deadline_hours_before")) * 60)
+            except (TypeError, ValueError):
+                raise ValueError("deadline_hours_before must be a number.")
+
+        deadline_minutes = max(5, min(deadline_minutes, 10080))
+
+        config = tournament.config if isinstance(tournament.config, dict) else {}
+        policy = config.get("participant_rescheduling") if isinstance(config.get("participant_rescheduling"), dict) else {}
+        policy["allow_participant_rescheduling"] = allow
+        policy["deadline_minutes_before"] = deadline_minutes
+        policy["updated_at"] = timezone.now().isoformat()
+        policy["updated_by"] = getattr(user, "id", None)
+
+        config["participant_rescheduling"] = policy
+        tournament.config = config
+        tournament.save(update_fields=["config"])
+
+        payload = TOCBracketsService.get_participant_reschedule_settings(tournament)
+        payload["updated_by"] = getattr(user, "id", None)
+        return payload
+
+    @staticmethod
+    def _fire_schedule_generated_event(
+        tournament,
+        *,
+        scheduled_count: int,
+        round_count: int,
+        force_email: bool = False,
+        target_user_ids: Optional[List[int]] = None,
+        reason: str = "",
+    ) -> None:
+        """Fire a normalized schedule_generated notification payload."""
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+            context: Dict[str, Any] = {
+                "scheduled_count": max(0, int(scheduled_count or 0)),
+                "round_count": max(0, int(round_count or 0)),
+                "force_email": bool(force_email),
+                "dedupe": False,
+                "url": f"/tournaments/{tournament.slug}/hub/",
+            }
+
+            if reason:
+                context["reason"] = str(reason)
+
+            if isinstance(target_user_ids, list):
+                normalized_ids = []
+                for raw_id in target_user_ids:
+                    try:
+                        parsed = int(raw_id)
+                    except (TypeError, ValueError):
+                        continue
+                    if parsed > 0:
+                        normalized_ids.append(parsed)
+                if normalized_ids:
+                    # Keep recipient list stable and duplicate-free.
+                    context["target_user_ids"] = sorted(set(normalized_ids))
+
+            TOCNotificationsService.fire_auto_event(tournament, "schedule_generated", context)
+        except Exception:
+            pass
 
     # ── Bracket generation / management ────────────────────────
 
@@ -983,7 +1104,18 @@ class TOCBracketsService:
                     slots.append(target_slot)
 
                 match.scheduled_time = target_slot['start']
-                match.save(update_fields=["scheduled_time"])
+                lobby_info, lobby_changed = hydrate_match_lobby_info(
+                    match,
+                    create_if_missing=True,
+                    reset_reminder_marks=True,
+                )
+
+                update_fields = ["scheduled_time"]
+                if lobby_changed:
+                    match.lobby_info = lobby_info
+                    update_fields.append("lobby_info")
+
+                match.save(update_fields=update_fields)
                 scheduled += 1
 
                 target_slot['count'] += 1
@@ -1005,22 +1137,13 @@ class TOCBracketsService:
         )
 
         if scheduled > 0 and notify_participants:
-            try:
-                from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
-
-                TOCNotificationsService.fire_auto_event(
-                    tournament,
-                    "schedule_generated",
-                    {
-                        "scheduled_count": scheduled,
-                        "round_count": len(round_starts),
-                        "force_email": force_email,
-                        "dedupe": False,
-                        "url": f"/tournaments/{tournament.slug}/hub/",
-                    },
-                )
-            except Exception:
-                pass
+            TOCBracketsService._fire_schedule_generated_event(
+                tournament,
+                scheduled_count=scheduled,
+                round_count=len(round_starts),
+                force_email=force_email,
+                reason="auto_schedule",
+            )
 
         return {
             "scheduled": scheduled,
@@ -1137,7 +1260,27 @@ class TOCBracketsService:
         if check_in_minutes and int(check_in_minutes) > 0:
             match.check_in_deadline = new_time - timedelta(minutes=int(check_in_minutes))
 
-        match.save(update_fields=["scheduled_time", "check_in_deadline"])
+        lobby_info, lobby_changed = hydrate_match_lobby_info(
+            match,
+            create_if_missing=True,
+            reset_reminder_marks=True,
+        )
+
+        update_fields = ["scheduled_time", "check_in_deadline"]
+        if lobby_changed:
+            match.lobby_info = lobby_info
+            update_fields.append("lobby_info")
+
+        match.save(update_fields=update_fields)
+
+        TOCBracketsService._fire_schedule_generated_event(
+            tournament,
+            scheduled_count=1,
+            round_count=1,
+            force_email=False,
+            target_user_ids=TOCBracketsService._match_participant_user_ids(tournament, match),
+            reason="manual_schedule",
+        )
 
         return {
             "match_id": match.id,
@@ -1168,6 +1311,15 @@ class TOCBracketsService:
         delta = timedelta(minutes=shift_minutes)
         count = qs.update(scheduled_time=F('scheduled_time') + delta)
 
+        if count > 0:
+            TOCBracketsService._fire_schedule_generated_event(
+                tournament,
+                scheduled_count=count,
+                round_count=1,
+                force_email=False,
+                reason="bulk_shift",
+            )
+
         return {"shifted": count, "delta_minutes": shift_minutes}
 
     @staticmethod
@@ -1186,6 +1338,15 @@ class TOCBracketsService:
             round_number__gt=after_round,
             scheduled_time__isnull=False,
         ).update(scheduled_time=F('scheduled_time') + delta)
+
+        if count > 0:
+            TOCBracketsService._fire_schedule_generated_event(
+                tournament,
+                scheduled_count=count,
+                round_count=1,
+                force_email=False,
+                reason="add_break",
+            )
 
         return {
             "label": label,
@@ -1217,9 +1378,33 @@ class TOCBracketsService:
         if not new_time:
             raise ValueError("Invalid datetime format.")
 
+        if timezone.is_naive(new_time):
+            from django.utils.timezone import make_aware
+            new_time = make_aware(new_time)
+
         old_time = match.scheduled_time
         match.scheduled_time = new_time
-        match.save(update_fields=["scheduled_time"])
+        lobby_info, lobby_changed = hydrate_match_lobby_info(
+            match,
+            create_if_missing=True,
+            reset_reminder_marks=True,
+        )
+
+        update_fields = ["scheduled_time"]
+        if lobby_changed:
+            match.lobby_info = lobby_info
+            update_fields.append("lobby_info")
+
+        match.save(update_fields=update_fields)
+
+        TOCBracketsService._fire_schedule_generated_event(
+            tournament,
+            scheduled_count=1,
+            round_count=1,
+            force_email=False,
+            target_user_ids=TOCBracketsService._match_participant_user_ids(tournament, match),
+            reason="match_rescheduled",
+        )
 
         return {
             "match_id": match.id,

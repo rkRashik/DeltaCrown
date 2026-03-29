@@ -202,6 +202,116 @@ const HubEngine = (() => {
     }
   }
 
+  function _buildHubApiPath(pathSuffix) {
+    const slug = _shell?.dataset.slug;
+    if (!slug || !pathSuffix) return '';
+    return `/tournaments/${slug}/hub/api/${pathSuffix}`;
+  }
+
+  function _proposalEndpoint(matchId) {
+    const id = String(matchId || '').trim();
+    if (!id) return '';
+    return _buildHubApiPath(`matches/${encodeURIComponent(id)}/reschedule/propose/`);
+  }
+
+  function _respondEndpoint(matchId) {
+    const id = String(matchId || '').trim();
+    if (!id) return '';
+    return _buildHubApiPath(`matches/${encodeURIComponent(id)}/reschedule/respond/`);
+  }
+
+  function _toDatetimeLocalValue(dateInput) {
+    const dt = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (Number.isNaN(dt.getTime())) return '';
+    const local = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000));
+    return local.toISOString().slice(0, 16);
+  }
+
+  function _parseLocalDatetime(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return null;
+    const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+    const dt = new Date(normalized);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt;
+  }
+
+  function _rescheduleErrorMessage(payload) {
+    const code = String(payload?.error || '').trim();
+    if (!code) return 'Unable to process the reschedule request right now.';
+
+    if (code === 'participant_rescheduling_disabled') return 'Participant rescheduling is disabled for this tournament.';
+    if (code === 'proposal_deadline_passed') return 'The proposal deadline for this match has already passed.';
+    if (code === 'pending_request_exists') return 'A pending proposal already exists for this match.';
+    if (code === 'pending_request_not_found') return 'No pending proposal was found for this match.';
+    if (code === 'pending_request_expired') return 'This proposal expired before a response was submitted.';
+    if (code === 'not_match_participant') return 'Only participants in this match can perform this action.';
+    if (code === 'proposer_cannot_respond') return 'The proposing side cannot accept or reject its own request.';
+    if (code === 'match_not_scheduled') return 'This match must be scheduled before a proposal can be sent.';
+    if (code === 'invalid_datetime_format') return 'Use a valid date/time format (YYYY-MM-DDTHH:MM).';
+    if (code === 'new_time_must_be_future') return 'Choose a future date/time for the new schedule.';
+    if (code === 'new_time_must_differ') return 'Choose a different time from the current schedule.';
+    if (code === 'reason_too_long') return 'Reason is too long. Keep it under 500 characters.';
+    if (code === 'response_note_too_long') return 'Response note is too long. Keep it under 500 characters.';
+    if (code.startsWith('cannot_reschedule_state:')) {
+      return 'This match state no longer allows participant reschedule proposals.';
+    }
+
+    return code.replace(/_/g, ' ');
+  }
+
+  function _collectKnownMatches() {
+    const fromMatches = [
+      ...((_matchesCache && _matchesCache.active_matches) || []),
+      ...((_matchesCache && _matchesCache.match_history) || []),
+    ];
+    const fromSchedule = [
+      ...((_scheduleMatchesCache && _scheduleMatchesCache.active_matches) || []),
+      ...((_scheduleMatchesCache && _scheduleMatchesCache.match_history) || []),
+    ];
+    return [...fromMatches, ...fromSchedule];
+  }
+
+  function _findMatchById(matchId) {
+    const id = String(matchId || '').trim();
+    if (!id) return null;
+    const all = _collectKnownMatches();
+    return all.find((m) => String(m?.id || '') === id) || null;
+  }
+
+  function _openMatchRoom(url) {
+    const targetUrl = String(url || '').trim();
+    if (!targetUrl) {
+      _emitToast('warning', 'Lobby link is not available for this match yet.');
+      return;
+    }
+    window.location.href = targetUrl;
+  }
+
+  function _invalidateMatchCaches() {
+    _matchesCache = null;
+    _scheduleMatchesCache = null;
+    _matchesCacheFetchedAt = 0;
+  }
+
+  async function _refreshMatchSurfaces() {
+    _invalidateMatchCaches();
+
+    try {
+      await _fetchMatches();
+    } catch (err) {
+      console.warn('[HubEngine] Failed to refresh matches:', err?.message || err);
+    }
+
+    try {
+      await _fetchScheduleMatches();
+    } catch (err) {
+      console.warn('[HubEngine] Failed to refresh schedule matches:', err?.message || err);
+    }
+
+    _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
+  }
+
   // ── Init ────────────────────────────────────────────────
   function init() {
     _shell = document.getElementById('hub-shell');
@@ -2106,8 +2216,17 @@ const HubEngine = (() => {
     }
 
     if (actionBtn) {
-      actionBtn.textContent = isLive || isReady ? 'Open Match Lobby' : 'View Schedule';
-      actionBtn.onclick = () => switchTab(isLive || isReady ? 'matches' : 'schedule');
+      const canOpenLobby = Boolean(target.match_room_url);
+      actionBtn.textContent = isLive || isReady
+        ? (canOpenLobby ? 'Go to Lobby' : 'Open Match Lobby')
+        : 'View Schedule';
+      actionBtn.onclick = () => {
+        if ((isLive || isReady) && canOpenLobby) {
+          _openMatchRoom(target.match_room_url);
+          return;
+        }
+        switchTab(isLive || isReady ? 'matches' : 'schedule');
+      };
     }
   }
 
@@ -2989,6 +3108,70 @@ const HubEngine = (() => {
     }
   }
 
+  function _renderMatchActionControls(match, { compact = false } = {}) {
+    const m = match || {};
+    const matchId = JSON.stringify(String(m.id || ''));
+    const hasLobby = Boolean(m.match_room_url);
+    const reschedule = m.reschedule || {};
+    const pendingRequest = reschedule.pending_request || null;
+    const canPropose = Boolean(reschedule.can_propose);
+    const canRespond = Boolean(reschedule.can_respond && pendingRequest && pendingRequest.id);
+
+    const mySide = Number(reschedule.my_side || 0);
+    const proposerSide = Number(pendingRequest?.proposer_side || 0);
+    const iProposed = Boolean(pendingRequest && mySide && proposerSide && mySide === proposerSide);
+
+    const proposedTime = pendingRequest?.new_time ? new Date(pendingRequest.new_time) : null;
+    const proposedLabel = (proposedTime && !Number.isNaN(proposedTime.getTime()))
+      ? proposedTime.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'a new time';
+
+    let pendingLine = '';
+    if (pendingRequest) {
+      let text = `Reschedule proposal pending for ${proposedLabel}.`;
+      if (canRespond) {
+        text = `Opponent proposed ${proposedLabel}. Respond below.`;
+      } else if (iProposed) {
+        text = `You proposed ${proposedLabel}. Waiting for opponent response.`;
+      }
+      pendingLine = `<p class="text-[10px] text-gray-400">${_esc(text)}</p>`;
+    }
+
+    const buttonBase = compact
+      ? 'px-2.5 py-1.5 text-[10px]'
+      : 'px-3 py-1.5 text-[11px]';
+
+    const buttons = [];
+    if (hasLobby) {
+      buttons.push(
+        `<button onclick='HubEngine.openMatchLobby(${matchId})' class='${buttonBase} rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-cyan-200 font-bold uppercase tracking-wide hover:bg-cyan-300/15 transition-colors'>Go to Lobby</button>`
+      );
+    }
+
+    if (canPropose) {
+      buttons.push(
+        `<button onclick='HubEngine.openRescheduleProposal(${matchId})' class='${buttonBase} rounded-lg border border-amber-300/30 bg-amber-300/10 text-amber-200 font-bold uppercase tracking-wide hover:bg-amber-300/15 transition-colors'>Propose Reschedule</button>`
+      );
+    }
+
+    if (canRespond) {
+      buttons.push(
+        `<button onclick='HubEngine.respondReschedule(${matchId}, "accept")' class='${buttonBase} rounded-lg border border-[#00FF66]/30 bg-[#00FF66]/10 text-[#66FFAE] font-bold uppercase tracking-wide hover:bg-[#00FF66]/20 transition-colors'>Accept</button>`
+      );
+      buttons.push(
+        `<button onclick='HubEngine.respondReschedule(${matchId}, "reject")' class='${buttonBase} rounded-lg border border-[#FF2A55]/30 bg-[#FF2A55]/10 text-[#FF8AA0] font-bold uppercase tracking-wide hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>`
+      );
+    }
+
+    if (!pendingLine && buttons.length === 0) return '';
+
+    return `
+      <div class="${compact ? 'mt-2' : 'mt-3'} space-y-2">
+        ${pendingLine}
+        ${buttons.length ? `<div class="flex flex-wrap gap-2">${buttons.join('')}</div>` : ''}
+      </div>`;
+  }
+
   function _renderMatches(data) {
     _hide('matches-skeleton');
     _renderOverviewActionCard(data, _lastPolledState);
@@ -3024,6 +3207,7 @@ const HubEngine = (() => {
                 ${lobbyCode ? `<div class="text-right"><p class="text-[10px] text-gray-500">Lobby Code</p><p class="text-sm font-bold text-[#00F0FF]" style="font-family:'Space Grotesk',monospace;">${_esc(lobbyCode)}</p></div>` : ''}
               </div>
               ${m.scheduled_at ? `<p class="text-[10px] text-gray-600 mt-2">Scheduled: ${new Date(m.scheduled_at).toLocaleString()}</p>` : ''}
+              ${_renderMatchActionControls(m)}
             </div>`;
         });
         cardsEl.innerHTML = html;
@@ -3186,6 +3370,7 @@ const HubEngine = (() => {
       if (roomEl) roomEl.textContent = 'TBD';
       if (joinBtn) {
         joinBtn.textContent = 'Open Match + Submit Result';
+        joinBtn.onclick = () => switchTab('matches');
       }
       if (noteWrap) noteWrap.classList.add('hidden');
       return;
@@ -3228,11 +3413,19 @@ const HubEngine = (() => {
 
     const roomCode = target.lobby_info?.lobby_code || target.lobby_code || 'Pending';
     if (roomEl) roomEl.textContent = roomCode;
+    const matchRoomUrl = target.match_room_url || '';
 
     if (joinBtn) {
       joinBtn.textContent = roomCode && roomCode !== 'Pending'
         ? `Join Lobby ${roomCode}`
         : 'Open Match + Submit Result';
+      joinBtn.onclick = () => {
+        if (matchRoomUrl) {
+          _openMatchRoom(matchRoomUrl);
+        } else {
+          switchTab('matches');
+        }
+      };
     }
 
     const note = target.admin_note || target.note || '';
@@ -3407,21 +3600,24 @@ const HubEngine = (() => {
           : '';
 
         html += `
-          <div class="hub-glass rounded-xl p-4 flex items-center gap-4 border-l-3 transition-all hover:border-l-4" style="border-left-color:${color}">
-            <div class="w-14 text-center shrink-0">
-              <p class="text-sm font-bold ${isLive ? 'text-[#FF2A55]' : 'text-white'}" style="font-family:'Space Grotesk',monospace;">
-                ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse inline-block mr-1"></span>LIVE' : time}
-              </p>
+          <div class="hub-glass rounded-xl p-4 border-l-3 transition-all hover:border-l-4" style="border-left-color:${color}">
+            <div class="flex items-center gap-4">
+              <div class="w-14 text-center shrink-0">
+                <p class="text-sm font-bold ${isLive ? 'text-[#FF2A55]' : 'text-white'}" style="font-family:'Space Grotesk',monospace;">
+                  ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse inline-block mr-1"></span>LIVE' : time}
+                </p>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
+                <p class="text-sm font-medium text-white mt-0.5">${m.is_staff_view ? _esc(m.p1_name || 'TBD') + ' vs ' + _esc(m.p2_name || 'TBD') : 'vs ' + _esc(m.opponent_name || 'TBD')}</p>
+              </div>
+              <div class="text-right shrink-0">
+                ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? m.your_score ?? 0} — ${m.p2_score ?? m.opponent_score ?? 0}</p>` : ''}
+                ${resultTag}
+                ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
+              </div>
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-              <p class="text-sm font-medium text-white mt-0.5">${m.is_staff_view ? _esc(m.p1_name || 'TBD') + ' vs ' + _esc(m.p2_name || 'TBD') : 'vs ' + _esc(m.opponent_name || 'TBD')}</p>
-            </div>
-            <div class="text-right shrink-0">
-              ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? m.your_score ?? 0} — ${m.p2_score ?? m.opponent_score ?? 0}</p>` : ''}
-              ${resultTag}
-              ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
-            </div>
+            ${_renderMatchActionControls(m, { compact: true })}
           </div>`;
       });
 
@@ -3441,6 +3637,153 @@ const HubEngine = (() => {
   function refreshScheduleMatches() {
     _scheduleMatchesCache = null;
     _fetchScheduleMatches();
+  }
+
+  function openMatchLobby(matchId) {
+    const match = _findMatchById(matchId);
+    if (!match || !match.match_room_url) {
+      _emitToast('warning', 'Match lobby is not available for this card yet.');
+      return;
+    }
+    _openMatchRoom(match.match_room_url);
+  }
+
+  async function openRescheduleProposal(matchId) {
+    const match = _findMatchById(matchId);
+    if (!match) {
+      _emitToast('error', 'Unable to find this match in the current view. Refresh and try again.');
+      return;
+    }
+
+    if (!match?.reschedule?.can_propose) {
+      _emitToast('warning', 'Reschedule proposals are not available for this match right now.');
+      return;
+    }
+
+    const currentScheduled = match.scheduled_at ? new Date(match.scheduled_at) : null;
+    const defaultDate = currentScheduled && !Number.isNaN(currentScheduled.getTime())
+      ? new Date(currentScheduled.getTime() + (30 * 60 * 1000))
+      : new Date(Date.now() + (60 * 60 * 1000));
+    defaultDate.setSeconds(0, 0);
+
+    const entered = window.prompt(
+      'Propose new time (local): YYYY-MM-DDTHH:MM',
+      _toDatetimeLocalValue(defaultDate)
+    );
+    if (entered === null) return;
+
+    const parsed = _parseLocalDatetime(entered);
+    if (!parsed) {
+      _emitToast('error', 'Invalid date/time. Use YYYY-MM-DDTHH:MM.');
+      return;
+    }
+
+    const reasonRaw = window.prompt('Optional reason for opponent (max 500 chars):', '') || '';
+    const reason = String(reasonRaw).trim().slice(0, 500);
+    const url = _proposalEndpoint(match.id);
+    if (!url) {
+      _emitToast('error', 'Reschedule endpoint is unavailable.');
+      return;
+    }
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': _csrfToken,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          new_time: parsed.toISOString(),
+          reason,
+        }),
+      });
+
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok || payload?.success === false) {
+        throw new Error(_rescheduleErrorMessage(payload));
+      }
+
+      _emitToast('success', 'Reschedule proposal sent to opponent.');
+      await _refreshMatchSurfaces();
+    } catch (err) {
+      _emitToast('error', err?.message || 'Failed to send reschedule proposal.');
+    }
+  }
+
+  async function respondReschedule(matchId, action) {
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!['accept', 'reject'].includes(normalizedAction)) return;
+
+    const match = _findMatchById(matchId);
+    if (!match) {
+      _emitToast('error', 'Unable to find this match in the current view. Refresh and try again.');
+      return;
+    }
+
+    const pendingRequest = match?.reschedule?.pending_request;
+    if (!match?.reschedule?.can_respond || !pendingRequest?.id) {
+      _emitToast('warning', 'No pending reschedule proposal is waiting for your response.');
+      return;
+    }
+
+    const proposedTime = pendingRequest.new_time ? new Date(pendingRequest.new_time) : null;
+    const proposedLabel = (proposedTime && !Number.isNaN(proposedTime.getTime()))
+      ? proposedTime.toLocaleString()
+      : 'the proposed time';
+
+    const shouldProceed = window.confirm(
+      normalizedAction === 'accept'
+        ? `Accept this proposal for ${proposedLabel}?`
+        : `Reject this proposal for ${proposedLabel}?`
+    );
+    if (!shouldProceed) return;
+
+    const notePrompt = normalizedAction === 'accept'
+      ? 'Optional acceptance note (max 500 chars):'
+      : 'Optional rejection note (max 500 chars):';
+    const noteRaw = window.prompt(notePrompt, '') || '';
+    const responseNote = String(noteRaw).trim().slice(0, 500);
+
+    const url = _respondEndpoint(match.id);
+    if (!url) {
+      _emitToast('error', 'Reschedule endpoint is unavailable.');
+      return;
+    }
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': _csrfToken,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          action: normalizedAction,
+          request_id: pendingRequest.id,
+          response_note: responseNote,
+        }),
+      });
+
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok || payload?.success === false) {
+        throw new Error(_rescheduleErrorMessage(payload));
+      }
+
+      if (normalizedAction === 'accept' && payload?.scheduled_at) {
+        const scheduled = new Date(payload.scheduled_at);
+        const when = Number.isNaN(scheduled.getTime()) ? '' : ` New time: ${scheduled.toLocaleString()}.`;
+        _emitToast('success', `Reschedule accepted.${when}`.trim());
+      } else {
+        _emitToast('success', normalizedAction === 'accept' ? 'Reschedule accepted.' : 'Reschedule rejected.');
+      }
+
+      await _refreshMatchSurfaces();
+    } catch (err) {
+      _emitToast('error', err?.message || 'Failed to submit reschedule response.');
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -4763,6 +5106,9 @@ const HubEngine = (() => {
     // S27: WebSocket status
     isWsConnected: () => _ws && _ws.readyState === WebSocket.OPEN,
     refreshScheduleMatches,
+    openMatchLobby,
+    openRescheduleProposal,
+    respondReschedule,
     // Map viewer
     openMapViewer,
     closeMapViewer,

@@ -21,6 +21,7 @@ from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.views import View
 from django.contrib import messages
@@ -36,6 +37,7 @@ from apps.tournaments.models import (
     PrizeClaim,
     TournamentStaff,
     HubSupportTicket,
+    RescheduleRequest,
 )
 from apps.notifications.models import Notification
 from apps.tournaments.models.bracket import Bracket, BracketNode
@@ -43,6 +45,7 @@ from apps.tournaments.models.group import Group, GroupStanding
 from apps.tournaments.models.match import Match
 from apps.tournaments.models.prize import PrizeTransaction
 from apps.tournaments.services.lobby_service import LobbyService
+from apps.tournaments.services.match_lobby_service import ensure_match_lobby_info, hydrate_match_lobby_info
 
 logger = logging.getLogger(__name__)
 
@@ -729,6 +732,7 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
         'api_standings_url': f'/tournaments/{tournament.slug}/hub/api/standings/{query_suffix}',
         'api_matches_url': f'/tournaments/{tournament.slug}/hub/api/matches/{query_suffix}',
         'api_participants_url': f'/tournaments/{tournament.slug}/hub/api/participants/{query_suffix}',
+        'api_reschedule_settings_url': f'/tournaments/{tournament.slug}/hub/api/reschedule/settings/{query_suffix}',
 
         # Social / Contact
         'discord_url': tournament.social_discord or (lobby.discord_server_url if lobby else ''),
@@ -1036,6 +1040,140 @@ def _json_response(payload, status=200, cache_control=None):
     if cache_control:
         resp['Cache-Control'] = cache_control
     return resp
+
+
+def _participant_reschedule_policy(tournament):
+    """Return participant-rescheduling policy from tournament config."""
+    config = tournament.config if isinstance(tournament.config, dict) else {}
+    policy = config.get('participant_rescheduling')
+    if not isinstance(policy, dict):
+        policy = {}
+
+    allow = bool(policy.get('allow_participant_rescheduling', False))
+
+    raw_deadline_minutes = policy.get('deadline_minutes_before')
+    if raw_deadline_minutes is None:
+        raw_deadline_hours = policy.get('deadline_hours_before')
+        if raw_deadline_hours is None:
+            deadline_minutes = 120
+        else:
+            try:
+                deadline_minutes = int(float(raw_deadline_hours) * 60)
+            except (TypeError, ValueError):
+                deadline_minutes = 120
+    else:
+        try:
+            deadline_minutes = int(raw_deadline_minutes)
+        except (TypeError, ValueError):
+            deadline_minutes = 120
+
+    deadline_minutes = max(5, min(deadline_minutes, 10080))
+    return {
+        'allow_participant_rescheduling': allow,
+        'deadline_minutes_before': deadline_minutes,
+        'deadline_hours_before': round(deadline_minutes / 60, 2),
+    }
+
+
+def _set_participant_reschedule_policy(tournament, *, allow, deadline_minutes, updated_by_id=None):
+    """Persist participant rescheduling policy in tournament config."""
+    config = tournament.config if isinstance(tournament.config, dict) else {}
+    policy = config.get('participant_rescheduling') if isinstance(config.get('participant_rescheduling'), dict) else {}
+
+    policy['allow_participant_rescheduling'] = bool(allow)
+    policy['deadline_minutes_before'] = int(max(5, min(int(deadline_minutes), 10080)))
+    policy['updated_at'] = timezone.now().isoformat()
+    policy['updated_by'] = updated_by_id
+
+    config['participant_rescheduling'] = policy
+    tournament.config = config
+    tournament.save(update_fields=['config'])
+
+
+def _resolve_user_match_side(user, tournament, match, registration=None):
+    """Resolve whether the user is participant1 (1) or participant2 (2) for this match."""
+    if not user or not user.is_authenticated:
+        return None
+
+    if tournament.participation_type == 'team':
+        team_ids = set()
+        if registration and registration.team_id:
+            team_ids.add(registration.team_id)
+        else:
+            from apps.organizations.models import TeamMembership
+
+            team_ids = set(
+                TeamMembership.objects.filter(
+                    user=user,
+                    status=TeamMembership.Status.ACTIVE,
+                ).values_list('team_id', flat=True)
+            )
+
+        if match.participant1_id in team_ids:
+            return 1
+        if match.participant2_id in team_ids:
+            return 2
+        return None
+
+    if match.participant1_id == user.id:
+        return 1
+    if match.participant2_id == user.id:
+        return 2
+    return None
+
+
+def _match_registered_user_ids(tournament, match):
+    """Resolve registered user ids associated with both match participants."""
+    participant_ids = [pid for pid in (match.participant1_id, match.participant2_id) if pid]
+    if not participant_ids:
+        return []
+
+    regs = Registration.objects.filter(
+        tournament=tournament,
+        status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
+        is_deleted=False,
+        user__isnull=False,
+    ).filter(
+        models.Q(user_id__in=participant_ids) | models.Q(team_id__in=participant_ids)
+    )
+    return list(regs.values_list('user_id', flat=True).distinct())
+
+
+def _participant_user_ids_for_side(tournament, participant_id):
+    """Resolve registered user IDs for a specific participant id (team or solo)."""
+    if not participant_id:
+        return []
+
+    regs = Registration.objects.filter(
+        tournament=tournament,
+        status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
+        is_deleted=False,
+        user__isnull=False,
+    ).filter(
+        models.Q(user_id=participant_id) | models.Q(team_id=participant_id)
+    )
+    return list(regs.values_list('user_id', flat=True).distinct())
+
+
+def _serialize_reschedule_request(req):
+    if not req:
+        return None
+    return {
+        'id': str(req.id),
+        'match_id': req.match_id,
+        'status': req.status,
+        'proposer_side': req.proposer_side,
+        'requested_by_id': req.requested_by_id,
+        'reviewed_by_id': req.reviewed_by_id,
+        'old_time': req.old_time.isoformat() if req.old_time else None,
+        'new_time': req.new_time.isoformat() if req.new_time else None,
+        'reason': req.reason,
+        'response_note': getattr(req, 'response_note', '') or '',
+        'expires_at': req.expires_at.isoformat() if getattr(req, 'expires_at', None) else None,
+        'reviewed_at': req.reviewed_at.isoformat() if getattr(req, 'reviewed_at', None) else None,
+        'created_at': req.created_at.isoformat() if req.created_at else None,
+        'updated_at': req.updated_at.isoformat() if req.updated_at else None,
+    }
 
 
 def _group_projection_token(group_name: str) -> str:
@@ -2307,10 +2445,31 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         except Bracket.DoesNotExist:
             pass
 
+        reschedule_policy = _participant_reschedule_policy(tournament)
+        reschedule_enabled = reschedule_policy['allow_participant_rescheduling']
+        reschedule_deadline_minutes = reschedule_policy['deadline_minutes_before']
+        now = timezone.now()
+
+        pending_requests_by_match = {}
+        if user_matches:
+            pending_requests = RescheduleRequest.objects.filter(
+                match_id__in=[m.id for m in user_matches],
+                status=RescheduleRequest.PENDING,
+            ).order_by('match_id', '-created_at')
+            for req in pending_requests:
+                if req.match_id not in pending_requests_by_match:
+                    pending_requests_by_match[req.match_id] = req
+
         active = []
         history = []
         for m in user_matches:
             is_my_match = bool(participant_id and (m.participant1_id == participant_id or m.participant2_id == participant_id))
+            my_side = None
+            if participant_id:
+                if m.participant1_id == participant_id:
+                    my_side = 1
+                elif m.participant2_id == participant_id:
+                    my_side = 2
 
             if is_staff_view:
                 # Staff/organizer sees both sides — no "your" vs "opponent"
@@ -2360,6 +2519,40 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             if not isinstance(raw_gs, list):
                 raw_gs = []
 
+            lobby_info = ensure_match_lobby_info(
+                m,
+                create_if_missing=True,
+                reset_reminder_marks=False,
+            )
+            pending_request = pending_requests_by_match.get(m.id)
+            deadline_at = (
+                (m.scheduled_time - timedelta(minutes=reschedule_deadline_minutes))
+                if m.scheduled_time else None
+            )
+            schedule_state_mutable = m.state in (Match.SCHEDULED, Match.CHECK_IN, Match.READY)
+            within_deadline = bool(deadline_at and now <= deadline_at)
+            can_propose = bool(
+                reschedule_enabled
+                and not is_staff_view
+                and is_my_match
+                and my_side in (1, 2)
+                and schedule_state_mutable
+                and m.scheduled_time
+                and within_deadline
+                and not pending_request
+            )
+            can_respond = bool(
+                reschedule_enabled
+                and not is_staff_view
+                and is_my_match
+                and my_side in (1, 2)
+                and pending_request
+                and pending_request.proposer_side in (1, 2)
+                and int(pending_request.proposer_side) != int(my_side)
+                and schedule_state_mutable
+            )
+            match_room_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': m.id})
+
             match_data = {
                 'id': m.id,
                 'round_number': m.round_number,
@@ -2378,16 +2571,36 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'winner_name': m.winner_name if hasattr(m, 'winner_name') else None,
                 'is_staff_view': show_full_matchup,
                 'is_my_match': is_my_match,
-                'lobby_info': m.lobby_info or {},
+                'lobby_info': lobby_info,
+                'match_room_url': match_room_url if (is_my_match or is_staff_view) else '',
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'game_scores': raw_gs,
                 'best_of': best_of,
                 'p1_logo_url': participant_media_map.get(m.participant1_id, ''),
                 'p2_logo_url': participant_media_map.get(m.participant2_id, ''),
+                'reschedule': {
+                    'enabled': bool(reschedule_enabled),
+                    'deadline_minutes_before': int(reschedule_deadline_minutes),
+                    'deadline_at': deadline_at.isoformat() if deadline_at else None,
+                    'my_side': my_side,
+                    'can_propose': can_propose,
+                    'can_respond': can_respond,
+                    'pending_request': _serialize_reschedule_request(pending_request),
+                },
             }
 
             if include_all_matches and not is_staff_view and not is_my_match:
                 match_data['lobby_info'] = {}
+                match_data['match_room_url'] = ''
+                match_data['reschedule'] = {
+                    'enabled': bool(reschedule_enabled),
+                    'deadline_minutes_before': int(reschedule_deadline_minutes),
+                    'deadline_at': deadline_at.isoformat() if deadline_at else None,
+                    'my_side': None,
+                    'can_propose': False,
+                    'can_respond': False,
+                    'pending_request': None,
+                }
 
             if is_my_match and not is_staff_view and not include_all_matches:
                 opponent_pid = m.participant2_id if is_p1 else m.participant1_id
@@ -2408,6 +2621,335 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             'match_history': history,
             'total': len(active) + len(history),
         }, cache_control='private, max-age=10')
+
+
+class HubRescheduleSettingsAPIView(LoginRequiredMixin, View):
+    """GET/POST participant reschedule policy for the current tournament."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        is_staff = _is_tournament_staff_or_organizer(request.user, tournament)
+        if not registration and not is_staff:
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
+
+        policy = _participant_reschedule_policy(tournament)
+        return _json_response({
+            **policy,
+            'can_manage': bool(is_staff),
+        }, cache_control='private, max-age=20')
+
+    def post(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        if not _is_tournament_staff_or_organizer(request.user, tournament):
+            return _json_response({'error': 'forbidden'}, status=403, cache_control='no-store')
+
+        try:
+            body = json.loads(request.body or '{}')
+            if not isinstance(body, dict):
+                body = {}
+        except (json.JSONDecodeError, ValueError):
+            return _json_response({'error': 'invalid_payload'}, status=400, cache_control='no-store')
+
+        current_policy = _participant_reschedule_policy(tournament)
+        allow = bool(body.get('allow_participant_rescheduling', current_policy['allow_participant_rescheduling']))
+
+        deadline_minutes = current_policy['deadline_minutes_before']
+        if 'deadline_minutes_before' in body:
+            try:
+                deadline_minutes = int(body.get('deadline_minutes_before'))
+            except (TypeError, ValueError):
+                return _json_response({'error': 'deadline_minutes_before must be a number.'}, status=400, cache_control='no-store')
+        elif 'deadline_hours_before' in body:
+            try:
+                deadline_minutes = int(float(body.get('deadline_hours_before')) * 60)
+            except (TypeError, ValueError):
+                return _json_response({'error': 'deadline_hours_before must be a number.'}, status=400, cache_control='no-store')
+
+        deadline_minutes = max(5, min(deadline_minutes, 10080))
+        _set_participant_reschedule_policy(
+            tournament,
+            allow=allow,
+            deadline_minutes=deadline_minutes,
+            updated_by_id=request.user.id,
+        )
+
+        updated_policy = _participant_reschedule_policy(tournament)
+        return _json_response({
+            'success': True,
+            **updated_policy,
+            'can_manage': True,
+        }, cache_control='no-store')
+
+
+class HubMatchRescheduleProposalAPIView(LoginRequiredMixin, View):
+    """POST participant proposal for match rescheduling negotiation."""
+
+    def post(self, request, slug, match_id):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
+        policy = _participant_reschedule_policy(tournament)
+        if not policy['allow_participant_rescheduling']:
+            return _json_response({'error': 'participant_rescheduling_disabled'}, status=403, cache_control='no-store')
+
+        match = get_object_or_404(
+            Match,
+            id=match_id,
+            tournament=tournament,
+            is_deleted=False,
+        )
+
+        if match.state not in (Match.SCHEDULED, Match.CHECK_IN, Match.READY):
+            return _json_response({'error': f"cannot_reschedule_state:{match.state}"}, status=400, cache_control='no-store')
+
+        if not match.scheduled_time:
+            return _json_response({'error': 'match_not_scheduled'}, status=400, cache_control='no-store')
+
+        actor_side = _resolve_user_match_side(request.user, tournament, match, registration)
+        if actor_side not in (1, 2):
+            return _json_response({'error': 'not_match_participant'}, status=403, cache_control='no-store')
+
+        now = timezone.now()
+        deadline_at = match.scheduled_time - timedelta(minutes=policy['deadline_minutes_before'])
+        if now > deadline_at:
+            return _json_response({'error': 'proposal_deadline_passed', 'deadline_at': deadline_at.isoformat()}, status=400, cache_control='no-store')
+
+        existing_pending = RescheduleRequest.objects.filter(
+            match=match,
+            status=RescheduleRequest.PENDING,
+        ).order_by('-created_at').first()
+        if existing_pending:
+            return _json_response({
+                'error': 'pending_request_exists',
+                'pending_request': _serialize_reschedule_request(existing_pending),
+            }, status=409, cache_control='no-store')
+
+        try:
+            body = json.loads(request.body or '{}')
+            if not isinstance(body, dict):
+                body = {}
+        except (json.JSONDecodeError, ValueError):
+            return _json_response({'error': 'invalid_payload'}, status=400, cache_control='no-store')
+
+        new_time_str = body.get('new_time') or body.get('scheduled_time')
+        if not new_time_str:
+            return _json_response({'error': 'new_time is required.'}, status=400, cache_control='no-store')
+
+        new_time = parse_datetime(str(new_time_str))
+        if not new_time:
+            return _json_response({'error': 'invalid_datetime_format'}, status=400, cache_control='no-store')
+        if timezone.is_naive(new_time):
+            new_time = timezone.make_aware(new_time)
+
+        if new_time <= now + timedelta(minutes=5):
+            return _json_response({'error': 'new_time_must_be_future'}, status=400, cache_control='no-store')
+
+        if match.scheduled_time and abs((new_time - match.scheduled_time).total_seconds()) < 60:
+            return _json_response({'error': 'new_time_must_differ'}, status=400, cache_control='no-store')
+
+        reason = (body.get('reason') or '').strip()
+        if len(reason) > 500:
+            return _json_response({'error': 'reason_too_long'}, status=400, cache_control='no-store')
+
+        proposal = RescheduleRequest.objects.create(
+            match=match,
+            requested_by_id=request.user.id,
+            proposer_side=actor_side,
+            old_time=match.scheduled_time,
+            new_time=new_time,
+            reason=reason,
+            status=RescheduleRequest.PENDING,
+            expires_at=match.scheduled_time,
+        )
+
+        target_participant_id = match.participant2_id if actor_side == 1 else match.participant1_id
+        target_user_ids = _participant_user_ids_for_side(tournament, target_participant_id)
+
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+            TOCNotificationsService.fire_auto_event(
+                tournament,
+                'match_reschedule_proposed',
+                {
+                    'target_user_ids': target_user_ids,
+                    'match_id': match.id,
+                    'round_number': match.round_number,
+                    'match_number': match.match_number,
+                    'participant1': match.participant1_name or 'Participant 1',
+                    'participant2': match.participant2_name or 'Participant 2',
+                    'proposed_time': timezone.localtime(new_time).strftime('%b %d, %Y %I:%M %p'),
+                    'force_email': True,
+                    'dedupe': False,
+                    'url': f'/tournaments/{tournament.slug}/hub/?tab=matches',
+                },
+            )
+        except Exception:
+            pass
+
+        return _json_response({
+            'success': True,
+            'request': _serialize_reschedule_request(proposal),
+            'deadline_at': deadline_at.isoformat(),
+        }, cache_control='no-store')
+
+
+class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
+    """POST accept/reject for a pending participant reschedule proposal."""
+
+    def post(self, request, slug, match_id):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
+
+        lock_resp = _forbidden_if_critical_locked(request, tournament, registration)
+        if lock_resp:
+            return lock_resp
+
+        match = get_object_or_404(
+            Match,
+            id=match_id,
+            tournament=tournament,
+            is_deleted=False,
+        )
+
+        actor_side = _resolve_user_match_side(request.user, tournament, match, registration)
+        if actor_side not in (1, 2):
+            return _json_response({'error': 'not_match_participant'}, status=403, cache_control='no-store')
+
+        try:
+            body = json.loads(request.body or '{}')
+            if not isinstance(body, dict):
+                body = {}
+        except (json.JSONDecodeError, ValueError):
+            return _json_response({'error': 'invalid_payload'}, status=400, cache_control='no-store')
+
+        action = str(body.get('action') or '').strip().lower()
+        if action not in {'accept', 'reject'}:
+            return _json_response({'error': 'action must be accept or reject.'}, status=400, cache_control='no-store')
+
+        request_id = body.get('request_id')
+        pending_qs = RescheduleRequest.objects.filter(
+            match=match,
+            status=RescheduleRequest.PENDING,
+        )
+        if request_id:
+            pending_qs = pending_qs.filter(id=request_id)
+
+        pending_request = pending_qs.order_by('-created_at').first()
+        if not pending_request:
+            return _json_response({'error': 'pending_request_not_found'}, status=404, cache_control='no-store')
+
+        if pending_request.proposer_side in (1, 2) and int(pending_request.proposer_side) == int(actor_side):
+            return _json_response({'error': 'proposer_cannot_respond'}, status=403, cache_control='no-store')
+
+        now = timezone.now()
+        if pending_request.expires_at and now > pending_request.expires_at:
+            pending_request.status = RescheduleRequest.CANCELLED
+            pending_request.response_note = 'Proposal expired before response.'
+            pending_request.reviewed_by_id = request.user.id
+            pending_request.reviewed_at = now
+            pending_request.save(update_fields=['status', 'response_note', 'reviewed_by_id', 'reviewed_at', 'updated_at'])
+            return _json_response({'error': 'pending_request_expired'}, status=400, cache_control='no-store')
+
+        response_note = (body.get('response_note') or body.get('reason') or '').strip()
+        if len(response_note) > 500:
+            return _json_response({'error': 'response_note_too_long'}, status=400, cache_control='no-store')
+
+        pending_request.reviewed_by_id = request.user.id
+        pending_request.reviewed_at = now
+        pending_request.response_note = response_note
+
+        notification_event = 'match_reschedule_rejected'
+        notification_targets = []
+
+        if action == 'accept':
+            old_time = match.scheduled_time
+            match.scheduled_time = pending_request.new_time
+            lobby_info, lobby_changed = hydrate_match_lobby_info(
+                match,
+                create_if_missing=True,
+                reset_reminder_marks=True,
+            )
+            update_fields = ['scheduled_time']
+            if lobby_changed:
+                match.lobby_info = lobby_info
+                update_fields.append('lobby_info')
+            match.save(update_fields=update_fields)
+
+            pending_request.status = RescheduleRequest.APPROVED
+            pending_request.old_time = old_time
+            notification_event = 'match_reschedule_accepted'
+            notification_targets = _match_registered_user_ids(tournament, match)
+
+            try:
+                from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+                TOCNotificationsService.fire_auto_event(
+                    tournament,
+                    'schedule_generated',
+                    {
+                        'target_user_ids': notification_targets,
+                        'scheduled_count': 1,
+                        'round_count': 1,
+                        'force_email': False,
+                        'dedupe': False,
+                        'reason': 'participant_reschedule_accepted',
+                        'url': f'/tournaments/{tournament.slug}/hub/?tab=schedule',
+                    },
+                )
+            except Exception:
+                pass
+        else:
+            pending_request.status = RescheduleRequest.REJECTED
+            proposer_pid = match.participant1_id if pending_request.proposer_side == 1 else match.participant2_id
+            notification_targets = _participant_user_ids_for_side(tournament, proposer_pid)
+
+        pending_request.save(update_fields=[
+            'status',
+            'old_time',
+            'reviewed_by_id',
+            'reviewed_at',
+            'response_note',
+            'updated_at',
+        ])
+
+        try:
+            from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
+
+            TOCNotificationsService.fire_auto_event(
+                tournament,
+                notification_event,
+                {
+                    'target_user_ids': notification_targets,
+                    'match_id': match.id,
+                    'round_number': match.round_number,
+                    'match_number': match.match_number,
+                    'participant1': match.participant1_name or 'Participant 1',
+                    'participant2': match.participant2_name or 'Participant 2',
+                    'proposed_time': timezone.localtime(pending_request.new_time).strftime('%b %d, %Y %I:%M %p') if pending_request.new_time else '',
+                    'force_email': True,
+                    'dedupe': False,
+                    'url': f'/tournaments/{tournament.slug}/hub/?tab=matches',
+                },
+            )
+        except Exception:
+            pass
+
+        return _json_response({
+            'success': True,
+            'action': action,
+            'request': _serialize_reschedule_request(pending_request),
+            'scheduled_at': match.scheduled_time.isoformat() if match.scheduled_time else None,
+        }, cache_control='no-store')
 
 
 # ────────────────────────────────────────────────────────────

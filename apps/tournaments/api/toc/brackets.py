@@ -278,6 +278,27 @@ class ScheduleSendRemindersView(TOCBaseView):
             )
 
 
+class ScheduleParticipantRescheduleSettingsView(TOCBaseView):
+    """GET/PUT /api/toc/<slug>/schedule/participant-rescheduling/"""
+
+    def get(self, request, slug):
+        data = TOCBracketsService.get_participant_reschedule_settings(self.tournament)
+        return Response(data)
+
+    def put(self, request, slug):
+        try:
+            data = TOCBracketsService.update_participant_reschedule_settings(
+                self.tournament,
+                request.data if isinstance(request.data, dict) else {},
+                request.user,
+            )
+            return Response(data)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class ScheduleBulkShiftView(TOCBaseView):
     """S5-B7: POST /api/toc/<slug>/schedule/bulk-shift/"""
 

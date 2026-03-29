@@ -82,6 +82,22 @@ class TOCNotificationsService:
                 "enabled": True,
             },
             {
+                "id": "match_reminder_1h",
+                "name": "Match Reminder (1 Hour)",
+                "subject": "Your match starts in about 1 hour",
+                "body": "Your match in {tournament_name} starts in about 1 hour. Open the Hub to confirm lobby details and be ready.",
+                "trigger": "match_reminder_1h",
+                "enabled": True,
+            },
+            {
+                "id": "match_reminder_20m",
+                "name": "Match Reminder (20 Minutes)",
+                "subject": "Your match starts in about 20 minutes",
+                "body": "Your match in {tournament_name} starts in about 20 minutes. Join your match lobby and prepare to start.",
+                "trigger": "match_reminder_20m",
+                "enabled": True,
+            },
+            {
                 "id": "checkin_reminder",
                 "name": "Check-in Reminder",
                 "subject": "Check-in is open",
@@ -153,6 +169,30 @@ class TOCNotificationsService:
                 "trigger": "checkin_closed",
                 "enabled": True,
             },
+            {
+                "id": "match_reschedule_proposed",
+                "name": "Match Reschedule Proposed",
+                "subject": "A new match time was proposed",
+                "body": "A participant proposed a new time for your match in {tournament_name}. Review and accept or reject from the Hub.",
+                "trigger": "match_reschedule_proposed",
+                "enabled": True,
+            },
+            {
+                "id": "match_reschedule_accepted",
+                "name": "Match Reschedule Accepted",
+                "subject": "Match reschedule accepted",
+                "body": "A new match time has been accepted in {tournament_name}. Check your updated schedule in the Hub.",
+                "trigger": "match_reschedule_accepted",
+                "enabled": True,
+            },
+            {
+                "id": "match_reschedule_rejected",
+                "name": "Match Reschedule Rejected",
+                "subject": "Match reschedule request rejected",
+                "body": "Your proposed match time in {tournament_name} was rejected. Review details and coordinate a new proposal.",
+                "trigger": "match_reschedule_rejected",
+                "enabled": True,
+            },
         ]
 
     @staticmethod
@@ -162,12 +202,17 @@ class TOCNotificationsService:
             {"id": "auto_checkin_open", "event": "checkin_open", "template_id": "checkin_reminder", "enabled": True},
             {"id": "auto_checkin_closed", "event": "checkin_closed", "template_id": "checkin_closed", "enabled": True},
             {"id": "auto_match_ready", "event": "match_ready", "template_id": "match_ready", "enabled": True},
+            {"id": "auto_match_reminder_1h", "event": "match_reminder_1h", "template_id": "match_reminder_1h", "enabled": True},
+            {"id": "auto_match_reminder_20m", "event": "match_reminder_20m", "template_id": "match_reminder_20m", "enabled": True},
             {"id": "auto_match_complete", "event": "match_complete", "template_id": "match_result", "enabled": True},
             {"id": "auto_round_start", "event": "round_start", "template_id": "round_start", "enabled": True},
             {"id": "auto_bracket_generated", "event": "bracket_generated", "template_id": "bracket_generated", "enabled": True},
             {"id": "auto_bracket_published", "event": "bracket_published", "template_id": "bracket_published", "enabled": True},
             {"id": "auto_group_draw", "event": "group_draw_complete", "template_id": "group_draw_complete", "enabled": True},
             {"id": "auto_schedule_generated", "event": "schedule_generated", "template_id": "schedule_generated", "enabled": True},
+            {"id": "auto_match_reschedule_proposed", "event": "match_reschedule_proposed", "template_id": "match_reschedule_proposed", "enabled": True},
+            {"id": "auto_match_reschedule_accepted", "event": "match_reschedule_accepted", "template_id": "match_reschedule_accepted", "enabled": True},
+            {"id": "auto_match_reschedule_rejected", "event": "match_reschedule_rejected", "template_id": "match_reschedule_rejected", "enabled": True},
         ]
 
     @staticmethod

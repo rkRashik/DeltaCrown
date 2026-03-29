@@ -30,6 +30,13 @@ class RescheduleRequest(models.Model):
         (CANCELLED, _('Cancelled')),
     ]
 
+    SIDE_P1 = 1
+    SIDE_P2 = 2
+    SIDE_CHOICES = [
+        (SIDE_P1, _('Participant 1')),
+        (SIDE_P2, _('Participant 2')),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     match = models.ForeignKey(
         'tournaments.Match',
@@ -39,11 +46,20 @@ class RescheduleRequest(models.Model):
     requested_by_id = models.PositiveIntegerField(
         help_text=_('User ID who requested the reschedule'),
     )
+    proposer_side = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        choices=SIDE_CHOICES,
+        help_text=_('Which side (participant1/participant2) initiated the proposal'),
+    )
     old_time = models.DateTimeField(null=True, blank=True)
     new_time = models.DateTimeField()
     reason = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING, db_index=True)
     reviewed_by_id = models.PositiveIntegerField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    response_note = models.TextField(blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -75,6 +75,15 @@ _base_schedule = {
         'task': 'apps.organizations.tasks.clean_expired_invites',
         'schedule': crontab(hour='*/6', minute=0),
     },
+    # Critical participant reminders (1h/20m/5m windows) every 5 minutes.
+    # Kept in base schedule so reminder automation is not disabled by heavy beat flag.
+    'notify-match-ready': {
+        'task': 'apps.tournaments.tasks.notify_match_ready',
+        'schedule': crontab(minute='*/5'),
+        'options': {
+            'expires': 300,
+        },
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -115,15 +124,6 @@ _heavy_schedule = {
         'schedule': crontab(minute='*/15'),
         'options': {
             'expires': 900,
-        },
-    },
-
-    # Match-ready reminders every 5 minutes
-    'notify-match-ready': {
-        'task': 'apps.tournaments.tasks.notify_match_ready',
-        'schedule': crontab(minute='*/5'),
-        'options': {
-            'expires': 300,
         },
     },
 
