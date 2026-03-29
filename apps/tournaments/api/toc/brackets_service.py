@@ -8,6 +8,7 @@ to provide TOC-level bracket operations.
 import logging
 from typing import Any, Dict, List, Optional
 
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.tournaments.models import (
@@ -325,16 +326,84 @@ class TOCBracketsService:
         group_ids = {g.id for g in groups}
         match_stats = TOCBracketsService._group_stage_match_stats(tournament, group_ids)
 
+        standings_qs = GroupStanding.objects.filter(
+            group__in=groups,
+            is_deleted=False,
+        ).select_related('group', 'user').order_by('group_id', 'rank')
+        standings = list(standings_qs)
+
+        team_ids = {s.team_id for s in standings if s.team_id}
+        team_name_map: Dict[int, str] = {}
+        if team_ids:
+            try:
+                from apps.organizations.models.team import Team as OrgTeam
+
+                teams = OrgTeam.objects.filter(id__in=team_ids).only('id', 'name')
+                for team in teams:
+                    team_name_map[team.id] = team.name
+            except Exception:
+                pass
+
+        registration_name_map: Dict[int, str] = {}
+        missing_team_ids = team_ids - set(team_name_map.keys())
+        if missing_team_ids:
+            try:
+                name_rows = (
+                    Registration.objects.filter(
+                        tournament=tournament,
+                        team_id__in=missing_team_ids,
+                        is_deleted=False,
+                    )
+                    .exclude(display_name_override='')
+                    .values_list('team_id', 'display_name_override')
+                )
+                for team_id, display_name in name_rows:
+                    if team_id and display_name:
+                        registration_name_map[int(team_id)] = display_name
+            except Exception:
+                pass
+
+        standings_by_group: Dict[int, List[Dict[str, Any]]] = {}
+        has_drawn_assignments = False
+        for standing in standings:
+            has_drawn_assignments = True
+
+            display_name = '—'
+            if standing.team_id:
+                display_name = (
+                    team_name_map.get(standing.team_id)
+                    or registration_name_map.get(standing.team_id)
+                    or f'Team {standing.team_id}'
+                )
+            elif getattr(standing, 'user', None):
+                user = standing.user
+                display_name = getattr(user, 'username', '') or str(standing.user_id)
+            elif standing.user_id:
+                display_name = str(standing.user_id)
+
+            standings_by_group.setdefault(standing.group_id, []).append({
+                "id": standing.id,
+                "rank": standing.rank,
+                "team_id": standing.team_id,
+                "team_name": display_name,
+                "user_id": standing.user_id,
+                "matches_played": standing.matches_played,
+                "wins": standing.matches_won,
+                "draws": standing.matches_drawn,
+                "losses": standing.matches_lost,
+                "points": float(standing.points) if standing.points else 0,
+                "goals_for": standing.goals_for,
+                "goals_against": standing.goals_against,
+                "goal_difference": standing.goal_difference,
+                "is_advancing": standing.is_advancing,
+                "is_eliminated": standing.is_eliminated,
+            })
+
         result_groups = []
         total_matches = 0
         total_completed = 0
-        has_drawn_assignments = False
         for g in groups:
-            standings = GroupStanding.objects.filter(
-                group=g, is_deleted=False
-            ).order_by("rank")
-            if standings.exists():
-                has_drawn_assignments = True
+            group_standings = standings_by_group.get(g.id, [])
 
             g_stats = match_stats.get(g.id, {"total": 0, "completed": 0})
             g_total = int(g_stats.get("total") or 0)
@@ -353,9 +422,7 @@ class TOCBracketsService:
                 "is_drawn": g.is_finalized,
                 "matches_total": g_total,
                 "matches_completed": g_completed,
-                "standings": [
-                    TOCBracketsService._serialize_standing(s) for s in standings
-                ],
+                "standings": group_standings,
             })
 
         stage_state = stage.state
@@ -592,35 +659,58 @@ class TOCBracketsService:
         Sprint 27: Enhanced with conflict detection, group info,
         per-day breakdown, and estimated completion time.
         """
-        matches_qs = (
-            Match.objects.filter(tournament=tournament)
-            .select_related("bracket")
-            .order_by("scheduled_time", "round_number", "match_number")
-        )
+        matches_qs = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).only(
+            'id',
+            'round_number',
+            'match_number',
+            'participant1_id',
+            'participant1_name',
+            'participant2_id',
+            'participant2_name',
+            'participant1_score',
+            'participant2_score',
+            'state',
+            'winner_id',
+            'scheduled_time',
+            'started_at',
+            'completed_at',
+            'stream_url',
+            'best_of',
+            'game_scores',
+        ).order_by("scheduled_time", "round_number", "match_number")
         matches = list(matches_qs)
+
+        participant_ids = set()
+        for match in matches:
+            if match.participant1_id:
+                participant_ids.add(match.participant1_id)
+            if match.participant2_id:
+                participant_ids.add(match.participant2_id)
 
         # ── Build group lookup (match → group name) ──
         group_lookup = {}
-        try:
-            standings = GroupStanding.objects.filter(
-                group__tournament=tournament,
-            ).select_related('group').only('team_id', 'group__name')
-            for standing in standings:
-                if standing.team_id:
-                    group_lookup[standing.team_id] = standing.group.name
-        except Exception:
-            pass
+        if participant_ids:
+            try:
+                standings = GroupStanding.objects.filter(
+                    group__tournament=tournament,
+                ).filter(
+                    Q(team_id__in=participant_ids) | Q(user_id__in=participant_ids)
+                ).select_related('group').only('team_id', 'user_id', 'group__name')
+                for standing in standings:
+                    if standing.team_id:
+                        group_lookup[standing.team_id] = standing.group.name
+                    if standing.user_id:
+                        group_lookup.setdefault(standing.user_id, standing.group.name)
+            except Exception:
+                pass
 
         # ── Batch-resolve team names & logos ──
         is_team = tournament.participation_type != 'solo'
         team_map = {}
         if is_team:
-            participant_ids = set()
-            for m in matches:
-                if m.participant1_id:
-                    participant_ids.add(m.participant1_id)
-                if m.participant2_id:
-                    participant_ids.add(m.participant2_id)
             if participant_ids:
                 try:
                     from apps.organizations.models.team import Team as OrgTeam

@@ -128,12 +128,18 @@
       if (!el) return;
       el.classList.toggle('toc-loading-value', loading);
     });
-    const content = $('#schedule-content');
+    const content = getScheduleContainer();
     if (content) {
       content.classList.toggle('toc-panel-loading', loading);
       if (loading) content.setAttribute('aria-busy', 'true');
       else content.removeAttribute('aria-busy');
     }
+  }
+
+  function getScheduleContainer() {
+    const panel = $('[data-tab-content="schedule"]');
+    if (!panel) return null;
+    return $('#schedule-content', panel);
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -211,7 +217,7 @@
     renderFilters();
 
     const matches = getFilteredMatches();
-    const container = $('#schedule-content');
+    const container = getScheduleContainer();
     if (!container) return;
 
     switch (state.viewMode) {
@@ -1354,12 +1360,12 @@
     if (existing) existing.remove();
     const modal = document.createElement('div');
     modal.id = id;
-    modal.className = 'fixed inset-0 z-[110] flex items-center justify-center';
+    modal.className = 'fixed inset-0 z-[110] flex items-start sm:items-center justify-center p-3 sm:p-5';
     modal.innerHTML = `
       <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.schedule.closeOverlay('${id}')"></div>
-      <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
+      <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-3xl max-h-[90vh] relative z-10 overflow-hidden flex flex-col">
         <div class="h-1 w-full bg-theme"></div>
-        ${innerHtml}
+        <div class="min-h-0 overflow-y-auto">${innerHtml}</div>
       </div>`;
     document.body.appendChild(modal);
     _reinitIcons();

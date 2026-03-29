@@ -64,8 +64,30 @@
   /* --- State ------------------------------------------------ */
   let bracketData  = null;
   let groupsData   = null;
+  let pipelinesData = [];
   let scheduleData = null;
   let activeSubTab = null;
+  let _bracketsInflight = null;
+  let _bracketsRequestId = 0;
+  let _bracketsLastFetchedAt = 0;
+  let _scheduleInflight = null;
+  let _scheduleRequestId = 0;
+  let _scheduleLastFetchedAt = 0;
+
+  const BRACKETS_CACHE_TTL_MS = 20000;
+  const BRACKETS_SCHEDULE_CACHE_TTL_MS = 20000;
+
+  function hasFreshBracketsCache() {
+    return !!bracketData && (Date.now() - _bracketsLastFetchedAt) < BRACKETS_CACHE_TTL_MS;
+  }
+
+  function hasFreshScheduleCache() {
+    return !!scheduleData && (Date.now() - _scheduleLastFetchedAt) < BRACKETS_SCHEDULE_CACHE_TTL_MS;
+  }
+
+  function getBracketsScheduleContainer() {
+    return document.querySelector('#brackets-schedule-content');
+  }
 
   /* ================================================================
    *  SUB-NAVIGATION
@@ -86,8 +108,8 @@
     var target = document.querySelector('#sub-' + tab);
     if (target) target.classList.remove('hidden');
 
-    // Lazy-load schedule on first switch
-    if (tab === 'schedule' && !scheduleData) refreshSchedule();
+    // Lazy-load schedule on first switch, then reuse short-lived cache.
+    if (tab === 'schedule') refreshSchedule({ useCache: true });
     if (tab === 'swiss') refreshSwiss();
   }
 
@@ -114,26 +136,69 @@
   /* ================================================================
    *  DATA FETCH
    * ================================================================ */
-  async function refresh() {
-    try {
-      var fmt = window.TOC_CONFIG?.tournamentFormat || '';
-      var isSwiss = fmt === 'swiss';
-      var results = await Promise.all([
-        API.get('brackets/').catch(function() { return null; }),
-        isSwiss ? Promise.resolve(null) : API.get('groups/').catch(function() { return null; }),
-        API.get('pipelines/').catch(function() { return []; }),
-      ]);
-      bracketData = results[0];
-      groupsData  = results[1];
+  async function refresh(options) {
+    var opts = options || {};
+    var force = opts.force === true;
+    var useCache = opts.useCache === true;
+
+    if (!force && useCache && hasFreshBracketsCache()) {
       renderGroupsView(groupsData);
       renderBracketView(bracketData, groupsData);
-      renderPipelinesView(results[2]);
+      renderPipelinesView(pipelinesData || []);
       updateBracketButtons();
       updateGroupButtons();
-      if (isSwiss) refreshSwiss();
-    } catch (e) {
-      console.error('[brackets] fetch error', e);
+      return {
+        bracketData: bracketData,
+        groupsData: groupsData,
+      };
     }
+
+    if (_bracketsInflight && !force) return _bracketsInflight;
+
+    var requestId = ++_bracketsRequestId;
+    _bracketsInflight = (async function() {
+      try {
+        var fmt = window.TOC_CONFIG?.tournamentFormat || '';
+        var isSwiss = fmt === 'swiss';
+        var results = await Promise.all([
+          API.get('brackets/').catch(function() { return null; }),
+          isSwiss ? Promise.resolve(null) : API.get('groups/').catch(function() { return null; }),
+          API.get('pipelines/').catch(function() { return []; }),
+        ]);
+        if (requestId !== _bracketsRequestId) {
+          return {
+            bracketData: bracketData,
+            groupsData: groupsData,
+          };
+        }
+
+        bracketData = results[0];
+        groupsData  = results[1];
+        pipelinesData = results[2] || [];
+        _bracketsLastFetchedAt = Date.now();
+
+        renderGroupsView(groupsData);
+        renderBracketView(bracketData, groupsData);
+        renderPipelinesView(pipelinesData);
+        updateBracketButtons();
+        updateGroupButtons();
+        if (isSwiss) refreshSwiss();
+
+        return {
+          bracketData: bracketData,
+          groupsData: groupsData,
+        };
+      } catch (e) {
+        console.error('[brackets] fetch error', e);
+        throw e;
+      } finally {
+        if (requestId === _bracketsRequestId) {
+          _bracketsInflight = null;
+        }
+      }
+    })();
+
+    return _bracketsInflight;
   }
 
   /* ================================================================
@@ -1186,20 +1251,45 @@
   /* ================================================================
    *  SCHEDULE VIEW — Sprint 29
    * ================================================================ */
-  async function refreshSchedule() {
-    try {
-      var data = await API.get('schedule/');
-      scheduleData = data;
-      renderScheduleView(data);
-    } catch (e) {
-      console.error('[brackets] schedule error', e);
-      var c = document.querySelector('#schedule-content');
-      if (c) c.innerHTML = '<p class="text-dc-text text-center py-12">Failed to load schedule.</p>';
+  async function refreshSchedule(options) {
+    var opts = options || {};
+    var force = opts.force === true;
+    var useCache = opts.useCache === true;
+
+    if (!force && useCache && hasFreshScheduleCache() && scheduleData) {
+      renderScheduleView(scheduleData);
+      return scheduleData;
     }
+
+    if (_scheduleInflight && !force) return _scheduleInflight;
+
+    var requestId = ++_scheduleRequestId;
+    _scheduleInflight = (async function() {
+      try {
+        var data = await API.get('schedule/');
+        if (requestId !== _scheduleRequestId) return scheduleData || data;
+        scheduleData = data;
+        _scheduleLastFetchedAt = Date.now();
+        renderScheduleView(data);
+        return data;
+      } catch (e) {
+        if (requestId !== _scheduleRequestId) return scheduleData;
+        console.error('[brackets] schedule error', e);
+        var c = getBracketsScheduleContainer();
+        if (c) c.innerHTML = '<p class="text-dc-text text-center py-12">Failed to load schedule.</p>';
+        return scheduleData;
+      } finally {
+        if (requestId === _scheduleRequestId) {
+          _scheduleInflight = null;
+        }
+      }
+    })();
+
+    return _scheduleInflight;
   }
 
   function renderScheduleView(data) {
-    var container = document.querySelector('#schedule-content');
+    var container = getBracketsScheduleContainer();
     if (!container) return;
 
     var matches = data && data.matches ? data.matches : [];
@@ -1650,7 +1740,7 @@
    * ================================================================ */
   function init() {
     initSubNav();
-    refresh();
+    refresh({ useCache: true });
   }
 
   window.TOC = window.TOC || {};

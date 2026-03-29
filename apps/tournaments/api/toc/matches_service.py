@@ -55,9 +55,10 @@ class TOCMatchesService:
         search: Optional[str] = None,
         group: Optional[str] = None,
     ) -> Dict[str, Any]:
-        qs = Match.objects.filter(tournament=tournament).order_by(
-            'round_number', 'match_number',
-        )
+        qs = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).order_by('round_number', 'match_number')
         if round_number:
             qs = qs.filter(round_number=round_number)
         if state:
@@ -70,10 +71,44 @@ class TOCMatchesService:
         if group:
             qs = qs.filter(lobby_info__group_label=group)
 
+        qs = qs.only(
+            'id',
+            'round_number',
+            'match_number',
+            'participant1_id',
+            'participant1_name',
+            'participant2_id',
+            'participant2_name',
+            'participant1_score',
+            'participant2_score',
+            'state',
+            'winner_id',
+            'loser_id',
+            'scheduled_time',
+            'started_at',
+            'completed_at',
+            'stream_url',
+            'lobby_info',
+            'bracket_id',
+            'participant1_checked_in',
+            'participant2_checked_in',
+            'check_in_deadline',
+            'best_of',
+            'game_scores',
+        )
+
         total = qs.count()
-        # Build group cache for serialization
-        group_cache = cls._build_group_cache(tournament)
-        matches = [cls._serialize_match(m, group_cache=group_cache) for m in qs[:500]]
+
+        page_matches = list(qs[:500])
+        participant_ids = set()
+        for match in page_matches:
+            if match.participant1_id:
+                participant_ids.add(match.participant1_id)
+            if match.participant2_id:
+                participant_ids.add(match.participant2_id)
+
+        group_cache = cls._build_group_cache(tournament, participant_ids=participant_ids)
+        matches = [cls._serialize_match(m, group_cache=group_cache) for m in page_matches]
         return {'matches': matches, 'total_count': total}
 
     # ── S6-B2: Score submission ───────────────────────────────
@@ -614,15 +649,27 @@ class TOCMatchesService:
     # ── Group label cache ────────────────────────────────────
 
     @classmethod
-    def _build_group_cache(cls, tournament: Tournament) -> Dict[int, str]:
-        """Map participant_id → group name for the tournament."""
+    def _build_group_cache(
+        cls,
+        tournament: Tournament,
+        participant_ids: Optional[set[int]] = None,
+    ) -> Dict[int, str]:
+        """Map participant_id to group name for the tournament."""
         cache: Dict[int, str] = {}
         if GroupStanding is None:
             return cache
         try:
-            standings = GroupStanding.objects.filter(
-                group__tournament=tournament,
-            ).select_related('group').only('user_id', 'team_id', 'group__name')
+            standings_qs = GroupStanding.objects.filter(group__tournament=tournament)
+            if participant_ids:
+                standings_qs = standings_qs.filter(
+                    Q(team_id__in=participant_ids) | Q(user_id__in=participant_ids)
+                )
+
+            standings = standings_qs.select_related('group').only(
+                'user_id',
+                'team_id',
+                'group__name',
+            )
             for gs in standings:
                 key = gs.team_id or gs.user_id
                 if key:
