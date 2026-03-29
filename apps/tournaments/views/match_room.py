@@ -14,6 +14,7 @@ URL: /tournaments/<slug>/matches/<match_id>/room/
 
 from __future__ import annotations
 
+from datetime import timedelta
 import json
 import logging
 import random
@@ -28,6 +29,7 @@ from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView
@@ -91,6 +93,9 @@ PHASES = {
     "results",
     "completed",
 }
+
+PHASE_FALLBACK_ORDER = ["coin_toss", "phase1", "lobby_setup", "live", "results", "completed"]
+PRESENCE_STALE_SECONDS = 45
 
 RESULT_SUBMISSION_EDITABLE_STATUSES = {
     MatchResultSubmission.STATUS_PENDING,
@@ -185,7 +190,11 @@ def _determine_phase_mode(match: Match) -> str:
 
     category = str(getattr(game, "category", "") or "").upper()
     game_type = str(getattr(game, "game_type", "") or "").upper()
-    if game_key in DIRECT_GAME_KEYS or category == "BR" or game_type == "BATTLE_ROYALE":
+    if (
+        game_key in DIRECT_GAME_KEYS
+        or category in {"BR", "SPORTS"}
+        or game_type in {"BATTLE_ROYALE", "FREE_FOR_ALL"}
+    ):
         return "direct"
 
     return "veto"
@@ -219,14 +228,210 @@ def _load_config_pools(match: Match) -> Tuple[List[str], List[str]]:
     return map_pool, hero_pool
 
 
-def _initial_phase_from_match_state(match: Match) -> str:
+def _normalize_round_overrides(raw_overrides: Any) -> Dict[str, Dict[str, bool]]:
+    if not isinstance(raw_overrides, dict):
+        return {}
+
+    normalized: Dict[str, Dict[str, bool]] = {}
+    for raw_round, raw_payload in raw_overrides.items():
+        round_key = str(raw_round or "").strip()
+        if not round_key:
+            continue
+
+        if round_key != "*":
+            try:
+                if int(round_key) < 1:
+                    continue
+            except (TypeError, ValueError):
+                continue
+
+        row = _safe_dict(raw_payload)
+        if not row:
+            continue
+
+        normalized_row: Dict[str, bool] = {}
+        for field in ("require_check_in", "require_coin_toss", "require_map_veto"):
+            if field in row:
+                normalized_row[field] = bool(row.get(field))
+
+        if normalized_row:
+            normalized[round_key] = normalized_row
+
+    return normalized
+
+
+def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
+    tournament = match.tournament
+    game = getattr(tournament, "game", None)
+    game_category = str(getattr(game, "category", "") or "").upper()
+
+    config = tournament.config if isinstance(tournament.config, dict) else {}
+    checkin_cfg = config.get("checkin") if isinstance(config.get("checkin"), dict) else {}
+    raw_policy = config.get("lobby_policy") if isinstance(config.get("lobby_policy"), dict) else {}
+
+    defaults = {
+        "require_check_in": bool(getattr(tournament, "enable_check_in", False)),
+        "require_coin_toss": bool(game_category not in {"BR", "SPORTS"}),
+        "require_map_veto": bool(game_category not in {"BR", "SPORTS"}),
+    }
+
+    base = {
+        "require_check_in": bool(raw_policy.get("require_check_in", defaults["require_check_in"])),
+        "require_coin_toss": bool(raw_policy.get("require_coin_toss", defaults["require_coin_toss"])),
+        "require_map_veto": bool(raw_policy.get("require_map_veto", defaults["require_map_veto"])),
+    }
+
+    per_round = bool(raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False)))
+    round_overrides = _normalize_round_overrides(raw_policy.get("per_round_overrides", {}))
+
+    effective = dict(base)
+    wildcard_override = _safe_dict(round_overrides.get("*"))
+    if wildcard_override:
+        effective.update({k: bool(v) for k, v in wildcard_override.items()})
+
+    exact_override = _safe_dict(round_overrides.get(str(match.round_number)))
+    if exact_override:
+        effective.update({k: bool(v) for k, v in exact_override.items()})
+
+    if per_round:
+        effective["require_check_in"] = True
+
+    return {
+        "base": base,
+        "effective": effective,
+        "check_in_per_round": per_round,
+        "round_overrides": round_overrides,
+    }
+
+
+def _build_phase_order(phase_mode: str, effective_policy: Dict[str, Any]) -> Tuple[List[str], str]:
+    phase_order: List[str] = []
+
+    if bool(effective_policy.get("require_coin_toss")):
+        phase_order.append("coin_toss")
+
+    phase1_kind = "none"
+    include_phase1 = False
+
+    if phase_mode == "draft":
+        include_phase1 = True
+        phase1_kind = "draft"
+    elif phase_mode == "veto":
+        include_phase1 = bool(effective_policy.get("require_map_veto"))
+        phase1_kind = "veto" if include_phase1 else "none"
+    elif phase_mode == "direct":
+        include_phase1 = True
+        phase1_kind = "direct"
+
+    if include_phase1:
+        phase_order.append("phase1")
+
+    phase_order.extend(["lobby_setup", "live", "results", "completed"])
+
+    # Ensure we only expose known phases and preserve order.
+    normalized_order = [phase for phase in phase_order if phase in PHASES]
+    if not normalized_order:
+        normalized_order = list(PHASE_FALLBACK_ORDER)
+
+    return normalized_order, phase1_kind
+
+
+def _phase_for_match_state(match: Match, phase_order: List[str]) -> str:
     if match.state == Match.LIVE:
-        return "live"
+        return "live" if "live" in phase_order else phase_order[-1]
     if match.state == Match.PENDING_RESULT:
-        return "results"
+        return "results" if "results" in phase_order else phase_order[-1]
     if match.state in (Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED):
-        return "completed"
-    return "coin_toss"
+        return "completed" if "completed" in phase_order else phase_order[-1]
+    return phase_order[0] if phase_order else "coin_toss"
+
+
+def _resolve_check_in_window(match: Match, effective_policy: Dict[str, Any]) -> Dict[str, Any]:
+    required = bool(effective_policy.get("require_check_in"))
+    scheduled_time = match.scheduled_time
+
+    opens_at = None
+    closes_at = None
+    if required:
+        closes_at = match.check_in_deadline
+        if scheduled_time:
+            open_offset = int(getattr(match.tournament, "check_in_minutes_before", 0) or 0)
+            close_offset = int(getattr(match.tournament, "check_in_closes_minutes_before", 0) or 0)
+            opens_at = scheduled_time - timedelta(minutes=max(0, open_offset))
+            if closes_at is None:
+                closes_at = scheduled_time - timedelta(minutes=max(0, close_offset))
+        if closes_at and opens_at and closes_at < opens_at:
+            closes_at = opens_at
+
+    now = timezone.now()
+    is_open = bool(required and opens_at and closes_at and opens_at <= now <= closes_at)
+    is_pending = bool(required and opens_at and now < opens_at)
+    is_closed = bool(required and closes_at and now > closes_at)
+
+    return {
+        "required": required,
+        "opens_at": opens_at.isoformat() if opens_at else None,
+        "closes_at": closes_at.isoformat() if closes_at else None,
+        "is_open": is_open,
+        "is_pending": is_pending,
+        "is_closed": is_closed,
+        "both_checked_in": bool(match.participant1_checked_in and match.participant2_checked_in),
+    }
+
+
+def _resolve_presence_snapshot(workflow: Dict[str, Any], match: Match) -> Dict[str, Dict[str, Any]]:
+    presence_blob = _safe_dict(workflow.get("presence"))
+    now = timezone.now()
+
+    result: Dict[str, Dict[str, Any]] = {}
+    for side in (1, 2):
+        key = str(side)
+        entry = _safe_dict(presence_blob.get(key))
+        last_seen_raw = str(entry.get("last_seen") or "")
+        last_seen_dt = parse_datetime(last_seen_raw) if last_seen_raw else None
+
+        is_online = False
+        if last_seen_dt:
+            try:
+                is_online = (now - last_seen_dt).total_seconds() <= PRESENCE_STALE_SECONDS
+            except Exception:
+                is_online = False
+
+        raw_status = str(entry.get("status") or "").strip().lower()
+        if not is_online:
+            status = "offline"
+        elif raw_status == "away":
+            status = "away"
+        else:
+            status = "online"
+
+        result[key] = {
+            "status": status,
+            "online": bool(status != "offline"),
+            "last_seen": last_seen_raw or None,
+            "user_id": entry.get("user_id"),
+            "checked_in": bool(match.participant1_checked_in if side == 1 else match.participant2_checked_in),
+        }
+
+    return result
+
+
+def _build_auto_forfeit_hook(match: Match, check_in_window: Dict[str, Any], effective_policy: Dict[str, Any]) -> Dict[str, Any]:
+    tournament = match.tournament
+    enabled = bool(getattr(tournament, "auto_forfeit_no_shows", False) or getattr(tournament, "enable_no_show_timer", False))
+    armed = bool(
+        enabled
+        and bool(effective_policy.get("require_check_in"))
+        and check_in_window.get("is_closed")
+        and not check_in_window.get("both_checked_in")
+    )
+    return {
+        "enabled": enabled,
+        "armed": armed,
+        "task": "apps.tournaments.tasks.check_no_show_matches",
+        "timeout_minutes": int(getattr(tournament, "no_show_timeout_minutes", 10) or 10),
+        "mode": "scheduled_task",
+    }
 
 
 def _deep_merge_dict(base: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
@@ -241,6 +446,9 @@ def _deep_merge_dict(base: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str
 def _build_default_workflow(
     match: Match,
     phase_mode: str,
+    phase_order: List[str],
+    phase1_kind: str,
+    policy: Dict[str, Any],
     map_pool: List[str],
     hero_pool: List[str],
     best_of: int,
@@ -256,8 +464,11 @@ def _build_default_workflow(
     }
 
     return {
-        "phase": _initial_phase_from_match_state(match),
+        "phase": _phase_for_match_state(match, phase_order),
+        "phase_order": list(phase_order),
+        "phase1_kind": phase1_kind,
         "mode": phase_mode,
+        "policy": policy,
         "coin_toss": {
             "winner_side": None,
             "performed_at": None,
@@ -280,6 +491,13 @@ def _build_default_workflow(
             "last_action": None,
         },
         "direct_ready": {"1": False, "2": False},
+        "presence": {"1": {}, "2": {}},
+        "auto_forfeit_hook": {
+            "enabled": False,
+            "armed": False,
+            "task": "apps.tournaments.tasks.check_no_show_matches",
+            "mode": "scheduled_task",
+        },
         "credentials": credentials,
         "result_submissions": {"1": None, "2": None},
         "result_status": "pending",
@@ -307,10 +525,19 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     if not map_pool:
         map_pool = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5"]
 
+    lobby_policy = _resolve_lobby_policy(match)
+    effective_policy = _safe_dict(lobby_policy.get("effective"))
+    phase_order, phase1_kind = _build_phase_order(phase_mode, effective_policy)
+    check_in_window = _resolve_check_in_window(match, effective_policy)
+    auto_forfeit_hook = _build_auto_forfeit_hook(match, check_in_window, effective_policy)
+
     lobby_info = _safe_dict(match.lobby_info)
     defaults = _build_default_workflow(
         match=match,
         phase_mode=phase_mode,
+        phase_order=phase_order,
+        phase1_kind=phase1_kind,
+        policy=lobby_policy,
         map_pool=map_pool,
         hero_pool=hero_pool,
         best_of=best_of,
@@ -321,6 +548,25 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     workflow = deepcopy(defaults)
     if isinstance(existing, dict):
         _deep_merge_dict(workflow, existing)
+
+    # Canonical runtime-derived keys always win over stored values.
+    workflow["mode"] = phase_mode
+    workflow["phase_order"] = list(phase_order)
+    workflow["phase1_kind"] = phase1_kind
+    workflow["policy"] = lobby_policy
+    workflow["auto_forfeit_hook"] = auto_forfeit_hook
+
+    presence = _safe_dict(workflow.get("presence"))
+    presence.setdefault("1", {})
+    presence.setdefault("2", {})
+    workflow["presence"] = presence
+
+    current_phase = str(workflow.get("phase") or "")
+    state_phase = _phase_for_match_state(match, phase_order)
+    if match.state in (Match.LIVE, Match.PENDING_RESULT, Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED):
+        workflow["phase"] = state_phase
+    elif current_phase not in phase_order:
+        workflow["phase"] = state_phase
 
     changed = False
 
@@ -348,6 +594,8 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         match.lobby_info = lobby_info
         match.save(update_fields=["lobby_info", "updated_at"])
 
+    presence_snapshot = _resolve_presence_snapshot(workflow, match)
+
     runtime = {
         "game_name": getattr(game, "display_name", "") or getattr(game, "name", "Game"),
         "game_slug": game_slug,
@@ -355,6 +603,12 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         "best_of": best_of,
         "map_pool": map_pool,
         "hero_pool": hero_pool,
+        "phase_order": phase_order,
+        "phase1_kind": phase1_kind,
+        "policy": lobby_policy,
+        "check_in_window": check_in_window,
+        "presence": presence_snapshot,
+        "auto_forfeit_hook": auto_forfeit_hook,
     }
 
     return lobby_info, workflow, runtime, changed
@@ -502,6 +756,15 @@ def _build_room_payload(
 ) -> Dict[str, Any]:
     user_side = access.get("user_side")
     workflow_payload = _safe_dict(workflow)
+    phase_order = runtime.get("phase_order") if isinstance(runtime.get("phase_order"), list) else list(PHASE_FALLBACK_ORDER)
+
+    workflow_payload["phase_order"] = phase_order
+    workflow_payload["phase1_kind"] = str(runtime.get("phase1_kind") or workflow_payload.get("phase1_kind") or "none")
+    workflow_payload["policy"] = _safe_dict(runtime.get("policy"))
+    workflow_payload["check_in_window"] = _safe_dict(runtime.get("check_in_window"))
+    workflow_payload["presence"] = _safe_dict(runtime.get("presence"))
+    workflow_payload["auto_forfeit_hook"] = _safe_dict(runtime.get("auto_forfeit_hook"))
+
     merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
     for side, submission in _side_submission_map(match).items():
         merged_submissions[str(side)] = _serialize_side_submission(submission, side)
@@ -554,6 +817,14 @@ def _build_room_payload(
             "server": str(lobby_info.get("server") or ""),
             "game_mode": str(lobby_info.get("game_mode") or ""),
         },
+        "pipeline": {
+            "phase_order": phase_order,
+            "phase1_kind": workflow_payload.get("phase1_kind"),
+            "policy": workflow_payload.get("policy"),
+            "auto_forfeit_hook": workflow_payload.get("auto_forfeit_hook"),
+        },
+        "check_in": workflow_payload.get("check_in_window"),
+        "presence": workflow_payload.get("presence"),
         "announcements": lobby_info.get("system_announcements") if isinstance(lobby_info.get("system_announcements"), list) else [],
         "workflow": workflow_payload,
         "me": {
@@ -700,6 +971,21 @@ class MatchCheckInView(LoginRequiredMixin, View):
                 return JsonResponse({"success": False, "error": "forbidden"}, status=403)
             messages.error(request, "Only participants can check in for this match.")
             return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
+
+        _lobby_info, _workflow, runtime, _changed = _ensure_match_workflow(match, persist=False)
+        check_in_window = _safe_dict(runtime.get("check_in_window"))
+        if check_in_window.get("required"):
+            if check_in_window.get("is_pending"):
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "check_in_not_open"}, status=400)
+                messages.error(request, "Check-in window is not open yet.")
+                return redirect("tournaments:match_room", slug=slug, match_id=match_id)
+
+            if check_in_window.get("is_closed"):
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "check_in_closed"}, status=400)
+                messages.error(request, "Check-in window is closed for this match.")
+                return redirect("tournaments:match_room", slug=slug, match_id=match_id)
 
         updated = False
 
@@ -890,8 +1176,42 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
     ) -> Tuple[bool, str]:
         phase = str(workflow.get("phase") or "coin_toss")
         mode = str(workflow.get("mode") or runtime["phase_mode"])
+        phase_order = workflow.get("phase_order") if isinstance(workflow.get("phase_order"), list) else runtime.get("phase_order")
+        if not isinstance(phase_order, list) or not phase_order:
+            phase_order = list(PHASE_FALLBACK_ORDER)
+
+        if phase not in phase_order:
+            phase = phase_order[0]
+            workflow["phase"] = phase
+
+        policy_effective = _safe_dict(_safe_dict(runtime.get("policy")).get("effective"))
+        check_in_window = _safe_dict(runtime.get("check_in_window"))
         actor_side = self._resolve_actor_side(access, payload)
         is_staff = bool(access.get("is_staff"))
+        is_admin_mode = bool(access.get("admin_mode"))
+
+        def _next_phase(current_phase: str, fallback: str = "lobby_setup") -> str:
+            if current_phase in phase_order:
+                idx = phase_order.index(current_phase)
+                if idx + 1 < len(phase_order):
+                    return str(phase_order[idx + 1])
+            if fallback in phase_order:
+                return fallback
+            return str(phase_order[-1])
+
+        def _assert_checkin_gate() -> None:
+            if not bool(policy_effective.get("require_check_in")):
+                return
+            if is_staff and is_admin_mode:
+                return
+            if match.participant1_checked_in and match.participant2_checked_in:
+                return
+
+            if check_in_window.get("is_pending"):
+                raise ValueError("Check-in window has not opened yet.")
+            if check_in_window.get("is_closed"):
+                raise ValueError("Check-in window is closed and both teams are not checked in.")
+            raise ValueError("Both teams must check in before continuing lobby actions.")
 
         def _latest_submission_for_side(side: int) -> Optional[MatchResultSubmission]:
             team_id = _submission_team_id_for_side(match, side)
@@ -956,7 +1276,48 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
         changed = False
         message = "Workflow updated."
 
-        if action == "coin_toss":
+        if action == "presence_ping":
+            if actor_side not in (1, 2):
+                raise ValueError("Unable to resolve acting side for presence update.")
+
+            presence = _safe_dict(workflow.get("presence"))
+            side_key = str(actor_side)
+            current_row = _safe_dict(presence.get(side_key))
+
+            next_status = str(payload.get("status") or "online").strip().lower()
+            if next_status not in {"online", "away"}:
+                next_status = "online"
+
+            now_dt = timezone.now()
+            now_iso = now_dt.isoformat()
+            previous_seen = parse_datetime(str(current_row.get("last_seen") or ""))
+
+            should_persist = True
+            if previous_seen:
+                try:
+                    recent = (now_dt - previous_seen).total_seconds() < 20
+                    same_status = str(current_row.get("status") or "") == next_status
+                    same_user = current_row.get("user_id") == access.get("user_id")
+                    if recent and same_status and same_user:
+                        should_persist = False
+                except Exception:
+                    should_persist = True
+
+            if should_persist:
+                current_row["user_id"] = access.get("user_id")
+                current_row["status"] = next_status
+                current_row["last_seen"] = now_iso
+                presence[side_key] = current_row
+                workflow["presence"] = presence
+                changed = True
+
+            message = "Presence updated."
+
+        elif action == "coin_toss":
+            _assert_checkin_gate()
+            if "coin_toss" not in phase_order:
+                raise ValueError("Coin toss is disabled for this lobby policy.")
+
             winner_side = self._parse_side(payload.get("winner_side"))
             if winner_side not in (1, 2):
                 winner_side = random.choice([1, 2])
@@ -967,17 +1328,21 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             workflow["coin_toss"] = coin_toss
 
             if phase == "coin_toss":
-                workflow["phase"] = "phase1"
+                workflow["phase"] = _next_phase("coin_toss")
 
             changed = True
             message = f"Coin toss resolved. Side {winner_side} won first control."
 
         elif action == "veto_action":
+            _assert_checkin_gate()
             if mode != "veto":
                 raise ValueError("This match does not use map veto flow.")
 
+            if not bool(policy_effective.get("require_map_veto", True)):
+                raise ValueError("Map veto is disabled for this lobby policy.")
+
             if phase == "coin_toss":
-                workflow["phase"] = "phase1"
+                workflow["phase"] = _next_phase("coin_toss")
 
             if str(workflow.get("phase")) != "phase1":
                 raise ValueError("Veto actions are not available in the current phase.")
@@ -1044,7 +1409,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             selected_map = str(veto.get("selected_map") or "")
             if selected_map:
-                workflow["phase"] = "lobby_setup"
+                workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase("phase1")
                 credentials = _safe_dict(workflow.get("credentials"))
                 if not str(credentials.get("map") or ""):
                     credentials["map"] = selected_map
@@ -1055,11 +1420,12 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = f"Veto updated: side {actor_side} {expected_action}ed {item}."
 
         elif action == "draft_action":
+            _assert_checkin_gate()
             if mode != "draft":
                 raise ValueError("This match does not use hero draft flow.")
 
             if phase == "coin_toss":
-                workflow["phase"] = "phase1"
+                workflow["phase"] = _next_phase("coin_toss")
 
             if str(workflow.get("phase")) != "phase1":
                 raise ValueError("Draft actions are not available in the current phase.")
@@ -1120,7 +1486,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             }
 
             if draft["step"] >= len(sequence):
-                workflow["phase"] = "lobby_setup"
+                workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase("phase1")
 
             workflow["draft"] = draft
 
@@ -1128,8 +1494,11 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = f"Draft updated: side {actor_side} {expected_action}ed {item}."
 
         elif action == "direct_ready":
+            _assert_checkin_gate()
             if mode != "direct":
                 raise ValueError("This match does not use direct ready flow.")
+            if "phase1" not in phase_order:
+                raise ValueError("Direct ready phase is disabled for this lobby policy.")
             if actor_side not in (1, 2):
                 raise ValueError("Unable to resolve acting side for ready check.")
 
@@ -1140,7 +1509,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             workflow["direct_ready"] = ready_state
 
             if ready_state.get("1") and ready_state.get("2"):
-                workflow["phase"] = "lobby_setup"
+                workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase("phase1")
             else:
                 workflow["phase"] = "phase1"
 
@@ -1148,6 +1517,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = "Ready status updated."
 
         elif action == "save_credentials":
+            _assert_checkin_gate()
             if not is_staff and actor_side != 1:
                 raise ValueError("Only the host side or staff can update lobby credentials.")
 
@@ -1174,12 +1544,13 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             lobby_info["game_mode"] = str(credentials.get("game_mode") or "")
 
             if phase in ("coin_toss", "phase1"):
-                workflow["phase"] = "lobby_setup"
+                workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase(phase)
 
             changed = True
             message = "Lobby credentials updated."
 
         elif action == "start_live":
+            _assert_checkin_gate()
             if actor_side not in (1, 2) and not is_staff:
                 raise ValueError("Only participants or staff can start the live phase.")
 
@@ -1393,7 +1764,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if not is_staff or not access.get("admin_mode"):
                 raise ValueError("Admin mode is required for forced phase transitions.")
             next_phase = str(payload.get("phase") or "").strip().lower()
-            if next_phase not in PHASES:
+            if next_phase not in phase_order:
                 raise ValueError("Invalid phase value.")
             workflow["phase"] = next_phase
             changed = True
@@ -1424,6 +1795,14 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
         else:
             raise ValueError("Unsupported action.")
+
+        if str(workflow.get("phase") or "") not in phase_order:
+            workflow["phase"] = _phase_for_match_state(match, phase_order)
+
+        workflow["phase_order"] = list(phase_order)
+        workflow["phase1_kind"] = str(runtime.get("phase1_kind") or workflow.get("phase1_kind") or "none")
+        workflow["policy"] = _safe_dict(runtime.get("policy"))
+        workflow["auto_forfeit_hook"] = _safe_dict(runtime.get("auto_forfeit_hook"))
 
         # Persist workflow object back into lobby_info for all successful actions.
         lobby_info[WORKFLOW_KEY] = workflow

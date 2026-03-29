@@ -2556,7 +2556,10 @@
                     </summary>
                     <div class="px-5 pb-5" id="settings-features">
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-check-in" data-field="enable_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncCheckInVisibility()"> Enable Check-In</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-check-in" data-field="require_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncCheckInVisibility()"> Require Check-In</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="check_in_per_round" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Re-check Every Round</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="require_coin_toss" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Coin Toss</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="require_map_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Map Veto</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_dynamic_seeding" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Dynamic Seeding</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_live_updates" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Live Updates</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_certificates" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Certificates</label>
@@ -2572,6 +2575,17 @@
                                 <label class="block text-xs text-dc-text mb-1">Check-In Closes (min before start)</label>
                                 <input data-field="check_in_closes_minutes_before" type="number" min="0" value="10" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                             </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-dc-border">
+                            <label class="block text-xs text-dc-text mb-1">Lobby Per-Round Overrides (JSON)</label>
+                            <textarea
+                                data-field="lobby_round_overrides"
+                                rows="4"
+                                class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50 font-mono"
+                                placeholder='{"2": {"require_coin_toss": false, "require_map_veto": false}}'></textarea>
+                            <p class="text-[10px] text-dc-text/60 mt-1.5">
+                                Use round numbers (or "*") as keys. Supported override fields: require_check_in, require_coin_toss, require_map_veto.
+                            </p>
                         </div>
                     </div>
                 </details>
@@ -4070,6 +4084,14 @@
                 }
                 if (el.type === 'datetime-local' && typeof value === 'string') {
                     el.value = value.slice(0, 16);
+                    return;
+                }
+                if (typeof value === 'object') {
+                    try {
+                        el.value = JSON.stringify(value, null, 2);
+                    } catch (_err) {
+                        el.value = '';
+                    }
                     return;
                 }
                 el.value = value;

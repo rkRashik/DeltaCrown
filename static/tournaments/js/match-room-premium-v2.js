@@ -17,7 +17,8 @@
     return;
   }
 
-  const PHASE_ORDER = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
+  const PHASE_ORDER_FALLBACK = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
+  const VALID_PHASES = new Set(PHASE_ORDER_FALLBACK);
   const RESULT_FINAL_STATES = new Set(['verified', 'admin_overridden']);
   const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
   const DRAFT_STORAGE_VERSION = 1;
@@ -30,6 +31,7 @@
     reconnectTimer: null,
     syncTimer: null,
     clockTimer: null,
+    presenceTimer: null,
     activeTab: 'chat',
     previewResults: false,
     proxyEnabled: false,
@@ -84,10 +86,48 @@
     return wf;
   }
 
-  function currentPhase() {
+  function getPhaseOrder() {
     const wf = getWorkflow();
-    const phase = String(wf.phase || 'coin_toss');
-    return PHASE_ORDER.includes(phase) ? phase : 'coin_toss';
+    const incoming = Array.isArray(wf.phase_order) ? wf.phase_order : [];
+    const filtered = incoming
+      .map((phase) => String(phase || '').trim())
+      .filter((phase) => VALID_PHASES.has(phase));
+
+    return filtered.length ? filtered : PHASE_ORDER_FALLBACK;
+  }
+
+  function currentPhase() {
+    const phaseOrder = getPhaseOrder();
+    const wf = getWorkflow();
+    const fallback = phaseOrder[0] || 'coin_toss';
+    const phase = String(wf.phase || fallback);
+    return phaseOrder.includes(phase) ? phase : fallback;
+  }
+
+  function phase1Kind() {
+    const wf = getWorkflow();
+    const explicit = String(wf.phase1_kind || '').toLowerCase();
+    if (explicit === 'veto' || explicit === 'draft' || explicit === 'direct') {
+      return explicit;
+    }
+
+    const mode = currentMode();
+    if (mode === 'draft') {
+      return 'draft';
+    }
+    if (mode === 'direct') {
+      return 'direct';
+    }
+    return 'veto';
+  }
+
+  function nextPhase(current) {
+    const phaseOrder = getPhaseOrder();
+    const idx = phaseOrder.indexOf(String(current || ''));
+    if (idx >= 0 && idx + 1 < phaseOrder.length) {
+      return phaseOrder[idx + 1];
+    }
+    return phaseOrder[phaseOrder.length - 1] || 'completed';
   }
 
   function currentMode() {
@@ -362,6 +402,52 @@
     return 'Side';
   }
 
+  function getCheckInWindow() {
+    const wf = getWorkflow();
+    const checkIn = room.check_in && typeof room.check_in === 'object'
+      ? room.check_in
+      : (wf.check_in_window && typeof wf.check_in_window === 'object' ? wf.check_in_window : {});
+    return checkIn;
+  }
+
+  function getPresenceMap() {
+    const wf = getWorkflow();
+    const source = room.presence && typeof room.presence === 'object'
+      ? room.presence
+      : (wf.presence && typeof wf.presence === 'object' ? wf.presence : {});
+    return source;
+  }
+
+  function presenceStateForSide(side) {
+    const key = String(side === 2 ? 2 : 1);
+    const raw = getPresenceMap()[key];
+    if (!raw || typeof raw !== 'object') {
+      return { status: 'offline', online: false, checked_in: false };
+    }
+
+    const statusRaw = String(raw.status || '').toLowerCase();
+    const online = raw.online === true;
+    const status = online
+      ? (statusRaw === 'away' ? 'away' : 'online')
+      : 'offline';
+
+    return {
+      status,
+      online,
+      checked_in: !!raw.checked_in,
+      last_seen: raw.last_seen || null,
+    };
+  }
+
+  function presenceLabelForSide(side) {
+    const row = presenceStateForSide(side);
+    const statusLabel = row.status === 'online'
+      ? 'Online'
+      : (row.status === 'away' ? 'Away' : 'Offline');
+    const checkInLabel = row.checked_in ? 'Checked in' : 'Pending check-in';
+    return `${statusLabel} - ${checkInLabel}`;
+  }
+
   function initials(name, fallback) {
     const text = String(name || '').trim();
     if (!text) {
@@ -467,10 +553,18 @@
     }
 
     if (teamASub) {
-      teamASub.textContent = p1.checked_in ? 'Checked in' : 'Pending check-in';
+      const stateA = presenceStateForSide(1);
+      teamASub.textContent = presenceLabelForSide(1);
+      teamASub.style.color = stateA.status === 'online'
+        ? 'var(--ac)'
+        : (stateA.status === 'away' ? '#f59e0b' : '#8b949e');
     }
     if (teamBSub) {
-      teamBSub.textContent = p2.checked_in ? 'Checked in' : 'Pending check-in';
+      const stateB = presenceStateForSide(2);
+      teamBSub.textContent = presenceLabelForSide(2);
+      teamBSub.style.color = stateB.status === 'online'
+        ? '#fda4af'
+        : (stateB.status === 'away' ? '#f59e0b' : '#8b949e');
     }
 
     if (teamAReadyName) {
@@ -516,6 +610,58 @@
     }
     if (resultNameB) {
       resultNameB.textContent = p2.name || 'Team B';
+    }
+  }
+
+  function renderCheckinBanner() {
+    const banner = byId('checkin-status-banner');
+    if (!banner) {
+      return;
+    }
+
+    const checkIn = getCheckInWindow();
+    const required = !!checkIn.required;
+    banner.classList.toggle('hidden-state', !required);
+    if (!required) {
+      return;
+    }
+
+    const pill = byId('checkin-status-pill');
+    const desc = byId('checkin-status-text');
+    const presenceA = byId('presence-team-a');
+    const presenceB = byId('presence-team-b');
+
+    let statusText = 'Check-in is required before lobby actions.';
+    let pillText = 'Check-In Required';
+    let pillClass = 'border-white/15 bg-white/5 text-gray-200';
+
+    if (checkIn.is_open) {
+      pillText = 'Check-In Open';
+      pillClass = 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200';
+      statusText = `Window closes ${toDisplayTime(checkIn.closes_at)}.`;
+    } else if (checkIn.is_pending) {
+      pillText = 'Check-In Pending';
+      pillClass = 'border-amber-400/35 bg-amber-500/15 text-amber-200';
+      statusText = `Window opens ${toDisplayTime(checkIn.opens_at)}.`;
+    } else if (checkIn.is_closed) {
+      pillText = 'Check-In Closed';
+      pillClass = 'border-red-400/35 bg-red-500/15 text-red-200';
+      statusText = 'Window closed. Await TOC decision or auto-forfeit policy.';
+    }
+
+    if (pill) {
+      pill.textContent = pillText;
+      pill.className = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${pillClass}`;
+    }
+    if (desc) {
+      desc.textContent = statusText;
+    }
+
+    if (presenceA) {
+      presenceA.textContent = `${teamLabel(1)}: ${presenceLabelForSide(1)}`;
+    }
+    if (presenceB) {
+      presenceB.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
     }
   }
 
@@ -614,9 +760,41 @@
     }
   }
 
+  function renderPhaseProgressLabels() {
+    const order = getPhaseOrder();
+    const label1 = byId('ph-label-1');
+
+    const hasCoinToss = order.includes('coin_toss');
+    const hasPhaseOne = order.includes('phase1');
+    const kind = phase1Kind();
+
+    let phaseOneLabel = 'Match Setup';
+    if (hasCoinToss && hasPhaseOne) {
+      phaseOneLabel = 'Match Setup';
+    } else if (hasCoinToss) {
+      phaseOneLabel = 'Coin Toss';
+    } else if (hasPhaseOne) {
+      if (kind === 'draft') {
+        phaseOneLabel = 'Hero Draft';
+      } else if (kind === 'direct') {
+        phaseOneLabel = 'Ready Check';
+      } else {
+        phaseOneLabel = 'Map Veto';
+      }
+    } else {
+      phaseOneLabel = 'Pre-Live';
+    }
+
+    if (label1) {
+      label1.textContent = phaseOneLabel;
+    }
+  }
+
   function renderPhaseLayout() {
     const phase = currentPhase();
-    const mode = currentMode();
+    const kind = phase1Kind();
+
+    renderPhaseProgressLabels();
 
     applySegmentUI(phaseSegment(phase));
     hidePhaseBlocks();
@@ -627,9 +805,9 @@
     }
 
     if (phase === 'phase1') {
-      if (mode === 'draft') {
+      if (kind === 'draft') {
         showPhaseBlock('ph-draft');
-      } else if (mode === 'direct') {
+      } else if (kind === 'direct') {
         showPhaseBlock('ph-direct');
       } else {
         showPhaseBlock('ph-veto');
@@ -655,6 +833,10 @@
   }
 
   function canUsePhaseOneAction(expectedSide) {
+    if (!getPhaseOrder().includes('phase1')) {
+      return false;
+    }
+
     const phase = currentPhase();
     if (phase !== 'phase1') {
       return false;
@@ -1535,10 +1717,13 @@
       const rows = [];
       rows.push(`Format: BO${toInt(room.match?.best_of, 1)}`);
 
-      const mode = currentMode();
-      if (mode === 'veto') {
+      const phaseOrder = getPhaseOrder();
+      const kind = phase1Kind();
+      if (!phaseOrder.includes('phase1')) {
+        rows.push('Phase One: Skipped by game policy for this round.');
+      } else if (kind === 'veto') {
         rows.push('Phase One: Map veto from tournament-configured pool.');
-      } else if (mode === 'draft') {
+      } else if (kind === 'draft') {
         rows.push('Phase One: Hero draft with server-side turn order.');
       } else {
         rows.push('Phase One: Direct ready check from both sides.');
@@ -1696,6 +1881,7 @@
 
   async function submitWorkflow(action, payload, options) {
     const opts = options || {};
+    const silent = !!opts.silent;
     const body = Object.assign({ action }, payload || {});
 
     try {
@@ -1736,11 +1922,19 @@
 
       const data = await response.json();
       if (!response.ok || !data.success) {
-        showToast(data.error || 'Action failed', 'error');
+        if (!silent) {
+          showToast(data.error || 'Action failed', 'error');
+        }
         return false;
       }
 
+      const updated = !!data.updated;
       room = data.room || room;
+
+      if (action === 'presence_ping' && !updated) {
+        return true;
+      }
+
       if (action === 'submit_result') {
         const acting = Number(payload.acting_side);
         if (acting === 1 || acting === 2) {
@@ -1755,7 +1949,7 @@
         persistDraftState();
       }
 
-      if (data.message) {
+      if (data.message && !silent) {
         showToast(data.message, 'ok');
       }
       if (action === 'submit_result') {
@@ -1765,7 +1959,9 @@
       renderAll();
       return true;
     } catch (_err) {
-      showToast('Network error while updating workflow.', 'error');
+      if (!silent) {
+        showToast('Network error while updating workflow.', 'error');
+      }
       return false;
     }
   }
@@ -1787,6 +1983,22 @@
     } catch (_err) {
       // silent polling fallback
     }
+  }
+
+  function sendPresencePing() {
+    if (!room.urls || !room.urls.workflow) {
+      return;
+    }
+
+    const side = mySide();
+    if (side !== 1 && side !== 2) {
+      return;
+    }
+
+    submitWorkflow('presence_ping', {
+      acting_side: resolveActingSide(side),
+      status: document.hidden ? 'away' : 'online',
+    }, { silent: true });
   }
 
   async function submitDispute() {
@@ -2003,6 +2215,8 @@
       } catch (_err) {
         // ignore
       }
+
+      sendPresencePing();
     };
 
     state.ws.onmessage = function (event) {
@@ -2087,7 +2301,7 @@
         if (!isAdminMode()) {
           return;
         }
-        submitWorkflow('advance_phase', { phase: 'phase1' });
+        submitWorkflow('advance_phase', { phase: nextPhase('coin_toss') });
       });
     }
 
@@ -2215,11 +2429,10 @@
       renderDirectReady();
     });
 
-    const nextPhase = byId('btn-admin-next-phase');
-    if (nextPhase) {
-      nextPhase.addEventListener('click', () => {
-        const idx = PHASE_ORDER.indexOf(currentPhase());
-        const next = PHASE_ORDER[Math.min(idx + 1, PHASE_ORDER.length - 1)] || 'completed';
+    const nextPhaseBtn = byId('btn-admin-next-phase');
+    if (nextPhaseBtn) {
+      nextPhaseBtn.addEventListener('click', () => {
+        const next = nextPhase(currentPhase());
         const ok = window.confirm('Are you sure you want to force the next phase? This may interrupt live team actions.');
         if (!ok) {
           return;
@@ -2391,6 +2604,7 @@
       if (!document.hidden) {
         syncRoom();
       }
+      sendPresencePing();
     });
   }
 
@@ -2403,6 +2617,7 @@
   function renderAll() {
     renderTheme();
     renderHeader();
+    renderCheckinBanner();
     renderClock();
     renderSocketBadge();
     renderPhaseLayout();
@@ -2435,6 +2650,12 @@
       clearInterval(state.syncTimer);
     }
     state.syncTimer = window.setInterval(syncRoom, 20000);
+
+    if (state.presenceTimer) {
+      clearInterval(state.presenceTimer);
+    }
+    state.presenceTimer = window.setInterval(sendPresencePing, 15000);
+    sendPresencePing();
 
     if (state.clockTimer) {
       clearInterval(state.clockTimer);

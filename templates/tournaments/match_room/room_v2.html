@@ -636,6 +636,19 @@
         </div>
       </div>
 
+      <div id="checkin-status-banner" class="hidden-state glass rounded-xl px-4 py-3 border border-white/8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="min-w-0">
+            <span id="checkin-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-white/15 bg-white/5 text-gray-200">Check-In Required</span>
+            <p id="checkin-status-text" class="text-[11px] text-gray-400 mt-1.5">Check-in window details will appear here.</p>
+          </div>
+          <div class="flex flex-col gap-1 text-[10px] font-mono text-gray-300">
+            <span id="presence-team-a">Team A: Offline - Pending check-in</span>
+            <span id="presence-team-b">Team B: Offline - Pending check-in</span>
+          </div>
+        </div>
+      </div>
+
       <div id="ph-discord" class="flex flex-col gap-3">
         <div id="proxy-banner" class="proxy-banner hidden-state">
           <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(255,184,0,.15);border:1px solid rgba(255,184,0,.3)"><i data-lucide="user-cog" class="w-3.5 h-3.5" style="color:#ffb800"></i></div>

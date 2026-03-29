@@ -50,6 +50,13 @@ logger = logging.getLogger("toc.settings")
 class TOCSettingsService:
     """All read/write operations for the Settings & Config tab."""
 
+    LOBBY_POLICY_CONFIG_KEY = "lobby_policy"
+    LOBBY_POLICY_OVERRIDE_FIELDS = {
+        "require_check_in",
+        "require_coin_toss",
+        "require_map_veto",
+    }
+
     OFFICIAL_SOCIAL_DEFAULTS = {
         "social_facebook": "https://www.facebook.com/DeltaCrownGG",
         "social_discord": "https://discord.gg/UaHRC8Cd",
@@ -76,6 +83,58 @@ class TOCSettingsService:
         "BATTLE_ROYALE": "Battle Royale",
         "FREE_FOR_ALL": "Free For All",
     }
+
+    @staticmethod
+    def _normalize_lobby_round_overrides(raw_overrides: Any) -> dict[str, dict[str, bool]]:
+        """Normalize round override payload into {"1": {flag: bool}} shape."""
+        if not isinstance(raw_overrides, dict):
+            return {}
+
+        normalized: dict[str, dict[str, bool]] = {}
+        for raw_round, raw_flags in raw_overrides.items():
+            round_key = str(raw_round or "").strip()
+            if not round_key:
+                continue
+
+            if round_key != "*":
+                try:
+                    if int(round_key) < 1:
+                        continue
+                except (TypeError, ValueError):
+                    continue
+
+            if not isinstance(raw_flags, dict):
+                continue
+
+            flag_row: dict[str, bool] = {}
+            for field in TOCSettingsService.LOBBY_POLICY_OVERRIDE_FIELDS:
+                if field in raw_flags:
+                    flag_row[field] = bool(raw_flags.get(field))
+
+            if flag_row:
+                normalized[round_key] = flag_row
+
+        return normalized
+
+    @staticmethod
+    def _get_lobby_policy_config(tournament: Tournament) -> dict[str, Any]:
+        config = tournament.config if isinstance(tournament.config, dict) else {}
+        raw_policy = config.get(TOCSettingsService.LOBBY_POLICY_CONFIG_KEY)
+        if not isinstance(raw_policy, dict):
+            raw_policy = {}
+
+        checkin_cfg = config.get("checkin") if isinstance(config.get("checkin"), dict) else {}
+        return {
+            "require_check_in": bool(raw_policy.get("require_check_in", getattr(tournament, "enable_check_in", False))),
+            "require_coin_toss": bool(raw_policy.get("require_coin_toss", True)),
+            "require_map_veto": bool(raw_policy.get("require_map_veto", True)),
+            "check_in_per_round": bool(
+                raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False))
+            ),
+            "lobby_round_overrides": TOCSettingsService._normalize_lobby_round_overrides(
+                raw_policy.get("per_round_overrides", {})
+            ),
+        }
 
     # ------------------------------------------------------------------
     # Registration Form Configuration
@@ -344,6 +403,7 @@ class TOCSettingsService:
     def get_settings(tournament: Tournament) -> dict:
         """Return editable tournament fields grouped by section (1:1 model parity)."""
         t = tournament
+        lobby_policy = TOCSettingsService._get_lobby_policy_config(t)
         social_settings = TOCSettingsService._apply_official_social_defaults(
             t,
             {
@@ -436,6 +496,11 @@ class TOCSettingsService:
             },
             "features": {
                 "enable_check_in": getattr(t, "enable_check_in", False),
+                "require_check_in": lobby_policy["require_check_in"],
+                "require_coin_toss": lobby_policy["require_coin_toss"],
+                "require_map_veto": lobby_policy["require_map_veto"],
+                "check_in_per_round": lobby_policy["check_in_per_round"],
+                "lobby_round_overrides": lobby_policy["lobby_round_overrides"],
                 "check_in_minutes_before": getattr(t, "check_in_minutes_before", 30),
                 "check_in_closes_minutes_before": getattr(t, "check_in_closes_minutes_before", 0),
                 "enable_dynamic_seeding": getattr(t, "enable_dynamic_seeding", False),
@@ -461,6 +526,10 @@ class TOCSettingsService:
     @staticmethod
     def update_settings(tournament: Tournament, data: dict, expected_settings_version: str | None = None) -> dict:
         """Flat-merge provided fields into the Tournament model with structured validation."""
+        if not isinstance(data, dict):
+            data = {}
+
+        data = dict(data)
         incoming_is_official = data.get("is_official", getattr(tournament, "is_official", False))
         if incoming_is_official:
             for key, default_value in TOCSettingsService.OFFICIAL_SOCIAL_DEFAULTS.items():
@@ -548,17 +617,68 @@ class TOCSettingsService:
                 }
             }
 
+        config = tournament.config if isinstance(tournament.config, dict) else {}
+        config = dict(config)
+        checkin_cfg = config.get("checkin") if isinstance(config.get("checkin"), dict) else {}
+        lobby_policy = config.get(TOCSettingsService.LOBBY_POLICY_CONFIG_KEY)
+        if not isinstance(lobby_policy, dict):
+            lobby_policy = {}
+
+        config_changed = False
+
+        # Backward/forward compatible aliases for check-in requirement.
+        if "require_check_in" in data and "enable_check_in" not in data:
+            data["enable_check_in"] = bool(data.get("require_check_in"))
+        elif "enable_check_in" in data and "require_check_in" not in data:
+            data["require_check_in"] = bool(data.get("enable_check_in"))
+
+        if "require_check_in" in data:
+            lobby_policy["require_check_in"] = bool(data.get("require_check_in"))
+            config_changed = True
+
+        if "require_coin_toss" in data:
+            lobby_policy["require_coin_toss"] = bool(data.get("require_coin_toss"))
+            config_changed = True
+
+        if "require_map_veto" in data:
+            lobby_policy["require_map_veto"] = bool(data.get("require_map_veto"))
+            config_changed = True
+
+        if "check_in_per_round" in data:
+            per_round = bool(data.get("check_in_per_round"))
+            lobby_policy["require_check_in_per_round"] = per_round
+            checkin_cfg["per_round"] = per_round
+            config["checkin"] = checkin_cfg
+            config_changed = True
+
+        if "lobby_round_overrides" in data:
+            lobby_policy["per_round_overrides"] = TOCSettingsService._normalize_lobby_round_overrides(
+                data.get("lobby_round_overrides")
+            )
+            config_changed = True
+
+        if config_changed:
+            config[TOCSettingsService.LOBBY_POLICY_CONFIG_KEY] = lobby_policy
+            tournament.config = config
+
         changed: list[str] = []
         for key, value in data.items():
             if key in updatable and hasattr(tournament, key):
                 setattr(tournament, key, value)
                 changed.append(key)
+
+        if config_changed:
+            changed.append("config")
+
         if changed:
-            tournament.save(update_fields=changed + ["updated_at"] if hasattr(tournament, "updated_at") else changed)
+            unique_fields = sorted(set(changed))
+            tournament.save(
+                update_fields=unique_fields + ["updated_at"] if hasattr(tournament, "updated_at") else unique_fields
+            )
 
         current_version = getattr(tournament, "updated_at", None)
         return {
-            "updated_fields": changed,
+            "updated_fields": sorted(set(changed)),
             "settings_version": current_version.isoformat() if current_version else None,
         }
 
@@ -718,6 +838,77 @@ class TOCSettingsService:
             if no_show_timeout_minutes is None or no_show_timeout_minutes < 1:
                 add_field_error("no_show_timeout_minutes", "No-show timeout must be at least 1 minute when timer is enabled.")
                 add_section_error("settings-waitlist", "No-show timer is enabled but timeout is invalid.")
+
+        check_in_minutes_before = _as_int(data.get("check_in_minutes_before"))
+        check_in_closes_minutes_before = _as_int(data.get("check_in_closes_minutes_before"))
+        if "check_in_minutes_before" in data:
+            if check_in_minutes_before is None:
+                add_field_error("check_in_minutes_before", "Check-in open window must be a number of minutes.")
+            elif check_in_minutes_before < 0:
+                add_field_error("check_in_minutes_before", "Check-in open window cannot be negative.")
+
+        if "check_in_closes_minutes_before" in data:
+            if check_in_closes_minutes_before is None:
+                add_field_error("check_in_closes_minutes_before", "Check-in close offset must be a number of minutes.")
+            elif check_in_closes_minutes_before < 0:
+                add_field_error("check_in_closes_minutes_before", "Check-in close offset cannot be negative.")
+
+        require_check_in = data.get("require_check_in", data.get("enable_check_in"))
+        if require_check_in is True:
+            if check_in_minutes_before is not None and check_in_minutes_before < 1:
+                add_field_error("check_in_minutes_before", "Check-in open window must be at least 1 minute when check-in is required.")
+                add_section_error("settings-features", "Check-in is required but the open window is invalid.")
+            if (
+                check_in_minutes_before is not None
+                and check_in_closes_minutes_before is not None
+                and check_in_closes_minutes_before > check_in_minutes_before
+            ):
+                add_field_error("check_in_closes_minutes_before", "Check-in close offset cannot exceed the open window.")
+                add_section_error("settings-features", "Check-in close time exceeds the check-in open window.")
+
+        lobby_round_overrides = data.get("lobby_round_overrides")
+        if lobby_round_overrides is not None:
+            if not isinstance(lobby_round_overrides, dict):
+                add_field_error(
+                    "lobby_round_overrides",
+                    "Per-round lobby overrides must be a JSON object (round -> override flags).",
+                )
+            else:
+                for raw_round, raw_flags in lobby_round_overrides.items():
+                    round_key = str(raw_round or "").strip()
+                    if not round_key:
+                        add_field_error("lobby_round_overrides", "Round override keys cannot be empty.")
+                        continue
+
+                    if round_key != "*":
+                        try:
+                            if int(round_key) < 1:
+                                raise ValueError()
+                        except (TypeError, ValueError):
+                            add_field_error(
+                                "lobby_round_overrides",
+                                f'Round override key "{round_key}" must be a positive integer or "*".',
+                            )
+                            continue
+
+                    if not isinstance(raw_flags, dict):
+                        add_field_error(
+                            "lobby_round_overrides",
+                            f'Round override "{round_key}" must be an object of boolean flags.',
+                        )
+                        continue
+
+                    unknown_flags = sorted(
+                        set(raw_flags.keys()) - TOCSettingsService.LOBBY_POLICY_OVERRIDE_FIELDS
+                    )
+                    if unknown_flags:
+                        add_field_error(
+                            "lobby_round_overrides",
+                            (
+                                f'Round override "{round_key}" contains unsupported fields: '
+                                f'{", ".join(unknown_flags)}.'
+                            ),
+                        )
 
         meta_keywords = data.get("meta_keywords")
         if meta_keywords is not None and not isinstance(meta_keywords, list):

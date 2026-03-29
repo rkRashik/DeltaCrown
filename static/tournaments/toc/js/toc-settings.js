@@ -608,6 +608,18 @@
         if (typeof normalized.meta_keywords === 'string') {
             normalized.meta_keywords = normalized.meta_keywords.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
         }
+        if (typeof normalized.lobby_round_overrides === 'string') {
+            const raw = normalized.lobby_round_overrides.trim();
+            if (!raw) {
+                normalized.lobby_round_overrides = {};
+            } else {
+                try {
+                    normalized.lobby_round_overrides = JSON.parse(raw);
+                } catch (_err) {
+                    // Keep raw string so backend validation can surface a targeted field error.
+                }
+            }
+        }
         return normalized;
     }
 
@@ -790,7 +802,10 @@
             // Features
             const feat = document.getElementById('settings-features');
             if (feat && s.features) {
-                setVal(feat, 'enable_check_in', s.features.enable_check_in);
+                setVal(feat, 'require_check_in', s.features.require_check_in ?? s.features.enable_check_in);
+                setVal(feat, 'require_coin_toss', s.features.require_coin_toss);
+                setVal(feat, 'require_map_veto', s.features.require_map_veto);
+                setVal(feat, 'check_in_per_round', s.features.check_in_per_round);
                 setVal(feat, 'enable_dynamic_seeding', s.features.enable_dynamic_seeding);
                 setVal(feat, 'enable_live_updates', s.features.enable_live_updates);
                 setVal(feat, 'enable_certificates', s.features.enable_certificates);
@@ -798,6 +813,11 @@
                 setVal(feat, 'enable_fan_voting', s.features.enable_fan_voting);
                 setVal(feat, 'check_in_minutes_before', s.features.check_in_minutes_before);
                 setVal(feat, 'check_in_closes_minutes_before', s.features.check_in_closes_minutes_before);
+                const overridesValue = s.features.lobby_round_overrides;
+                const overridesJson = overridesValue && typeof overridesValue === 'object'
+                    ? JSON.stringify(overridesValue, null, 2)
+                    : String(overridesValue || '');
+                setVal(feat, 'lobby_round_overrides', overridesJson);
             }
             // Social & Contact
             const social = document.getElementById('settings-social');
@@ -899,7 +919,7 @@
             _syncSidebarBadges(payload);
             document.dispatchEvent(new CustomEvent('toc:checkin-config-updated', {
                 detail: {
-                    checkin_required: payload.enable_check_in,
+                    checkin_required: payload.require_check_in !== undefined ? payload.require_check_in : payload.enable_check_in,
                     check_in_minutes_before: payload.check_in_minutes_before,
                     check_in_closes_minutes_before: payload.check_in_closes_minutes_before,
                 },
@@ -1005,7 +1025,7 @@
         const nextWindow = cfg.check_in_minutes_before != null ? cfg.check_in_minutes_before : cfg.window_minutes;
         const nextCloses = cfg.check_in_closes_minutes_before;
 
-        if (nextRequired !== undefined) setVal(feat, 'enable_check_in', !!nextRequired);
+        if (nextRequired !== undefined) setVal(feat, 'require_check_in', !!nextRequired);
         if (nextWindow !== undefined && nextWindow !== null) setVal(feat, 'check_in_minutes_before', Number(nextWindow));
         if (nextCloses !== undefined && nextCloses !== null) setVal(feat, 'check_in_closes_minutes_before', Number(nextCloses));
 
