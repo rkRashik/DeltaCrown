@@ -29,6 +29,21 @@
     return 'Something went wrong. Please try again.';
   }
 
+  function getGroupMatchStats(data) {
+    var groups = (data && data.groups) ? data.groups : [];
+    var total = 0;
+    var completed = 0;
+    groups.forEach(function(g) {
+      total += parseInt(g && g.matches_total != null ? g.matches_total : 0, 10) || 0;
+      completed += parseInt(g && g.matches_completed != null ? g.matches_completed : 0, 10) || 0;
+    });
+    return {
+      total: total,
+      completed: completed,
+      allCompleted: total > 0 && completed >= total,
+    };
+  }
+
   /* --- State ------------------------------------------------ */
   let bracketData  = null;
   let groupsData   = null;
@@ -220,10 +235,13 @@
   }
 
   function updateGroupButtons() {
-    var drawBtn   = document.querySelector('#btn-group-draw');
-    var resetBtn  = document.querySelector('#btn-group-reset');
-    var stageState = (groupsData && groupsData.stage) ? groupsData.stage.state : 'pending';
-    var isDrawn   = stageState === 'active' || stageState === 'completed';
+    var drawBtn      = document.querySelector('#btn-group-draw');
+    var resetBtn     = document.querySelector('#btn-group-reset');
+    var genMatchesBtn = document.querySelector('#btn-group-generate-matches');
+    var stageState   = (groupsData && groupsData.stage) ? groupsData.stage.state : 'pending';
+    var isDrawn      = stageState === 'active' || stageState === 'completed';
+    var matchStats   = getGroupMatchStats(groupsData);
+    var hasMatches   = matchStats.total > 0;
 
     if (drawBtn) {
       // Hide Draw once groups are drawn
@@ -242,6 +260,23 @@
         resetBtn.classList.remove('hidden');
       }
     }
+    if (genMatchesBtn) {
+      // Keep this action visible after draw so operators always have a clear next step.
+      if (isDrawn) {
+        genMatchesBtn.classList.remove('hidden');
+        genMatchesBtn.disabled = false;
+        if (hasMatches) {
+          genMatchesBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Re-Generate Matches';
+          genMatchesBtn.title = 'Replace existing group-stage matches with a fresh round-robin schedule.';
+        } else {
+          genMatchesBtn.innerHTML = '<i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Generate Matches';
+          genMatchesBtn.title = 'Create round-robin group-stage matches from the current draw.';
+        }
+      } else {
+        genMatchesBtn.classList.add('hidden');
+      }
+    }
+    iconsRefresh();
   }
 
   /* ================================================================
@@ -268,6 +303,7 @@
 
     var hasStandings = data.groups.some(function(g) { return g.standings && g.standings.length > 0; });
     var allFinalized = data.groups.every(function(g) { return g.is_finalized; });
+    var matchStats = getGroupMatchStats(data);
 
     // Meta bar
     if (meta) {
@@ -318,6 +354,22 @@
       + ' gap-4';
     var cardsHtml = data.groups.map(function(g) { return renderGroupCard(g, data.stage); }).join('');
     var extra = '';
+
+    if (matchStats.total === 0) {
+      var formatLabel = (data.stage && data.stage.format === 'double_round_robin')
+        ? 'double round-robin'
+        : 'round-robin';
+      extra += '<div class="mt-6 p-6 glass-box rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03]">'
+        + '<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">'
+        + '<div class="text-left">'
+        + '<p class="text-[10px] font-mono uppercase tracking-widest text-emerald-300/70 mb-2">Next Step</p>'
+        + '<h4 class="text-sm font-bold text-white mb-1">Generate Group Matches</h4>'
+        + '<p class="text-xs text-dc-text max-w-xl">Groups are drawn, but no ' + formatLabel + ' matches exist yet. Generate matches now, then schedule kickoff times in the Schedule sub-tab.</p>'
+        + '</div>'
+        + '<button onclick="TOC.brackets.generateGroupMatches()" class="px-5 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">'
+        + '<i data-lucide="swords" class="w-3.5 h-3.5 inline mr-1.5"></i>Generate Round-Robin Matches</button>'
+        + '</div></div>';
+    }
 
     if (!allFinalized && bracketData && !bracketData.exists) {
       var finCount = data.groups.filter(function(g) { return g.is_finalized; }).length;
@@ -1017,6 +1069,7 @@
         try {
           await API.post('groups/draw/', { method: 'random' });
           toast('Groups drawn successfully', 'success');
+          toast('Next step: generate round-robin matches for each group.', 'info');
           refreshGroups();
         } catch (e) { toast(parseError(e), 'error'); }
       },
@@ -1035,6 +1088,49 @@
       toast('Group draw reset', 'info');
       refreshGroups();
     } catch (e) { toast(parseError(e), 'error'); }
+  }
+
+  function generateGroupMatches() {
+    var stageState = (groupsData && groupsData.stage) ? groupsData.stage.state : 'pending';
+    if (!(stageState === 'active' || stageState === 'completed')) {
+      toast('Draw groups first, then generate matches.', 'error');
+      return;
+    }
+
+    var stats = getGroupMatchStats(groupsData);
+    var rounds = (groupsData && groupsData.stage && groupsData.stage.format === 'double_round_robin') ? 2 : 1;
+    var formatLabel = rounds === 2 ? 'double round-robin' : 'round-robin';
+    var hasExisting = stats.total > 0;
+
+    TOC.dangerConfirm({
+      title: hasExisting ? 'Re-Generate Group Matches' : 'Generate Group Matches',
+      message: hasExisting
+        ? 'Existing group-stage matches will be replaced with a fresh ' + formatLabel + ' schedule for every group. Continue?'
+        : 'This will create all ' + formatLabel + ' matches for every group based on the current draw.',
+      confirmText: hasExisting ? 'Re-Generate Matches' : 'Generate Matches',
+      variant: 'warning',
+      onConfirm: async function () {
+        try {
+          toast(hasExisting ? 'Re-generating group matches...' : 'Generating group matches...', 'info');
+          var payload = { rounds: rounds };
+          if (hasExisting) payload.allow_regenerate = true;
+          var data = await API.post('groups/generate-matches/', payload);
+          var generated = (data && data.generated_matches) ? data.generated_matches : 0;
+          toast((generated ? generated + ' group matches generated.' : 'Group matches generated.') + ' Review Schedule to confirm kickoff times.', 'success');
+          await refresh();
+          if (window.TOC && window.TOC.matches && typeof window.TOC.matches.refresh === 'function') {
+            window.TOC.matches.refresh({ force: true, silent: true });
+          }
+          if (activeSubTab === 'schedule') {
+            await refreshSchedule();
+          }
+        } catch (e) {
+          toast(parseError(e), 'error');
+          var genMatchesBtn = document.querySelector('#btn-group-generate-matches');
+          if (genMatchesBtn) genMatchesBtn.classList.remove('hidden');
+        }
+      },
+    });
   }
 
   function generatePlayoffs() {
@@ -1094,13 +1190,24 @@
     var matches = data && data.matches ? data.matches : [];
     var conflicts = data && data.conflicts ? data.conflicts : [];
     var summary = data && data.summary ? data.summary : {};
+    var context = data && data.context ? data.context : {};
 
     if (!matches.length) {
+      var emptyTitle = 'No Matches Scheduled';
+      var emptyDesc = 'Generate a bracket first, then auto-schedule or manually set match times.';
+      var actionHtml = '';
+      if (context.has_groups) {
+        emptyTitle = 'Group Matches Not Generated';
+        emptyDesc = 'Groups are configured, but no group-stage matches exist yet. Go to Group Stage and generate round-robin matches first.';
+        actionHtml = '<button onclick="TOC.brackets.switchSubTab(\'groups\')" class="px-4 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Group Stage</button>';
+      }
       container.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center">'
         + '<div class="w-16 h-16 rounded-2xl bg-dc-panel border border-dc-border flex items-center justify-center mb-5">'
         + '<i data-lucide="calendar" class="w-8 h-8 text-dc-text/30"></i></div>'
-        + '<h3 class="text-lg font-bold text-white mb-2">No Matches Scheduled</h3>'
-        + '<p class="text-sm text-dc-text max-w-sm mb-6">Generate a bracket first, then auto-schedule or manually set match times.</p></div>';
+        + '<h3 class="text-lg font-bold text-white mb-2">' + emptyTitle + '</h3>'
+        + '<p class="text-sm text-dc-text max-w-sm mb-6">' + emptyDesc + '</p>'
+        + actionHtml
+        + '</div>';
       iconsRefresh();
       return;
     }
@@ -1537,7 +1644,7 @@
     shareBracket: shareBracket,
     saveSeedOrder: saveSeedOrder, refreshGroups: refreshGroups, recalcStandings: recalcStandings,
     openGroupConfig: openGroupConfig, confirmGroupConfig: confirmGroupConfig,
-    drawGroups: drawGroups, resetGroups: resetGroups,
+    drawGroups: drawGroups, resetGroups: resetGroups, generateGroupMatches: generateGroupMatches,
     generatePlayoffs: generatePlayoffs, startLiveDraw: startLiveDraw, switchSubTab: switchSubTab,
     refreshPipelines: refreshPipelines, openCreatePipeline: openCreatePipeline, confirmCreatePipeline: confirmCreatePipeline,
     deletePipeline: deletePipeline, closeOverlay: closeOverlay, onMatchCardClick: onMatchCardClick,

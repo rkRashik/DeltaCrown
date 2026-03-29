@@ -300,6 +300,13 @@ class TestGenerateGroupMatches:
         
         matches = Match.objects.filter(tournament=tournament)
         assert matches.count() == 12
+
+        sample = matches.first()
+        assert sample is not None
+        assert sample.participant1_name
+        assert sample.participant2_name
+        assert sample.lobby_info.get('group_id') is not None
+        assert sample.lobby_info.get('group_label')
     
     def test_generate_group_matches_no_cross_group(self, tournament):
         """Should only create matches within groups, not across groups."""

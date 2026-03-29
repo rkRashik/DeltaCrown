@@ -1995,12 +1995,143 @@ const HubEngine = (() => {
       const data = await resp.json();
       _bracketCache = data;
       _hide('bracket-skeleton');
+
+      if (!data.generated && data.group_context?.has_groups && data.group_context?.groups_drawn) {
+        const renderedGroupTables = await _renderBracketGroupTablesFallback(data.group_context);
+        if (renderedGroupTables) return;
+      }
+
       _renderBracket(data);
     } catch (err) {
       console.warn('[HubEngine] Bracket fetch failed:', err.message);
       _hide('bracket-skeleton');
       _showError('hub-bracket-tree', 'Failed to load bracket. Please try again.', 'bracket');
     }
+  }
+
+  function _buildBracketGroupTables(groups, message) {
+    let html = '<div class="space-y-5">';
+
+    html += `
+      <div class="hub-glass rounded-xl p-5 border border-[#00F0FF]/20 bg-[#00F0FF]/[0.04]">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#00F0FF] mb-2">Group Stage</p>
+        <h3 class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Group Tables Are Ready</h3>
+        <p class="text-sm text-gray-300 mt-2">${_esc(message || 'Groups are drawn. The organizer will generate round-robin matches next; current group standings are shown below.')}</p>
+      </div>`;
+
+    groups.forEach((group) => {
+      const standings = Array.isArray(group?.standings) ? group.standings : [];
+      html += `
+        <div class="stnd-group">
+          <h3 class="stnd-group-title"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i> ${_esc(group?.name || 'Group')}</h3>
+          <div class="stnd-table-wrap">
+            <table class="stnd-table">
+              <thead><tr>
+                <th class="stnd-th stnd-th-rank">#</th>
+                <th class="stnd-th stnd-th-team">TEAM</th>
+                <th class="stnd-th">P</th>
+                <th class="stnd-th">W</th>
+                <th class="stnd-th">D</th>
+                <th class="stnd-th">L</th>
+                <th class="stnd-th">GD</th>
+                <th class="stnd-th">PTS</th>
+              </tr></thead>
+              <tbody>`;
+
+      if (!standings.length) {
+        html += `
+                <tr>
+                  <td colspan="8" class="stnd-td text-center text-gray-500 py-6">No standings rows available yet.</td>
+                </tr>`;
+      } else {
+        standings.forEach((row) => {
+          const gd = Number(row?.goal_difference || 0);
+          html += `
+                <tr class="stnd-row${row?.is_you ? ' stnd-row-you' : ''}">
+                  <td class="stnd-td stnd-td-rank">${row?.rank ?? '-'}</td>
+                  <td class="stnd-td stnd-td-team">
+                    <span class="stnd-team-name">${_esc(row?.name || 'TBD')}${row?.is_you ? ' <span class="stnd-you">YOU</span>' : ''}</span>
+                  </td>
+                  <td class="stnd-td">${row?.matches_played ?? 0}</td>
+                  <td class="stnd-td stnd-w">${row?.won ?? 0}</td>
+                  <td class="stnd-td">${row?.drawn ?? 0}</td>
+                  <td class="stnd-td stnd-l">${row?.lost ?? 0}</td>
+                  <td class="stnd-td">${gd > 0 ? '+' : ''}${gd}</td>
+                  <td class="stnd-td font-bold text-white">${_esc(String(row?.points ?? 0))}</td>
+                </tr>`;
+        });
+      }
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  async function _renderBracketGroupTablesFallback(groupContext) {
+    const tree = document.getElementById('hub-bracket-tree');
+    const standingsUrl = _shell?.dataset.apiStandings;
+    if (!tree || !standingsUrl) return false;
+
+    try {
+      let standingsData = _standingsCache;
+      const hasGroupStandings = standingsData
+        && standingsData.standings_type === 'groups'
+        && Array.isArray(standingsData.groups)
+        && standingsData.groups.length > 0;
+
+      if (!hasGroupStandings) {
+        const resp = await fetch(standingsUrl, { credentials: 'same-origin' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        standingsData = await resp.json();
+        _standingsCache = standingsData;
+      }
+
+      if (!standingsData || standingsData.standings_type !== 'groups' || !Array.isArray(standingsData.groups) || standingsData.groups.length === 0) {
+        return false;
+      }
+
+      tree.classList.remove('hidden');
+      tree.innerHTML = _buildBracketGroupTables(standingsData.groups, groupContext?.message);
+      _hide('bracket-not-generated');
+      _hide('bracket-zoom-controls');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return true;
+    } catch (err) {
+      console.warn('[HubEngine] Group standings fallback render failed:', err.message);
+      return false;
+    }
+  }
+
+  function _updateBracketEmptyState(data) {
+    const titleEl = document.getElementById('bracket-empty-title');
+    const messageEl = document.getElementById('bracket-empty-message');
+    if (!titleEl || !messageEl) return;
+
+    let title = 'Bracket Not Generated';
+    let message = 'The tournament bracket will appear here once the organizer generates matchups. This typically happens after check-in closes.';
+
+    const groupCtx = data && data.group_context ? data.group_context : null;
+    if (groupCtx && groupCtx.has_groups) {
+      if (groupCtx.groups_drawn) {
+        title = 'Group Stage Matches Pending';
+        message = groupCtx.message || 'Groups are drawn, but matches are not generated yet. The organizer will generate group-stage matches soon.';
+      } else {
+        title = 'Group Stage Setup In Progress';
+        message = groupCtx.message || 'Group stage is configured but the draw is not finalized yet. Bracket data will appear after those steps are completed.';
+      }
+    } else if (data && data.has_bracket_record) {
+      title = 'Bracket Setup In Progress';
+      message = 'A bracket draft exists, but no bracket matches are available yet.';
+    }
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
   }
 
   function _renderBracket(data) {
@@ -2012,6 +2143,7 @@ const HubEngine = (() => {
     if (!data.generated || !data.rounds || data.rounds.length === 0) {
       tree.innerHTML = '';
       tree.classList.add('hidden');
+      _updateBracketEmptyState(data || {});
       _show('bracket-not-generated');
       _hide('bracket-zoom-controls');
       return;

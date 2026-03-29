@@ -37,17 +37,20 @@ class TOCAuditService:
         from apps.tournaments.models import AuditLog
 
         try:
-            extra = {}
+            metadata = {}
             if detail:
-                extra["detail"] = detail
+                metadata["detail"] = detail
+            elif tab:
+                metadata["detail"] = {"tab": tab}
+
             if diff:
-                extra["diff"] = diff
+                metadata["diff"] = diff
 
             AuditLog.objects.create(
-                tournament=tournament,
                 user=user,
                 action=action,
-                extra_data=extra,
+                tournament_id=getattr(tournament, "id", None),
+                metadata=metadata,
             )
         except Exception as e:
             logger.warning("Audit log write failed: %s", e)

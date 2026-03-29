@@ -122,6 +122,7 @@ urlpatterns = [
     path('<slug:slug>/groups/', brackets.GroupStageView.as_view(), name='groups'),
     path('<slug:slug>/groups/configure/', brackets.GroupConfigureView.as_view(), name='groups-configure'),
     path('<slug:slug>/groups/draw/', brackets.GroupDrawView.as_view(), name='groups-draw'),
+    path('<slug:slug>/groups/generate-matches/', brackets.GroupGenerateMatchesView.as_view(), name='groups-generate-matches'),
     path('<slug:slug>/groups/reset/', brackets.GroupResetView.as_view(), name='groups-reset'),
     path('<slug:slug>/groups/standings/', brackets.GroupStandingsView.as_view(), name='groups-standings'),
 

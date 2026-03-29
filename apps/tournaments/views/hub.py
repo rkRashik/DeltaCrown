@@ -1629,6 +1629,16 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         except Bracket.DoesNotExist:
             bracket = None
 
+        groups_qs = Group.objects.filter(tournament=tournament, is_deleted=False)
+        has_groups = groups_qs.exists()
+        groups_drawn = False
+        if has_groups:
+            groups_drawn = GroupStanding.objects.filter(
+                group__tournament=tournament,
+                group__is_deleted=False,
+                is_deleted=False,
+            ).exists()
+
         # Build rounds data from matches
         matches_qs = Match.objects.filter(
             tournament=tournament,
@@ -1642,10 +1652,35 @@ class HubBracketAPIView(LoginRequiredMixin, View):
 
         matches = list(matches_qs.order_by('round_number', 'match_number', 'id'))
         if not matches:
+            if has_groups and groups_drawn:
+                group_status = 'drawn_waiting_matches'
+                group_message = (
+                    'Group draw is complete. The organizer needs to generate group-stage matches '
+                    'before the bracket can be displayed.'
+                )
+            elif has_groups:
+                group_status = 'configured_waiting_draw'
+                group_message = (
+                    'Group stage is configured. Bracket data will appear after the draw and '
+                    'match generation steps are completed.'
+                )
+            else:
+                group_status = 'no_group_stage'
+                group_message = (
+                    'The bracket will appear here once the organizer generates matchups.'
+                )
+
             return _json_response({
                 'generated': False,
                 'format': tournament.format,
                 'format_display': tournament.get_format_display(),
+                'has_bracket_record': bracket is not None,
+                'group_context': {
+                    'has_groups': has_groups,
+                    'groups_drawn': groups_drawn,
+                    'status': group_status,
+                    'message': group_message,
+                },
             }, cache_control='private, max-age=15')
 
         rounds = {}
@@ -1655,7 +1690,14 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                 if bracket is not None:
                     round_name = bracket.get_round_name(rn)
                 else:
-                    round_name = m.stage_label or (f'Round {rn}' if rn else 'Round')
+                    lobby = m.lobby_info or {}
+                    group_label = lobby.get('group_label') or lobby.get('group_name')
+                    if group_label and rn:
+                        round_name = f'{group_label} - Round {rn}'
+                    elif group_label:
+                        round_name = group_label
+                    else:
+                        round_name = f'Round {rn}' if rn else 'Round'
                 rounds[rn] = {
                     'round_number': rn,
                     'round_name': round_name,
@@ -1683,6 +1725,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
 
         return _json_response({
             'generated': True,
+            'generated_mode': 'bracket' if bracket is not None else 'group_stage',
             'format': bracket.format if bracket is not None else tournament.format,
             'format_display': bracket.get_format_display() if bracket is not None else tournament.get_format_display(),
             'total_rounds': bracket.total_rounds if bracket is not None else len(rounds),
@@ -1777,26 +1820,43 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         is_team = tournament.participation_type == 'team'
         groups = Group.objects.filter(
             tournament=tournament,
-        ).prefetch_related('standings').order_by('name')
+            is_deleted=False,
+        ).order_by('display_order', 'name')
 
         if groups.exists():
             groups_data = []
             for group in groups:
                 standings = GroupStanding.objects.filter(
                     group=group,
-                ).order_by('rank', '-points', '-goal_difference')
+                    is_deleted=False,
+                ).select_related('user').order_by('rank', '-points', '-goal_difference', 'id')
+
+                team_name_map = {}
+                if is_team:
+                    team_ids = [s.team_id for s in standings if s.team_id]
+                    if team_ids:
+                        from apps.organizations.models import Team
+                        team_name_map = {
+                            team_id: team_name
+                            for team_id, team_name in Team.objects.filter(id__in=team_ids).values_list('id', 'name')
+                        }
+
+                seen_participants = set()
 
                 rows = []
                 for s in standings:
+                    participant_key = (
+                        ('team', s.team_id) if s.team_id
+                        else ('user', s.user_id)
+                    )
+                    if participant_key[1] is None or participant_key in seen_participants:
+                        continue
+                    seen_participants.add(participant_key)
+
                     name = ''
                     is_you = False
                     if is_team and s.team_id:
-                        from apps.organizations.models import Team
-                        try:
-                            t = Team.objects.get(id=s.team_id)
-                            name = t.name
-                        except Team.DoesNotExist:
-                            name = f'Team #{s.team_id}'
+                        name = team_name_map.get(s.team_id, f'Team #{s.team_id}')
                         is_you = registration and s.team_id == registration.team_id
                     elif s.user_id:
                         name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'

@@ -34,6 +34,62 @@ logger = logging.getLogger(__name__)
 class TOCBracketsService:
     """TOC-level bracket, group-stage, and qualifier operations."""
 
+    @staticmethod
+    def _coerce_group_id(raw_group_id: Any) -> Optional[int]:
+        """Normalize group_id from JSON payloads to int when possible."""
+        if raw_group_id is None:
+            return None
+        try:
+            return int(raw_group_id)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _group_stage_match_stats(tournament, group_ids: set[int]) -> Dict[int, Dict[str, int]]:
+        """Return per-group totals for bracket-less matches that are tagged with lobby_info.group_id."""
+        stats = {
+            gid: {"total": 0, "completed": 0}
+            for gid in group_ids
+        }
+        if not group_ids:
+            return stats
+
+        matches = Match.objects.filter(
+            tournament=tournament,
+            bracket__isnull=True,
+            is_deleted=False,
+        ).only("id", "state", "lobby_info")
+
+        for match in matches.iterator():
+            group_id = TOCBracketsService._coerce_group_id((match.lobby_info or {}).get("group_id"))
+            if group_id not in stats:
+                continue
+            stats[group_id]["total"] += 1
+            if match.state in (Match.COMPLETED, Match.FORFEIT):
+                stats[group_id]["completed"] += 1
+
+        return stats
+
+    @staticmethod
+    def _group_stage_match_ids(tournament, group_ids: set[int]) -> List[int]:
+        """Collect IDs of bracket-less matches that belong to the given groups via lobby_info.group_id."""
+        if not group_ids:
+            return []
+
+        ids: List[int] = []
+        matches = Match.objects.filter(
+            tournament=tournament,
+            bracket__isnull=True,
+            is_deleted=False,
+        ).only("id", "lobby_info")
+
+        for match in matches.iterator():
+            group_id = TOCBracketsService._coerce_group_id((match.lobby_info or {}).get("group_id"))
+            if group_id in group_ids:
+                ids.append(match.id)
+
+        return ids
+
     # ── Bracket generation / management ────────────────────────
 
     @staticmethod
@@ -191,34 +247,26 @@ class TOCBracketsService:
         if not stage:
             return {"exists": False, "stage": None, "groups": []}
 
-        groups = Group.objects.filter(
+        groups = list(Group.objects.filter(
             tournament=tournament, is_deleted=False
-        ).order_by("display_order")
+        ).order_by("display_order"))
+        group_ids = {g.id for g in groups}
+        match_stats = TOCBracketsService._group_stage_match_stats(tournament, group_ids)
+
         result_groups = []
+        total_matches = 0
+        total_completed = 0
         for g in groups:
             standings = GroupStanding.objects.filter(
                 group=g, is_deleted=False
             ).order_by("rank")
 
-            # Compute per-group match completion for "Final" badge
-            g_team_ids = set(standings.values_list('team_id', flat=True)) - {None, 0}
-            g_user_ids = set(standings.exclude(user__isnull=True).values_list('user_id', flat=True))
-
-            g_match_qs = Match.objects.filter(
-                tournament=tournament, is_deleted=False, bracket__isnull=True,
-            )
-            if g_team_ids:
-                g_match_qs = g_match_qs.filter(
-                    participant1_id__in=g_team_ids, participant2_id__in=g_team_ids,
-                )
-            elif g_user_ids:
-                g_match_qs = g_match_qs.filter(
-                    participant1_id__in=g_user_ids, participant2_id__in=g_user_ids,
-                )
-
-            g_total = g_match_qs.count()
-            g_completed = g_match_qs.filter(state__in=[Match.COMPLETED, 'forfeit']).count()
+            g_stats = match_stats.get(g.id, {"total": 0, "completed": 0})
+            g_total = int(g_stats.get("total") or 0)
+            g_completed = int(g_stats.get("completed") or 0)
             is_completed = g_total > 0 and g_completed == g_total
+            total_matches += g_total
+            total_completed += g_completed
 
             result_groups.append({
                 "id": str(g.id),
@@ -246,7 +294,11 @@ class TOCBracketsService:
                 "state": stage.state,
                 "advancement_count_per_group": stage.advancement_count_per_group,
                 "draw_audit": (stage.config or {}).get("draw_audit"),
+                "matches_total": total_matches,
+                "matches_completed": total_completed,
             },
+            "matches_total": total_matches,
+            "matches_completed": total_completed,
             "groups": result_groups,
         }
 
@@ -313,6 +365,58 @@ class TOCBracketsService:
         return TOCBracketsService.get_groups(tournament)
 
     @staticmethod
+    def generate_group_matches(tournament, data: Dict, user) -> Dict[str, Any]:
+        """Generate round-robin matches for drawn groups."""
+        stage = GroupStage.objects.filter(tournament=tournament).first()
+        if not stage:
+            raise ValueError("Configure groups first.")
+        if stage.state not in ("active", "completed"):
+            raise ValueError("Draw groups first, then generate matches.")
+
+        groups_snapshot = TOCBracketsService.get_groups(tournament)
+        groups = groups_snapshot.get("groups", [])
+        if not groups:
+            raise ValueError("No groups configured.")
+
+        stage_group_ids = {
+            TOCBracketsService._coerce_group_id(g.get("id"))
+            for g in groups
+            if g.get("id") is not None
+        }
+        stage_group_ids.discard(None)
+        existing_group_match_ids = TOCBracketsService._group_stage_match_ids(tournament, stage_group_ids)
+        existing_total = len(existing_group_match_ids)
+
+        allow_regenerate = bool(data.get("allow_regenerate", False))
+        if existing_total > 0:
+            if not allow_regenerate:
+                raise ValueError(
+                    "Group matches already exist. Use Re-Generate Matches to replace the current schedule."
+                )
+            Match.objects.filter(id__in=existing_group_match_ids).delete()
+
+        default_rounds = 2 if (stage.format or "").lower() == "double_round_robin" else 1
+        rounds = int(data.get("rounds") or default_rounds)
+        if rounds not in (1, 2):
+            raise ValueError("rounds must be 1 or 2.")
+
+        generated = GroupStageService.generate_group_matches(stage.id, rounds=rounds)
+        if generated <= 0:
+            raise ValueError(
+                "No matches were generated. Make sure groups are drawn and each group has at least 2 participants."
+            )
+
+        stage.state = "active"
+        stage.save(update_fields=["state"])
+
+        return {
+            "status": "generated",
+            "generated_matches": generated,
+            "rounds": rounds,
+            "groups": TOCBracketsService.get_groups(tournament).get("groups", []),
+        }
+
+    @staticmethod
     def reset_groups(tournament, user) -> Dict[str, Any]:
         """Reset group draw — clears standings and returns stage to pending.
 
@@ -326,6 +430,17 @@ class TOCBracketsService:
         GroupStanding.objects.filter(
             group__tournament=tournament,
         ).delete()
+
+        # Reset group draw markers on active groups.
+        Group.objects.filter(tournament=tournament, is_deleted=False).update(is_finalized=False)
+
+        # Clear only generated group-stage matches tied to current groups.
+        group_ids = set(
+            Group.objects.filter(tournament=tournament, is_deleted=False).values_list("id", flat=True)
+        )
+        group_match_ids = TOCBracketsService._group_stage_match_ids(tournament, group_ids)
+        if group_match_ids:
+            Match.objects.filter(id__in=group_match_ids).delete()
 
         # Reset stage state
         stage.state = 'pending'
@@ -462,16 +577,18 @@ class TOCBracketsService:
 
         # Context flags so the frontend can show smarter empty states
         has_bracket = Bracket.objects.filter(tournament=tournament).exists()
-        has_groups = Group.objects.filter(tournament=tournament).exists()
+        has_groups = Group.objects.filter(tournament=tournament, is_deleted=False).exists()
 
         return {
             "total_matches": total,
+            "matches": all_serialized,
             "rounds": [
                 {"round": rn, "matches": ms}
                 for rn, ms in sorted(rounds.items())
             ],
             "summary": {
                 "total": total,
+                "total_matches": total,
                 "scheduled": scheduled,
                 "live": live,
                 "completed": completed,

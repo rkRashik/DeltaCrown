@@ -895,15 +895,35 @@ class GroupStageService:
         # Get groups for this specific GroupStage (created after the GroupStage itself)
         groups = Group.objects.filter(
             tournament=stage.tournament,
-            created_at__gte=stage.created_at
+            created_at__gte=stage.created_at,
+            is_deleted=False,
         ).prefetch_related('standings')
         total_matches = 0
 
         for group in groups:
-            participants = list(group.standings.filter(is_deleted=False))
+            participants = list(group.standings.filter(is_deleted=False).select_related('user'))
 
             if len(participants) < 2:
                 continue
+
+            team_name_map = {}
+            team_ids = [p.team_id for p in participants if p.team_id]
+            if team_ids:
+                from apps.organizations.models import Team
+                team_name_map = {
+                    tid: name for tid, name in Team.objects.filter(
+                        id__in=team_ids,
+                    ).values_list('id', 'name')
+                }
+
+            def _participant_identity(standing):
+                if standing.team_id:
+                    return standing.team_id, team_name_map.get(standing.team_id, f"Team #{standing.team_id}")
+                if standing.user_id:
+                    if standing.user:
+                        return standing.user_id, (standing.user.get_full_name() or standing.user.username)
+                    return standing.user_id, f"User #{standing.user_id}"
+                return None, "TBD"
 
             # Generate all unique pairings (round-robin)
             base_pairings = []
@@ -921,16 +941,24 @@ class GroupStageService:
                     else:
                         home, away = p1, p2
 
+                    home_id, home_name = _participant_identity(home)
+                    away_id, away_name = _participant_identity(away)
+                    if not home_id or not away_id:
+                        continue
+
                     Match.objects.create(
                         tournament=stage.tournament,
-                        participant1_id=home.team_id if home.team_id else home.user_id,
-                        participant2_id=away.team_id if away.team_id else away.user_id,
+                        participant1_id=home_id,
+                        participant1_name=home_name,
+                        participant2_id=away_id,
+                        participant2_name=away_name,
                         round_number=rnd,
                         match_number=match_counter,
                         state=Match.SCHEDULED,
                         lobby_info={
                             "group_id": group.id,
                             "group_name": group.name,
+                            "group_label": group.name,
                             "rr_round": rnd,
                         },
                     )

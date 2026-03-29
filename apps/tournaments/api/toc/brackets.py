@@ -15,6 +15,7 @@ S5-B11       pipelines/               — Qualifier pipeline CRUD
 """
 
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -28,6 +29,7 @@ from .serializers import (
     BulkShiftInputSerializer,
     GroupConfigInputSerializer,
     GroupDrawInputSerializer,
+    GroupMatchGenerateInputSerializer,
     PipelineCreateInputSerializer,
     SeedReorderInputSerializer,
 )
@@ -366,6 +368,26 @@ class GroupDrawView(TOCBaseView):
             bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class GroupGenerateMatchesView(TOCBaseView):
+    """Sprint 30: POST /api/toc/<slug>/groups/generate-matches/."""
+
+    def post(self, request, slug):
+        ser = GroupMatchGenerateInputSerializer(data=request.data or {})
+        ser.is_valid(raise_exception=True)
+        try:
+            data = TOCBracketsService.generate_group_matches(
+                self.tournament,
+                ser.validated_data,
+                request.user,
+            )
+            bump_toc_scopes(self.tournament.id, 'brackets', 'matches', 'overview', 'analytics')
+            return Response(data, status=status.HTTP_201_CREATED)
+        except (ValueError, ValidationError) as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )

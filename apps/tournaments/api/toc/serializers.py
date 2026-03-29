@@ -485,6 +485,12 @@ class GroupDrawInputSerializer(serializers.Serializer):
     )
 
 
+class GroupMatchGenerateInputSerializer(serializers.Serializer):
+    """Input for generating group-stage matches."""
+    rounds = serializers.IntegerField(required=False, min_value=1, max_value=2)
+    allow_regenerate = serializers.BooleanField(required=False, default=False)
+
+
 class ScheduleMatchSerializer(serializers.Serializer):
     """Read serializer for a scheduled match."""
     id = serializers.IntegerField()

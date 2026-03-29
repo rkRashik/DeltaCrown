@@ -1163,6 +1163,9 @@
                             <button id="btn-group-draw" onclick="TOC.brackets.drawGroups()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
                                 <i data-lucide="shuffle" class="w-3 h-3 inline mr-1"></i>Draw
                             </button>
+                            <button id="btn-group-generate-matches" onclick="TOC.brackets.generateGroupMatches()" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
+                                <i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Generate Matches
+                            </button>
                             <a href="{% url 'tournaments:group_draw_director' slug=tournament.slug %}" target="_blank"
                                data-cap-require="manage_brackets"
                                class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors inline-flex items-center">
