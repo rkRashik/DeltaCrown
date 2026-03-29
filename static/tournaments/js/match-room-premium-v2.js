@@ -20,10 +20,13 @@
   const PHASE_ORDER = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
   const RESULT_FINAL_STATES = new Set(['verified', 'admin_overridden']);
   const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
+  const DRAFT_STORAGE_VERSION = 1;
+  const DRAFT_STORAGE_KEY = `dc:match-room-v2:draft:${room.match.id}`;
 
   const state = {
     ws: null,
     wsConnected: false,
+    socketEverConnected: false,
     reconnectTimer: null,
     syncTimer: null,
     clockTimer: null,
@@ -34,6 +37,7 @@
     chatSeen: new Set(),
     announcementSeen: new Set(),
     uploadedFiles: { 1: null, 2: null },
+    inputDraft: createDraftState(),
     toastHost: null,
     tossWinnerRendered: null,
   };
@@ -141,6 +145,142 @@
     }
 
     return 1;
+  }
+
+  function createSideDraft() {
+    return {
+      dirty: false,
+      score_for: '',
+      score_against: '',
+      evidence_url: '',
+      note: '',
+    };
+  }
+
+  function createDraftState() {
+    return {
+      chat: '',
+      adminScores: { a: '', b: '' },
+      result: {
+        '1': createSideDraft(),
+        '2': createSideDraft(),
+      },
+    };
+  }
+
+  function normalizeSideDraft(raw) {
+    const base = createSideDraft();
+    if (!raw || typeof raw !== 'object') {
+      return base;
+    }
+
+    base.dirty = !!raw.dirty;
+    base.score_for = String(raw.score_for || '');
+    base.score_against = String(raw.score_against || '');
+    base.evidence_url = String(raw.evidence_url || '');
+    base.note = String(raw.note || '');
+    return base;
+  }
+
+  function normalizeDraftState(raw) {
+    const base = createDraftState();
+    if (!raw || typeof raw !== 'object') {
+      return base;
+    }
+
+    base.chat = String(raw.chat || '');
+
+    if (raw.adminScores && typeof raw.adminScores === 'object') {
+      base.adminScores.a = String(raw.adminScores.a || '');
+      base.adminScores.b = String(raw.adminScores.b || '');
+    }
+
+    if (raw.result && typeof raw.result === 'object') {
+      base.result['1'] = normalizeSideDraft(raw.result['1']);
+      base.result['2'] = normalizeSideDraft(raw.result['2']);
+    }
+
+    return base;
+  }
+
+  function persistDraftState() {
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+        v: DRAFT_STORAGE_VERSION,
+        draft: state.inputDraft,
+      }));
+    } catch (_err) {
+      // Ignore storage failures.
+    }
+  }
+
+  function loadDraftState() {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!raw) {
+        state.inputDraft = createDraftState();
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      const draftPayload = parsed && typeof parsed === 'object' && parsed.draft ? parsed.draft : parsed;
+      state.inputDraft = normalizeDraftState(draftPayload);
+    } catch (_err) {
+      state.inputDraft = createDraftState();
+    }
+  }
+
+  function isSocketReady() {
+    return !!(state.wsConnected && state.ws && state.ws.readyState === window.WebSocket.OPEN);
+  }
+
+  function isReconnectPauseActive() {
+    return state.socketEverConnected && !isSocketReady();
+  }
+
+  function renderSocketBadge() {
+    const badge = byId('ws-reconnect-badge');
+    if (!badge) {
+      return;
+    }
+
+    const shouldShow = isReconnectPauseActive();
+    badge.classList.toggle('hidden-state', !shouldShow);
+  }
+
+  function setControlValue(id, value) {
+    const node = byId(id);
+    if (!node || !('value' in node)) {
+      return;
+    }
+
+    if (document.activeElement === node) {
+      return;
+    }
+
+    const next = String(value == null ? '' : value);
+    if (node.value !== next) {
+      node.value = next;
+    }
+  }
+
+  function patchResultDraft(side, patch) {
+    const key = String(side === 2 ? 2 : 1);
+    const current = normalizeSideDraft(state.inputDraft.result[key]);
+    state.inputDraft.result[key] = Object.assign(current, patch || {}, { dirty: true });
+    persistDraftState();
+  }
+
+  function clearResultDraft(side) {
+    const key = String(side === 2 ? 2 : 1);
+    state.inputDraft.result[key] = createSideDraft();
+    persistDraftState();
+  }
+
+  function applyPersistentInputs() {
+    setControlValue('chat-input', state.inputDraft.chat || '');
+    setControlValue('admin-score-a', state.inputDraft.adminScores.a || '');
+    setControlValue('admin-score-b', state.inputDraft.adminScores.b || '');
   }
 
   function showToast(message, kind) {
@@ -637,6 +777,9 @@
         instr.textContent = 'Veto completed. Locking map for live lobby.';
       } else {
         instr.textContent = `${teamLabel(expectedSide)} to ${expectedAction.toUpperCase()} next.`;
+        if (isReconnectPauseActive()) {
+          instr.textContent += ' Realtime reconnecting, actions paused.';
+        }
       }
     }
     if (timer) {
@@ -654,7 +797,7 @@
     const grid = byId('map-grid');
     if (grid) {
       grid.innerHTML = '';
-      const active = canUsePhaseOneAction(expectedSide);
+      const active = canUsePhaseOneAction(expectedSide) && !isReconnectPauseActive();
       const used = new Set([...bans, ...picks]);
 
       pool.forEach((mapNameRaw) => {
@@ -744,6 +887,9 @@
         instr.textContent = 'Draft completed. Transitioning to lobby setup.';
       } else {
         instr.textContent = `${teamLabel(expectedSide)} to ${expectedAction.toUpperCase()} next.`;
+        if (isReconnectPauseActive()) {
+          instr.textContent += ' Realtime reconnecting, actions paused.';
+        }
       }
     }
 
@@ -765,7 +911,7 @@
     const heroGrid = byId('hero-grid');
     if (heroGrid) {
       heroGrid.innerHTML = '';
-      const active = canUsePhaseOneAction(expectedSide);
+      const active = canUsePhaseOneAction(expectedSide) && !isReconnectPauseActive();
 
       heroPool.forEach((heroRaw) => {
         const heroName = String(heroRaw || '').trim();
@@ -1091,15 +1237,22 @@
     return { cls: 'done', text: 'Submitted' };
   }
 
-  function populateExtraResultFields(side, submission) {
+  function populateExtraResultFields(side, submission, draft) {
     const suffix = side === 1 ? 'a' : 'b';
     const host = byId(`extra-fields-${suffix}`);
     if (!host) {
       return;
     }
 
-    const note = String(submission?.note || '');
-    const evidenceUrl = String(submission?.evidence_url || submission?.proof_screenshot_url || '');
+    const sideDraft = normalizeSideDraft(draft);
+    const useDraft = !!sideDraft.dirty;
+
+    const note = useDraft
+      ? String(sideDraft.note || '')
+      : String(submission?.note || '');
+    const evidenceUrl = useDraft
+      ? String(sideDraft.evidence_url || '')
+      : String(submission?.evidence_url || submission?.proof_screenshot_url || '');
 
     host.innerHTML = `
       <div>
@@ -1156,30 +1309,32 @@
     const submissions = wf.result_submissions || { '1': null, '2': null };
     const subA = submissions['1'] && typeof submissions['1'] === 'object' ? submissions['1'] : null;
     const subB = submissions['2'] && typeof submissions['2'] === 'object' ? submissions['2'] : null;
+    const draftA = normalizeSideDraft(state.inputDraft.result['1']);
+    const draftB = normalizeSideDraft(state.inputDraft.result['2']);
 
     const resultStatus = String(wf.result_status || 'pending');
     const finalResult = wf.final_result && typeof wf.final_result === 'object' ? wf.final_result : null;
 
-    const scoreA = byId('score-a');
-    const scoreAOpp = byId('score-a-opp');
-    const scoreB = byId('score-b');
-    const scoreBOpp = byId('score-b-opp');
+    const scoreAValue = draftA.dirty
+      ? draftA.score_for
+      : (subA?.score_for != null ? String(subA.score_for) : '');
+    const scoreAOppValue = draftA.dirty
+      ? draftA.score_against
+      : (subA?.score_against != null ? String(subA.score_against) : '');
+    const scoreBValue = draftB.dirty
+      ? draftB.score_for
+      : (subB?.score_for != null ? String(subB.score_for) : '');
+    const scoreBOppValue = draftB.dirty
+      ? draftB.score_against
+      : (subB?.score_against != null ? String(subB.score_against) : '');
 
-    if (scoreA) {
-      scoreA.value = subA?.score_for != null ? String(subA.score_for) : '';
-    }
-    if (scoreAOpp) {
-      scoreAOpp.value = subA?.score_against != null ? String(subA.score_against) : '';
-    }
-    if (scoreB) {
-      scoreB.value = subB?.score_for != null ? String(subB.score_for) : '';
-    }
-    if (scoreBOpp) {
-      scoreBOpp.value = subB?.score_against != null ? String(subB.score_against) : '';
-    }
+    setControlValue('score-a', scoreAValue);
+    setControlValue('score-a-opp', scoreAOppValue);
+    setControlValue('score-b', scoreBValue);
+    setControlValue('score-b-opp', scoreBOppValue);
 
-    populateExtraResultFields(1, subA);
-    populateExtraResultFields(2, subB);
+    populateExtraResultFields(1, subA, draftA);
+    populateExtraResultFields(2, subB, draftB);
 
     renderUploadZone(1, subA);
     renderUploadZone(2, subB);
@@ -1590,7 +1745,14 @@
         const acting = Number(payload.acting_side);
         if (acting === 1 || acting === 2) {
           state.uploadedFiles[acting] = null;
+          clearResultDraft(acting);
         }
+      }
+
+      if (action === 'admin_override_result') {
+        state.inputDraft.adminScores.a = '';
+        state.inputDraft.adminScores.b = '';
+        persistDraftState();
       }
 
       if (data.message) {
@@ -1713,18 +1875,20 @@
   function sendChatMessage(text) {
     const msg = String(text || '').trim();
     if (!msg) {
-      return;
+      return false;
     }
 
     if (!state.ws || state.ws.readyState !== window.WebSocket.OPEN) {
       showToast('Realtime channel is reconnecting. Try again shortly.', 'error');
-      return;
+      return false;
     }
 
     try {
       state.ws.send(JSON.stringify({ type: 'chat_message', text: msg }));
+      return true;
     } catch (_err) {
       showToast('Chat send failed.', 'error');
+      return false;
     }
   }
 
@@ -1828,10 +1992,12 @@
 
     state.ws.onopen = function () {
       state.wsConnected = true;
+      state.socketEverConnected = true;
       if (state.reconnectTimer) {
         clearTimeout(state.reconnectTimer);
         state.reconnectTimer = null;
       }
+      renderSocketBadge();
       try {
         state.ws.send(JSON.stringify({ type: 'subscribe' }));
       } catch (_err) {
@@ -1845,6 +2011,7 @@
 
     state.ws.onclose = function () {
       state.wsConnected = false;
+      renderSocketBadge();
       if (!state.reconnectTimer) {
         state.reconnectTimer = window.setTimeout(connectWs, 3000);
       }
@@ -1852,6 +2019,7 @@
 
     state.ws.onerror = function () {
       state.wsConnected = false;
+      renderSocketBadge();
     };
   }
 
@@ -2052,6 +2220,10 @@
       nextPhase.addEventListener('click', () => {
         const idx = PHASE_ORDER.indexOf(currentPhase());
         const next = PHASE_ORDER[Math.min(idx + 1, PHASE_ORDER.length - 1)] || 'completed';
+        const ok = window.confirm('Are you sure you want to force the next phase? This may interrupt live team actions.');
+        if (!ok) {
+          return;
+        }
         submitWorkflow('advance_phase', { phase: next });
       });
     }
@@ -2065,6 +2237,10 @@
         const p2 = toInt(scoreB, NaN);
         if (!Number.isFinite(p1) || !Number.isFinite(p2)) {
           showToast('Admin score override requires numeric scores.', 'error');
+          return;
+        }
+        const ok = window.confirm('Are you sure you want to override the score? This cannot be undone.');
+        if (!ok) {
           return;
         }
         submitWorkflow('admin_override_result', {
@@ -2135,10 +2311,81 @@
         if (!text) {
           return;
         }
-        sendChatMessage(text);
-        input.value = '';
+        const sent = sendChatMessage(text);
+        if (sent) {
+          input.value = '';
+          state.inputDraft.chat = '';
+          persistDraftState();
+        }
       });
     }
+
+    document.addEventListener('input', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+
+      const id = String(target.id || '');
+      const value = String(target.value || '');
+
+      if (id === 'chat-input') {
+        state.inputDraft.chat = value;
+        persistDraftState();
+        return;
+      }
+
+      if (id === 'admin-score-a') {
+        state.inputDraft.adminScores.a = value;
+        persistDraftState();
+        return;
+      }
+
+      if (id === 'admin-score-b') {
+        state.inputDraft.adminScores.b = value;
+        persistDraftState();
+        return;
+      }
+
+      if (id === 'score-a') {
+        patchResultDraft(1, { score_for: value });
+        return;
+      }
+
+      if (id === 'score-a-opp') {
+        patchResultDraft(1, { score_against: value });
+        return;
+      }
+
+      if (id === 'evidence-url-a') {
+        patchResultDraft(1, { evidence_url: value });
+        return;
+      }
+
+      if (id === 'note-a') {
+        patchResultDraft(1, { note: value });
+        return;
+      }
+
+      if (id === 'score-b') {
+        patchResultDraft(2, { score_for: value });
+        return;
+      }
+
+      if (id === 'score-b-opp') {
+        patchResultDraft(2, { score_against: value });
+        return;
+      }
+
+      if (id === 'evidence-url-b') {
+        patchResultDraft(2, { evidence_url: value });
+        return;
+      }
+
+      if (id === 'note-b') {
+        patchResultDraft(2, { note: value });
+      }
+    });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
@@ -2157,6 +2404,7 @@
     renderTheme();
     renderHeader();
     renderClock();
+    renderSocketBadge();
     renderPhaseLayout();
     renderCoinToss();
     renderVeto();
@@ -2169,10 +2417,12 @@
     renderProxyControls();
     renderTabs();
     renderAnnouncements();
+    applyPersistentInputs();
     refreshIcons();
   }
 
   function bootstrap() {
+    loadDraftState();
     state.activeTab = 'chat';
     state.proxyEnabled = false;
     state.proxySide = 1;
