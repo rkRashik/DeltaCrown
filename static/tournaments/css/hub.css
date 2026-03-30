@@ -79,6 +79,58 @@ body.hub-mobile-nav-open {
   box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--game-primary) 15%, transparent);
 }
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hub-overview-glass {
+  background: rgba(12, 12, 16, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hub-overview-glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.28s ease;
+}
+
+.hub-overview-glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+}
+
+.hub-overview-id-pass {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.12) 0%, rgba(112, 0, 255, 0.12) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.hub-overview-id-pass::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(rgba(255, 255, 255, 0.08), transparent);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.hub-overview-game-cover {
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
 /* ── UI Micro-elements ────────────────────────────────────── */
 .digital-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.05em; }
 .clip-slant { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
@@ -1059,7 +1111,7 @@ body.hub-mobile-nav-open {
     --hub-dock-shift-y: 0px;
     transform: translate3d(-50%, var(--hub-dock-shift-y), 0);
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.2rem;
     padding: 0.36rem 0.44rem;
     border-radius: 999px;

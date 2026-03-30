@@ -563,10 +563,11 @@
         <span class="hub-nav-label">Overview</span>
       </div>
     </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="matches" onclick="HubEngine.switchTab('matches')">
+    <button class="hub-nav-btn hub-mobile-bottom-item relative" data-hub-tab="lobby" onclick="HubEngine.switchTab('lobby')">
       <div class="flex flex-col items-center gap-1">
-        <i data-lucide="swords" class="w-4 h-4"></i>
-        <span class="hub-nav-label">Matches</span>
+        <span class="absolute top-1.5 right-4 w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse border border-[#08080A]"></span>
+        <i data-lucide="radio-tower" class="w-4 h-4"></i>
+        <span class="hub-nav-label">Lobby</span>
       </div>
     </button>
     <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="bracket" onclick="HubEngine.switchTab('bracket')">
@@ -575,16 +576,10 @@
         <span class="hub-nav-label">Bracket</span>
       </div>
     </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="standings" onclick="HubEngine.switchTab('standings')">
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="{% if is_team %}squad{% else %}participants{% endif %}" onclick="HubEngine.switchTab('{% if is_team %}squad{% else %}participants{% endif %}')">
       <div class="flex flex-col items-center gap-1">
-        <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
-        <span class="hub-nav-label">Standings</span>
-      </div>
-    </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="lobby" onclick="HubEngine.switchTab('lobby')">
-      <div class="flex flex-col items-center gap-1">
-        <i data-lucide="radio-tower" class="w-4 h-4"></i>
-        <span class="hub-nav-label">Lobby</span>
+        <i data-lucide="{% if is_team %}shield{% else %}users{% endif %}" class="w-4 h-4"></i>
+        <span class="hub-nav-label">{% if is_team %}Squad{% else %}Players{% endif %}</span>
       </div>
     </button>
   </nav>

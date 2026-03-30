@@ -332,8 +332,10 @@ const HubEngine = (() => {
     _scheduleFilter = _shell?.dataset.isStaffView === 'true' ? 'all' : 'my';
     _setScheduleFilter(_scheduleFilter, { rerender: false });
     _syncTournamentStatusUi(_shell?.dataset.tournamentStatus || '');
-    _renderOverviewActionCard(_matchesCache, null);
-    _refreshOverviewActionCard({ forceFetch: true });
+    _pollState()
+      .finally(() => {
+        _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
+      });
 
     // Start polling (auto-pauses in background tab)
     _startPolling();
@@ -778,10 +780,18 @@ const HubEngine = (() => {
     const url = _shell?.dataset.apiCheckin;
     if (!url) return;
 
+    const checkInButtons = document.querySelectorAll(
+      '#hub-checkin-btn, #hub-checkin-btn-lobby, #hub-overview-action-btn[data-hub-action="check_in"]'
+    );
+
     // Disable buttons
-    document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
+    checkInButtons.forEach(btn => {
       btn.disabled = true;
-      btn.textContent = 'Checking in...';
+      if (btn.id === 'hub-overview-action-btn') {
+        btn.textContent = 'Checking in...';
+      } else {
+        btn.textContent = 'Checking in...';
+      }
     });
 
     try {
@@ -798,9 +808,14 @@ const HubEngine = (() => {
 
       if (data.success) {
         // Update buttons to "done" state
-        document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
-          btn.className = 'hub-checkin-btn done clip-slant w-full lg:w-auto flex items-center justify-center gap-3';
-          btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i> Checked In';
+        checkInButtons.forEach(btn => {
+          if (btn.id === 'hub-overview-action-btn') {
+            btn.dataset.hubAction = 'checked_in';
+            btn.textContent = 'Checked In';
+          } else {
+            btn.className = 'hub-checkin-btn done clip-slant w-full lg:w-auto flex items-center justify-center gap-3';
+            btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i> Checked In';
+          }
           btn.disabled = true;
           btn.onclick = null;
         });
@@ -820,18 +835,28 @@ const HubEngine = (() => {
         const errMsg = data.error || 'Check-in failed. Please try again.';
         _emitToast('error', errMsg);
         // Re-enable buttons
-        document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
+        checkInButtons.forEach(btn => {
           btn.disabled = false;
-          btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now';
+          if (btn.id === 'hub-overview-action-btn') {
+            btn.dataset.hubAction = 'check_in';
+            btn.textContent = 'Check In Now';
+          } else {
+            btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now';
+          }
         });
         if (typeof lucide !== 'undefined') lucide.createIcons();
       }
     } catch (err) {
       console.error('[HubEngine] Check-in error:', err);
       _emitToast('error', 'Network error. Please try again.');
-      document.querySelectorAll('#hub-checkin-btn, #hub-checkin-btn-lobby').forEach(btn => {
+      checkInButtons.forEach(btn => {
         btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now';
+        if (btn.id === 'hub-overview-action-btn') {
+          btn.dataset.hubAction = 'check_in';
+          btn.textContent = 'Check In Now';
+        } else {
+          btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now';
+        }
       });
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
@@ -886,6 +911,10 @@ const HubEngine = (() => {
         _updateOverviewPhaseEvent(data.phase_event);
       }
 
+      if (data.lifecycle_pipeline) {
+        _renderLifecyclePipeline(data.lifecycle_pipeline);
+      }
+
       // Update reg count
       const regEl = document.getElementById('hub-reg-count');
       if (regEl && data.reg_count !== undefined) {
@@ -937,10 +966,11 @@ const HubEngine = (() => {
       _renderOverviewActionCard(_matchesCache, data);
 
       const status = String(data.tournament_status || '').toLowerCase();
+      const hasBackendCommand = Boolean(data.command_center && Object.prototype.hasOwnProperty.call(data.command_center, 'show'));
       const shouldRefreshOverviewMatch = ['live', 'check_in', 'registration_closed', 'registration_open'].includes(status)
         || !_matchesCache;
       const isStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 25000;
-      if (shouldRefreshOverviewMatch && isStale) {
+      if (!hasBackendCommand && shouldRefreshOverviewMatch && isStale) {
         _refreshOverviewActionCard({ forceFetch: true, stateData: data });
       }
 
@@ -2161,9 +2191,61 @@ const HubEngine = (() => {
     return nonTerminal[0];
   }
 
+  function _renderLifecyclePipeline(pipeline) {
+    if (!pipeline || !Array.isArray(pipeline.steps)) return;
+
+    const phaseLabel = document.getElementById('hub-lifecycle-phase-label');
+    if (phaseLabel && pipeline.phase_label) {
+      phaseLabel.textContent = pipeline.phase_label;
+    }
+
+    const progress = document.getElementById('hub-lifecycle-progress');
+    if (progress && Number.isFinite(Number(pipeline.progress_percent))) {
+      progress.style.width = `${Number(pipeline.progress_percent)}%`;
+    }
+
+    pipeline.steps.forEach((step) => {
+      const root = document.getElementById(`hub-pipeline-step-${step.key}`);
+      if (!root) return;
+
+      root.classList.toggle('animate-slide-right', Boolean(step.active));
+      root.classList.toggle('opacity-50', !step.active && !step.completed);
+
+      const circle = root.querySelector('[data-pipeline-circle]');
+      const label = root.querySelector('[data-pipeline-label]');
+
+      if (circle) {
+        if (step.active) {
+          circle.className = 'w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#08080A] border-2 border-cyan-300 text-cyan-200 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(0,240,255,0.35)] animate-pulse';
+          circle.innerHTML = `<i data-lucide="${_esc(step.icon || 'crosshair')}" class="w-4 h-4 md:w-5 md:h-5"></i>`;
+        } else if (step.completed) {
+          circle.className = 'w-7 h-7 md:w-8 md:h-8 rounded-full bg-cyan-300 text-black flex items-center justify-center z-10';
+          circle.innerHTML = '<i data-lucide="check" class="w-3 h-3 md:w-4 md:h-4 font-black"></i>';
+        } else {
+          circle.className = 'w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#0B0D12] border border-white/20 text-gray-500 flex items-center justify-center z-10';
+          circle.innerHTML = `<i data-lucide="${_esc(step.icon || 'circle')}" class="w-3 h-3 md:w-4 md:h-4"></i>`;
+        }
+      }
+
+      if (label) {
+        label.textContent = step.label || '';
+        if (step.active) {
+          label.className = 'text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest mt-1 text-center';
+        } else if (step.completed) {
+          label.className = 'text-[8px] md:text-[9px] font-bold text-cyan-200 uppercase tracking-widest text-center';
+        } else {
+          label.className = 'text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest text-center';
+        }
+      }
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
   function _renderOverviewActionCard(matchPayload, stateData = null) {
     const card = document.getElementById('hub-overview-action-card');
     if (!card) return;
+    const standbyCard = document.getElementById('hub-overview-standby-card');
 
     const status = String(stateData?.tournament_status || _shell?.dataset.tournamentStatus || '').toLowerCase();
     const source = matchPayload || _matchesCache || {};
@@ -2180,10 +2262,150 @@ const HubEngine = (() => {
     const timeValue = document.getElementById('hub-overview-action-time');
     const actionBtn = document.getElementById('hub-overview-action-btn');
     const statusLabel = document.getElementById('hub-overview-status-label');
+    const backendCommand = stateData?.command_center;
 
     if (statusLabel && stateData?.user_status) {
       statusLabel.textContent = stateData.user_status;
     }
+
+    if (backendCommand && Object.prototype.hasOwnProperty.call(backendCommand, 'show')) {
+      const showCard = Boolean(backendCommand.show);
+      card.classList.toggle('hidden', !showCard);
+      if (standbyCard) {
+        standbyCard.classList.toggle('hidden', showCard);
+      }
+
+      if (!showCard) {
+        return;
+      }
+
+      const tone = String(backendCommand.badge_tone || 'info').toLowerCase();
+      const toneMap = {
+        danger: {
+          border: 'rgba(255, 42, 85, 0.35)',
+          bg: 'linear-gradient(135deg, rgba(255, 42, 85, 0.12) 0%, rgba(14, 10, 16, 0.94) 80%)',
+          shadow: '0 14px 40px rgba(255, 42, 85, 0.16)',
+          btn: 'bg-[#FF2A55]/15 text-[#FF8AA0] border border-[#FF2A55] shadow-[0_0_24px_rgba(255,42,85,0.25)]',
+        },
+        success: {
+          border: 'rgba(0, 255, 102, 0.35)',
+          bg: 'linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 15, 12, 0.92) 82%)',
+          shadow: '0 14px 40px rgba(0, 255, 102, 0.14)',
+          btn: 'bg-cyan-300 text-black border border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.35)]',
+        },
+        warning: {
+          border: 'rgba(255, 184, 0, 0.35)',
+          bg: 'linear-gradient(135deg, rgba(255, 184, 0, 0.12) 0%, rgba(24, 18, 6, 0.92) 82%)',
+          shadow: '0 14px 40px rgba(255, 184, 0, 0.12)',
+          btn: 'bg-amber-300/15 text-amber-300 border border-amber-300 shadow-[0_0_20px_rgba(255,184,0,0.2)]',
+        },
+        info: {
+          border: 'rgba(0, 240, 255, 0.22)',
+          bg: 'linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(8, 12, 24, 0.88) 80%)',
+          shadow: '0 14px 38px rgba(0, 240, 255, 0.10)',
+          btn: 'bg-white/10 text-white border border-white/20',
+        },
+      };
+      const toneStyle = toneMap[tone] || toneMap.info;
+
+      card.style.borderColor = toneStyle.border;
+      card.style.background = toneStyle.bg;
+      card.style.boxShadow = toneStyle.shadow;
+
+      if (badge) {
+        const badgeLabel = backendCommand.badge_label || 'Standby';
+        if (tone === 'danger') {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
+        } else if (tone === 'success') {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/35 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
+        } else if (tone === 'warning') {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300/35 bg-amber-300/15 text-[9px] font-black uppercase tracking-[0.12em] text-amber-300';
+        } else {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
+        }
+        badge.textContent = badgeLabel;
+      }
+
+      if (title) {
+        title.textContent = backendCommand.title || 'Waiting For Matchups';
+      }
+
+      if (subtitle) {
+        subtitle.textContent = backendCommand.subtitle || 'As soon as matches are generated, your next action will appear here.';
+      }
+
+      if (timeLabel) {
+        timeLabel.textContent = backendCommand.countdown_label || 'Next Update';
+      }
+
+      if (timeValue) {
+        const mode = String(backendCommand.countdown_mode || '').toLowerCase();
+        if (mode === 'live') {
+          timeValue.dataset.matchTime = 'live';
+          timeValue.textContent = 'LIVE NOW';
+        } else if (backendCommand.countdown_target) {
+          const targetTime = _toValidDate(backendCommand.countdown_target);
+          timeValue.dataset.matchTime = 'countdown';
+          timeValue.textContent = _formatCountdownLabel(targetTime);
+        } else {
+          timeValue.dataset.matchTime = '';
+          timeValue.textContent = backendCommand.countdown_text || 'Awaiting schedule';
+        }
+      }
+
+      if (actionBtn) {
+        const action = String(backendCommand.cta_action || 'view_schedule').toLowerCase();
+        const label = backendCommand.cta_label || 'View Schedule';
+        const iconMap = {
+          check_in: 'shield-alert',
+          enter_lobby: 'swords',
+          open_matches: 'swords',
+          open_support: 'life-buoy',
+          view_schedule: 'calendar',
+        };
+        const iconName = iconMap[action] || 'calendar';
+        const baseBtn = 'w-full md:w-auto min-h-[52px] px-8 rounded-xl flex items-center justify-center gap-3 text-xs md:text-sm tracking-widest uppercase font-black transition-all';
+
+        actionBtn.className = `${baseBtn} ${toneStyle.btn}`;
+        actionBtn.dataset.hubAction = action;
+        actionBtn.disabled = Boolean(backendCommand.cta_disabled);
+        actionBtn.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i><span>${_esc(label)}</span>`;
+
+        actionBtn.onclick = () => {
+          if (actionBtn.disabled) return;
+          if (action === 'check_in') {
+            performCheckIn();
+            return;
+          }
+          if (action === 'enter_lobby') {
+            const targetUrl = backendCommand.cta_url || backendCommand.match_room_url;
+            if (targetUrl) {
+              _openMatchRoom(targetUrl);
+              return;
+            }
+            switchTab('matches');
+            return;
+          }
+          if (action === 'open_matches') {
+            switchTab('matches');
+            return;
+          }
+          if (action === 'open_support') {
+            switchTab('support');
+            return;
+          }
+          switchTab('schedule');
+        };
+      }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    if (standbyCard) {
+      standbyCard.classList.add('hidden');
+    }
+    card.classList.remove('hidden');
 
     if (!target) {
       if (badge) {
@@ -2364,6 +2586,14 @@ const HubEngine = (() => {
   }
 
   async function _refreshOverviewActionCard({ forceFetch = false, stateData = null } = {}) {
+    const hasBackendCommand = Boolean(
+      stateData?.command_center && Object.prototype.hasOwnProperty.call(stateData.command_center, 'show')
+    );
+    if (hasBackendCommand) {
+      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
+      return;
+    }
+
     const freshEnough = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < 25000;
     if (!forceFetch && freshEnough) {
       _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);

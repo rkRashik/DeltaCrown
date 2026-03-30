@@ -256,7 +256,342 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0):
     return items[:limit]
 
 
-def _build_hub_context(request, tournament, registration, query_suffix=''):
+def _format_currency_amount(value):
+    if value is None or value == '':
+        return ''
+    try:
+        return f"{float(value):,.2f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _resolve_hub_participant_id(tournament, registration, user):
+    if tournament.participation_type == 'team':
+        return registration.team_id if registration and registration.team_id else None
+    return user.id if user and user.is_authenticated else None
+
+
+def _resolve_hub_command_center(
+    tournament,
+    registration,
+    user,
+    *,
+    now=None,
+    check_in=None,
+    check_in_status='not_configured',
+    hub_critical_locked=False,
+    is_staff_view=False,
+):
+    now = now or timezone.now()
+
+    payload = {
+        'show': False,
+        'badge_label': 'Standby',
+        'badge_tone': 'info',
+        'title': 'Waiting for matchups',
+        'subtitle': 'As soon as matches are generated, your next action will appear here.',
+        'countdown_label': 'Next Update',
+        'countdown_target': '',
+        'countdown_mode': 'static',
+        'countdown_text': 'Awaiting schedule',
+        'hint': 'Track mission progress while match operations are staged.',
+        'cta_label': 'View Schedule',
+        'cta_action': 'view_schedule',
+        'cta_url': '',
+        'cta_disabled': False,
+        'match_id': None,
+        'match_room_url': '',
+        'opponent_name': '',
+        'match_state': '',
+        'scheduled_at': None,
+        'lobby_window_open': False,
+        'within_priority_window': False,
+    }
+
+    participant_id = _resolve_hub_participant_id(tournament, registration, user)
+    if not participant_id and not is_staff_view:
+        return payload
+
+    terminal_states = {
+        Match.COMPLETED,
+        Match.FORFEIT,
+        Match.CANCELLED,
+        Match.DISPUTED,
+    }
+    active_states = {
+        Match.CHECK_IN,
+        Match.READY,
+        Match.LIVE,
+        Match.PENDING_RESULT,
+    }
+
+    match_qs = Match.objects.filter(
+        tournament=tournament,
+        is_deleted=False,
+    ).exclude(
+        state__in=terminal_states,
+    )
+    if not is_staff_view:
+        match_qs = match_qs.filter(
+            models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
+        )
+
+    match_rows = list(
+        match_qs.only(
+            'id',
+            'round_number',
+            'match_number',
+            'state',
+            'scheduled_time',
+            'participant1_id',
+            'participant2_id',
+            'participant1_name',
+            'participant2_name',
+        ).order_by('scheduled_time', 'round_number', 'match_number', 'id')[:30]
+    )
+    if not match_rows:
+        return payload
+
+    state_priority = {
+        Match.LIVE: 0,
+        Match.PENDING_RESULT: 1,
+        Match.READY: 2,
+        Match.CHECK_IN: 3,
+        Match.SCHEDULED: 4,
+    }
+
+    def _match_rank(match_obj):
+        state_weight = state_priority.get(match_obj.state, 9)
+        ts_weight = match_obj.scheduled_time or (now + timedelta(days=3650))
+        return state_weight, ts_weight, match_obj.id
+
+    target = sorted(match_rows, key=_match_rank)[0]
+    scheduled_at = target.scheduled_time
+    seconds_to_match = None
+    if scheduled_at:
+        seconds_to_match = int((scheduled_at - now).total_seconds())
+
+    within_priority_window = bool(
+        seconds_to_match is not None and 15 * 60 <= seconds_to_match <= 60 * 60
+    )
+    lobby_window_minutes_before = 30
+    lobby_window_opens_at = (
+        scheduled_at - timedelta(minutes=lobby_window_minutes_before)
+        if scheduled_at else None
+    )
+    lobby_window_open = bool(
+        target.state in {Match.READY, Match.LIVE, Match.PENDING_RESULT}
+        or (lobby_window_opens_at and now >= lobby_window_opens_at)
+    )
+
+    if is_staff_view:
+        opponent_name = (target.participant2_name or target.participant1_name or 'Opponent')
+    else:
+        if target.participant1_id == participant_id:
+            opponent_name = target.participant2_name or 'Opponent'
+        else:
+            opponent_name = target.participant1_name or 'Opponent'
+
+    show_command = bool(target.state in active_states or within_priority_window)
+    if tournament.status in {Tournament.DRAFT, Tournament.REGISTRATION_OPEN}:
+        show_command = bool(target.state in active_states)
+
+    cta_action = 'view_schedule'
+    cta_label = 'View Schedule'
+    cta_url = ''
+    badge_label = 'Up Next'
+    badge_tone = 'info'
+    title = f"VS {opponent_name}"
+    subtitle = 'Your next match assignment is staged.'
+    hint = 'Follow mission progress while the bracket advances.'
+    countdown_label = 'Match Starts In'
+    countdown_target = scheduled_at.isoformat() if scheduled_at else ''
+    countdown_mode = 'countdown' if countdown_target else 'static'
+    countdown_text = '--:--' if countdown_target else 'Awaiting schedule'
+
+    if target.state == Match.LIVE:
+        badge_label = 'Live Match'
+        badge_tone = 'danger'
+        cta_action = 'enter_lobby'
+        cta_label = 'Enter Lobby'
+        cta_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id})
+        subtitle = 'Match is live now. Enter lobby for real-time operations.'
+        hint = 'Coordinate with opponent and submit results from lobby controls.'
+        countdown_label = 'Status'
+        countdown_mode = 'live'
+        countdown_text = 'LIVE NOW'
+        countdown_target = ''
+    elif lobby_window_open:
+        badge_label = 'Lobby Open'
+        badge_tone = 'success'
+        cta_action = 'enter_lobby'
+        cta_label = 'Enter Lobby'
+        cta_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id})
+        subtitle = 'Lobby window is open. Enter now to finalize match prep.'
+        hint = 'Use lobby chat and final readiness checks before kickoff.'
+        countdown_label = 'Match Starts In'
+        countdown_target = scheduled_at.isoformat() if scheduled_at else ''
+        countdown_mode = 'countdown' if countdown_target else 'static'
+    elif target.state == Match.CHECK_IN or (check_in_status == 'open' and not (check_in and check_in.is_checked_in)):
+        badge_label = 'Check-In Required'
+        badge_tone = 'warning'
+        cta_action = 'check_in'
+        cta_label = 'Check In Now'
+        subtitle = 'Check in now to avoid no-show forfeit risk.'
+        hint = 'Check-in confirms your presence for this match window.'
+        if lobby_window_opens_at and not lobby_window_open:
+            countdown_label = 'Lobby Opens In'
+            countdown_target = lobby_window_opens_at.isoformat()
+            countdown_mode = 'countdown'
+    elif target.state in {Match.READY, Match.PENDING_RESULT}:
+        badge_label = 'Match Ready'
+        badge_tone = 'success'
+        cta_action = 'enter_lobby'
+        cta_label = 'Open Match Ops'
+        cta_url = reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id})
+        subtitle = 'Pre-match workflow is active. Continue in the match room.'
+        hint = 'Use the room controls to complete your current operation step.'
+
+    cta_disabled = bool(hub_critical_locked and cta_action in {'check_in', 'enter_lobby'})
+    if cta_disabled:
+        cta_action = 'open_support'
+        cta_label = 'Contact Support'
+        cta_url = ''
+        hint = _critical_lock_reason(registration)
+        cta_disabled = False
+
+    payload.update({
+        'show': show_command,
+        'badge_label': badge_label,
+        'badge_tone': badge_tone,
+        'title': title,
+        'subtitle': subtitle,
+        'countdown_label': countdown_label,
+        'countdown_target': countdown_target,
+        'countdown_mode': countdown_mode,
+        'countdown_text': countdown_text,
+        'hint': hint,
+        'cta_label': cta_label,
+        'cta_action': cta_action,
+        'cta_url': cta_url,
+        'cta_disabled': cta_disabled,
+        'match_id': target.id,
+        'match_room_url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id}) if show_command else '',
+        'opponent_name': opponent_name,
+        'match_state': target.state,
+        'scheduled_at': scheduled_at.isoformat() if scheduled_at else None,
+        'lobby_window_open': bool(lobby_window_open),
+        'within_priority_window': bool(within_priority_window),
+    })
+    return payload
+
+
+def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
+    has_draw_signal = Bracket.objects.filter(tournament=tournament).exists() or GroupStanding.objects.filter(
+        group__tournament=tournament,
+        group__is_deleted=False,
+        is_deleted=False,
+    ).exists()
+    has_matches = Match.objects.filter(
+        tournament=tournament,
+        is_deleted=False,
+    ).exists()
+
+    status = str(tournament.status or '').lower()
+    active_key = 'registered'
+
+    if status == Tournament.COMPLETED:
+        active_key = 'rewards'
+    elif status == Tournament.LIVE:
+        active_key = 'live_ops' if (command_center and command_center.get('show')) else 'scheduled'
+    elif status in {'check_in', Tournament.REGISTRATION_CLOSED}:
+        if has_matches:
+            active_key = 'scheduled'
+        elif has_draw_signal:
+            active_key = 'drawn'
+        else:
+            active_key = 'registered'
+    elif status in {Tournament.DRAFT, Tournament.REGISTRATION_OPEN}:
+        active_key = 'registered'
+    else:
+        if has_matches:
+            active_key = 'scheduled'
+        elif has_draw_signal:
+            active_key = 'drawn'
+        else:
+            active_key = 'registered'
+
+    if command_center and command_center.get('show') and active_key in {'drawn', 'scheduled'}:
+        active_key = 'live_ops'
+
+    steps = [
+        {'key': 'registered', 'label': 'Registered', 'icon': 'check'},
+        {'key': 'drawn', 'label': 'Drawn', 'icon': 'shuffle'},
+        {'key': 'scheduled', 'label': 'Scheduled', 'icon': 'calendar-check'},
+        {'key': 'live_ops', 'label': 'Live Ops', 'icon': 'crosshair'},
+        {'key': 'rewards', 'label': 'Rewards', 'icon': 'trophy'},
+    ]
+    step_index = {step['key']: idx for idx, step in enumerate(steps)}
+    active_idx = step_index.get(active_key, 0)
+
+    for idx, step in enumerate(steps):
+        step['completed'] = idx < active_idx
+        step['active'] = idx == active_idx
+
+    progress_percent = int((active_idx / max(len(steps) - 1, 1)) * 100)
+    return {
+        'steps': steps,
+        'active_key': active_key,
+        'active_index': active_idx,
+        'phase_label': f'PHASE {active_idx + 1}/{len(steps)}',
+        'progress_percent': progress_percent,
+    }
+
+
+def _build_hub_official_pass(user, tournament, registration, *, team_name='', is_team=False, is_captain=False, hub_critical_locked=False):
+    username = user.username if user and user.is_authenticated else 'Participant'
+    display_name = (user.get_full_name() or username) if user and user.is_authenticated else 'Participant'
+    initials = ''.join(part[0] for part in display_name.split()[:2]).upper() or username[:2].upper()
+
+    participant_label = 'Solo Participant'
+    if is_team and team_name:
+        participant_label = team_name
+        if is_captain:
+            participant_label = f'{team_name} (C)'
+
+    reg_status = registration.status if registration else ''
+    is_verified = bool(
+        registration and reg_status in {Registration.CONFIRMED, Registration.AUTO_APPROVED} and not hub_critical_locked
+    )
+
+    pass_id = ''
+    if registration:
+        pass_id = str(
+            getattr(registration, 'registration_id', '')
+            or getattr(registration, 'registration_number', '')
+            or registration.id
+        )
+    if not pass_id:
+        pass_id = str(user.id if user and user.is_authenticated else 'N/A')
+
+    if tournament.has_entry_fee and tournament.entry_fee_amount:
+        fee_text = f"{_format_currency_amount(tournament.entry_fee_amount)} {tournament.entry_fee_currency}"
+    else:
+        fee_text = 'Free Entry'
+
+    return {
+        'display_name': display_name,
+        'username': username,
+        'initials': initials[:2],
+        'participant_label': participant_label,
+        'pass_id': pass_id,
+        'entry_verified': is_verified,
+        'entry_status_label': 'Verified' if is_verified else 'Pending',
+        'fee_text': fee_text,
+    }
+
+
+def _build_hub_context(request, tournament, registration, query_suffix='', is_staff_view=False):
     """Build the full context dict for the hub template."""
     from apps.organizations.models import TeamMembership
     from apps.games.services import game_service
@@ -487,13 +822,14 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
     # ── Status detail for modal ──────────────────────────
     status_detail = _build_status_detail(registration, check_in, tournament, now)
 
+    payment = getattr(registration, 'payment', None) if registration else None
+
     hub_payment_action_url = ''
     hub_payment_action_label = ''
     hub_payment_action_hint = ''
     hub_payment_action_variant = ''
     hub_payment_action_enabled = False
     if registration and tournament.has_entry_fee:
-        payment = getattr(registration, 'payment', None)
         if registration.status == Registration.WAITLISTED:
             hub_payment_action_hint = 'Payment opens only after you are called up from the waitlist.'
             hub_payment_action_variant = 'info'
@@ -664,6 +1000,29 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
             }
 
     platform_display_text = _platform_display_text(tournament)
+    hub_command_center = _resolve_hub_command_center(
+        tournament,
+        registration,
+        user,
+        now=now,
+        check_in=check_in,
+        check_in_status=check_in_status,
+        hub_critical_locked=hub_critical_locked,
+        is_staff_view=is_staff_view,
+    )
+    hub_lifecycle_pipeline = _build_hub_lifecycle_pipeline(
+        tournament,
+        command_center=hub_command_center,
+    )
+    hub_official_pass = _build_hub_official_pass(
+        user,
+        tournament,
+        registration,
+        team_name=team_name,
+        is_team=is_team,
+        is_captain=is_captain,
+        hub_critical_locked=hub_critical_locked,
+    )
 
     context = {
         'tournament': tournament,
@@ -681,6 +1040,9 @@ def _build_hub_context(request, tournament, registration, query_suffix=''):
 
         # Phase
         'phase_event': phase_event,
+        'hub_command_center': hub_command_center,
+        'hub_lifecycle_pipeline': hub_lifecycle_pipeline,
+        'hub_official_pass': hub_official_pass,
 
         # Squad
         'team': team,
@@ -1254,6 +1616,7 @@ class TournamentHubView(LoginRequiredMixin, View):
             tournament,
             registration,
             query_suffix=view_mode['query_suffix'],
+            is_staff_view=view_mode['is_staff_view'],
         )
         context.update(view_mode)
         context['hub_view_as_staff_url'] = request.path
@@ -1273,8 +1636,11 @@ class HubStateAPIView(LoginRequiredMixin, View):
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
 
+        view_mode = _resolve_hub_view_mode(request, tournament, registration)
         now = timezone.now()
         lobby = getattr(tournament, 'lobby', None)
+        hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
+        check_in_status = lobby.check_in_status if lobby else 'not_configured'
 
         # Check-in state
         check_in = None
@@ -1294,13 +1660,29 @@ class HubStateAPIView(LoginRequiredMixin, View):
                 ).first()
 
         phase_event = _get_next_phase_event(tournament, lobby, now)
+        command_center = _resolve_hub_command_center(
+            tournament,
+            registration,
+            request.user,
+            now=now,
+            check_in=check_in,
+            check_in_status=check_in_status,
+            hub_critical_locked=hub_critical_locked,
+            is_staff_view=view_mode['is_staff_view'],
+        )
+        lifecycle_pipeline = _build_hub_lifecycle_pipeline(
+            tournament,
+            command_center=command_center,
+        )
 
         data = {
             'tournament_status': tournament.status,
             'user_status': _registration_status_label(registration, check_in),
             'phase_event': phase_event,
+            'command_center': command_center,
+            'lifecycle_pipeline': lifecycle_pipeline,
             'check_in': {
-                'status': lobby.check_in_status if lobby else 'not_configured',
+                'status': check_in_status,
                 'is_open': lobby.is_check_in_open if lobby else False,
                 'is_checked_in': check_in.is_checked_in if check_in else False,
                 'countdown': lobby.check_in_countdown_seconds if lobby else 0,
