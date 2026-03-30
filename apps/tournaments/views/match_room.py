@@ -110,6 +110,22 @@ def _is_truthy(value: Any) -> bool:
     return token in {"1", "true", "yes", "y", "on"}
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return bool(default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+
+    token = str(value).strip().lower()
+    if token in {"1", "true", "yes", "y", "on"}:
+        return True
+    if token in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return bool(default)
+
+
 def _safe_dict(value: Any) -> Dict[str, Any]:
     if isinstance(value, dict):
         return dict(value)
@@ -252,7 +268,7 @@ def _normalize_round_overrides(raw_overrides: Any) -> Dict[str, Dict[str, bool]]
         normalized_row: Dict[str, bool] = {}
         for field in ("require_check_in", "require_coin_toss", "require_map_veto"):
             if field in row:
-                normalized_row[field] = bool(row.get(field))
+                normalized_row[field] = _coerce_bool(row.get(field), default=False)
 
         if normalized_row:
             normalized[round_key] = normalized_row
@@ -270,18 +286,18 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
     raw_policy = config.get("lobby_policy") if isinstance(config.get("lobby_policy"), dict) else {}
 
     defaults = {
-        "require_check_in": bool(getattr(tournament, "enable_check_in", False)),
+        "require_check_in": _coerce_bool(getattr(tournament, "enable_check_in", False), default=False),
         "require_coin_toss": bool(game_category not in {"BR", "SPORTS"}),
         "require_map_veto": bool(game_category not in {"BR", "SPORTS"}),
     }
 
     base = {
-        "require_check_in": bool(raw_policy.get("require_check_in", defaults["require_check_in"])),
-        "require_coin_toss": bool(raw_policy.get("require_coin_toss", defaults["require_coin_toss"])),
-        "require_map_veto": bool(raw_policy.get("require_map_veto", defaults["require_map_veto"])),
+        "require_check_in": _coerce_bool(raw_policy.get("require_check_in"), defaults["require_check_in"]),
+        "require_coin_toss": _coerce_bool(raw_policy.get("require_coin_toss"), defaults["require_coin_toss"]),
+        "require_map_veto": _coerce_bool(raw_policy.get("require_map_veto"), defaults["require_map_veto"]),
     }
 
-    per_round = bool(raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False)))
+    per_round = _coerce_bool(raw_policy.get("require_check_in_per_round"), _coerce_bool(checkin_cfg.get("per_round"), False))
     round_overrides = _normalize_round_overrides(raw_policy.get("per_round_overrides", {}))
 
     effective = dict(base)
@@ -302,6 +318,53 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
         "check_in_per_round": per_round,
         "round_overrides": round_overrides,
     }
+
+
+def _fallback_avatar_url(seed: str) -> str:
+    token = str(seed or "?").strip()[:2] or "??"
+    return f"https://ui-avatars.com/api/?name={token}&background=0A0A0E&color=fff&size=64"
+
+
+def _participant_media_map(match: Match) -> Dict[int, str]:
+    participant_ids = {
+        int(pid)
+        for pid in (match.participant1_id, match.participant2_id)
+        if pid
+    }
+    if not participant_ids:
+        return {}
+
+    tournament = match.tournament
+    media_map: Dict[int, str] = {}
+
+    if getattr(tournament, "participation_type", "") == "team":
+        from apps.organizations.models import Team
+
+        for team in Team.objects.filter(id__in=participant_ids).only("id", "logo"):
+            logo_url = ""
+            try:
+                if hasattr(team, "logo") and team.logo:
+                    logo_url = str(team.logo.url or "")
+            except Exception:
+                logo_url = ""
+            media_map[team.id] = logo_url
+        return media_map
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    users = User.objects.filter(id__in=participant_ids).select_related("profile")
+    for user in users:
+        avatar_url = ""
+        try:
+            profile = getattr(user, "profile", None)
+            if profile and profile.avatar:
+                avatar_url = str(profile.avatar.url or "")
+        except Exception:
+            avatar_url = ""
+        media_map[user.id] = avatar_url or _fallback_avatar_url(getattr(user, "username", ""))
+
+    return media_map
 
 
 def _build_phase_order(phase_mode: str, effective_policy: Dict[str, Any]) -> Tuple[List[str], str]:
@@ -764,6 +827,7 @@ def _build_room_payload(
     workflow_payload["check_in_window"] = _safe_dict(runtime.get("check_in_window"))
     workflow_payload["presence"] = _safe_dict(runtime.get("presence"))
     workflow_payload["auto_forfeit_hook"] = _safe_dict(runtime.get("auto_forfeit_hook"))
+    participant_media = _participant_media_map(match)
 
     merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
     for side, submission in _side_submission_map(match).items():
@@ -785,12 +849,14 @@ def _build_room_payload(
                 "name": match.participant1_name or "TBD",
                 "score": match.participant1_score,
                 "checked_in": bool(match.participant1_checked_in),
+                "logo_url": participant_media.get(match.participant1_id, ""),
             },
             "participant2": {
                 "id": match.participant2_id,
                 "name": match.participant2_name or "TBD",
                 "score": match.participant2_score,
                 "checked_in": bool(match.participant2_checked_in),
+                "logo_url": participant_media.get(match.participant2_id, ""),
             },
             "winner_id": match.winner_id,
             "best_of": runtime["best_of"],

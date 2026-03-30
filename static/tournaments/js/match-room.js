@@ -43,6 +43,8 @@
     inputDraft: createDraftState(),
     toastHost: null,
     tossWinnerRendered: null,
+    entryGateDismissed: false,
+    entryGateStorageKey: '',
   };
 
   function byId(id) {
@@ -218,6 +220,111 @@
   function mySide() {
     const side = Number(room.me && room.me.side);
     return side === 1 || side === 2 ? side : null;
+  }
+
+  function _entryGateStorageKey(sideOverride) {
+    const side = Number(sideOverride || mySide());
+    if (side !== 1 && side !== 2) {
+      return '';
+    }
+    return `dc:match-room-v2:entry-gate:${room.match?.id || '0'}:${side}`;
+  }
+
+  function _loadEntryGateState() {
+    const key = _entryGateStorageKey();
+    state.entryGateStorageKey = key;
+    if (!key) {
+      state.entryGateDismissed = true;
+      return;
+    }
+
+    try {
+      state.entryGateDismissed = window.localStorage.getItem(key) === '1';
+    } catch (_err) {
+      state.entryGateDismissed = false;
+    }
+  }
+
+  function _persistEntryGateState(dismissed) {
+    const key = state.entryGateStorageKey || _entryGateStorageKey();
+    if (!key) {
+      return;
+    }
+
+    state.entryGateStorageKey = key;
+    state.entryGateDismissed = !!dismissed;
+
+    try {
+      if (dismissed) {
+        window.localStorage.setItem(key, '1');
+      } else {
+        window.localStorage.removeItem(key);
+      }
+    } catch (_err) {
+      // Ignore localStorage failures.
+    }
+  }
+
+  function _myCheckInStatus() {
+    const side = mySide();
+    if (side === 1) {
+      return !!room.match?.participant1?.checked_in;
+    }
+    if (side === 2) {
+      return !!room.match?.participant2?.checked_in;
+    }
+    return true;
+  }
+
+  async function _submitMatchCheckInFromGate() {
+    if (!room.urls?.check_in) {
+      showToast('Check-in endpoint is unavailable for this lobby.', 'error');
+      return false;
+    }
+
+    try {
+      const response = await fetch(room.urls.check_in, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false) {
+        const code = String(data?.error || '').toLowerCase();
+        if (code === 'check_in_not_open') {
+          showToast('Check-in has not opened for this match yet.', 'error');
+          return false;
+        }
+        if (code === 'check_in_closed') {
+          showToast('Check-in window is closed for this match.', 'error');
+          return false;
+        }
+        if (code === 'check_in_unavailable') {
+          showToast('Check-in is unavailable in the current match state.', 'error');
+          return false;
+        }
+        if (code === 'forbidden') {
+          showToast('Only participants can check in for this match.', 'error');
+          return false;
+        }
+        showToast('Unable to complete match check-in right now.', 'error');
+        return false;
+      }
+
+      if (data?.room) {
+        room = data.room;
+      }
+
+      showToast(data?.already_checked_in ? 'Already checked in.' : 'Check-in confirmed.', 'ok');
+      return true;
+    } catch (_err) {
+      showToast('Network error while submitting check-in.', 'error');
+      return false;
+    }
   }
 
   function canSubmitForSide(side) {
@@ -534,6 +641,21 @@
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
 
+  function _renderIdentityBadge(node, name, mediaUrl, fallback) {
+    if (!node) {
+      return;
+    }
+
+    const safeName = String(name || 'Participant');
+    const url = String(mediaUrl || '').trim();
+    if (url) {
+      node.innerHTML = `<img src="${esc(url)}" alt="${esc(safeName)}" class="w-full h-full object-cover" loading="lazy" decoding="async">`;
+      return;
+    }
+
+    node.textContent = initials(safeName, fallback);
+  }
+
   function gameDataKey() {
     const slug = String(room.game?.slug || '').toLowerCase();
     if (!slug) {
@@ -614,10 +736,10 @@
     }
 
     if (teamALogo) {
-      teamALogo.textContent = initials(p1.name, 'A');
+      _renderIdentityBadge(teamALogo, p1.name, p1.logo_url, 'A');
     }
     if (teamBLogo) {
-      teamBLogo.textContent = initials(p2.name, 'B');
+      _renderIdentityBadge(teamBLogo, p2.name, p2.logo_url, 'B');
     }
 
     if (teamASub) {
@@ -668,10 +790,10 @@
     const resultNameA = byId('result-name-a');
     const resultNameB = byId('result-name-b');
     if (resultLogoA) {
-      resultLogoA.textContent = initials(p1.name, 'A');
+      _renderIdentityBadge(resultLogoA, p1.name, p1.logo_url, 'A');
     }
     if (resultLogoB) {
-      resultLogoB.textContent = initials(p2.name, 'B');
+      _renderIdentityBadge(resultLogoB, p2.name, p2.logo_url, 'B');
     }
     if (resultNameA) {
       resultNameA.textContent = p1.name || 'Team A';
@@ -730,6 +852,143 @@
     }
     if (presenceB) {
       presenceB.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
+    }
+  }
+
+  async function _handleEntryGatePrimary() {
+    const checkIn = getCheckInWindow();
+    const requiresCheckIn = !!checkIn.required;
+    const checkedIn = _myCheckInStatus();
+
+    if (requiresCheckIn && !checkedIn) {
+      if (!checkIn.is_open) {
+        if (checkIn.is_pending) {
+          showToast('Check-in is not open yet for this match.', 'error');
+        } else if (checkIn.is_closed) {
+          showToast('Check-in window is closed. Contact staff if needed.', 'error');
+        } else {
+          showToast('Match check-in is required before entering.', 'error');
+        }
+        return;
+      }
+
+      const ok = await _submitMatchCheckInFromGate();
+      if (!ok) {
+        return;
+      }
+    }
+
+    _persistEntryGateState(true);
+    renderAll();
+    showToast('Lobby unlocked. You are ready to proceed.', 'ok');
+  }
+
+  function _handleEntryGateSecondary() {
+    _persistEntryGateState(true);
+    renderAll();
+  }
+
+  function renderEntryGate() {
+    const overlay = byId('entry-gate-overlay');
+    if (!overlay) {
+      return;
+    }
+
+    const side = mySide();
+    const isParticipant = side === 1 || side === 2;
+    if (!isParticipant || (isStaffUser() && isAdminMode())) {
+      overlay.classList.add('is-hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    const currentKey = _entryGateStorageKey(side);
+    if (currentKey !== state.entryGateStorageKey) {
+      _loadEntryGateState();
+    }
+
+    const show = !state.entryGateDismissed;
+    overlay.classList.toggle('is-hidden', !show);
+    overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (!show) {
+      return;
+    }
+
+    const title = byId('entry-gate-title');
+    const sub = byId('entry-gate-subtext');
+    const pill = byId('entry-gate-checkin-pill');
+    const checkText = byId('entry-gate-checkin-text');
+    const btnPrimary = byId('entry-gate-primary-btn');
+    const btnSecondary = byId('entry-gate-secondary-btn');
+
+    const checkIn = getCheckInWindow();
+    const requiresCheckIn = !!checkIn.required;
+    const checkedIn = _myCheckInStatus();
+    const sideLabel = teamLabel(side);
+
+    if (title) {
+      title.textContent = `Ready Check: ${sideLabel}`;
+    }
+
+    if (sub) {
+      sub.textContent = requiresCheckIn
+        ? 'Complete match check-in and confirm readiness before interacting with lobby controls.'
+        : 'Confirm readiness to unlock full lobby controls for this match.';
+    }
+
+    if (pill) {
+      pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border';
+      if (!requiresCheckIn) {
+        pill.classList.add('border-cyan-300/35', 'bg-cyan-500/15', 'text-cyan-100');
+        pill.textContent = 'Ready Gate';
+      } else if (checkedIn) {
+        pill.classList.add('border-emerald-300/35', 'bg-emerald-500/15', 'text-emerald-200');
+        pill.textContent = 'Check-In Complete';
+      } else if (checkIn.is_open) {
+        pill.classList.add('border-amber-300/35', 'bg-amber-500/15', 'text-amber-200');
+        pill.textContent = 'Check-In Open';
+      } else if (checkIn.is_pending) {
+        pill.classList.add('border-cyan-300/35', 'bg-cyan-500/15', 'text-cyan-100');
+        pill.textContent = 'Check-In Pending';
+      } else {
+        pill.classList.add('border-red-300/35', 'bg-red-500/15', 'text-red-200');
+        pill.textContent = 'Check-In Closed';
+      }
+    }
+
+    if (checkText) {
+      if (!requiresCheckIn) {
+        checkText.textContent = 'Check-in is not required for this match. Confirm and enter the lobby.';
+      } else if (checkedIn) {
+        checkText.textContent = 'Your side is already checked in. Confirm and enter the lobby.';
+      } else if (checkIn.is_open) {
+        checkText.textContent = `Check-in closes at ${toDisplayTime(checkIn.closes_at)}.`;
+      } else if (checkIn.is_pending) {
+        checkText.textContent = `Check-in opens at ${toDisplayTime(checkIn.opens_at)}.`;
+      } else {
+        checkText.textContent = 'Check-in window is closed. Continue in read-only mode or contact staff.';
+      }
+    }
+
+    if (btnPrimary) {
+      if (requiresCheckIn && !checkedIn && checkIn.is_open) {
+        btnPrimary.textContent = 'Check In & Enter Lobby';
+        btnPrimary.disabled = false;
+      } else if (requiresCheckIn && !checkedIn && checkIn.is_pending) {
+        btnPrimary.textContent = 'Check-In Not Open Yet';
+        btnPrimary.disabled = true;
+      } else if (requiresCheckIn && !checkedIn && checkIn.is_closed) {
+        btnPrimary.textContent = 'Check-In Window Closed';
+        btnPrimary.disabled = true;
+      } else {
+        btnPrimary.textContent = 'Enter Lobby';
+        btnPrimary.disabled = false;
+      }
+    }
+
+    if (btnSecondary) {
+      btnSecondary.textContent = 'Continue Read-Only';
+      btnSecondary.disabled = false;
     }
   }
 
@@ -2688,6 +2947,16 @@
     const submitDisputeBtn = byId('btn-dispute-submit');
     submitDisputeBtn?.addEventListener('click', submitDispute);
 
+    const gatePrimaryBtn = byId('entry-gate-primary-btn');
+    gatePrimaryBtn?.addEventListener('click', () => {
+      _handleEntryGatePrimary();
+    });
+
+    const gateSecondaryBtn = byId('entry-gate-secondary-btn');
+    gateSecondaryBtn?.addEventListener('click', () => {
+      _handleEntryGateSecondary();
+    });
+
     const modal = byId('dispute-modal');
     if (modal) {
       modal.addEventListener('click', (event) => {
@@ -2807,6 +3076,7 @@
     renderTheme();
     renderHeader();
     renderCheckinBanner();
+    renderEntryGate();
     renderClock();
     renderSocketBadge();
     renderPhaseLayout();
@@ -2828,6 +3098,7 @@
 
   function bootstrap() {
     loadDraftState();
+    _loadEntryGateState();
     state.activeTab = 'chat';
     state.proxyEnabled = false;
     state.proxySide = 1;

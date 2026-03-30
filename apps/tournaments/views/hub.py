@@ -2450,6 +2450,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         reschedule_disabled_reason = None if reschedule_enabled else 'participant_rescheduling_disabled'
         reschedule_deadline_minutes = reschedule_policy['deadline_minutes_before']
         now = timezone.now()
+        lobby_window_minutes_before = 30
 
         pending_requests_by_match = {}
         if user_matches and reschedule_enabled:
@@ -2530,6 +2531,23 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 (m.scheduled_time - timedelta(minutes=reschedule_deadline_minutes))
                 if m.scheduled_time else None
             )
+            lobby_window_opens_at_dt = (
+                (m.scheduled_time - timedelta(minutes=lobby_window_minutes_before))
+                if m.scheduled_time else None
+            )
+
+            is_terminal_state = m.state in (Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED)
+            lobby_window_open = False
+            if not is_terminal_state:
+                if m.state in (Match.READY, Match.LIVE, Match.PENDING_RESULT):
+                    lobby_window_open = True
+                elif lobby_window_opens_at_dt:
+                    lobby_window_open = now >= lobby_window_opens_at_dt
+
+            lobby_window_starts_in_seconds = None
+            if lobby_window_opens_at_dt:
+                lobby_window_starts_in_seconds = int((lobby_window_opens_at_dt - now).total_seconds())
+
             schedule_state_mutable = m.state in (Match.SCHEDULED, Match.CHECK_IN, Match.READY)
             within_deadline = bool(deadline_at and now <= deadline_at)
             can_propose = bool(
@@ -2575,6 +2593,10 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'lobby_info': lobby_info,
                 'match_room_url': match_room_url if (is_my_match or is_staff_view) else '',
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
+                'lobby_window_opens_at': lobby_window_opens_at_dt.isoformat() if lobby_window_opens_at_dt else None,
+                'lobby_window_open': bool(lobby_window_open),
+                'lobby_window_minutes_before': int(lobby_window_minutes_before),
+                'lobby_window_starts_in_seconds': lobby_window_starts_in_seconds,
                 'game_scores': raw_gs,
                 'best_of': best_of,
                 'p1_logo_url': participant_media_map.get(m.participant1_id, ''),

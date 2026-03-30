@@ -40,6 +40,7 @@ const HubEngine = (() => {
     'prizes',
     'resources',
   ]);
+  const PRE_MATCH_LOBBY_WINDOW_MINUTES = 30;
   const SIDEBAR_COLLAPSE_KEY = 'hub_sidebar_collapsed';
   const PARTICIPANTS_SORT_KEY = 'hub_participants_sort';
 
@@ -2086,6 +2087,45 @@ const HubEngine = (() => {
     return `${mins}m`;
   }
 
+  function _toValidDate(value) {
+    if (!value) return null;
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt;
+  }
+
+  function _resolveLobbyWindow(match) {
+    const state = String(match?.state || '').toLowerCase();
+    const terminal = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(state);
+    const forcedOpen = ['ready', 'live', 'pending_result'].includes(state);
+
+    const rawMinutes = Number.parseInt(String(match?.lobby_window_minutes_before ?? ''), 10);
+    const minutesBefore = Number.isFinite(rawMinutes) && rawMinutes > 0
+      ? rawMinutes
+      : PRE_MATCH_LOBBY_WINDOW_MINUTES;
+
+    const scheduledAt = _toValidDate(match?.scheduled_at);
+    const opensAtFromApi = _toValidDate(match?.lobby_window_opens_at);
+    const opensAt = opensAtFromApi || (scheduledAt ? new Date(scheduledAt.getTime() - (minutesBefore * 60 * 1000)) : null);
+
+    const explicitOpen = match?.lobby_window_open === true;
+    const isOpen = !terminal && (
+      forcedOpen
+      || explicitOpen
+      || (opensAt ? Date.now() >= opensAt.getTime() : false)
+    );
+
+    return {
+      isOpen,
+      minutesBefore,
+      opensAt,
+      scheduledAt,
+      startsInSeconds: Number.isFinite(Number(match?.lobby_window_starts_in_seconds))
+        ? Number(match?.lobby_window_starts_in_seconds)
+        : null,
+    };
+  }
+
   function _pickOverviewTargetMatch(matches) {
     const all = Array.isArray(matches) ? matches : [];
     if (!all.length) return null;
@@ -2095,6 +2135,12 @@ const HubEngine = (() => {
 
     const live = nonTerminal.find((m) => String(m?.state || '').toLowerCase() === 'live');
     if (live) return live;
+
+    const lobbyOpen = nonTerminal.find((m) => {
+      const windowInfo = _resolveLobbyWindow(m);
+      return windowInfo.isOpen && Boolean(m?.match_room_url);
+    });
+    if (lobbyOpen) return lobbyOpen;
 
     const ready = nonTerminal.find((m) => ['ready', 'check_in', 'pending_result'].includes(String(m?.state || '').toLowerCase()));
     if (ready) return ready;
@@ -2217,15 +2263,102 @@ const HubEngine = (() => {
 
     if (actionBtn) {
       const canOpenLobby = Boolean(target.match_room_url);
-      actionBtn.textContent = isLive || isReady
-        ? (canOpenLobby ? 'Go to Lobby' : 'Open Match Lobby')
+      const lobbyWindow = _resolveLobbyWindow(target);
+      const isLobbyWindowOpen = canOpenLobby && lobbyWindow.isOpen;
+      const opensAt = lobbyWindow.opensAt;
+
+      if (card) {
+        if (isLive) {
+          card.style.borderColor = 'rgba(255, 42, 85, 0.35)';
+          card.style.background = 'linear-gradient(135deg, rgba(255, 42, 85, 0.12) 0%, rgba(14, 10, 16, 0.94) 80%)';
+          card.style.boxShadow = '0 14px 40px rgba(255, 42, 85, 0.16)';
+        } else if (isLobbyWindowOpen) {
+          card.style.borderColor = 'rgba(0, 255, 102, 0.35)';
+          card.style.background = 'linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 15, 12, 0.92) 82%)';
+          card.style.boxShadow = '0 14px 40px rgba(0, 255, 102, 0.14)';
+        } else {
+          card.style.borderColor = 'rgba(0, 240, 255, 0.22)';
+          card.style.background = 'linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(8, 12, 24, 0.88) 80%)';
+          card.style.boxShadow = '0 14px 38px rgba(0, 240, 255, 0.10)';
+        }
+      }
+
+      if (badge) {
+        if (isLive) {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
+          badge.textContent = 'Live';
+        } else if (isLobbyWindowOpen) {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/35 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
+          badge.textContent = 'Lobby Open';
+        } else if (isReady) {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
+          badge.textContent = 'Ready';
+        } else {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
+          badge.textContent = opensAt ? 'Lobby Countdown' : 'Up Next';
+        }
+      }
+
+      if (title) {
+        if (isLive) {
+          title.textContent = `Live Match: ${matchup}`;
+        } else if (isLobbyWindowOpen) {
+          title.textContent = `Lobby Open: ${matchup}`;
+        } else {
+          title.textContent = `Next Match: ${matchup}`;
+        }
+      }
+
+      if (subtitle) {
+        const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
+        const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
+          ? `Match starts ${scheduled.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+          : 'Schedule time pending.';
+
+        if (isLobbyWindowOpen) {
+          subtitle.textContent = `Lobby unlocked ${lobbyWindow.minutesBefore} minutes before kickoff. Enter now and coordinate check-in.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+        } else if (opensAt) {
+          subtitle.textContent = `Lobby unlocks ${_formatCountdownLabel(opensAt)} before this match.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+        } else {
+          subtitle.textContent = `${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+        }
+      }
+
+      if (timeLabel) {
+        if (isLive) {
+          timeLabel.textContent = 'Status';
+        } else if (isLobbyWindowOpen) {
+          timeLabel.textContent = 'Match Starts In';
+        } else {
+          timeLabel.textContent = opensAt ? 'Lobby Opens In' : 'Starts In';
+        }
+      }
+
+      if (timeValue) {
+        if (isLive) {
+          timeValue.dataset.matchTime = 'live';
+          timeValue.textContent = 'LIVE NOW';
+        } else if (isLobbyWindowOpen) {
+          timeValue.dataset.matchTime = 'countdown';
+          timeValue.textContent = _formatCountdownLabel(scheduled);
+        } else if (opensAt) {
+          timeValue.dataset.matchTime = 'countdown';
+          timeValue.textContent = _formatCountdownLabel(opensAt);
+        } else {
+          timeValue.dataset.matchTime = 'countdown';
+          timeValue.textContent = _formatCountdownLabel(scheduled);
+        }
+      }
+
+      actionBtn.textContent = (isLive || isReady || isLobbyWindowOpen)
+        ? (canOpenLobby ? 'Enter Lobby' : 'Open Match Lobby')
         : 'View Schedule';
       actionBtn.onclick = () => {
-        if ((isLive || isReady) && canOpenLobby) {
+        if ((isLive || isReady || isLobbyWindowOpen) && canOpenLobby) {
           _openMatchRoom(target.match_room_url);
           return;
         }
-        switchTab(isLive || isReady ? 'matches' : 'schedule');
+        switchTab((isLive || isReady || isLobbyWindowOpen) ? 'matches' : 'schedule');
       };
     }
   }
@@ -3112,6 +3245,8 @@ const HubEngine = (() => {
     const m = match || {};
     const matchId = JSON.stringify(String(m.id || ''));
     const hasLobby = Boolean(m.match_room_url);
+    const lobbyWindow = _resolveLobbyWindow(m);
+    const lobbyOpen = hasLobby && lobbyWindow.isOpen;
     const reschedule = m.reschedule || {};
     const pendingRequest = reschedule.pending_request || null;
     const canPropose = Boolean(reschedule.can_propose);
@@ -3143,9 +3278,16 @@ const HubEngine = (() => {
 
     const buttons = [];
     if (hasLobby) {
-      buttons.push(
-        `<button onclick='HubEngine.openMatchLobby(${matchId})' class='${buttonBase} rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-cyan-200 font-bold uppercase tracking-wide hover:bg-cyan-300/15 transition-colors'>Go to Lobby</button>`
-      );
+      if (lobbyOpen) {
+        buttons.push(
+          `<button onclick='HubEngine.openMatchLobby(${matchId})' class='${buttonBase} rounded-lg border border-[#00FF66]/30 bg-[#00FF66]/10 text-[#66FFAE] font-bold uppercase tracking-wide hover:bg-[#00FF66]/15 transition-colors'>Enter Lobby</button>`
+        );
+      } else {
+        const opensAt = lobbyWindow.opensAt;
+        if (opensAt) {
+          pendingLine += `<p class="text-[10px] text-cyan-300">Lobby unlocks in ${_esc(_formatCountdownLabel(opensAt))}.</p>`;
+        }
+      }
     }
 
     if (canPropose) {
@@ -3356,7 +3498,11 @@ const HubEngine = (() => {
     const allMatches = data?.active_matches || [];
     const live = allMatches.find((m) => String(m.state || '').toLowerCase() === 'live');
     const ready = allMatches.find((m) => String(m.state || '').toLowerCase() === 'ready');
-    const target = live || ready || allMatches[0] || null;
+    const warmup = allMatches.find((m) => {
+      const lobbyWindow = _resolveLobbyWindow(m);
+      return lobbyWindow.isOpen && Boolean(m?.match_room_url);
+    });
+    const target = live || ready || warmup || allMatches[0] || null;
 
     if (!target) {
       if (statusEl) {
@@ -3379,10 +3525,12 @@ const HubEngine = (() => {
     const stateRaw = String(target.state || '').toLowerCase();
     const isLive = stateRaw === 'live';
     const isReady = stateRaw === 'ready';
+    const lobbyWindow = _resolveLobbyWindow(target);
+    const isWarmup = !isLive && !isReady && lobbyWindow.isOpen && Boolean(target.match_room_url);
 
     if (statusEl) {
-      statusEl.className = `hub-badge ${isLive ? 'hub-badge-danger' : isReady ? 'hub-badge-live' : 'hub-badge-info'}`;
-      statusEl.textContent = isLive ? 'Live' : (target.state_display || 'Ready');
+      statusEl.className = `hub-badge ${isLive ? 'hub-badge-danger' : (isReady || isWarmup) ? 'hub-badge-live' : 'hub-badge-info'}`;
+      statusEl.textContent = isLive ? 'Live' : (isWarmup ? 'Lobby Open' : (target.state_display || 'Ready'));
     }
     if (roundEl) roundEl.textContent = `${target.round_name || 'Round'} · Match ${target.match_number || ''}`;
     if (titleEl) {
@@ -3393,7 +3541,9 @@ const HubEngine = (() => {
     if (subtitleEl) {
       subtitleEl.textContent = isLive
         ? 'Match is live now. Submit results immediately after completion.'
-        : 'Lobby is warming up. Prepare your team and join when ready.';
+        : (isWarmup
+          ? `Lobby unlocked ${lobbyWindow.minutesBefore} minutes before kickoff. Enter now and coordinate with your opponent.`
+          : 'Lobby is warming up. Prepare your team and join when ready.');
     }
 
     const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
@@ -3416,11 +3566,15 @@ const HubEngine = (() => {
     const matchRoomUrl = target.match_room_url || '';
 
     if (joinBtn) {
-      joinBtn.textContent = roomCode && roomCode !== 'Pending'
-        ? `Join Lobby ${roomCode}`
-        : 'Open Match + Submit Result';
+      if ((isLive || isReady || isWarmup) && matchRoomUrl) {
+        joinBtn.textContent = roomCode && roomCode !== 'Pending'
+          ? `Join Lobby ${roomCode}`
+          : 'Enter Match Lobby';
+      } else {
+        joinBtn.textContent = 'Open Match + Submit Result';
+      }
       joinBtn.onclick = () => {
-        if (matchRoomUrl) {
+        if ((isLive || isReady || isWarmup) && matchRoomUrl) {
           _openMatchRoom(matchRoomUrl);
         } else {
           switchTab('matches');
@@ -3438,10 +3592,10 @@ const HubEngine = (() => {
       }
     }
 
-    if (_isMobileViewport() && isLive && !_mobileLobbyAutoFocused && _currentTab !== 'lobby') {
+    if (_isMobileViewport() && (isLive || isReady || isWarmup) && !_mobileLobbyAutoFocused && _currentTab !== 'lobby') {
       _mobileLobbyAutoFocused = true;
       switchTab('lobby');
-      _showWsToast('Your match is live. Opening Lobby.', 'info');
+      _showWsToast(isLive ? 'Your match is live. Opening Lobby.' : 'Lobby is open for your upcoming match.', 'info');
     }
   }
 
@@ -3645,6 +3799,13 @@ const HubEngine = (() => {
       _emitToast('warning', 'Match lobby is not available for this card yet.');
       return;
     }
+
+    const lobbyWindow = _resolveLobbyWindow(match);
+    if (!lobbyWindow.isOpen) {
+      _emitToast('info', `Lobby opens ${lobbyWindow.minutesBefore} minutes before scheduled match time.`);
+      return;
+    }
+
     _openMatchRoom(match.match_room_url);
   }
 
