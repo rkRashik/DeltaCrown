@@ -1,4 +1,5 @@
 from pathlib import Path
+import mimetypes
 import os
 import sys
 import socket
@@ -17,6 +18,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Deterministic .env loading - explicit path, no override
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
+
+# Ensure .webmanifest files are served with the correct MIME type.
+mimetypes.add_type('application/manifest+json', '.webmanifest', strict=True)
 
 # Fail-fast: DATABASE_URL must be set to prevent localhost fallback
 if not os.getenv("DATABASE_URL"):

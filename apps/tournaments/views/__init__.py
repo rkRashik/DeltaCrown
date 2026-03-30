@@ -14,7 +14,11 @@ Phase 3 Restructure: Views split from monolithic main.py + organizer.py.
 """
 
 from apps.tournaments.views.discovery import TournamentListView  # noqa: F401
-from apps.tournaments.views.detail import TournamentDetailView, participant_checkin  # noqa: F401
+from apps.tournaments.views.detail import (  # noqa: F401
+    TournamentDetailView,
+    participant_checkin,
+    tournament_detail_mobile_state,
+)
 
 from apps.tournaments.views.registration import (
     TournamentRegistrationSuccessView,
@@ -25,6 +29,7 @@ __all__ = [
     'TournamentListView',
     'TournamentDetailView',
     'participant_checkin',
+    'tournament_detail_mobile_state',
     
     # Registration views (FE-T-004)
     'TournamentRegistrationSuccessView',

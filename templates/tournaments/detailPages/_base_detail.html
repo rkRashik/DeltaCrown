@@ -16,6 +16,7 @@
     {% block phase_css %}{% endblock %}
 </style>
 <link rel="stylesheet" href="{% static 'tournaments/css/detail-page.css' %}">
+<link rel="stylesheet" href="{% static 'tournaments/css/detail-page-mobile.css' %}">
 {% endblock %}
 
 {% block tournament_content %}
@@ -25,6 +26,10 @@
 <div class="noise-overlay"></div>
 <!-- Toast notification container -->
 <div id="dc-toast" class="dc-toast"><i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="dc-toast-msg"></span></div>
+
+{% include "tournaments/detailPages/_mobile_detail_shell.html" %}
+
+<div class="hidden lg:block">
 
 <!-- HERO SECTION — Adaptive Cover Banner -->
 <div class="hero-infinity relative w-full overflow-hidden">
@@ -369,25 +374,25 @@
                     {% if tournament.social_twitter %}
                     <a href="{{ tournament.social_twitter }}" target="_blank" rel="noopener"
                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all text-xs font-semibold">
-                        <i data-lucide="twitter" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="at-sign" class="w-3.5 h-3.5"></i>
                     </a>
                     {% endif %}
                     {% if tournament.social_instagram %}
                     <a href="{{ tournament.social_instagram }}" target="_blank" rel="noopener"
                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all text-xs font-semibold">
-                        <i data-lucide="instagram" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="camera" class="w-3.5 h-3.5"></i>
                     </a>
                     {% endif %}
                     {% if tournament.social_youtube %}
                     <a href="{{ tournament.social_youtube }}" target="_blank" rel="noopener"
                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all text-xs font-semibold">
-                        <i data-lucide="youtube" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>
                     </a>
                     {% endif %}
                     {% if tournament.social_facebook %}
                     <a href="{{ tournament.social_facebook }}" target="_blank" rel="noopener"
                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all text-xs font-semibold">
-                        <i data-lucide="facebook" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i>
                     </a>
                     {% endif %}
                     {% if tournament.social_tiktok %}
@@ -517,6 +522,8 @@
     {% endif %}
 </div>
 {% endif %}
+
+</div>
 
 {% endblock %}
 

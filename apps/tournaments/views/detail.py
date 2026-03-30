@@ -10,6 +10,7 @@ from django.views.generic import DetailView
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
@@ -227,6 +228,9 @@ class TournamentDetailView(DetailView):
         # Spectator page link (for live/completed tournaments)
         if tournament.status in ['live', 'completed', 'archived']:
             context['spectator_url'] = f'/tournaments/{tournament.slug}/spectate/'
+
+        # Lightweight mobile polling endpoint for real-time header/slots/match updates.
+        context['mobile_state_url'] = reverse('tournaments:detail_mobile_state', kwargs={'slug': tournament.slug})
 
         return context
 
@@ -1231,6 +1235,239 @@ class TournamentDetailView(DetailView):
                 })
 
         return context
+
+
+_DETAIL_STATUS_LABELS = {
+    'draft': 'Upcoming',
+    'pending_approval': 'Upcoming',
+    'published': 'Upcoming',
+    'registration_open': 'Registration Open',
+    'registration_closed': 'Registration Closed',
+    'live': 'Live',
+    'completed': 'Completed',
+    'archived': 'Completed',
+    'cancelled': 'Cancelled',
+}
+
+
+def _format_display_datetime(value):
+    if not value:
+        return 'TBD'
+    try:
+        value = timezone.localtime(value)
+    except Exception:
+        pass
+    return value.strftime('%b %d · %H:%M')
+
+
+def _relative_match_time(scheduled_time, now, is_completed):
+    if not scheduled_time:
+        return ''
+
+    delta = scheduled_time - now
+    if delta.total_seconds() > 0:
+        hours = int(delta.total_seconds() // 3600)
+        minutes = int((delta.total_seconds() % 3600) // 60)
+        if hours > 24:
+            return f"Starts in {hours // 24}d"
+        if hours > 0:
+            return f"Starts in {hours}h {minutes}m"
+        return f"Starts in {minutes}m"
+
+    if is_completed:
+        hours = int(abs(delta.total_seconds()) // 3600)
+        if hours > 24:
+            return f"Finished {hours // 24}d ago"
+        if hours > 0:
+            return f"Finished {hours}h ago"
+        return 'Finished recently'
+
+    return ''
+
+
+def _detail_status_context(tournament, slots_filled, slots_total, live_match_count):
+    status = tournament.status
+    if status == 'live':
+        return f'{live_match_count} matches live now' if live_match_count > 0 else 'Bracket is in progress'
+
+    if status == 'registration_open':
+        if slots_total > 0:
+            remaining = max(slots_total - slots_filled, 0)
+            if remaining == 0:
+                return 'Slots are full. Waitlist may open.'
+            return f'{remaining} slots remaining'
+        return 'Registration is currently open'
+
+    if status == 'registration_closed':
+        return 'Registration closed. Seeding and check-in are active.'
+
+    if status in ('completed', 'archived'):
+        return 'Final results are now available.'
+
+    if status == 'cancelled':
+        return 'Tournament cancelled by organizer.'
+
+    if tournament.tournament_start:
+        return f"Starts {_format_display_datetime(tournament.tournament_start)}"
+
+    return 'Awaiting schedule details.'
+
+
+def _mobile_cta_payload(tournament, user):
+    from apps.tournaments.models import Registration
+
+    if tournament.status in ('completed', 'archived'):
+        return {
+            'label': 'View Results',
+            'url': f'/tournaments/{tournament.slug}/results/',
+            'disabled': False,
+            'kind': 'secondary',
+        }
+
+    if tournament.status == 'cancelled':
+        return {
+            'label': 'Tournament Cancelled',
+            'url': '',
+            'disabled': True,
+            'kind': 'disabled',
+        }
+
+    if user.is_authenticated:
+        registration = Registration.objects.filter(
+            tournament=tournament,
+            user=user,
+            is_deleted=False,
+        ).exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED]
+        ).first()
+        if registration is not None:
+            return {
+                'label': 'Enter Lobby',
+                'url': f'/tournaments/{tournament.slug}/lobby/',
+                'disabled': False,
+                'kind': 'secondary',
+            }
+
+    from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
+
+    eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
+    default_label = 'Register Team' if tournament.participation_type == Tournament.TEAM else 'Register Now'
+    action_label = eligibility.get('action_label') or default_label
+    action_url = eligibility.get('action_url') or f'/tournaments/{tournament.slug}/register/'
+    eligibility_status = str(eligibility.get('status') or '').lower()
+    can_register = bool(eligibility.get('can_register'))
+
+    if eligibility_status in ('waitlist_open', 'waitlist', 'full_waitlist'):
+        return {
+            'label': action_label,
+            'url': action_url,
+            'disabled': False,
+            'kind': 'waitlist',
+        }
+
+    if can_register:
+        return {
+            'label': action_label,
+            'url': action_url,
+            'disabled': False,
+            'kind': 'primary',
+        }
+
+    return {
+        'label': action_label,
+        'url': action_url if action_url and action_url != '#' else '',
+        'disabled': True,
+        'kind': 'disabled',
+    }
+
+
+def tournament_detail_mobile_state(request, slug):
+    """Lightweight state payload for mobile detail polling."""
+    tournament = get_object_or_404(
+        Tournament.objects.select_related('game', 'organizer'),
+        slug=slug,
+    )
+
+    cache_user_key = request.user.id if request.user.is_authenticated else 'anon'
+    cache_key = f'detail_mobile_state_v1_{tournament.id}_{cache_user_key}'
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return JsonResponse(cached_payload)
+
+    from apps.tournaments.models import Registration, Match
+
+    slots_filled = Registration.objects.filter(
+        tournament=tournament,
+        status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
+        is_deleted=False,
+    ).count()
+
+    slots_total = tournament.max_participants or 0
+    slots_percentage = round((slots_filled / slots_total) * 100) if slots_total > 0 else 0
+    slots_filling_fast = slots_total > 0 and slots_percentage >= 85 and tournament.status == 'registration_open'
+
+    live_match_count = Match.objects.filter(
+        tournament=tournament,
+        state='live',
+        is_deleted=False,
+    ).count()
+
+    now = timezone.now()
+    match_rows = Match.objects.filter(
+        tournament=tournament,
+        is_deleted=False,
+    ).order_by('scheduled_time', 'round_number', 'match_number').values(
+        'id',
+        'state',
+        'participant1_score',
+        'participant2_score',
+        'scheduled_time',
+    )[:30]
+
+    matches_payload = []
+    for row in match_rows:
+        state = row['state']
+        if state == 'live':
+            status_key = 'live'
+        elif state in ('completed', 'forfeit', 'cancelled', 'disputed'):
+            status_key = 'completed'
+        else:
+            status_key = 'upcoming'
+
+        show_scores = state in ('live', 'completed', 'pending_result', 'disputed', 'forfeit')
+        score_text = (
+            f"{row['participant1_score'] or 0} - {row['participant2_score'] or 0}"
+            if show_scores
+            else 'VS'
+        )
+
+        scheduled_time = row['scheduled_time']
+        matches_payload.append({
+            'id': row['id'],
+            'status': status_key,
+            'status_label': 'Live' if status_key == 'live' else ('Completed' if status_key == 'completed' else 'Upcoming'),
+            'score_text': score_text,
+            'starts_at_display': _format_display_datetime(scheduled_time) if scheduled_time else '',
+            'starts_at_relative': _relative_match_time(scheduled_time, now, status_key == 'completed'),
+        })
+
+    payload = {
+        'status_key': tournament.status,
+        'status_label': _DETAIL_STATUS_LABELS.get(tournament.status, 'Upcoming'),
+        'status_context': _detail_status_context(tournament, slots_filled, slots_total, live_match_count),
+        'slots_filled': slots_filled,
+        'slots_total': slots_total,
+        'slots_percentage': slots_percentage,
+        'slots_filling_fast': slots_filling_fast,
+        'start_display': _format_display_datetime(tournament.tournament_start),
+        'live_match_count': live_match_count,
+        'cta': _mobile_cta_payload(tournament, request.user),
+        'matches': matches_payload,
+        'updated_at': timezone.now().isoformat(),
+    }
+
+    cache.set(cache_key, payload, 15)
+    return JsonResponse(payload)
 
 
 @login_required

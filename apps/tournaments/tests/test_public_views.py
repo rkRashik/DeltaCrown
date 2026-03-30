@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.tournaments.models import Tournament, Game
+from apps.tournaments.models import Tournament, Game, TournamentAnnouncement
 
 User = get_user_model()
 
@@ -119,3 +119,20 @@ class TestTournamentDetailView:
         # Anonymous users should receive not_authenticated eligibility state
         assert response.context['eligibility_status'] == 'not_authenticated'
         assert response.context['can_register'] is False
+
+    def test_detail_view_renders_tournament_announcements(self, client, published_tournament):
+        """Detail page should render TournamentAnnouncement rows without lobby-only fields."""
+        TournamentAnnouncement.objects.create(
+            tournament=published_tournament,
+            title='Matches Starting Soon',
+            message='Please check in before the countdown ends.',
+            created_by=published_tournament.organizer,
+            is_pinned=True,
+            is_important=True,
+        )
+
+        url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert b'Matches Starting Soon' in response.content

@@ -212,6 +212,7 @@ urlpatterns = [
     
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
+    path('<slug:slug>/state/', views.tournament_detail_mobile_state, name='detail_mobile_state'),
     
     # Participant check-in
     path('<slug:slug>/checkin/', views.participant_checkin, name='participant_checkin'),
