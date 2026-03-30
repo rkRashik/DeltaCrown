@@ -1,0 +1,19 @@
+<div id="ph-draft" class="hidden-state flex flex-col gap-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h3 class="font-display font-black text-2xl text-white">Hero Draft</h3>
+      <p id="draft-instr" class="text-sm font-bold mt-1 ac">Waiting for draft turn.</p>
+    </div>
+    <div class="glass px-4 py-2.5 rounded-xl text-right">
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Step</p>
+      <p id="draft-step" class="font-mono text-lg text-white font-bold">0/0</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold uppercase tracking-widest mb-2 ac" id="picks-a-label">Team A Picks</p><div id="picks-a" class="flex flex-wrap gap-1 min-h-[22px]"></div></div>
+    <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold uppercase tracking-widest mb-2 text-red-300" id="picks-b-label">Team B Picks</p><div id="picks-b" class="flex flex-wrap gap-1 min-h-[22px]"></div></div>
+  </div>
+  <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Banned</p><div id="bans-display" class="flex flex-wrap gap-1 min-h-[20px]"></div></div>
+  <div id="hero-grid" class="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-9 gap-1.5 max-h-72 overflow-y-auto"></div>
+  <div class="glass p-3 rounded-xl"><h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1.5">Draft Log</h4><ul id="draft-log" class="space-y-1 text-xs font-mono text-gray-400"></ul></div>
+</div>

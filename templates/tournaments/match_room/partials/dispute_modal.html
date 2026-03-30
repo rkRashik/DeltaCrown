@@ -1,0 +1,40 @@
+<div id="dispute-modal" class="fixed inset-0 z-[100] hidden-state items-center justify-center">
+  <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-close-dispute="1"></div>
+  <div class="bg-black border border-white/10 rounded-2xl w-full max-w-lg relative z-10 shadow-2xl overflow-hidden mx-4">
+    <div class="border-b border-red-400/20 p-6 flex justify-between items-center" style="background:rgba(255,42,85,.08)">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-red-500/20 border border-red-400/40 flex items-center justify-center text-red-300"><i data-lucide="siren" class="w-5 h-5"></i></div>
+        <div>
+          <h3 class="font-display font-black text-xl text-white">Match Medic</h3>
+          <p class="text-[10px] text-red-300 font-bold uppercase tracking-widest">Official Dispute Form</p>
+        </div>
+      </div>
+      <button id="btn-close-dispute" class="text-gray-400 hover:text-white bg-white/5 p-2 rounded-lg transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Reason</label>
+        <select id="dispute-reason" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none">
+          <option value="score_mismatch">Score Mismatch</option>
+          <option value="no_show">Opponent No-Show</option>
+          <option value="wrong_settings">Wrong Match Settings</option>
+          <option value="cheating">Suspected Cheating</option>
+          <option value="toxicity">Toxic Behaviour</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Explanation</label>
+        <textarea id="dispute-description" rows="3" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none resize-none" placeholder="Describe the issue with useful detail..."></textarea>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Evidence URL (optional)</label>
+        <input type="text" id="dispute-evidence-url" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none" placeholder="YouTube, imgur, stream link...">
+      </div>
+    </div>
+    <div class="p-4 border-t border-white/5 flex justify-end gap-3" style="background:rgba(0,0,0,.4)">
+      <button id="btn-dispute-cancel" class="px-5 py-2.5 text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors">Cancel</button>
+      <button id="btn-dispute-submit" class="px-5 py-2.5 text-xs font-black text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>Submit Ticket</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+<div id="ph-direct" class="hidden-state">
+  <div class="glass rounded-2xl p-10 text-center relative overflow-hidden" style="border-top:2px solid var(--ac)">
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at top,rgba(var(--ar),var(--ag),var(--ab),.05) 0%,transparent 60%)"></div>
+    <div class="relative z-10">
+      <h3 id="direct-title" class="font-display font-black text-2xl text-white mb-2">Ready Check</h3>
+      <p id="direct-desc" class="text-sm text-gray-400 mb-7 max-w-md mx-auto">Both sides must confirm readiness before lobby setup begins.</p>
+      <div class="flex items-center justify-center gap-8 mb-8">
+        <div id="direct-ready-a" class="flex flex-col items-center gap-2"><div class="w-12 h-12 rounded-xl ac-bg border ac-bd flex items-center justify-center text-xl font-bold">?</div><p class="text-[10px] font-bold text-white" id="team-a-ready-name">Team A</p><p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Waiting</p></div>
+        <div class="h-px w-10 bg-white/10"></div>
+        <div id="direct-ready-b" class="flex flex-col items-center gap-2"><div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-bold">?</div><p class="text-[10px] font-bold text-white" id="team-b-ready-name">Team B</p><p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Waiting</p></div>
+      </div>
+      <button id="btn-direct-ready" class="px-8 py-3.5 font-black uppercase tracking-widest text-sm rounded-xl" style="background:var(--ac);color:#000">Mark My Side Ready</button>
+    </div>
+  </div>
+</div>

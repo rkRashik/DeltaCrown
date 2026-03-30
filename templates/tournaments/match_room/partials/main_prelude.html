@@ -1,0 +1,50 @@
+<div class="glass flex items-center px-4 py-2.5 rounded-xl shrink-0 gap-2.5">
+  <div class="flex items-center gap-1.5 shrink-0">
+    <div id="ph-dot-1" class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border phase-dot-active"><i data-lucide="settings-2" class="w-2.5 h-2.5"></i></div>
+    <span id="ph-label-1" class="text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">Match Setup</span>
+  </div>
+  <div class="ph-bar"><div class="ph-bar-fill" id="ph-bar-1" style="width:100%"></div></div>
+
+  <div id="ph2-wrap" class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500">
+    <div id="ph-dot-2" class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]"><i data-lucide="server" class="w-2.5 h-2.5"></i></div>
+    <span id="ph-label-2" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Lobby Setup</span>
+  </div>
+  <div class="ph-bar"><div class="ph-bar-fill" id="ph-bar-2" style="width:0%"></div></div>
+
+  <div id="ph3-wrap" class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500">
+    <div id="ph-dot-3" class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]"><i data-lucide="flag" class="w-2.5 h-2.5"></i></div>
+    <span id="ph-label-3" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Submit Result</span>
+  </div>
+</div>
+
+<div id="checkin-status-banner" class="hidden-state glass rounded-xl px-4 py-3 border border-white/8">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div class="min-w-0">
+      <span id="checkin-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-white/15 bg-white/5 text-gray-200">Check-In Required</span>
+      <p id="checkin-status-text" class="text-[11px] text-gray-400 mt-1.5">Check-in window details will appear here.</p>
+    </div>
+    <div class="flex flex-col gap-1 text-[10px] font-mono text-gray-300">
+      <span id="presence-team-a">Team A: Offline - Pending check-in</span>
+      <span id="presence-team-b">Team B: Offline - Pending check-in</span>
+    </div>
+  </div>
+</div>
+
+<div id="waiting-room-overlay" class="waiting-room-overlay is-hidden" aria-live="polite" aria-hidden="true">
+  <div class="overlay-scrim"></div>
+  <div class="waiting-room-card">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-lg ac-bg border ac-bd flex items-center justify-center shrink-0">
+        <i data-lucide="users" class="w-4 h-4 ac"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p id="waiting-room-title" class="text-xs font-black uppercase tracking-widest text-white">Waiting for opponent to connect...</p>
+        <p id="waiting-room-subtext" class="text-[11px] text-gray-300 mt-1">Lobby controls unlock automatically once both sides are online.</p>
+        <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono">
+          <div id="waiting-room-side-a" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team A: Offline</div>
+          <div id="waiting-room-side-b" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team B: Offline</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

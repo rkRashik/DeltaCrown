@@ -85,6 +85,10 @@ PHASES = {
 
 PHASE_FALLBACK_ORDER = ["coin_toss", "phase1", "lobby_setup", "live", "results", "completed"]
 PRESENCE_STALE_SECONDS = 45
+V3_PIPELINE_OVERRIDES = {
+    "valorant": "veto",
+    "efootball": "direct",
+}
 
 RESULT_SUBMISSION_EDITABLE_STATUSES = {
     MatchResultSubmission.STATUS_PENDING,
@@ -563,12 +567,23 @@ def _build_default_workflow(
     }
 
 
+def _resolve_v3_phase_mode(game_profile: Dict[str, Any], fallback_mode: str) -> str:
+    canonical_key = str(game_profile.get("canonical_game_key") or "")
+    override = V3_PIPELINE_OVERRIDES.get(canonical_key)
+    if override in {"veto", "direct"}:
+        return override
+    return str(fallback_mode or "veto")
+
+
 def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], bool]:
     game = getattr(match.tournament, "game", None)
     game_profile = resolve_lobby_game_profile(game)
     game_slug = str(game_profile.get("game_slug") or _normalize_game_slug(getattr(game, "slug", "")))
     game_key = str(game_profile.get("canonical_game_key") or _compact_game_key(game_slug))
-    phase_mode = str(game_profile.get("phase_mode") or _determine_phase_mode(match))
+    phase_mode = _resolve_v3_phase_mode(
+        game_profile,
+        str(game_profile.get("phase_mode") or _determine_phase_mode(match)),
+    )
     best_of = int(getattr(match, "best_of", 1) or 1)
 
     cfg_maps, cfg_heroes = _load_config_pools(match)
@@ -658,6 +673,9 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     runtime = {
         "game_name": getattr(game, "display_name", "") or getattr(game, "name", "Game"),
         "game_slug": game_slug,
+        "game_type": str(getattr(game, "game_type", "") or ""),
+        "game_category": str(getattr(game, "category", "") or ""),
+        "pipeline_game_key": game_key,
         "phase_mode": phase_mode,
         "best_of": best_of,
         "map_pool": map_pool,
@@ -868,6 +886,9 @@ def _build_room_payload(
         "game": {
             "name": runtime["game_name"],
             "slug": runtime["game_slug"],
+            "game_type": runtime.get("game_type", ""),
+            "category": runtime.get("game_category", ""),
+            "pipeline_game_key": runtime.get("pipeline_game_key", ""),
             "phase_mode": runtime["phase_mode"],
             "map_pool": runtime["map_pool"],
             "hero_pool": runtime["hero_pool"],

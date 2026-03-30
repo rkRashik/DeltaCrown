@@ -1,0 +1,14 @@
+<main class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10" style="min-height:0">
+  <section id="main-scroll" class="col-span-1 lg:col-span-8 h-full overflow-y-auto flex flex-col gap-5 p-5 lg:p-8 safe-pb border-r border-white/5 relative">
+    {% include "tournaments/match_room/partials/main_prelude.html" %}
+    {% include "tournaments/match_room/partials/phases/coin_toss.html" %}
+    {% include "tournaments/match_room/partials/phases/veto.html" %}
+    {% include "tournaments/match_room/partials/phases/draft.html" %}
+    {% include "tournaments/match_room/partials/phases/direct.html" %}
+    {% include "tournaments/match_room/partials/phases/lobby_setup.html" %}
+    {% include "tournaments/match_room/partials/phases/server_live.html" %}
+    {% include "tournaments/match_room/partials/phases/result_submission.html" %}
+  </section>
+
+  {% include "tournaments/match_room/partials/sidebar.html" %}
+</main>

@@ -23,7 +23,24 @@
   const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
   const WAITING_LOCKED_ACTIONS = new Set(['coin_toss', 'veto_action', 'draft_action', 'direct_ready', 'save_credentials', 'start_live']);
   const DRAFT_STORAGE_VERSION = 1;
-  const DRAFT_STORAGE_KEY = `dc:match-room-v2:draft:${room.match.id}`;
+  const DRAFT_STORAGE_KEY = `dc:match-room-v3:draft:${room.match.id}`;
+
+  const V3_GAME_CONFIG = {
+    valorant: {
+      key: 'valorant',
+      phaseKind: 'veto',
+      accent: { ac: '#00f0ff', r: 0, g: 240, b: 255 },
+      background: "url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850')",
+      modeLabel: 'Map Veto',
+    },
+    efootball: {
+      key: 'efootball',
+      phaseKind: 'direct',
+      accent: { ac: '#00ff66', r: 0, g: 255, b: 102 },
+      background: "url('https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850')",
+      modeLabel: 'Direct Setup',
+    },
+  };
 
   const state = {
     ws: null,
@@ -142,20 +159,25 @@
   }
 
   function resolvePhase1Kind() {
+    const forcedKind = v3PipelineKind();
+    if (forcedKind === 'direct') {
+      return 'direct';
+    }
+
     const pipeline = getPipeline();
     const wf = getWorkflow();
 
     const fromPipeline = String(pipeline.phase1_kind || '').toLowerCase();
-    if (fromPipeline === 'veto' || fromPipeline === 'draft' || fromPipeline === 'direct') {
+    if (fromPipeline === 'veto' || fromPipeline === 'direct') {
       return fromPipeline;
     }
 
     const fromWorkflow = String(wf.phase1_kind || '').toLowerCase();
-    if (fromWorkflow === 'veto' || fromWorkflow === 'draft' || fromWorkflow === 'direct') {
+    if (fromWorkflow === 'veto' || fromWorkflow === 'direct') {
       return fromWorkflow;
     }
 
-    return '';
+    return 'veto';
   }
 
   function getPhaseOrder() {
@@ -177,7 +199,7 @@
     let resolvedKind = resolvePhase1Kind();
     if (!resolvedKind) {
       const mode = currentMode();
-      resolvedKind = mode === 'draft' || mode === 'direct' ? mode : 'veto';
+      resolvedKind = mode === 'direct' ? mode : 'veto';
     }
 
     if (resolvedKind === 'direct') {
@@ -221,14 +243,11 @@
 
   function phase1Kind() {
     const explicit = resolvePhase1Kind();
-    if (explicit === 'veto' || explicit === 'draft' || explicit === 'direct') {
+    if (explicit === 'veto' || explicit === 'direct') {
       return explicit;
     }
 
     const mode = currentMode();
-    if (mode === 'draft') {
-      return 'draft';
-    }
     if (mode === 'direct') {
       return 'direct';
     }
@@ -245,12 +264,7 @@
   }
 
   function currentMode() {
-    const wf = getWorkflow();
-    const mode = String(wf.mode || room.game?.phase_mode || 'veto').toLowerCase();
-    if (mode === 'draft' || mode === 'direct') {
-      return mode;
-    }
-    return 'veto';
+    return v3PipelineKind();
   }
 
   function isStaffUser() {
@@ -271,7 +285,7 @@
     if (side !== 1 && side !== 2) {
       return '';
     }
-    return `dc:match-room-v2:entry-gate:${room.match?.id || '0'}:${side}`;
+    return `dc:match-room-v3:entry-gate:${room.match?.id || '0'}:${side}`;
   }
 
   function _loadEntryGateState() {
@@ -700,12 +714,25 @@
     node.textContent = initials(safeName, fallback);
   }
 
-  function gameDataKey() {
+  function v3GameKey() {
     const slug = String(room.game?.slug || '').toLowerCase();
-    if (!slug) {
-      return 'valorant';
+    const compact = slug.replaceAll(/[^a-z0-9]/g, '');
+    if (compact.includes('efootball')) {
+      return 'efootball';
     }
-    return slug.replaceAll(/[^a-z0-9]/g, '');
+    return 'valorant';
+  }
+
+  function v3Config() {
+    return V3_GAME_CONFIG[v3GameKey()] || V3_GAME_CONFIG.valorant;
+  }
+
+  function v3PipelineKind() {
+    return v3Config().phaseKind;
+  }
+
+  function gameDataKey() {
+    return v3Config().key;
   }
 
   function hashText(text) {
@@ -743,15 +770,27 @@
   }
 
   function renderTheme() {
+    const cfg = v3Config();
+
     const shell = byId('mr-shell');
     if (shell) {
       shell.setAttribute('data-game', gameDataKey());
     }
 
+    const root = document.documentElement;
+    root.style.setProperty('--ac', cfg.accent.ac);
+    root.style.setProperty('--ar', String(cfg.accent.r));
+    root.style.setProperty('--ag', String(cfg.accent.g));
+    root.style.setProperty('--ab', String(cfg.accent.b));
+
     const bgLayer = byId('bg-layer');
     if (bgLayer) {
       const mapName = currentSelectedMap() || room.game?.name || 'Arena';
-      bgLayer.style.backgroundImage = mapGradient(mapName);
+      if (cfg.phaseKind === 'veto') {
+        bgLayer.style.backgroundImage = `${mapGradient(mapName)}, ${cfg.background}`;
+      } else {
+        bgLayer.style.backgroundImage = cfg.background;
+      }
       bgLayer.style.opacity = '0.22';
     }
   }
@@ -809,7 +848,8 @@
     }
 
     if (matchFormat) {
-      matchFormat.textContent = `BO${toInt(room.match?.best_of, 1)}`;
+      const bestOf = `BO${toInt(room.match?.best_of, 1)}`;
+      matchFormat.textContent = `${bestOf} • ${v3Config().modeLabel}`;
     }
 
     if (navMatchId) {
@@ -1254,9 +1294,7 @@
     }
 
     if (phase === 'phase1') {
-      if (kind === 'draft') {
-        showPhaseBlock('ph-draft');
-      } else if (kind === 'direct') {
+      if (kind === 'direct') {
         showPhaseBlock('ph-direct');
       } else {
         showPhaseBlock('ph-veto');
@@ -1759,8 +1797,6 @@
       rows.push('1. Create a private lobby with tournament settings.');
       if (mode === 'veto') {
         rows.push('2. Confirm selected map and server region.');
-      } else if (mode === 'draft') {
-        rows.push('2. Lock drafted heroes and apply ruleset.');
       } else {
         rows.push('2. Verify both sides are marked ready.');
       }
@@ -2172,8 +2208,6 @@
         rows.push('Phase One: Skipped by game policy for this round.');
       } else if (kind === 'veto') {
         rows.push('Phase One: Map veto from tournament-configured pool.');
-      } else if (kind === 'draft') {
-        rows.push('Phase One: Hero draft with server-side turn order.');
       } else {
         rows.push('Phase One: Direct ready check from both sides.');
       }
@@ -2364,7 +2398,7 @@
 
     if (action === 'draft_action' && phase1Kind() !== 'draft') {
       if (!silent) {
-        showToast('Hero draft is disabled for this match pipeline.', 'error');
+        showToast('Hero draft is disabled in Lobby V3.', 'error');
       }
       return false;
     }
@@ -2951,7 +2985,7 @@
         submitWorkflow('admin_override_result', {
           participant1_score: p1,
           participant2_score: p2,
-          note: 'Admin override from Match Lobby V2.',
+          note: 'Admin override from Match Lobby V3.',
         });
       });
     }
@@ -3141,7 +3175,7 @@
   }
 
   function bootstrap() {
-    console.log('[Match-Room] Initializing v2...', {
+    console.log('[Match-Room] Initializing v3...', {
       mode: currentMode(),
       phase: currentPhase(),
       workflowPhase: (room.workflow || {}).phase,

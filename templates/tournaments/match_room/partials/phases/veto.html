@@ -1,0 +1,17 @@
+<div id="ph-veto" class="hidden-state flex flex-col gap-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h3 id="veto-title" class="font-display font-black text-2xl text-white">Map Pool</h3>
+      <p id="veto-instr" class="text-sm font-bold mt-1 ac">Waiting for veto turn.</p>
+    </div>
+    <div class="glass px-4 py-2.5 rounded-xl text-right">
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Phase</p>
+      <p id="veto-timer" class="font-mono text-lg text-white font-bold">LIVE</p>
+    </div>
+  </div>
+  <div id="map-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+  <div class="glass p-4 rounded-xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">Veto Audit Log</h4>
+    <ul id="veto-log" class="space-y-1.5 text-xs font-mono text-gray-400"></ul>
+  </div>
+</div>

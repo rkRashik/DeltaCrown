@@ -1,0 +1,90 @@
+<div id="ph-result" class="hidden-state flex flex-col gap-4">
+  <div>
+    <h3 class="font-display font-black text-xl text-white mb-0.5">Match Result Submission</h3>
+    <p class="text-xs text-gray-500">Both captains submit independently. Matching scores lock the result. Proof screenshots are stored with each submission.</p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="result-cards">
+    <div class="result-team-card team-a" id="result-card-a">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div id="result-logo-a" class="w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-sm" style="background:rgba(var(--ar),var(--ag),var(--ab),.2);color:var(--ac)">A</div>
+          <div>
+            <p class="text-xs font-bold text-white" id="result-name-a">Team A</p>
+            <p class="text-[9px] font-mono uppercase tracking-widest" style="color:var(--ac)">Side A Submission</p>
+          </div>
+        </div>
+        <span class="sub-status pending" id="sub-status-a"><span>●</span>Pending</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <p class="section-label mb-1">Score For</p>
+          <input type="number" id="score-a" min="0" max="99" placeholder="0" class="compact-input text-center">
+        </div>
+        <div>
+          <p class="section-label mb-1">Score Against</p>
+          <input type="number" id="score-a-opp" min="0" max="99" placeholder="0" class="compact-input text-center">
+        </div>
+      </div>
+
+      <div id="extra-fields-a" class="space-y-2 mb-3"></div>
+
+      <input type="file" id="upload-input-a" class="hidden" accept="image/*">
+      <div class="upload-zone mb-3" id="upload-a">
+        <i data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+        <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+        <p class="text-[9px] text-gray-600 mt-0.5">PNG or JPG, up to 10MB</p>
+      </div>
+
+      <button id="submit-btn-a" class="w-full py-2.5 text-black font-black uppercase tracking-widest text-xs rounded-xl" style="background:var(--ac)">Submit Side A Result</button>
+    </div>
+
+    <div class="result-team-card team-b" id="result-card-b">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div id="result-logo-b" class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center font-display font-black text-sm text-red-300">B</div>
+          <div>
+            <p class="text-xs font-bold text-white" id="result-name-b">Team B</p>
+            <p class="text-[9px] font-mono uppercase tracking-widest text-red-300">Side B Submission</p>
+          </div>
+        </div>
+        <span class="sub-status pending" id="sub-status-b"><span>●</span>Pending</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <p class="section-label mb-1">Score For</p>
+          <input type="number" id="score-b" min="0" max="99" placeholder="0" class="compact-input text-center">
+        </div>
+        <div>
+          <p class="section-label mb-1">Score Against</p>
+          <input type="number" id="score-b-opp" min="0" max="99" placeholder="0" class="compact-input text-center">
+        </div>
+      </div>
+
+      <div id="extra-fields-b" class="space-y-2 mb-3"></div>
+
+      <input type="file" id="upload-input-b" class="hidden" accept="image/*">
+      <div class="upload-zone mb-3" id="upload-b">
+        <i data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+        <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+        <p class="text-[9px] text-gray-600 mt-0.5">PNG or JPG, up to 10MB</p>
+      </div>
+
+      <button id="submit-btn-b" class="w-full py-2.5 bg-red-500 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-600 transition-colors">Submit Side B Result</button>
+    </div>
+  </div>
+
+  <div id="result-verify" class="hidden-state glass rounded-xl p-5 text-center">
+    <h4 class="font-display font-bold text-base text-white mb-1">Awaiting Opponent Confirmation</h4>
+    <p class="text-xs text-gray-400" id="verify-status-text">Waiting for the other side to submit their result.</p>
+  </div>
+
+  <div id="result-success" class="hidden-state bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center">
+    <div class="w-12 h-12 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center mx-auto mb-3"><i data-lucide="check-check" class="w-6 h-6 text-green-300"></i></div>
+    <h4 class="font-display font-black text-xl text-white mb-1">Result Verified</h4>
+    <p class="text-xs text-gray-400 mb-4">Both sides submitted matching scores. Bracket progression can continue.</p>
+    <div id="final-score-display" class="flex items-center justify-center gap-4 font-display font-black text-4xl py-4 px-6 rounded-xl border border-white/5 mb-4" style="background:rgba(0,0,0,.5)"></div>
+  </div>
+</div>

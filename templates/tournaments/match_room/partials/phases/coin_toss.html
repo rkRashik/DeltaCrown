@@ -1,0 +1,32 @@
+<div id="ph-discord" class="flex flex-col gap-3">
+  <div id="proxy-banner" class="proxy-banner hidden-state">
+    <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(255,184,0,.15);border:1px solid rgba(255,184,0,.3)"><i data-lucide="user-cog" class="w-3.5 h-3.5" style="color:#ffb800"></i></div>
+    <div class="flex-1 min-w-0">
+      <p class="text-[10px] font-bold uppercase tracking-widest" style="color:#ffb800">Proxy Mode Active</p>
+      <p class="text-[9px] text-gray-400">Organizer actions are being executed as selected side.</p>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button id="proxy-btn-a" class="proxy-acting-btn active-a">Act as Team A</button>
+      <button id="proxy-btn-b" class="proxy-acting-btn inactive">Act as Team B</button>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl p-8 text-center relative overflow-hidden" style="border-top:2px solid var(--ac)">
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,rgba(var(--ar),var(--ag),var(--ab),.06) 0%,transparent 65%)"></div>
+    <h3 id="toss-headline" class="font-display font-black text-2xl text-white mb-1 relative z-10">Official Coin Toss</h3>
+    <p id="toss-sub" class="text-sm text-gray-400 mb-6 relative z-10">Resolve first control priority for match setup.</p>
+    <div class="coin-wrap mb-6 relative z-10">
+      <div class="coin" id="the-coin">
+        <div class="coin-face coin-a" id="coin-a-face">A</div>
+        <div class="coin-face coin-b" id="coin-b-face">B</div>
+      </div>
+    </div>
+    <div id="toss-actions" class="relative z-10"><button id="btn-coin-toss" class="px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-gray-200 transition-all rounded-xl">Initiate Coin Toss</button></div>
+    <div id="toss-result" class="hidden-state relative z-10">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-sm font-bold uppercase tracking-widest border ac-bg ac-bd ac">
+        <i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="toss-winner-text">Side 1 won first control</span>
+      </div>
+      <div><button id="btn-proceed-after-toss" class="px-8 py-3.5 font-black uppercase tracking-widest text-sm transition-all rounded-xl" style="background:var(--ac);color:#000">Proceed to Match Setup</button></div>
+    </div>
+  </div>
+</div>
