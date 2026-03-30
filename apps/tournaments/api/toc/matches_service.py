@@ -98,6 +98,7 @@ class TOCMatchesService:
 
         qs = qs.only(
             'id',
+            'tournament_id',
             'round_number',
             'match_number',
             'participant1_id',
