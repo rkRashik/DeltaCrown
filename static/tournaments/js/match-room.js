@@ -43,6 +43,10 @@
     reconnectTimer: null,
     presenceTimer: null,
     fallbackSyncTimer: null,
+    noShowDeadlineMs: 0,
+    noShowTimer: null,
+    navHidden: false,
+    lastMainScrollTop: 0,
     activeDesktopTab: 'chat',
     activeMobileTab: 'engine',
     chatIds: new Set(),
@@ -58,6 +62,9 @@
     waitingCopy: byId('waiting-copy'),
     waitingYouDot: byId('waiting-you-dot'),
     waitingOpponentDot: byId('waiting-opponent-dot'),
+    waitingOpponentName: byId('waiting-opponent-name'),
+    waitingNoShowTimer: byId('waiting-noshow-timer'),
+    topNav: byId('room-top-nav'),
     navBackLink: byId('nav-back-link'),
     navMatchId: byId('nav-match-id'),
     navTourneyName: byId('nav-tourney-name'),
@@ -105,7 +112,9 @@
 
   function init() {
     bindStaticEvents();
+    ensureNoShowTicker();
     renderAll();
+    initMobileTopNavBehavior();
     connectSocket();
     startPresenceHeartbeat();
     startFallbackSync();
@@ -200,6 +209,134 @@
       return 'now';
     }
     return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function parseTimestamp(value) {
+    if (!value) {
+      return 0;
+    }
+    const dt = new Date(value);
+    const ts = dt.getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function resolveNoShowDeadlineMs() {
+    const checkIn = asObject(state.room.check_in);
+    const checkInClose = parseTimestamp(checkIn.closes_at);
+    if (checkInClose > 0) {
+      return checkInClose;
+    }
+
+    const match = asObject(state.room.match);
+    const scheduled = parseTimestamp(match.scheduled_time);
+    if (scheduled > 0) {
+      return scheduled + (15 * 60 * 1000);
+    }
+
+    return nowMs() + (15 * 60 * 1000);
+  }
+
+  function formatCountdown(msRemaining) {
+    const safe = Math.max(0, msRemaining);
+    const totalSeconds = Math.ceil(safe / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function renderNoShowTimer() {
+    if (!elements.waitingNoShowTimer) {
+      return;
+    }
+
+    const deadline = state.noShowDeadlineMs || resolveNoShowDeadlineMs();
+    const msRemaining = Math.max(0, deadline - nowMs());
+    elements.waitingNoShowTimer.textContent = formatCountdown(msRemaining);
+  }
+
+  function ensureNoShowTicker() {
+    const nextDeadline = resolveNoShowDeadlineMs();
+
+    if (!state.noShowDeadlineMs || Math.abs(state.noShowDeadlineMs - nextDeadline) > 5000) {
+      state.noShowDeadlineMs = nextDeadline;
+    }
+
+    if (!state.noShowTimer) {
+      state.noShowTimer = window.setInterval(function () {
+        renderNoShowTimer();
+      }, 1000);
+    }
+
+    renderNoShowTimer();
+  }
+
+  function updateMobileOverlayTopOffset() {
+    if (!elements.mobilePanelOverlay || !elements.topNav) {
+      return;
+    }
+
+    if (window.innerWidth >= 1024) {
+      elements.mobilePanelOverlay.style.top = '64px';
+      return;
+    }
+
+    const navHeight = state.navHidden
+      ? 0
+      : Math.max(0, Math.round(elements.topNav.getBoundingClientRect().height || 56));
+    elements.mobilePanelOverlay.style.top = `${navHeight}px`;
+  }
+
+  function setMobileTopNavHidden(hidden) {
+    if (!elements.topNav) {
+      return;
+    }
+
+    const shouldHide = Boolean(hidden) && window.innerWidth < 1024;
+    state.navHidden = shouldHide;
+    elements.topNav.classList.toggle('nav-hidden', shouldHide);
+    updateMobileOverlayTopOffset();
+  }
+
+  function handleMainScrollForNav() {
+    if (!elements.mainScroll || window.innerWidth >= 1024) {
+      setMobileTopNavHidden(false);
+      return;
+    }
+
+    const current = Math.max(0, elements.mainScroll.scrollTop || 0);
+    const delta = current - state.lastMainScrollTop;
+
+    if (current <= 8) {
+      setMobileTopNavHidden(false);
+    } else if (delta > 6) {
+      setMobileTopNavHidden(true);
+    } else if (delta < -6) {
+      setMobileTopNavHidden(false);
+    }
+
+    state.lastMainScrollTop = current;
+  }
+
+  function initMobileTopNavBehavior() {
+    if (!elements.mainScroll || !elements.topNav) {
+      return;
+    }
+
+    elements.mainScroll.addEventListener('scroll', handleMainScrollForNav, { passive: true });
+
+    window.addEventListener('resize', function () {
+      if (window.innerWidth >= 1024) {
+        setMobileTopNavHidden(false);
+      }
+      updateMobileOverlayTopOffset();
+    }, { passive: true });
+
+    updateMobileOverlayTopOffset();
   }
 
   function initials(name) {
@@ -485,6 +622,7 @@
     }
 
     state.room = normalized;
+    ensureNoShowTicker();
     renderAll();
   }
 
@@ -805,9 +943,15 @@
   function renderCheckInChip(side, checkedIn, online) {
     const participant = participantForSide(side);
     const name = String(participant.name || `Side ${side}`);
-    const checkedText = checkedIn ? 'Checked In' : 'Pending';
-    const checkedClass = checkedIn ? 'text-green-300 border-green-400/30 bg-green-500/10' : 'text-amber-200 border-amber-400/20 bg-amber-500/10';
-    const onlineClass = online ? 'bg-emerald-400' : 'bg-gray-600';
+    const isLocalConnected = side === mySide() && state.wsConnected;
+    const effectiveOnline = Boolean(online || isLocalConnected);
+    const checkedText = checkedIn ? 'Ready' : (effectiveOnline ? 'Online' : 'Pending');
+    const checkedClass = checkedIn
+      ? 'text-green-300 border-green-400/30 bg-green-500/10'
+      : (effectiveOnline
+        ? 'text-cyan-200 border-cyan-400/25 bg-cyan-500/10'
+        : 'text-amber-200 border-amber-400/20 bg-amber-500/10');
+    const onlineClass = effectiveOnline ? 'bg-emerald-400' : 'bg-gray-600';
 
     return `
       <div class="rounded-xl border border-white/10 bg-black/35 p-3">
@@ -1217,9 +1361,12 @@
       }
     }
 
-    const meOnline = sideOnline(side);
+    const meOnline = sideOnline(side) || state.wsConnected;
     const oppOnline = sideOnline(oppSide);
     const bothOnline = meOnline && oppOnline;
+    const opponent = participantForSide(oppSide);
+
+    ensureNoShowTicker();
 
     if (elements.waitingYouDot) {
       elements.waitingYouDot.className = `w-2.5 h-2.5 rounded-full ${meOnline ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]' : 'bg-gray-600'}`;
@@ -1227,6 +1374,10 @@
 
     if (elements.waitingOpponentDot) {
       elements.waitingOpponentDot.className = `w-2.5 h-2.5 rounded-full ${oppOnline ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]' : 'bg-gray-600'}`;
+    }
+
+    if (elements.waitingOpponentName) {
+      elements.waitingOpponentName.textContent = String(opponent.name || 'Opponent');
     }
 
     if (elements.waitingCopy) {
@@ -1418,6 +1569,7 @@
       if (elements.mainScroll) {
         elements.mainScroll.style.display = '';
       }
+      setMobileTopNavHidden(false);
       return;
     }
 
@@ -1428,6 +1580,8 @@
     if (elements.mobilePanelOverlay) {
       elements.mobilePanelOverlay.classList.remove('hidden-state');
     }
+
+    updateMobileOverlayTopOffset();
 
     if (!elements.mobilePanelContent) {
       return;
@@ -1770,6 +1924,8 @@
       sendSocket({ type: 'subscribe' });
       sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
       updatePresenceLocal(mySide(), true, 'online');
+      renderHeader();
+      renderEngine();
       updateWaitingOverlay();
       showToast('Socket connected.', 'success');
     });
@@ -1789,6 +1945,8 @@
       state.wsConnected = false;
       updateSocketPill();
       updatePresenceLocal(mySide(), false, 'offline');
+      renderHeader();
+      renderEngine();
       updateWaitingOverlay();
       scheduleReconnect();
     });
@@ -1834,6 +1992,7 @@
       state.room.presence = normalized;
       state.room.workflow.presence = normalized;
       renderHeader();
+      renderEngine();
       updateWaitingOverlay();
       return;
     }

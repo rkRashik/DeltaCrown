@@ -198,6 +198,17 @@ class TournamentDetailView(DetailView):
         # Phase-specific context
         context.update(self._get_phase_context(tournament, user))
 
+        # Live tournaments should route participants directly into their active
+        # match room whenever a next match is available.
+        if tournament.status == 'live' and context.get('is_registered'):
+            user_next_match = context.get('user_next_match')
+            if user_next_match is not None:
+                context['registration_action_url'] = reverse(
+                    'tournaments:match_room',
+                    kwargs={'slug': tournament.slug, 'match_id': user_next_match.id},
+                )
+                context['registration_action_label'] = 'Go to Your Match'
+
         # Detailed registration status (wire up the dead code at _get_registration_status)
         if user.is_authenticated and context.get('is_registered'):
             try:
@@ -348,7 +359,7 @@ class TournamentDetailView(DetailView):
                     pid = user_reg.team_id or user.id
                     user_next = Match.objects.filter(
                         tournament=tournament, is_deleted=False,
-                        state__in=['scheduled', 'check_in', 'ready', 'live']
+                        state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result']
                     ).filter(
                         Q(participant1_id=pid) | Q(participant2_id=pid)
                     ).order_by('round_number', 'match_number').first()
@@ -1349,7 +1360,7 @@ def _mobile_cta_payload(tournament, user):
                     Match.objects.filter(
                         tournament=tournament,
                         is_deleted=False,
-                        state__in=['scheduled', 'check_in', 'ready', 'live'],
+                        state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result'],
                     )
                     .filter(Q(participant1_id=participant_id) | Q(participant2_id=participant_id))
                     .order_by('round_number', 'match_number')

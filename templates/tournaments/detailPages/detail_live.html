@@ -112,8 +112,8 @@ Inspired by FotMob live matches + VCT brackets:
             </div>
         </div>
         <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-           class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform duration-200 hover:scale-105 active:scale-95"
-           style="background: var(--game-color); color: black; box-shadow: 0 0 18px rgba(var(--game-color-rgb), 0.36);">
+              class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 hover:scale-110 active:scale-95 animate-pulse shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_28px_rgba(0,240,255,0.55)]"
+              style="background: var(--game-color); color: black; box-shadow: 0 0 22px rgba(var(--game-color-rgb), 0.42);">
             {% if user_next_match.state == 'live' %}Enter Lobby{% else %}Open Lobby{% endif %}
         </a>
     </div>
@@ -366,13 +366,13 @@ Inspired by FotMob live matches + VCT brackets:
 <div class="space-y-2">
     {% if user_next_match %}
     <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-transform duration-200 animate-pulse hover:scale-105 active:scale-95"
-       style="background: var(--game-color); color: black; box-shadow: 0 0 20px rgba(var(--game-color-rgb), 0.4);">
+         class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-all duration-200 animate-pulse hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.55)]"
+         style="background: var(--game-color); color: black; box-shadow: 0 0 24px rgba(var(--game-color-rgb), 0.46);">
         Enter Lobby
     </a>
     <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-       class="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-transform duration-200 hover:scale-105 active:scale-95"
-       style="background: rgba(var(--game-color-rgb), 0.12); border: 1px solid rgba(var(--game-color-rgb), 0.35); color: rgb(var(--game-color-rgb)); box-shadow: 0 0 16px rgba(var(--game-color-rgb), 0.32);">
+         class="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(0,240,255,0.32)] hover:shadow-[0_0_28px_rgba(0,240,255,0.46)]"
+         style="background: rgba(var(--game-color-rgb), 0.16); border: 1px solid rgba(var(--game-color-rgb), 0.4); color: rgb(var(--game-color-rgb)); box-shadow: 0 0 18px rgba(var(--game-color-rgb), 0.38);">
         Go to Your Match →
     </a>
     {% else %}
