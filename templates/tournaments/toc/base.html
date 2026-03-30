@@ -2625,14 +2625,15 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-check-in" data-field="require_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncCheckInVisibility()"> Require Check-In</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="check_in_per_round" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Re-check Every Round</label>
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="require_coin_toss" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Coin Toss</label>
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="require_map_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Map Veto</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-coin-toss" data-field="require_coin_toss" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Coin Toss</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-map-veto" data-field="require_map_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Map Veto</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_dynamic_seeding" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Dynamic Seeding</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_live_updates" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Live Updates</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_certificates" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Certificates</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_challenges" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Challenges</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="enable_fan_voting" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Enable Fan Voting</label>
                         </div>
+                        <p id="lobby-capability-hint" class="hidden mt-3 text-[11px] text-dc-text/80"></p>
                         <div id="check-in-window" class="mt-4 pt-3 border-t border-dc-border grid grid-cols-1 sm:grid-cols-2 gap-4 hidden">
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Check-In Opens (min before start)</label>
@@ -2646,6 +2647,7 @@
                         <div class="mt-4 pt-3 border-t border-dc-border">
                             <label class="block text-xs text-dc-text mb-1">Lobby Per-Round Overrides (JSON)</label>
                             <textarea
+                                id="lobby-round-overrides-input"
                                 data-field="lobby_round_overrides"
                                 rows="4"
                                 class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50 font-mono"

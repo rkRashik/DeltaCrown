@@ -818,6 +818,7 @@
                     ? JSON.stringify(overridesValue, null, 2)
                     : String(overridesValue || '');
                 setVal(feat, 'lobby_round_overrides', overridesJson);
+                applyLobbyCapabilities(s.features.lobby_capabilities || null);
             }
             // Social & Contact
             const social = document.getElementById('settings-social');
@@ -1035,6 +1036,95 @@
         _refreshGlobalDirtyFromSections();
     }
 
+    function _fallbackLobbyCapabilitiesFromGameContext () {
+        const cat = String(CFG().gameCategory || 'OTHER').toUpperCase();
+        const gt = String(CFG().gameType || 'TEAM_VS_TEAM').toUpperCase();
+
+        let phaseMode = 'veto';
+        if (cat === 'MOBA') {
+            phaseMode = 'draft';
+        } else if (cat === 'BR' || cat === 'SPORTS' || gt === 'BATTLE_ROYALE' || gt === 'FREE_FOR_ALL' || gt === '1V1') {
+            phaseMode = 'direct';
+        }
+
+        return {
+            phase_mode: phaseMode,
+            supports_coin_toss: phaseMode === 'veto' || phaseMode === 'draft',
+            supports_map_veto: phaseMode === 'veto',
+            reference: 'Game category fallback',
+        };
+    }
+
+    function _setLobbyToggleAvailability (inputEl, allowed, disabledReason) {
+        if (!inputEl) return;
+        const enabled = !!allowed;
+        inputEl.disabled = !enabled;
+        if (!enabled) inputEl.checked = false;
+
+        inputEl.classList.toggle('opacity-50', !enabled);
+        const label = inputEl.closest('label');
+        if (label) {
+            label.classList.toggle('opacity-60', !enabled);
+            if (!enabled && disabledReason) {
+                label.setAttribute('title', disabledReason);
+            } else {
+                label.removeAttribute('title');
+            }
+        }
+    }
+
+    function applyLobbyCapabilities (capabilities) {
+        const feat = document.getElementById('settings-features');
+        if (!feat) return;
+
+        const cap = (capabilities && typeof capabilities === 'object')
+            ? capabilities
+            : _fallbackLobbyCapabilitiesFromGameContext();
+
+        const phaseMode = String(cap.phase_mode || 'veto').toLowerCase();
+        const supportsCoinToss = !!cap.supports_coin_toss;
+        const supportsMapVeto = !!cap.supports_map_veto;
+        const reference = String(cap.reference || '').trim();
+
+        const coinInput = feat.querySelector('[data-field="require_coin_toss"]');
+        const mapInput = feat.querySelector('[data-field="require_map_veto"]');
+
+        _setLobbyToggleAvailability(
+            coinInput,
+            supportsCoinToss,
+            'Coin toss is disabled for this game lobby flow.',
+        );
+        _setLobbyToggleAvailability(
+            mapInput,
+            supportsMapVeto,
+            'Map veto is disabled for this game lobby flow.',
+        );
+
+        const hintEl = document.getElementById('lobby-capability-hint');
+        if (hintEl) {
+            let baseMessage = 'This game uses map-veto lobby flow. Coin toss and map veto are available.';
+            if (phaseMode === 'draft') {
+                baseMessage = 'This game uses draft lobby flow. Map veto is disabled.';
+            } else if (phaseMode === 'direct') {
+                baseMessage = 'This game uses direct-ready lobby flow. Coin toss and map veto are disabled.';
+            }
+
+            hintEl.textContent = reference ? `${baseMessage} Source: ${reference}.` : baseMessage;
+            hintEl.classList.remove('hidden');
+        }
+
+        const overridesInput = document.getElementById('lobby-round-overrides-input');
+        if (overridesInput) {
+            if (phaseMode === 'direct') {
+                overridesInput.placeholder = '{"2": {"require_check_in": true}}';
+            } else if (phaseMode === 'draft') {
+                overridesInput.placeholder = '{"2": {"require_check_in": true, "require_coin_toss": false}}';
+            } else {
+                overridesInput.placeholder = '{"2": {"require_coin_toss": false, "require_map_veto": false}}';
+            }
+        }
+    }
+
     /* ==================================================================
      * GAME-AWARE VISIBILITY
      * ================================================================== */
@@ -1053,6 +1143,8 @@
         // Map Pool: hide for games without maps
         const mapSection = document.getElementById('settings-mappool-section');
         if (mapSection) mapSection.classList.toggle('hidden', noMaps);
+
+        applyLobbyCapabilities(null);
     }
 
     /* ==================================================================

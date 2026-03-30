@@ -43,6 +43,11 @@ from apps.tournaments.models.game_config import (
     ServerRegion,
 )
 from apps.tournaments.models.payment_config import TournamentPaymentMethod
+from apps.tournaments.services.lobby_policy_profile import (
+    apply_lobby_policy_capabilities,
+    clamp_lobby_round_overrides,
+    resolve_lobby_game_profile,
+)
 
 logger = logging.getLogger("toc.settings")
 
@@ -85,7 +90,41 @@ class TOCSettingsService:
     }
 
     @staticmethod
-    def _normalize_lobby_round_overrides(raw_overrides: Any) -> dict[str, dict[str, bool]]:
+    def _coerce_bool(value: Any, default: bool = False) -> bool:
+        if value is None:
+            return bool(default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+
+        token = str(value).strip().lower()
+        if token in {"1", "true", "yes", "y", "on"}:
+            return True
+        if token in {"0", "false", "no", "n", "off", ""}:
+            return False
+        return bool(default)
+
+    @staticmethod
+    def _lobby_capabilities_for_tournament(tournament: Tournament) -> dict[str, Any]:
+        return resolve_lobby_game_profile(getattr(tournament, "game", None))
+
+    @staticmethod
+    def _serialize_lobby_capabilities(capabilities: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "phase_mode": str(capabilities.get("phase_mode") or "veto"),
+            "supports_coin_toss": bool(capabilities.get("supports_coin_toss", True)),
+            "supports_map_veto": bool(capabilities.get("supports_map_veto", True)),
+            "canonical_game_key": str(capabilities.get("canonical_game_key") or ""),
+            "reference": str(capabilities.get("reference") or ""),
+        }
+
+    @staticmethod
+    def _normalize_lobby_round_overrides(
+        raw_overrides: Any,
+        *,
+        capabilities: dict[str, Any] | None = None,
+    ) -> dict[str, dict[str, bool]]:
         """Normalize round override payload into {"1": {flag: bool}} shape."""
         if not isinstance(raw_overrides, dict):
             return {}
@@ -109,10 +148,13 @@ class TOCSettingsService:
             flag_row: dict[str, bool] = {}
             for field in TOCSettingsService.LOBBY_POLICY_OVERRIDE_FIELDS:
                 if field in raw_flags:
-                    flag_row[field] = bool(raw_flags.get(field))
+                    flag_row[field] = TOCSettingsService._coerce_bool(raw_flags.get(field), default=False)
 
             if flag_row:
                 normalized[round_key] = flag_row
+
+        if capabilities is not None:
+            normalized = clamp_lobby_round_overrides(normalized, capabilities)
 
         return normalized
 
@@ -123,17 +165,37 @@ class TOCSettingsService:
         if not isinstance(raw_policy, dict):
             raw_policy = {}
 
+        capabilities = TOCSettingsService._lobby_capabilities_for_tournament(tournament)
         checkin_cfg = config.get("checkin") if isinstance(config.get("checkin"), dict) else {}
+
+        defaults = {
+            "require_check_in": TOCSettingsService._coerce_bool(getattr(tournament, "enable_check_in", False), default=False),
+            "require_coin_toss": bool(capabilities.get("default_require_coin_toss", True)),
+            "require_map_veto": bool(capabilities.get("default_require_map_veto", True)),
+        }
+
+        flags = apply_lobby_policy_capabilities(
+            {
+                "require_check_in": TOCSettingsService._coerce_bool(raw_policy.get("require_check_in"), defaults["require_check_in"]),
+                "require_coin_toss": TOCSettingsService._coerce_bool(raw_policy.get("require_coin_toss"), defaults["require_coin_toss"]),
+                "require_map_veto": TOCSettingsService._coerce_bool(raw_policy.get("require_map_veto"), defaults["require_map_veto"]),
+            },
+            capabilities,
+        )
+
         return {
-            "require_check_in": bool(raw_policy.get("require_check_in", getattr(tournament, "enable_check_in", False))),
-            "require_coin_toss": bool(raw_policy.get("require_coin_toss", True)),
-            "require_map_veto": bool(raw_policy.get("require_map_veto", True)),
-            "check_in_per_round": bool(
-                raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False))
+            "require_check_in": bool(flags.get("require_check_in")),
+            "require_coin_toss": bool(flags.get("require_coin_toss")),
+            "require_map_veto": bool(flags.get("require_map_veto")),
+            "check_in_per_round": TOCSettingsService._coerce_bool(
+                raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False)),
+                default=False,
             ),
             "lobby_round_overrides": TOCSettingsService._normalize_lobby_round_overrides(
-                raw_policy.get("per_round_overrides", {})
+                raw_policy.get("per_round_overrides", {}),
+                capabilities=capabilities,
             ),
+            "lobby_capabilities": TOCSettingsService._serialize_lobby_capabilities(capabilities),
         }
 
     # ------------------------------------------------------------------
@@ -501,6 +563,7 @@ class TOCSettingsService:
                 "require_map_veto": lobby_policy["require_map_veto"],
                 "check_in_per_round": lobby_policy["check_in_per_round"],
                 "lobby_round_overrides": lobby_policy["lobby_round_overrides"],
+                "lobby_capabilities": lobby_policy["lobby_capabilities"],
                 "check_in_minutes_before": getattr(t, "check_in_minutes_before", 30),
                 "check_in_closes_minutes_before": getattr(t, "check_in_closes_minutes_before", 0),
                 "enable_dynamic_seeding": getattr(t, "enable_dynamic_seeding", False),
@@ -605,7 +668,12 @@ class TOCSettingsService:
                         }
                     }
 
-        field_errors, section_errors = TOCSettingsService._validate_settings_payload(data)
+        lobby_capabilities = TOCSettingsService._lobby_capabilities_for_tournament(tournament)
+
+        field_errors, section_errors = TOCSettingsService._validate_settings_payload(
+            data,
+            lobby_capabilities=lobby_capabilities,
+        )
         if field_errors or section_errors:
             return {
                 "error": {
@@ -628,24 +696,30 @@ class TOCSettingsService:
 
         # Backward/forward compatible aliases for check-in requirement.
         if "require_check_in" in data and "enable_check_in" not in data:
-            data["enable_check_in"] = bool(data.get("require_check_in"))
+            data["enable_check_in"] = TOCSettingsService._coerce_bool(data.get("require_check_in"), default=False)
         elif "enable_check_in" in data and "require_check_in" not in data:
-            data["require_check_in"] = bool(data.get("enable_check_in"))
+            data["require_check_in"] = TOCSettingsService._coerce_bool(data.get("enable_check_in"), default=False)
 
         if "require_check_in" in data:
-            lobby_policy["require_check_in"] = bool(data.get("require_check_in"))
+            lobby_policy["require_check_in"] = TOCSettingsService._coerce_bool(data.get("require_check_in"), default=False)
             config_changed = True
 
         if "require_coin_toss" in data:
-            lobby_policy["require_coin_toss"] = bool(data.get("require_coin_toss"))
+            lobby_policy["require_coin_toss"] = TOCSettingsService._coerce_bool(
+                data.get("require_coin_toss"),
+                default=bool(lobby_capabilities.get("default_require_coin_toss", True)),
+            )
             config_changed = True
 
         if "require_map_veto" in data:
-            lobby_policy["require_map_veto"] = bool(data.get("require_map_veto"))
+            lobby_policy["require_map_veto"] = TOCSettingsService._coerce_bool(
+                data.get("require_map_veto"),
+                default=bool(lobby_capabilities.get("default_require_map_veto", True)),
+            )
             config_changed = True
 
         if "check_in_per_round" in data:
-            per_round = bool(data.get("check_in_per_round"))
+            per_round = TOCSettingsService._coerce_bool(data.get("check_in_per_round"), default=False)
             lobby_policy["require_check_in_per_round"] = per_round
             checkin_cfg["per_round"] = per_round
             config["checkin"] = checkin_cfg
@@ -653,11 +727,47 @@ class TOCSettingsService:
 
         if "lobby_round_overrides" in data:
             lobby_policy["per_round_overrides"] = TOCSettingsService._normalize_lobby_round_overrides(
-                data.get("lobby_round_overrides")
+                data.get("lobby_round_overrides"),
+                capabilities=lobby_capabilities,
             )
             config_changed = True
 
         if config_changed:
+            defaults = {
+                "require_check_in": TOCSettingsService._coerce_bool(
+                    getattr(tournament, "enable_check_in", False),
+                    default=False,
+                ),
+                "require_coin_toss": bool(lobby_capabilities.get("default_require_coin_toss", True)),
+                "require_map_veto": bool(lobby_capabilities.get("default_require_map_veto", True)),
+            }
+
+            normalized_flags = apply_lobby_policy_capabilities(
+                {
+                    "require_check_in": TOCSettingsService._coerce_bool(
+                        lobby_policy.get("require_check_in"),
+                        default=defaults["require_check_in"],
+                    ),
+                    "require_coin_toss": TOCSettingsService._coerce_bool(
+                        lobby_policy.get("require_coin_toss"),
+                        default=defaults["require_coin_toss"],
+                    ),
+                    "require_map_veto": TOCSettingsService._coerce_bool(
+                        lobby_policy.get("require_map_veto"),
+                        default=defaults["require_map_veto"],
+                    ),
+                },
+                lobby_capabilities,
+            )
+
+            lobby_policy["require_check_in"] = normalized_flags["require_check_in"]
+            lobby_policy["require_coin_toss"] = normalized_flags["require_coin_toss"]
+            lobby_policy["require_map_veto"] = normalized_flags["require_map_veto"]
+            lobby_policy["per_round_overrides"] = TOCSettingsService._normalize_lobby_round_overrides(
+                lobby_policy.get("per_round_overrides", {}),
+                capabilities=lobby_capabilities,
+            )
+
             config[TOCSettingsService.LOBBY_POLICY_CONFIG_KEY] = lobby_policy
             tournament.config = config
 
@@ -683,7 +793,11 @@ class TOCSettingsService:
         }
 
     @staticmethod
-    def _validate_settings_payload(data: dict) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    def _validate_settings_payload(
+        data: dict,
+        *,
+        lobby_capabilities: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
         field_errors: dict[str, list[str]] = {}
         section_errors: dict[str, list[str]] = {}
 
@@ -866,6 +980,36 @@ class TOCSettingsService:
                 add_field_error("check_in_closes_minutes_before", "Check-in close offset cannot exceed the open window.")
                 add_section_error("settings-features", "Check-in close time exceeds the check-in open window.")
 
+        supports_coin_toss = True
+        supports_map_veto = True
+        phase_mode_label = "this game"
+        if isinstance(lobby_capabilities, dict):
+            supports_coin_toss = bool(lobby_capabilities.get("supports_coin_toss", True))
+            supports_map_veto = bool(lobby_capabilities.get("supports_map_veto", True))
+            phase_mode_label = str(lobby_capabilities.get("phase_mode") or phase_mode_label)
+
+        if (
+            "require_coin_toss" in data
+            and TOCSettingsService._coerce_bool(data.get("require_coin_toss"), default=False)
+            and not supports_coin_toss
+        ):
+            add_field_error(
+                "require_coin_toss",
+                f"Coin toss is not supported for {phase_mode_label} lobby flow.",
+            )
+            add_section_error("settings-features", "Coin toss is not available for this game.")
+
+        if (
+            "require_map_veto" in data
+            and TOCSettingsService._coerce_bool(data.get("require_map_veto"), default=False)
+            and not supports_map_veto
+        ):
+            add_field_error(
+                "require_map_veto",
+                f"Map veto is not supported for {phase_mode_label} lobby flow.",
+            )
+            add_section_error("settings-features", "Map veto is not available for this game.")
+
         lobby_round_overrides = data.get("lobby_round_overrides")
         if lobby_round_overrides is not None:
             if not isinstance(lobby_round_overrides, dict):
@@ -907,6 +1051,32 @@ class TOCSettingsService:
                             (
                                 f'Round override "{round_key}" contains unsupported fields: '
                                 f'{", ".join(unknown_flags)}.'
+                            ),
+                        )
+
+                    if (
+                        "require_coin_toss" in raw_flags
+                        and TOCSettingsService._coerce_bool(raw_flags.get("require_coin_toss"), default=False)
+                        and not supports_coin_toss
+                    ):
+                        add_field_error(
+                            "lobby_round_overrides",
+                            (
+                                f'Round override "{round_key}" cannot enable coin toss '
+                                f'for {phase_mode_label} lobby flow.'
+                            ),
+                        )
+
+                    if (
+                        "require_map_veto" in raw_flags
+                        and TOCSettingsService._coerce_bool(raw_flags.get("require_map_veto"), default=False)
+                        and not supports_map_veto
+                    ):
+                        add_field_error(
+                            "lobby_round_overrides",
+                            (
+                                f'Round override "{round_key}" cannot enable map veto '
+                                f'for {phase_mode_label} lobby flow.'
                             ),
                         )
 

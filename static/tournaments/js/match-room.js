@@ -66,6 +66,30 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function coerceBool(value, fallback) {
+    if (value == null) {
+      return !!fallback;
+    }
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+
+    const token = String(value).trim().toLowerCase();
+    if (token === '1' || token === 'true' || token === 'yes' || token === 'y' || token === 'on') {
+      return true;
+    }
+    if (token === '0' || token === 'false' || token === 'no' || token === 'n' || token === 'off' || token === '') {
+      return false;
+    }
+
+    return !!fallback;
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -102,11 +126,18 @@
     const wfPolicy = wf.policy && typeof wf.policy === 'object' ? wf.policy : null;
     const root = pipelinePolicy || wfPolicy || {};
     const effective = root.effective && typeof root.effective === 'object' ? root.effective : root;
+    const capabilities = root.capabilities && typeof root.capabilities === 'object' ? root.capabilities : {};
+    const mode = currentMode();
+
+    const supportsCoinToss = coerceBool(capabilities.supports_coin_toss, mode !== 'direct');
+    const supportsMapVeto = coerceBool(capabilities.supports_map_veto, mode === 'veto');
+    const requireCoinToss = supportsCoinToss && coerceBool(effective.require_coin_toss, supportsCoinToss);
+    const requireMapVeto = supportsMapVeto && coerceBool(effective.require_map_veto, supportsMapVeto);
 
     return {
-      require_check_in: !!effective.require_check_in,
-      require_coin_toss: effective.require_coin_toss !== false,
-      require_map_veto: effective.require_map_veto !== false,
+      require_check_in: coerceBool(effective.require_check_in, false),
+      require_coin_toss: requireCoinToss,
+      require_map_veto: requireMapVeto,
     };
   }
 
@@ -148,13 +179,21 @@
       const mode = currentMode();
       resolvedKind = mode === 'draft' || mode === 'direct' ? mode : 'veto';
     }
+
+    if (resolvedKind === 'direct') {
+      filtered = filtered.filter((phase) => phase !== 'coin_toss');
+      if (!filtered.includes('phase1')) {
+        filtered.unshift('phase1');
+      }
+    }
+
     if (resolvedKind === 'veto' && !policy.require_map_veto) {
       filtered = filtered.filter((phase) => phase !== 'phase1');
     }
 
     if (!filtered.length) {
       filtered = PHASE_ORDER_FALLBACK.filter((phase) => {
-        if (phase === 'coin_toss' && !policy.require_coin_toss) {
+        if (phase === 'coin_toss' && (resolvedKind === 'direct' || !policy.require_coin_toss)) {
           return false;
         }
         if (phase === 'phase1' && resolvedKind === 'veto' && !policy.require_map_veto) {
@@ -172,6 +211,11 @@
     const wf = getWorkflow();
     const fallback = phaseOrder[0] || 'coin_toss';
     const phase = String(wf.phase || fallback);
+
+    if (currentMode() === 'direct' && phase === 'coin_toss' && phaseOrder.includes('phase1')) {
+      return 'phase1';
+    }
+
     return phaseOrder.includes(phase) ? phase : fallback;
   }
 
@@ -2297,7 +2341,7 @@
     }
 
     const phaseOrder = getPhaseOrder();
-    if (action === 'coin_toss' && !phaseOrder.includes('coin_toss')) {
+    if (action === 'coin_toss' && (currentMode() === 'direct' || !phaseOrder.includes('coin_toss'))) {
       if (!silent) {
         showToast('Coin toss is disabled by TOC policy for this round.', 'error');
       }
@@ -3097,6 +3141,13 @@
   }
 
   function bootstrap() {
+    console.log('[Match-Room] Initializing v2...', {
+      mode: currentMode(),
+      phase: currentPhase(),
+      workflowPhase: (room.workflow || {}).phase,
+      roomUrls: room.urls,
+    });
+    
     loadDraftState();
     _loadEntryGateState();
     state.activeTab = 'chat';

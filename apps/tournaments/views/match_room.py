@@ -35,35 +35,24 @@ from django.views import View
 from django.views.generic import DetailView
 
 from apps.tournaments.models import Match, MatchResultSubmission
+from apps.tournaments.services.lobby_policy_profile import (
+    apply_lobby_policy_capabilities,
+    clamp_lobby_round_overrides,
+    resolve_lobby_game_profile,
+)
 
 logger = logging.getLogger(__name__)
 
 WORKFLOW_KEY = "premium_lobby_workflow"
 
-DRAFT_GAME_KEYS = {
-    "dota2",
-    "mlbb",
-    "leagueoflegends",
-    "lol",
-}
-
-DIRECT_GAME_KEYS = {
-    "pubg",
-    "pubgm",
-    "pubgmobile",
-    "freefire",
-    "apexlegends",
-    "fifa",
-    "fc26",
-    "efootball",
-}
-
 DEFAULT_MAP_POOLS = {
     "valorant": ["Ascent", "Bind", "Haven", "Split", "Icebox", "Lotus", "Sunset"],
     "cs2": ["Mirage", "Inferno", "Dust II", "Nuke", "Overpass", "Vertigo", "Ancient"],
+    "r6siege": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
     "r6": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
     "codm": ["Hijacked", "Standoff", "Nuketown", "Scrapyard", "Crash"],
     "rocketleague": ["DFH Stadium", "Mannfield", "Champions Field", "Utopia Coliseum", "AquaDome"],
+    "pubgm": ["Erangel", "Miramar", "Sanhok", "Vikendi"],
     "pubgmobile": ["Erangel", "Miramar", "Sanhok", "Vikendi"],
     "freefire": ["Bermuda", "Purgatory", "Kalahari", "Alpine"],
 }
@@ -197,23 +186,8 @@ def _default_draft_sequence() -> List[Dict[str, Any]]:
 
 
 def _determine_phase_mode(match: Match) -> str:
-    game = getattr(match.tournament, "game", None)
-    game_slug = _normalize_game_slug(getattr(game, "slug", ""))
-    game_key = _compact_game_key(game_slug)
-
-    if game_key in DRAFT_GAME_KEYS:
-        return "draft"
-
-    category = str(getattr(game, "category", "") or "").upper()
-    game_type = str(getattr(game, "game_type", "") or "").upper()
-    if (
-        game_key in DIRECT_GAME_KEYS
-        or category in {"BR", "SPORTS"}
-        or game_type in {"BATTLE_ROYALE", "FREE_FOR_ALL"}
-    ):
-        return "direct"
-
-    return "veto"
+    profile = resolve_lobby_game_profile(getattr(match.tournament, "game", None))
+    return str(profile.get("phase_mode") or "veto")
 
 
 def _load_config_pools(match: Match) -> Tuple[List[str], List[str]]:
@@ -279,7 +253,7 @@ def _normalize_round_overrides(raw_overrides: Any) -> Dict[str, Dict[str, bool]]
 def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
     tournament = match.tournament
     game = getattr(tournament, "game", None)
-    game_category = str(getattr(game, "category", "") or "").upper()
+    game_profile = resolve_lobby_game_profile(game)
 
     config = tournament.config if isinstance(tournament.config, dict) else {}
     checkin_cfg = config.get("checkin") if isinstance(config.get("checkin"), dict) else {}
@@ -287,18 +261,21 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
 
     defaults = {
         "require_check_in": _coerce_bool(getattr(tournament, "enable_check_in", False), default=False),
-        "require_coin_toss": bool(game_category not in {"BR", "SPORTS"}),
-        "require_map_veto": bool(game_category not in {"BR", "SPORTS"}),
+        "require_coin_toss": bool(game_profile.get("default_require_coin_toss", True)),
+        "require_map_veto": bool(game_profile.get("default_require_map_veto", True)),
     }
 
-    base = {
+    base = apply_lobby_policy_capabilities({
         "require_check_in": _coerce_bool(raw_policy.get("require_check_in"), defaults["require_check_in"]),
         "require_coin_toss": _coerce_bool(raw_policy.get("require_coin_toss"), defaults["require_coin_toss"]),
         "require_map_veto": _coerce_bool(raw_policy.get("require_map_veto"), defaults["require_map_veto"]),
-    }
+    }, game_profile)
 
     per_round = _coerce_bool(raw_policy.get("require_check_in_per_round"), _coerce_bool(checkin_cfg.get("per_round"), False))
-    round_overrides = _normalize_round_overrides(raw_policy.get("per_round_overrides", {}))
+    round_overrides = clamp_lobby_round_overrides(
+        _normalize_round_overrides(raw_policy.get("per_round_overrides", {})),
+        game_profile,
+    )
 
     effective = dict(base)
     wildcard_override = _safe_dict(round_overrides.get("*"))
@@ -312,11 +289,28 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
     if per_round:
         effective["require_check_in"] = True
 
+    # Global base toggles are authoritative disables. Round overrides can
+    # tighten policy per-round but should not silently re-enable disabled
+    # phases from the organizer's base lobby settings.
+    if not bool(base.get("require_coin_toss")):
+        effective["require_coin_toss"] = False
+    if not bool(base.get("require_map_veto")):
+        effective["require_map_veto"] = False
+
+    effective = apply_lobby_policy_capabilities(effective, game_profile)
+
     return {
         "base": base,
         "effective": effective,
         "check_in_per_round": per_round,
         "round_overrides": round_overrides,
+        "capabilities": {
+            "phase_mode": str(game_profile.get("phase_mode") or "veto"),
+            "supports_coin_toss": bool(game_profile.get("supports_coin_toss", True)),
+            "supports_map_veto": bool(game_profile.get("supports_map_veto", True)),
+            "canonical_game_key": str(game_profile.get("canonical_game_key") or ""),
+            "reference": str(game_profile.get("reference") or ""),
+        },
     }
 
 
@@ -370,7 +364,8 @@ def _participant_media_map(match: Match) -> Dict[int, str]:
 def _build_phase_order(phase_mode: str, effective_policy: Dict[str, Any]) -> Tuple[List[str], str]:
     phase_order: List[str] = []
 
-    if bool(effective_policy.get("require_coin_toss")):
+    allow_coin_toss = phase_mode in {"veto", "draft"} and bool(effective_policy.get("require_coin_toss"))
+    if allow_coin_toss:
         phase_order.append("coin_toss")
 
     phase1_kind = "none"
@@ -570,9 +565,10 @@ def _build_default_workflow(
 
 def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], bool]:
     game = getattr(match.tournament, "game", None)
-    game_slug = _normalize_game_slug(getattr(game, "slug", ""))
-    game_key = _compact_game_key(game_slug)
-    phase_mode = _determine_phase_mode(match)
+    game_profile = resolve_lobby_game_profile(game)
+    game_slug = str(game_profile.get("game_slug") or _normalize_game_slug(getattr(game, "slug", "")))
+    game_key = str(game_profile.get("canonical_game_key") or _compact_game_key(game_slug))
+    phase_mode = str(game_profile.get("phase_mode") or _determine_phase_mode(match))
     best_of = int(getattr(match, "best_of", 1) or 1)
 
     cfg_maps, cfg_heroes = _load_config_pools(match)
