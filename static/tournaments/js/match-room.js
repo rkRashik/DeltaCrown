@@ -20,6 +20,7 @@
   const PHASE_FALLBACK = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
   const VALID_PHASES = new Set(PHASE_FALLBACK);
   const MOBILE_TABS = ['engine', 'chat', 'intel'];
+  const ALLOWED_CREDENTIAL_KEYS = new Set(['lobby_code', 'password', 'map', 'server', 'game_mode', 'notes']);
 
   const THEME_PRESETS = {
     valorant: {
@@ -408,6 +409,87 @@
     return 'veto';
   }
 
+  function credentialLabelForKey(key) {
+    if (key === 'lobby_code') {
+      return canonicalGameKey() === 'efootball' ? 'Room Number' : 'Lobby Code';
+    }
+    if (key === 'password') {
+      return 'Password';
+    }
+    if (key === 'map') {
+      return 'Map';
+    }
+    if (key === 'server') {
+      return 'Server';
+    }
+    if (key === 'game_mode') {
+      return 'Game Mode';
+    }
+    if (key === 'notes') {
+      return 'Notes';
+    }
+    return key;
+  }
+
+  function fallbackCredentialSchema() {
+    if (canonicalGameKey() === 'efootball') {
+      return [
+        { key: 'lobby_code', label: 'Room Number', kind: 'text', required: true },
+        { key: 'password', label: 'Password', kind: 'text', required: false },
+      ];
+    }
+
+    return [
+      { key: 'lobby_code', label: 'Lobby Code', kind: 'text', required: true },
+      { key: 'password', label: 'Password', kind: 'text', required: false },
+      { key: 'map', label: 'Map', kind: 'text', required: false },
+      { key: 'server', label: 'Server', kind: 'text', required: false },
+      { key: 'game_mode', label: 'Game Mode', kind: 'text', required: false },
+      { key: 'notes', label: 'Notes', kind: 'textarea', required: false },
+    ];
+  }
+
+  function normalizeCredentialSchema(rows) {
+    const normalized = [];
+
+    asList(rows).forEach(function (entry) {
+      const row = asObject(entry);
+      let key = String(row.key || row.name || '').trim().toLowerCase();
+      if (key === 'room_number') {
+        key = 'lobby_code';
+      }
+      if (!ALLOWED_CREDENTIAL_KEYS.has(key)) {
+        return;
+      }
+
+      const kindToken = String(row.kind || row.type || '').trim().toLowerCase();
+      const kind = (kindToken === 'textarea' || key === 'notes') ? 'textarea' : 'text';
+      const label = String(row.label || row.title || credentialLabelForKey(key) || '').trim() || credentialLabelForKey(key);
+
+      normalized.push({
+        key,
+        label,
+        kind,
+        required: bool(row.required, false),
+      });
+    });
+
+    if (normalized.length) {
+      return normalized;
+    }
+
+    return fallbackCredentialSchema();
+  }
+
+  function credentialSchema() {
+    const game = asObject(activeRoom().game);
+    return normalizeCredentialSchema(game.credentials_schema);
+  }
+
+  function credentialInputId(key) {
+    return `cred-${String(key || '').trim().toLowerCase().replaceAll('_', '-')}`;
+  }
+
   function resolvePresence(input, matchValue) {
     const source = asObject(input);
     const match = asObject(matchValue);
@@ -447,6 +529,7 @@
     room.match.participant2 = asObject(room.match.participant2);
     room.tournament = asObject(room.tournament);
     room.game = asObject(room.game);
+    room.game.credentials_schema = asList(room.game.credentials_schema).map((row) => asObject(row));
     room.lobby = asObject(room.lobby);
     room.pipeline = asObject(room.pipeline);
     room.workflow = asObject(room.workflow);
@@ -1128,46 +1211,108 @@
     const workflow = asObject(state.room.workflow);
     const creds = asObject(workflow.credentials);
     const me = asObject(state.room.me);
+    const host = participantForSide(1);
+    const hostName = String(host.name || 'Host');
+    const schema = credentialSchema();
 
-    const canEdit = bool(me.can_edit_credentials, false);
-    const canStartLive = bool(me.side === 1 || me.side === 2 || me.is_staff, false);
+    const isHost = bool(me.is_host, false);
+    const canBroadcast = isHost;
+    const canStartLive = bool(isHost || me.is_staff, false);
     const disabled = waitingLocked() || state.requestBusy;
+    const fieldsHtml = schema
+      .map((field) => renderCredentialField(field, creds, !canBroadcast))
+      .join('');
+
+    if (canBroadcast) {
+      return `
+        <section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">
+          <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Host Broadcast</p>
+          <h3 class="text-xl md:text-2xl font-black text-white">Create and Broadcast Lobby Credentials</h3>
+          <p class="text-xs text-gray-400 mt-2">Only Host (Side 1) can publish credentials for this match room.</p>
+
+          <form id="credentials-form" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${fieldsHtml}
+
+            <div class="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-1">
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>Broadcast Credentials</button>
+              <button type="button" data-action="start-live" class="px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white ${(!canStartLive || disabled) ? 'opacity-50 cursor-not-allowed' : ''}" ${(!canStartLive || disabled) ? 'disabled' : ''}>Mark Match Live</button>
+            </div>
+          </form>
+        </section>
+      `;
+    }
 
     return `
-      <section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">
-        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Lobby Exchange</p>
-        <h3 class="text-xl md:text-2xl font-black text-white">Lobby Credentials</h3>
-        <p class="text-xs text-gray-400 mt-2">Host or staff can update match access info. All changes are realtime.</p>
-
-        <form id="credentials-form" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-          ${renderCredentialField('cred-lobby-code', 'Lobby Code', creds.lobby_code, !canEdit)}
-          ${renderCredentialField('cred-password', 'Password', creds.password, !canEdit)}
-          ${renderCredentialField('cred-map', 'Map', creds.map, !canEdit)}
-          ${renderCredentialField('cred-server', 'Server', creds.server, !canEdit)}
-          ${renderCredentialField('cred-game-mode', 'Game Mode', creds.game_mode, !canEdit)}
-          <label class="text-xs text-gray-400 md:col-span-2">Notes
-            <textarea id="cred-notes" class="lobby-input mt-1 min-h-[84px]" ${!canEdit ? 'readonly' : ''}>${esc(creds.notes || '')}</textarea>
-          </label>
-
-          <div class="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-1">
-            ${canEdit ? `<button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>Save Credentials</button>` : ''}
-            <button type="button" data-action="start-live" class="px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white ${(!canStartLive || disabled) ? 'opacity-50 cursor-not-allowed' : ''}" ${(!canStartLive || disabled) ? 'disabled' : ''}>Mark Live</button>
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-ac">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Guest View</p>
+        <div class="flex flex-col items-center justify-center text-center py-4 md:py-8">
+          <div class="relative w-14 h-14 mb-5">
+            <div class="absolute inset-0 rounded-full border-4 border-white/10"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin border-ac"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <i data-lucide="radar" class="w-5 h-5 text-ac animate-pulse"></i>
+            </div>
           </div>
-        </form>
+          <h3 class="text-xl md:text-2xl font-black text-white">Awaiting Host Broadcast</h3>
+          <p class="text-xs md:text-sm text-gray-400 mt-2 max-w-md">${esc(hostName)} (Team A / Side 1) is preparing lobby credentials. You will receive them instantly after broadcast.</p>
+        </div>
       </section>
     `;
   }
 
-  function renderCredentialField(id, label, value, readonly) {
+  function renderCredentialField(field, credentials, readonly) {
+    const row = asObject(field);
+    const key = String(row.key || '').trim();
+    if (!key) {
+      return '';
+    }
+
+    const id = credentialInputId(key);
+    const label = String(row.label || credentialLabelForKey(key) || key);
+    const value = String(credentials[key] || '');
+    const multiline = String(row.kind || '').toLowerCase() === 'textarea' || key === 'notes';
+
+    if (multiline) {
+      return `
+        <label class="text-xs text-gray-400 md:col-span-2">${esc(label)}
+          <textarea id="${esc(id)}" class="lobby-input mt-1 min-h-[84px]" ${readonly ? 'readonly' : ''}>${esc(value)}</textarea>
+        </label>
+      `;
+    }
+
     return `
       <label class="text-xs text-gray-400">${esc(label)}
-        <input id="${esc(id)}" class="lobby-input mt-1" value="${esc(String(value || ''))}" ${readonly ? 'readonly' : ''} />
+        <input id="${esc(id)}" class="lobby-input mt-1" value="${esc(value)}" ${readonly ? 'readonly' : ''} />
       </label>
     `;
   }
 
   function renderLiveBlock() {
     const lobby = asObject(state.room.lobby);
+    const creds = asObject(asObject(state.room.workflow).credentials);
+    const schema = credentialSchema().filter((field) => String(asObject(field).key || '') !== 'notes');
+
+    const cards = schema
+      .map((field) => {
+        const row = asObject(field);
+        const key = String(row.key || '').trim();
+        if (!key) {
+          return '';
+        }
+        const label = String(row.label || credentialLabelForKey(key) || key);
+        const value = String(lobby[key] || creds[key] || '');
+        return liveInfoCard(label, value || 'Pending');
+      })
+      .filter(Boolean)
+      .join('');
+
+    let gridClass = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+    if (schema.length >= 3) {
+      gridClass = 'grid grid-cols-1 md:grid-cols-3 gap-3';
+    }
+    if (schema.length >= 4) {
+      gridClass = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3';
+    }
 
     return `
       <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-green-500">
@@ -1180,10 +1325,8 @@
           <i data-lucide="swords" class="w-10 h-10 text-green-300"></i>
         </div>
 
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-          ${liveInfoCard('Lobby Code', lobby.lobby_code || 'Pending')}
-          ${liveInfoCard('Map', lobby.map || 'Pending')}
-          ${liveInfoCard('Server', lobby.server || 'Pending')}
+        <div class="mt-5 ${gridClass}">
+          ${cards || liveInfoCard('Lobby Code', lobby.lobby_code || 'Pending')}
         </div>
       </section>
     `;
@@ -1721,14 +1864,15 @@
   }
 
   async function handleSaveCredentials() {
-    const payload = {
-      lobby_code: valueOf('cred-lobby-code'),
-      password: valueOf('cred-password'),
-      map: valueOf('cred-map'),
-      server: valueOf('cred-server'),
-      game_mode: valueOf('cred-game-mode'),
-      notes: valueOf('cred-notes'),
-    };
+    const payload = {};
+    credentialSchema().forEach(function (field) {
+      const row = asObject(field);
+      const key = String(row.key || '').trim();
+      if (!key) {
+        return;
+      }
+      payload[key] = valueOf(credentialInputId(key));
+    });
 
     await sendWorkflowAction('save_credentials', payload);
   }

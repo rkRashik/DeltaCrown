@@ -65,6 +65,20 @@ DEFAULT_MAP_POOLS = {
     "cs2": ["Mirage", "Inferno", "Dust II", "Nuke", "Ancient", "Anubis", "Vertigo"],
 }
 
+DEFAULT_CREDENTIAL_SCHEMA = [
+    {"key": "lobby_code", "label": "Lobby Code", "kind": "text", "required": True},
+    {"key": "password", "label": "Password", "kind": "text", "required": False},
+    {"key": "map", "label": "Map", "kind": "text", "required": False},
+    {"key": "server", "label": "Server", "kind": "text", "required": False},
+    {"key": "game_mode", "label": "Game Mode", "kind": "text", "required": False},
+    {"key": "notes", "label": "Notes", "kind": "textarea", "required": False},
+]
+
+EFOOTBALL_CREDENTIAL_SCHEMA = [
+    {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
+    {"key": "password", "label": "Password", "kind": "text", "required": False},
+]
+
 PRESENCE_STALE_SECONDS = 45
 
 RESULT_SUBMISSION_EDITABLE_STATUSES = {
@@ -99,6 +113,27 @@ def _safe_string_list(value: Any) -> List[str]:
         if text:
             result.append(text)
     return result
+
+
+def _credential_schema_for_game(*, game_key: str, game_slug: str, phase_mode: str) -> List[Dict[str, Any]]:
+    if game_key == "efootball" or game_slug == "efootball":
+        return deepcopy(EFOOTBALL_CREDENTIAL_SCHEMA)
+
+    if phase_mode == "direct" and game_key in {"eafc", "fc", "fifa"}:
+        return deepcopy(EFOOTBALL_CREDENTIAL_SCHEMA)
+
+    return deepcopy(DEFAULT_CREDENTIAL_SCHEMA)
+
+
+def _credential_schema_keys(schema: Any) -> List[str]:
+    keys: List[str] = []
+    for row in _safe_list(schema):
+        key = str(_safe_dict(row).get("key") or "").strip()
+        if key and key not in keys:
+            keys.append(key)
+    if keys:
+        return keys
+    return [row["key"] for row in DEFAULT_CREDENTIAL_SCHEMA]
 
 
 def _coerce_bool(value: Any, default: bool = False) -> bool:
@@ -397,7 +432,7 @@ def _build_default_workflow(
     lobby_info: Dict[str, Any],
 ) -> Dict[str, Any]:
     credentials = {
-        "lobby_code": str(lobby_info.get("lobby_code") or lobby_info.get("code") or ""),
+        "lobby_code": str(lobby_info.get("lobby_code") or lobby_info.get("room_number") or lobby_info.get("code") or ""),
         "password": str(lobby_info.get("password") or ""),
         "map": str(lobby_info.get("map") or ""),
         "server": str(lobby_info.get("server") or ""),
@@ -452,6 +487,11 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     effective_policy = _safe_dict(policy.get("effective"))
     phase_order, phase1_kind = _build_phase_order(phase_mode, effective_policy)
     check_in_window = _resolve_check_in_window(match, effective_policy)
+    credential_schema = _credential_schema_for_game(
+        game_key=game_key,
+        game_slug=game_slug,
+        phase_mode=phase_mode,
+    )
 
     lobby_info = _safe_dict(getattr(match, "lobby_info", {}))
     defaults = _build_default_workflow(
@@ -508,13 +548,18 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         changed = True
 
     credentials = _safe_dict(workflow.get("credentials"))
+    credentials.setdefault("lobby_code", str(lobby_info.get("lobby_code") or lobby_info.get("room_number") or lobby_info.get("code") or ""))
+    credentials.setdefault("password", str(lobby_info.get("password") or ""))
+    workflow["credentials"] = credentials
     top_level_pairs = {
         "lobby_code": credentials.get("lobby_code", ""),
+        "room_number": credentials.get("lobby_code", ""),
         "code": credentials.get("lobby_code", ""),
         "password": credentials.get("password", ""),
         "map": credentials.get("map", ""),
         "server": credentials.get("server", ""),
         "game_mode": credentials.get("game_mode", ""),
+        "notes": credentials.get("notes", ""),
     }
     for key, value in top_level_pairs.items():
         normalized = str(value or "")
@@ -532,6 +577,7 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         "game_slug": game_slug,
         "pipeline_game_key": game_key,
         "phase_mode": phase_mode,
+        "credential_schema": credential_schema,
         "best_of": best_of,
         "map_pool": map_pool,
         "phase_order": phase_order,
@@ -726,6 +772,7 @@ def _build_room_payload(
     runtime: Dict[str, Any],
 ) -> Dict[str, Any]:
     user_side = access.get("user_side")
+    is_host = user_side == 1
     workflow_payload = _safe_dict(workflow)
     workflow_payload["phase_order"] = _safe_list(runtime.get("phase_order"))
     workflow_payload["phase1_kind"] = str(runtime.get("phase1_kind") or workflow_payload.get("phase1_kind") or "none")
@@ -779,13 +826,16 @@ def _build_room_payload(
             "pipeline_game_key": runtime.get("pipeline_game_key", ""),
             "phase_mode": runtime["phase_mode"],
             "map_pool": runtime["map_pool"],
+            "credentials_schema": _safe_list(runtime.get("credential_schema")),
         },
         "lobby": {
             "lobby_code": str(lobby_info.get("lobby_code") or ""),
+            "room_number": str(lobby_info.get("lobby_code") or lobby_info.get("room_number") or ""),
             "password": str(lobby_info.get("password") or ""),
             "map": str(lobby_info.get("map") or ""),
             "server": str(lobby_info.get("server") or ""),
             "game_mode": str(lobby_info.get("game_mode") or ""),
+            "notes": str(lobby_info.get("notes") or ""),
         },
         "pipeline": {
             "phase_order": workflow_payload.get("phase_order"),
@@ -798,9 +848,10 @@ def _build_room_payload(
         "me": {
             "user_id": access.get("user_id"),
             "side": user_side,
+            "is_host": bool(is_host),
             "is_staff": bool(access.get("is_staff")),
             "admin_mode": bool(access.get("admin_mode")),
-            "can_edit_credentials": bool(access.get("is_staff") or user_side == 1),
+            "can_edit_credentials": bool(access.get("is_staff") or is_host),
             "can_submit_result": bool(access.get("is_staff") or user_side in (1, 2)),
             "can_force_phase": bool(access.get("admin_mode")),
             "can_override_result": bool(access.get("admin_mode")),
@@ -1389,36 +1440,32 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
         elif action == "save_credentials":
             _assert_checkin_gate()
-            if not is_staff and actor_side != 1:
-                raise ValueError("Only side 1 host or staff can update lobby credentials.")
+            is_host_actor = actor_side == 1
+            if not is_host_actor and not (is_staff and is_admin_mode):
+                raise ValueError("Only the host (side 1) can broadcast lobby credentials.")
 
             credentials = _safe_dict(workflow.get("credentials"))
-            writable = {
-                "lobby_code": "lobby_code",
-                "password": "password",
-                "map": "map",
-                "server": "server",
-                "game_mode": "game_mode",
-                "notes": "notes",
-            }
-            for key, payload_key in writable.items():
-                if payload_key in payload:
-                    credentials[key] = str(payload.get(payload_key) or "").strip()
+            schema_keys = _credential_schema_keys(runtime.get("credential_schema"))
+            for key in schema_keys:
+                if key in payload:
+                    credentials[key] = str(payload.get(key) or "").strip()
 
             workflow["credentials"] = credentials
 
             lobby_info["lobby_code"] = str(credentials.get("lobby_code") or "")
+            lobby_info["room_number"] = str(credentials.get("lobby_code") or "")
             lobby_info["code"] = str(credentials.get("lobby_code") or "")
             lobby_info["password"] = str(credentials.get("password") or "")
             lobby_info["map"] = str(credentials.get("map") or "")
             lobby_info["server"] = str(credentials.get("server") or "")
             lobby_info["game_mode"] = str(credentials.get("game_mode") or "")
+            lobby_info["notes"] = str(credentials.get("notes") or "")
 
             if phase in ("coin_toss", "phase1"):
                 workflow["phase"] = "lobby_setup"
 
             changed = True
-            message = "Lobby credentials updated."
+            message = "Host broadcasted lobby credentials."
 
         elif action == "start_live":
             _assert_checkin_gate()

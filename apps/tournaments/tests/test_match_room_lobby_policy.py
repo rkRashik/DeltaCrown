@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from apps.tournaments.models import Match
+from apps.tournaments.views import match_room as match_room_view
 from apps.tournaments.views.match_room import _build_phase_order, _ensure_match_workflow
 
 
@@ -112,3 +113,91 @@ def test_build_phase_order_never_includes_coin_toss_in_direct_mode():
     assert phase1_kind == "direct"
     assert "coin_toss" not in phase_order
     assert phase_order[0] == "phase1"
+
+
+def test_ensure_match_workflow_uses_efootball_room_number_schema():
+    match = _build_match_stub(slug="efootball", category="SPORTS", game_type="1V1")
+
+    _lobby_info, _workflow, runtime, _changed = _ensure_match_workflow(match, persist=False)
+
+    schema = runtime["credential_schema"]
+    keys = [row["key"] for row in schema]
+    labels = [row["label"] for row in schema]
+
+    assert keys == ["lobby_code", "password"]
+    assert labels == ["Room Number", "Password"]
+
+
+def test_build_room_payload_sets_is_host(monkeypatch):
+    tournament = SimpleNamespace(id=77, slug="test-cup", name="Test Cup")
+    match = SimpleNamespace(
+        id=222,
+        state=Match.SCHEDULED,
+        get_state_display=lambda: "Scheduled",
+        round_number=1,
+        match_number=4,
+        participant1_id=1001,
+        participant1_name="Host Team",
+        participant1_score=0,
+        participant1_checked_in=False,
+        participant2_id=1002,
+        participant2_name="Guest Team",
+        participant2_score=0,
+        participant2_checked_in=False,
+        winner_id=None,
+        scheduled_time=None,
+        started_at=None,
+        completed_at=None,
+        tournament=tournament,
+        tournament_id=tournament.id,
+    )
+
+    runtime = {
+        "game_name": "eFootball",
+        "game_slug": "efootball",
+        "pipeline_game_key": "efootball",
+        "phase_mode": "direct",
+        "credential_schema": [
+            {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
+            {"key": "password", "label": "Password", "kind": "text", "required": False},
+        ],
+        "best_of": 1,
+        "map_pool": [],
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "phase1_kind": "direct",
+        "policy": {},
+        "check_in_window": {},
+        "presence": {"1": {}, "2": {}},
+    }
+    workflow = {
+        "phase": "lobby_setup",
+        "phase_order": runtime["phase_order"],
+        "phase1_kind": "direct",
+        "policy": {},
+        "check_in_window": {},
+        "presence": {"1": {}, "2": {}},
+        "credentials": {"lobby_code": "R-12", "password": "abc123"},
+        "result_submissions": {"1": None, "2": None},
+    }
+    lobby_info = {"lobby_code": "R-12", "password": "abc123"}
+
+    monkeypatch.setattr(match_room_view, "_side_submission_map", lambda _match: {})
+    monkeypatch.setattr(match_room_view, "_participant_media_map", lambda _match: {})
+
+    host_payload = match_room_view._build_room_payload(
+        match,
+        {"user_id": 1001, "user_side": 1, "is_staff": False, "admin_mode": False},
+        lobby_info,
+        workflow,
+        runtime,
+    )
+    guest_payload = match_room_view._build_room_payload(
+        match,
+        {"user_id": 1002, "user_side": 2, "is_staff": False, "admin_mode": False},
+        lobby_info,
+        workflow,
+        runtime,
+    )
+
+    assert host_payload["me"]["is_host"] is True
+    assert guest_payload["me"]["is_host"] is False
