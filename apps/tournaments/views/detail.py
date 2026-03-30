@@ -1314,14 +1314,16 @@ def _detail_status_context(tournament, slots_filled, slots_total, live_match_cou
 
 
 def _mobile_cta_payload(tournament, user):
-    from apps.tournaments.models import Registration
+    from django.db.models import Q
+
+    from apps.tournaments.models import Match, Registration
 
     if tournament.status in ('completed', 'archived'):
         return {
             'label': 'View Results',
-            'url': f'/tournaments/{tournament.slug}/results/',
+            'url': reverse('tournaments:results', kwargs={'slug': tournament.slug}),
             'disabled': False,
-            'kind': 'secondary',
+            'kind': 'results',
         }
 
     if tournament.status == 'cancelled':
@@ -1341,11 +1343,31 @@ def _mobile_cta_payload(tournament, user):
             status__in=[Registration.CANCELLED, Registration.REJECTED]
         ).first()
         if registration is not None:
+            if tournament.status == 'live':
+                participant_id = registration.team_id or user.id
+                user_next_match = (
+                    Match.objects.filter(
+                        tournament=tournament,
+                        is_deleted=False,
+                        state__in=['scheduled', 'check_in', 'ready', 'live'],
+                    )
+                    .filter(Q(participant1_id=participant_id) | Q(participant2_id=participant_id))
+                    .order_by('round_number', 'match_number')
+                    .first()
+                )
+                if user_next_match is not None:
+                    return {
+                        'label': 'Enter Lobby',
+                        'url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': user_next_match.id}),
+                        'disabled': False,
+                        'kind': 'enter_match',
+                    }
+
             return {
                 'label': 'Enter Lobby',
-                'url': f'/tournaments/{tournament.slug}/lobby/',
+                'url': reverse('tournaments:lobby', kwargs={'slug': tournament.slug}),
                 'disabled': False,
-                'kind': 'secondary',
+                'kind': 'hub',
             }
 
     from apps.tournaments.services.eligibility_service import RegistrationEligibilityService

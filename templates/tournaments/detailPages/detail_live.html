@@ -111,10 +111,10 @@ Inspired by FotMob live matches + VCT brackets:
                 </p>
             </div>
         </div>
-        <a href="/tournaments/{{ tournament.slug }}/matches/{{ user_next_match.id }}/"
-           class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:scale-105"
-           style="background: var(--game-color); color: black;">
-            {% if user_next_match.state == 'live' %}Enter Match{% else %}View Match{% endif %}
+        <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
+           class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform duration-200 hover:scale-105 active:scale-95"
+           style="background: var(--game-color); color: black; box-shadow: 0 0 18px rgba(var(--game-color-rgb), 0.36);">
+            {% if user_next_match.state == 'live' %}Enter Lobby{% else %}Open Lobby{% endif %}
         </a>
     </div>
 </div>
@@ -364,15 +364,22 @@ Inspired by FotMob live matches + VCT brackets:
 <!-- Live Phase Sidebar CTA -->
 {% if is_registered %}
 <div class="space-y-2">
-    <a href="/tournaments/{{ tournament.slug }}/lobby/"
-       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-all hover:scale-[1.02]"
-       style="background: var(--game-color); color: black;">
+    {% if user_next_match %}
+    <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
+       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-transform duration-200 animate-pulse hover:scale-105 active:scale-95"
+       style="background: var(--game-color); color: black; box-shadow: 0 0 20px rgba(var(--game-color-rgb), 0.4);">
         Enter Lobby
     </a>
-    {% if user_next_match %}
-    <a href="/tournaments/{{ tournament.slug }}/matches/{{ user_next_match.id }}/"
-       class="block w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-center text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-red-500/20 transition">
+    <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
+       class="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-transform duration-200 hover:scale-105 active:scale-95"
+       style="background: rgba(var(--game-color-rgb), 0.12); border: 1px solid rgba(var(--game-color-rgb), 0.35); color: rgb(var(--game-color-rgb)); box-shadow: 0 0 16px rgba(var(--game-color-rgb), 0.32);">
         Go to Your Match →
+    </a>
+    {% else %}
+    <a href="/tournaments/{{ tournament.slug }}/lobby/"
+       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-transform duration-200 hover:scale-105 active:scale-95"
+       style="background: var(--game-color); color: black; box-shadow: 0 0 14px rgba(var(--game-color-rgb), 0.3);">
+        Enter Lobby
     </a>
     {% endif %}
 </div>

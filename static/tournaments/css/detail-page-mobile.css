@@ -670,6 +670,16 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     box-shadow: 0 0 28px rgba(var(--game-color-rgb), 0.28);
+    transition: transform 180ms ease, box-shadow 220ms ease, filter 180ms ease;
+  }
+
+  .dc-mobile-cta-button:hover {
+    transform: scale(1.03);
+    filter: saturate(1.07);
+  }
+
+  .dc-mobile-cta-button:active {
+    transform: scale(0.96);
   }
 
   .dc-mobile-cta-button[data-cta-kind="waitlist"] {
@@ -680,10 +690,15 @@
   }
 
   .dc-mobile-cta-button[data-cta-kind="enter_match"] {
-    border-color: rgba(239, 68, 68, 0.48);
-    background: linear-gradient(145deg, #ef4444, #f97316);
-    color: #190405;
-    box-shadow: 0 0 24px rgba(239, 68, 68, 0.38);
+    border-color: rgba(var(--game-color-rgb), 0.55);
+    background: linear-gradient(145deg, rgba(var(--game-color-rgb), 0.98), rgba(var(--game-color-rgb), 0.76));
+    color: #060a0f;
+    box-shadow: 0 0 20px rgba(var(--game-color-rgb), 0.4);
+    animation: dc-mobile-cta-pulse 2.2s ease-in-out infinite;
+  }
+
+  .dc-mobile-cta-button[data-cta-kind="enter_match"]:hover {
+    box-shadow: 0 0 28px rgba(var(--game-color-rgb), 0.5);
   }
 
   .dc-mobile-cta-button[data-cta-kind="hub"] {
@@ -706,6 +721,19 @@
     background: rgba(255, 255, 255, 0.06);
     color: rgba(180, 194, 214, 0.72);
     box-shadow: none;
+    animation: none;
+    transform: none;
+    pointer-events: none;
+  }
+
+  @keyframes dc-mobile-cta-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 18px rgba(var(--game-color-rgb), 0.32);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(var(--game-color-rgb), 0.52);
+    }
   }
 
   .dc-mobile-sheet {
