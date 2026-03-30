@@ -5,503 +5,1087 @@
 
 {% block extra_css %}
 <style>
-  :root {
-    --mr-bg: #07090f;
-    --mr-surface: #101625;
-    --mr-surface-soft: #151d30;
-    --mr-border: rgba(148, 163, 184, 0.22);
-    --mr-text: #e7edf7;
-    --mr-muted: #91a0bb;
-    --mr-accent: #33d17a;
-    --mr-warning: #f5c451;
-    --mr-danger: #ff5d7d;
-    --mr-info: #58c3ff;
+  :root,
+  [data-game='valorant'] {
+    --ac: #00f0ff;
+    --ar: 0;
+    --ag: 240;
+    --ab: 255;
   }
 
-  .mr-shell {
-    max-width: 1500px;
-    margin: 0 auto;
-    padding: 1.1rem;
-    color: var(--mr-text);
+  [data-game='cs2'] {
+    --ac: #ff7b00;
+    --ar: 255;
+    --ag: 123;
+    --ab: 0;
   }
 
-  .mr-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1rem;
+  [data-game='r6'] {
+    --ac: #efd81d;
+    --ar: 239;
+    --ag: 216;
+    --ab: 29;
   }
 
-  .mr-card {
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-    border: 1px solid var(--mr-border);
-    border-radius: 16px;
-    padding: 1rem;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  [data-game='dota2'] {
+    --ac: #c84b31;
+    --ar: 200;
+    --ag: 75;
+    --ab: 49;
   }
 
-  .mr-header {
-    display: grid;
-    gap: 0.8rem;
-    margin-bottom: 0.9rem;
+  [data-game='mlbb'] {
+    --ac: #4d8bff;
+    --ar: 77;
+    --ag: 139;
+    --ab: 255;
   }
 
-  .mr-title-row {
+  [data-game='codm'] {
+    --ac: #a8ff00;
+    --ar: 168;
+    --ag: 255;
+    --ab: 0;
+  }
+
+  [data-game='pubgm'] {
+    --ac: #ffc107;
+    --ar: 255;
+    --ag: 193;
+    --ab: 7;
+  }
+
+  [data-game='freefire'] {
+    --ac: #ff6b35;
+    --ar: 255;
+    --ag: 107;
+    --ab: 53;
+  }
+
+  [data-game='fc26'] {
+    --ac: #00c65e;
+    --ar: 0;
+    --ag: 198;
+    --ab: 94;
+  }
+
+  [data-game='efootball'] {
+    --ac: #3b82f6;
+    --ar: 59;
+    --ag: 130;
+    --ab: 246;
+  }
+
+  [data-game='rl'] {
+    --ac: #ff5722;
+    --ar: 255;
+    --ag: 87;
+    --ab: 34;
+  }
+
+  #mr-shell {
+    background: #020203;
+    color: #e2e8f0;
+    height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.65rem;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  .mr-badge {
-    border-radius: 999px;
-    border: 1px solid var(--mr-border);
-    padding: 0.28rem 0.62rem;
-    font-size: 0.67rem;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-    font-weight: 700;
-    color: var(--mr-muted);
-    background: rgba(148, 163, 184, 0.08);
-  }
-
-  .mr-badge.live {
-    color: #7af7b4;
-    border-color: rgba(122, 247, 180, 0.4);
-    background: rgba(122, 247, 180, 0.12);
-  }
-
-  .mr-badge.done {
-    color: #f5c451;
-    border-color: rgba(245, 196, 81, 0.4);
-    background: rgba(245, 196, 81, 0.12);
-  }
-
-  .mr-versus {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 0.8rem;
-  }
-
-  .mr-team-box {
-    border: 1px solid var(--mr-border);
-    border-radius: 14px;
-    padding: 0.8rem;
-    background: rgba(255, 255, 255, 0.02);
-    min-height: 92px;
-  }
-
-  .mr-team-name {
-    font-size: 1.04rem;
-    font-weight: 800;
-    margin-bottom: 0.25rem;
-  }
-
-  .mr-team-meta {
-    color: var(--mr-muted);
-    font-size: 0.73rem;
-  }
-
-  .mr-score {
-    text-align: center;
-    min-width: 150px;
-  }
-
-  .mr-score-main {
-    font-size: 2rem;
-    font-weight: 900;
-    line-height: 1;
-  }
-
-  .mr-phase-track {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(80px, 1fr));
-    gap: 0.48rem;
-  }
-
-  .mr-phase-pill {
-    border-radius: 10px;
-    border: 1px solid var(--mr-border);
-    background: rgba(148, 163, 184, 0.05);
-    color: var(--mr-muted);
-    padding: 0.35rem 0.45rem;
-    font-size: 0.63rem;
-    font-weight: 700;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .mr-phase-pill.active {
-    color: #0b1a10;
-    background: var(--mr-accent);
-    border-color: rgba(51, 209, 122, 0.8);
-  }
-
-  .mr-phase-pill.complete {
-    color: #80e7b3;
-    border-color: rgba(128, 231, 179, 0.4);
-    background: rgba(128, 231, 179, 0.11);
-  }
-
-  .mr-main-stack {
-    display: grid;
-    gap: 0.9rem;
-  }
-
-  .mr-section-title {
-    margin: 0 0 0.6rem;
-    font-size: 0.83rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--mr-muted);
-    font-weight: 800;
-  }
-
-  .mr-muted {
-    color: var(--mr-muted);
-    font-size: 0.82rem;
-  }
-
-  .mr-action-btn,
-  .mr-ghost-btn,
-  .mr-danger-btn {
-    border: none;
-    border-radius: 10px;
-    padding: 0.6rem 0.85rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .mr-action-btn {
-    color: #021109;
-    background: linear-gradient(120deg, #33d17a, #5de0a3);
-  }
-
-  .mr-action-btn:disabled,
-  .mr-ghost-btn:disabled,
-  .mr-danger-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .mr-ghost-btn {
-    color: var(--mr-text);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--mr-border);
-  }
-
-  .mr-danger-btn {
-    color: #1c0509;
-    background: linear-gradient(120deg, #ff5d7d, #ff8ea4);
-  }
-
-  .mr-split-actions {
-    display: flex;
-    gap: 0.55rem;
-    flex-wrap: wrap;
-  }
-
-  .mr-pool-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.45rem;
-  }
-
-  .mr-pool-item {
-    border: 1px solid var(--mr-border);
-    border-radius: 10px;
-    padding: 0.6rem;
-    font-size: 0.8rem;
-    background: rgba(255, 255, 255, 0.03);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .mr-pool-item button {
-    border: 1px solid rgba(88, 195, 255, 0.42);
-    color: #9fe6ff;
-    background: rgba(88, 195, 255, 0.12);
-    border-radius: 8px;
-    padding: 0.3rem 0.48rem;
-    font-size: 0.61rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-  }
-
-  .mr-cred-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .mr-input,
-  .mr-textarea {
-    width: 100%;
-    border-radius: 10px;
-    border: 1px solid var(--mr-border);
-    background: rgba(8, 12, 20, 0.9);
-    color: var(--mr-text);
-    padding: 0.55rem 0.63rem;
-    font-size: 0.8rem;
-  }
-
-  .mr-textarea {
-    min-height: 84px;
-    resize: vertical;
-  }
-
-  .mr-label {
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: var(--mr-muted);
-    margin-bottom: 0.22rem;
-    font-weight: 700;
-  }
-
-  .mr-result-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .mr-result-card {
-    border: 1px solid var(--mr-border);
-    border-radius: 12px;
-    padding: 0.7rem;
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .mr-chat-window {
-    border: 1px solid var(--mr-border);
-    border-radius: 12px;
-    padding: 0.55rem;
-    height: 300px;
-    overflow-y: auto;
-    background: rgba(8, 12, 20, 0.8);
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  .mr-chat-msg {
-    border-radius: 10px;
-    padding: 0.45rem 0.55rem;
-    font-size: 0.78rem;
-    line-height: 1.35;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    background: rgba(148, 163, 184, 0.08);
-  }
-
-  .mr-chat-msg.mine {
-    border-color: rgba(51, 209, 122, 0.5);
-    background: rgba(51, 209, 122, 0.13);
-  }
-
-  .mr-chat-msg.system {
-    border-color: rgba(245, 196, 81, 0.45);
-    background: rgba(245, 196, 81, 0.13);
-    color: #ffefbf;
-  }
-
-  .mr-chat-head {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.2rem;
-    color: var(--mr-muted);
-  }
-
-  .mr-toast {
+  #mr-shell::before {
+    content: '';
     position: fixed;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 90;
-    border: 1px solid var(--mr-border);
-    border-radius: 12px;
-    background: rgba(9, 14, 22, 0.96);
-    color: var(--mr-text);
-    font-size: 0.78rem;
-    padding: 0.58rem 0.75rem;
-    opacity: 0;
-    transform: translateY(8px);
+    inset: 0;
+    z-index: -8;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
     pointer-events: none;
-    transition: 0.2s ease;
   }
 
-  .mr-toast.show {
+  .bg-cin {
+    position: absolute;
+    inset: 0;
+    z-index: -10;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.1;
+    filter: grayscale(80%) contrast(1.2);
+    transition: background-image 0.8s;
+  }
+
+  .bg-ov {
+    position: absolute;
+    inset: 0;
+    z-index: -9;
+    background:
+      radial-gradient(circle at 0% 50%, rgba(var(--ar), var(--ag), var(--ab), 0.07) 0%, transparent 40%),
+      radial-gradient(circle at 100% 50%, rgba(255, 42, 85, 0.05) 0%, transparent 40%),
+      linear-gradient(180deg, rgba(2, 2, 3, 0.85) 0%, #020203 100%);
+    transition: all 0.7s;
+  }
+
+  .glass {
+    background: rgba(12, 12, 16, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #fff 0%, rgba(var(--ar), var(--ag), var(--ab), 1) 60%, #fff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .ac { color: var(--ac); }
+  .ac-bg { background: rgba(var(--ar), var(--ag), var(--ab), 0.12); }
+  .ac-bd { border-color: rgba(var(--ar), var(--ag), var(--ab), 0.35); }
+
+  .hidden-state { display: none !important; }
+
+  .waiting-room-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
     opacity: 1;
     transform: translateY(0);
+    pointer-events: auto;
+    transition: opacity 0.28s ease, transform 0.28s ease;
   }
 
-  @media (max-width: 1080px) {
-    .mr-grid {
-      grid-template-columns: 1fr;
-    }
+  .waiting-room-overlay.is-hidden {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
   }
 
-  @media (max-width: 720px) {
-    .mr-phase-track {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+  .waiting-room-overlay .overlay-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 5, 8, 0.68);
+    backdrop-filter: blur(4px);
+  }
 
-    .mr-versus {
-      grid-template-columns: 1fr;
-    }
+  .waiting-room-card {
+    position: relative;
+    width: min(560px, 96%);
+    border-radius: 1rem;
+    border: 1px solid rgba(var(--ar), var(--ag), var(--ab), 0.35);
+    background: linear-gradient(145deg, rgba(11, 18, 27, 0.92) 0%, rgba(5, 8, 12, 0.9) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(var(--ar), var(--ag), var(--ab), 0.18);
+    padding: 1.1rem 1.15rem;
+  }
 
-    .mr-score {
-      min-width: auto;
-    }
+  .lobby-phase-locked {
+    filter: blur(1.5px) saturate(0.72);
+    opacity: 0.42;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.22s ease, filter 0.22s ease;
+  }
 
-    .mr-cred-grid,
-    .mr-result-grid {
-      grid-template-columns: 1fr;
+  .phase-dot-active {
+    background: var(--ac);
+    color: #000;
+    border-color: var(--ac);
+  }
+
+  .phase-dot-done {
+    background: #00ff66;
+    color: #000;
+    border-color: #00ff66;
+  }
+
+  .ph-bar {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .ph-bar-fill {
+    height: 100%;
+    background: var(--ac);
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px rgba(var(--ar), var(--ag), var(--ab), 0.6);
+  }
+
+  .map-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 112px;
+    background: linear-gradient(135deg, rgba(var(--ar), var(--ag), var(--ab), 0.16) 0%, rgba(0,0,0,0.7) 100%);
+  }
+
+  .map-card .map-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(40%);
+    opacity: 0.8;
+    transition: transform 0.35s ease, filter 0.2s ease;
+  }
+
+  .map-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.15) 100%);
+  }
+
+  .map-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+  }
+
+  .map-card:hover .map-bg {
+    transform: scale(1.06);
+    filter: grayscale(0%);
+  }
+
+  .map-card.banned {
+    pointer-events: none;
+    border-color: rgba(255, 42, 85, 0.35);
+  }
+
+  .map-card.banned .map-bg {
+    filter: grayscale(100%) brightness(0.3);
+  }
+
+  .map-card.picked {
+    pointer-events: none;
+    border-color: var(--ac);
+    box-shadow: 0 0 18px rgba(var(--ar), var(--ag), var(--ab), 0.3);
+  }
+
+  .map-card.picked .map-bg {
+    filter: grayscale(0%) brightness(1.12);
+  }
+
+  .map-card .sb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0.2rem 0.9rem;
+    font-family: 'Space Grotesk', monospace;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 0.18em;
+    opacity: 0;
+    z-index: 10;
+    transition: opacity 0.2s;
+    border-radius: 0.3rem;
+  }
+
+  .map-card.banned .sb {
+    opacity: 1;
+    background: rgba(255, 42, 85, 0.9);
+    color: #fff;
+  }
+
+  .map-card.picked .sb {
+    opacity: 1;
+    background: var(--ac);
+    color: #000;
+  }
+
+  .hero-card {
+    border-radius: 0.4rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    padding: 0.5rem 0.3rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.025);
+    transition: all 0.2s ease;
+    font-size: 0.6rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+    color: #888;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .hero-card:hover {
+    border-color: var(--ac);
+    color: var(--ac);
+    background: rgba(var(--ar), var(--ag), var(--ab), 0.1);
+    transform: translateY(-2px);
+  }
+
+  .hero-card.ha {
+    border-color: var(--ac);
+    background: rgba(var(--ar), var(--ag), var(--ab), 0.18);
+    color: var(--ac);
+    pointer-events: none;
+  }
+
+  .hero-card.hb {
+    border-color: #ff2a55;
+    background: rgba(255, 42, 85, 0.18);
+    color: #ff2a55;
+    pointer-events: none;
+  }
+
+  .hero-card.hban {
+    border-color: rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.6);
+    color: #2a2a2a;
+    pointer-events: none;
+    text-decoration: line-through;
+  }
+
+  .coin-wrap {
+    perspective: 800px;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto;
+  }
+
+  .coin {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+  }
+
+  .coin.flip {
+    animation: coinFlip 2.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .coin-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 1.35rem;
+    border: 3px solid;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+  }
+
+  .coin-a {
+    background: linear-gradient(135deg, rgba(var(--ar), var(--ag), var(--ab), 0.15) 0%, #111 100%);
+    border-color: var(--ac);
+    color: var(--ac);
+  }
+
+  .coin-b {
+    background: linear-gradient(135deg, rgba(255, 42, 85, 0.15) 0%, #111 100%);
+    border-color: #ff2a55;
+    color: #ff2a55;
+    transform: rotateY(180deg);
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-family: 'Space Grotesk', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 0.35rem;
+  }
+
+  .compact-input {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: #fff;
+    outline: none;
+    width: 100%;
+    transition: all 0.2s;
+  }
+
+  .compact-input:focus {
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.45);
+  }
+
+  .upload-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .upload-zone:hover {
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.4);
+    background: rgba(var(--ar), var(--ag), var(--ab), 0.04);
+  }
+
+  .upload-zone.done {
+    border-color: rgba(0, 255, 102, 0.5);
+    background: rgba(0, 255, 102, 0.04);
+  }
+
+  .result-team-card {
+    border-radius: 1rem;
+    border: 1px solid;
+    padding: 1.25rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-team-card.team-a {
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.3);
+    background: linear-gradient(135deg, rgba(var(--ar), var(--ag), var(--ab), 0.06) 0%, transparent 100%);
+  }
+
+  .result-team-card.team-b {
+    border-color: rgba(255, 42, 85, 0.3);
+    background: linear-gradient(135deg, rgba(255, 42, 85, 0.06) 0%, transparent 100%);
+  }
+
+  .result-team-card.submitted-ok {
+    border-color: rgba(0, 255, 102, 0.5);
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.1);
+  }
+
+  .sub-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+
+  .sub-status.pending {
+    background: rgba(255, 184, 0, 0.1);
+    color: #ffb800;
+    border: 1px solid rgba(255, 184, 0, 0.3);
+  }
+
+  .sub-status.done {
+    background: rgba(0, 255, 102, 0.1);
+    color: #00ff66;
+    border: 1px solid rgba(0, 255, 102, 0.3);
+  }
+
+  .sub-status.mismatch {
+    background: rgba(255, 42, 85, 0.1);
+    color: #ff2a55;
+    border: 1px solid rgba(255, 42, 85, 0.3);
+  }
+
+  .admin-panel {
+    background: rgba(255, 184, 0, 0.04);
+    border: 1px solid rgba(255, 184, 0, 0.15);
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .admin-btn {
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .admin-btn-warn {
+    background: rgba(255, 184, 0, 0.1);
+    color: #ffb800;
+    border-color: rgba(255, 184, 0, 0.3);
+  }
+
+  .admin-btn-danger {
+    background: rgba(255, 42, 85, 0.1);
+    color: #ff2a55;
+    border-color: rgba(255, 42, 85, 0.3);
+  }
+
+  .admin-btn-ok {
+    background: rgba(0, 255, 102, 0.1);
+    color: #00ff66;
+    border-color: rgba(0, 255, 102, 0.3);
+  }
+
+  .admin-btn-ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .voice-channel-card {
+    background: rgba(88, 101, 242, 0.08);
+    border: 1px solid rgba(88, 101, 242, 0.2);
+    border-radius: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    transition: all 0.2s;
+  }
+
+  .proxy-banner {
+    background: linear-gradient(90deg, rgba(255, 184, 0, 0.12) 0%, rgba(255, 184, 0, 0.06) 50%, transparent 100%);
+    border-left: 3px solid #ffb800;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .proxy-acting-btn {
+    padding: 0.35rem 0.9rem;
+    border-radius: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .proxy-acting-btn.active-a {
+    background: rgba(var(--ar), var(--ag), var(--ab), 0.2);
+    color: var(--ac);
+    border-color: var(--ac);
+  }
+
+  .proxy-acting-btn.active-b {
+    background: rgba(255, 42, 85, 0.2);
+    color: #ff2a55;
+    border-color: #ff2a55;
+  }
+
+  .proxy-acting-btn.inactive {
+    background: rgba(255, 255, 255, 0.05);
+    color: #666;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @keyframes coinFlip {
+    0% { transform: rotateY(0) scale(1); }
+    50% { transform: rotateY(1800deg) scale(1.35); }
+    100% { transform: rotateY(3600deg) scale(1); }
+  }
+
+  @media (max-width: 1023px) {
+    #main-scroll {
+      border-right: none;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
   }
 </style>
 {% endblock %}
 
 {% block tournament_content %}
-<div class="mr-shell" id="mr-app">
-  <div class="mr-header mr-card">
-    <div class="mr-title-row">
-      <div>
-        <div class="mr-muted" id="mr-subtitle">Loading match lobby...</div>
-        <h1 style="margin:0.2rem 0 0;font-size:1.2rem;font-weight:900;">Premium Match Lobby</h1>
+<div id="mr-shell" class="relative" data-game="valorant">
+  <div class="bg-cin" id="bg-layer"></div>
+  <div class="bg-ov" id="bg-ov"></div>
+
+  <nav class="w-full h-14 flex items-center justify-between px-5 border-b border-white/5 z-40 shrink-0" style="background:rgba(2,2,3,.8);backdrop-filter:blur(16px)">
+    <div class="flex items-center gap-3 min-w-0">
+      <a id="nav-back-link" href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="text-gray-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">Back to Match</span>
+      </a>
+      <div class="h-4 w-px bg-white/10"></div>
+      <span id="nav-match-id" class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Match #{{ match.id }}</span>
+      <div class="h-4 w-px bg-white/10 hidden md:block"></div>
+      <span id="nav-tournament" class="text-[10px] font-mono text-gray-600 uppercase tracking-widest hidden md:block truncate">{{ tournament.name }}</span>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-white bg-white/5 px-3 py-1.5 rounded border border-white/8">
+        <i data-lucide="clock" class="w-3 h-3 text-gray-400"></i><span id="match-clock">--:--</span>
       </div>
-      <div class="mr-split-actions">
-        <span class="mr-badge" id="mr-state-badge">-</span>
-        <a class="mr-ghost-btn" href="{% url 'tournaments:match_detail' tournament.slug match.id %}">Public Match</a>
+      <span id="ws-reconnect-badge" class="hidden-state px-2 py-1 rounded border border-amber-400/30 bg-amber-500/10 text-amber-200 text-[10px] font-black uppercase tracking-widest">Reconnecting...</span>
+      <button id="btn-open-dispute" class="px-3 py-1.5 rounded bg-red-500/10 text-red-300 border border-red-400/30 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+        <i data-lucide="siren" class="w-3 h-3"></i><span class="hidden sm:inline">Call</span>Match Medic
+      </button>
+    </div>
+  </nav>
+
+  <header class="w-full border-b border-white/5 shrink-0 relative overflow-hidden" style="background:rgba(0,0,0,.5);backdrop-filter:blur(12px)">
+    <div class="absolute left-0 inset-y-0 w-2/5 pointer-events-none" style="background:linear-gradient(to right,rgba(var(--ar),var(--ag),var(--ab),.09),transparent)"></div>
+    <div class="absolute right-0 inset-y-0 w-2/5 pointer-events-none" style="background:linear-gradient(to left,rgba(255,42,85,.09),transparent)"></div>
+    <div class="px-5 py-2.5 flex items-center justify-between relative z-10">
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div id="team-a-logo" class="w-11 h-11 rounded-xl flex items-center justify-center font-display font-black text-base shrink-0" style="background:rgba(var(--ar),var(--ag),var(--ab),.15);border:1.5px solid rgba(var(--ar),var(--ag),var(--ab),.45);color:var(--ac)">A</div>
+        <div class="min-w-0">
+          <h2 id="team-a-name" class="font-display font-bold text-lg text-white tracking-wide leading-none gradient-text truncate">Team A</h2>
+          <p id="team-a-sub" class="text-[9px] font-mono tracking-widest uppercase mt-0.5" style="color:var(--ac)">Your squad</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center px-3 shrink-0">
+        <span id="match-format" class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">BO1</span>
+        <div class="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center font-display font-black text-gray-600 italic text-sm" style="background:#020203">VS</div>
+      </div>
+
+      <div class="flex items-center gap-3 flex-1 justify-end text-right min-w-0">
+        <div class="min-w-0">
+          <h2 id="team-b-name" class="font-display font-bold text-lg text-white tracking-wide leading-none truncate">Team B</h2>
+          <p id="team-b-sub" class="text-[9px] text-red-300 font-mono tracking-widest uppercase mt-0.5">Opponent</p>
+        </div>
+        <div id="team-b-logo" class="w-11 h-11 rounded-xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-red-300 font-display font-black text-base shrink-0">B</div>
       </div>
     </div>
+  </header>
 
-    <div class="mr-versus">
-      <div class="mr-team-box">
-        <div class="mr-team-name" id="mr-team-1-name">-</div>
-        <div class="mr-team-meta" id="mr-team-1-meta">Waiting</div>
+  <main class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10" style="min-height:0">
+    <section id="main-scroll" class="col-span-1 lg:col-span-8 h-full overflow-y-auto flex flex-col gap-5 p-5 lg:p-8 pb-24 border-r border-white/5 relative">
+      <div class="glass flex items-center px-4 py-2.5 rounded-xl shrink-0 gap-2.5">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <div id="ph-dot-1" class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border phase-dot-active"><i data-lucide="settings-2" class="w-2.5 h-2.5"></i></div>
+          <span id="ph-label-1" class="text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">Match Setup</span>
+        </div>
+        <div class="ph-bar"><div class="ph-bar-fill" id="ph-bar-1" style="width:100%"></div></div>
+
+        <div id="ph2-wrap" class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500">
+          <div id="ph-dot-2" class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]"><i data-lucide="server" class="w-2.5 h-2.5"></i></div>
+          <span id="ph-label-2" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Lobby Setup</span>
+        </div>
+        <div class="ph-bar"><div class="ph-bar-fill" id="ph-bar-2" style="width:0%"></div></div>
+
+        <div id="ph3-wrap" class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500">
+          <div id="ph-dot-3" class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]"><i data-lucide="flag" class="w-2.5 h-2.5"></i></div>
+          <span id="ph-label-3" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Submit Result</span>
+        </div>
       </div>
-      <div class="mr-score">
-        <div class="mr-score-main" id="mr-score-main">0 - 0</div>
-        <div class="mr-muted" id="mr-score-sub">Best of 1</div>
+
+      <div id="checkin-status-banner" class="hidden-state glass rounded-xl px-4 py-3 border border-white/8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="min-w-0">
+            <span id="checkin-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-white/15 bg-white/5 text-gray-200">Check-In Required</span>
+            <p id="checkin-status-text" class="text-[11px] text-gray-400 mt-1.5">Check-in window details will appear here.</p>
+          </div>
+          <div class="flex flex-col gap-1 text-[10px] font-mono text-gray-300">
+            <span id="presence-team-a">Team A: Offline - Pending check-in</span>
+            <span id="presence-team-b">Team B: Offline - Pending check-in</span>
+          </div>
+        </div>
       </div>
-      <div class="mr-team-box" style="text-align:right;">
-        <div class="mr-team-name" id="mr-team-2-name">-</div>
-        <div class="mr-team-meta" id="mr-team-2-meta">Waiting</div>
+
+      <div id="waiting-room-overlay" class="waiting-room-overlay is-hidden" aria-live="polite" aria-hidden="true">
+        <div class="overlay-scrim"></div>
+        <div class="waiting-room-card">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg ac-bg border ac-bd flex items-center justify-center shrink-0">
+              <i data-lucide="users" class="w-4 h-4 ac"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p id="waiting-room-title" class="text-xs font-black uppercase tracking-widest text-white">Waiting for opponent to connect...</p>
+              <p id="waiting-room-subtext" class="text-[11px] text-gray-300 mt-1">Lobby controls unlock automatically once both sides are online.</p>
+              <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono">
+                <div id="waiting-room-side-a" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team A: Offline</div>
+                <div id="waiting-room-side-b" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team B: Offline</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="mr-phase-track" id="mr-phase-track"></div>
-  </div>
-
-  <div class="mr-grid">
-    <div class="mr-main-stack">
-      <section class="mr-card" id="mr-coin-toss-card">
-        <h2 class="mr-section-title">Coin Toss</h2>
-        <p class="mr-muted" id="mr-coin-summary">Resolve side priority for phase one.</p>
-        <div class="mr-split-actions">
-          <button class="mr-action-btn" id="mr-coin-btn">Run Coin Toss</button>
+      <div id="ph-discord" class="flex flex-col gap-3">
+        <div id="proxy-banner" class="proxy-banner hidden-state">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(255,184,0,.15);border:1px solid rgba(255,184,0,.3)"><i data-lucide="user-cog" class="w-3.5 h-3.5" style="color:#ffb800"></i></div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-widest" style="color:#ffb800">Proxy Mode Active</p>
+            <p class="text-[9px] text-gray-400">Organizer actions are being executed as selected side.</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="proxy-btn-a" class="proxy-acting-btn active-a">Act as Team A</button>
+            <button id="proxy-btn-b" class="proxy-acting-btn inactive">Act as Team B</button>
+          </div>
         </div>
-      </section>
 
-      <section class="mr-card" id="mr-phase1-card">
-        <h2 class="mr-section-title" id="mr-phase1-title">Phase One</h2>
-        <p class="mr-muted" id="mr-phase1-turn">Waiting for phase one.</p>
-        <div class="mr-pool-grid" id="mr-phase1-pool"></div>
-        <div class="mr-muted" id="mr-phase1-log" style="margin-top:0.6rem;"></div>
-      </section>
+        <div class="glass rounded-2xl p-8 text-center relative overflow-hidden" style="border-top:2px solid var(--ac)">
+          <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,rgba(var(--ar),var(--ag),var(--ab),.06) 0%,transparent 65%)"></div>
+          <h3 id="toss-headline" class="font-display font-black text-2xl text-white mb-1 relative z-10">Official Coin Toss</h3>
+          <p id="toss-sub" class="text-sm text-gray-400 mb-6 relative z-10">Resolve first control priority for match setup.</p>
+          <div class="coin-wrap mb-6 relative z-10">
+            <div class="coin" id="the-coin">
+              <div class="coin-face coin-a" id="coin-a-face">A</div>
+              <div class="coin-face coin-b" id="coin-b-face">B</div>
+            </div>
+          </div>
+          <div id="toss-actions" class="relative z-10"><button id="btn-coin-toss" class="px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-gray-200 transition-all rounded-xl">Initiate Coin Toss</button></div>
+          <div id="toss-result" class="hidden-state relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-sm font-bold uppercase tracking-widest border ac-bg ac-bd ac">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="toss-winner-text">Side 1 won first control</span>
+            </div>
+            <div><button id="btn-proceed-after-toss" class="px-8 py-3.5 font-black uppercase tracking-widest text-sm transition-all rounded-xl" style="background:var(--ac);color:#000">Proceed to Match Setup</button></div>
+          </div>
+        </div>
+      </div>
 
-      <section class="mr-card" id="mr-credentials-card">
-        <h2 class="mr-section-title">Lobby Credentials</h2>
-        <div class="mr-cred-grid">
+      <div id="ph-veto" class="hidden-state flex flex-col gap-4">
+        <div class="flex items-center justify-between">
           <div>
-            <div class="mr-label">Lobby Code</div>
-            <input class="mr-input" id="mr-cred-code" type="text" placeholder="ABC123">
+            <h3 id="veto-title" class="font-display font-black text-2xl text-white">Map Pool</h3>
+            <p id="veto-instr" class="text-sm font-bold mt-1 ac">Waiting for veto turn.</p>
+          </div>
+          <div class="glass px-4 py-2.5 rounded-xl text-right">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Phase</p>
+            <p id="veto-timer" class="font-mono text-lg text-white font-bold">LIVE</p>
+          </div>
+        </div>
+        <div id="map-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        <div class="glass p-4 rounded-xl">
+          <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">Veto Audit Log</h4>
+          <ul id="veto-log" class="space-y-1.5 text-xs font-mono text-gray-400"></ul>
+        </div>
+      </div>
+
+      <div id="ph-draft" class="hidden-state flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-display font-black text-2xl text-white">Hero Draft</h3>
+            <p id="draft-instr" class="text-sm font-bold mt-1 ac">Waiting for draft turn.</p>
+          </div>
+          <div class="glass px-4 py-2.5 rounded-xl text-right">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Step</p>
+            <p id="draft-step" class="font-mono text-lg text-white font-bold">0/0</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold uppercase tracking-widest mb-2 ac" id="picks-a-label">Team A Picks</p><div id="picks-a" class="flex flex-wrap gap-1 min-h-[22px]"></div></div>
+          <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold uppercase tracking-widest mb-2 text-red-300" id="picks-b-label">Team B Picks</p><div id="picks-b" class="flex flex-wrap gap-1 min-h-[22px]"></div></div>
+        </div>
+        <div class="glass rounded-xl p-3"><p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Banned</p><div id="bans-display" class="flex flex-wrap gap-1 min-h-[20px]"></div></div>
+        <div id="hero-grid" class="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-9 gap-1.5 max-h-72 overflow-y-auto"></div>
+        <div class="glass p-3 rounded-xl"><h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1.5">Draft Log</h4><ul id="draft-log" class="space-y-1 text-xs font-mono text-gray-400"></ul></div>
+      </div>
+
+      <div id="ph-direct" class="hidden-state">
+        <div class="glass rounded-2xl p-10 text-center relative overflow-hidden" style="border-top:2px solid var(--ac)">
+          <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at top,rgba(var(--ar),var(--ag),var(--ab),.05) 0%,transparent 60%)"></div>
+          <div class="relative z-10">
+            <h3 id="direct-title" class="font-display font-black text-2xl text-white mb-2">Ready Check</h3>
+            <p id="direct-desc" class="text-sm text-gray-400 mb-7 max-w-md mx-auto">Both sides must confirm readiness before lobby setup begins.</p>
+            <div class="flex items-center justify-center gap-8 mb-8">
+              <div id="direct-ready-a" class="flex flex-col items-center gap-2"><div class="w-12 h-12 rounded-xl ac-bg border ac-bd flex items-center justify-center text-xl font-bold">?</div><p class="text-[10px] font-bold text-white" id="team-a-ready-name">Team A</p><p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Waiting</p></div>
+              <div class="h-px w-10 bg-white/10"></div>
+              <div id="direct-ready-b" class="flex flex-col items-center gap-2"><div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-bold">?</div><p class="text-[10px] font-bold text-white" id="team-b-ready-name">Team B</p><p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Waiting</p></div>
+            </div>
+            <button id="btn-direct-ready" class="px-8 py-3.5 font-black uppercase tracking-widest text-sm rounded-xl" style="background:var(--ac);color:#000">Mark My Side Ready</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ph-lobby" class="hidden-state">
+        <div class="rounded-2xl p-7 relative overflow-hidden border ac-bd" style="background:linear-gradient(135deg,rgba(var(--ar),var(--ag),var(--ab),.08),transparent)">
+          <div class="absolute right-0 top-0 w-52 h-52 rounded-full pointer-events-none" style="background:rgba(var(--ar),var(--ag),var(--ab),.12);filter:blur(60px)"></div>
+
+          <div id="lobby-host-view" class="relative z-10 flex flex-col lg:flex-row gap-8">
+            <div class="flex-1">
+              <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest mb-4 ac ac-bg border ac-bd"><i data-lucide="shield" class="w-3 h-3"></i>Host / Staff Controls</div>
+              <h3 class="font-display font-black text-2xl text-white mb-3">Create and Broadcast Lobby Credentials</h3>
+              <p class="text-sm text-gray-400 mb-5 leading-relaxed max-w-sm">Use the tournament-approved settings below, then broadcast credentials to both sides.</p>
+              <div id="host-steps" class="space-y-2 text-xs text-gray-400 font-mono"></div>
+            </div>
+            <div class="w-full lg:w-[380px] rounded-2xl p-6 shadow-2xl" style="background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1)">
+              <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Broadcast Lobby Credentials</h4>
+              <form id="cred-form" class="space-y-3"></form>
+              <button id="btn-broadcast-creds" class="w-full py-3 mt-3 rounded-xl font-black uppercase tracking-widest text-sm" style="background:var(--ac);color:#000">Broadcast Credentials</button>
+              <button id="btn-start-live" class="w-full py-3 mt-2 rounded-xl bg-white/10 border border-white/15 text-white text-xs font-black uppercase tracking-widest">Mark Match Live</button>
+            </div>
+          </div>
+
+          <div id="lobby-guest-view" class="hidden-state relative z-10 flex flex-col items-center justify-center text-center py-14">
+            <div class="relative w-14 h-14 mb-5">
+              <div class="absolute inset-0 rounded-full border-4" style="border-color:rgba(var(--ar),var(--ag),var(--ab),.2)"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin" style="border-color:var(--ac);border-top-color:transparent"></div>
+              <div class="absolute inset-2 rounded-full ac-bg flex items-center justify-center"><i data-lucide="shield" class="w-4 h-4 ac"></i></div>
+            </div>
+            <h3 class="font-display font-black text-2xl text-white mb-2">Awaiting Host Setup</h3>
+            <p class="text-sm text-gray-400 max-w-sm">Lobby credentials will appear automatically once host/staff broadcasts them.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="ph-server" class="hidden-state">
+        <div class="rounded-2xl p-7 relative overflow-hidden border" style="background:linear-gradient(135deg,rgba(var(--ar),var(--ag),var(--ab),.08),transparent);border-color:rgba(var(--ar),var(--ag),var(--ab),.28)">
+          <div class="absolute right-0 top-0 w-56 h-56 rounded-full pointer-events-none" style="background:rgba(var(--ar),var(--ag),var(--ab),.1);filter:blur(70px)"></div>
+          <div class="flex flex-col md:flex-row items-start justify-between gap-8 relative z-10">
+            <div class="flex-1">
+              <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest mb-3 ac ac-bg"><span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:var(--ac)"></span>Match Is Live</div>
+              <h3 id="server-map-name" class="font-display font-black text-4xl text-white mb-2">Live Lobby</h3>
+              <p class="text-sm text-gray-400 mb-4">Join promptly to avoid no-show penalties.</p>
+              <div id="server-steps" class="space-y-1.5 text-xs text-gray-400 font-mono"></div>
+            </div>
+            <div class="w-full md:w-auto flex flex-col gap-3 min-w-[220px]">
+              <div id="server-creds" class="glass rounded-xl p-4 flex flex-col gap-3"></div>
+              <button id="btn-to-results" class="text-xs text-gray-500 hover:text-white border-b border-dashed border-gray-700 pb-1 transition-colors font-bold uppercase tracking-widest">Match Done -> Submit Result</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ph-result" class="hidden-state flex flex-col gap-4">
+        <div>
+          <h3 class="font-display font-black text-xl text-white mb-0.5">Match Result Submission</h3>
+          <p class="text-xs text-gray-500">Both captains submit independently. Matching scores lock the result. Proof screenshots are stored with each submission.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="result-cards">
+          <div class="result-team-card team-a" id="result-card-a">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div id="result-logo-a" class="w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-sm" style="background:rgba(var(--ar),var(--ag),var(--ab),.2);color:var(--ac)">A</div>
+                <div>
+                  <p class="text-xs font-bold text-white" id="result-name-a">Team A</p>
+                  <p class="text-[9px] font-mono uppercase tracking-widest" style="color:var(--ac)">Side A Submission</p>
+                </div>
+              </div>
+              <span class="sub-status pending" id="sub-status-a"><span>●</span>Pending</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p class="section-label mb-1">Score For</p>
+                <input type="number" id="score-a" min="0" max="99" placeholder="0" class="compact-input text-center">
+              </div>
+              <div>
+                <p class="section-label mb-1">Score Against</p>
+                <input type="number" id="score-a-opp" min="0" max="99" placeholder="0" class="compact-input text-center">
+              </div>
+            </div>
+
+            <div id="extra-fields-a" class="space-y-2 mb-3"></div>
+
+            <input type="file" id="upload-input-a" class="hidden" accept="image/*">
+            <div class="upload-zone mb-3" id="upload-a">
+              <i data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+              <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+              <p class="text-[9px] text-gray-600 mt-0.5">PNG or JPG, up to 10MB</p>
+            </div>
+
+            <button id="submit-btn-a" class="w-full py-2.5 text-black font-black uppercase tracking-widest text-xs rounded-xl" style="background:var(--ac)">Submit Side A Result</button>
+          </div>
+
+          <div class="result-team-card team-b" id="result-card-b">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div id="result-logo-b" class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center font-display font-black text-sm text-red-300">B</div>
+                <div>
+                  <p class="text-xs font-bold text-white" id="result-name-b">Team B</p>
+                  <p class="text-[9px] font-mono uppercase tracking-widest text-red-300">Side B Submission</p>
+                </div>
+              </div>
+              <span class="sub-status pending" id="sub-status-b"><span>●</span>Pending</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p class="section-label mb-1">Score For</p>
+                <input type="number" id="score-b" min="0" max="99" placeholder="0" class="compact-input text-center">
+              </div>
+              <div>
+                <p class="section-label mb-1">Score Against</p>
+                <input type="number" id="score-b-opp" min="0" max="99" placeholder="0" class="compact-input text-center">
+              </div>
+            </div>
+
+            <div id="extra-fields-b" class="space-y-2 mb-3"></div>
+
+            <input type="file" id="upload-input-b" class="hidden" accept="image/*">
+            <div class="upload-zone mb-3" id="upload-b">
+              <i data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+              <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+              <p class="text-[9px] text-gray-600 mt-0.5">PNG or JPG, up to 10MB</p>
+            </div>
+
+            <button id="submit-btn-b" class="w-full py-2.5 bg-red-500 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-600 transition-colors">Submit Side B Result</button>
+          </div>
+        </div>
+
+        <div id="result-verify" class="hidden-state glass rounded-xl p-5 text-center">
+          <h4 class="font-display font-bold text-base text-white mb-1">Awaiting Opponent Confirmation</h4>
+          <p class="text-xs text-gray-400" id="verify-status-text">Waiting for the other side to submit their result.</p>
+        </div>
+
+        <div id="result-success" class="hidden-state bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center">
+          <div class="w-12 h-12 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center mx-auto mb-3"><i data-lucide="check-check" class="w-6 h-6 text-green-300"></i></div>
+          <h4 class="font-display font-black text-xl text-white mb-1">Result Verified</h4>
+          <p class="text-xs text-gray-400 mb-4">Both sides submitted matching scores. Bracket progression can continue.</p>
+          <div id="final-score-display" class="flex items-center justify-center gap-4 font-display font-black text-4xl py-4 px-6 rounded-xl border border-white/5 mb-4" style="background:rgba(0,0,0,.5)"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="col-span-1 lg:col-span-4 h-full flex flex-col border-l border-white/5" style="background:#08080a">
+      <div class="flex border-b border-white/5 shrink-0" style="background:rgba(2,2,3,.5)">
+        <button id="tab-chat-btn" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ac border-b-2" style="border-bottom-color:var(--ac)">Chat</button>
+        <button id="tab-intel-btn" class="flex-1 py-3 text-[10px] font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">Squad Intel</button>
+        <button id="tab-voice-btn" class="flex-1 py-3 text-[10px] font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">Voice</button>
+        <button id="tab-admin-btn" class="hidden-state flex-1 py-3 text-[10px] font-bold text-amber-300 border-b-2 border-transparent hover:text-amber-200 transition-colors">Admin</button>
+      </div>
+
+      <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+        <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+          <div class="flex justify-center"><span class="px-3 py-1 bg-white/5 border border-white/8 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-400">Secure lobby channel open</span></div>
+        </div>
+        <div class="p-3 border-t border-white/5 shrink-0" style="background:rgba(0,0,0,.4)">
+          <form class="relative flex items-center" id="chat-form">
+            <input type="text" id="chat-input" placeholder="Coordinate with opponent..." class="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none">
+            <button type="submit" class="absolute right-2 p-1.5 text-gray-400 hover:text-white transition-colors"><i data-lucide="send" class="w-4 h-4"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <div id="view-intel" class="hidden-state flex flex-col" style="flex:1;min-height:0">
+        <div class="mx-4 mt-4 mb-0 p-3 rounded-xl border border-amber-500/20" style="background:linear-gradient(135deg,rgba(255,184,0,.07) 0%, rgba(255,184,0,.02) 100%)">
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(255,184,0,.15)"><i data-lucide="shield-check" class="w-3.5 h-3.5" style="color:#ffb800"></i></div>
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest" style="color:#ffb800">Match Organizer</p>
+              <p class="text-[9px] text-gray-500" id="org-name">DeltaCrown Staff</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="btn-activate-proxy" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-500/30 text-[10px] font-bold text-amber-400 hover:bg-amber-500/10 uppercase tracking-widest transition-all"><i data-lucide="user-cog" class="w-3 h-3"></i>Proxy Mode</button>
+          </div>
+        </div>
+
+        <div class="overflow-y-auto px-4 py-3 space-y-4">
+          <div>
+            <p class="section-label mb-2">Your Squad</p>
+            <div id="intel-a" class="space-y-1.5"></div>
           </div>
           <div>
-            <div class="mr-label">Password</div>
-            <input class="mr-input" id="mr-cred-password" type="text" placeholder="Optional">
+            <p class="section-label mb-2">Opponent</p>
+            <div id="intel-b" class="space-y-1.5"></div>
           </div>
+          <div class="glass p-3 rounded-xl">
+            <p class="section-label mb-2">Match Rules</p>
+            <div id="match-rules" class="space-y-1 text-[10px] text-gray-400 font-mono"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-voice" class="hidden-state flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="flex items-center gap-2 mb-1">
+          <div class="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style="background:#5865f2"><i data-lucide="headset" class="w-3.5 h-3.5 text-white"></i></div>
           <div>
-            <div class="mr-label">Map</div>
-            <input class="mr-input" id="mr-cred-map" type="text" placeholder="Map / battleground">
-          </div>
-          <div>
-            <div class="mr-label">Server</div>
-            <input class="mr-input" id="mr-cred-server" type="text" placeholder="Region / server">
-          </div>
-          <div style="grid-column:1 / -1;">
-            <div class="mr-label">Game Mode</div>
-            <input class="mr-input" id="mr-cred-mode" type="text" placeholder="Competitive, Scrim, etc.">
-          </div>
-          <div style="grid-column:1 / -1;">
-            <div class="mr-label">Notes</div>
-            <textarea class="mr-textarea" id="mr-cred-notes" placeholder="Any additional instructions for both teams"></textarea>
+            <p class="text-[10px] font-black text-white uppercase tracking-widest">Voice Channels</p>
+            <p class="text-[9px] text-gray-500">Use your configured team comms channel.</p>
           </div>
         </div>
-        <div class="mr-split-actions" style="margin-top:0.65rem;">
-          <button class="mr-action-btn" id="mr-save-credentials-btn">Save Credentials</button>
-          <button class="mr-ghost-btn" id="mr-start-live-btn">Mark Match Live</button>
+        <div class="space-y-2">
+          <div class="voice-channel-card"><div class="flex items-center justify-between"><div><p class="text-xs font-bold text-white">Team A Channel</p><p class="text-[9px] text-gray-500 font-mono">Primary comms</p></div><span class="text-[9px] text-gray-300 uppercase tracking-widest font-bold">Connected</span></div></div>
+          <div class="voice-channel-card"><div class="flex items-center justify-between"><div><p class="text-xs font-bold text-white">Admin / Referee Room</p><p class="text-[9px] text-gray-500 font-mono">Staff escalation</p></div><span class="text-[9px] text-gray-300 uppercase tracking-widest font-bold">Join</span></div></div>
         </div>
-      </section>
+      </div>
 
-      <section class="mr-card" id="mr-results-card">
-        <h2 class="mr-section-title">Result Submission</h2>
-        <p class="mr-muted" id="mr-result-status">Both sides should submit matching scores.</p>
-        <div class="mr-result-grid" id="mr-result-grid"></div>
-
-        <div id="mr-admin-override" style="display:none;margin-top:0.75rem;border-top:1px solid var(--mr-border);padding-top:0.75rem;">
-          <div class="mr-label" style="margin-bottom:0.4rem;">Staff Override</div>
-          <div class="mr-split-actions">
-            <input class="mr-input" id="mr-admin-score-1" type="number" min="0" placeholder="P1 score" style="max-width:120px;">
-            <input class="mr-input" id="mr-admin-score-2" type="number" min="0" placeholder="P2 score" style="max-width:120px;">
-            <button class="mr-danger-btn" id="mr-admin-override-btn">Finalize Override</button>
+      <div id="view-admin" class="hidden-state flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="admin-panel">
+          <div class="flex items-center gap-2 mb-3"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-300"></i><span class="text-[10px] font-black text-amber-300 uppercase tracking-widest">Organizer Tools</span></div>
+          <div class="space-y-1.5">
+            <p class="section-label">Match Controls</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button id="btn-admin-next-phase" class="admin-btn admin-btn-warn">Force Next Phase</button>
+              <button id="btn-admin-override" class="admin-btn admin-btn-danger">Override Score</button>
+            </div>
           </div>
         </div>
-      </section>
-    </div>
 
-    <aside class="mr-main-stack">
-      <section class="mr-card">
-        <h2 class="mr-section-title">Quick Actions</h2>
-        <div class="mr-split-actions">
-          <button class="mr-ghost-btn" id="mr-checkin-btn">Check In</button>
-          <a class="mr-ghost-btn" href="{% url 'tournaments:submit_result' tournament.slug match.id %}">Legacy Submit</a>
-          <a class="mr-ghost-btn" href="{% url 'tournaments:report_dispute' tournament.slug match.id %}">Report Dispute</a>
+        <div class="glass p-3 rounded-xl">
+          <p class="section-label mb-2">Send Announcement</p>
+          <div class="flex gap-1.5"><input type="text" id="admin-msg" placeholder="System message to both teams..." class="compact-input flex-1"><button id="btn-admin-send-msg" class="admin-btn admin-btn-ok shrink-0">Send</button></div>
         </div>
-        <p class="mr-muted" id="mr-quick-note" style="margin-top:0.5rem;">Room actions sync in realtime.</p>
-      </section>
 
-      <section class="mr-card">
-        <h2 class="mr-section-title">Lobby Snapshot</h2>
-        <div class="mr-muted" id="mr-lobby-snapshot">No lobby credentials yet.</div>
-      </section>
+        <div class="glass p-3 rounded-xl">
+          <p class="section-label mb-2">Score Override</p>
+          <div class="flex items-center gap-2 mb-2">
+            <input type="number" id="admin-score-a" placeholder="A" class="compact-input text-center" style="width:72px">
+            <span class="text-gray-600 font-bold">-</span>
+            <input type="number" id="admin-score-b" placeholder="B" class="compact-input text-center" style="width:72px">
+            <button id="btn-admin-apply-score" class="admin-btn admin-btn-warn flex-1">Apply</button>
+          </div>
+          <p class="text-[9px] text-gray-600">Finalizes score and broadcasts to all viewers.</p>
+        </div>
 
-      <section class="mr-card">
-        <h2 class="mr-section-title">Realtime Chat</h2>
-        <div class="mr-chat-window" id="mr-chat-window"></div>
-        <form id="mr-chat-form" style="display:flex;gap:0.45rem;margin-top:0.55rem;">
-          <input class="mr-input" id="mr-chat-input" type="text" maxlength="400" placeholder="Type a room message...">
-          <button class="mr-action-btn" type="submit">Send</button>
-        </form>
-      </section>
+        <div class="glass p-3 rounded-xl" id="admin-creds-view">
+          <p class="section-label mb-2">Lobby Credentials (All Teams)</p>
+          <p class="text-[9px] text-gray-500">Credentials appear here after host broadcast.</p>
+        </div>
+      </div>
     </aside>
+  </main>
+
+  <div id="dispute-modal" class="fixed inset-0 z-[100] hidden-state items-center justify-center">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-close-dispute="1"></div>
+    <div class="bg-black border border-white/10 rounded-2xl w-full max-w-lg relative z-10 shadow-2xl overflow-hidden mx-4">
+      <div class="border-b border-red-400/20 p-6 flex justify-between items-center" style="background:rgba(255,42,85,.08)">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-red-500/20 border border-red-400/40 flex items-center justify-center text-red-300"><i data-lucide="siren" class="w-5 h-5"></i></div>
+          <div>
+            <h3 class="font-display font-black text-xl text-white">Match Medic</h3>
+            <p class="text-[10px] text-red-300 font-bold uppercase tracking-widest">Official Dispute Form</p>
+          </div>
+        </div>
+        <button id="btn-close-dispute" class="text-gray-400 hover:text-white bg-white/5 p-2 rounded-lg transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Reason</label>
+          <select id="dispute-reason" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none">
+            <option value="score_mismatch">Score Mismatch</option>
+            <option value="no_show">Opponent No-Show</option>
+            <option value="wrong_settings">Wrong Match Settings</option>
+            <option value="cheating">Suspected Cheating</option>
+            <option value="toxicity">Toxic Behaviour</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Explanation</label>
+          <textarea id="dispute-description" rows="3" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none resize-none" placeholder="Describe the issue with useful detail..."></textarea>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Evidence URL (optional)</label>
+          <input type="text" id="dispute-evidence-url" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none" placeholder="YouTube, imgur, stream link...">
+        </div>
+      </div>
+      <div class="p-4 border-t border-white/5 flex justify-end gap-3" style="background:rgba(0,0,0,.4)">
+        <button id="btn-dispute-cancel" class="px-5 py-2.5 text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors">Cancel</button>
+        <button id="btn-dispute-submit" class="px-5 py-2.5 text-xs font-black text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>Submit Ticket</button>
+      </div>
+    </div>
   </div>
+
+  {{ room_payload|json_script:"match-room-payload" }}
 </div>
-
-<div id="mr-toast" class="mr-toast"></div>
-
-{{ room_payload|json_script:"match-room-payload" }}
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="{% static 'tournaments/js/match-room-premium.js' %}"></script>
+<script defer src="{% static 'tournaments/js/match-room.js' %}"></script>
 {% endblock %}

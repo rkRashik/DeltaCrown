@@ -1,0 +1,48 @@
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# Python virtualenvs and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local runtime artifacts
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+logs/
+
+# JavaScript dependencies/caches
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Heavy non-runtime workspace directories
+Artifacts/
+Documents/
+docs/
+evidence/
+grafana/
+reports/
+synthetics/
+frontend_sdk/
+backups/
+
+# Editor/system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

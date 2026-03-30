@@ -15,7 +15,7 @@ from math import ceil
 from typing import Any, Dict, List, Optional
 
 from django.db import transaction
-from django.db.models import Q, Prefetch, Count
+from django.db.models import Q, Count
 from django.utils import timezone
 
 from apps.tournaments.models.match import Match
@@ -65,18 +65,6 @@ class TOCMatchesService:
         qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
-        ).select_related(
-            'tournament',
-            'bracket',
-        ).prefetch_related(
-            Prefetch(
-                'result_submissions',
-                queryset=MatchResultSubmission.objects.only('id', 'match_id', 'status', 'submitted_at').order_by('-submitted_at'),
-            ),
-            Prefetch(
-                'media',
-                queryset=MatchMedia.objects.only('id', 'match_id', 'media_type', 'is_evidence', 'created_at').order_by('-created_at'),
-            ),
         ).order_by('round_number', 'match_number')
         if round_number:
             qs = qs.filter(round_number=round_number)

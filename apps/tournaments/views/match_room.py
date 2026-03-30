@@ -875,7 +875,7 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
     """Participant/staff premium match room."""
 
     model = Match
-    template_name = "tournaments/match_room/room_v2.html"
+    template_name = "tournaments/match_room/room.html"
     context_object_name = "match"
     pk_url_kwarg = "match_id"
 
