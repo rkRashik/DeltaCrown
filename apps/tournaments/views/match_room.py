@@ -88,6 +88,28 @@ RESULT_SUBMISSION_EDITABLE_STATUSES = {
     MatchResultSubmission.STATUS_AUTO_CONFIRMED,
 }
 
+RESULT_REVEAL_STATUSES = {
+    "verified",
+    "mismatch",
+    "tie_pending_review",
+    "admin_overridden",
+    "admin_tie_pending_review",
+}
+
+TOURNAMENT_PLATFORM_LABELS = {
+    "pc": "PC",
+    "mobile": "Mobile",
+    "ps5": "PlayStation 5",
+    "xbox": "Xbox Series X/S",
+    "switch": "Nintendo Switch",
+}
+
+TOURNAMENT_MODE_LABELS = {
+    "online": "Online",
+    "lan": "LAN",
+    "hybrid": "Hybrid",
+}
+
 
 def _is_truthy(value: Any) -> bool:
     token = str(value or "").strip().lower()
@@ -113,6 +135,312 @@ def _safe_string_list(value: Any) -> List[str]:
         if text:
             result.append(text)
     return result
+
+
+def _coerce_optional_bool(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    token = str(value).strip().lower()
+    if token in {"1", "true", "yes", "y", "on"}:
+        return True
+    if token in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return None
+
+
+def _coerce_positive_int(value: Any) -> Optional[int]:
+    try:
+        parsed = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _setting_value(settings: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key not in settings:
+            continue
+        value = settings.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        return value
+    return None
+
+
+def _format_match_format(raw_format: str, best_of: int) -> str:
+    token = str(raw_format or "").strip().upper()
+    display_map = {
+        "BO1": "Bo1",
+        "BO3": "Bo3",
+        "BO5": "Bo5",
+        "BO7": "Bo7",
+        "RR": "Round Robin",
+        "ROUND_ROBIN": "Round Robin",
+        "FFA": "Free For All",
+        "SINGLE": "Single Match",
+        "SERIES": "Series",
+    }
+
+    if token in display_map:
+        return display_map[token]
+
+    if token.startswith("BO") and token[2:].isdigit():
+        return f"Bo{int(token[2:])}"
+
+    if best_of > 0:
+        return f"Bo{best_of}"
+
+    return "Standard"
+
+
+def _format_match_duration(match_settings: Dict[str, Any], *, fallback_minutes: Optional[int]) -> str:
+    half_length = _coerce_positive_int(
+        _setting_value(
+            match_settings,
+            "half_length",
+            "half_length_minutes",
+            "minutes_per_half",
+        )
+    )
+    if half_length:
+        return f"{half_length} min per half"
+
+    duration = _coerce_positive_int(
+        _setting_value(
+            match_settings,
+            "match_duration_minutes",
+            "duration_minutes",
+            "match_time_minutes",
+            "time_limit_minutes",
+        )
+    )
+    if not duration:
+        duration = fallback_minutes
+
+    if duration:
+        return f"{duration} min total"
+
+    return ""
+
+
+def _tournament_platform_label(tournament: Any) -> str:
+    display = ""
+    getter = getattr(tournament, "get_platform_display", None)
+    if callable(getter):
+        try:
+            display = str(getter() or "").strip()
+        except Exception:
+            display = ""
+
+    if display:
+        return display
+
+    token = str(getattr(tournament, "platform", "") or "").strip().lower()
+    if not token:
+        return "Any"
+    return TOURNAMENT_PLATFORM_LABELS.get(token, token.replace("_", " ").title())
+
+
+def _tournament_mode_label(tournament: Any) -> str:
+    display = ""
+    getter = getattr(tournament, "get_mode_display", None)
+    if callable(getter):
+        try:
+            display = str(getter() or "").strip()
+        except Exception:
+            display = ""
+
+    if display:
+        return display
+
+    token = str(getattr(tournament, "mode", "") or "").strip().lower()
+    if not token:
+        return "Standard"
+    return TOURNAMENT_MODE_LABELS.get(token, token.replace("_", " ").title())
+
+
+def _build_check_in_rule_text(match: Match, check_in_window: Dict[str, Any]) -> str:
+    if not bool(check_in_window.get("required")):
+        return "Not required"
+
+    p1_text = "P1 ready" if bool(match.participant1_checked_in) else "P1 pending"
+    p2_text = "P2 ready" if bool(match.participant2_checked_in) else "P2 pending"
+    return f"{p1_text} / {p2_text}"
+
+
+def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, str]]:
+    tournament = match.tournament
+    game_key = str(runtime.get("pipeline_game_key") or runtime.get("game_slug") or "").lower()
+    is_efootball = game_key == "efootball"
+
+    phase_mode = str(runtime.get("phase_mode") or "").lower()
+    best_of = int(runtime.get("best_of") or getattr(match, "best_of", 1) or 1)
+    map_pool = _safe_string_list(runtime.get("map_pool"))
+    check_in_window = _safe_dict(runtime.get("check_in_window"))
+
+    match_settings: Dict[str, Any] = {}
+    default_match_format = ""
+    try:
+        cfg = tournament.game_match_config
+    except Exception:
+        cfg = None
+
+    if cfg:
+        match_settings = _safe_dict(getattr(cfg, "match_settings", {}))
+        default_match_format = str(getattr(cfg, "default_match_format", "") or "").strip()
+
+    fallback_duration = None
+    allow_draws = None
+    overtime_enabled = None
+    try:
+        game_tournament_cfg = getattr(getattr(tournament, "game", None), "tournament_config", None)
+    except Exception:
+        game_tournament_cfg = None
+
+    if game_tournament_cfg:
+        fallback_duration = _coerce_positive_int(getattr(game_tournament_cfg, "default_match_duration_minutes", None))
+        allow_draws = _coerce_optional_bool(getattr(game_tournament_cfg, "allow_draws", None))
+        overtime_enabled = _coerce_optional_bool(getattr(game_tournament_cfg, "overtime_enabled", None))
+
+    match_duration = _format_match_duration(match_settings, fallback_minutes=fallback_duration)
+    extra_time = _coerce_optional_bool(
+        _setting_value(
+            match_settings,
+            "extra_time",
+            "extra_time_enabled",
+            "allow_extra_time",
+        )
+    )
+    penalties = _coerce_optional_bool(
+        _setting_value(
+            match_settings,
+            "penalties",
+            "penalty_shootout",
+            "penalty_shootouts",
+            "allow_penalties",
+        )
+    )
+    draws_allowed = _coerce_optional_bool(
+        _setting_value(
+            match_settings,
+            "allow_draws",
+            "draw_allowed",
+            "draws_allowed",
+        )
+    )
+    if draws_allowed is None:
+        draws_allowed = allow_draws
+
+    if extra_time is None:
+        extra_time = _coerce_optional_bool(
+            _setting_value(
+                match_settings,
+                "overtime",
+                "overtime_enabled",
+                "allow_overtime",
+            )
+        )
+    if extra_time is None:
+        extra_time = overtime_enabled
+
+    cards: List[Dict[str, str]] = []
+
+    def _append_rule(title: str, value: Any) -> None:
+        text = str(value or "").strip()
+        if not text:
+            return
+        cards.append({"title": title, "value": text})
+
+    pipeline_label = "Direct Setup" if phase_mode == "direct" else "Coin Toss -> Veto -> Lobby"
+    _append_rule("Pipeline", pipeline_label)
+    _append_rule("Match Format", _format_match_format(default_match_format, best_of))
+    _append_rule("Check-In", _build_check_in_rule_text(match, check_in_window))
+
+    if is_efootball:
+        _append_rule("Platform", _tournament_platform_label(tournament))
+        _append_rule("Tournament Mode", _tournament_mode_label(tournament))
+        if match_duration:
+            _append_rule("Match Time", match_duration)
+        if extra_time is not None:
+            _append_rule("Extra Time", "Enabled" if extra_time else "Disabled")
+        if penalties is not None:
+            _append_rule("Penalties", "Enabled" if penalties else "Disabled")
+        if draws_allowed is not None:
+            _append_rule("Draws", "Allowed" if draws_allowed else "Not Allowed")
+    else:
+        _append_rule("Map Pool", ", ".join(map_pool) if map_pool else "Managed in lobby")
+        if match_duration:
+            _append_rule("Match Time", match_duration)
+
+    if match.scheduled_time:
+        try:
+            scheduled_label = timezone.localtime(match.scheduled_time).strftime("%b %d, %I:%M %p")
+        except Exception:
+            scheduled_label = match.scheduled_time.isoformat()
+    else:
+        scheduled_label = "TBD"
+    _append_rule("Scheduled", scheduled_label)
+
+    return cards
+
+
+def _blind_mask_submission(submission: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "submission_id": submission.get("submission_id"),
+        "status": submission.get("status"),
+        "submitted_at": submission.get("submitted_at"),
+        "blind_masked": True,
+    }
+
+
+def _mask_result_submissions_for_view(
+    *,
+    submissions: Dict[str, Any],
+    access: Dict[str, Any],
+    result_status: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    normalized_submissions: Dict[str, Optional[Dict[str, Any]]] = {
+        "1": _safe_dict(submissions.get("1")) if isinstance(submissions.get("1"), dict) else None,
+        "2": _safe_dict(submissions.get("2")) if isinstance(submissions.get("2"), dict) else None,
+    }
+
+    is_staff = bool(access.get("is_staff"))
+    viewer_side = access.get("user_side") if access.get("user_side") in (1, 2) else None
+    both_submitted = isinstance(normalized_submissions.get("1"), dict) and isinstance(normalized_submissions.get("2"), dict)
+    reveal_for_participant = bool(viewer_side in (1, 2) and both_submitted and result_status in RESULT_REVEAL_STATUSES)
+
+    masked: Dict[str, Any] = {"1": None, "2": None}
+
+    for side_key in ("1", "2"):
+        row = normalized_submissions.get(side_key)
+        if not isinstance(row, dict):
+            masked[side_key] = None
+            continue
+
+        try:
+            side_value = int(side_key)
+        except (TypeError, ValueError):
+            side_value = None
+
+        row_visible = bool(is_staff or (viewer_side and viewer_side == side_value) or reveal_for_participant)
+        masked[side_key] = _safe_dict(row) if row_visible else _blind_mask_submission(row)
+
+    viewer_submission = normalized_submissions.get(str(viewer_side)) if viewer_side in (1, 2) else None
+    visibility = {
+        "blind_enabled": True,
+        "viewer_side": viewer_side,
+        "viewer_submitted": bool(isinstance(viewer_submission, dict)),
+        "both_submitted": bool(both_submitted),
+        "opponent_revealed": bool(is_staff or reveal_for_participant),
+    }
+
+    return masked, visibility
 
 
 def _credential_schema_for_game(*, game_key: str, game_slug: str, phase_mode: str) -> List[Dict[str, Any]]:
@@ -783,9 +1111,19 @@ def _build_room_payload(
     merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
     for side, submission in _side_submission_map(match).items():
         merged_submissions[str(side)] = _serialize_side_submission(submission, side)
-    workflow_payload["result_submissions"] = merged_submissions
+
+    result_status = str(workflow_payload.get("result_status") or "pending").strip().lower()
+    masked_submissions, result_visibility = _mask_result_submissions_for_view(
+        submissions=merged_submissions,
+        access=access,
+        result_status=result_status,
+    )
+
+    workflow_payload["result_submissions"] = masked_submissions
+    workflow_payload["result_visibility"] = result_visibility
 
     participant_media = _participant_media_map(match)
+    match_rules = _build_match_rules(match, runtime)
     admin_suffix = "?admin=1" if access.get("admin_mode") else ""
 
     return {
@@ -827,6 +1165,7 @@ def _build_room_payload(
             "phase_mode": runtime["phase_mode"],
             "map_pool": runtime["map_pool"],
             "credentials_schema": _safe_list(runtime.get("credential_schema")),
+            "match_rules": match_rules,
         },
         "lobby": {
             "lobby_code": str(lobby_info.get("lobby_code") or ""),

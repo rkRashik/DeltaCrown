@@ -530,6 +530,7 @@
     room.tournament = asObject(room.tournament);
     room.game = asObject(room.game);
     room.game.credentials_schema = asList(room.game.credentials_schema).map((row) => asObject(row));
+    room.game.match_rules = asList(room.game.match_rules).map((row) => asObject(row));
     room.lobby = asObject(room.lobby);
     room.pipeline = asObject(room.pipeline);
     room.workflow = asObject(room.workflow);
@@ -547,6 +548,7 @@
     room.workflow.direct_ready = asObject(room.workflow.direct_ready);
     room.workflow.credentials = asObject(room.workflow.credentials);
     room.workflow.result_submissions = asObject(room.workflow.result_submissions);
+    room.workflow.result_visibility = asObject(room.workflow.result_visibility);
     room.workflow.announcements = asList(room.workflow.announcements);
 
     room.presence = resolvePresence(room.presence || room.workflow.presence, room.match);
@@ -694,6 +696,10 @@
     const submissions = asObject(asObject(state.room.workflow).result_submissions);
     const row = submissions[String(side)];
     return row && typeof row === 'object' ? row : null;
+  }
+
+  function workflowResultVisibility() {
+    return asObject(asObject(state.room.workflow).result_visibility);
   }
 
   function applyRoom(nextRoom) {
@@ -845,30 +851,42 @@
     const p2 = asObject(match.participant2);
     const maps = mapPool();
 
-    const cards = [
-      {
-        title: 'Pipeline',
-        value: mode === 'direct' ? 'Direct Setup (eFootball)' : 'Toss -> Veto -> Setup (Valorant)',
-      },
-      {
-        title: 'Best Of',
-        value: `Bo${toInt(match.best_of, 1)}`,
-      },
-      {
-        title: 'Check-In',
-        value: bool(checkIn.required, false)
-          ? `${p1.checked_in ? 'P1 ready' : 'P1 pending'} / ${p2.checked_in ? 'P2 ready' : 'P2 pending'}`
-          : 'Not required',
-      },
-      {
-        title: 'Map Pool',
-        value: maps.length ? maps.join(', ') : 'Managed in lobby',
-      },
-      {
-        title: 'Scheduled',
-        value: formatLocalTime(match.scheduled_time),
-      },
-    ];
+    const backendCards = asList(asObject(room.game).match_rules)
+      .map((entry) => {
+        const row = asObject(entry);
+        return {
+          title: String(row.title || '').trim(),
+          value: String(row.value || '').trim(),
+        };
+      })
+      .filter((entry) => entry.title && entry.value);
+
+    const cards = backendCards.length
+      ? backendCards
+      : [
+        {
+          title: 'Pipeline',
+          value: mode === 'direct' ? 'Direct Setup (eFootball)' : 'Toss -> Veto -> Setup (Valorant)',
+        },
+        {
+          title: 'Best Of',
+          value: `Bo${toInt(match.best_of, 1)}`,
+        },
+        {
+          title: 'Check-In',
+          value: bool(checkIn.required, false)
+            ? `${p1.checked_in ? 'P1 ready' : 'P1 pending'} / ${p2.checked_in ? 'P2 ready' : 'P2 pending'}`
+            : 'Not required',
+        },
+        {
+          title: 'Map Pool',
+          value: maps.length ? maps.join(', ') : 'Managed in lobby',
+        },
+        {
+          title: 'Scheduled',
+          value: formatLocalTime(match.scheduled_time),
+        },
+      ];
 
     elements.rulesList.innerHTML = cards
       .map((item) => {
@@ -1227,14 +1245,14 @@
       return `
         <section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">
           <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Host Broadcast</p>
-          <h3 class="text-xl md:text-2xl font-black text-white">Create and Broadcast Lobby Credentials</h3>
-          <p class="text-xs text-gray-400 mt-2">Only Host (Side 1) can publish credentials for this match room.</p>
+          <h3 class="text-xl md:text-2xl font-black text-white">Share Match Room Credentials</h3>
+          <p class="text-xs text-gray-400 mt-2">You are Host (Side 1). Share room details when ready so both sides join the same match instance.</p>
 
           <form id="credentials-form" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
             ${fieldsHtml}
 
             <div class="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-1">
-              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>Broadcast Credentials</button>
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>Share With Opponent</button>
               <button type="button" data-action="start-live" class="px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white ${(!canStartLive || disabled) ? 'opacity-50 cursor-not-allowed' : ''}" ${(!canStartLive || disabled) ? 'disabled' : ''}>Mark Match Live</button>
             </div>
           </form>
@@ -1253,8 +1271,8 @@
               <i data-lucide="radar" class="w-5 h-5 text-ac animate-pulse"></i>
             </div>
           </div>
-          <h3 class="text-xl md:text-2xl font-black text-white">Awaiting Host Broadcast</h3>
-          <p class="text-xs md:text-sm text-gray-400 mt-2 max-w-md">${esc(hostName)} (Team A / Side 1) is preparing lobby credentials. You will receive them instantly after broadcast.</p>
+          <h3 class="text-xl md:text-2xl font-black text-white">Awaiting Host Room Details</h3>
+          <p class="text-xs md:text-sm text-gray-400 mt-2 max-w-md">${esc(hostName)} (Side 1) is setting up the room. Stay on this screen and details will appear automatically.</p>
         </div>
       </section>
     `;
@@ -1344,6 +1362,7 @@
   function renderResultsBlock(inlineAfterLive) {
     const side = mySide();
     const me = asObject(state.room.me);
+    const visibility = workflowResultVisibility();
     const canSubmit = bool(me.can_submit_result, false) && (side === 1 || side === 2);
     const submission = side ? workflowSubmission(side) : null;
     const oppSubmission = side ? workflowSubmission(opponentSide()) : null;
@@ -1355,6 +1374,9 @@
 
     const prefix = inlineAfterLive ? 'Live Follow-up' : 'Result Desk';
     const header = inlineAfterLive ? 'Submit Result When Match Ends' : 'Result Submission';
+    const blindCopy = bool(visibility.opponent_revealed, false)
+      ? 'Each side submits score independently. Matching submissions auto-verify.'
+      : 'Blind mode is active. Opponent score remains hidden until both sides submit.';
 
     const myStatus = submission ? String(submission.status || 'submitted') : 'pending';
     const oppStatus = oppSubmission ? String(oppSubmission.status || 'submitted') : 'pending';
@@ -1363,7 +1385,7 @@
       <section class="glass-panel rounded-2xl p-5 md:p-7 ${inlineAfterLive ? 'border border-white/10' : 'border-t-4 border-ac'}">
         <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">${esc(prefix)}</p>
         <h3 class="text-xl md:text-2xl font-black text-white">${esc(header)}</h3>
-        <p class="text-xs text-gray-400 mt-2">Each side submits score independently. Matching submissions auto-verify.</p>
+        <p class="text-xs text-gray-400 mt-2">${esc(blindCopy)}</p>
 
         <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
           <form id="result-submit-form" class="rounded-xl border border-white/10 bg-black/45 p-4">
@@ -1414,10 +1436,21 @@
       return '<p class="text-xs text-gray-400 mt-4">Waiting for opponent submission.</p>';
     }
 
+    const row = asObject(submission);
+    if (bool(row.blind_masked, false)) {
+      return `
+        <div class="mt-4 space-y-2">
+          <p class="text-sm text-white font-semibold">Opponent has submitted.</p>
+          <p class="text-xs text-gray-400">Score stays hidden until both sides submit.</p>
+          <p class="text-xs text-gray-500">Submitted at ${esc(shortClock(row.submitted_at))}</p>
+        </div>
+      `;
+    }
+
     return `
       <div class="mt-4 space-y-2">
-        <p class="text-sm text-white font-semibold">Score: ${esc(String(submission.score_for || 0))} - ${esc(String(submission.score_against || 0))}</p>
-        <p class="text-xs text-gray-400">Submitted at ${esc(shortClock(submission.submitted_at))}</p>
+        <p class="text-sm text-white font-semibold">Score: ${esc(String(row.score_for || 0))} - ${esc(String(row.score_against || 0))}</p>
+        <p class="text-xs text-gray-400">Submitted at ${esc(shortClock(row.submitted_at))}</p>
       </div>
     `;
   }

@@ -40,6 +40,16 @@
     background: #020203;
   }
 
+  #main-scroll {
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    scrollbar-gutter: stable;
+  }
+
+  #engine-scroll-region {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+
   .room-desktop-frame {
     width: min(1400px, 100%);
     margin-inline: auto;
@@ -300,6 +310,14 @@
       transform: none;
       opacity: 1;
     }
+
+    #main-scroll {
+      scroll-padding-bottom: 3.5rem;
+    }
+
+    #engine-scroll-region {
+      padding-bottom: 3.5rem;
+    }
   }
 </style>
 {% endblock %}
@@ -366,8 +384,8 @@
     </nav>
 
     <div class="room-desktop-frame flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden relative">
-      <main class="flex-1 min-h-0 overflow-y-auto hide-scroll p-4 md:p-6 lg:p-10 safe-pb relative z-10" id="main-scroll">
-        <div class="room-engine-column space-y-6 md:space-y-8">
+      <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-10 relative z-10" id="main-scroll">
+        <div id="engine-scroll-region" class="room-engine-column space-y-6 md:space-y-8">
           <div class="glass-card rounded-2xl p-4 md:p-6 flex items-center justify-between relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-r from-[rgba(var(--ar),var(--ag),var(--ab),0.1)] via-transparent to-[rgba(255,42,85,0.05)] pointer-events-none"></div>
 
