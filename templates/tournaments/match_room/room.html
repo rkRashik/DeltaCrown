@@ -4,7 +4,7 @@
 {% block title %}Match Lobby | {{ tournament.name }}{% endblock %}
 
 {% block extra_css %}
-{% include "tournaments/match_room/partials/styles_v3.html" %}
+{% include "tournaments/match_room/partials/lobby_styles.html" %}
 {% endblock %}
 
 {% block tournament_content %}
@@ -24,5 +24,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="{% static 'tournaments/js/match-room-v3.js' %}"></script>
+<script defer src="{% static 'tournaments/js/match-room.js' %}"></script>
 {% endblock %}

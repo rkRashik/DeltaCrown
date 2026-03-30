@@ -23,9 +23,9 @@
   const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
   const WAITING_LOCKED_ACTIONS = new Set(['coin_toss', 'veto_action', 'draft_action', 'direct_ready', 'save_credentials', 'start_live']);
   const DRAFT_STORAGE_VERSION = 1;
-  const DRAFT_STORAGE_KEY = `dc:match-room-v3:draft:${room.match.id}`;
+  const DRAFT_STORAGE_KEY = `dc:match-room:draft:${room.match.id}`;
 
-  const V3_GAME_CONFIG = {
+  const SUPPORTED_GAME_CONFIG = {
     valorant: {
       key: 'valorant',
       phaseKind: 'veto',
@@ -159,7 +159,7 @@
   }
 
   function resolvePhase1Kind() {
-    const forcedKind = v3PipelineKind();
+    const forcedKind = pipelineKind();
     if (forcedKind === 'direct') {
       return 'direct';
     }
@@ -264,7 +264,7 @@
   }
 
   function currentMode() {
-    return v3PipelineKind();
+    return pipelineKind();
   }
 
   function isStaffUser() {
@@ -285,7 +285,7 @@
     if (side !== 1 && side !== 2) {
       return '';
     }
-    return `dc:match-room-v3:entry-gate:${room.match?.id || '0'}:${side}`;
+    return `dc:match-room:entry-gate:${room.match?.id || '0'}:${side}`;
   }
 
   function _loadEntryGateState() {
@@ -714,7 +714,7 @@
     node.textContent = initials(safeName, fallback);
   }
 
-  function v3GameKey() {
+  function pipelineGameKey() {
     const slug = String(room.game?.slug || '').toLowerCase();
     const compact = slug.replaceAll(/[^a-z0-9]/g, '');
     if (compact.includes('efootball')) {
@@ -723,16 +723,16 @@
     return 'valorant';
   }
 
-  function v3Config() {
-    return V3_GAME_CONFIG[v3GameKey()] || V3_GAME_CONFIG.valorant;
+  function pipelineConfig() {
+    return SUPPORTED_GAME_CONFIG[pipelineGameKey()] || SUPPORTED_GAME_CONFIG.valorant;
   }
 
-  function v3PipelineKind() {
-    return v3Config().phaseKind;
+  function pipelineKind() {
+    return pipelineConfig().phaseKind;
   }
 
   function gameDataKey() {
-    return v3Config().key;
+    return pipelineConfig().key;
   }
 
   function hashText(text) {
@@ -770,7 +770,7 @@
   }
 
   function renderTheme() {
-    const cfg = v3Config();
+    const cfg = pipelineConfig();
 
     const shell = byId('mr-shell');
     if (shell) {
@@ -849,7 +849,7 @@
 
     if (matchFormat) {
       const bestOf = `BO${toInt(room.match?.best_of, 1)}`;
-      matchFormat.textContent = `${bestOf} • ${v3Config().modeLabel}`;
+      matchFormat.textContent = `${bestOf} • ${pipelineConfig().modeLabel}`;
     }
 
     if (navMatchId) {
@@ -2398,7 +2398,7 @@
 
     if (action === 'draft_action' && phase1Kind() !== 'draft') {
       if (!silent) {
-        showToast('Hero draft is disabled in Lobby V3.', 'error');
+        showToast('Hero draft is disabled for this match pipeline.', 'error');
       }
       return false;
     }
@@ -2985,7 +2985,7 @@
         submitWorkflow('admin_override_result', {
           participant1_score: p1,
           participant2_score: p2,
-          note: 'Admin override from Match Lobby V3.',
+          note: 'Admin override from match lobby.',
         });
       });
     }
@@ -3175,7 +3175,7 @@
   }
 
   function bootstrap() {
-    console.log('[Match-Room] Initializing v3...', {
+    console.log('[Match-Room] Initializing match room runtime...', {
       mode: currentMode(),
       phase: currentPhase(),
       workflowPhase: (room.workflow || {}).phase,
