@@ -448,10 +448,16 @@ class MatchDetailView(DetailView):
 
         # Is participant?
         if self.request.user.is_authenticated:
-            context['is_participant'] = (
+            is_part = (
                 match.participant1_id == self.request.user.id or
                 match.participant2_id == self.request.user.id
             )
+            if not is_part and tournament.participant_type == 'team':
+                from apps.organizations.models import TeamMembership
+                active_teams = set(TeamMembership.objects.filter(user=self.request.user, status=TeamMembership.Status.ACTIVE).values_list('team_id', flat=True))
+                if match.participant1_id in active_teams or match.participant2_id in active_teams:
+                    is_part = True
+            context['is_participant'] = is_part
         else:
             context['is_participant'] = False
         context['show_lobby_info'] = context['is_participant'] and match.lobby_info
