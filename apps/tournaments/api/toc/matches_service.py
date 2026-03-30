@@ -11,10 +11,11 @@ PRD: §6.1–§6.10, §9.1 (Match Verification Split-Screen)
 from __future__ import annotations
 
 import logging
+from math import ceil
 from typing import Any, Dict, List, Optional
 
 from django.db import transaction
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Count
 from django.utils import timezone
 
 from apps.tournaments.models.match import Match
@@ -54,10 +55,28 @@ class TOCMatchesService:
         state: Optional[str] = None,
         search: Optional[str] = None,
         group: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 60,
     ) -> Dict[str, Any]:
+        page = max(1, int(page or 1))
+        page_size = int(page_size or 60)
+        page_size = min(120, max(10, page_size))
+
         qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
+        ).select_related(
+            'tournament',
+            'bracket',
+        ).prefetch_related(
+            Prefetch(
+                'result_submissions',
+                queryset=MatchResultSubmission.objects.only('id', 'match_id', 'status', 'submitted_at').order_by('-submitted_at'),
+            ),
+            Prefetch(
+                'media',
+                queryset=MatchMedia.objects.only('id', 'match_id', 'media_type', 'is_evidence', 'created_at').order_by('-created_at'),
+            ),
         ).order_by('round_number', 'match_number')
         if round_number:
             qs = qs.filter(round_number=round_number)
@@ -70,6 +89,12 @@ class TOCMatchesService:
             )
         if group:
             qs = qs.filter(lobby_info__group_label=group)
+
+        state_counts = {
+            str(row.get('state') or ''): int(row.get('count') or 0)
+            for row in qs.values('state').annotate(count=Count('id'))
+            if row.get('state')
+        }
 
         qs = qs.only(
             'id',
@@ -98,8 +123,8 @@ class TOCMatchesService:
         )
 
         total = qs.count()
-
-        page_matches = list(qs[:500])
+        offset = (page - 1) * page_size
+        page_matches = list(qs[offset:offset + page_size])
         participant_ids = set()
         for match in page_matches:
             if match.participant1_id:
@@ -109,7 +134,24 @@ class TOCMatchesService:
 
         group_cache = cls._build_group_cache(tournament, participant_ids=participant_ids)
         matches = [cls._serialize_match(m, group_cache=group_cache) for m in page_matches]
-        return {'matches': matches, 'total_count': total}
+
+        total_pages = max(1, int(ceil(total / float(page_size)))) if page_size else 1
+        has_next = page < total_pages
+        has_prev = page > 1
+
+        return {
+            'matches': matches,
+            'total_count': total,
+            'state_counts': state_counts,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_count': total,
+                'total_pages': total_pages,
+                'has_next': has_next,
+                'has_prev': has_prev,
+            },
+        }
 
     # ── S6-B2: Score submission ───────────────────────────────
 

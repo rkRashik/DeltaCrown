@@ -341,6 +341,10 @@
         if (s.key === 'disputes' && s.value > 0) {
           valEl.classList.add('text-dc-danger', 'drop-shadow-[0_0_10px_rgba(255,42,85,0.8)]');
         }
+        if (s.key === 'matches') {
+          valEl.classList.toggle('text-dc-success', Number(s.value || 0) > 0);
+          valEl.classList.toggle('drop-shadow-[0_0_14px_rgba(16,185,129,0.6)]', Number(s.value || 0) > 0);
+        }
       }
       if (metaEl && s.detail) metaEl.textContent = s.detail;
     });
@@ -808,6 +812,7 @@
     container.innerHTML = matches.map(function (m) {
       var time = '—';
       var relative = '';
+      var isLive = String(m.state || '').toLowerCase() === 'live';
       if (m.scheduled_time) {
         var d = new Date(m.scheduled_time);
         time = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
@@ -815,7 +820,7 @@
         relative = _relativeTime(d);
       }
       return `
-        <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.03] transition-colors group cursor-pointer" onclick="TOC.navigate('schedule')">
+        <div class="next-match-command-row ${isLive ? 'live' : ''} flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.05] transition-colors group cursor-pointer" onclick="TOC.navigate('schedule')">
           <div class="w-7 h-7 rounded-lg bg-dc-info/10 border border-dc-info/20 flex items-center justify-center shrink-0">
             <span class="text-[9px] font-mono font-black text-dc-info">M${m.match_number || '?'}</span>
           </div>
@@ -830,7 +835,9 @@
               <span class="text-[8px] text-theme bg-theme/10 px-1.5 py-0.5 rounded border border-theme/20 font-mono">R${m.round_number || '?'}</span>
             </div>
           </div>
-          ${relative ? '<span class="text-[9px] font-mono text-dc-info bg-dc-info/10 px-2 py-0.5 rounded border border-dc-info/20 shrink-0">' + relative + '</span>' : ''}
+          ${isLive
+            ? '<a href="/tournaments/' + _attr(CFG.tournamentSlug || '') + '/matches/' + _attr(m.id || '') + '/room/?admin=1" onclick="event.stopPropagation()" class="text-[9px] font-black uppercase tracking-widest text-emerald-200 bg-emerald-500/15 border border-emerald-400/35 px-2.5 py-1 rounded animate-pulse shrink-0">LIVE - Enter Lobby</a>'
+            : (relative ? '<span class="text-[9px] font-mono text-dc-info bg-dc-info/10 px-2 py-0.5 rounded border border-dc-info/20 shrink-0">' + relative + '</span>' : '')}
         </div>`;
     }).join('');
 

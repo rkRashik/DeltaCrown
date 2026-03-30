@@ -37,6 +37,22 @@ class MatchListView(TOCBaseView):
             except (TypeError, ValueError):
                 round_number = None
 
+        page_raw = request.query_params.get('page')
+        page = 1
+        if page_raw not in (None, ''):
+            try:
+                page = int(page_raw)
+            except (TypeError, ValueError):
+                page = 1
+
+        page_size_raw = request.query_params.get('page_size')
+        page_size = 60
+        if page_size_raw not in (None, ''):
+            try:
+                page_size = int(page_size_raw)
+            except (TypeError, ValueError):
+                page_size = 60
+
         cache_bucket = int(timezone.now().timestamp() // 8)
         query_sig = request.META.get('QUERY_STRING', '')
         cache_key = toc_cache_key('matches', self.tournament.id, cache_bucket, query_sig)
@@ -50,6 +66,8 @@ class MatchListView(TOCBaseView):
             state=request.query_params.get('state'),
             search=request.query_params.get('search'),
             group=request.query_params.get('group'),
+            page=page,
+            page_size=page_size,
         )
         cache.set(cache_key, result, timeout=12)
         return Response(result)

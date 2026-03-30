@@ -109,6 +109,58 @@
         }
         .hidden-view { @apply hidden !important; }
 
+        #view-overview .overview-panel {
+            background: linear-gradient(155deg, rgba(18, 18, 24, 0.9) 0%, rgba(9, 9, 13, 0.88) 100%);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 36px -18px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+            backdrop-filter: blur(20px);
+        }
+
+        #view-overview .overview-stat-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.015) 65%, rgba(5, 5, 7, 0.5) 100%);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 16px 28px -18px rgba(0, 0, 0, 0.85), 0 0 28px rgba(59, 130, 246, 0.07);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        #view-overview .overview-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 42px -20px rgba(0, 0, 0, 0.9), 0 0 32px rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.18);
+        }
+
+        #view-overview .overview-live-focus {
+            border-color: rgba(34, 197, 94, 0.4);
+            box-shadow: 0 18px 38px -18px rgba(0, 0, 0, 0.9), 0 0 38px rgba(16, 185, 129, 0.22);
+        }
+
+        #view-overview #overview-next-match-card {
+            position: relative;
+            border-color: rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.38);
+            box-shadow: 0 20px 44px -22px rgba(0, 0, 0, 0.9), 0 0 42px rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.2);
+        }
+
+        #view-overview #overview-next-match-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 88% 10%, rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.22) 0%, transparent 48%);
+            opacity: 0.9;
+        }
+
+        #view-overview .next-match-command-row {
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(9, 14, 22, 0.62) 100%);
+            box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.75);
+        }
+
+        #view-overview .next-match-command-row.live {
+            border-color: rgba(34, 197, 94, 0.42);
+            box-shadow: 0 0 26px rgba(16, 185, 129, 0.22);
+        }
+
         /* Inline rich text editor (CSP-safe, no external scripts) */
         #view-settings .toc-richtext-editor {
             background: #0b0b0f;
@@ -378,7 +430,7 @@
                 </div>
 
                 {# ── S1-F2: Lifecycle State Machine Visualizer ── #}
-                <div id="overview-lifecycle" class="glass-box rounded-xl p-5">
+                <div id="overview-lifecycle" class="glass-box overview-panel rounded-xl p-5">
                     <div class="flex items-center gap-2 mb-4">
                         <i data-lucide="git-branch" class="w-4 h-4 text-theme"></i>
                         <h3 class="text-sm font-bold text-white uppercase tracking-widest">Lifecycle Pipeline</h3>
@@ -397,7 +449,7 @@
 
                 {# ── Vital Stats — 4 hero cards ── #}
                 <div id="overview-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    <div class="glass-box rounded-xl p-5 group hover:border-theme/20 transition-colors">
+                    <div class="glass-box overview-stat-card rounded-xl p-5 group hover:border-theme/20 transition-colors">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 rounded-lg bg-theme/10 flex items-center justify-center">
                                 <i data-lucide="users" class="w-4 h-4 text-theme"></i>
@@ -407,7 +459,7 @@
                         <p id="stat-participants" class="text-3xl font-display font-black text-white">—</p>
                         <p id="stat-participants-meta" class="text-[10px] text-dc-text mt-1 font-mono">Registered</p>
                     </div>
-                    <div class="glass-box rounded-xl p-5 group hover:border-dc-success/20 transition-colors">
+                    <div class="glass-box overview-stat-card rounded-xl p-5 group hover:border-dc-success/20 transition-colors">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 rounded-lg bg-dc-success/10 flex items-center justify-center">
                                 <i data-lucide="banknote" class="w-4 h-4 text-dc-success"></i>
@@ -417,7 +469,7 @@
                         <p id="stat-revenue" class="text-3xl font-display font-black text-white">—</p>
                         <p id="stat-revenue-meta" class="text-[10px] text-dc-text mt-1 font-mono">Collected</p>
                     </div>
-                    <div class="glass-box rounded-xl p-5 group hover:border-dc-info/20 transition-colors">
+                    <div class="glass-box overview-stat-card overview-live-focus rounded-xl p-5 group hover:border-dc-info/20 transition-colors">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 rounded-lg bg-dc-info/10 flex items-center justify-center">
                                 <i data-lucide="swords" class="w-4 h-4 text-dc-info"></i>
@@ -427,7 +479,7 @@
                         <p id="stat-active-matches" class="text-3xl font-display font-black text-white">—</p>
                         <p id="stat-active-meta" class="text-[10px] text-dc-text mt-1 font-mono">In progress</p>
                     </div>
-                    <div class="glass-box rounded-xl p-5 group hover:border-dc-danger/20 transition-colors">
+                    <div class="glass-box overview-stat-card rounded-xl p-5 group hover:border-dc-danger/20 transition-colors">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 rounded-lg bg-dc-danger/10 flex items-center justify-center">
                                 <i data-lucide="alert-triangle" class="w-4 h-4 text-dc-danger"></i>
@@ -441,27 +493,27 @@
 
                 {# ── Quick Stats Row — 6-column detail strip ── #}
                 <div id="advanced-stats" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Completion</p>
                         <p id="stat-completion" class="text-xl font-display font-black text-dc-success">—</p>
                     </div>
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Avg Duration</p>
                         <p id="stat-avg-duration" class="text-xl font-display font-black text-dc-info">—</p>
                     </div>
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">DQ Rate</p>
                         <p id="stat-dq-rate" class="text-xl font-display font-black text-dc-danger">—</p>
                     </div>
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Checked In</p>
                         <p id="stat-checked-in" class="text-xl font-display font-black text-dc-warning">—</p>
                     </div>
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">In Progress</p>
                         <p id="stat-in-progress" class="text-xl font-display font-black text-theme">—</p>
                     </div>
-                    <div class="glass-box rounded-xl p-3 text-center">
+                    <div class="glass-box overview-panel rounded-xl p-3 text-center">
                         <p class="text-[10px] uppercase tracking-widest text-dc-text mb-1">Forfeits</p>
                         <p id="stat-forfeits" class="text-xl font-display font-black text-dc-warning">—</p>
                     </div>
@@ -474,7 +526,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
                     {# Health Score — composite tournament health indicator #}
-                    <div class="glass-box rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div class="glass-box overview-panel rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
                         <div class="absolute inset-0 opacity-5">
                             <div id="health-bg-glow" class="w-full h-full rounded-xl"></div>
                         </div>
@@ -502,10 +554,10 @@
                     </div>
 
                     {# Upcoming Matches — next 5 scheduled matches #}
-                    <div class="glass-box rounded-xl flex flex-col max-h-[320px]">
+                    <div id="overview-next-match-card" class="glass-box overview-panel rounded-xl flex flex-col max-h-[320px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="calendar-clock" class="w-4 h-4 text-dc-info"></i>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Upcoming Matches</h3>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Next Match Command Pulse</h3>
                         </div>
                         <div id="upcoming-matches" class="p-3 space-y-2 flex-1 overflow-y-auto">
                             <div class="flex items-center justify-center h-24">
@@ -515,7 +567,7 @@
                     </div>
 
                     {# Group Stage Progress — summary of group completion #}
-                    <div class="glass-box rounded-xl flex flex-col max-h-[320px]">
+                    <div class="glass-box overview-panel rounded-xl flex flex-col max-h-[320px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="layout-grid" class="w-4 h-4 text-purple-400"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Groups</h3>
@@ -534,7 +586,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     {# Action Queue — items requiring organizer attention #}
-                    <div class="lg:col-span-2 glass-box rounded-xl flex flex-col max-h-[460px]">
+                    <div class="lg:col-span-2 glass-box overview-panel rounded-xl flex flex-col max-h-[460px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="bell-ring" class="w-4 h-4 text-dc-warning"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Action Queue</h3>
@@ -556,7 +608,7 @@
                     </div>
 
                     {# Tournament Progress — lifecycle timeline with current stage #}
-                    <div class="lg:col-span-1 glass-box rounded-xl flex flex-col max-h-[460px]">
+                    <div class="lg:col-span-1 glass-box overview-panel rounded-xl flex flex-col max-h-[460px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="milestone" class="w-4 h-4 text-theme"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Progress</h3>
@@ -570,7 +622,7 @@
 
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {# ── Tournament Feed — live organizer announcements stream ── #}
-                    <div class="glass-box rounded-xl flex flex-col max-h-[420px]">
+                    <div class="glass-box overview-panel rounded-xl flex flex-col max-h-[420px]">
                         <div class="p-4 border-b border-dc-borderLight bg-dc-panel/50 shrink-0 space-y-3">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="radio" class="w-4 h-4 text-theme"></i>
@@ -601,7 +653,7 @@
                     </div>
 
                     {# ── Activity Log — recent staff actions audit trail ── #}
-                    <div class="glass-box rounded-xl flex flex-col max-h-[420px]">
+                    <div class="glass-box overview-panel rounded-xl flex flex-col max-h-[420px]">
                         <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50 shrink-0">
                             <i data-lucide="scroll-text" class="w-4 h-4 text-dc-text"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Activity Log</h3>
@@ -1350,6 +1402,21 @@
                         {# List footer #}
                         <div class="p-2.5 border-t border-dc-borderLight bg-dc-panel/30 text-center shrink-0">
                             <span id="match-list-count" class="text-xs font-mono text-dc-text">0 matches</span>
+                            <div class="mt-2 flex items-center justify-center gap-2">
+                                <button
+                                    id="match-page-prev"
+                                    type="button"
+                                    onclick="TOC.matches.prevPage()"
+                                    class="px-2.5 py-1 rounded border border-dc-border text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white hover:border-dc-borderLight transition-colors"
+                                >Prev</button>
+                                <span id="match-page-info" class="text-[10px] font-mono text-dc-text">Page 1 / 1</span>
+                                <button
+                                    id="match-page-next"
+                                    type="button"
+                                    onclick="TOC.matches.nextPage()"
+                                    class="px-2.5 py-1 rounded border border-dc-border text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white hover:border-dc-borderLight transition-colors"
+                                >Next</button>
+                            </div>
                         </div>
                     </div>
 

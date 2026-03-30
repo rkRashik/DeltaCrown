@@ -21,6 +21,7 @@
   const VALID_PHASES = new Set(PHASE_ORDER_FALLBACK);
   const RESULT_FINAL_STATES = new Set(['verified', 'admin_overridden']);
   const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
+  const WAITING_LOCKED_ACTIONS = new Set(['coin_toss', 'veto_action', 'draft_action', 'direct_ready', 'save_credentials', 'start_live']);
   const DRAFT_STORAGE_VERSION = 1;
   const DRAFT_STORAGE_KEY = `dc:match-room-v2:draft:${room.match.id}`;
 
@@ -86,14 +87,82 @@
     return wf;
   }
 
-  function getPhaseOrder() {
+  function getPipeline() {
+    const raw = room.pipeline;
+    return raw && typeof raw === 'object' ? raw : {};
+  }
+
+  function getEffectivePolicy() {
+    const pipeline = getPipeline();
     const wf = getWorkflow();
-    const incoming = Array.isArray(wf.phase_order) ? wf.phase_order : [];
-    const filtered = incoming
+
+    const pipelinePolicy = pipeline.policy && typeof pipeline.policy === 'object' ? pipeline.policy : null;
+    const wfPolicy = wf.policy && typeof wf.policy === 'object' ? wf.policy : null;
+    const root = pipelinePolicy || wfPolicy || {};
+    const effective = root.effective && typeof root.effective === 'object' ? root.effective : root;
+
+    return {
+      require_check_in: !!effective.require_check_in,
+      require_coin_toss: effective.require_coin_toss !== false,
+      require_map_veto: effective.require_map_veto !== false,
+    };
+  }
+
+  function resolvePhase1Kind() {
+    const pipeline = getPipeline();
+    const wf = getWorkflow();
+
+    const fromPipeline = String(pipeline.phase1_kind || '').toLowerCase();
+    if (fromPipeline === 'veto' || fromPipeline === 'draft' || fromPipeline === 'direct') {
+      return fromPipeline;
+    }
+
+    const fromWorkflow = String(wf.phase1_kind || '').toLowerCase();
+    if (fromWorkflow === 'veto' || fromWorkflow === 'draft' || fromWorkflow === 'direct') {
+      return fromWorkflow;
+    }
+
+    return '';
+  }
+
+  function getPhaseOrder() {
+    const pipeline = getPipeline();
+    const wf = getWorkflow();
+    const incoming = Array.isArray(pipeline.phase_order)
+      ? pipeline.phase_order
+      : (Array.isArray(wf.phase_order) ? wf.phase_order : []);
+
+    let filtered = incoming
       .map((phase) => String(phase || '').trim())
       .filter((phase) => VALID_PHASES.has(phase));
 
-    return filtered.length ? filtered : PHASE_ORDER_FALLBACK;
+    const policy = getEffectivePolicy();
+    if (!policy.require_coin_toss) {
+      filtered = filtered.filter((phase) => phase !== 'coin_toss');
+    }
+
+    let resolvedKind = resolvePhase1Kind();
+    if (!resolvedKind) {
+      const mode = currentMode();
+      resolvedKind = mode === 'draft' || mode === 'direct' ? mode : 'veto';
+    }
+    if (resolvedKind === 'veto' && !policy.require_map_veto) {
+      filtered = filtered.filter((phase) => phase !== 'phase1');
+    }
+
+    if (!filtered.length) {
+      filtered = PHASE_ORDER_FALLBACK.filter((phase) => {
+        if (phase === 'coin_toss' && !policy.require_coin_toss) {
+          return false;
+        }
+        if (phase === 'phase1' && resolvedKind === 'veto' && !policy.require_map_veto) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered.length ? filtered : ['lobby_setup', 'live', 'results', 'completed'];
   }
 
   function currentPhase() {
@@ -105,8 +174,7 @@
   }
 
   function phase1Kind() {
-    const wf = getWorkflow();
-    const explicit = String(wf.phase1_kind || '').toLowerCase();
+    const explicit = resolvePhase1Kind();
     if (explicit === 'veto' || explicit === 'draft' || explicit === 'direct') {
       return explicit;
     }
@@ -663,6 +731,84 @@
     if (presenceB) {
       presenceB.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
     }
+  }
+
+  function isPreLivePhase(phase) {
+    return phase === 'coin_toss' || phase === 'phase1' || phase === 'lobby_setup';
+  }
+
+  function shouldLockPreLiveForOpponent() {
+    const side = mySide();
+    if (side !== 1 && side !== 2) {
+      return false;
+    }
+
+    if (isStaffUser() && isAdminMode()) {
+      return false;
+    }
+
+    if (!isPreLivePhase(currentPhase())) {
+      return false;
+    }
+
+    const side1 = presenceStateForSide(1);
+    const side2 = presenceStateForSide(2);
+    return !(side1.online && side2.online);
+  }
+
+  function applyPhaseLock(locked) {
+    ['ph-discord', 'ph-veto', 'ph-draft', 'ph-direct', 'ph-lobby'].forEach((id) => {
+      const node = byId(id);
+      if (!node) {
+        return;
+      }
+      node.classList.toggle('lobby-phase-locked', !!locked);
+    });
+  }
+
+  function renderWaitingOverlay() {
+    const overlay = byId('waiting-room-overlay');
+    if (!overlay) {
+      return;
+    }
+
+    const locked = shouldLockPreLiveForOpponent();
+    applyPhaseLock(locked);
+
+    const sideA = presenceStateForSide(1);
+    const sideB = presenceStateForSide(2);
+
+    const sideAText = byId('waiting-room-side-a');
+    if (sideAText) {
+      sideAText.textContent = `${teamLabel(1)}: ${presenceLabelForSide(1)}`;
+    }
+
+    const sideBText = byId('waiting-room-side-b');
+    if (sideBText) {
+      sideBText.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
+    }
+
+    const title = byId('waiting-room-title');
+    const subtext = byId('waiting-room-subtext');
+    if (title) {
+      if (!sideA.online && !sideB.online) {
+        title.textContent = 'Waiting for both teams to connect...';
+      } else {
+        title.textContent = 'Waiting for opponent to connect...';
+      }
+    }
+    if (subtext) {
+      if (sideA.online && !sideB.online) {
+        subtext.textContent = `${teamLabel(2)} is still offline. Pre-live controls are temporarily locked.`;
+      } else if (!sideA.online && sideB.online) {
+        subtext.textContent = `${teamLabel(1)} is still offline. Pre-live controls are temporarily locked.`;
+      } else {
+        subtext.textContent = 'Lobby controls unlock automatically once both sides are online.';
+      }
+    }
+
+    overlay.classList.toggle('is-hidden', !locked);
+    overlay.setAttribute('aria-hidden', locked ? 'false' : 'true');
   }
 
   function renderClock() {
@@ -1884,6 +2030,49 @@
     const silent = !!opts.silent;
     const body = Object.assign({ action }, payload || {});
 
+    if (WAITING_LOCKED_ACTIONS.has(action) && shouldLockPreLiveForOpponent()) {
+      if (!silent) {
+        showToast('Waiting for opponent to connect before pre-live actions.', 'error');
+      }
+      return false;
+    }
+
+    const phaseOrder = getPhaseOrder();
+    if (action === 'coin_toss' && !phaseOrder.includes('coin_toss')) {
+      if (!silent) {
+        showToast('Coin toss is disabled by TOC policy for this round.', 'error');
+      }
+      return false;
+    }
+
+    if ((action === 'veto_action' || action === 'draft_action' || action === 'direct_ready') && !phaseOrder.includes('phase1')) {
+      if (!silent) {
+        showToast('Phase one actions are disabled by TOC policy for this round.', 'error');
+      }
+      return false;
+    }
+
+    if (action === 'veto_action' && phase1Kind() !== 'veto') {
+      if (!silent) {
+        showToast('Map veto is disabled for this match pipeline.', 'error');
+      }
+      return false;
+    }
+
+    if (action === 'draft_action' && phase1Kind() !== 'draft') {
+      if (!silent) {
+        showToast('Hero draft is disabled for this match pipeline.', 'error');
+      }
+      return false;
+    }
+
+    if (action === 'direct_ready' && phase1Kind() !== 'direct') {
+      if (!silent) {
+        showToast('Ready check is not active for this match pipeline.', 'error');
+      }
+      return false;
+    }
+
     try {
       let response;
       if (opts.multipart) {
@@ -2621,6 +2810,7 @@
     renderClock();
     renderSocketBadge();
     renderPhaseLayout();
+    renderWaitingOverlay();
     renderCoinToss();
     renderVeto();
     renderDraft();

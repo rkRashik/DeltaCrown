@@ -146,6 +146,51 @@
 
   .hidden-state { display: none !important; }
 
+  .waiting-room-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+  }
+
+  .waiting-room-overlay.is-hidden {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+  }
+
+  .waiting-room-overlay .overlay-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 5, 8, 0.68);
+    backdrop-filter: blur(4px);
+  }
+
+  .waiting-room-card {
+    position: relative;
+    width: min(560px, 96%);
+    border-radius: 1rem;
+    border: 1px solid rgba(var(--ar), var(--ag), var(--ab), 0.35);
+    background: linear-gradient(145deg, rgba(11, 18, 27, 0.92) 0%, rgba(5, 8, 12, 0.9) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(var(--ar), var(--ag), var(--ab), 0.18);
+    padding: 1.1rem 1.15rem;
+  }
+
+  .lobby-phase-locked {
+    filter: blur(1.5px) saturate(0.72);
+    opacity: 0.42;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.22s ease, filter 0.22s ease;
+  }
+
   .phase-dot-active {
     background: var(--ac);
     color: #000;
@@ -616,7 +661,7 @@
   </header>
 
   <main class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10" style="min-height:0">
-    <section id="main-scroll" class="col-span-1 lg:col-span-8 h-full overflow-y-auto flex flex-col gap-5 p-5 lg:p-8 pb-24 border-r border-white/5">
+    <section id="main-scroll" class="col-span-1 lg:col-span-8 h-full overflow-y-auto flex flex-col gap-5 p-5 lg:p-8 pb-24 border-r border-white/5 relative">
       <div class="glass flex items-center px-4 py-2.5 rounded-xl shrink-0 gap-2.5">
         <div class="flex items-center gap-1.5 shrink-0">
           <div id="ph-dot-1" class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border phase-dot-active"><i data-lucide="settings-2" class="w-2.5 h-2.5"></i></div>
@@ -645,6 +690,25 @@
           <div class="flex flex-col gap-1 text-[10px] font-mono text-gray-300">
             <span id="presence-team-a">Team A: Offline - Pending check-in</span>
             <span id="presence-team-b">Team B: Offline - Pending check-in</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="waiting-room-overlay" class="waiting-room-overlay is-hidden" aria-live="polite" aria-hidden="true">
+        <div class="overlay-scrim"></div>
+        <div class="waiting-room-card">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg ac-bg border ac-bd flex items-center justify-center shrink-0">
+              <i data-lucide="users" class="w-4 h-4 ac"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p id="waiting-room-title" class="text-xs font-black uppercase tracking-widest text-white">Waiting for opponent to connect...</p>
+              <p id="waiting-room-subtext" class="text-[11px] text-gray-300 mt-1">Lobby controls unlock automatically once both sides are online.</p>
+              <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono">
+                <div id="waiting-room-side-a" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team A: Offline</div>
+                <div id="waiting-room-side-b" class="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1.5 text-gray-200">Team B: Offline</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

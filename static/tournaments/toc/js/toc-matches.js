@@ -124,9 +124,21 @@
   let _matchesLastFetchedAt = 0;
   let _matchesLastQueryKey = '';
   let _matchesAutoRefreshTimer = null;
+  let _matchesFilterSignature = '';
+  let _matchesStateCounts = {};
+
+  let matchesPagination = {
+    page: 1,
+    page_size: 60,
+    total_count: 0,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+  };
 
   const MATCHES_CACHE_TTL_MS = 15000;
   const MATCHES_AUTO_REFRESH_MS = 30000;
+  const DEFAULT_PAGE_SIZE = 60;
   const MATCHES_STAT_IDS = ['total', 'live', 'pending', 'completed', 'disputed'];
 
   function isMatchesTabActive() {
@@ -137,7 +149,14 @@
     const stateVal = $('#match-filter-state')?.value || '';
     const roundVal = $('#match-filter-round')?.value || '';
     const searchVal = $('#match-search')?.value || '';
-    return [stateVal, roundVal, searchVal].join('::');
+    return [
+      stateVal,
+      roundVal,
+      searchVal,
+      matchesPagination.page,
+      matchesPagination.page_size,
+      activeGroupFilter,
+    ].join('::');
   }
 
   function hasFreshCache(queryKey) {
@@ -217,16 +236,31 @@
     const force = opts.force === true;
     const silent = opts.silent === true;
 
+    if (typeof opts.page === 'number' && Number.isFinite(opts.page)) {
+      matchesPagination.page = Math.max(1, Math.floor(opts.page));
+    }
+    if (typeof opts.pageSize === 'number' && Number.isFinite(opts.pageSize)) {
+      matchesPagination.page_size = Math.max(10, Math.min(120, Math.floor(opts.pageSize)));
+    }
+
     const state = $('#match-filter-state')?.value || '';
     const round = $('#match-filter-round')?.value || '';
     const search = $('#match-search')?.value || '';
+    const filterSignature = [state, round, search].join('::');
+
+    if (!opts.keepPage && filterSignature !== _matchesFilterSignature) {
+      matchesPagination.page = 1;
+    }
+    _matchesFilterSignature = filterSignature;
+
     const queryKey = currentQueryKey();
 
     if (!force && hasFreshCache(queryKey)) {
       applyGroupFilter();
-      renderStats(allMatches);
+      renderStats(allMatches, _matchesStateCounts, matchesPagination.total_count);
       populateRoundFilter(allMatches);
       populateGroupPills(allMatches);
+      renderPaginationControls();
       setMatchesSyncStatus('ok');
       return { matches: allMatches };
     }
@@ -242,18 +276,38 @@
     _matchesInflightQueryKey = queryKey;
     _matchesInflight = (async () => {
       try {
-        const data = await API.get('matches/' +
-          '?state=' + state + '&round=' + round + '&search=' + encodeURIComponent(search));
+        const data = await API.get(
+          'matches/' +
+          '?state=' + state +
+          '&round=' + round +
+          '&search=' + encodeURIComponent(search) +
+          '&page=' + encodeURIComponent(matchesPagination.page) +
+          '&page_size=' + encodeURIComponent(matchesPagination.page_size || DEFAULT_PAGE_SIZE)
+        );
         if (requestId !== _matchesRequestId) return { matches: allMatches };
 
         allMatches = data.matches || [];
+        _matchesStateCounts = (data && typeof data.state_counts === 'object' && data.state_counts) ? data.state_counts : {};
+
+        const meta = (data && data.pagination && typeof data.pagination === 'object') ? data.pagination : {};
+        matchesPagination.page = Number(meta.page || matchesPagination.page || 1);
+        matchesPagination.page_size = Number(meta.page_size || matchesPagination.page_size || DEFAULT_PAGE_SIZE);
+        matchesPagination.total_count = Number(
+          meta.total_count != null ? meta.total_count : (data.total_count != null ? data.total_count : allMatches.length)
+        );
+        const inferredTotalPages = Math.max(1, Math.ceil((matchesPagination.total_count || 0) / (matchesPagination.page_size || DEFAULT_PAGE_SIZE)));
+        matchesPagination.total_pages = Number(meta.total_pages || inferredTotalPages);
+        matchesPagination.has_next = Boolean(meta.has_next != null ? meta.has_next : (matchesPagination.page < matchesPagination.total_pages));
+        matchesPagination.has_prev = Boolean(meta.has_prev != null ? meta.has_prev : (matchesPagination.page > 1));
+
         _matchesLastFetchedAt = Date.now();
         _matchesLastQueryKey = queryKey;
 
         applyGroupFilter();
-        renderStats(allMatches);
+        renderStats(allMatches, _matchesStateCounts, matchesPagination.total_count);
         populateRoundFilter(allMatches);
         populateGroupPills(allMatches);
+        renderPaginationControls();
         setMatchesLoading(false);
         setMatchesErrorBanner('');
         setMatchesSyncStatus('ok');
@@ -281,6 +335,39 @@
     })();
 
     return _matchesInflight;
+  }
+
+  function renderPaginationControls() {
+    var pageInfo = $('#match-page-info');
+    var prevBtn = $('#match-page-prev');
+    var nextBtn = $('#match-page-next');
+
+    if (pageInfo) {
+      var totalPages = Math.max(1, Number(matchesPagination.total_pages || 1));
+      pageInfo.textContent = 'Page ' + (matchesPagination.page || 1) + ' / ' + totalPages;
+    }
+
+    if (prevBtn) {
+      prevBtn.disabled = !matchesPagination.has_prev;
+      prevBtn.classList.toggle('opacity-40', !matchesPagination.has_prev);
+      prevBtn.classList.toggle('cursor-not-allowed', !matchesPagination.has_prev);
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = !matchesPagination.has_next;
+      nextBtn.classList.toggle('opacity-40', !matchesPagination.has_next);
+      nextBtn.classList.toggle('cursor-not-allowed', !matchesPagination.has_next);
+    }
+  }
+
+  function nextPage() {
+    if (!matchesPagination.has_next) return;
+    refresh({ page: (matchesPagination.page || 1) + 1, keepPage: true });
+  }
+
+  function prevPage() {
+    if (!matchesPagination.has_prev) return;
+    refresh({ page: Math.max(1, (matchesPagination.page || 1) - 1), keepPage: true });
   }
 
   function debouncedRefresh() {
@@ -326,19 +413,30 @@
       ? allMatches.filter(function (m) { return m.group_label === activeGroupFilter; })
       : allMatches.slice();
     renderMatchList(filteredMatches);
+    renderPaginationControls();
     if (selectedMatchId && !filteredMatches.find(function (m) { return m.id === selectedMatchId; })) {
       clearDetail();
     }
   }
 
   /* --- Stats ----------------------------------------------- */
-  function renderStats(matches) {
+  function renderStats(matches, stateCounts, totalCount) {
     var el = function (id, val) { var e = $('#matches-stat-' + id); if (e) e.textContent = val; };
-    el('total', matches.length);
-    el('live', matches.filter(function (m) { return m.state === 'live'; }).length);
-    el('pending', matches.filter(function (m) { return m.state === 'pending_result'; }).length);
-    el('completed', matches.filter(function (m) { return m.state === 'completed' || m.state === 'forfeit'; }).length);
-    el('disputed', matches.filter(function (m) { return m.state === 'disputed'; }).length);
+
+    var counts = (stateCounts && typeof stateCounts === 'object') ? stateCounts : {};
+    var fallback = {
+      live: matches.filter(function (m) { return m.state === 'live'; }).length,
+      pending_result: matches.filter(function (m) { return m.state === 'pending_result'; }).length,
+      completed: matches.filter(function (m) { return m.state === 'completed'; }).length,
+      forfeit: matches.filter(function (m) { return m.state === 'forfeit'; }).length,
+      disputed: matches.filter(function (m) { return m.state === 'disputed'; }).length,
+    };
+
+    el('total', totalCount != null ? totalCount : matches.length);
+    el('live', counts.live != null ? counts.live : fallback.live);
+    el('pending', counts.pending_result != null ? counts.pending_result : fallback.pending_result);
+    el('completed', Number(counts.completed != null ? counts.completed : fallback.completed) + Number(counts.forfeit != null ? counts.forfeit : fallback.forfeit));
+    el('disputed', counts.disputed != null ? counts.disputed : fallback.disputed);
   }
 
   /* --- Round filter ---------------------------------------- */
@@ -361,7 +459,10 @@
     if (!list) return;
 
     var countEl = $('#match-list-count');
-    if (countEl) countEl.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
+    if (countEl) {
+      var totalCount = Number(matchesPagination.total_count || matches.length || 0);
+      countEl.textContent = 'Showing ' + matches.length + ' of ' + totalCount + ' match' + (totalCount !== 1 ? 'es' : '');
+    }
 
     if (!matches.length) {
       list.innerHTML =
@@ -387,9 +488,11 @@
       var isSelected = m.id === selectedMatchId;
       var isWinner1 = m.winner_id && m.winner_id === m.participant1_id;
       var isWinner2 = m.winner_id && m.winner_id === m.participant2_id;
+      var isLive = m.state === 'live';
       var liveDot = m.state === 'live' ? '<span class="w-2 h-2 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
       var groupTag = m.group_label ? ' <span class="text-theme/70">&middot;</span> <span class="text-theme font-bold">' + esc(m.group_label) + '</span>' : '';
       var disputedBorder = m.state === 'disputed' ? ' ring-1 ring-dc-danger/30' : '';
+      var liveCard = isLive ? ' border border-emerald-400/35 shadow-[0_0_22px_rgba(16,185,129,0.24)] bg-emerald-500/[0.03]' : '';
 
       // Check-in dots
       var checkinHtml = '';
@@ -419,10 +522,13 @@
       var scoreA = showSeries ? sp1 : (m.participant1_score != null ? m.participant1_score : '-');
       var scoreB = showSeries ? sp2 : (m.participant2_score != null ? m.participant2_score : '-');
       var boLabel = bestOf > 1 ? '<span class="text-[8px] font-mono text-dc-text/40">BO' + bestOf + '</span> ' : '';
+      var liveCta = isLive
+        ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" onclick="event.stopPropagation()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/40 bg-emerald-500/15 text-emerald-200 text-[10px] font-black uppercase tracking-widest animate-pulse hover:bg-emerald-500/25 transition-colors">LIVE - Enter Lobby</a>'
+        : '';
 
       return '<div class="match-card px-4 py-3 cursor-pointer transition-all hover:bg-white/[0.03]' +
         (isSelected ? ' bg-theme/5 border-l-[3px] border-l-theme' : ' border-l-[3px] border-l-transparent') +
-        disputedBorder +
+        disputedBorder + liveCard +
         '" onclick="TOC.matches.selectMatch(' + m.id + ')" data-match-id="' + m.id + '"' +
         ' tabindex="0" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '"' +
         ' aria-label="Match ' + m.match_number + ': ' + esc(m.participant1_name || 'TBD') + ' vs ' + esc(m.participant2_name || 'TBD') + '">' +
@@ -447,6 +553,8 @@
         '<i data-lucide="clock" class="w-3 h-3 inline-block mr-1"></i>' +
         new Date(m.scheduled_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
         '</div>' : '') +
+
+        (isLive ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
 
         '</div>';
     }).join('');
@@ -1745,13 +1853,16 @@
      INIT
   ============================================================ */
   function init() {
-    refresh();
+    if (!matchesPagination.page_size) {
+      matchesPagination.page_size = DEFAULT_PAGE_SIZE;
+    }
+    refresh({ keepPage: true });
     switchDetailTab('score');
     if (typeof lucide !== 'undefined') lucide.createIcons();
     if (!_matchesAutoRefreshTimer) {
       _matchesAutoRefreshTimer = setInterval(() => {
         if (!isMatchesTabActive()) return;
-        refresh({ silent: true });
+        refresh({ silent: true, keepPage: true });
       }, MATCHES_AUTO_REFRESH_MS);
     }
   }
@@ -1761,6 +1872,7 @@
   window.TOC = window.TOC || {};
   window.TOC.matches = {
     init: init, refresh: refresh, debouncedRefresh: debouncedRefresh,
+    nextPage: nextPage, prevPage: prevPage,
     selectMatch: selectMatch, clearDetail: clearDetail, filterGroup: filterGroup,
     generateMatchesFromEmptyState: generateMatchesFromEmptyState,
     switchDetailTab: switchDetailTab,
@@ -1792,7 +1904,7 @@
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && isMatchesTabActive()) {
       const queryKey = currentQueryKey();
-      if (!hasFreshCache(queryKey)) refresh({ silent: true });
+      if (!hasFreshCache(queryKey)) refresh({ silent: true, keepPage: true });
     }
   });
 })();
