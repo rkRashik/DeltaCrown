@@ -3,26 +3,450 @@
 
 {% block title %}Match Lobby | {{ tournament.name }}{% endblock %}
 
-{% block extra_css %}
-{% include "tournaments/match_room/partials/lobby_styles.html" %}
+{% block tournament_css %}
+<style>
+  :root {
+    --ac: #00f0ff;
+    --ar: 0;
+    --ag: 240;
+    --ab: 255;
+    --bg-img: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850');
+  }
+
+  #match-room-shell[data-game="efootball"] {
+    --ac: #00ff66;
+    --ar: 0;
+    --ag: 255;
+    --ab: 102;
+    --bg-img: url('https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850');
+  }
+
+  .hidden-state {
+    display: none !important;
+  }
+
+  #match-room-shell {
+    min-height: calc(100vh - 4rem);
+    color: #e2e8f0;
+    overflow: hidden;
+    position: relative;
+    background: #020203;
+  }
+
+  .bg-cinematic {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-image: var(--bg-img);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    filter: grayscale(40%) contrast(1.2);
+    transition: background-image 0.8s ease;
+  }
+
+  .bg-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(var(--ar), var(--ag), var(--ab), 0.15) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(2, 2, 3, 0.8) 0%, #020203 100%);
+  }
+
+  .tactical-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.1;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  .glass-panel {
+    background: rgba(12, 12, 16, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .text-ac {
+    color: var(--ac);
+  }
+
+  .bg-ac {
+    background-color: var(--ac);
+  }
+
+  .bg-ac-subtle {
+    background-color: rgba(var(--ar), var(--ag), var(--ab), 0.15);
+  }
+
+  .border-ac {
+    border-color: var(--ac);
+  }
+
+  .border-ac-subtle {
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.3);
+  }
+
+  .shadow-ac {
+    box-shadow: 0 0 24px rgba(var(--ar), var(--ag), var(--ab), 0.3);
+  }
+
+  .safe-pb {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  #waiting-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(2, 2, 3, 0.86);
+    backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+  }
+
+  #waiting-overlay.overlay-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .hide-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .phase-dot {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(20, 20, 30, 0.85);
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.25s ease;
+  }
+
+  .phase-dot.active {
+    color: #020203;
+    background: var(--ac);
+    border-color: var(--ac);
+    box-shadow: 0 0 18px rgba(var(--ar), var(--ag), var(--ab), 0.35);
+  }
+
+  .phase-dot.done {
+    color: #04130a;
+    background: #22c55e;
+    border-color: #22c55e;
+  }
+
+  .phase-line {
+    height: 0.25rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+
+  .phase-line > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease;
+  }
+
+  .phase-line.done > span {
+    width: 100%;
+    background: #22c55e;
+  }
+
+  .phase-line.active > span {
+    width: 60%;
+    background: var(--ac);
+  }
+
+  .lobby-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    color: #fff;
+    outline: none;
+  }
+
+  .lobby-input:focus {
+    border-color: var(--ac);
+    box-shadow: 0 0 14px rgba(var(--ar), var(--ag), var(--ab), 0.24);
+  }
+
+  .map-card {
+    position: relative;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(5, 5, 8, 0.75);
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .map-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.6);
+  }
+
+  .map-card.banned {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border-color: rgba(255, 42, 85, 0.55);
+  }
+
+  .map-card.picked {
+    border-color: rgba(var(--ar), var(--ag), var(--ab), 0.9);
+    box-shadow: 0 0 18px rgba(var(--ar), var(--ag), var(--ab), 0.35);
+  }
+
+  .score-input {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 0.9rem;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.65);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    outline: none;
+  }
+
+  .score-input:focus {
+    border-color: var(--ac);
+    box-shadow: 0 0 18px rgba(var(--ar), var(--ag), var(--ab), 0.25);
+  }
+
+  #room-toast {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    z-index: 120;
+    max-width: min(26rem, calc(100vw - 2rem));
+  }
+
+  #room-toast > div {
+    margin-top: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(15, 15, 22, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 1024px) {
+    #match-room-shell {
+      min-height: calc(100vh - 3.7rem);
+    }
+  }
+</style>
 {% endblock %}
 
 {% block tournament_content %}
-<div id="mr-shell" class="relative" data-game="valorant">
-  <div class="bg-cinematic" id="bg-layer"></div>
-  <div class="bg-overlay" id="bg-ov"></div>
+<div id="match-room-shell" class="relative" data-game="valorant">
+  <div class="bg-cinematic" id="bg-cinematic"></div>
+  <div class="bg-overlay"></div>
   <div class="tactical-grid"></div>
 
-  {% include "tournaments/match_room/partials/top_nav.html" %}
-  {% include "tournaments/match_room/partials/hero_header.html" %}
-  {% include "tournaments/match_room/partials/entry_gate_overlay.html" %}
-  {% include "tournaments/match_room/partials/main_layout.html" %}
-  {% include "tournaments/match_room/partials/dispute_modal.html" %}
+  <div id="waiting-overlay">
+    <div class="relative w-24 h-24 mb-6">
+      <div class="absolute inset-0 rounded-full border-4 border-white/10"></div>
+      <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin border-ac"></div>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <i data-lucide="radar" class="w-8 h-8 text-ac animate-pulse"></i>
+      </div>
+    </div>
+    <h2 class="font-display font-black text-3xl md:text-4xl text-white mb-2 text-center px-4">Waiting Room</h2>
+    <p id="waiting-copy" class="text-sm text-gray-400 max-w-sm px-4 text-center leading-relaxed">
+      Lobby unlocks automatically when both teams are online in websocket.
+    </p>
+    <div class="mt-8 flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-3 rounded-2xl">
+      <div class="flex items-center gap-2">
+        <span id="waiting-you-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600"></span>
+        <span class="text-xs font-bold text-white">You</span>
+      </div>
+      <span class="text-gray-600 font-black italic">VS</span>
+      <div class="flex items-center gap-2">
+        <span id="waiting-opponent-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600"></span>
+        <span class="text-xs font-bold text-gray-300">Opponent</span>
+      </div>
+    </div>
+  </div>
 
-  {{ room_payload|json_script:"match-room-payload" }}
+  <div class="relative z-20 h-full flex flex-col">
+    <nav class="shrink-0 h-16 glass-panel border-b-0 px-4 md:px-6 flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <a id="nav-back-link" href="{% url 'tournaments:match_detail' slug=tournament.slug match_id=match.id %}" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-95">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        </a>
+        <div class="h-5 w-px bg-white/10"></div>
+        <div class="min-w-0">
+          <p id="nav-match-id" class="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">Match</p>
+          <h1 id="nav-tourney-name" class="text-sm md:text-base font-bold text-white uppercase tracking-wide truncate" style="font-family:Outfit,sans-serif;">Tournament</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <div id="socket-pill" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-400/25">
+          <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+          <span class="text-[10px] font-mono text-green-300 uppercase tracking-widest">Socket</span>
+        </div>
+        <button id="help-signal-btn" class="w-9 h-9 rounded-lg bg-red-500/10 border border-red-400/35 text-red-300 flex items-center justify-center active:scale-95 transition-transform" type="button">
+          <i data-lucide="siren" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </nav>
+
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      <main class="flex-1 overflow-y-auto hide-scroll p-4 md:p-6 lg:p-10 safe-pb relative z-10" id="main-scroll">
+        <div class="max-w-[980px] mx-auto space-y-6 md:space-y-8">
+          <div class="glass-card rounded-2xl p-4 md:p-6 flex items-center justify-between relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-[rgba(var(--ar),var(--ag),var(--ab),0.1)] via-transparent to-[rgba(255,42,85,0.05)] pointer-events-none"></div>
+
+            <div class="flex items-center gap-3 md:gap-4 relative z-10 flex-1">
+              <div id="hero-team-a-logo" class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-ac-subtle border border-ac-subtle flex items-center justify-center font-display font-black text-lg md:text-2xl text-ac shadow-ac shrink-0">A</div>
+              <div class="min-w-0">
+                <h2 id="hero-team-a-name" class="font-display font-black text-base md:text-2xl text-white truncate">Participant A</h2>
+                <p id="hero-team-a-meta" class="text-[10px] text-gray-400 font-mono uppercase tracking-widest mt-0.5 truncate">Side 1</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center px-2 md:px-6 shrink-0 relative z-10">
+              <span id="hero-format-label" class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 hidden sm:block">Bo1</span>
+              <div class="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 flex items-center justify-center font-black text-gray-600 italic text-xs md:text-sm bg-[#020203]">VS</div>
+            </div>
+
+            <div class="flex items-center gap-3 md:gap-4 relative z-10 flex-1 justify-end text-right">
+              <div class="min-w-0">
+                <h2 id="hero-team-b-name" class="font-display font-black text-base md:text-2xl text-white truncate">Participant B</h2>
+                <p id="hero-team-b-meta" class="text-[10px] text-gray-400 font-mono uppercase tracking-widest mt-0.5 truncate">Side 2</p>
+              </div>
+              <div id="hero-team-b-logo" class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center font-display font-black text-lg md:text-2xl text-red-400 shrink-0">B</div>
+            </div>
+          </div>
+
+          <div id="phase-tracker" class="flex items-center justify-center gap-2 md:gap-4 max-w-[640px] mx-auto"></div>
+
+          <div id="engine-container" class="space-y-6"></div>
+        </div>
+      </main>
+
+      <aside class="hidden lg:flex w-[340px] xl:w-[380px] shrink-0 glass-panel border-l border-white/5 flex-col z-20">
+        <div class="flex border-b border-white/5">
+          <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-ac border-b-2 border-ac transition-colors" id="dt-tab-chat" type="button">Lobby Chat</button>
+          <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 border-b-2 border-transparent hover:text-white transition-colors" id="dt-tab-intel" type="button">Match Rules</button>
+          <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-yellow-300 border-b-2 border-transparent hover:text-white transition-colors hidden-state" id="dt-tab-admin" type="button"><i data-lucide="shield-alert" class="w-3 h-3 inline pb-0.5"></i> Admin</button>
+        </div>
+
+        <div id="side-chat" class="flex-1 flex flex-col overflow-hidden">
+          <div class="flex-1 overflow-y-auto p-5 space-y-4 hide-scroll" id="chat-window">
+            <div class="flex justify-center"><span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-bold uppercase text-gray-500 tracking-widest">Realtime Chat Ready</span></div>
+          </div>
+          <div class="p-4 bg-black/40 border-t border-white/5">
+            <form id="chat-form" class="relative">
+              <input type="text" id="chat-input" placeholder="Message opponent..." class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-ac transition-colors">
+              <button type="submit" class="absolute right-2 top-2 p-1.5 bg-ac-subtle text-ac rounded-lg hover:bg-ac/20 transition-colors"><i data-lucide="send" class="w-4 h-4"></i></button>
+            </form>
+          </div>
+        </div>
+
+        <div id="side-intel" class="flex-1 overflow-y-auto p-6 hidden-state hide-scroll">
+          <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Match Configuration</h3>
+          <div class="space-y-3" id="rules-list"></div>
+        </div>
+
+        <div id="side-admin" class="flex-1 overflow-y-auto p-6 hidden-state hide-scroll">
+          <div class="p-5 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+            <h3 class="text-[10px] font-black text-yellow-300 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4"></i> Admin Actions</h3>
+            <div class="space-y-3">
+              <button id="admin-force-next" class="w-full py-2.5 rounded-lg border border-yellow-400/50 text-yellow-300 text-xs font-black uppercase tracking-wider hover:bg-yellow-500/20 transition-colors" type="button">Force Next Phase</button>
+              <button id="admin-open-override" class="w-full py-2.5 rounded-lg border border-red-400/50 text-red-300 text-xs font-black uppercase tracking-wider hover:bg-red-500/20 transition-colors" type="button">Override Score</button>
+              <button id="admin-broadcast" class="w-full py-2.5 rounded-lg border border-ac/50 text-ac text-xs font-black uppercase tracking-wider hover:bg-ac/20 transition-colors" type="button">Broadcast</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <nav class="fixed bottom-0 left-0 right-0 glass-panel border-t border-white/5 pb-[env(safe-area-inset-bottom)] z-50 lg:hidden">
+    <div class="flex items-center justify-around px-2 py-2">
+      <button class="flex flex-col items-center gap-1 w-16 p-2 text-ac transition-transform active:scale-95" id="mob-tab-engine" type="button">
+        <i data-lucide="swords" class="w-5 h-5"></i>
+        <span class="text-[9px] font-black uppercase tracking-widest">Action</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 w-16 p-2 text-gray-500 hover:text-white transition-transform active:scale-95" id="mob-tab-chat" type="button">
+        <i data-lucide="message-square" class="w-5 h-5"></i>
+        <span class="text-[9px] font-black uppercase tracking-widest">Chat</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 w-16 p-2 text-gray-500 hover:text-white transition-transform active:scale-95" id="mob-tab-intel" type="button">
+        <i data-lucide="book-open" class="w-5 h-5"></i>
+        <span class="text-[9px] font-black uppercase tracking-widest">Rules</span>
+      </button>
+    </div>
+  </nav>
+
+  <div id="mobile-panel-overlay" class="fixed inset-0 z-40 bg-black/90 backdrop-blur-xl hidden-state flex-col" style="top: 64px; padding-bottom: calc(60px + env(safe-area-inset-bottom));">
+    <div class="flex-1 overflow-hidden relative w-full h-full flex flex-col" id="mobile-panel-content"></div>
+  </div>
+
+  <div id="override-modal" class="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm hidden-state items-center justify-center p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-black uppercase tracking-widest text-yellow-300">Admin Score Override</h3>
+        <button id="override-close" type="button" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="text-xs text-gray-400">P1 Score
+          <input id="override-p1" class="lobby-input mt-1" type="number" min="0" value="0">
+        </label>
+        <label class="text-xs text-gray-400">P2 Score
+          <input id="override-p2" class="lobby-input mt-1" type="number" min="0" value="0">
+        </label>
+      </div>
+      <label class="block text-xs text-gray-400 mt-3">Note
+        <textarea id="override-note" class="lobby-input mt-1 min-h-[90px]" placeholder="Reason for override"></textarea>
+      </label>
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button id="override-cancel" type="button" class="px-4 py-2 rounded-lg border border-white/20 text-xs font-bold uppercase tracking-wider text-gray-200">Cancel</button>
+        <button id="override-apply" type="button" class="px-4 py-2 rounded-lg bg-yellow-400 text-black text-xs font-black uppercase tracking-wider">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="room-toast"></div>
 </div>
+
+{{ room_payload|json_script:"match-room-payload" }}
 {% endblock %}
 
-{% block extra_js %}
+{% block tournament_js %}
 <script defer src="{% static 'tournaments/js/match-room.js' %}"></script>
 {% endblock %}

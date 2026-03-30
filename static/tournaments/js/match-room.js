@@ -6,63 +6,110 @@
     return;
   }
 
-  let room = {};
+  let parsedPayload = {};
   try {
-    room = JSON.parse(payloadNode.textContent || '{}');
+    parsedPayload = JSON.parse(payloadNode.textContent || '{}');
   } catch (_err) {
-    room = {};
-  }
-
-  if (!room || !room.match || !room.urls || !room.workflow) {
     return;
   }
 
-  const PHASE_ORDER_FALLBACK = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
-  const VALID_PHASES = new Set(PHASE_ORDER_FALLBACK);
-  const RESULT_FINAL_STATES = new Set(['verified', 'admin_overridden']);
-  const RESULT_MISMATCH_STATES = new Set(['mismatch', 'tie_pending_review', 'admin_tie_pending_review']);
-  const WAITING_LOCKED_ACTIONS = new Set(['coin_toss', 'veto_action', 'draft_action', 'direct_ready', 'save_credentials', 'start_live']);
-  const DRAFT_STORAGE_VERSION = 1;
-  const DRAFT_STORAGE_KEY = `dc:match-room:draft:${room.match.id}`;
+  if (!parsedPayload || typeof parsedPayload !== 'object' || !parsedPayload.match || !parsedPayload.urls) {
+    return;
+  }
 
-  const SUPPORTED_GAME_CONFIG = {
+  const PHASE_FALLBACK = ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
+  const VALID_PHASES = new Set(PHASE_FALLBACK);
+  const MOBILE_TABS = ['engine', 'chat', 'intel'];
+
+  const THEME_PRESETS = {
     valorant: {
-      key: 'valorant',
-      phaseKind: 'veto',
-      accent: { ac: '#00f0ff', r: 0, g: 240, b: 255 },
-      background: "url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850')",
-      modeLabel: 'Map Veto',
+      accent: '#00f0ff',
+      rgb: [0, 240, 255],
+      bg: "url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850')",
     },
     efootball: {
-      key: 'efootball',
-      phaseKind: 'direct',
-      accent: { ac: '#00ff66', r: 0, g: 255, b: 102 },
-      background: "url('https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850')",
-      modeLabel: 'Direct Setup',
+      accent: '#00ff66',
+      rgb: [0, 255, 102],
+      bg: "url('https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850')",
     },
   };
 
-  const state = {
+  var state = {
+    room: ensureRoomShape(parsedPayload),
+    socketPresence: resolvePresence(parsedPayload.presence || asObject(parsedPayload.workflow).presence, parsedPayload.match),
     ws: null,
     wsConnected: false,
-    socketEverConnected: false,
+    reconnectAttempts: 0,
     reconnectTimer: null,
-    syncTimer: null,
-    clockTimer: null,
     presenceTimer: null,
-    activeTab: 'chat',
-    previewResults: false,
-    proxyEnabled: false,
-    proxySide: 1,
-    chatSeen: new Set(),
-    announcementSeen: new Set(),
-    uploadedFiles: { 1: null, 2: null },
-    inputDraft: createDraftState(),
-    toastHost: null,
-    tossWinnerRendered: null,
-    entryGateDismissed: false,
-    entryGateStorageKey: '',
+    fallbackSyncTimer: null,
+    activeDesktopTab: 'chat',
+    activeMobileTab: 'engine',
+    chatIds: new Set(),
+    seenAnnouncements: new Set(),
+    requestBusy: false,
+    lastToastAt: 0,
+    lastToastText: '',
   };
+
+  const elements = {
+    shell: byId('match-room-shell'),
+    waitingOverlay: byId('waiting-overlay'),
+    waitingCopy: byId('waiting-copy'),
+    waitingYouDot: byId('waiting-you-dot'),
+    waitingOpponentDot: byId('waiting-opponent-dot'),
+    navBackLink: byId('nav-back-link'),
+    navMatchId: byId('nav-match-id'),
+    navTourneyName: byId('nav-tourney-name'),
+    socketPill: byId('socket-pill'),
+    helpSignalBtn: byId('help-signal-btn'),
+    heroTeamALogo: byId('hero-team-a-logo'),
+    heroTeamAName: byId('hero-team-a-name'),
+    heroTeamAMeta: byId('hero-team-a-meta'),
+    heroTeamBLogo: byId('hero-team-b-logo'),
+    heroTeamBName: byId('hero-team-b-name'),
+    heroTeamBMeta: byId('hero-team-b-meta'),
+    heroFormatLabel: byId('hero-format-label'),
+    phaseTracker: byId('phase-tracker'),
+    engineContainer: byId('engine-container'),
+    rulesList: byId('rules-list'),
+    chatWindow: byId('chat-window'),
+    chatForm: byId('chat-form'),
+    chatInput: byId('chat-input'),
+    sideChat: byId('side-chat'),
+    sideIntel: byId('side-intel'),
+    sideAdmin: byId('side-admin'),
+    dtTabChat: byId('dt-tab-chat'),
+    dtTabIntel: byId('dt-tab-intel'),
+    dtTabAdmin: byId('dt-tab-admin'),
+    mobTabEngine: byId('mob-tab-engine'),
+    mobTabChat: byId('mob-tab-chat'),
+    mobTabIntel: byId('mob-tab-intel'),
+    mainScroll: byId('main-scroll'),
+    mobilePanelOverlay: byId('mobile-panel-overlay'),
+    mobilePanelContent: byId('mobile-panel-content'),
+    adminForceNext: byId('admin-force-next'),
+    adminOpenOverride: byId('admin-open-override'),
+    adminBroadcast: byId('admin-broadcast'),
+    overrideModal: byId('override-modal'),
+    overrideClose: byId('override-close'),
+    overrideCancel: byId('override-cancel'),
+    overrideApply: byId('override-apply'),
+    overrideP1: byId('override-p1'),
+    overrideP2: byId('override-p2'),
+    overrideNote: byId('override-note'),
+    roomToast: byId('room-toast'),
+  };
+
+  init();
+
+  function init() {
+    bindStaticEvents();
+    renderAll();
+    connectSocket();
+    startPresenceHeartbeat();
+    startFallbackSync();
+  }
 
   function byId(id) {
     return document.getElementById(id);
@@ -78,24 +125,29 @@
       .replaceAll("'", '&#39;');
   }
 
+  function asObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function asList(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
   function toInt(value, fallback) {
     const parsed = Number.parseInt(String(value == null ? '' : value), 10);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
-  function coerceBool(value, fallback) {
+  function bool(value, fallback) {
     if (value == null) {
       return !!fallback;
     }
-
     if (typeof value === 'boolean') {
       return value;
     }
-
     if (typeof value === 'number') {
       return value !== 0;
     }
-
     const token = String(value).trim().toLowerCase();
     if (token === '1' || token === 'true' || token === 'yes' || token === 'y' || token === 'on') {
       return true;
@@ -103,245 +155,1475 @@
     if (token === '0' || token === 'false' || token === 'no' || token === 'n' || token === 'off' || token === '') {
       return false;
     }
-
     return !!fallback;
   }
 
-  function nowIso() {
-    return new Date().toISOString();
+  function nowMs() {
+    return Date.now();
   }
 
   function getCsrfToken() {
-    const row = document.cookie.split('; ').find((chunk) => chunk.startsWith('csrftoken='));
+    const row = document.cookie
+      .split('; ')
+      .find((chunk) => chunk.startsWith('csrftoken='));
     return row ? decodeURIComponent(row.slice('csrftoken='.length)) : '';
   }
 
-  function getWorkflow() {
-    const wf = room.workflow || {};
-    if (!wf.result_submissions || typeof wf.result_submissions !== 'object') {
-      wf.result_submissions = { '1': null, '2': null };
+  function maybeRunIcons() {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
     }
-    if (!wf.credentials || typeof wf.credentials !== 'object') {
-      wf.credentials = {};
-    }
-    if (!wf.direct_ready || typeof wf.direct_ready !== 'object') {
-      wf.direct_ready = { '1': false, '2': false };
-    }
-    return wf;
   }
 
-  function getPipeline() {
-    const raw = room.pipeline;
-    return raw && typeof raw === 'object' ? raw : {};
+  function formatLocalTime(isoString) {
+    if (!isoString) {
+      return 'N/A';
+    }
+    const dt = new Date(isoString);
+    if (Number.isNaN(dt.getTime())) {
+      return 'N/A';
+    }
+    return dt.toLocaleString([], {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
-  function getEffectivePolicy() {
-    const pipeline = getPipeline();
-    const wf = getWorkflow();
-
-    const pipelinePolicy = pipeline.policy && typeof pipeline.policy === 'object' ? pipeline.policy : null;
-    const wfPolicy = wf.policy && typeof wf.policy === 'object' ? wf.policy : null;
-    const root = pipelinePolicy || wfPolicy || {};
-    const effective = root.effective && typeof root.effective === 'object' ? root.effective : root;
-    const capabilities = root.capabilities && typeof root.capabilities === 'object' ? root.capabilities : {};
-    const mode = currentMode();
-
-    const supportsCoinToss = coerceBool(capabilities.supports_coin_toss, mode !== 'direct');
-    const supportsMapVeto = coerceBool(capabilities.supports_map_veto, mode === 'veto');
-    const requireCoinToss = supportsCoinToss && coerceBool(effective.require_coin_toss, supportsCoinToss);
-    const requireMapVeto = supportsMapVeto && coerceBool(effective.require_map_veto, supportsMapVeto);
-
-    return {
-      require_check_in: coerceBool(effective.require_check_in, false),
-      require_coin_toss: requireCoinToss,
-      require_map_veto: requireMapVeto,
-    };
+  function shortClock(isoString) {
+    if (!isoString) {
+      return 'now';
+    }
+    const dt = new Date(isoString);
+    if (Number.isNaN(dt.getTime())) {
+      return 'now';
+    }
+    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  function resolvePhase1Kind() {
-    const forcedKind = pipelineKind();
-    if (forcedKind === 'direct') {
+  function initials(name) {
+    const text = String(name || '').trim();
+    if (!text) {
+      return '?';
+    }
+    const chunks = text.split(/\s+/).filter(Boolean);
+    if (!chunks.length) {
+      return text.slice(0, 1).toUpperCase();
+    }
+    if (chunks.length === 1) {
+      return chunks[0].slice(0, 2).toUpperCase();
+    }
+    return `${chunks[0].slice(0, 1)}${chunks[1].slice(0, 1)}`.toUpperCase();
+  }
+
+  function activeRoom() {
+    if (state && state.room && typeof state.room === 'object') {
+      return state.room;
+    }
+    return asObject(parsedPayload);
+  }
+
+  function canonicalGameKey() {
+    const game = asObject(activeRoom().game);
+    const key = String(game.pipeline_game_key || game.slug || '').trim().toLowerCase();
+    if (key.includes('efootball')) {
+      return 'efootball';
+    }
+    if (key.includes('valorant')) {
+      return 'valorant';
+    }
+    return key || 'valorant';
+  }
+
+  function canonicalMode() {
+    const key = canonicalGameKey();
+    if (key === 'efootball') {
       return 'direct';
     }
-
-    const pipeline = getPipeline();
-    const wf = getWorkflow();
-
-    const fromPipeline = String(pipeline.phase1_kind || '').toLowerCase();
-    if (fromPipeline === 'veto' || fromPipeline === 'direct') {
-      return fromPipeline;
+    if (key === 'valorant') {
+      return 'veto';
     }
 
-    const fromWorkflow = String(wf.phase1_kind || '').toLowerCase();
-    if (fromWorkflow === 'veto' || fromWorkflow === 'direct') {
-      return fromWorkflow;
+    const room = activeRoom();
+    const game = asObject(room.game);
+    const workflow = asObject(room.workflow);
+    const mode = String(workflow.mode || game.phase_mode || '').toLowerCase();
+    if (mode === 'direct' || mode === 'veto') {
+      return mode;
     }
-
     return 'veto';
-  }
-
-  function getPhaseOrder() {
-    const pipeline = getPipeline();
-    const wf = getWorkflow();
-    const incoming = Array.isArray(pipeline.phase_order)
-      ? pipeline.phase_order
-      : (Array.isArray(wf.phase_order) ? wf.phase_order : []);
-
-    let filtered = incoming
-      .map((phase) => String(phase || '').trim())
-      .filter((phase) => VALID_PHASES.has(phase));
-
-    const policy = getEffectivePolicy();
-    if (!policy.require_coin_toss) {
-      filtered = filtered.filter((phase) => phase !== 'coin_toss');
-    }
-
-    let resolvedKind = resolvePhase1Kind();
-    if (!resolvedKind) {
-      const mode = currentMode();
-      resolvedKind = mode === 'direct' ? mode : 'veto';
-    }
-
-    if (resolvedKind === 'direct') {
-      filtered = filtered.filter((phase) => phase !== 'coin_toss');
-      if (!filtered.includes('phase1')) {
-        filtered.unshift('phase1');
-      }
-    }
-
-    if (resolvedKind === 'veto' && !policy.require_map_veto) {
-      filtered = filtered.filter((phase) => phase !== 'phase1');
-    }
-
-    if (!filtered.length) {
-      filtered = PHASE_ORDER_FALLBACK.filter((phase) => {
-        if (phase === 'coin_toss' && (resolvedKind === 'direct' || !policy.require_coin_toss)) {
-          return false;
-        }
-        if (phase === 'phase1' && resolvedKind === 'veto' && !policy.require_map_veto) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    return filtered.length ? filtered : ['lobby_setup', 'live', 'results', 'completed'];
-  }
-
-  function currentPhase() {
-    const phaseOrder = getPhaseOrder();
-    const wf = getWorkflow();
-    const fallback = phaseOrder[0] || 'coin_toss';
-    const phase = String(wf.phase || fallback);
-
-    if (currentMode() === 'direct' && phase === 'coin_toss' && phaseOrder.includes('phase1')) {
-      return 'phase1';
-    }
-
-    return phaseOrder.includes(phase) ? phase : fallback;
   }
 
   function phase1Kind() {
-    const explicit = resolvePhase1Kind();
-    if (explicit === 'veto' || explicit === 'direct') {
-      return explicit;
+    const mode = canonicalMode();
+    if (mode === 'direct') {
+      return 'direct';
     }
 
-    const mode = currentMode();
-    if (mode === 'direct') {
+    const room = activeRoom();
+    const workflow = asObject(room.workflow);
+    const pipeline = asObject(room.pipeline);
+    const kind = String(workflow.phase1_kind || pipeline.phase1_kind || '').toLowerCase();
+    if (kind === 'direct') {
       return 'direct';
     }
     return 'veto';
   }
 
-  function nextPhase(current) {
-    const phaseOrder = getPhaseOrder();
-    const idx = phaseOrder.indexOf(String(current || ''));
-    if (idx >= 0 && idx + 1 < phaseOrder.length) {
-      return phaseOrder[idx + 1];
+  function resolvePresence(input, matchValue) {
+    const source = asObject(input);
+    const match = asObject(matchValue);
+    const p1 = asObject(match.participant1);
+    const p2 = asObject(match.participant2);
+
+    const sides = {
+      '1': normalizePresenceSide(source['1']),
+      '2': normalizePresenceSide(source['2']),
+    };
+
+    sides['1'].checked_in = bool(p1.checked_in, false);
+    sides['2'].checked_in = bool(p2.checked_in, false);
+    return sides;
+  }
+
+  function normalizePresenceSide(raw) {
+    const row = asObject(raw);
+    const status = String(row.status || '').toLowerCase();
+    const online = bool(row.online, status === 'online' || status === 'away');
+
+    return {
+      status: online ? (status === 'away' ? 'away' : 'online') : 'offline',
+      online,
+      last_seen: row.last_seen || null,
+      user_id: row.user_id || null,
+      username: row.username || null,
+      checked_in: bool(row.checked_in, false),
+    };
+  }
+
+  function ensureRoomShape(roomValue) {
+    const room = asObject(roomValue);
+
+    room.match = asObject(room.match);
+    room.match.participant1 = asObject(room.match.participant1);
+    room.match.participant2 = asObject(room.match.participant2);
+    room.tournament = asObject(room.tournament);
+    room.game = asObject(room.game);
+    room.lobby = asObject(room.lobby);
+    room.pipeline = asObject(room.pipeline);
+    room.workflow = asObject(room.workflow);
+    room.check_in = asObject(room.check_in);
+    room.me = asObject(room.me);
+    room.urls = asObject(room.urls);
+    room.websocket = asObject(room.websocket);
+
+    room.workflow.coin_toss = asObject(room.workflow.coin_toss);
+    room.workflow.veto = asObject(room.workflow.veto);
+    room.workflow.veto.sequence = asList(room.workflow.veto.sequence);
+    room.workflow.veto.pool = asList(room.workflow.veto.pool);
+    room.workflow.veto.bans = asList(room.workflow.veto.bans);
+    room.workflow.veto.picks = asList(room.workflow.veto.picks);
+    room.workflow.direct_ready = asObject(room.workflow.direct_ready);
+    room.workflow.credentials = asObject(room.workflow.credentials);
+    room.workflow.result_submissions = asObject(room.workflow.result_submissions);
+    room.workflow.announcements = asList(room.workflow.announcements);
+
+    room.presence = resolvePresence(room.presence || room.workflow.presence, room.match);
+    room.workflow.presence = resolvePresence(room.workflow.presence || room.presence, room.match);
+
+    room.workflow.phase_order = asList(room.workflow.phase_order)
+      .map((phase) => String(phase || '').trim())
+      .filter((phase) => VALID_PHASES.has(phase));
+
+    if (!room.workflow.phase_order.length) {
+      room.workflow.phase_order = defaultPhaseOrder();
     }
-    return phaseOrder[phaseOrder.length - 1] || 'completed';
+
+    if (!VALID_PHASES.has(String(room.workflow.phase || ''))) {
+      room.workflow.phase = room.workflow.phase_order[0] || defaultPhaseOrder()[0];
+    }
+
+    return room;
   }
 
-  function currentMode() {
-    return pipelineKind();
-  }
-
-  function isStaffUser() {
-    return !!(room.me && room.me.is_staff);
-  }
-
-  function isAdminMode() {
-    return !!(room.me && room.me.admin_mode);
+  function defaultPhaseOrder() {
+    const mode = canonicalMode();
+    if (mode === 'direct') {
+      return ['phase1', 'lobby_setup', 'live', 'results', 'completed'];
+    }
+    return ['coin_toss', 'phase1', 'lobby_setup', 'live', 'results', 'completed'];
   }
 
   function mySide() {
-    const side = Number(room.me && room.me.side);
+    const side = toInt(asObject(state.room.me).side, 0);
     return side === 1 || side === 2 ? side : null;
   }
 
-  function _entryGateStorageKey(sideOverride) {
-    const side = Number(sideOverride || mySide());
-    if (side !== 1 && side !== 2) {
-      return '';
-    }
-    return `dc:match-room:entry-gate:${room.match?.id || '0'}:${side}`;
-  }
-
-  function _loadEntryGateState() {
-    const key = _entryGateStorageKey();
-    state.entryGateStorageKey = key;
-    if (!key) {
-      state.entryGateDismissed = true;
-      return;
-    }
-
-    try {
-      state.entryGateDismissed = window.localStorage.getItem(key) === '1';
-    } catch (_err) {
-      state.entryGateDismissed = false;
-    }
-  }
-
-  function _persistEntryGateState(dismissed) {
-    const key = state.entryGateStorageKey || _entryGateStorageKey();
-    if (!key) {
-      return;
-    }
-
-    state.entryGateStorageKey = key;
-    state.entryGateDismissed = !!dismissed;
-
-    try {
-      if (dismissed) {
-        window.localStorage.setItem(key, '1');
-      } else {
-        window.localStorage.removeItem(key);
-      }
-    } catch (_err) {
-      // Ignore localStorage failures.
-    }
-  }
-
-  function _myCheckInStatus() {
+  function opponentSide() {
     const side = mySide();
     if (side === 1) {
-      return !!room.match?.participant1?.checked_in;
+      return 2;
     }
     if (side === 2) {
-      return !!room.match?.participant2?.checked_in;
+      return 1;
     }
-    return true;
+    return null;
   }
 
-  async function _submitMatchCheckInFromGate() {
-    if (!room.urls?.check_in) {
-      showToast('Check-in endpoint is unavailable for this lobby.', 'error');
+  function participantForSide(side) {
+    if (side === 1) {
+      return asObject(state.room.match.participant1);
+    }
+    if (side === 2) {
+      return asObject(state.room.match.participant2);
+    }
+    return {};
+  }
+
+  function sideOnline(side) {
+    if (side !== 1 && side !== 2) {
       return false;
     }
+    const row = asObject(asObject(state.room.presence)[String(side)]);
+    return bool(row.online, false);
+  }
+
+  function sideCheckedIn(side) {
+    if (side !== 1 && side !== 2) {
+      return false;
+    }
+    const participant = participantForSide(side);
+    return bool(participant.checked_in, false);
+  }
+
+  function bothSidesOnline() {
+    return sideOnline(1) && sideOnline(2);
+  }
+
+  function waitingLocked() {
+    const side = mySide();
+    if (side !== 1 && side !== 2) {
+      return false;
+    }
+    if (bool(asObject(state.room.me).admin_mode, false)) {
+      return false;
+    }
+    return !bothSidesOnline();
+  }
+
+  function phaseOrder() {
+    const wfOrder = asList(asObject(state.room.workflow).phase_order)
+      .map((phase) => String(phase || '').trim())
+      .filter((phase) => VALID_PHASES.has(phase));
+
+    if (wfOrder.length) {
+      return wfOrder;
+    }
+
+    return defaultPhaseOrder();
+  }
+
+  function currentPhase() {
+    const workflow = asObject(state.room.workflow);
+    const order = phaseOrder();
+    const current = String(workflow.phase || '').trim();
+    if (order.includes(current)) {
+      return current;
+    }
+    return order[0] || 'phase1';
+  }
+
+  function phaseLabel(phase) {
+    if (phase === 'coin_toss') {
+      return 'Coin Toss';
+    }
+    if (phase === 'phase1') {
+      return phase1Kind() === 'direct' ? 'Direct Ready' : 'Map Veto';
+    }
+    if (phase === 'lobby_setup') {
+      return 'Lobby Setup';
+    }
+    if (phase === 'live') {
+      return 'Live Match';
+    }
+    if (phase === 'results') {
+      return 'Results';
+    }
+    if (phase === 'completed') {
+      return 'Completed';
+    }
+    return phase;
+  }
+
+  function mapPool() {
+    const workflowPool = asList(asObject(state.room.workflow).veto.pool)
+      .map((row) => String(row || '').trim())
+      .filter(Boolean);
+
+    if (workflowPool.length) {
+      return workflowPool;
+    }
+
+    return asList(asObject(state.room.game).map_pool)
+      .map((row) => String(row || '').trim())
+      .filter(Boolean);
+  }
+
+  function workflowSubmission(side) {
+    const submissions = asObject(asObject(state.room.workflow).result_submissions);
+    const row = submissions[String(side)];
+    return row && typeof row === 'object' ? row : null;
+  }
+
+  function applyRoom(nextRoom) {
+    const normalized = ensureRoomShape(nextRoom);
+
+    if (state.socketPresence && typeof state.socketPresence === 'object') {
+      normalized.presence = mergePresenceSnapshots(normalized.presence, state.socketPresence);
+      normalized.workflow.presence = mergePresenceSnapshots(normalized.workflow.presence, state.socketPresence);
+    }
+
+    state.room = normalized;
+    renderAll();
+  }
+
+  function mergePresenceSnapshots(baseValue, overrideValue) {
+    const base = resolvePresence(baseValue, state.room.match);
+    const override = resolvePresence(overrideValue, state.room.match);
+
+    return {
+      '1': mergePresenceSide(base['1'], override['1']),
+      '2': mergePresenceSide(base['2'], override['2']),
+    };
+  }
+
+  function mergePresenceSide(baseSide, overrideSide) {
+    const base = normalizePresenceSide(baseSide);
+    const override = normalizePresenceSide(overrideSide);
+
+    if (!override.online && !override.user_id && !override.last_seen) {
+      return base;
+    }
+
+    return {
+      status: override.status || base.status,
+      online: bool(override.online, false),
+      last_seen: override.last_seen || base.last_seen || null,
+      user_id: override.user_id || base.user_id || null,
+      username: override.username || base.username || null,
+      checked_in: bool(override.checked_in, base.checked_in),
+    };
+  }
+
+  function renderAll() {
+    applyTheme();
+    renderHeader();
+    renderRules();
+    renderAdminVisibility();
+    renderPhaseTracker();
+    renderEngine();
+    processAnnouncements();
+    updateWaitingOverlay();
+    updateSocketPill();
+    syncMobileMirror();
+    maybeRunIcons();
+  }
+
+  function applyTheme() {
+    const key = canonicalGameKey();
+    const shell = elements.shell;
+    if (!shell) {
+      return;
+    }
+
+    const preset = THEME_PRESETS[key] || THEME_PRESETS.valorant;
+    shell.setAttribute('data-game', key);
+    shell.style.setProperty('--ac', preset.accent);
+    shell.style.setProperty('--ar', String(preset.rgb[0]));
+    shell.style.setProperty('--ag', String(preset.rgb[1]));
+    shell.style.setProperty('--ab', String(preset.rgb[2]));
+    shell.style.setProperty('--bg-img', preset.bg);
+
+    if (elements.mainScroll) {
+      elements.mainScroll.style.display = state.activeMobileTab === 'engine' ? '' : 'none';
+    }
+  }
+
+  function renderHeader() {
+    const match = asObject(state.room.match);
+    const tournament = asObject(state.room.tournament);
+    const p1 = asObject(match.participant1);
+    const p2 = asObject(match.participant2);
+
+    if (elements.navMatchId) {
+      const roundText = Number.isFinite(Number(match.round_number)) ? `R${match.round_number}` : 'R?';
+      const matchText = Number.isFinite(Number(match.match_number)) ? `M${match.match_number}` : `M${match.id || '?'}`;
+      elements.navMatchId.textContent = `Match ${roundText} ${matchText}`;
+    }
+
+    if (elements.navTourneyName) {
+      elements.navTourneyName.textContent = String(tournament.name || 'Tournament');
+    }
+
+    if (elements.navBackLink) {
+      elements.navBackLink.setAttribute('href', String(asObject(state.room.urls).match_detail || '#'));
+    }
+
+    if (elements.heroTeamAName) {
+      elements.heroTeamAName.textContent = String(p1.name || 'Participant A');
+    }
+    if (elements.heroTeamBName) {
+      elements.heroTeamBName.textContent = String(p2.name || 'Participant B');
+    }
+
+    if (elements.heroTeamAMeta) {
+      const online = sideOnline(1) ? 'Online' : 'Offline';
+      elements.heroTeamAMeta.textContent = `Side 1 - ${online}`;
+    }
+    if (elements.heroTeamBMeta) {
+      const online = sideOnline(2) ? 'Online' : 'Offline';
+      elements.heroTeamBMeta.textContent = `Side 2 - ${online}`;
+    }
+
+    if (elements.heroTeamALogo) {
+      renderLogo(elements.heroTeamALogo, p1, 1);
+    }
+    if (elements.heroTeamBLogo) {
+      renderLogo(elements.heroTeamBLogo, p2, 2);
+    }
+
+    if (elements.heroFormatLabel) {
+      const bestOf = toInt(match.best_of, 1);
+      const flowLabel = canonicalMode() === 'direct' ? 'Direct Setup' : 'Map Veto';
+      elements.heroFormatLabel.textContent = `Bo${bestOf} - ${flowLabel}`;
+    }
+  }
+
+  function renderLogo(node, participant, side) {
+    const logoUrl = String(participant.logo_url || '').trim();
+    if (logoUrl) {
+      node.innerHTML = `<img src="${esc(logoUrl)}" alt="${esc(participant.name || 'Participant')}" class="w-full h-full object-cover rounded-xl md:rounded-2xl" loading="lazy" />`;
+      return;
+    }
+
+    const token = initials(participant.name || (side === 1 ? 'A' : 'B'));
+    node.textContent = token;
+  }
+
+  function renderRules() {
+    if (!elements.rulesList) {
+      return;
+    }
+
+    const room = state.room;
+    const match = asObject(room.match);
+    const checkIn = asObject(room.check_in);
+    const mode = canonicalMode();
+    const p1 = asObject(match.participant1);
+    const p2 = asObject(match.participant2);
+    const maps = mapPool();
+
+    const cards = [
+      {
+        title: 'Pipeline',
+        value: mode === 'direct' ? 'Direct Setup (eFootball)' : 'Toss -> Veto -> Setup (Valorant)',
+      },
+      {
+        title: 'Best Of',
+        value: `Bo${toInt(match.best_of, 1)}`,
+      },
+      {
+        title: 'Check-In',
+        value: bool(checkIn.required, false)
+          ? `${p1.checked_in ? 'P1 ready' : 'P1 pending'} / ${p2.checked_in ? 'P2 ready' : 'P2 pending'}`
+          : 'Not required',
+      },
+      {
+        title: 'Map Pool',
+        value: maps.length ? maps.join(', ') : 'Managed in lobby',
+      },
+      {
+        title: 'Scheduled',
+        value: formatLocalTime(match.scheduled_time),
+      },
+    ];
+
+    elements.rulesList.innerHTML = cards
+      .map((item) => {
+        return `
+          <div class="p-3 rounded-xl bg-white/5 border border-white/10">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">${esc(item.title)}</p>
+            <p class="text-xs text-white leading-relaxed">${esc(item.value)}</p>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  function renderAdminVisibility() {
+    const adminMode = bool(asObject(state.room.me).admin_mode, false);
+
+    if (elements.dtTabAdmin) {
+      if (adminMode) {
+        elements.dtTabAdmin.classList.remove('hidden-state');
+      } else {
+        elements.dtTabAdmin.classList.add('hidden-state');
+      }
+    }
+
+    if (!adminMode && state.activeDesktopTab === 'admin') {
+      setDesktopTab('chat');
+      return;
+    }
+
+    setDesktopTab(state.activeDesktopTab);
+  }
+
+  function renderPhaseTracker() {
+    if (!elements.phaseTracker) {
+      return;
+    }
+
+    const order = phaseOrder();
+    const activePhase = currentPhase();
+    const activeIndex = Math.max(0, order.indexOf(activePhase));
+
+    let html = '';
+
+    order.forEach((phase, index) => {
+      const done = index < activeIndex;
+      const active = index === activeIndex;
+
+      const dotClass = done ? 'phase-dot done' : (active ? 'phase-dot active' : 'phase-dot');
+      const textClass = done
+        ? 'text-[10px] font-bold text-green-300 uppercase tracking-wide'
+        : (active
+          ? 'text-[10px] font-bold text-white uppercase tracking-wide'
+          : 'text-[10px] font-bold text-gray-500 uppercase tracking-wide');
+
+      html += `
+        <div class="flex flex-col items-center gap-1 min-w-[58px]">
+          <div class="${dotClass}">${done ? '<i data-lucide="check" class="w-4 h-4"></i>' : esc(String(index + 1))}</div>
+          <span class="${textClass}">${esc(phaseLabel(phase))}</span>
+        </div>
+      `;
+
+      if (index < order.length - 1) {
+        const lineClass = index < activeIndex ? 'phase-line done flex-1 max-w-[72px]' : (index === activeIndex ? 'phase-line active flex-1 max-w-[72px]' : 'phase-line flex-1 max-w-[72px]');
+        html += `<div class="${lineClass}"><span></span></div>`;
+      }
+    });
+
+    elements.phaseTracker.innerHTML = html;
+  }
+
+  function renderEngine() {
+    if (!elements.engineContainer) {
+      return;
+    }
+
+    const phase = currentPhase();
+    const blocks = [];
+
+    blocks.push(renderCheckInBlock());
+
+    if (phase === 'coin_toss') {
+      blocks.push(renderCoinTossBlock());
+    } else if (phase === 'phase1') {
+      blocks.push(phase1Kind() === 'direct' ? renderDirectReadyBlock() : renderVetoBlock());
+    } else if (phase === 'lobby_setup') {
+      blocks.push(renderLobbySetupBlock());
+    } else if (phase === 'live') {
+      blocks.push(renderLiveBlock());
+    } else if (phase === 'results') {
+      blocks.push(renderResultsBlock(false));
+    } else if (phase === 'completed') {
+      blocks.push(renderCompletedBlock());
+    } else {
+      blocks.push(renderFallbackBlock());
+    }
+
+    if (phase === 'live') {
+      blocks.push(renderResultsBlock(true));
+    }
+
+    elements.engineContainer.innerHTML = blocks.join('');
+    maybeRunIcons();
+  }
+
+  function renderCheckInBlock() {
+    const checkIn = asObject(state.room.check_in);
+    const required = bool(checkIn.required, false);
+    const side = mySide();
+
+    const p1Ready = sideCheckedIn(1);
+    const p2Ready = sideCheckedIn(2);
+    const meReady = side === 1 ? p1Ready : (side === 2 ? p2Ready : false);
+
+    let statusText = 'Check-in optional for this match.';
+    if (required) {
+      if (bool(checkIn.is_pending, false)) {
+        statusText = `Window opens ${formatLocalTime(checkIn.opens_at)}.`;
+      } else if (bool(checkIn.is_closed, false)) {
+        statusText = `Window closed ${formatLocalTime(checkIn.closes_at)}.`;
+      } else if (bool(checkIn.is_open, false)) {
+        statusText = `Window open until ${formatLocalTime(checkIn.closes_at)}.`;
+      } else {
+        statusText = 'Check-in required before phase actions.';
+      }
+    }
+
+    const canCheckIn = required
+      && (side === 1 || side === 2)
+      && !meReady
+      && bool(checkIn.is_open, false)
+      && !state.requestBusy;
+
+    const buttonHtml = canCheckIn
+      ? '<button type="button" data-action="check-in" class="px-4 py-2 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider active:scale-95 transition-transform">Check In</button>'
+      : '';
+
+    return `
+      <section class="glass-card rounded-2xl p-4 md:p-5 border border-white/10">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Entry Gate</p>
+            <h3 class="text-sm md:text-base font-bold text-white">Participant Check-In</h3>
+            <p class="text-xs text-gray-400 mt-1">${esc(statusText)}</p>
+          </div>
+          ${buttonHtml}
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          ${renderCheckInChip(1, p1Ready, sideOnline(1))}
+          ${renderCheckInChip(2, p2Ready, sideOnline(2))}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderCheckInChip(side, checkedIn, online) {
+    const participant = participantForSide(side);
+    const name = String(participant.name || `Side ${side}`);
+    const checkedText = checkedIn ? 'Checked In' : 'Pending';
+    const checkedClass = checkedIn ? 'text-green-300 border-green-400/30 bg-green-500/10' : 'text-amber-200 border-amber-400/20 bg-amber-500/10';
+    const onlineClass = online ? 'bg-emerald-400' : 'bg-gray-600';
+
+    return `
+      <div class="rounded-xl border border-white/10 bg-black/35 p-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-semibold text-white truncate">${esc(name)}</p>
+          <span class="w-2.5 h-2.5 rounded-full ${onlineClass}"></span>
+        </div>
+        <p class="mt-2 inline-flex px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${checkedClass}">${checkedText}</p>
+      </div>
+    `;
+  }
+
+  function renderCoinTossBlock() {
+    const workflow = asObject(state.room.workflow);
+    const toss = asObject(workflow.coin_toss);
+    const winnerSide = toInt(toss.winner_side, 0);
+    const winnerLabel = winnerSide === 1 || winnerSide === 2 ? `Side ${winnerSide} won toss control.` : 'Toss not resolved yet.';
+
+    const side = mySide();
+    const canAct = (side === 1 || bool(asObject(state.room.me).is_staff, false))
+      && !waitingLocked()
+      && !state.requestBusy;
+
+    return `
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-ac">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Valorant Pipeline</p>
+            <h3 class="text-xl md:text-2xl font-black text-white">Coin Toss</h3>
+            <p class="text-xs text-gray-400 mt-2">Resolve first control before map veto starts.</p>
+          </div>
+          <button type="button" data-action="coin-toss" class="px-5 py-3 rounded-xl bg-white text-black text-xs font-black uppercase tracking-widest active:scale-95 transition-transform ${canAct ? '' : 'opacity-50 cursor-not-allowed'}" ${canAct ? '' : 'disabled'}>
+            Resolve Toss
+          </button>
+        </div>
+        <div class="mt-5 p-4 rounded-xl bg-black/40 border border-white/10">
+          <p class="text-xs text-ac font-bold uppercase tracking-wide">${esc(winnerLabel)}</p>
+          <p class="text-[11px] text-gray-400 mt-1">${esc(toss.performed_at ? `Updated ${shortClock(toss.performed_at)}` : 'Waiting for toss execution.')}</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderVetoBlock() {
+    const workflow = asObject(state.room.workflow);
+    const veto = asObject(workflow.veto);
+    const sequence = asList(veto.sequence);
+    const step = Math.max(0, toInt(veto.step, 0));
+    const stepInfo = asObject(sequence[step]);
+    const expectedSide = toInt(stepInfo.side, 0) || 1;
+    const expectedAction = String(stepInfo.action || 'ban').toLowerCase() === 'pick' ? 'pick' : 'ban';
+
+    const bans = new Set(asList(veto.bans).map((item) => String(item || '').trim()).filter(Boolean));
+    const picks = new Set(asList(veto.picks).map((item) => String(item || '').trim()).filter(Boolean));
+    const selectedMap = String(veto.selected_map || '').trim();
+    const pool = mapPool();
+
+    const side = mySide();
+    const staff = bool(asObject(state.room.me).is_staff, false);
+    const myTurn = staff || side === expectedSide;
+    const actionLocked = waitingLocked() || state.requestBusy;
+
+    const actionCopy = expectedAction === 'pick' ? 'Pick' : 'Ban';
+    const statusCopy = step >= sequence.length
+      ? (selectedMap ? `Veto complete. Selected map: ${selectedMap}.` : 'Veto sequence complete.')
+      : `Turn: Side ${expectedSide} must ${actionCopy.toLowerCase()} a map.`;
+
+    const cards = pool
+      .map((mapName) => {
+        const clean = String(mapName || '').trim();
+        if (!clean) {
+          return '';
+        }
+
+        const isBanned = bans.has(clean);
+        const isPicked = picks.has(clean) || (selectedMap && clean === selectedMap);
+        const selectable = !isBanned && !isPicked && step < sequence.length && myTurn && !actionLocked;
+
+        const statusTag = isPicked ? 'Picked' : (isBanned ? 'Banned' : 'Available');
+        const className = isPicked
+          ? 'map-card picked'
+          : (isBanned ? 'map-card banned' : 'map-card');
+
+        const actionAttr = selectable
+          ? `data-action="veto-map" data-map="${encodeURIComponent(clean)}"`
+          : 'disabled';
+
+        return `
+          <button type="button" class="${className} text-left" ${actionAttr}>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-bold text-white">${esc(clean)}</span>
+              <span class="text-[10px] uppercase tracking-widest ${isPicked ? 'text-ac' : (isBanned ? 'text-rose-300' : 'text-gray-400')}">${esc(statusTag)}</span>
+            </div>
+          </button>
+        `;
+      })
+      .join('');
+
+    const lastAction = asObject(veto.last_action);
+    const lastActionText = lastAction.item
+      ? `Last: Side ${toInt(lastAction.side, '?')} ${esc(String(lastAction.action || '').toLowerCase())}ed ${esc(lastAction.item)}.`
+      : 'No veto actions recorded yet.';
+
+    return `
+      <section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Valorant Pipeline</p>
+            <h3 class="text-xl md:text-2xl font-black text-white">Map Veto</h3>
+          </div>
+          <span class="text-xs ${myTurn ? 'text-ac' : 'text-rose-300'} font-bold uppercase tracking-wider">${esc(statusCopy)}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${cards || '<p class="text-xs text-gray-400">No maps configured.</p>'}
+        </div>
+
+        <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10">
+          <p class="text-[11px] text-gray-300">${lastActionText}</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDirectReadyBlock() {
+    const workflow = asObject(state.room.workflow);
+    const ready = asObject(workflow.direct_ready);
+    const ready1 = bool(ready['1'], false);
+    const ready2 = bool(ready['2'], false);
+
+    const side = mySide();
+    const meReady = side === 1 ? ready1 : (side === 2 ? ready2 : false);
+    const canReady = (side === 1 || side === 2)
+      && !meReady
+      && !waitingLocked()
+      && !state.requestBusy;
+
+    return `
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-ac">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">eFootball Pipeline</p>
+        <h3 class="text-xl md:text-2xl font-black text-white">Direct Ready Check</h3>
+        <p class="text-xs text-gray-400 mt-2">Both sides must confirm readiness before lobby credentials open.</p>
+
+        <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${renderReadyChip(1, ready1)}
+          ${renderReadyChip(2, ready2)}
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-3 flex-wrap">
+          <p class="text-xs text-gray-400">${ready1 && ready2 ? 'Both sides ready. Advancing to lobby setup.' : 'Waiting for both sides to confirm.'}</p>
+          <button type="button" data-action="direct-ready" class="px-5 py-3 rounded-xl bg-ac text-black text-xs font-black uppercase tracking-widest active:scale-95 transition-transform ${canReady ? '' : 'opacity-50 cursor-not-allowed'}" ${canReady ? '' : 'disabled'}>
+            Mark Ready
+          </button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderReadyChip(side, isReady) {
+    const participant = participantForSide(side);
+    const name = String(participant.name || `Side ${side}`);
+
+    return `
+      <div class="p-3 rounded-xl border border-white/10 bg-black/40">
+        <p class="text-xs text-white font-semibold truncate">${esc(name)}</p>
+        <p class="mt-2 inline-flex px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isReady ? 'bg-green-500/15 border border-green-400/30 text-green-300' : 'bg-amber-500/15 border border-amber-400/30 text-amber-200'}">
+          ${isReady ? 'Ready' : 'Pending'}
+        </p>
+      </div>
+    `;
+  }
+
+  function renderLobbySetupBlock() {
+    const workflow = asObject(state.room.workflow);
+    const creds = asObject(workflow.credentials);
+    const me = asObject(state.room.me);
+
+    const canEdit = bool(me.can_edit_credentials, false);
+    const canStartLive = bool(me.side === 1 || me.side === 2 || me.is_staff, false);
+    const disabled = waitingLocked() || state.requestBusy;
+
+    return `
+      <section class="glass-panel rounded-2xl p-5 md:p-7 border-t-4 border-ac">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Lobby Exchange</p>
+        <h3 class="text-xl md:text-2xl font-black text-white">Lobby Credentials</h3>
+        <p class="text-xs text-gray-400 mt-2">Host or staff can update match access info. All changes are realtime.</p>
+
+        <form id="credentials-form" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          ${renderCredentialField('cred-lobby-code', 'Lobby Code', creds.lobby_code, !canEdit)}
+          ${renderCredentialField('cred-password', 'Password', creds.password, !canEdit)}
+          ${renderCredentialField('cred-map', 'Map', creds.map, !canEdit)}
+          ${renderCredentialField('cred-server', 'Server', creds.server, !canEdit)}
+          ${renderCredentialField('cred-game-mode', 'Game Mode', creds.game_mode, !canEdit)}
+          <label class="text-xs text-gray-400 md:col-span-2">Notes
+            <textarea id="cred-notes" class="lobby-input mt-1 min-h-[84px]" ${!canEdit ? 'readonly' : ''}>${esc(creds.notes || '')}</textarea>
+          </label>
+
+          <div class="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-1">
+            ${canEdit ? `<button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" ${disabled ? 'disabled' : ''}>Save Credentials</button>` : ''}
+            <button type="button" data-action="start-live" class="px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white ${(!canStartLive || disabled) ? 'opacity-50 cursor-not-allowed' : ''}" ${(!canStartLive || disabled) ? 'disabled' : ''}>Mark Live</button>
+          </div>
+        </form>
+      </section>
+    `;
+  }
+
+  function renderCredentialField(id, label, value, readonly) {
+    return `
+      <label class="text-xs text-gray-400">${esc(label)}
+        <input id="${esc(id)}" class="lobby-input mt-1" value="${esc(String(value || ''))}" ${readonly ? 'readonly' : ''} />
+      </label>
+    `;
+  }
+
+  function renderLiveBlock() {
+    const lobby = asObject(state.room.lobby);
+
+    return `
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-green-500">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Match Runtime</p>
+            <h3 class="text-2xl md:text-3xl font-black text-white">Live Match In Progress</h3>
+            <p class="text-xs text-gray-400 mt-2">Play the match and submit your score once complete.</p>
+          </div>
+          <i data-lucide="swords" class="w-10 h-10 text-green-300"></i>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+          ${liveInfoCard('Lobby Code', lobby.lobby_code || 'Pending')}
+          ${liveInfoCard('Map', lobby.map || 'Pending')}
+          ${liveInfoCard('Server', lobby.server || 'Pending')}
+        </div>
+      </section>
+    `;
+  }
+
+  function liveInfoCard(label, value) {
+    return `
+      <div class="p-3 rounded-xl border border-white/10 bg-black/40">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">${esc(label)}</p>
+        <p class="text-sm text-white font-semibold mt-1 break-all">${esc(value)}</p>
+      </div>
+    `;
+  }
+
+  function renderResultsBlock(inlineAfterLive) {
+    const side = mySide();
+    const me = asObject(state.room.me);
+    const canSubmit = bool(me.can_submit_result, false) && (side === 1 || side === 2);
+    const submission = side ? workflowSubmission(side) : null;
+    const oppSubmission = side ? workflowSubmission(opponentSide()) : null;
+
+    const scoreFor = submission ? toInt(submission.score_for, 0) : 0;
+    const scoreAgainst = submission ? toInt(submission.score_against, 0) : 0;
+    const note = submission ? String(submission.note || '') : '';
+    const proof = submission ? String(submission.proof_screenshot_url || '') : '';
+
+    const prefix = inlineAfterLive ? 'Live Follow-up' : 'Result Desk';
+    const header = inlineAfterLive ? 'Submit Result When Match Ends' : 'Result Submission';
+
+    const myStatus = submission ? String(submission.status || 'submitted') : 'pending';
+    const oppStatus = oppSubmission ? String(oppSubmission.status || 'submitted') : 'pending';
+
+    return `
+      <section class="glass-panel rounded-2xl p-5 md:p-7 ${inlineAfterLive ? 'border border-white/10' : 'border-t-4 border-ac'}">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">${esc(prefix)}</p>
+        <h3 class="text-xl md:text-2xl font-black text-white">${esc(header)}</h3>
+        <p class="text-xs text-gray-400 mt-2">Each side submits score independently. Matching submissions auto-verify.</p>
+
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <form id="result-submit-form" class="rounded-xl border border-white/10 bg-black/45 p-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold text-white">Your Submission</p>
+              <span class="text-[10px] uppercase tracking-widest text-ac">${esc(myStatus)}</span>
+            </div>
+
+            <div class="mt-4 flex items-center gap-3">
+              <label class="text-xs text-gray-400 flex-1">Your Score
+                <input id="result-score-for" type="number" min="0" class="score-input mt-1" value="${esc(String(scoreFor))}" ${canSubmit ? '' : 'disabled'} />
+              </label>
+              <label class="text-xs text-gray-400 flex-1">Opponent Score
+                <input id="result-score-against" type="number" min="0" class="score-input mt-1" value="${esc(String(scoreAgainst))}" ${canSubmit ? '' : 'disabled'} />
+              </label>
+            </div>
+
+            <label class="block text-xs text-gray-400 mt-3">Proof URL (optional)
+              <input id="result-proof-url" class="lobby-input mt-1" value="${esc(proof)}" ${canSubmit ? '' : 'disabled'} />
+            </label>
+
+            <label class="block text-xs text-gray-400 mt-3">Note
+              <textarea id="result-note" class="lobby-input mt-1 min-h-[72px]" ${canSubmit ? '' : 'disabled'}>${esc(note)}</textarea>
+            </label>
+
+            <div class="mt-4 flex justify-end">
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${(canSubmit && !waitingLocked() && !state.requestBusy) ? '' : 'opacity-50 cursor-not-allowed'}" ${(canSubmit && !waitingLocked() && !state.requestBusy) ? '' : 'disabled'}>
+                Submit Result
+              </button>
+            </div>
+          </form>
+
+          <div class="rounded-xl border border-white/10 bg-black/45 p-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold text-white">Opponent Submission</p>
+              <span class="text-[10px] uppercase tracking-widest text-amber-300">${esc(oppStatus)}</span>
+            </div>
+            ${renderOpponentSubmission(oppSubmission)}
+            ${renderResultStatusBanner()}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderOpponentSubmission(submission) {
+    if (!submission) {
+      return '<p class="text-xs text-gray-400 mt-4">Waiting for opponent submission.</p>';
+    }
+
+    return `
+      <div class="mt-4 space-y-2">
+        <p class="text-sm text-white font-semibold">Score: ${esc(String(submission.score_for || 0))} - ${esc(String(submission.score_against || 0))}</p>
+        <p class="text-xs text-gray-400">Submitted at ${esc(shortClock(submission.submitted_at))}</p>
+      </div>
+    `;
+  }
+
+  function renderResultStatusBanner() {
+    const workflow = asObject(state.room.workflow);
+    const status = String(workflow.result_status || 'pending').toLowerCase();
+
+    if (status === 'verified' || status === 'admin_overridden') {
+      return '<p class="mt-4 px-3 py-2 rounded-lg bg-green-500/15 border border-green-400/30 text-xs text-green-300 font-bold uppercase tracking-wide">Result verified.</p>';
+    }
+
+    if (status === 'mismatch' || status === 'tie_pending_review' || status === 'admin_tie_pending_review') {
+      return '<p class="mt-4 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-400/30 text-xs text-amber-200 font-bold uppercase tracking-wide">Awaiting staff review.</p>';
+    }
+
+    return '<p class="mt-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 font-bold uppercase tracking-wide">Pending validation.</p>';
+  }
+
+  function renderCompletedBlock() {
+    const workflow = asObject(state.room.workflow);
+    const finalResult = asObject(workflow.final_result);
+    const match = asObject(state.room.match);
+
+    const p1 = asObject(match.participant1);
+    const p2 = asObject(match.participant2);
+
+    const p1Score = toInt(finalResult.participant1_score, toInt(p1.score, 0));
+    const p2Score = toInt(finalResult.participant2_score, toInt(p2.score, 0));
+    const winnerSide = toInt(finalResult.winner_side, 0)
+      || (toInt(match.winner_id, 0) === toInt(p1.id, -1) ? 1 : (toInt(match.winner_id, 0) === toInt(p2.id, -1) ? 2 : 0));
+
+    const winnerText = winnerSide === 1
+      ? `${p1.name || 'Side 1'} wins`
+      : (winnerSide === 2 ? `${p2.name || 'Side 2'} wins` : 'Tie pending review');
+
+    return `
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-green-500">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Completed</p>
+        <h3 class="text-2xl md:text-3xl font-black text-white">Match Finalized</h3>
+        <p class="text-xs text-gray-400 mt-2">${esc(winnerText)}</p>
+
+        <div class="mt-5 grid grid-cols-3 gap-2 items-center max-w-md">
+          <div class="p-3 rounded-xl bg-black/45 border border-white/10 text-center">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest">${esc(String(p1.name || 'P1'))}</p>
+            <p class="text-2xl font-black text-white mt-1">${esc(String(p1Score))}</p>
+          </div>
+          <div class="text-center text-gray-500 font-black">VS</div>
+          <div class="p-3 rounded-xl bg-black/45 border border-white/10 text-center">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest">${esc(String(p2.name || 'P2'))}</p>
+            <p class="text-2xl font-black text-white mt-1">${esc(String(p2Score))}</p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <a href="${esc(String(asObject(state.room.urls).match_detail || '#'))}" class="inline-flex px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors">Back To Match Detail</a>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderFallbackBlock() {
+    return `
+      <section class="glass-panel rounded-2xl p-6 md:p-8 border border-white/10">
+        <h3 class="text-lg font-bold text-white">Lobby state unavailable</h3>
+        <p class="text-sm text-gray-400 mt-2">Refresh or wait for realtime sync to resume.</p>
+        <button type="button" data-action="refresh-room" class="mt-4 px-4 py-2 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider">Refresh</button>
+      </section>
+    `;
+  }
+
+  function updateWaitingOverlay() {
+    if (!elements.waitingOverlay) {
+      return;
+    }
+
+    const side = mySide();
+    const oppSide = opponentSide();
+
+    if (side !== 1 || oppSide !== 2) {
+      if (side !== 2 || oppSide !== 1) {
+        elements.waitingOverlay.classList.add('overlay-hidden');
+        return;
+      }
+    }
+
+    const meOnline = sideOnline(side);
+    const oppOnline = sideOnline(oppSide);
+    const bothOnline = meOnline && oppOnline;
+
+    if (elements.waitingYouDot) {
+      elements.waitingYouDot.className = `w-2.5 h-2.5 rounded-full ${meOnline ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]' : 'bg-gray-600'}`;
+    }
+
+    if (elements.waitingOpponentDot) {
+      elements.waitingOpponentDot.className = `w-2.5 h-2.5 rounded-full ${oppOnline ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]' : 'bg-gray-600'}`;
+    }
+
+    if (elements.waitingCopy) {
+      if (bothOnline) {
+        elements.waitingCopy.textContent = 'Both sides online. Lobby unlocked.';
+      } else if (!meOnline) {
+        elements.waitingCopy.textContent = 'Connecting your websocket presence...';
+      } else {
+        elements.waitingCopy.textContent = 'Waiting for opponent websocket presence.';
+      }
+    }
+
+    if (bothOnline) {
+      elements.waitingOverlay.classList.add('overlay-hidden');
+    } else {
+      elements.waitingOverlay.classList.remove('overlay-hidden');
+    }
+  }
+
+  function updateSocketPill() {
+    if (!elements.socketPill) {
+      return;
+    }
+
+    const base = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border';
+
+    if (state.wsConnected) {
+      elements.socketPill.className = `${base} bg-green-500/10 border-green-400/25`;
+      elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span><span class="text-[10px] font-mono text-green-300 uppercase tracking-widest">Socket Live</span>';
+      return;
+    }
+
+    if (state.reconnectTimer) {
+      elements.socketPill.className = `${base} bg-amber-500/10 border-amber-400/30`;
+      elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span><span class="text-[10px] font-mono text-amber-200 uppercase tracking-widest">Reconnecting</span>';
+      return;
+    }
+
+    elements.socketPill.className = `${base} bg-red-500/10 border-red-400/30`;
+    elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-300"></span><span class="text-[10px] font-mono text-red-200 uppercase tracking-widest">Socket Down</span>';
+  }
+
+  function bindStaticEvents() {
+    if (elements.chatForm) {
+      elements.chatForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitChat(elements.chatInput);
+      });
+    }
+
+    if (elements.dtTabChat) {
+      elements.dtTabChat.addEventListener('click', function () {
+        setDesktopTab('chat');
+      });
+    }
+    if (elements.dtTabIntel) {
+      elements.dtTabIntel.addEventListener('click', function () {
+        setDesktopTab('intel');
+      });
+    }
+    if (elements.dtTabAdmin) {
+      elements.dtTabAdmin.addEventListener('click', function () {
+        setDesktopTab('admin');
+      });
+    }
+
+    if (elements.mobTabEngine) {
+      elements.mobTabEngine.addEventListener('click', function () {
+        setMobileTab('engine');
+      });
+    }
+    if (elements.mobTabChat) {
+      elements.mobTabChat.addEventListener('click', function () {
+        setMobileTab('chat');
+      });
+    }
+    if (elements.mobTabIntel) {
+      elements.mobTabIntel.addEventListener('click', function () {
+        setMobileTab('intel');
+      });
+    }
+
+    if (elements.adminForceNext) {
+      elements.adminForceNext.addEventListener('click', handleAdminForceNext);
+    }
+    if (elements.adminOpenOverride) {
+      elements.adminOpenOverride.addEventListener('click', openOverrideModal);
+    }
+    if (elements.adminBroadcast) {
+      elements.adminBroadcast.addEventListener('click', handleAdminBroadcast);
+    }
+
+    if (elements.overrideClose) {
+      elements.overrideClose.addEventListener('click', closeOverrideModal);
+    }
+    if (elements.overrideCancel) {
+      elements.overrideCancel.addEventListener('click', closeOverrideModal);
+    }
+    if (elements.overrideApply) {
+      elements.overrideApply.addEventListener('click', applyOverrideResult);
+    }
+
+    if (elements.helpSignalBtn) {
+      elements.helpSignalBtn.addEventListener('click', function () {
+        const reportUrl = String(asObject(state.room.urls).report_dispute || '');
+        if (!reportUrl) {
+          showToast('Dispute endpoint unavailable.', 'error');
+          return;
+        }
+        window.location.href = reportUrl;
+      });
+    }
+
+    if (elements.engineContainer) {
+      elements.engineContainer.addEventListener('click', handleEngineClick);
+      elements.engineContainer.addEventListener('submit', handleEngineSubmit);
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (state.wsConnected) {
+        sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
+      }
+    });
+  }
+
+  function setDesktopTab(tab) {
+    const allowed = ['chat', 'intel', 'admin'];
+    let next = allowed.includes(tab) ? tab : 'chat';
+
+    if (next === 'admin' && !bool(asObject(state.room.me).admin_mode, false)) {
+      next = 'chat';
+    }
+
+    state.activeDesktopTab = next;
+
+    const configs = [
+      { key: 'chat', panel: elements.sideChat, button: elements.dtTabChat, adminStyle: false },
+      { key: 'intel', panel: elements.sideIntel, button: elements.dtTabIntel, adminStyle: false },
+      { key: 'admin', panel: elements.sideAdmin, button: elements.dtTabAdmin, adminStyle: true },
+    ];
+
+    configs.forEach(function (cfg) {
+      if (cfg.panel) {
+        cfg.panel.classList.add('hidden-state');
+      }
+      if (cfg.button) {
+        cfg.button.classList.remove('text-ac', 'text-yellow-300', 'border-ac');
+        cfg.button.classList.add('text-gray-500');
+        cfg.button.style.borderBottomColor = 'transparent';
+      }
+    });
+
+    const active = configs.find((cfg) => cfg.key === next);
+    if (active) {
+      if (active.panel) {
+        active.panel.classList.remove('hidden-state');
+      }
+      if (active.button) {
+        active.button.classList.remove('text-gray-500');
+        active.button.classList.add(active.adminStyle ? 'text-yellow-300' : 'text-ac');
+        active.button.style.borderBottomColor = active.adminStyle ? '#fcd34d' : 'var(--ac)';
+      }
+    }
+  }
+
+  function setMobileTab(tab) {
+    const target = MOBILE_TABS.includes(tab) ? tab : 'engine';
+    state.activeMobileTab = target;
+
+    MOBILE_TABS.forEach(function (key) {
+      const btn = byId(`mob-tab-${key}`);
+      if (!btn) {
+        return;
+      }
+      btn.classList.remove('text-ac');
+      btn.classList.add('text-gray-500');
+    });
+
+    const active = byId(`mob-tab-${target}`);
+    if (active) {
+      active.classList.remove('text-gray-500');
+      active.classList.add('text-ac');
+    }
+
+    if (target === 'engine') {
+      if (elements.mobilePanelOverlay) {
+        elements.mobilePanelOverlay.classList.add('hidden-state');
+      }
+      if (elements.mainScroll) {
+        elements.mainScroll.style.display = '';
+      }
+      return;
+    }
+
+    if (elements.mainScroll) {
+      elements.mainScroll.style.display = 'none';
+    }
+
+    if (elements.mobilePanelOverlay) {
+      elements.mobilePanelOverlay.classList.remove('hidden-state');
+    }
+
+    if (!elements.mobilePanelContent) {
+      return;
+    }
+
+    if (target === 'chat') {
+      renderMobileChat();
+    } else {
+      renderMobileIntel();
+    }
+
+    maybeRunIcons();
+  }
+
+  function renderMobileChat() {
+    if (!elements.mobilePanelContent) {
+      return;
+    }
+
+    const desktopHtml = elements.chatWindow ? elements.chatWindow.innerHTML : '';
+
+    elements.mobilePanelContent.innerHTML = `
+      <div class="flex-1 flex flex-col h-full">
+        <div id="mobile-chat-window" class="flex-1 overflow-y-auto p-5 space-y-4 hide-scroll">${desktopHtml}</div>
+        <div class="p-4 bg-black/50 border-t border-white/10">
+          <form id="mobile-chat-form" class="relative">
+            <input id="mobile-chat-input" type="text" placeholder="Message opponent..." class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-ac" />
+            <button type="submit" class="absolute right-2 top-2 p-1.5 bg-ac-subtle text-ac rounded-lg"><i data-lucide="send" class="w-4 h-4"></i></button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const form = byId('mobile-chat-form');
+    const input = byId('mobile-chat-input');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitChat(input);
+      });
+    }
+
+    syncMobileMirror();
+  }
+
+  function renderMobileIntel() {
+    if (!elements.mobilePanelContent) {
+      return;
+    }
+    const intelHtml = elements.rulesList ? elements.rulesList.innerHTML : '';
+
+    elements.mobilePanelContent.innerHTML = `
+      <div class="flex-1 overflow-y-auto p-5 hide-scroll">
+        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">Match Rules</h3>
+        <div class="space-y-3">${intelHtml}</div>
+      </div>
+    `;
+  }
+
+  function syncMobileMirror() {
+    if (state.activeMobileTab !== 'chat') {
+      return;
+    }
+
+    const desktop = elements.chatWindow;
+    const mobile = byId('mobile-chat-window');
+    if (!desktop || !mobile) {
+      return;
+    }
+
+    mobile.innerHTML = desktop.innerHTML;
+    mobile.scrollTop = mobile.scrollHeight;
+  }
+
+  async function handleEngineClick(event) {
+    const trigger = event.target.closest('[data-action]');
+    if (!trigger) {
+      return;
+    }
+
+    const action = String(trigger.getAttribute('data-action') || '');
+    if (!action) {
+      return;
+    }
+
+    if (action === 'check-in') {
+      await handleCheckIn();
+      return;
+    }
+
+    if (action === 'coin-toss') {
+      await sendWorkflowAction('coin_toss', {});
+      return;
+    }
+
+    if (action === 'veto-map') {
+      const encoded = String(trigger.getAttribute('data-map') || '');
+      const mapName = encoded ? decodeURIComponent(encoded) : '';
+      if (!mapName) {
+        return;
+      }
+      await sendWorkflowAction('veto_action', { item: mapName });
+      return;
+    }
+
+    if (action === 'direct-ready') {
+      await sendWorkflowAction('direct_ready', { ready: true });
+      return;
+    }
+
+    if (action === 'start-live') {
+      await sendWorkflowAction('start_live', {});
+      return;
+    }
+
+    if (action === 'refresh-room') {
+      await refreshRoom();
+    }
+  }
+
+  async function handleEngineSubmit(event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    if (form.id === 'credentials-form') {
+      event.preventDefault();
+      await handleSaveCredentials();
+      return;
+    }
+
+    if (form.id === 'result-submit-form') {
+      event.preventDefault();
+      await handleSubmitResult();
+    }
+  }
+
+  async function handleSaveCredentials() {
+    const payload = {
+      lobby_code: valueOf('cred-lobby-code'),
+      password: valueOf('cred-password'),
+      map: valueOf('cred-map'),
+      server: valueOf('cred-server'),
+      game_mode: valueOf('cred-game-mode'),
+      notes: valueOf('cred-notes'),
+    };
+
+    await sendWorkflowAction('save_credentials', payload);
+  }
+
+  async function handleSubmitResult() {
+    const scoreForRaw = valueOf('result-score-for');
+    const scoreAgainstRaw = valueOf('result-score-against');
+
+    const scoreFor = toInt(scoreForRaw, -1);
+    const scoreAgainst = toInt(scoreAgainstRaw, -1);
+
+    if (scoreFor < 0 || scoreAgainst < 0) {
+      showToast('Scores must be non-negative integers.', 'error');
+      return;
+    }
+
+    const payload = {
+      score_for: scoreFor,
+      score_against: scoreAgainst,
+      note: valueOf('result-note'),
+      proof_screenshot_url: valueOf('result-proof-url'),
+    };
+
+    await sendWorkflowAction('submit_result', payload);
+  }
+
+  function valueOf(id) {
+    const node = byId(id);
+    if (!node) {
+      return '';
+    }
+    return String(node.value || '').trim();
+  }
+
+  async function handleCheckIn() {
+    if (state.requestBusy) {
+      return;
+    }
+
+    const endpoint = String(asObject(state.room.urls).check_in || '');
+    if (!endpoint) {
+      showToast('Check-in endpoint unavailable.', 'error');
+      return;
+    }
+
+    state.requestBusy = true;
 
     try {
-      const response = await fetch(room.urls.check_in, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -350,2864 +1632,542 @@
         },
       });
 
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.success === false) {
-        const code = String(data?.error || '').toLowerCase();
-        if (code === 'check_in_not_open') {
-          showToast('Check-in has not opened for this match yet.', 'error');
-          return false;
-        }
-        if (code === 'check_in_closed') {
-          showToast('Check-in window is closed for this match.', 'error');
-          return false;
-        }
-        if (code === 'check_in_unavailable') {
-          showToast('Check-in is unavailable in the current match state.', 'error');
-          return false;
-        }
-        if (code === 'forbidden') {
-          showToast('Only participants can check in for this match.', 'error');
-          return false;
-        }
-        showToast('Unable to complete match check-in right now.', 'error');
-        return false;
+      const data = await parseJsonResponse(response);
+      if (!response.ok || !bool(data.success, false)) {
+        throw new Error(String(data.error || 'Check-in failed.'));
       }
 
-      if (data?.room) {
-        room = data.room;
+      if (data.room && typeof data.room === 'object') {
+        applyRoom(data.room);
       }
 
-      showToast(data?.already_checked_in ? 'Already checked in.' : 'Check-in confirmed.', 'ok');
-      return true;
-    } catch (_err) {
-      showToast('Network error while submitting check-in.', 'error');
-      return false;
-    }
-  }
-
-  function canSubmitForSide(side) {
-    const own = mySide();
-    if (own === side) {
-      return true;
-    }
-    if (isStaffUser()) {
-      return true;
-    }
-    return false;
-  }
-
-  function resolveActingSide(preferredSide) {
-    const preferred = Number(preferredSide);
-    if (isStaffUser()) {
-      if (state.proxyEnabled) {
-        return state.proxySide;
+      if (bool(data.checked_in, false)) {
+        showToast('Check-in complete.', 'success');
+      } else if (bool(data.already_checked_in, false)) {
+        showToast('Already checked in.', 'info');
       }
-      if (preferred === 1 || preferred === 2) {
-        return preferred;
-      }
-      return 1;
-    }
-
-    const mine = mySide();
-    if (mine === 1 || mine === 2) {
-      return mine;
-    }
-
-    if (preferred === 1 || preferred === 2) {
-      return preferred;
-    }
-
-    return 1;
-  }
-
-  function createSideDraft() {
-    return {
-      dirty: false,
-      score_for: '',
-      score_against: '',
-      evidence_url: '',
-      note: '',
-    };
-  }
-
-  function createDraftState() {
-    return {
-      chat: '',
-      adminScores: { a: '', b: '' },
-      result: {
-        '1': createSideDraft(),
-        '2': createSideDraft(),
-      },
-    };
-  }
-
-  function normalizeSideDraft(raw) {
-    const base = createSideDraft();
-    if (!raw || typeof raw !== 'object') {
-      return base;
-    }
-
-    base.dirty = !!raw.dirty;
-    base.score_for = String(raw.score_for || '');
-    base.score_against = String(raw.score_against || '');
-    base.evidence_url = String(raw.evidence_url || '');
-    base.note = String(raw.note || '');
-    return base;
-  }
-
-  function normalizeDraftState(raw) {
-    const base = createDraftState();
-    if (!raw || typeof raw !== 'object') {
-      return base;
-    }
-
-    base.chat = String(raw.chat || '');
-
-    if (raw.adminScores && typeof raw.adminScores === 'object') {
-      base.adminScores.a = String(raw.adminScores.a || '');
-      base.adminScores.b = String(raw.adminScores.b || '');
-    }
-
-    if (raw.result && typeof raw.result === 'object') {
-      base.result['1'] = normalizeSideDraft(raw.result['1']);
-      base.result['2'] = normalizeSideDraft(raw.result['2']);
-    }
-
-    return base;
-  }
-
-  function persistDraftState() {
-    try {
-      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
-        v: DRAFT_STORAGE_VERSION,
-        draft: state.inputDraft,
-      }));
-    } catch (_err) {
-      // Ignore storage failures.
+    } catch (error) {
+      showToast(String(error && error.message ? error.message : 'Check-in failed.'), 'error');
+    } finally {
+      state.requestBusy = false;
+      renderEngine();
     }
   }
 
-  function loadDraftState() {
-    try {
-      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (!raw) {
-        state.inputDraft = createDraftState();
-        return;
-      }
-
-      const parsed = JSON.parse(raw);
-      const draftPayload = parsed && typeof parsed === 'object' && parsed.draft ? parsed.draft : parsed;
-      state.inputDraft = normalizeDraftState(draftPayload);
-    } catch (_err) {
-      state.inputDraft = createDraftState();
-    }
-  }
-
-  function isSocketReady() {
-    return !!(state.wsConnected && state.ws && state.ws.readyState === window.WebSocket.OPEN);
-  }
-
-  function isReconnectPauseActive() {
-    return state.socketEverConnected && !isSocketReady();
-  }
-
-  function renderSocketBadge() {
-    const badge = byId('ws-reconnect-badge');
-    if (!badge) {
+  async function sendWorkflowAction(action, payload) {
+    if (state.requestBusy) {
       return;
     }
 
-    const shouldShow = isReconnectPauseActive();
-    badge.classList.toggle('hidden-state', !shouldShow);
-  }
-
-  function setControlValue(id, value) {
-    const node = byId(id);
-    if (!node || !('value' in node)) {
+    if (waitingLocked() && action !== 'presence_ping') {
+      showToast('Waiting for opponent websocket presence.', 'info');
       return;
     }
 
-    if (document.activeElement === node) {
+    const endpoint = String(asObject(state.room.urls).workflow || '');
+    if (!endpoint) {
+      showToast('Workflow endpoint unavailable.', 'error');
       return;
     }
 
-    const next = String(value == null ? '' : value);
-    if (node.value !== next) {
-      node.value = next;
-    }
-  }
-
-  function patchResultDraft(side, patch) {
-    const key = String(side === 2 ? 2 : 1);
-    const current = normalizeSideDraft(state.inputDraft.result[key]);
-    state.inputDraft.result[key] = Object.assign(current, patch || {}, { dirty: true });
-    persistDraftState();
-  }
-
-  function clearResultDraft(side) {
-    const key = String(side === 2 ? 2 : 1);
-    state.inputDraft.result[key] = createSideDraft();
-    persistDraftState();
-  }
-
-  function applyPersistentInputs() {
-    setControlValue('chat-input', state.inputDraft.chat || '');
-    setControlValue('admin-score-a', state.inputDraft.adminScores.a || '');
-    setControlValue('admin-score-b', state.inputDraft.adminScores.b || '');
-  }
-
-  function showToast(message, kind) {
-    const host = ensureToastHost();
-    const row = document.createElement('div');
-
-    const tone = String(kind || 'normal');
-    const classes = [
-      'px-3.5',
-      'py-2',
-      'rounded-lg',
-      'border',
-      'text-xs',
-      'font-bold',
-      'uppercase',
-      'tracking-wider',
-      'shadow-xl',
-      'backdrop-blur',
-      'animate-[fadeIn_0.2s_ease-out]',
-    ];
-
-    if (tone === 'error') {
-      classes.push('bg-red-500/15', 'text-red-200', 'border-red-400/40');
-    } else if (tone === 'ok') {
-      classes.push('bg-emerald-500/15', 'text-emerald-200', 'border-emerald-400/40');
-    } else {
-      classes.push('bg-white/10', 'text-white', 'border-white/15');
-    }
-
-    row.className = classes.join(' ');
-    row.textContent = String(message || 'Updated');
-    host.appendChild(row);
-
-    window.setTimeout(() => {
-      row.style.opacity = '0';
-      row.style.transform = 'translateY(-4px)';
-      row.style.transition = 'all 0.2s ease';
-      window.setTimeout(() => {
-        row.remove();
-      }, 210);
-    }, 2100);
-  }
-
-  function ensureToastHost() {
-    if (state.toastHost) {
-      return state.toastHost;
-    }
-
-    const host = document.createElement('div');
-    host.className = 'fixed top-4 right-4 z-[130] flex flex-col gap-2 pointer-events-none';
-    document.body.appendChild(host);
-    state.toastHost = host;
-    return host;
-  }
-
-  function toDisplayTime(iso) {
-    if (!iso) {
-      return '--:--';
-    }
+    state.requestBusy = true;
 
     try {
-      const value = new Date(iso);
-      if (Number.isNaN(value.getTime())) {
-        return '--:--';
-      }
-      return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (_err) {
-      return '--:--';
-    }
-  }
-
-  function teamLabel(side) {
-    if (side === 1) {
-      return room.match?.participant1?.name || 'Team A';
-    }
-    if (side === 2) {
-      return room.match?.participant2?.name || 'Team B';
-    }
-    return 'Side';
-  }
-
-  function getCheckInWindow() {
-    const wf = getWorkflow();
-    const checkIn = room.check_in && typeof room.check_in === 'object'
-      ? room.check_in
-      : (wf.check_in_window && typeof wf.check_in_window === 'object' ? wf.check_in_window : {});
-    return checkIn;
-  }
-
-  function getPresenceMap() {
-    const wf = getWorkflow();
-    const source = room.presence && typeof room.presence === 'object'
-      ? room.presence
-      : (wf.presence && typeof wf.presence === 'object' ? wf.presence : {});
-    return source;
-  }
-
-  function presenceStateForSide(side) {
-    const key = String(side === 2 ? 2 : 1);
-    const raw = getPresenceMap()[key];
-    if (!raw || typeof raw !== 'object') {
-      return { status: 'offline', online: false, checked_in: false };
-    }
-
-    const statusRaw = String(raw.status || '').toLowerCase();
-    const online = raw.online === true;
-    const status = online
-      ? (statusRaw === 'away' ? 'away' : 'online')
-      : 'offline';
-
-    return {
-      status,
-      online,
-      checked_in: !!raw.checked_in,
-      last_seen: raw.last_seen || null,
-    };
-  }
-
-  function presenceLabelForSide(side) {
-    const row = presenceStateForSide(side);
-    const statusLabel = row.status === 'online'
-      ? 'Online'
-      : (row.status === 'away' ? 'Away' : 'Offline');
-    const checkInLabel = row.checked_in ? 'Checked in' : 'Pending check-in';
-    return `${statusLabel} - ${checkInLabel}`;
-  }
-
-  function initials(name, fallback) {
-    const text = String(name || '').trim();
-    if (!text) {
-      return fallback;
-    }
-
-    const parts = text.split(/\s+/).filter(Boolean);
-    if (!parts.length) {
-      return fallback;
-    }
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-
-  function _renderIdentityBadge(node, name, mediaUrl, fallback) {
-    if (!node) {
-      return;
-    }
-
-    const safeName = String(name || 'Participant');
-    const url = String(mediaUrl || '').trim();
-    if (url) {
-      node.innerHTML = `<img src="${esc(url)}" alt="${esc(safeName)}" class="w-full h-full object-cover" loading="lazy" decoding="async">`;
-      return;
-    }
-
-    node.textContent = initials(safeName, fallback);
-  }
-
-  function pipelineGameKey() {
-    const slug = String(room.game?.slug || '').toLowerCase();
-    const compact = slug.replaceAll(/[^a-z0-9]/g, '');
-    if (compact.includes('efootball')) {
-      return 'efootball';
-    }
-    return 'valorant';
-  }
-
-  function pipelineConfig() {
-    return SUPPORTED_GAME_CONFIG[pipelineGameKey()] || SUPPORTED_GAME_CONFIG.valorant;
-  }
-
-  function pipelineKind() {
-    return pipelineConfig().phaseKind;
-  }
-
-  function gameDataKey() {
-    return pipelineConfig().key;
-  }
-
-  function hashText(text) {
-    const safe = String(text || 'map');
-    let hash = 0;
-    for (let i = 0; i < safe.length; i += 1) {
-      hash = ((hash << 5) - hash) + safe.charCodeAt(i);
-      hash |= 0;
-    }
-    return Math.abs(hash);
-  }
-
-  function mapGradient(name) {
-    const h = hashText(name) % 360;
-    const h2 = (h + 45) % 360;
-    return `radial-gradient(circle at 18% 18%, hsla(${h}, 90%, 60%, 0.45) 0%, transparent 42%), linear-gradient(140deg, #08080b 0%, hsl(${h2} 45% 13%) 100%)`;
-  }
-
-  function currentSelectedMap() {
-    const wf = getWorkflow();
-    const veto = wf.veto && typeof wf.veto === 'object' ? wf.veto : {};
-    const creds = wf.credentials || {};
-
-    const explicit = String(veto.selected_map || creds.map || room.lobby?.map || '').trim();
-    if (explicit) {
-      return explicit;
-    }
-
-    const picks = Array.isArray(veto.picks) ? veto.picks : [];
-    if (picks.length) {
-      return String(picks[picks.length - 1]);
-    }
-
-    return '';
-  }
-
-  function renderTheme() {
-    const cfg = pipelineConfig();
-
-    const shell = byId('mr-shell');
-    if (shell) {
-      shell.setAttribute('data-game', gameDataKey());
-    }
-
-    const root = document.documentElement;
-    root.style.setProperty('--ac', cfg.accent.ac);
-    root.style.setProperty('--ar', String(cfg.accent.r));
-    root.style.setProperty('--ag', String(cfg.accent.g));
-    root.style.setProperty('--ab', String(cfg.accent.b));
-
-    const bgLayer = byId('bg-layer');
-    if (bgLayer) {
-      const mapName = currentSelectedMap() || room.game?.name || 'Arena';
-      if (cfg.phaseKind === 'veto') {
-        bgLayer.style.backgroundImage = `${mapGradient(mapName)}, ${cfg.background}`;
-      } else {
-        bgLayer.style.backgroundImage = cfg.background;
-      }
-      bgLayer.style.opacity = '0.22';
-    }
-  }
-
-  function renderHeader() {
-    const p1 = room.match?.participant1 || {};
-    const p2 = room.match?.participant2 || {};
-
-    const teamAName = byId('team-a-name');
-    const teamBName = byId('team-b-name');
-    const teamALogo = byId('team-a-logo');
-    const teamBLogo = byId('team-b-logo');
-    const teamASub = byId('team-a-sub');
-    const teamBSub = byId('team-b-sub');
-    const teamAReadyName = byId('team-a-ready-name');
-    const teamBReadyName = byId('team-b-ready-name');
-    const matchFormat = byId('match-format');
-    const navMatchId = byId('nav-match-id');
-    const navTournament = byId('nav-tournament');
-
-    if (teamAName) {
-      teamAName.textContent = p1.name || 'Team A';
-    }
-    if (teamBName) {
-      teamBName.textContent = p2.name || 'Team B';
-    }
-
-    if (teamALogo) {
-      _renderIdentityBadge(teamALogo, p1.name, p1.logo_url, 'A');
-    }
-    if (teamBLogo) {
-      _renderIdentityBadge(teamBLogo, p2.name, p2.logo_url, 'B');
-    }
-
-    if (teamASub) {
-      const stateA = presenceStateForSide(1);
-      teamASub.textContent = presenceLabelForSide(1);
-      teamASub.style.color = stateA.status === 'online'
-        ? 'var(--ac)'
-        : (stateA.status === 'away' ? '#f59e0b' : '#8b949e');
-    }
-    if (teamBSub) {
-      const stateB = presenceStateForSide(2);
-      teamBSub.textContent = presenceLabelForSide(2);
-      teamBSub.style.color = stateB.status === 'online'
-        ? '#fda4af'
-        : (stateB.status === 'away' ? '#f59e0b' : '#8b949e');
-    }
-
-    if (teamAReadyName) {
-      teamAReadyName.textContent = p1.name || 'Team A';
-    }
-    if (teamBReadyName) {
-      teamBReadyName.textContent = p2.name || 'Team B';
-    }
-
-    if (matchFormat) {
-      const bestOf = `BO${toInt(room.match?.best_of, 1)}`;
-      matchFormat.textContent = `${bestOf} • ${pipelineConfig().modeLabel}`;
-    }
-
-    if (navMatchId) {
-      navMatchId.textContent = `Match #${room.match?.id || '--'}`;
-    }
-
-    if (navTournament) {
-      navTournament.textContent = room.tournament?.name || 'Tournament';
-    }
-
-    const coinA = byId('coin-a-face');
-    const coinB = byId('coin-b-face');
-    if (coinA) {
-      coinA.textContent = initials(p1.name, 'A');
-    }
-    if (coinB) {
-      coinB.textContent = initials(p2.name, 'B');
-    }
-
-    const resultLogoA = byId('result-logo-a');
-    const resultLogoB = byId('result-logo-b');
-    const resultNameA = byId('result-name-a');
-    const resultNameB = byId('result-name-b');
-    if (resultLogoA) {
-      _renderIdentityBadge(resultLogoA, p1.name, p1.logo_url, 'A');
-    }
-    if (resultLogoB) {
-      _renderIdentityBadge(resultLogoB, p2.name, p2.logo_url, 'B');
-    }
-    if (resultNameA) {
-      resultNameA.textContent = p1.name || 'Team A';
-    }
-    if (resultNameB) {
-      resultNameB.textContent = p2.name || 'Team B';
-    }
-  }
-
-  function renderCheckinBanner() {
-    const banner = byId('checkin-status-banner');
-    if (!banner) {
-      return;
-    }
-
-    const checkIn = getCheckInWindow();
-    const required = !!checkIn.required;
-    banner.classList.toggle('hidden-state', !required);
-    if (!required) {
-      return;
-    }
-
-    const pill = byId('checkin-status-pill');
-    const desc = byId('checkin-status-text');
-    const presenceA = byId('presence-team-a');
-    const presenceB = byId('presence-team-b');
-
-    let statusText = 'Check-in is required before lobby actions.';
-    let pillText = 'Check-In Required';
-    let pillClass = 'border-white/15 bg-white/5 text-gray-200';
-
-    if (checkIn.is_open) {
-      pillText = 'Check-In Open';
-      pillClass = 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200';
-      statusText = `Window closes ${toDisplayTime(checkIn.closes_at)}.`;
-    } else if (checkIn.is_pending) {
-      pillText = 'Check-In Pending';
-      pillClass = 'border-amber-400/35 bg-amber-500/15 text-amber-200';
-      statusText = `Window opens ${toDisplayTime(checkIn.opens_at)}.`;
-    } else if (checkIn.is_closed) {
-      pillText = 'Check-In Closed';
-      pillClass = 'border-red-400/35 bg-red-500/15 text-red-200';
-      statusText = 'Window closed. Await TOC decision or auto-forfeit policy.';
-    }
-
-    if (pill) {
-      pill.textContent = pillText;
-      pill.className = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${pillClass}`;
-    }
-    if (desc) {
-      desc.textContent = statusText;
-    }
-
-    if (presenceA) {
-      presenceA.textContent = `${teamLabel(1)}: ${presenceLabelForSide(1)}`;
-    }
-    if (presenceB) {
-      presenceB.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
-    }
-  }
-
-  async function _handleEntryGatePrimary() {
-    const checkIn = getCheckInWindow();
-    const requiresCheckIn = !!checkIn.required;
-    const checkedIn = _myCheckInStatus();
-
-    if (requiresCheckIn && !checkedIn) {
-      if (!checkIn.is_open) {
-        if (checkIn.is_pending) {
-          showToast('Check-in is not open yet for this match.', 'error');
-        } else if (checkIn.is_closed) {
-          showToast('Check-in window is closed. Contact staff if needed.', 'error');
-        } else {
-          showToast('Match check-in is required before entering.', 'error');
-        }
-        return;
-      }
-
-      const ok = await _submitMatchCheckInFromGate();
-      if (!ok) {
-        return;
-      }
-    }
-
-    _persistEntryGateState(true);
-    renderAll();
-    showToast('Lobby unlocked. You are ready to proceed.', 'ok');
-  }
-
-  function _handleEntryGateSecondary() {
-    _persistEntryGateState(true);
-    renderAll();
-  }
-
-  function renderEntryGate() {
-    const overlay = byId('entry-gate-overlay');
-    if (!overlay) {
-      return;
-    }
-
-    const side = mySide();
-    const isParticipant = side === 1 || side === 2;
-    if (!isParticipant || (isStaffUser() && isAdminMode())) {
-      overlay.classList.add('is-hidden');
-      overlay.setAttribute('aria-hidden', 'true');
-      return;
-    }
-
-    const currentKey = _entryGateStorageKey(side);
-    if (currentKey !== state.entryGateStorageKey) {
-      _loadEntryGateState();
-    }
-
-    const show = !state.entryGateDismissed;
-    overlay.classList.toggle('is-hidden', !show);
-    overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
-    if (!show) {
-      return;
-    }
-
-    const title = byId('entry-gate-title');
-    const sub = byId('entry-gate-subtext');
-    const pill = byId('entry-gate-checkin-pill');
-    const checkText = byId('entry-gate-checkin-text');
-    const btnPrimary = byId('entry-gate-primary-btn');
-    const btnSecondary = byId('entry-gate-secondary-btn');
-
-    const checkIn = getCheckInWindow();
-    const requiresCheckIn = !!checkIn.required;
-    const checkedIn = _myCheckInStatus();
-    const sideLabel = teamLabel(side);
-
-    if (title) {
-      title.textContent = `Ready Check: ${sideLabel}`;
-    }
-
-    if (sub) {
-      sub.textContent = requiresCheckIn
-        ? 'Complete match check-in and confirm readiness before interacting with lobby controls.'
-        : 'Confirm readiness to unlock full lobby controls for this match.';
-    }
-
-    if (pill) {
-      pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border';
-      if (!requiresCheckIn) {
-        pill.classList.add('border-cyan-300/35', 'bg-cyan-500/15', 'text-cyan-100');
-        pill.textContent = 'Ready Gate';
-      } else if (checkedIn) {
-        pill.classList.add('border-emerald-300/35', 'bg-emerald-500/15', 'text-emerald-200');
-        pill.textContent = 'Check-In Complete';
-      } else if (checkIn.is_open) {
-        pill.classList.add('border-amber-300/35', 'bg-amber-500/15', 'text-amber-200');
-        pill.textContent = 'Check-In Open';
-      } else if (checkIn.is_pending) {
-        pill.classList.add('border-cyan-300/35', 'bg-cyan-500/15', 'text-cyan-100');
-        pill.textContent = 'Check-In Pending';
-      } else {
-        pill.classList.add('border-red-300/35', 'bg-red-500/15', 'text-red-200');
-        pill.textContent = 'Check-In Closed';
-      }
-    }
-
-    if (checkText) {
-      if (!requiresCheckIn) {
-        checkText.textContent = 'Check-in is not required for this match. Confirm and enter the lobby.';
-      } else if (checkedIn) {
-        checkText.textContent = 'Your side is already checked in. Confirm and enter the lobby.';
-      } else if (checkIn.is_open) {
-        checkText.textContent = `Check-in closes at ${toDisplayTime(checkIn.closes_at)}.`;
-      } else if (checkIn.is_pending) {
-        checkText.textContent = `Check-in opens at ${toDisplayTime(checkIn.opens_at)}.`;
-      } else {
-        checkText.textContent = 'Check-in window is closed. Continue in read-only mode or contact staff.';
-      }
-    }
-
-    if (btnPrimary) {
-      if (requiresCheckIn && !checkedIn && checkIn.is_open) {
-        btnPrimary.textContent = 'Check In & Enter Lobby';
-        btnPrimary.disabled = false;
-      } else if (requiresCheckIn && !checkedIn && checkIn.is_pending) {
-        btnPrimary.textContent = 'Check-In Not Open Yet';
-        btnPrimary.disabled = true;
-      } else if (requiresCheckIn && !checkedIn && checkIn.is_closed) {
-        btnPrimary.textContent = 'Check-In Window Closed';
-        btnPrimary.disabled = true;
-      } else {
-        btnPrimary.textContent = 'Enter Lobby';
-        btnPrimary.disabled = false;
-      }
-    }
-
-    if (btnSecondary) {
-      btnSecondary.textContent = 'Continue Read-Only';
-      btnSecondary.disabled = false;
-    }
-  }
-
-  function isPreLivePhase(phase) {
-    return phase === 'coin_toss' || phase === 'phase1' || phase === 'lobby_setup';
-  }
-
-  function shouldLockPreLiveForOpponent() {
-    const side = mySide();
-    if (side !== 1 && side !== 2) {
-      return false;
-    }
-
-    if (isStaffUser() && isAdminMode()) {
-      return false;
-    }
-
-    if (!isPreLivePhase(currentPhase())) {
-      return false;
-    }
-
-    const side1 = presenceStateForSide(1);
-    const side2 = presenceStateForSide(2);
-    return !(side1.online && side2.online);
-  }
-
-  function applyPhaseLock(locked) {
-    ['ph-discord', 'ph-veto', 'ph-draft', 'ph-direct', 'ph-lobby'].forEach((id) => {
-      const node = byId(id);
-      if (!node) {
-        return;
-      }
-      node.classList.toggle('lobby-phase-locked', !!locked);
-    });
-  }
-
-  function renderWaitingOverlay() {
-    const overlay = byId('waiting-room-overlay');
-    if (!overlay) {
-      return;
-    }
-
-    const locked = shouldLockPreLiveForOpponent();
-    applyPhaseLock(locked);
-
-    const sideA = presenceStateForSide(1);
-    const sideB = presenceStateForSide(2);
-
-    const sideAText = byId('waiting-room-side-a');
-    if (sideAText) {
-      sideAText.textContent = `${teamLabel(1)}: ${presenceLabelForSide(1)}`;
-    }
-
-    const sideBText = byId('waiting-room-side-b');
-    if (sideBText) {
-      sideBText.textContent = `${teamLabel(2)}: ${presenceLabelForSide(2)}`;
-    }
-
-    const title = byId('waiting-room-title');
-    const subtext = byId('waiting-room-subtext');
-    if (title) {
-      if (!sideA.online && !sideB.online) {
-        title.textContent = 'Waiting for both teams to connect...';
-      } else {
-        title.textContent = 'Waiting for opponent to connect...';
-      }
-    }
-    if (subtext) {
-      if (sideA.online && !sideB.online) {
-        subtext.textContent = `${teamLabel(2)} is still offline. Pre-live controls are temporarily locked.`;
-      } else if (!sideA.online && sideB.online) {
-        subtext.textContent = `${teamLabel(1)} is still offline. Pre-live controls are temporarily locked.`;
-      } else {
-        subtext.textContent = 'Lobby controls unlock automatically once both sides are online.';
-      }
-    }
-
-    overlay.classList.toggle('is-hidden', !locked);
-    overlay.setAttribute('aria-hidden', locked ? 'false' : 'true');
-  }
-
-  function renderClock() {
-    const target = byId('match-clock');
-    if (!target) {
-      return;
-    }
-
-    const phase = currentPhase();
-    if (phase === 'live') {
-      const startedAt = room.match?.started_at;
-      if (startedAt) {
-        const startMs = new Date(startedAt).getTime();
-        if (Number.isFinite(startMs)) {
-          const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-          const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-          const ss = String(elapsed % 60).padStart(2, '0');
-          target.textContent = `${mm}:${ss}`;
-          return;
-        }
-      }
-      target.textContent = 'LIVE';
-      return;
-    }
-
-    const scheduled = room.match?.scheduled_time;
-    if (scheduled) {
-      target.textContent = toDisplayTime(scheduled);
-      return;
-    }
-
-    target.textContent = '--:--';
-  }
-
-  function phaseSegment(phase) {
-    if (phase === 'coin_toss' || phase === 'phase1') {
-      return 1;
-    }
-    if (phase === 'lobby_setup' || phase === 'live') {
-      return 2;
-    }
-    return 3;
-  }
-
-  function applySegmentUI(segment) {
-    const dot1 = byId('ph-dot-1');
-    const dot2 = byId('ph-dot-2');
-    const dot3 = byId('ph-dot-3');
-    const wrap2 = byId('ph2-wrap');
-    const wrap3 = byId('ph3-wrap');
-    const bar1 = byId('ph-bar-1');
-    const bar2 = byId('ph-bar-2');
-
-    if (dot1) {
-      dot1.classList.remove('phase-dot-active', 'phase-dot-done');
-      dot1.classList.add(segment > 1 ? 'phase-dot-done' : 'phase-dot-active');
-    }
-    if (dot2) {
-      dot2.classList.remove('phase-dot-active', 'phase-dot-done');
-      dot2.classList.add(segment > 2 ? 'phase-dot-done' : (segment === 2 ? 'phase-dot-active' : ''));
-    }
-    if (dot3) {
-      dot3.classList.remove('phase-dot-active', 'phase-dot-done');
-      dot3.classList.add(segment === 3 ? 'phase-dot-active' : '');
-    }
-
-    if (wrap2) {
-      wrap2.style.opacity = segment >= 2 ? '1' : '0.4';
-    }
-    if (wrap3) {
-      wrap3.style.opacity = segment >= 3 ? '1' : '0.4';
-    }
-
-    if (bar1) {
-      bar1.style.width = segment >= 2 ? '100%' : '0%';
-    }
-    if (bar2) {
-      bar2.style.width = segment >= 3 ? '100%' : '0%';
-    }
-  }
-
-  function hidePhaseBlocks() {
-    ['ph-discord', 'ph-veto', 'ph-draft', 'ph-direct', 'ph-lobby', 'ph-server', 'ph-result'].forEach((id) => {
-      const node = byId(id);
-      if (node) {
-        node.classList.add('hidden-state');
-      }
-    });
-  }
-
-  function showPhaseBlock(id) {
-    const node = byId(id);
-    if (node) {
-      node.classList.remove('hidden-state');
-    }
-  }
-
-  function renderPhaseProgressLabels() {
-    const order = getPhaseOrder();
-    const label1 = byId('ph-label-1');
-
-    const hasCoinToss = order.includes('coin_toss');
-    const hasPhaseOne = order.includes('phase1');
-    const kind = phase1Kind();
-
-    let phaseOneLabel = 'Match Setup';
-    if (hasCoinToss && hasPhaseOne) {
-      phaseOneLabel = 'Match Setup';
-    } else if (hasCoinToss) {
-      phaseOneLabel = 'Coin Toss';
-    } else if (hasPhaseOne) {
-      if (kind === 'draft') {
-        phaseOneLabel = 'Hero Draft';
-      } else if (kind === 'direct') {
-        phaseOneLabel = 'Ready Check';
-      } else {
-        phaseOneLabel = 'Map Veto';
-      }
-    } else {
-      phaseOneLabel = 'Pre-Live';
-    }
-
-    if (label1) {
-      label1.textContent = phaseOneLabel;
-    }
-  }
-
-  function renderPhaseLayout() {
-    const phase = currentPhase();
-    const kind = phase1Kind();
-
-    renderPhaseProgressLabels();
-
-    applySegmentUI(phaseSegment(phase));
-    hidePhaseBlocks();
-
-    if (phase === 'coin_toss') {
-      showPhaseBlock('ph-discord');
-      return;
-    }
-
-    if (phase === 'phase1') {
-      if (kind === 'direct') {
-        showPhaseBlock('ph-direct');
-      } else {
-        showPhaseBlock('ph-veto');
-      }
-      return;
-    }
-
-    if (phase === 'lobby_setup') {
-      showPhaseBlock('ph-lobby');
-      return;
-    }
-
-    if (phase === 'live') {
-      if (state.previewResults) {
-        showPhaseBlock('ph-result');
-      } else {
-        showPhaseBlock('ph-server');
-      }
-      return;
-    }
-
-    showPhaseBlock('ph-result');
-  }
-
-  function canUsePhaseOneAction(expectedSide) {
-    if (!getPhaseOrder().includes('phase1')) {
-      return false;
-    }
-
-    const phase = currentPhase();
-    if (phase !== 'phase1') {
-      return false;
-    }
-
-    const side = Number(expectedSide);
-    if (side !== 1 && side !== 2) {
-      return false;
-    }
-
-    if (isStaffUser()) {
-      return true;
-    }
-
-    return mySide() === side;
-  }
-
-  function renderCoinToss() {
-    const wf = getWorkflow();
-    const coin = wf.coin_toss && typeof wf.coin_toss === 'object' ? wf.coin_toss : {};
-
-    const winnerSide = Number(coin.winner_side);
-    const winner = winnerSide === 1 || winnerSide === 2 ? winnerSide : null;
-
-    const coinNode = byId('the-coin');
-    const tossResult = byId('toss-result');
-    const tossActions = byId('toss-actions');
-    const tossWinnerText = byId('toss-winner-text');
-    const tossSub = byId('toss-sub');
-    const tossBtn = byId('btn-coin-toss');
-    const proceedBtn = byId('btn-proceed-after-toss');
-
-    if (tossWinnerText) {
-      tossWinnerText.textContent = winner ? `${teamLabel(winner)} won first control.` : 'No toss result yet.';
-    }
-
-    if (tossSub) {
-      tossSub.textContent = winner
-        ? 'Turn order was resolved and synced to all match room viewers.'
-        : 'Resolve first control priority for match setup.';
-    }
-
-    if (tossBtn) {
-      tossBtn.disabled = !(currentPhase() === 'coin_toss' && (isStaffUser() || mySide() !== null));
-    }
-
-    const showResult = winner !== null;
-    if (tossResult) {
-      tossResult.classList.toggle('hidden-state', !showResult);
-    }
-    if (tossActions) {
-      tossActions.classList.toggle('hidden-state', showResult);
-    }
-
-    if (proceedBtn) {
-      proceedBtn.classList.toggle('hidden-state', !isAdminMode());
-      proceedBtn.disabled = !isAdminMode();
-    }
-
-    if (coinNode && winner && state.tossWinnerRendered !== winner) {
-      coinNode.classList.remove('flip');
-      // force a layout pass so flip can restart cleanly.
-      // eslint-disable-next-line no-unused-expressions
-      coinNode.offsetWidth;
-      coinNode.classList.add('flip');
-      state.tossWinnerRendered = winner;
-    }
-  }
-
-  function reconstructStepLog(sequence, bans, picks) {
-    const rows = [];
-    let banIndex = 0;
-    let pickIndex = 0;
-
-    const steps = Array.isArray(sequence) ? sequence : [];
-    for (let i = 0; i < steps.length; i += 1) {
-      const step = steps[i] || {};
-      const action = String(step.action || 'ban').toLowerCase();
-      const side = Number(step.side || 1) === 2 ? 2 : 1;
-
-      if (action === 'pick') {
-        const item = picks[pickIndex];
-        if (!item) {
-          continue;
-        }
-        pickIndex += 1;
-        rows.push({ side, action: 'picked', item });
-      } else {
-        const item = bans[banIndex];
-        if (!item) {
-          continue;
-        }
-        banIndex += 1;
-        rows.push({ side, action: 'banned', item });
-      }
-    }
-
-    return rows;
-  }
-
-  function renderVeto() {
-    const wf = getWorkflow();
-    const veto = wf.veto && typeof wf.veto === 'object' ? wf.veto : {};
-
-    const sequence = Array.isArray(veto.sequence) ? veto.sequence : [];
-    const step = toInt(veto.step, 0);
-    const nextStep = sequence[step] || null;
-
-    const expectedSide = Number(nextStep && nextStep.side) || null;
-    const expectedAction = String(nextStep && nextStep.action || 'ban').toLowerCase();
-
-    const title = byId('veto-title');
-    const instr = byId('veto-instr');
-    const timer = byId('veto-timer');
-    if (title) {
-      title.textContent = 'Map Veto';
-    }
-    if (instr) {
-      if (!nextStep) {
-        instr.textContent = 'Veto completed. Locking map for live lobby.';
-      } else {
-        instr.textContent = `${teamLabel(expectedSide)} to ${expectedAction.toUpperCase()} next.`;
-        if (isReconnectPauseActive()) {
-          instr.textContent += ' Realtime reconnecting, actions paused.';
-        }
-      }
-    }
-    if (timer) {
-      timer.textContent = nextStep ? `${step + 1}/${sequence.length}` : 'DONE';
-    }
-
-    const bans = Array.isArray(veto.bans) ? veto.bans.slice() : [];
-    const picks = Array.isArray(veto.picks) ? veto.picks.slice() : [];
-    const selectedMap = String(veto.selected_map || '').trim();
-
-    const pool = Array.isArray(veto.pool) && veto.pool.length
-      ? veto.pool
-      : (Array.isArray(room.game?.map_pool) ? room.game.map_pool : []);
-
-    const grid = byId('map-grid');
-    if (grid) {
-      grid.innerHTML = '';
-      const active = canUsePhaseOneAction(expectedSide) && !isReconnectPauseActive();
-      const used = new Set([...bans, ...picks]);
-
-      pool.forEach((mapNameRaw) => {
-        const mapName = String(mapNameRaw || '').trim();
-        if (!mapName) {
-          return;
-        }
-
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'map-card';
-
-        const label = document.createElement('div');
-        label.className = 'absolute left-3 bottom-2.5 z-[2] text-xs font-bold text-white';
-        label.textContent = mapName;
-
-        const bg = document.createElement('div');
-        bg.className = 'map-bg';
-        bg.style.background = mapGradient(mapName);
-
-        const badge = document.createElement('span');
-        badge.className = 'sb';
-
-        if (bans.includes(mapName)) {
-          card.classList.add('banned');
-          badge.textContent = 'BAN';
-        } else if (picks.includes(mapName) || selectedMap === mapName) {
-          card.classList.add('picked');
-          badge.textContent = 'PICK';
-        } else if (!active || used.has(mapName) || !nextStep) {
-          card.disabled = true;
-        } else {
-          card.addEventListener('click', () => {
-            submitWorkflow('veto_action', {
-              item: mapName,
-              acting_side: resolveActingSide(expectedSide),
-            });
-          });
-        }
-
-        card.appendChild(bg);
-        card.appendChild(label);
-        card.appendChild(badge);
-        grid.appendChild(card);
-      });
-    }
-
-    const log = byId('veto-log');
-    if (log) {
-      log.innerHTML = '';
-      const rows = reconstructStepLog(sequence, bans, picks);
-      rows.forEach((entry) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span class="text-white">${esc(teamLabel(entry.side))}</span> ${esc(entry.action)} <span class="ac">${esc(entry.item)}</span>`;
-        log.appendChild(li);
-      });
-
-      if (selectedMap) {
-        const final = document.createElement('li');
-        final.className = 'text-emerald-300';
-        final.textContent = `Selected map: ${selectedMap}`;
-        log.appendChild(final);
-      }
-
-      if (!rows.length && !selectedMap) {
-        const pending = document.createElement('li');
-        pending.className = 'text-gray-500';
-        pending.textContent = 'No veto actions submitted yet.';
-        log.appendChild(pending);
-      }
-    }
-  }
-
-  function renderDraft() {
-    const wf = getWorkflow();
-    const draft = wf.draft && typeof wf.draft === 'object' ? wf.draft : {};
-
-    const sequence = Array.isArray(draft.sequence) ? draft.sequence : [];
-    const step = toInt(draft.step, 0);
-    const nextStep = sequence[step] || null;
-    const expectedSide = Number(nextStep && nextStep.side) || null;
-    const expectedAction = String(nextStep && nextStep.action || 'ban').toLowerCase();
-
-    const instr = byId('draft-instr');
-    if (instr) {
-      if (!nextStep) {
-        instr.textContent = 'Draft completed. Transitioning to lobby setup.';
-      } else {
-        instr.textContent = `${teamLabel(expectedSide)} to ${expectedAction.toUpperCase()} next.`;
-        if (isReconnectPauseActive()) {
-          instr.textContent += ' Realtime reconnecting, actions paused.';
-        }
-      }
-    }
-
-    const draftStep = byId('draft-step');
-    if (draftStep) {
-      draftStep.textContent = `${Math.min(step, sequence.length)}/${sequence.length}`;
-    }
-
-    const bans = Array.isArray(draft.bans) ? draft.bans.slice() : [];
-    const picksObj = draft.picks && typeof draft.picks === 'object' ? draft.picks : {};
-    const picksA = Array.isArray(picksObj['1']) ? picksObj['1'].slice() : [];
-    const picksB = Array.isArray(picksObj['2']) ? picksObj['2'].slice() : [];
-    const used = new Set([...bans, ...picksA, ...picksB]);
-
-    const heroPool = Array.isArray(draft.pool) && draft.pool.length
-      ? draft.pool
-      : (Array.isArray(room.game?.hero_pool) ? room.game.hero_pool : []);
-
-    const heroGrid = byId('hero-grid');
-    if (heroGrid) {
-      heroGrid.innerHTML = '';
-      const active = canUsePhaseOneAction(expectedSide) && !isReconnectPauseActive();
-
-      heroPool.forEach((heroRaw) => {
-        const heroName = String(heroRaw || '').trim();
-        if (!heroName) {
-          return;
-        }
-
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'hero-card';
-        card.title = heroName;
-        card.textContent = heroName;
-
-        if (bans.includes(heroName)) {
-          card.classList.add('hban');
-        } else if (picksA.includes(heroName)) {
-          card.classList.add('ha');
-        } else if (picksB.includes(heroName)) {
-          card.classList.add('hb');
-        } else if (!nextStep || !active || used.has(heroName)) {
-          card.disabled = true;
-        } else {
-          card.addEventListener('click', () => {
-            submitWorkflow('draft_action', {
-              item: heroName,
-              acting_side: resolveActingSide(expectedSide),
-            });
-          });
-        }
-
-        heroGrid.appendChild(card);
-      });
-    }
-
-    const picksHostA = byId('picks-a');
-    if (picksHostA) {
-      picksHostA.innerHTML = picksA.length
-        ? picksA.map((name) => `<span class="px-2 py-0.5 rounded text-[10px] ac ac-bg">${esc(name)}</span>`).join('')
-        : '<span class="text-[10px] text-gray-500">No picks yet.</span>';
-    }
-
-    const picksHostB = byId('picks-b');
-    if (picksHostB) {
-      picksHostB.innerHTML = picksB.length
-        ? picksB.map((name) => `<span class="px-2 py-0.5 rounded text-[10px] text-red-300 bg-red-500/15">${esc(name)}</span>`).join('')
-        : '<span class="text-[10px] text-gray-500">No picks yet.</span>';
-    }
-
-    const bansDisplay = byId('bans-display');
-    if (bansDisplay) {
-      bansDisplay.innerHTML = bans.length
-        ? bans.map((name) => `<span class="px-2 py-0.5 rounded text-[10px] text-gray-300 bg-white/5 line-through">${esc(name)}</span>`).join('')
-        : '<span class="text-[10px] text-gray-500">No bans yet.</span>';
-    }
-
-    const log = byId('draft-log');
-    if (log) {
-      log.innerHTML = '';
-      const rows = [];
-      let banIndex = 0;
-      let pickAIndex = 0;
-      let pickBIndex = 0;
-
-      sequence.forEach((stepDef) => {
-        const action = String(stepDef?.action || 'ban').toLowerCase();
-        const side = Number(stepDef?.side || 1) === 2 ? 2 : 1;
-
-        if (action === 'pick') {
-          const token = side === 1 ? picksA[pickAIndex] : picksB[pickBIndex];
-          if (!token) {
-            return;
-          }
-          if (side === 1) {
-            pickAIndex += 1;
-          } else {
-            pickBIndex += 1;
-          }
-          rows.push(`${teamLabel(side)} picked ${token}`);
-        } else {
-          const token = bans[banIndex];
-          if (!token) {
-            return;
-          }
-          banIndex += 1;
-          rows.push(`${teamLabel(side)} banned ${token}`);
-        }
-      });
-
-      if (!rows.length) {
-        const li = document.createElement('li');
-        li.className = 'text-gray-500';
-        li.textContent = 'No draft actions submitted yet.';
-        log.appendChild(li);
-      } else {
-        rows.forEach((line) => {
-          const li = document.createElement('li');
-          li.textContent = line;
-          log.appendChild(li);
-        });
-      }
-    }
-  }
-
-  function renderDirectReady() {
-    const wf = getWorkflow();
-    const ready = wf.direct_ready && typeof wf.direct_ready === 'object' ? wf.direct_ready : { '1': false, '2': false };
-
-    const r1 = !!ready['1'];
-    const r2 = !!ready['2'];
-
-    const boxA = byId('direct-ready-a');
-    const boxB = byId('direct-ready-b');
-
-    function applyReadyCard(node, ok, accent) {
-      if (!node) {
-        return;
-      }
-      const iconWrap = node.querySelector('div');
-      const textRows = node.querySelectorAll('p');
-      if (iconWrap) {
-        iconWrap.textContent = ok ? 'OK' : '?';
-        if (ok) {
-          iconWrap.style.background = 'rgba(0,255,102,0.18)';
-          iconWrap.style.borderColor = 'rgba(0,255,102,0.45)';
-          iconWrap.style.color = '#00ff66';
-        } else {
-          iconWrap.style.background = accent;
-          iconWrap.style.borderColor = '';
-          iconWrap.style.color = '';
-        }
-      }
-      if (textRows && textRows.length > 1) {
-        textRows[1].textContent = ok ? 'Ready' : 'Waiting';
-        textRows[1].className = `text-[10px] font-mono uppercase tracking-widest ${ok ? 'text-emerald-300' : 'text-gray-500'}`;
-      }
-    }
-
-    applyReadyCard(boxA, r1, 'rgba(var(--ar),var(--ag),var(--ab),0.15)');
-    applyReadyCard(boxB, r2, 'rgba(255,255,255,0.05)');
-
-    const btn = byId('btn-direct-ready');
-    const actingSide = resolveActingSide(mySide());
-    if (btn) {
-      btn.textContent = `Mark ${teamLabel(actingSide)} Ready`;
-      const already = actingSide === 1 ? r1 : r2;
-      btn.disabled = currentPhase() !== 'phase1' || already || (r1 && r2);
-    }
-  }
-
-  function credentialSchema() {
-    const base = [
-      { key: 'lobby_code', label: 'Lobby Code', placeholder: 'Room code' },
-      { key: 'password', label: 'Password', placeholder: 'Lobby password' },
-      { key: 'map', label: 'Map', placeholder: 'Map name' },
-      { key: 'server', label: 'Server', placeholder: 'Server / Region' },
-      { key: 'game_mode', label: 'Game Mode', placeholder: 'Mode / Ruleset' },
-      { key: 'notes', label: 'Extra Notes', placeholder: 'Optional notes', multiline: true },
-    ];
-
-    const mode = currentMode();
-    if (mode === 'direct') {
-      return base.filter((row) => row.key !== 'map');
-    }
-
-    return base;
-  }
-
-  function renderCredentialForm(canEdit) {
-    const form = byId('cred-form');
-    if (!form) {
-      return;
-    }
-
-    const creds = getWorkflow().credentials || {};
-    const fields = credentialSchema();
-
-    form.innerHTML = fields.map((field) => {
-      const value = String(creds[field.key] || room.lobby?.[field.key] || '');
-      if (field.multiline) {
-        return `
-          <div>
-            <label class="section-label">${esc(field.label)}</label>
-            <textarea data-cred-key="${esc(field.key)}" class="compact-input" rows="3" placeholder="${esc(field.placeholder || '')}" ${canEdit ? '' : 'disabled'}>${esc(value)}</textarea>
-          </div>
-        `;
-      }
-
-      return `
-        <div>
-          <label class="section-label">${esc(field.label)}</label>
-          <input data-cred-key="${esc(field.key)}" class="compact-input" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" ${canEdit ? '' : 'disabled'}>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function renderLobbyPhase() {
-    const hostView = byId('lobby-host-view');
-    const guestView = byId('lobby-guest-view');
-    const hostSteps = byId('host-steps');
-
-    const canEdit = !!(room.me && room.me.can_edit_credentials);
-
-    if (hostView) {
-      hostView.classList.toggle('hidden-state', !canEdit);
-    }
-    if (guestView) {
-      guestView.classList.toggle('hidden-state', canEdit);
-    }
-
-    if (hostSteps) {
-      const mode = currentMode();
-      const rows = [];
-      rows.push('1. Create a private lobby with tournament settings.');
-      if (mode === 'veto') {
-        rows.push('2. Confirm selected map and server region.');
-      } else {
-        rows.push('2. Verify both sides are marked ready.');
-      }
-      rows.push('3. Share lobby code and password with both teams.');
-      rows.push('4. Start live phase after confirmations in chat.');
-      hostSteps.innerHTML = rows.map((line) => `<div>${esc(line)}</div>`).join('');
-    }
-
-    renderCredentialForm(canEdit);
-
-    const broadcastBtn = byId('btn-broadcast-creds');
-    if (broadcastBtn) {
-      broadcastBtn.disabled = !canEdit;
-    }
-
-    const startLiveBtn = byId('btn-start-live');
-    if (startLiveBtn) {
-      startLiveBtn.disabled = !(isStaffUser() || mySide() === 1 || mySide() === 2);
-    }
-  }
-
-  function renderServerPhase() {
-    const wf = getWorkflow();
-    const creds = wf.credentials || {};
-    const selectedMap = currentSelectedMap();
-
-    const mapName = byId('server-map-name');
-    if (mapName) {
-      if (selectedMap) {
-        mapName.textContent = selectedMap;
-      } else {
-        mapName.textContent = currentMode() === 'direct' ? 'Direct Match' : 'Live Lobby';
-      }
-    }
-
-    const steps = byId('server-steps');
-    if (steps) {
-      const rows = [
-        '1. Join lobby and verify team names.',
-        '2. Play match using tournament settings only.',
-        '3. On completion, both captains submit score proof.',
-      ];
-      steps.innerHTML = rows.map((line) => `<div>${esc(line)}</div>`).join('');
-    }
-
-    const credsView = byId('server-creds');
-    if (credsView) {
-      const keys = [
-        ['Code', creds.lobby_code || room.lobby?.lobby_code],
-        ['Password', creds.password || room.lobby?.password],
-        ['Map', creds.map || room.lobby?.map],
-        ['Server', creds.server || room.lobby?.server],
-        ['Mode', creds.game_mode || room.lobby?.game_mode],
-      ];
-
-      const rows = keys.filter((entry) => String(entry[1] || '').trim());
-      if (!rows.length) {
-        credsView.innerHTML = '<p class="text-[10px] text-gray-500">Credentials will appear once host broadcasts lobby data.</p>';
-      } else {
-        credsView.innerHTML = rows.map((entry) => {
-          return `
-            <div class="flex items-center justify-between gap-2 border border-white/8 rounded-lg px-3 py-2 bg-white/5">
-              <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">${esc(entry[0])}</span>
-              <span class="text-xs font-mono text-white text-right break-all">${esc(entry[1])}</span>
-            </div>
-          `;
-        }).join('');
-      }
-    }
-
-    const toResults = byId('btn-to-results');
-    if (toResults) {
-      if (room.me?.can_force_phase) {
-        toResults.textContent = 'Force Phase -> Results';
-        toResults.disabled = false;
-      } else {
-        toResults.textContent = 'Open Result Submission';
-        toResults.disabled = false;
-      }
-    }
-  }
-
-  function statusForSubmission(side, sub, resultStatus) {
-    if (!sub) {
-      return { cls: 'pending', text: 'Pending' };
-    }
-
-    const subStatus = String(sub.status || '').toLowerCase();
-    if (RESULT_MISMATCH_STATES.has(resultStatus) || subStatus === 'disputed') {
-      return { cls: 'mismatch', text: 'Mismatch' };
-    }
-
-    if (subStatus === 'finalized' || subStatus === 'confirmed' || RESULT_FINAL_STATES.has(resultStatus)) {
-      return { cls: 'done', text: 'Verified' };
-    }
-
-    if (subStatus === 'pending') {
-      return { cls: 'done', text: 'Submitted' };
-    }
-
-    if (subStatus === 'rejected') {
-      return { cls: 'mismatch', text: 'Rejected' };
-    }
-
-    return { cls: 'done', text: 'Submitted' };
-  }
-
-  function populateExtraResultFields(side, submission, draft) {
-    const suffix = side === 1 ? 'a' : 'b';
-    const host = byId(`extra-fields-${suffix}`);
-    if (!host) {
-      return;
-    }
-
-    const sideDraft = normalizeSideDraft(draft);
-    const useDraft = !!sideDraft.dirty;
-
-    const note = useDraft
-      ? String(sideDraft.note || '')
-      : String(submission?.note || '');
-    const evidenceUrl = useDraft
-      ? String(sideDraft.evidence_url || '')
-      : String(submission?.evidence_url || submission?.proof_screenshot_url || '');
-
-    host.innerHTML = `
-      <div>
-        <p class="section-label mb-1">Evidence URL (optional)</p>
-        <input id="evidence-url-${suffix}" type="text" class="compact-input" value="${esc(evidenceUrl)}" placeholder="https://...">
-      </div>
-      <div>
-        <p class="section-label mb-1">Notes (optional)</p>
-        <textarea id="note-${suffix}" rows="2" class="compact-input" placeholder="Round details, overtime, penalties...">${esc(note)}</textarea>
-      </div>
-    `;
-  }
-
-  function renderUploadZone(side, submission) {
-    const suffix = side === 1 ? 'a' : 'b';
-    const zone = byId(`upload-${suffix}`);
-    if (!zone) {
-      return;
-    }
-
-    const file = state.uploadedFiles[side];
-    const existing = String(submission?.proof_screenshot_url || '');
-
-    zone.classList.remove('done');
-    if (file) {
-      zone.classList.add('done');
-      zone.innerHTML = `
-        <i data-lucide="image" class="w-5 h-5 mx-auto text-emerald-300 mb-1"></i>
-        <p class="text-xs font-bold text-emerald-200">${esc(file.name)}</p>
-        <p class="text-[9px] text-emerald-400 mt-0.5">Selected for upload</p>
-      `;
-      return;
-    }
-
-    if (existing) {
-      zone.classList.add('done');
-      zone.innerHTML = `
-        <i data-lucide="image" class="w-5 h-5 mx-auto text-emerald-300 mb-1"></i>
-        <p class="text-xs font-bold text-emerald-200">Proof Uploaded</p>
-        <a href="${esc(existing)}" target="_blank" rel="noopener noreferrer" class="text-[9px] text-emerald-300 mt-0.5 underline">View current proof</a>
-      `;
-      return;
-    }
-
-    zone.innerHTML = `
-      <i data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
-      <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
-      <p class="text-[9px] text-gray-600 mt-0.5">PNG or JPG, up to 10MB</p>
-    `;
-  }
-
-  function renderResultPhase() {
-    const wf = getWorkflow();
-    const submissions = wf.result_submissions || { '1': null, '2': null };
-    const subA = submissions['1'] && typeof submissions['1'] === 'object' ? submissions['1'] : null;
-    const subB = submissions['2'] && typeof submissions['2'] === 'object' ? submissions['2'] : null;
-    const draftA = normalizeSideDraft(state.inputDraft.result['1']);
-    const draftB = normalizeSideDraft(state.inputDraft.result['2']);
-
-    const resultStatus = String(wf.result_status || 'pending');
-    const finalResult = wf.final_result && typeof wf.final_result === 'object' ? wf.final_result : null;
-
-    const scoreAValue = draftA.dirty
-      ? draftA.score_for
-      : (subA?.score_for != null ? String(subA.score_for) : '');
-    const scoreAOppValue = draftA.dirty
-      ? draftA.score_against
-      : (subA?.score_against != null ? String(subA.score_against) : '');
-    const scoreBValue = draftB.dirty
-      ? draftB.score_for
-      : (subB?.score_for != null ? String(subB.score_for) : '');
-    const scoreBOppValue = draftB.dirty
-      ? draftB.score_against
-      : (subB?.score_against != null ? String(subB.score_against) : '');
-
-    setControlValue('score-a', scoreAValue);
-    setControlValue('score-a-opp', scoreAOppValue);
-    setControlValue('score-b', scoreBValue);
-    setControlValue('score-b-opp', scoreBOppValue);
-
-    populateExtraResultFields(1, subA, draftA);
-    populateExtraResultFields(2, subB, draftB);
-
-    renderUploadZone(1, subA);
-    renderUploadZone(2, subB);
-
-    const statA = statusForSubmission(1, subA, resultStatus);
-    const statB = statusForSubmission(2, subB, resultStatus);
-
-    const statusA = byId('sub-status-a');
-    const statusB = byId('sub-status-b');
-    if (statusA) {
-      statusA.className = `sub-status ${statA.cls}`;
-      statusA.innerHTML = `<span>●</span>${esc(statA.text)}`;
-    }
-    if (statusB) {
-      statusB.className = `sub-status ${statB.cls}`;
-      statusB.innerHTML = `<span>●</span>${esc(statB.text)}`;
-    }
-
-    const cardA = byId('result-card-a');
-    const cardB = byId('result-card-b');
-    if (cardA) {
-      cardA.classList.toggle('submitted-ok', !!subA);
-    }
-    if (cardB) {
-      cardB.classList.toggle('submitted-ok', !!subB);
-    }
-
-    const canA = canSubmitForSide(1);
-    const canB = canSubmitForSide(2);
-    const btnA = byId('submit-btn-a');
-    const btnB = byId('submit-btn-b');
-    if (btnA) {
-      btnA.disabled = !canA;
-    }
-    if (btnB) {
-      btnB.disabled = !canB;
-    }
-
-    [
-      ['score-a', canA],
-      ['score-a-opp', canA],
-      ['evidence-url-a', canA],
-      ['note-a', canA],
-      ['score-b', canB],
-      ['score-b-opp', canB],
-      ['evidence-url-b', canB],
-      ['note-b', canB],
-    ].forEach((entry) => {
-      const node = byId(entry[0]);
-      if (node) {
-        node.disabled = !entry[1];
-      }
-    });
-
-    const verify = byId('result-verify');
-    const verifyText = byId('verify-status-text');
-    const success = byId('result-success');
-    const finalScore = byId('final-score-display');
-
-    if (success) {
-      success.classList.add('hidden-state');
-    }
-    if (verify) {
-      verify.classList.add('hidden-state');
-    }
-
-    if (RESULT_FINAL_STATES.has(resultStatus) || currentPhase() === 'completed') {
-      if (success) {
-        success.classList.remove('hidden-state');
-      }
-      if (finalScore) {
-        const p1 = finalResult?.participant1_score != null ? finalResult.participant1_score : room.match?.participant1_score;
-        const p2 = finalResult?.participant2_score != null ? finalResult.participant2_score : room.match?.participant2_score;
-        finalScore.innerHTML = `<span>${esc(teamLabel(1))}</span><span>${esc(p1 ?? 0)} - ${esc(p2 ?? 0)}</span><span>${esc(teamLabel(2))}</span>`;
-      }
-    } else if (subA || subB) {
-      if (verify) {
-        verify.classList.remove('hidden-state');
-      }
-      if (verifyText) {
-        if (RESULT_MISMATCH_STATES.has(resultStatus)) {
-          verifyText.textContent = 'Score mismatch detected. Staff review or admin override required.';
-        } else if (subA && !subB) {
-          verifyText.textContent = `${teamLabel(1)} submitted. Waiting for ${teamLabel(2)}.`;
-        } else if (!subA && subB) {
-          verifyText.textContent = `${teamLabel(2)} submitted. Waiting for ${teamLabel(1)}.`;
-        } else {
-          verifyText.textContent = 'Both submissions received. Verifying score agreement.';
-        }
-      }
-    }
-  }
-
-  function adminCapability() {
-    return !!(
-      room.me?.can_force_phase
-      || room.me?.can_override_result
-      || room.me?.can_broadcast_system
-    );
-  }
-
-  function setTab(tab) {
-    const target = ['chat', 'intel', 'voice', 'admin'].includes(tab) ? tab : 'chat';
-
-    if (target === 'admin' && !adminCapability()) {
-      state.activeTab = 'chat';
-    } else {
-      state.activeTab = target;
-    }
-
-    renderTabs();
-  }
-
-  function renderTabs() {
-    const hasAdmin = adminCapability();
-
-    const map = {
-      chat: ['tab-chat-btn', 'view-chat'],
-      intel: ['tab-intel-btn', 'view-intel'],
-      voice: ['tab-voice-btn', 'view-voice'],
-      admin: ['tab-admin-btn', 'view-admin'],
-    };
-
-    if (!hasAdmin && state.activeTab === 'admin') {
-      state.activeTab = 'chat';
-    }
-
-    Object.keys(map).forEach((key) => {
-      const btn = byId(map[key][0]);
-      const view = byId(map[key][1]);
-      if (!btn || !view) {
-        return;
-      }
-
-      if (key === 'admin') {
-        btn.classList.toggle('hidden-state', !hasAdmin);
-      }
-
-      const active = state.activeTab === key;
-      view.classList.toggle('hidden-state', !active);
-
-      btn.classList.toggle('text-white', active && key !== 'admin');
-      btn.classList.toggle('ac', active && key === 'chat');
-      btn.classList.toggle('text-gray-500', !active && key !== 'admin');
-      btn.classList.toggle('text-amber-200', active && key === 'admin');
-
-      if (active) {
-        btn.style.borderBottomColor = key === 'admin' ? 'rgba(255,184,0,0.85)' : 'var(--ac)';
-      } else {
-        btn.style.borderBottomColor = 'transparent';
-      }
-    });
-
-    renderAdminPanel();
-  }
-
-  function intelRow(label, value, tone) {
-    let accent = 'text-gray-300';
-    if (tone === 'ok') accent = 'text-emerald-300';
-    if (tone === 'warn') accent = 'text-amber-300';
-    return `<div class="flex items-center justify-between border border-white/6 rounded-lg px-3 py-2 bg-white/3"><span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">${esc(label)}</span><span class="text-[10px] font-mono ${accent}">${esc(value)}</span></div>`;
-  }
-
-  function renderIntelPanel() {
-    const p1 = room.match?.participant1 || {};
-    const p2 = room.match?.participant2 || {};
-
-    const intelA = byId('intel-a');
-    const intelB = byId('intel-b');
-
-    if (intelA) {
-      const rows = [
-        intelRow('Name', p1.name || 'Team A'),
-        intelRow('Check-in', p1.checked_in ? 'Checked In' : 'Pending', p1.checked_in ? 'ok' : 'warn'),
-        intelRow('Score', String(room.match?.participant1_score ?? 0)),
-        intelRow('Role', mySide() === 1 ? 'Your Side' : 'Opponent Side'),
-      ];
-      intelA.innerHTML = rows.join('');
-    }
-
-    if (intelB) {
-      const rows = [
-        intelRow('Name', p2.name || 'Team B'),
-        intelRow('Check-in', p2.checked_in ? 'Checked In' : 'Pending', p2.checked_in ? 'ok' : 'warn'),
-        intelRow('Score', String(room.match?.participant2_score ?? 0)),
-        intelRow('Role', mySide() === 2 ? 'Your Side' : 'Opponent Side'),
-      ];
-      intelB.innerHTML = rows.join('');
-    }
-
-    const orgName = byId('org-name');
-    if (orgName) {
-      orgName.textContent = room.tournament?.name || 'Tournament Operations';
-    }
-
-    const rules = byId('match-rules');
-    if (rules) {
-      const rows = [];
-      rows.push(`Format: BO${toInt(room.match?.best_of, 1)}`);
-
-      const phaseOrder = getPhaseOrder();
-      const kind = phase1Kind();
-      if (!phaseOrder.includes('phase1')) {
-        rows.push('Phase One: Skipped by game policy for this round.');
-      } else if (kind === 'veto') {
-        rows.push('Phase One: Map veto from tournament-configured pool.');
-      } else {
-        rows.push('Phase One: Direct ready check from both sides.');
-      }
-
-      rows.push('All actions are synced in realtime over match websocket.');
-      rows.push('Result submissions require both sides for auto-verification.');
-
-      rules.innerHTML = rows.map((line) => `<div>${esc(line)}</div>`).join('');
-    }
-  }
-
-  function renderProxyControls() {
-    const enabled = isStaffUser();
-
-    const activateBtn = byId('btn-activate-proxy');
-    const banner = byId('proxy-banner');
-    const proxyA = byId('proxy-btn-a');
-    const proxyB = byId('proxy-btn-b');
-
-    if (activateBtn) {
-      activateBtn.classList.toggle('hidden-state', !enabled);
-      activateBtn.textContent = state.proxyEnabled ? 'Disable Proxy' : 'Proxy Mode';
-    }
-
-    if (banner) {
-      banner.classList.toggle('hidden-state', !(enabled && state.proxyEnabled));
-    }
-
-    if (proxyA) {
-      proxyA.classList.toggle('active-a', state.proxyEnabled && state.proxySide === 1);
-      proxyA.classList.toggle('inactive', !(state.proxyEnabled && state.proxySide === 1));
-    }
-
-    if (proxyB) {
-      proxyB.classList.toggle('active-b', state.proxyEnabled && state.proxySide === 2);
-      proxyB.classList.toggle('inactive', !(state.proxyEnabled && state.proxySide === 2));
-    }
-  }
-
-  function renderAdminPanel() {
-    const adminView = byId('view-admin');
-    if (!adminView) {
-      return;
-    }
-
-    const canForce = !!room.me?.can_force_phase;
-    const canOverride = !!room.me?.can_override_result;
-    const canBroadcast = !!room.me?.can_broadcast_system;
-
-    const btnNext = byId('btn-admin-next-phase');
-    const btnOverride = byId('btn-admin-override');
-    const btnApply = byId('btn-admin-apply-score');
-    const btnMsg = byId('btn-admin-send-msg');
-
-    if (btnNext) {
-      btnNext.disabled = !canForce;
-    }
-    if (btnOverride) {
-      btnOverride.disabled = !canOverride;
-    }
-    if (btnApply) {
-      btnApply.disabled = !canOverride;
-    }
-    if (btnMsg) {
-      btnMsg.disabled = !canBroadcast;
-    }
-
-    const credsView = byId('admin-creds-view');
-    if (credsView) {
-      const wf = getWorkflow();
-      const creds = wf.credentials || {};
-      const rows = [
-        ['Code', creds.lobby_code || room.lobby?.lobby_code],
-        ['Password', creds.password || room.lobby?.password],
-        ['Map', creds.map || room.lobby?.map],
-        ['Server', creds.server || room.lobby?.server],
-        ['Mode', creds.game_mode || room.lobby?.game_mode],
-      ];
-
-      const validRows = rows.filter((row) => String(row[1] || '').trim());
-      if (!validRows.length) {
-        credsView.innerHTML = '<p class="section-label mb-2">Lobby Credentials (All Teams)</p><p class="text-[9px] text-gray-500">No credentials published yet.</p>';
-      } else {
-        credsView.innerHTML = `<p class="section-label mb-2">Lobby Credentials (All Teams)</p>${validRows.map((row) => {
-          return `<div class="flex items-center justify-between text-[10px] border border-white/7 rounded px-2 py-1.5 bg-white/5 mb-1"><span class="text-gray-500 uppercase tracking-widest">${esc(row[0])}</span><span class="text-white font-mono">${esc(row[1])}</span></div>`;
-        }).join('')}`;
-      }
-    }
-  }
-
-  function appendChatMessage(data, mode) {
-    const win = byId('chat-window');
-    if (!win || !data) {
-      return;
-    }
-
-    const messageId = String(data.message_id || `${data.username || 'system'}:${data.timestamp || nowIso()}:${data.text || ''}`);
-    if (state.chatSeen.has(messageId)) {
-      return;
-    }
-    state.chatSeen.add(messageId);
-
-    const wrap = document.createElement('div');
-    const mine = mode === 'mine';
-    const system = mode === 'system';
-
-    wrap.className = `flex ${mine ? 'justify-end' : 'justify-start'}`;
-
-    const bubble = document.createElement('div');
-    bubble.className = system
-      ? 'max-w-[92%] rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100'
-      : mine
-        ? 'max-w-[92%] rounded-xl border border-cyan-300/30 bg-cyan-500/12 px-3 py-2 text-xs text-cyan-50'
-        : 'max-w-[92%] rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-xs text-gray-100';
-
-    const who = system
-      ? 'System'
-      : `${data.username || 'User'}${data.side ? ` (${teamLabel(Number(data.side))})` : ''}${data.is_staff ? ' [Staff]' : ''}`;
-
-    const ts = toDisplayTime(data.timestamp);
-
-    bubble.innerHTML = `
-      <div class="flex items-center justify-between gap-2 mb-1">
-        <span class="uppercase tracking-widest text-[9px] ${system ? 'text-amber-300' : mine ? 'text-cyan-300' : 'text-gray-400'} font-bold">${esc(who)}</span>
-        <span class="text-[9px] text-gray-500 font-mono">${esc(ts)}</span>
-      </div>
-      <div class="leading-relaxed">${esc(data.text || '')}</div>
-    `;
-
-    wrap.appendChild(bubble);
-    win.appendChild(wrap);
-    win.scrollTop = win.scrollHeight;
-  }
-
-  function renderAnnouncements() {
-    const list = Array.isArray(room.announcements) ? room.announcements : [];
-    list.forEach((item) => {
-      if (!item || typeof item !== 'object') {
-        return;
-      }
-      const key = `${item.at || ''}:${item.message || ''}`;
-      if (state.announcementSeen.has(key)) {
-        return;
-      }
-      state.announcementSeen.add(key);
-      appendChatMessage({
-        message_id: `announcement:${key}`,
-        username: 'System',
-        text: String(item.message || '').trim(),
-        timestamp: item.at || nowIso(),
-      }, 'system');
-    });
-  }
-
-  async function submitWorkflow(action, payload, options) {
-    const opts = options || {};
-    const silent = !!opts.silent;
-    const body = Object.assign({ action }, payload || {});
-
-    if (WAITING_LOCKED_ACTIONS.has(action) && shouldLockPreLiveForOpponent()) {
-      if (!silent) {
-        showToast('Waiting for opponent to connect before pre-live actions.', 'error');
-      }
-      return false;
-    }
-
-    const phaseOrder = getPhaseOrder();
-    if (action === 'coin_toss' && (currentMode() === 'direct' || !phaseOrder.includes('coin_toss'))) {
-      if (!silent) {
-        showToast('Coin toss is disabled by TOC policy for this round.', 'error');
-      }
-      return false;
-    }
-
-    if ((action === 'veto_action' || action === 'draft_action' || action === 'direct_ready') && !phaseOrder.includes('phase1')) {
-      if (!silent) {
-        showToast('Phase one actions are disabled by TOC policy for this round.', 'error');
-      }
-      return false;
-    }
-
-    if (action === 'veto_action' && phase1Kind() !== 'veto') {
-      if (!silent) {
-        showToast('Map veto is disabled for this match pipeline.', 'error');
-      }
-      return false;
-    }
-
-    if (action === 'draft_action' && phase1Kind() !== 'draft') {
-      if (!silent) {
-        showToast('Hero draft is disabled for this match pipeline.', 'error');
-      }
-      return false;
-    }
-
-    if (action === 'direct_ready' && phase1Kind() !== 'direct') {
-      if (!silent) {
-        showToast('Ready check is not active for this match pipeline.', 'error');
-      }
-      return false;
-    }
-
-    try {
-      let response;
-      if (opts.multipart) {
-        const fd = new FormData();
-        Object.keys(body).forEach((key) => {
-          const value = body[key];
-          if (value == null || value === '') {
-            return;
-          }
-          fd.append(key, value);
-        });
-
-        if (opts.file) {
-          fd.append('evidence', opts.file);
-        }
-
-        response = await fetch(room.urls.workflow, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'X-CSRFToken': getCsrfToken(),
-          },
-          body: fd,
-        });
-      } else {
-        response = await fetch(room.urls.workflow, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken(),
-          },
-          body: JSON.stringify(body),
-        });
-      }
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        if (!silent) {
-          showToast(data.error || 'Action failed', 'error');
-        }
-        return false;
-      }
-
-      const updated = !!data.updated;
-      room = data.room || room;
-
-      if (action === 'presence_ping' && !updated) {
-        return true;
-      }
-
-      if (action === 'submit_result') {
-        const acting = Number(payload.acting_side);
-        if (acting === 1 || acting === 2) {
-          state.uploadedFiles[acting] = null;
-          clearResultDraft(acting);
-        }
-      }
-
-      if (action === 'admin_override_result') {
-        state.inputDraft.adminScores.a = '';
-        state.inputDraft.adminScores.b = '';
-        persistDraftState();
-      }
-
-      if (data.message && !silent) {
-        showToast(data.message, 'ok');
-      }
-      if (action === 'submit_result') {
-        state.previewResults = false;
-      }
-
-      renderAll();
-      return true;
-    } catch (_err) {
-      if (!silent) {
-        showToast('Network error while updating workflow.', 'error');
-      }
-      return false;
-    }
-  }
-
-  async function syncRoom() {
-    try {
-      const response = await fetch(room.urls.workflow, {
-        method: 'GET',
-        credentials: 'same-origin',
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        return;
-      }
-
-      room = data.room || room;
-      renderAll();
-    } catch (_err) {
-      // silent polling fallback
-    }
-  }
-
-  function sendPresencePing() {
-    if (!room.urls || !room.urls.workflow) {
-      return;
-    }
-
-    const side = mySide();
-    if (side !== 1 && side !== 2) {
-      return;
-    }
-
-    submitWorkflow('presence_ping', {
-      acting_side: resolveActingSide(side),
-      status: document.hidden ? 'away' : 'online',
-    }, { silent: true });
-  }
-
-  async function submitDispute() {
-    const reason = String(byId('dispute-reason')?.value || '').trim();
-    const description = String(byId('dispute-description')?.value || '').trim();
-    const evidenceUrl = String(byId('dispute-evidence-url')?.value || '').trim();
-
-    if (!reason || !description) {
-      showToast('Reason and explanation are required.', 'error');
-      return;
-    }
-
-    const fd = new FormData();
-    fd.append('reason', reason);
-    fd.append('description', description);
-    fd.append('evidence_video_url', evidenceUrl);
-
-    try {
-      const response = await fetch(room.urls.report_dispute, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
+          'Content-Type': 'application/json',
           'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
         },
-        body: fd,
+        body: JSON.stringify(Object.assign({ action }, asObject(payload))),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        showToast(data.error || 'Unable to submit dispute.', 'error');
+      const data = await parseJsonResponse(response);
+      if (!response.ok || !bool(data.success, false)) {
+        throw new Error(String(data.error || 'Action failed.'));
+      }
+
+      if (data.room && typeof data.room === 'object') {
+        applyRoom(data.room);
+      }
+
+      if (data.message) {
+        appendSystemChat(String(data.message));
+        showToast(String(data.message), 'success');
+      }
+    } catch (error) {
+      showToast(String(error && error.message ? error.message : 'Action failed.'), 'error');
+    } finally {
+      state.requestBusy = false;
+      renderEngine();
+    }
+  }
+
+  async function refreshRoom() {
+    const endpoint = String(asObject(state.room.urls).workflow || '');
+    if (!endpoint) {
+      return;
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+
+      const data = await parseJsonResponse(response);
+      if (!response.ok || !bool(data.success, false)) {
         return;
       }
 
-      closeDisputeModal();
-      showToast(data.message || 'Dispute submitted.', 'ok');
-      appendChatMessage({
-        message_id: `dispute:${Date.now()}`,
-        username: 'System',
-        text: 'A match dispute ticket was submitted for organizer review.',
-        timestamp: nowIso(),
-      }, 'system');
+      if (data.room && typeof data.room === 'object') {
+        applyRoom(data.room);
+      }
     } catch (_err) {
-      showToast('Network error while submitting dispute.', 'error');
+      // Keep fallback sync silent.
     }
   }
 
-  function openDisputeModal() {
-    const modal = byId('dispute-modal');
-    if (!modal) {
-      return;
-    }
-    modal.classList.remove('hidden-state');
-    modal.classList.add('flex');
+  function parseJsonResponse(response) {
+    return response
+      .text()
+      .then(function (text) {
+        try {
+          return JSON.parse(text || '{}');
+        } catch (_err) {
+          return {};
+        }
+      });
   }
 
-  function closeDisputeModal() {
-    const modal = byId('dispute-modal');
-    if (!modal) {
+  function connectSocket() {
+    const path = String(asObject(state.room.websocket).path || '');
+    if (!path) {
       return;
-    }
-    modal.classList.add('hidden-state');
-    modal.classList.remove('flex');
-  }
-
-  function handleFileSelect(side, file) {
-    if (!file) {
-      return;
-    }
-
-    const contentType = String(file.type || '').toLowerCase();
-    if (contentType && !contentType.startsWith('image/')) {
-      showToast('Only image files are allowed.', 'error');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Proof image must be 10MB or smaller.', 'error');
-      return;
-    }
-
-    state.uploadedFiles[side] = file;
-    renderResultPhase();
-    refreshIcons();
-  }
-
-  function sendChatMessage(text) {
-    const msg = String(text || '').trim();
-    if (!msg) {
-      return false;
-    }
-
-    if (!state.ws || state.ws.readyState !== window.WebSocket.OPEN) {
-      showToast('Realtime channel is reconnecting. Try again shortly.', 'error');
-      return false;
-    }
-
-    try {
-      state.ws.send(JSON.stringify({ type: 'chat_message', text: msg }));
-      return true;
-    } catch (_err) {
-      showToast('Chat send failed.', 'error');
-      return false;
-    }
-  }
-
-  function handleWsMessage(raw) {
-    let data = null;
-    try {
-      data = JSON.parse(raw || '{}');
-    } catch (_err) {
-      data = null;
-    }
-
-    if (!data || typeof data !== 'object') {
-      return;
-    }
-
-    if (data.type === 'ping') {
-      try {
-        state.ws.send(JSON.stringify({ type: 'pong', timestamp: data.timestamp || nowIso() }));
-      } catch (_err) {
-        // no-op
-      }
-      return;
-    }
-
-    if (data.type === 'connection_established') {
-      appendChatMessage({
-        message_id: `ws:${Date.now()}`,
-        username: 'System',
-        text: 'Realtime channel connected.',
-        timestamp: nowIso(),
-      }, 'system');
-      return;
-    }
-
-    if (data.type === 'match_chat') {
-      const chat = data.data || {};
-      const mine = Number(chat.user_id) === Number(room.me?.user_id);
-      appendChatMessage(chat, mine ? 'mine' : 'peer');
-      return;
-    }
-
-    if (data.type === 'match_room_event') {
-      const payload = data.data && data.data.payload;
-      if (payload && payload.room) {
-        room = payload.room;
-        state.previewResults = false;
-        renderAll();
-      }
-
-      const message = payload && payload.message;
-      if (message) {
-        appendChatMessage({
-          message_id: `room:${Date.now()}`,
-          username: 'System',
-          text: String(message),
-          timestamp: nowIso(),
-        }, 'system');
-      }
-      return;
-    }
-
-    if (data.type === 'match_state_changed') {
-      syncRoom();
-      return;
-    }
-
-    if (data.type === 'error') {
-      showToast(data.message || 'Realtime error.', 'error');
-    }
-  }
-
-  function connectWs() {
-    if (!room.match?.id) {
-      return;
-    }
-
-    if (state.ws) {
-      try {
-        state.ws.close();
-      } catch (_err) {
-        // ignore
-      }
-      state.ws = null;
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    let wsUrl = `${protocol}://${window.location.host}/ws/match/${room.match.id}/`;
+    const url = `${protocol}://${window.location.host}${path}`;
 
-    let token = null;
+    clearReconnectTimer();
+
     try {
-      token = window.localStorage.getItem('access_token') || window.sessionStorage.getItem('access_token');
+      state.ws = new window.WebSocket(url);
     } catch (_err) {
-      token = null;
+      scheduleReconnect();
+      return;
     }
 
-    if (token) {
-      wsUrl += `?token=${encodeURIComponent(token)}`;
-    }
-
-    state.ws = new window.WebSocket(wsUrl);
-
-    state.ws.onopen = function () {
+    state.ws.addEventListener('open', function () {
       state.wsConnected = true;
-      state.socketEverConnected = true;
-      if (state.reconnectTimer) {
-        clearTimeout(state.reconnectTimer);
-        state.reconnectTimer = null;
-      }
-      renderSocketBadge();
+      state.reconnectAttempts = 0;
+      updateSocketPill();
+      sendSocket({ type: 'subscribe' });
+      sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
+      updatePresenceLocal(mySide(), true, 'online');
+      updateWaitingOverlay();
+      showToast('Socket connected.', 'success');
+    });
+
+    state.ws.addEventListener('message', function (event) {
+      let data = {};
       try {
-        state.ws.send(JSON.stringify({ type: 'subscribe' }));
+        data = JSON.parse(event.data || '{}');
       } catch (_err) {
-        // ignore
+        data = {};
       }
 
-      sendPresencePing();
-    };
-
-    state.ws.onmessage = function (event) {
-      handleWsMessage(event.data);
-    };
-
-    state.ws.onclose = function () {
-      state.wsConnected = false;
-      renderSocketBadge();
-      if (!state.reconnectTimer) {
-        state.reconnectTimer = window.setTimeout(connectWs, 3000);
-      }
-    };
-
-    state.ws.onerror = function () {
-      state.wsConnected = false;
-      renderSocketBadge();
-    };
-  }
-
-  function collectCredentialPayload() {
-    const form = byId('cred-form');
-    if (!form) {
-      return {};
-    }
-
-    const payload = {};
-    const fields = form.querySelectorAll('[data-cred-key]');
-    fields.forEach((node) => {
-      const key = String(node.getAttribute('data-cred-key') || '').trim();
-      if (!key) {
-        return;
-      }
-      payload[key] = String(node.value || '').trim();
+      handleSocketMessage(data);
     });
-    return payload;
+
+    state.ws.addEventListener('close', function () {
+      state.wsConnected = false;
+      updateSocketPill();
+      updatePresenceLocal(mySide(), false, 'offline');
+      updateWaitingOverlay();
+      scheduleReconnect();
+    });
+
+    state.ws.addEventListener('error', function () {
+      // close handler manages reconnect flow.
+    });
   }
 
-  async function submitResultFor(side) {
-    if (!canSubmitForSide(side)) {
-      showToast('You cannot submit for this side.', 'error');
+  function sendSocket(payload) {
+    if (!state.ws || state.ws.readyState !== window.WebSocket.OPEN) {
       return;
     }
 
-    const suffix = side === 1 ? 'a' : 'b';
-    const scoreFor = byId(`score-${suffix}`)?.value;
-    const scoreAgainst = byId(`score-${suffix}-opp`)?.value;
+    try {
+      state.ws.send(JSON.stringify(payload));
+    } catch (_err) {
+      // swallow and rely on reconnect path
+    }
+  }
 
-    const sf = toInt(scoreFor, NaN);
-    const sa = toInt(scoreAgainst, NaN);
+  function handleSocketMessage(message) {
+    const type = String(message.type || '');
 
-    if (!Number.isFinite(sf) || !Number.isFinite(sa) || sf < 0 || sa < 0) {
-      showToast('Valid scores are required for submission.', 'error');
+    if (type === 'ping') {
+      sendSocket({ type: 'pong', timestamp: message.timestamp || null });
       return;
     }
 
-    const payload = {
-      score_for: sf,
-      score_against: sa,
-      note: String(byId(`note-${suffix}`)?.value || '').trim(),
-      evidence_url: String(byId(`evidence-url-${suffix}`)?.value || '').trim(),
-      acting_side: isStaffUser() ? resolveActingSide(side) : side,
-    };
-
-    await submitWorkflow('submit_result', payload, {
-      multipart: true,
-      file: state.uploadedFiles[side] || null,
-    });
-  }
-
-  function bindStaticEvents() {
-    const tossBtn = byId('btn-coin-toss');
-    if (tossBtn) {
-      tossBtn.addEventListener('click', () => {
-        submitWorkflow('coin_toss', {});
-      });
+    if (type === 'connection_established') {
+      return;
     }
 
-    const proceedBtn = byId('btn-proceed-after-toss');
-    if (proceedBtn) {
-      proceedBtn.addEventListener('click', () => {
-        if (!isAdminMode()) {
-          return;
-        }
-        submitWorkflow('advance_phase', { phase: nextPhase('coin_toss') });
-      });
+    if (type === 'presence_synced') {
+      return;
     }
 
-    const readyBtn = byId('btn-direct-ready');
-    if (readyBtn) {
-      readyBtn.addEventListener('click', () => {
-        const side = resolveActingSide(mySide());
-        submitWorkflow('direct_ready', {
-          ready: true,
-          acting_side: side,
-        });
-      });
+    if (type === 'match_presence') {
+      const payload = asObject(message.data);
+      const sides = asObject(payload.sides);
+      const normalized = resolvePresence(sides, state.room.match);
+      state.socketPresence = normalized;
+      state.room.presence = normalized;
+      state.room.workflow.presence = normalized;
+      renderHeader();
+      updateWaitingOverlay();
+      return;
     }
 
-    const saveCredBtn = byId('btn-broadcast-creds');
-    if (saveCredBtn) {
-      saveCredBtn.addEventListener('click', (event) => {
-        event.preventDefault();
-        submitWorkflow('save_credentials', collectCredentialPayload());
-      });
-    }
+    if (type === 'match_room_event') {
+      const data = asObject(message.data);
+      const payload = asObject(data.payload);
 
-    const liveBtn = byId('btn-start-live');
-    if (liveBtn) {
-      liveBtn.addEventListener('click', () => {
-        submitWorkflow('start_live', {});
-      });
-    }
-
-    const toResultsBtn = byId('btn-to-results');
-    if (toResultsBtn) {
-      toResultsBtn.addEventListener('click', () => {
-        if (room.me?.can_force_phase) {
-          submitWorkflow('advance_phase', { phase: 'results' });
-        } else {
-          state.previewResults = true;
-          renderPhaseLayout();
-          renderResultPhase();
-          refreshIcons();
-        }
-      });
-    }
-
-    const submitA = byId('submit-btn-a');
-    if (submitA) {
-      submitA.addEventListener('click', () => submitResultFor(1));
-    }
-
-    const submitB = byId('submit-btn-b');
-    if (submitB) {
-      submitB.addEventListener('click', () => submitResultFor(2));
-    }
-
-    const inputA = byId('upload-input-a');
-    if (inputA) {
-      inputA.addEventListener('change', () => {
-        handleFileSelect(1, inputA.files && inputA.files[0]);
-      });
-    }
-
-    const inputB = byId('upload-input-b');
-    if (inputB) {
-      inputB.addEventListener('change', () => {
-        handleFileSelect(2, inputB.files && inputB.files[0]);
-      });
-    }
-
-    const zoneA = byId('upload-a');
-    if (zoneA) {
-      zoneA.addEventListener('click', () => {
-        if (!canSubmitForSide(1)) {
-          return;
-        }
-        byId('upload-input-a')?.click();
-      });
-    }
-
-    const zoneB = byId('upload-b');
-    if (zoneB) {
-      zoneB.addEventListener('click', () => {
-        if (!canSubmitForSide(2)) {
-          return;
-        }
-        byId('upload-input-b')?.click();
-      });
-    }
-
-    const tabChat = byId('tab-chat-btn');
-    const tabIntel = byId('tab-intel-btn');
-    const tabVoice = byId('tab-voice-btn');
-    const tabAdmin = byId('tab-admin-btn');
-
-    tabChat?.addEventListener('click', () => setTab('chat'));
-    tabIntel?.addEventListener('click', () => setTab('intel'));
-    tabVoice?.addEventListener('click', () => setTab('voice'));
-    tabAdmin?.addEventListener('click', () => setTab('admin'));
-
-    const activateProxy = byId('btn-activate-proxy');
-    if (activateProxy) {
-      activateProxy.addEventListener('click', () => {
-        if (!isStaffUser()) {
-          return;
-        }
-        state.proxyEnabled = !state.proxyEnabled;
-        if (!state.proxyEnabled) {
-          state.proxySide = 1;
-        }
-        renderProxyControls();
-        renderDirectReady();
-      });
-    }
-
-    const proxyA = byId('proxy-btn-a');
-    const proxyB = byId('proxy-btn-b');
-    proxyA?.addEventListener('click', () => {
-      state.proxyEnabled = true;
-      state.proxySide = 1;
-      renderProxyControls();
-      renderDirectReady();
-    });
-    proxyB?.addEventListener('click', () => {
-      state.proxyEnabled = true;
-      state.proxySide = 2;
-      renderProxyControls();
-      renderDirectReady();
-    });
-
-    const nextPhaseBtn = byId('btn-admin-next-phase');
-    if (nextPhaseBtn) {
-      nextPhaseBtn.addEventListener('click', () => {
-        const next = nextPhase(currentPhase());
-        const ok = window.confirm('Are you sure you want to force the next phase? This may interrupt live team actions.');
-        if (!ok) {
-          return;
-        }
-        submitWorkflow('advance_phase', { phase: next });
-      });
-    }
-
-    const overrideBtn = byId('btn-admin-override');
-    if (overrideBtn) {
-      overrideBtn.addEventListener('click', () => {
-        const scoreA = byId('admin-score-a')?.value;
-        const scoreB = byId('admin-score-b')?.value;
-        const p1 = toInt(scoreA, NaN);
-        const p2 = toInt(scoreB, NaN);
-        if (!Number.isFinite(p1) || !Number.isFinite(p2)) {
-          showToast('Admin score override requires numeric scores.', 'error');
-          return;
-        }
-        const ok = window.confirm('Are you sure you want to override the score? This cannot be undone.');
-        if (!ok) {
-          return;
-        }
-        submitWorkflow('admin_override_result', {
-          participant1_score: p1,
-          participant2_score: p2,
-          note: 'Admin override from match lobby.',
-        });
-      });
-    }
-
-    const applyScore = byId('btn-admin-apply-score');
-    if (applyScore) {
-      applyScore.addEventListener('click', () => {
-        byId('btn-admin-override')?.click();
-      });
-    }
-
-    const sendMsg = byId('btn-admin-send-msg');
-    if (sendMsg) {
-      sendMsg.addEventListener('click', () => {
-        const msg = String(byId('admin-msg')?.value || '').trim();
-        if (!msg) {
-          showToast('Announcement text is required.', 'error');
-          return;
-        }
-        submitWorkflow('system_announcement', { message: msg }).then((ok) => {
-          if (ok && byId('admin-msg')) {
-            byId('admin-msg').value = '';
-          }
-        });
-      });
-    }
-
-    const openDispute = byId('btn-open-dispute');
-    openDispute?.addEventListener('click', openDisputeModal);
-
-    const closeDispute = byId('btn-close-dispute');
-    closeDispute?.addEventListener('click', closeDisputeModal);
-
-    const cancelDispute = byId('btn-dispute-cancel');
-    cancelDispute?.addEventListener('click', closeDisputeModal);
-
-    const submitDisputeBtn = byId('btn-dispute-submit');
-    submitDisputeBtn?.addEventListener('click', submitDispute);
-
-    const gatePrimaryBtn = byId('entry-gate-primary-btn');
-    gatePrimaryBtn?.addEventListener('click', () => {
-      _handleEntryGatePrimary();
-    });
-
-    const gateSecondaryBtn = byId('entry-gate-secondary-btn');
-    gateSecondaryBtn?.addEventListener('click', () => {
-      _handleEntryGateSecondary();
-    });
-
-    const modal = byId('dispute-modal');
-    if (modal) {
-      modal.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
-          return;
-        }
-        if (target.dataset.closeDispute === '1') {
-          closeDisputeModal();
-        }
-      });
-    }
-
-    const chatForm = byId('chat-form');
-    if (chatForm) {
-      chatForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const input = byId('chat-input');
-        if (!input) {
-          return;
-        }
-        const text = String(input.value || '').trim();
-        if (!text) {
-          return;
-        }
-        const sent = sendChatMessage(text);
-        if (sent) {
-          input.value = '';
-          state.inputDraft.chat = '';
-          persistDraftState();
-        }
-      });
-    }
-
-    document.addEventListener('input', (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
-        return;
+      if (payload.room && typeof payload.room === 'object') {
+        applyRoom(payload.room);
       }
 
-      const id = String(target.id || '');
-      const value = String(target.value || '');
-
-      if (id === 'chat-input') {
-        state.inputDraft.chat = value;
-        persistDraftState();
-        return;
+      if (payload.message) {
+        appendSystemChat(String(payload.message));
+        showToast(String(payload.message), 'info');
       }
+      return;
+    }
 
-      if (id === 'admin-score-a') {
-        state.inputDraft.adminScores.a = value;
-        persistDraftState();
-        return;
-      }
+    if (type === 'match_chat') {
+      const data = asObject(message.data);
+      appendChatBubble(data);
+      return;
+    }
 
-      if (id === 'admin-score-b') {
-        state.inputDraft.adminScores.b = value;
-        persistDraftState();
-        return;
-      }
-
-      if (id === 'score-a') {
-        patchResultDraft(1, { score_for: value });
-        return;
-      }
-
-      if (id === 'score-a-opp') {
-        patchResultDraft(1, { score_against: value });
-        return;
-      }
-
-      if (id === 'evidence-url-a') {
-        patchResultDraft(1, { evidence_url: value });
-        return;
-      }
-
-      if (id === 'note-a') {
-        patchResultDraft(1, { note: value });
-        return;
-      }
-
-      if (id === 'score-b') {
-        patchResultDraft(2, { score_for: value });
-        return;
-      }
-
-      if (id === 'score-b-opp') {
-        patchResultDraft(2, { score_against: value });
-        return;
-      }
-
-      if (id === 'evidence-url-b') {
-        patchResultDraft(2, { evidence_url: value });
-        return;
-      }
-
-      if (id === 'note-b') {
-        patchResultDraft(2, { note: value });
-      }
-    });
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        syncRoom();
-      }
-      sendPresencePing();
-    });
-  }
-
-  function refreshIcons() {
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      window.lucide.createIcons();
+    if (type === 'error') {
+      const code = String(message.code || 'error');
+      const text = String(message.message || code || 'Socket error');
+      showToast(text, 'error');
     }
   }
 
-  function renderAll() {
-    renderTheme();
-    renderHeader();
-    renderCheckinBanner();
-    renderEntryGate();
-    renderClock();
-    renderSocketBadge();
-    renderPhaseLayout();
-    renderWaitingOverlay();
-    renderCoinToss();
-    renderVeto();
-    renderDraft();
-    renderDirectReady();
-    renderLobbyPhase();
-    renderServerPhase();
-    renderResultPhase();
-    renderIntelPanel();
-    renderProxyControls();
-    renderTabs();
-    renderAnnouncements();
-    applyPersistentInputs();
-    refreshIcons();
+  function updatePresenceLocal(side, online, status) {
+    if (side !== 1 && side !== 2) {
+      return;
+    }
+    const key = String(side);
+    if (!state.socketPresence || typeof state.socketPresence !== 'object') {
+      state.socketPresence = { '1': normalizePresenceSide({}), '2': normalizePresenceSide({}) };
+    }
+    const socketRow = asObject(state.socketPresence[key]);
+    socketRow.online = !!online;
+    socketRow.status = online ? (status === 'away' ? 'away' : 'online') : 'offline';
+    socketRow.last_seen = new Date().toISOString();
+    socketRow.checked_in = sideCheckedIn(side);
+    state.socketPresence[key] = socketRow;
+
+    const row = asObject(state.room.presence[key]);
+    row.online = !!online;
+    row.status = online ? (status === 'away' ? 'away' : 'online') : 'offline';
+    row.last_seen = new Date().toISOString();
+    state.room.presence[key] = row;
+    state.room.workflow.presence[key] = row;
   }
 
-  function bootstrap() {
-    console.log('[Match-Room] Initializing match room runtime...', {
-      mode: currentMode(),
-      phase: currentPhase(),
-      workflowPhase: (room.workflow || {}).phase,
-      roomUrls: room.urls,
-    });
-    
-    loadDraftState();
-    _loadEntryGateState();
-    state.activeTab = 'chat';
-    state.proxyEnabled = false;
-    state.proxySide = 1;
-
-    bindStaticEvents();
-    renderAll();
-    connectWs();
-
-    if (state.syncTimer) {
-      clearInterval(state.syncTimer);
+  function scheduleReconnect() {
+    if (state.reconnectTimer) {
+      return;
     }
-    state.syncTimer = window.setInterval(syncRoom, 20000);
 
+    state.reconnectAttempts += 1;
+    const delayMs = Math.min(20000, 1000 * Math.max(1, state.reconnectAttempts));
+
+    state.reconnectTimer = window.setTimeout(function () {
+      state.reconnectTimer = null;
+      connectSocket();
+    }, delayMs);
+
+    updateSocketPill();
+  }
+
+  function clearReconnectTimer() {
+    if (!state.reconnectTimer) {
+      return;
+    }
+    window.clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = null;
+  }
+
+  function startPresenceHeartbeat() {
     if (state.presenceTimer) {
-      clearInterval(state.presenceTimer);
+      window.clearInterval(state.presenceTimer);
     }
-    state.presenceTimer = window.setInterval(sendPresencePing, 15000);
-    sendPresencePing();
 
-    if (state.clockTimer) {
-      clearInterval(state.clockTimer);
-    }
-    state.clockTimer = window.setInterval(renderClock, 1000);
+    state.presenceTimer = window.setInterval(function () {
+      if (state.wsConnected) {
+        sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
+      }
+    }, 15000);
   }
 
-  bootstrap();
+  function startFallbackSync() {
+    if (state.fallbackSyncTimer) {
+      window.clearInterval(state.fallbackSyncTimer);
+    }
+
+    state.fallbackSyncTimer = window.setInterval(function () {
+      if (!state.wsConnected) {
+        refreshRoom();
+      }
+    }, 20000);
+  }
+
+  function submitChat(inputNode) {
+    const input = inputNode;
+    if (!input) {
+      return;
+    }
+
+    const text = String(input.value || '').trim();
+    if (!text) {
+      return;
+    }
+
+    if (!state.wsConnected) {
+      showToast('Socket is offline. Cannot send chat right now.', 'error');
+      return;
+    }
+
+    sendSocket({ type: 'chat_message', text });
+    input.value = '';
+  }
+
+  function appendChatBubble(payload) {
+    if (!elements.chatWindow) {
+      return;
+    }
+
+    const messageId = String(payload.message_id || `${payload.user_id || 'u'}:${payload.timestamp || nowMs()}`);
+    if (state.chatIds.has(messageId)) {
+      return;
+    }
+    state.chatIds.add(messageId);
+
+    const mine = toInt(payload.user_id, -1) === toInt(asObject(state.room.me).user_id, -2);
+    const username = String(payload.username || 'Player');
+    const text = String(payload.text || '').trim();
+    if (!text) {
+      return;
+    }
+
+    const sideToken = initials(username);
+    const stamp = shortClock(payload.timestamp);
+
+    const bubble = mine
+      ? `
+        <div class="flex gap-3 flex-row-reverse text-right">
+          <div class="w-8 h-8 rounded-lg bg-ac-subtle text-ac flex items-center justify-center text-xs font-black shrink-0">${esc(sideToken)}</div>
+          <div class="max-w-[85%] flex flex-col items-end">
+            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)} - ${esc(stamp)}</span>
+            <p class="text-sm text-white px-4 py-2.5 rounded-2xl rounded-tr-sm bg-white/10 border border-white/10 break-words">${esc(text)}</p>
+          </div>
+        </div>
+      `
+      : `
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-300 flex items-center justify-center text-xs font-black shrink-0">${esc(sideToken)}</div>
+          <div class="max-w-[85%] flex flex-col items-start">
+            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)} - ${esc(stamp)}</span>
+            <p class="text-sm text-white px-4 py-2.5 rounded-2xl rounded-tl-sm bg-black/55 border border-white/10 break-words">${esc(text)}</p>
+          </div>
+        </div>
+      `;
+
+    elements.chatWindow.insertAdjacentHTML('beforeend', bubble);
+    elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+    syncMobileMirror();
+  }
+
+  function appendSystemChat(text) {
+    if (!elements.chatWindow) {
+      return;
+    }
+
+    const content = String(text || '').trim();
+    if (!content) {
+      return;
+    }
+
+    elements.chatWindow.insertAdjacentHTML(
+      'beforeend',
+      `<div class="flex justify-center my-2"><span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-ac text-center">${esc(content)}</span></div>`
+    );
+
+    elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+    syncMobileMirror();
+  }
+
+  function processAnnouncements() {
+    const announcements = asList(asObject(state.room.workflow).announcements);
+    if (!announcements.length) {
+      return;
+    }
+
+    announcements.forEach(function (item) {
+      const row = asObject(item);
+      const key = `${String(row.at || '')}:${String(row.message || '')}`;
+      if (!key || state.seenAnnouncements.has(key)) {
+        return;
+      }
+
+      state.seenAnnouncements.add(key);
+      appendSystemChat(String(row.message || 'System announcement'));
+    });
+  }
+
+  async function handleAdminForceNext() {
+    const me = asObject(state.room.me);
+    if (!bool(me.admin_mode, false)) {
+      showToast('Admin mode required.', 'error');
+      return;
+    }
+
+    const order = phaseOrder();
+    const current = currentPhase();
+    const index = order.indexOf(current);
+
+    if (index < 0 || index + 1 >= order.length) {
+      showToast('No next phase available.', 'info');
+      return;
+    }
+
+    await sendWorkflowAction('advance_phase', { phase: order[index + 1] });
+  }
+
+  async function handleAdminBroadcast() {
+    const me = asObject(state.room.me);
+    if (!bool(me.admin_mode, false)) {
+      showToast('Admin mode required.', 'error');
+      return;
+    }
+
+    const message = window.prompt('System announcement message:');
+    if (!message || !String(message).trim()) {
+      return;
+    }
+
+    await sendWorkflowAction('system_announcement', { message: String(message).trim() });
+  }
+
+  function openOverrideModal() {
+    const me = asObject(state.room.me);
+    if (!bool(me.admin_mode, false)) {
+      showToast('Admin mode required.', 'error');
+      return;
+    }
+
+    const match = asObject(state.room.match);
+
+    if (elements.overrideP1) {
+      elements.overrideP1.value = String(toInt(asObject(match.participant1).score, 0));
+    }
+    if (elements.overrideP2) {
+      elements.overrideP2.value = String(toInt(asObject(match.participant2).score, 0));
+    }
+    if (elements.overrideNote) {
+      elements.overrideNote.value = '';
+    }
+
+    if (elements.overrideModal) {
+      elements.overrideModal.classList.remove('hidden-state');
+      elements.overrideModal.classList.add('flex');
+    }
+  }
+
+  function closeOverrideModal() {
+    if (!elements.overrideModal) {
+      return;
+    }
+    elements.overrideModal.classList.add('hidden-state');
+    elements.overrideModal.classList.remove('flex');
+  }
+
+  async function applyOverrideResult() {
+    const p1 = toInt(elements.overrideP1 ? elements.overrideP1.value : '', -1);
+    const p2 = toInt(elements.overrideP2 ? elements.overrideP2.value : '', -1);
+
+    if (p1 < 0 || p2 < 0) {
+      showToast('Override scores must be >= 0.', 'error');
+      return;
+    }
+
+    const note = elements.overrideNote ? String(elements.overrideNote.value || '').trim() : '';
+
+    await sendWorkflowAction('admin_override_result', {
+      participant1_score: p1,
+      participant2_score: p2,
+      note,
+    });
+
+    closeOverrideModal();
+  }
+
+  function showToast(message, kind) {
+    if (!elements.roomToast) {
+      return;
+    }
+
+    const text = String(message || '').trim();
+    if (!text) {
+      return;
+    }
+
+    const now = nowMs();
+    if (state.lastToastText === text && now - state.lastToastAt < 1500) {
+      return;
+    }
+
+    state.lastToastText = text;
+    state.lastToastAt = now;
+
+    const color = kind === 'error'
+      ? 'border-red-400/40 text-red-100'
+      : (kind === 'success'
+        ? 'border-green-400/40 text-green-100'
+        : 'border-white/20 text-white');
+
+    const toast = document.createElement('div');
+    toast.className = `opacity-0 translate-y-2 transition-all duration-300 ${color}`;
+    toast.innerHTML = `<div class="rounded-xl px-4 py-3 bg-black/85 border ${color} text-sm font-semibold">${esc(text)}</div>`;
+
+    elements.roomToast.appendChild(toast);
+
+    window.requestAnimationFrame(function () {
+      toast.classList.remove('opacity-0', 'translate-y-2');
+    });
+
+    window.setTimeout(function () {
+      toast.classList.add('opacity-0', 'translate-y-2');
+      window.setTimeout(function () {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 280);
+    }, 3200);
+  }
 })();
