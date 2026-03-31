@@ -2873,7 +2873,13 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_name = m.participant2_name if is_p1 else m.participant1_name
                 your_score = m.participant1_score if is_p1 else m.participant2_score
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
-                is_winner = m.winner_id == participant_id if m.winner_id else None
+                inferred_winner_id = m.winner_id
+                if not inferred_winner_id and m.state in (Match.COMPLETED, Match.FORFEIT):
+                    p1_score = m.participant1_score
+                    p2_score = m.participant2_score
+                    if p1_score is not None and p2_score is not None and p1_score != p2_score:
+                        inferred_winner_id = m.participant1_id if p1_score > p2_score else m.participant2_id
+                is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
             if bracket:
                 round_name = bracket.get_round_name(m.round_number)

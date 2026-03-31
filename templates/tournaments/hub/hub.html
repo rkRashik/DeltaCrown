@@ -672,6 +672,70 @@
     </div>
   </div>
 
+  {% comment %}Match Reschedule Modal{% endcomment %}
+  <div id="hub-reschedule-modal" class="fixed inset-0 z-[115] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeRescheduleModal()">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-lg mx-4 hub-glass rounded-2xl border border-amber-300/25 overflow-hidden bg-[linear-gradient(150deg,rgba(20,14,8,0.92)_0%,rgba(9,13,24,0.96)_100%)]">
+      <div class="p-5 sm:p-6 border-b border-white/10">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-[10px] font-black text-amber-200 uppercase tracking-[0.18em]">Match Negotiation</p>
+            <h3 id="hub-reschedule-modal-title" class="text-lg font-black text-white mt-2" style="font-family:Outfit,sans-serif;">Reschedule Match</h3>
+            <p id="hub-reschedule-modal-subtitle" class="text-xs text-gray-400 mt-1">Adjust the upcoming match time with your opponent.</p>
+          </div>
+          <button id="hub-reschedule-modal-close" type="button" onclick="HubEngine.closeRescheduleModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-5 sm:p-6 space-y-4">
+        <div id="hub-reschedule-modal-current-wrap" class="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <p class="text-[9px] text-gray-500 uppercase tracking-wider">Current Match Time</p>
+          <p id="hub-reschedule-modal-current" class="text-sm font-semibold text-white mt-1">--</p>
+        </div>
+
+        <div id="hub-reschedule-modal-proposed-wrap" class="hidden rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 py-2">
+          <p class="text-[9px] text-amber-200 uppercase tracking-wider">Opponent Proposed</p>
+          <p id="hub-reschedule-modal-proposed" class="text-sm font-semibold text-amber-100 mt-1">--</p>
+        </div>
+
+        <div id="hub-reschedule-modal-datetime-wrap" class="space-y-2">
+          <label for="hub-reschedule-modal-datetime" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Match Time</label>
+          <input id="hub-reschedule-modal-datetime"
+                 type="datetime-local"
+                 class="w-full rounded-lg border border-white/15 bg-[#0B1120]/90 text-sm text-white px-3 py-2 focus:outline-none focus:border-cyan-300/60">
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label id="hub-reschedule-modal-note-label" for="hub-reschedule-modal-note" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Optional Note</label>
+            <span id="hub-reschedule-modal-note-hint" class="text-[10px] text-gray-500">Max 500 chars</span>
+          </div>
+          <textarea id="hub-reschedule-modal-note"
+                    rows="4"
+                    maxlength="500"
+                    class="w-full rounded-lg border border-white/15 bg-[#0B1120]/90 text-sm text-white px-3 py-2 resize-y focus:outline-none focus:border-cyan-300/60"
+                    placeholder="Add context for your opponent..."></textarea>
+        </div>
+
+        <p id="hub-reschedule-modal-helper" class="text-[11px] text-gray-500 leading-relaxed">Times are converted automatically based on your timezone.</p>
+      </div>
+
+      <div class="p-5 sm:p-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:justify-end gap-2">
+        <button id="hub-reschedule-modal-cancel" type="button" onclick="HubEngine.closeRescheduleModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
+          Cancel
+        </button>
+        <button id="hub-reschedule-modal-secondary" type="button" class="hidden px-4 py-2 rounded-lg bg-[#FF2A55]/18 hover:bg-[#FF2A55]/28 border border-[#FF2A55]/35 text-[#FF97AA] text-xs font-black uppercase tracking-wider transition-colors">
+          Reject Proposal
+        </button>
+        <button id="hub-reschedule-modal-primary" type="button" class="px-4 py-2 rounded-lg bg-amber-300/20 hover:bg-amber-300/30 border border-amber-300/35 text-amber-100 text-xs font-black uppercase tracking-wider transition-colors">
+          Send Proposal
+        </button>
+      </div>
+    </div>
+  </div>
+
   {% comment %}Alert Detail Modal{% endcomment %}
   <div id="hub-alert-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeAlertModal()">
     <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>

@@ -83,6 +83,8 @@ const HubEngine = (() => {
   let _lastPolledState = null;
   let _scheduleFilter = 'all';
   let _overviewMatchRefreshInFlight = false;
+  let _rescheduleModalState = null;
+  let _rescheduleModalBusy = false;
 
   // S27: WebSocket connection for real-time sync
   let _ws = null;
@@ -237,6 +239,19 @@ const HubEngine = (() => {
     return dt;
   }
 
+  function _formatRescheduleDatetimeLabel(raw) {
+    const dt = raw ? new Date(raw) : null;
+    if (!dt || Number.isNaN(dt.getTime())) {
+      return 'a proposed time';
+    }
+    return dt.toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   function _rescheduleErrorMessage(payload) {
     const code = String(payload?.error || '').trim();
     if (!code) return 'Unable to process the reschedule request right now.';
@@ -313,6 +328,38 @@ const HubEngine = (() => {
     _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
   }
 
+  function _mutateCachedMatch(matchId, mutator) {
+    const normalizedId = String(matchId || '').trim();
+    if (!normalizedId || typeof mutator !== 'function') return;
+
+    const mutateCollection = (collection) => {
+      if (!Array.isArray(collection)) return;
+      collection.forEach((item) => {
+        if (String(item?.id || '') === normalizedId) {
+          mutator(item);
+        }
+      });
+    };
+
+    [_matchesCache, _scheduleMatchesCache].forEach((cache) => {
+      if (!cache || typeof cache !== 'object') return;
+      mutateCollection(cache.active_matches);
+      mutateCollection(cache.match_history);
+    });
+  }
+
+  function _rerenderMatchSurfacesFromCache() {
+    if (_matchesCache) {
+      _renderMatches(_matchesCache);
+    } else {
+      _renderOverviewActionCard(_scheduleMatchesCache || null, _lastPolledState);
+    }
+
+    if (_scheduleMatchesCache) {
+      _renderScheduleMatches(_scheduleMatchesCache);
+    }
+  }
+
   // ── Init ────────────────────────────────────────────────
   function init() {
     _shell = document.getElementById('hub-shell');
@@ -347,6 +394,7 @@ const HubEngine = (() => {
     _onKeyDown = (e) => {
       if (e.key === 'Escape') {
         closeMobileSidebar();
+        closeRescheduleModal();
         closeAlertConfirmModal();
         closeAlertModal();
         closeContactModal();
@@ -2166,6 +2214,9 @@ const HubEngine = (() => {
     const live = nonTerminal.find((m) => String(m?.state || '').toLowerCase() === 'live');
     if (live) return live;
 
+    const incomingReschedule = _collectIncomingRescheduleMatches(nonTerminal)[0];
+    if (incomingReschedule) return incomingReschedule;
+
     const lobbyOpen = nonTerminal.find((m) => {
       const windowInfo = _resolveLobbyWindow(m);
       return windowInfo.isOpen && Boolean(m?.match_room_url);
@@ -2189,6 +2240,56 @@ const HubEngine = (() => {
     }
 
     return nonTerminal[0];
+  }
+
+  function _collectIncomingRescheduleMatches(matches) {
+    const all = Array.isArray(matches) ? matches : [];
+    const seen = new Set();
+    return all.filter((m) => {
+      const pendingId = String(m?.reschedule?.pending_request?.id || '').trim();
+      if (!pendingId) return false;
+      if (!m?.reschedule?.can_respond) return false;
+      if (seen.has(pendingId)) return false;
+      seen.add(pendingId);
+      return true;
+    });
+  }
+
+  function _renderIncomingRescheduleInbox(matches) {
+    const incoming = _collectIncomingRescheduleMatches(matches);
+    if (!incoming.length) return '';
+
+    const cards = incoming.slice(0, 3).map((m) => {
+      const matchId = JSON.stringify(String(m.id || ''));
+      const proposedAt = _formatRescheduleDatetimeLabel(m?.reschedule?.pending_request?.new_time);
+      const opponent = m?.opponent_name || m?.p2_name || m?.p1_name || 'your opponent';
+
+      return `
+        <div class="hub-glass rounded-xl border border-amber-300/30 bg-gradient-to-br from-amber-300/12 via-[#0e1222]/88 to-[#0a1220]/92 p-3">
+          <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">Response Required</p>
+              <p class="text-sm font-semibold text-white mt-1">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</p>
+              <p class="text-xs text-gray-300 mt-1">${_esc(opponent)} proposed ${_esc(proposedAt)}.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 lg:justify-end">
+              <button onclick='HubEngine.respondReschedule(${matchId}, "accept")' class='px-3 py-1.5 rounded-lg border border-[#00FF66]/35 bg-[#00FF66]/12 text-[#66FFAE] text-[10px] font-black uppercase tracking-wider hover:bg-[#00FF66]/20 transition-colors'>Accept</button>
+              <button onclick='HubEngine.respondReschedule(${matchId}, "reject")' class='px-3 py-1.5 rounded-lg border border-[#FF2A55]/35 bg-[#FF2A55]/12 text-[#FF97AA] text-[10px] font-black uppercase tracking-wider hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const overflowCount = incoming.length - 3;
+    const overflow = overflowCount > 0
+      ? `<p class="text-[10px] text-gray-500 uppercase tracking-widest">+${overflowCount} more pending reschedule request${overflowCount > 1 ? 's' : ''} in Match Lobby.</p>`
+      : '';
+
+    return `
+      <div class="mb-4 space-y-2">
+        ${cards}
+        ${overflow}
+      </div>`;
   }
 
   function _renderLifecyclePipeline(pipeline) {
@@ -2432,6 +2533,55 @@ const HubEngine = (() => {
         actionBtn.textContent = 'View Schedule';
         actionBtn.onclick = () => switchTab('schedule');
       }
+      return;
+    }
+
+    const pendingRequest = target?.reschedule?.pending_request || null;
+    const canRespondToProposal = Boolean(target?.reschedule?.can_respond && pendingRequest?.id);
+    if (canRespondToProposal) {
+      const proposedLabel = _formatRescheduleDatetimeLabel(pendingRequest?.new_time);
+      const overviewIsStaff = Boolean(target.is_staff_view);
+      const matchup = overviewIsStaff
+        ? `${target.p1_name || 'TBD'} vs ${target.p2_name || 'TBD'}`
+        : `vs ${target.opponent_name || 'TBD'}`;
+
+      if (card) {
+        card.style.borderColor = 'rgba(255, 184, 0, 0.38)';
+        card.style.background = 'linear-gradient(135deg, rgba(255, 184, 0, 0.14) 0%, rgba(21, 15, 6, 0.95) 82%)';
+        card.style.boxShadow = '0 14px 40px rgba(255, 184, 0, 0.16)';
+      }
+
+      if (badge) {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300/35 bg-amber-300/15 text-[9px] font-black uppercase tracking-[0.12em] text-amber-200';
+        badge.textContent = 'Response Required';
+      }
+
+      if (title) {
+        title.textContent = `Reschedule Request: ${matchup}`;
+      }
+
+      if (subtitle) {
+        subtitle.textContent = `Your opponent proposed a new match time. Review and accept or reject this request.`;
+      }
+
+      if (timeLabel) {
+        timeLabel.textContent = 'Proposed For';
+      }
+
+      if (timeValue) {
+        timeValue.dataset.matchTime = '';
+        timeValue.textContent = proposedLabel;
+      }
+
+      if (actionBtn) {
+        actionBtn.className = 'w-full md:w-auto min-h-[52px] px-8 rounded-xl flex items-center justify-center gap-3 text-xs md:text-sm tracking-widest uppercase font-black transition-all bg-amber-300/20 text-amber-100 border border-amber-300/40 shadow-[0_0_24px_rgba(255,184,0,0.26)]';
+        actionBtn.dataset.hubAction = 'respond_reschedule';
+        actionBtn.disabled = false;
+        actionBtn.innerHTML = `<i data-lucide="clock-3" class="w-5 h-5"></i><span>Review Proposal</span>`;
+        actionBtn.onclick = () => respondReschedule(target.id);
+      }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
 
@@ -3486,10 +3636,7 @@ const HubEngine = (() => {
     const proposerSide = Number(pendingRequest?.proposer_side || 0);
     const iProposed = Boolean(pendingRequest && mySide && proposerSide && mySide === proposerSide);
 
-    const proposedTime = pendingRequest?.new_time ? new Date(pendingRequest.new_time) : null;
-    const proposedLabel = (proposedTime && !Number.isNaN(proposedTime.getTime()))
-      ? proposedTime.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : 'a new time';
+    const proposedLabel = _formatRescheduleDatetimeLabel(pendingRequest?.new_time);
 
     let pendingLine = '';
     if (pendingRequest) {
@@ -3522,7 +3669,13 @@ const HubEngine = (() => {
 
     if (canPropose) {
       buttons.push(
-        `<button onclick='HubEngine.openRescheduleProposal(${matchId})' class='${buttonBase} rounded-lg border border-amber-300/30 bg-amber-300/10 text-amber-200 font-bold uppercase tracking-wide hover:bg-amber-300/15 transition-colors'>Propose Reschedule</button>`
+        `<button onclick='HubEngine.openRescheduleProposal(${matchId})' class='${buttonBase} rounded-lg border border-amber-300/30 bg-amber-300/10 text-amber-200 font-bold uppercase tracking-wide hover:bg-amber-300/15 transition-colors'>Propose New Time</button>`
+      );
+    }
+
+    if (pendingRequest && iProposed) {
+      buttons.push(
+        `<button disabled class='${buttonBase} rounded-lg border border-cyan-300/30 bg-cyan-300/12 text-cyan-100 font-bold uppercase tracking-wide opacity-85 cursor-not-allowed'>Reschedule Pending</button>`
       );
     }
 
@@ -3953,7 +4106,7 @@ const HubEngine = (() => {
       groups[day].push(m);
     });
 
-    let html = '';
+    let html = _renderIncomingRescheduleInbox(filteredMatches);
     for (const [day, matches] of Object.entries(groups)) {
       const isToday = day !== 'Unscheduled' && new Date(matches[0].scheduled_at).toDateString() === new Date().toDateString();
       html += `
@@ -3976,12 +4129,76 @@ const HubEngine = (() => {
           ? new Date(m.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
           : '—';
         const isLive = m.state === 'live';
-        const isCompleted = m.state === 'completed';
-        const resultTag = isCompleted
-          ? (m.is_winner === true ? '<span class="text-[10px] font-bold text-[#00FF66]">WIN</span>'
-            : m.is_winner === false ? '<span class="text-[10px] font-bold text-[#FF2A55]">LOSS</span>'
-            : '<span class="text-[10px] font-bold text-gray-400">DRAW</span>')
-          : '';
+        const isCompleted = m.state === 'completed' || m.state === 'forfeit';
+        const isParticipantOwnMatch = Boolean(m.is_my_match && !m.is_staff_view);
+
+        const leftScore = isParticipantOwnMatch
+          ? (m.your_score ?? 0)
+          : (m.p1_score ?? 0);
+        const rightScore = isParticipantOwnMatch
+          ? (m.opponent_score ?? 0)
+          : (m.p2_score ?? 0);
+
+        let leftScoreClass = 'text-white';
+        let rightScoreClass = 'text-white';
+        let resultTag = '';
+
+        if (isCompleted) {
+          if (isParticipantOwnMatch && m.is_winner === true) {
+            leftScoreClass = 'text-[#66FFAE]';
+            rightScoreClass = 'text-[#FF93A8] opacity-65';
+            resultTag = '<span class="inline-flex items-center gap-1 text-[10px] font-black text-[#66FFAE] uppercase tracking-widest">WINNER <span aria-hidden="true">👑</span></span>';
+          } else if (isParticipantOwnMatch && m.is_winner === false) {
+            leftScoreClass = 'text-[#FF93A8] opacity-70';
+            rightScoreClass = 'text-[#66FFAE]';
+            resultTag = '<span class="text-[10px] font-black text-[#FF93A8] uppercase tracking-widest">Defeat</span>';
+          } else if (isParticipantOwnMatch) {
+            resultTag = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Draw</span>';
+          } else {
+            const leftValue = Number(leftScore);
+            const rightValue = Number(rightScore);
+            if (Number.isFinite(leftValue) && Number.isFinite(rightValue) && leftValue !== rightValue) {
+              const leftWon = leftValue > rightValue;
+              leftScoreClass = leftWon ? 'text-[#66FFAE]' : 'text-[#FF93A8] opacity-70';
+              rightScoreClass = leftWon ? 'text-[#FF93A8] opacity-70' : 'text-[#66FFAE]';
+              resultTag = `<span class="text-[10px] font-black uppercase tracking-widest ${leftWon ? 'text-[#66FFAE]' : 'text-cyan-200'}">${leftWon ? 'P1 Winner' : 'P2 Winner'}</span>`;
+            } else {
+              resultTag = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Draw</span>';
+            }
+          }
+        }
+
+        const matchupLabel = m.is_staff_view
+          ? `${_esc(m.p1_name || 'TBD')} vs ${_esc(m.p2_name || 'TBD')}`
+          : `vs ${_esc(m.opponent_name || 'TBD')}`;
+
+        let participantBreakdown = '';
+        if (isCompleted && isParticipantOwnMatch) {
+          const youWon = m.is_winner === true;
+          const youLost = m.is_winner === false;
+          const youCardClass = youWon
+            ? 'border-[#00FF66]/35 bg-[#00FF66]/10'
+            : youLost
+              ? 'border-[#FF2A55]/25 bg-[#FF2A55]/10 opacity-80'
+              : 'border-white/10 bg-white/[0.03]';
+          const oppCardClass = youLost
+            ? 'border-[#00FF66]/35 bg-[#00FF66]/10'
+            : youWon
+              ? 'border-[#FF2A55]/25 bg-[#FF2A55]/10 opacity-80'
+              : 'border-white/10 bg-white/[0.03]';
+
+          participantBreakdown = `
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="rounded-lg border p-2 ${youCardClass}">
+                <p class="text-[9px] text-gray-400 uppercase tracking-wider">You</p>
+                <p class="text-lg font-black ${youWon ? 'text-[#66FFAE]' : youLost ? 'text-[#FF8AA0]' : 'text-gray-200'}" style="font-family:Outfit,sans-serif;">${_esc(String(leftScore))}</p>
+              </div>
+              <div class="rounded-lg border p-2 ${oppCardClass}">
+                <p class="text-[9px] text-gray-400 uppercase tracking-wider">Opponent</p>
+                <p class="text-lg font-black ${youLost ? 'text-[#66FFAE]' : youWon ? 'text-[#FF8AA0]' : 'text-gray-200'}" style="font-family:Outfit,sans-serif;">${_esc(String(rightScore))}</p>
+              </div>
+            </div>`;
+        }
 
         html += `
           <div class="hub-glass rounded-xl p-4 border-l-3 transition-all hover:border-l-4" style="border-left-color:${color}">
@@ -3993,14 +4210,17 @@ const HubEngine = (() => {
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-                <p class="text-sm font-medium text-white mt-0.5">${m.is_staff_view ? _esc(m.p1_name || 'TBD') + ' vs ' + _esc(m.p2_name || 'TBD') : 'vs ' + _esc(m.opponent_name || 'TBD')}</p>
+                <p class="text-sm ${isCompleted && isParticipantOwnMatch && m.is_winner === false ? 'font-medium text-gray-300' : 'font-semibold text-white'} mt-0.5">${matchupLabel}</p>
               </div>
               <div class="text-right shrink-0">
-                ${isLive || isCompleted ? `<p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? m.your_score ?? 0} — ${m.p2_score ?? m.opponent_score ?? 0}</p>` : ''}
+                ${isLive || isCompleted
+                  ? `<p class="text-lg font-black" style="font-family:Outfit,sans-serif;"><span class="${leftScoreClass}">${_esc(String(leftScore))}</span> <span class="text-gray-600">—</span> <span class="${rightScoreClass}">${_esc(String(rightScore))}</span></p>`
+                  : ''}
                 ${resultTag}
                 ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
               </div>
             </div>
+            ${participantBreakdown}
             ${_renderMatchActionControls(m, { compact: true })}
           </div>`;
       });
@@ -4039,7 +4259,32 @@ const HubEngine = (() => {
     _openMatchRoom(match.match_room_url);
   }
 
-  async function openRescheduleProposal(matchId) {
+  function _setRescheduleModalBusy(isBusy) {
+    _rescheduleModalBusy = Boolean(isBusy);
+    const modal = document.getElementById('hub-reschedule-modal');
+    if (!modal) return;
+
+    modal.querySelectorAll('button, input, textarea').forEach((el) => {
+      if (el.id === 'hub-reschedule-modal-close') return;
+      if (el.id === 'hub-reschedule-modal-cancel' && _rescheduleModalBusy) return;
+      if ('disabled' in el) {
+        el.disabled = _rescheduleModalBusy;
+      }
+    });
+
+    const cancelBtn = document.getElementById('hub-reschedule-modal-cancel');
+    if (cancelBtn) {
+      cancelBtn.disabled = false;
+    }
+  }
+
+  function closeRescheduleModal() {
+    if (_rescheduleModalBusy) return;
+    _rescheduleModalState = null;
+    _closeModal('hub-reschedule-modal');
+  }
+
+  function openRescheduleProposal(matchId) {
     const match = _findMatchById(matchId);
     if (!match) {
       _emitToast('error', 'Unable to find this match in the current view. Refresh and try again.');
@@ -4051,33 +4296,101 @@ const HubEngine = (() => {
       return;
     }
 
+    const titleEl = document.getElementById('hub-reschedule-modal-title');
+    const subtitleEl = document.getElementById('hub-reschedule-modal-subtitle');
+    const currentWrapEl = document.getElementById('hub-reschedule-modal-current-wrap');
+    const currentValueEl = document.getElementById('hub-reschedule-modal-current');
+    const proposedWrapEl = document.getElementById('hub-reschedule-modal-proposed-wrap');
+    const proposedValueEl = document.getElementById('hub-reschedule-modal-proposed');
+    const datetimeWrapEl = document.getElementById('hub-reschedule-modal-datetime-wrap');
+    const datetimeInput = document.getElementById('hub-reschedule-modal-datetime');
+    const noteLabelEl = document.getElementById('hub-reschedule-modal-note-label');
+    const noteInput = document.getElementById('hub-reschedule-modal-note');
+    const noteHintEl = document.getElementById('hub-reschedule-modal-note-hint');
+    const helperEl = document.getElementById('hub-reschedule-modal-helper');
+    const secondaryBtn = document.getElementById('hub-reschedule-modal-secondary');
+    const primaryBtn = document.getElementById('hub-reschedule-modal-primary');
+
+    if (!titleEl || !subtitleEl || !datetimeInput || !noteInput || !secondaryBtn || !primaryBtn) {
+      _emitToast('error', 'Reschedule modal is not available. Refresh and try again.');
+      return;
+    }
+
     const currentScheduled = match.scheduled_at ? new Date(match.scheduled_at) : null;
     const defaultDate = currentScheduled && !Number.isNaN(currentScheduled.getTime())
       ? new Date(currentScheduled.getTime() + (30 * 60 * 1000))
       : new Date(Date.now() + (60 * 60 * 1000));
     defaultDate.setSeconds(0, 0);
 
-    const entered = window.prompt(
-      'Propose new time (local): YYYY-MM-DDTHH:MM',
-      _toDatetimeLocalValue(defaultDate)
-    );
-    if (entered === null) return;
+    _rescheduleModalState = {
+      mode: 'proposal',
+      matchId: String(match.id || ''),
+    };
 
-    const parsed = _parseLocalDatetime(entered);
-    if (!parsed) {
-      _emitToast('error', 'Invalid date/time. Use YYYY-MM-DDTHH:MM.');
+    titleEl.textContent = 'Propose Reschedule';
+    subtitleEl.textContent = `Send a new kickoff time for Match ${match.match_number || ''}.`;
+    if (currentWrapEl) currentWrapEl.classList.remove('hidden');
+    if (currentValueEl) {
+      currentValueEl.textContent = _formatRescheduleDatetimeLabel(match.scheduled_at) || 'Not scheduled';
+    }
+    if (proposedWrapEl) proposedWrapEl.classList.add('hidden');
+    if (proposedValueEl) proposedValueEl.textContent = '';
+    if (datetimeWrapEl) datetimeWrapEl.classList.remove('hidden');
+
+    datetimeInput.value = _toDatetimeLocalValue(defaultDate);
+    datetimeInput.min = _toDatetimeLocalValue(new Date(Date.now() + (5 * 60 * 1000)));
+
+    if (noteLabelEl) noteLabelEl.textContent = 'Optional reason for your opponent';
+    if (noteHintEl) noteHintEl.textContent = 'Keep this short and actionable (max 500 characters).';
+    if (helperEl) helperEl.textContent = 'Time is entered in your local timezone and sent to the server in UTC.';
+    noteInput.value = '';
+    noteInput.placeholder = 'Example: Player has internet outage until 8:30 PM.';
+
+    secondaryBtn.className = 'hidden';
+    secondaryBtn.textContent = 'Reject';
+    secondaryBtn.onclick = null;
+
+    primaryBtn.className = 'px-4 py-2 rounded-lg bg-amber-300/20 hover:bg-amber-300/30 border border-amber-300/35 text-amber-100 text-xs font-black uppercase tracking-wider transition-colors';
+    primaryBtn.textContent = 'Send Proposal';
+    primaryBtn.onclick = () => _submitRescheduleProposal();
+
+    _setRescheduleModalBusy(false);
+    _openModal('hub-reschedule-modal', 'hub-reschedule-modal-title');
+  }
+
+  async function _submitRescheduleProposal() {
+    if (_rescheduleModalBusy || !_rescheduleModalState || _rescheduleModalState.mode !== 'proposal') return;
+
+    const match = _findMatchById(_rescheduleModalState.matchId);
+    if (!match) {
+      _emitToast('error', 'Unable to find this match. Refresh and try again.');
       return;
     }
 
-    const reasonRaw = window.prompt('Optional reason for opponent (max 500 chars):', '') || '';
-    const reason = String(reasonRaw).trim().slice(0, 500);
+    const datetimeInput = document.getElementById('hub-reschedule-modal-datetime');
+    const noteInput = document.getElementById('hub-reschedule-modal-note');
+    const primaryBtn = document.getElementById('hub-reschedule-modal-primary');
+    if (!datetimeInput || !noteInput || !primaryBtn) return;
+
+    const parsed = _parseLocalDatetime(datetimeInput.value);
+    if (!parsed) {
+      _emitToast('error', 'Invalid date/time. Use the date picker format.');
+      return;
+    }
+
+    const reason = String(noteInput.value || '').trim().slice(0, 500);
     const url = _proposalEndpoint(match.id);
     if (!url) {
       _emitToast('error', 'Reschedule endpoint is unavailable.');
       return;
     }
 
+    const originalLabel = primaryBtn.textContent;
+
     try {
+      _setRescheduleModalBusy(true);
+      primaryBtn.textContent = 'Sending...';
+
       const resp = await fetch(url, {
         method: 'POST',
         headers: {
@@ -4096,16 +4409,35 @@ const HubEngine = (() => {
         throw new Error(_rescheduleErrorMessage(payload));
       }
 
-      _emitToast('success', 'Reschedule proposal sent to opponent.');
-      await _refreshMatchSurfaces();
+      if (payload?.request) {
+        _mutateCachedMatch(match.id, (cached) => {
+          if (!cached.reschedule || typeof cached.reschedule !== 'object') {
+            cached.reschedule = {};
+          }
+          cached.reschedule.pending_request = payload.request;
+          cached.reschedule.can_propose = false;
+          cached.reschedule.can_respond = false;
+        });
+        _rerenderMatchSurfacesFromCache();
+      }
+
+      _setRescheduleModalBusy(false);
+      closeRescheduleModal();
+      _emitToast('success', 'Reschedule proposal sent. Status is now pending opponent approval.');
+      void _refreshMatchSurfaces();
     } catch (err) {
       _emitToast('error', err?.message || 'Failed to send reschedule proposal.');
+      _setRescheduleModalBusy(false);
+      primaryBtn.textContent = originalLabel;
+      return;
     }
+
+    primaryBtn.textContent = originalLabel;
   }
 
-  async function respondReschedule(matchId, action) {
-    const normalizedAction = String(action || '').toLowerCase();
-    if (!['accept', 'reject'].includes(normalizedAction)) return;
+  function respondReschedule(matchId, action = '') {
+    const preferredAction = String(action || '').toLowerCase();
+    if (preferredAction && !['accept', 'reject'].includes(preferredAction)) return;
 
     const match = _findMatchById(matchId);
     if (!match) {
@@ -4119,31 +4451,108 @@ const HubEngine = (() => {
       return;
     }
 
-    const proposedTime = pendingRequest.new_time ? new Date(pendingRequest.new_time) : null;
-    const proposedLabel = (proposedTime && !Number.isNaN(proposedTime.getTime()))
-      ? proposedTime.toLocaleString()
-      : 'the proposed time';
+    const titleEl = document.getElementById('hub-reschedule-modal-title');
+    const subtitleEl = document.getElementById('hub-reschedule-modal-subtitle');
+    const currentWrapEl = document.getElementById('hub-reschedule-modal-current-wrap');
+    const proposedWrapEl = document.getElementById('hub-reschedule-modal-proposed-wrap');
+    const proposedValueEl = document.getElementById('hub-reschedule-modal-proposed');
+    const datetimeWrapEl = document.getElementById('hub-reschedule-modal-datetime-wrap');
+    const noteLabelEl = document.getElementById('hub-reschedule-modal-note-label');
+    const noteInput = document.getElementById('hub-reschedule-modal-note');
+    const noteHintEl = document.getElementById('hub-reschedule-modal-note-hint');
+    const helperEl = document.getElementById('hub-reschedule-modal-helper');
+    const secondaryBtn = document.getElementById('hub-reschedule-modal-secondary');
+    const primaryBtn = document.getElementById('hub-reschedule-modal-primary');
 
-    const shouldProceed = window.confirm(
-      normalizedAction === 'accept'
-        ? `Accept this proposal for ${proposedLabel}?`
-        : `Reject this proposal for ${proposedLabel}?`
-    );
-    if (!shouldProceed) return;
+    if (!titleEl || !subtitleEl || !proposedValueEl || !noteInput || !secondaryBtn || !primaryBtn) {
+      _emitToast('error', 'Reschedule modal is not available. Refresh and try again.');
+      return;
+    }
 
-    const notePrompt = normalizedAction === 'accept'
-      ? 'Optional acceptance note (max 500 chars):'
-      : 'Optional rejection note (max 500 chars):';
-    const noteRaw = window.prompt(notePrompt, '') || '';
-    const responseNote = String(noteRaw).trim().slice(0, 500);
+    const defaultAction = preferredAction || 'accept';
+    const oppositeAction = defaultAction === 'accept' ? 'reject' : 'accept';
 
+    _rescheduleModalState = {
+      mode: 'respond',
+      matchId: String(match.id || ''),
+      requestId: String(pendingRequest.id || ''),
+    };
+
+    titleEl.textContent = defaultAction === 'reject' ? 'Reject Reschedule Request' : 'Respond To Reschedule Request';
+    subtitleEl.textContent = `Match ${match.match_number || ''} · ${match.opponent_name || 'Opponent'}`;
+    if (currentWrapEl) currentWrapEl.classList.add('hidden');
+    if (proposedWrapEl) proposedWrapEl.classList.remove('hidden');
+    proposedValueEl.textContent = _formatRescheduleDatetimeLabel(pendingRequest.new_time);
+    if (datetimeWrapEl) datetimeWrapEl.classList.add('hidden');
+
+    if (noteLabelEl) {
+      noteLabelEl.textContent = defaultAction === 'reject'
+        ? 'Optional note for rejection'
+        : 'Optional note for acceptance';
+    }
+    if (noteHintEl) noteHintEl.textContent = 'Your note is visible in the request audit log (max 500 characters).';
+    if (helperEl) helperEl.textContent = 'Choose accept to move the match immediately, or reject to keep the current schedule.';
+    noteInput.value = '';
+    noteInput.placeholder = defaultAction === 'reject'
+      ? 'Example: Team cannot play this slot; propose after 9:00 PM.'
+      : 'Example: Confirmed with our roster, this works.';
+
+    const applyButtonStyle = (btn, btnAction) => {
+      if (!btn) return;
+      if (btnAction === 'accept') {
+        btn.className = 'px-4 py-2 rounded-lg bg-[#00FF66]/20 hover:bg-[#00FF66]/30 border border-[#00FF66]/35 text-[#66FFAE] text-xs font-black uppercase tracking-wider transition-colors';
+        btn.textContent = 'Accept Proposal';
+      } else {
+        btn.className = 'px-4 py-2 rounded-lg bg-[#FF2A55]/18 hover:bg-[#FF2A55]/28 border border-[#FF2A55]/35 text-[#FF97AA] text-xs font-black uppercase tracking-wider transition-colors';
+        btn.textContent = 'Reject Proposal';
+      }
+    };
+
+    secondaryBtn.classList.remove('hidden');
+    applyButtonStyle(primaryBtn, defaultAction);
+    applyButtonStyle(secondaryBtn, oppositeAction);
+
+    primaryBtn.onclick = () => _submitRescheduleResponse(defaultAction);
+    secondaryBtn.onclick = () => _submitRescheduleResponse(oppositeAction);
+
+    _setRescheduleModalBusy(false);
+    _openModal('hub-reschedule-modal', 'hub-reschedule-modal-title');
+  }
+
+  async function _submitRescheduleResponse(action) {
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!['accept', 'reject'].includes(normalizedAction)) return;
+    if (_rescheduleModalBusy || !_rescheduleModalState || _rescheduleModalState.mode !== 'respond') return;
+
+    const match = _findMatchById(_rescheduleModalState.matchId);
+    if (!match) {
+      _emitToast('error', 'Unable to find this match. Refresh and try again.');
+      return;
+    }
+
+    const noteInput = document.getElementById('hub-reschedule-modal-note');
+    const primaryBtn = document.getElementById('hub-reschedule-modal-primary');
+    const secondaryBtn = document.getElementById('hub-reschedule-modal-secondary');
+    if (!noteInput || !primaryBtn || !secondaryBtn) return;
+
+    const responseNote = String(noteInput.value || '').trim().slice(0, 500);
     const url = _respondEndpoint(match.id);
     if (!url) {
       _emitToast('error', 'Reschedule endpoint is unavailable.');
       return;
     }
 
+    const originalPrimary = primaryBtn.textContent;
+    const originalSecondary = secondaryBtn.textContent;
+
     try {
+      _setRescheduleModalBusy(true);
+      if (normalizedAction === 'accept') {
+        primaryBtn.textContent = 'Accepting...';
+      } else {
+        secondaryBtn.textContent = 'Rejecting...';
+      }
+
       const resp = await fetch(url, {
         method: 'POST',
         headers: {
@@ -4153,7 +4562,7 @@ const HubEngine = (() => {
         credentials: 'same-origin',
         body: JSON.stringify({
           action: normalizedAction,
-          request_id: pendingRequest.id,
+          request_id: _rescheduleModalState.requestId,
           response_note: responseNote,
         }),
       });
@@ -4163,18 +4572,38 @@ const HubEngine = (() => {
         throw new Error(_rescheduleErrorMessage(payload));
       }
 
+      _mutateCachedMatch(match.id, (cached) => {
+        if (!cached.reschedule || typeof cached.reschedule !== 'object') {
+          cached.reschedule = {};
+        }
+        cached.reschedule.pending_request = null;
+        cached.reschedule.can_respond = false;
+        if (normalizedAction === 'accept' && payload?.scheduled_at) {
+          cached.scheduled_at = payload.scheduled_at;
+        }
+      });
+      _rerenderMatchSurfacesFromCache();
+
+      _setRescheduleModalBusy(false);
+      closeRescheduleModal();
+
       if (normalizedAction === 'accept' && payload?.scheduled_at) {
-        const scheduled = new Date(payload.scheduled_at);
-        const when = Number.isNaN(scheduled.getTime()) ? '' : ` New time: ${scheduled.toLocaleString()}.`;
-        _emitToast('success', `Reschedule accepted.${when}`.trim());
+        _emitToast('success', `Reschedule accepted. New time: ${_formatRescheduleDatetimeLabel(payload.scheduled_at)}.`);
       } else {
         _emitToast('success', normalizedAction === 'accept' ? 'Reschedule accepted.' : 'Reschedule rejected.');
       }
 
-      await _refreshMatchSurfaces();
+      void _refreshMatchSurfaces();
     } catch (err) {
       _emitToast('error', err?.message || 'Failed to submit reschedule response.');
+      _setRescheduleModalBusy(false);
+      primaryBtn.textContent = originalPrimary;
+      secondaryBtn.textContent = originalSecondary;
+      return;
     }
+
+    primaryBtn.textContent = originalPrimary;
+    secondaryBtn.textContent = originalSecondary;
   }
 
   // ──────────────────────────────────────────────────────────
@@ -5499,6 +5928,7 @@ const HubEngine = (() => {
     refreshScheduleMatches,
     openMatchLobby,
     openRescheduleProposal,
+    closeRescheduleModal,
     respondReschedule,
     // Map viewer
     openMapViewer,
