@@ -306,9 +306,10 @@ def handle_match_state_change(sender, instance, created, **kwargs):
         if new_state == Match.COMPLETED:
             try:
                 import os
+                from django.conf import settings
 
-                if os.getenv('PYTEST_CURRENT_TEST'):
-                    logger.debug(f"Skipping Discord queue dispatch for match {instance.pk} during tests")
+                if os.getenv('PYTEST_CURRENT_TEST') or getattr(settings, 'CELERY_LOCAL_FALLBACK_SYNC', False):
+                    logger.debug(f"Skipping Discord queue dispatch for match {instance.pk} in local/test mode")
                 else:
                     from apps.organizations.tasks.discord_sync import send_match_result_to_discord
                     send_match_result_to_discord.apply_async(args=(instance.pk,), retry=False)

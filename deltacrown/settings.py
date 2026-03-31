@@ -1187,9 +1187,14 @@ CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', '180'))
 # (which otherwise fall back to localhost Redis and can block on retries).
 _celery_urls_unset = not _normalized_env_url('CELERY_BROKER_URL') and not _BASE_REDIS_URL
 _local_windows_runtime = os.name == 'nt' and not os.getenv('RENDER')
-_default_local_sync_fallback = _celery_urls_unset and (_local_windows_runtime or DEBUG)
+_default_local_sync_fallback = _local_windows_runtime or (_celery_urls_unset and DEBUG)
 
 CELERY_LOCAL_FALLBACK_SYNC = _env_bool('CELERY_LOCAL_FALLBACK_SYNC', _default_local_sync_fallback)
+
+if CELERY_LOCAL_FALLBACK_SYNC:
+    # Local-only: avoid Redis dependencies entirely.
+    CELERY_BROKER_URL = _normalized_env_url('CELERY_BROKER_URL_LOCAL_FALLBACK') or 'memory://'
+    CELERY_RESULT_BACKEND = _normalized_env_url('CELERY_RESULT_BACKEND_LOCAL_FALLBACK') or 'cache+memory://'
 
 # Primary toggle: can still be overridden explicitly via env var.
 CELERY_TASK_ALWAYS_EAGER = _env_bool('CELERY_TASK_ALWAYS_EAGER', CELERY_LOCAL_FALLBACK_SYNC)
@@ -1198,6 +1203,7 @@ CELERY_TASK_EAGER_PROPAGATES = _env_bool(
     default=False if CELERY_TASK_ALWAYS_EAGER else True,
 )
 CELERY_TASK_STORE_EAGER_RESULT = _env_bool('CELERY_TASK_STORE_EAGER_RESULT', default=False)
+CELERY_TASK_IGNORE_RESULT = _env_bool('CELERY_TASK_IGNORE_RESULT', default=CELERY_LOCAL_FALLBACK_SYNC)
 
 # Fail fast when asynchronous Celery is used and broker is degraded/unreachable.
 CELERY_TASK_PUBLISH_RETRY = _env_bool('CELERY_TASK_PUBLISH_RETRY', default=not CELERY_TASK_ALWAYS_EAGER)
