@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
+from datetime import timedelta
 from typing import Dict, Any
 
 from apps.tournaments.models import Tournament, TournamentAnnouncement
@@ -127,8 +128,8 @@ class TournamentDetailView(DetailView):
             context['registration_action_label'] = eligibility.get('action_label') or default_label
 
         if context.get('user_registration') is not None:
-            context['registration_action_url'] = f'/tournaments/{tournament.slug}/lobby/'
-            context['registration_action_label'] = 'Enter Lobby'
+            context['registration_action_url'] = reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug})
+            context['registration_action_label'] = 'Go to HUB'
 
         # Slots info
         from apps.tournaments.models import Registration
@@ -197,17 +198,6 @@ class TournamentDetailView(DetailView):
 
         # Phase-specific context
         context.update(self._get_phase_context(tournament, user))
-
-        # Live tournaments should route participants directly into their active
-        # match room whenever a next match is available.
-        if tournament.status == 'live' and context.get('is_registered'):
-            user_next_match = context.get('user_next_match')
-            if user_next_match is not None:
-                context['registration_action_url'] = reverse(
-                    'tournaments:match_room',
-                    kwargs={'slug': tournament.slug, 'match_id': user_next_match.id},
-                )
-                context['registration_action_label'] = 'Go to Your Match'
 
         # Detailed registration status (wire up the dead code at _get_registration_status)
         if user.is_authenticated and context.get('is_registered'):
@@ -348,6 +338,9 @@ class TournamentDetailView(DetailView):
                 phase_ctx['total_rounds'] = None
 
             # User's next match (if participant)
+            phase_ctx['user_next_match'] = None
+            phase_ctx['user_next_match_lobby_open'] = False
+            phase_ctx['user_next_match_lobby_opens_at'] = None
             if user.is_authenticated:
                 from apps.tournaments.models import Registration
                 user_reg = Registration.objects.filter(
@@ -363,11 +356,11 @@ class TournamentDetailView(DetailView):
                     ).filter(
                         Q(participant1_id=pid) | Q(participant2_id=pid)
                     ).order_by('round_number', 'match_number').first()
-                    phase_ctx['user_next_match'] = user_next
-                else:
-                    phase_ctx['user_next_match'] = None
-            else:
-                phase_ctx['user_next_match'] = None
+                    if user_next:
+                        lobby_window = _resolve_match_lobby_window(user_next, now=now)
+                        phase_ctx['user_next_match'] = user_next
+                        phase_ctx['user_next_match_lobby_open'] = lobby_window['is_open']
+                        phase_ctx['user_next_match_lobby_opens_at'] = lobby_window['opens_at']
 
         # Completed phase extras
         if phase_ctx['is_completed_phase']:
@@ -1260,6 +1253,16 @@ _DETAIL_STATUS_LABELS = {
     'cancelled': 'Cancelled',
 }
 
+MATCH_LOBBY_OPEN_LEAD_MINUTES = 30
+MATCH_LOBBY_ALWAYS_OPEN_STATES = {
+    'live',
+    'pending_result',
+    'completed',
+    'forfeit',
+    'disputed',
+    'cancelled',
+}
+
 
 def _format_display_datetime(value):
     if not value:
@@ -1294,6 +1297,24 @@ def _relative_match_time(scheduled_time, now, is_completed):
         return 'Finished recently'
 
     return ''
+
+
+def _resolve_match_lobby_window(match, *, now=None):
+    now = now or timezone.now()
+    state = str(getattr(match, 'state', '') or '').lower()
+
+    if state in MATCH_LOBBY_ALWAYS_OPEN_STATES:
+        return {'is_open': True, 'opens_at': None}
+
+    scheduled_time = getattr(match, 'scheduled_time', None)
+    if not scheduled_time:
+        return {'is_open': True, 'opens_at': None}
+
+    opens_at = scheduled_time - timedelta(minutes=MATCH_LOBBY_OPEN_LEAD_MINUTES)
+    return {
+        'is_open': now >= opens_at,
+        'opens_at': opens_at,
+    }
 
 
 def _detail_status_context(tournament, slots_filled, slots_total, live_match_count):
@@ -1367,6 +1388,14 @@ def _mobile_cta_payload(tournament, user):
                     .first()
                 )
                 if user_next_match is not None:
+                    lobby_window = _resolve_match_lobby_window(user_next_match)
+                    if not lobby_window['is_open']:
+                        return {
+                            'label': 'Go to HUB',
+                            'url': reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
+                            'disabled': False,
+                            'kind': 'hub',
+                        }
                     return {
                         'label': 'Enter Lobby',
                         'url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': user_next_match.id}),
@@ -1375,8 +1404,8 @@ def _mobile_cta_payload(tournament, user):
                     }
 
             return {
-                'label': 'Enter Lobby',
-                'url': reverse('tournaments:lobby', kwargs={'slug': tournament.slug}),
+                'label': 'Go to HUB',
+                'url': reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
                 'disabled': False,
                 'kind': 'hub',
             }

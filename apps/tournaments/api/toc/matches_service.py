@@ -14,6 +14,7 @@ import logging
 from math import ceil
 from typing import Any, Dict, List, Optional
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -156,11 +157,13 @@ class TOCMatchesService:
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
         try:
+            actor_username = cls._resolve_username(user_id)
             updated = MatchService.organizer_override_score(
                 match=match,
-                participant1_score=p1_score,
-                participant2_score=p2_score,
-                user_id=user_id,
+                score1=p1_score,
+                score2=p2_score,
+                reason='TOC organizer score override',
+                overridden_by_username=actor_username,
             )
         except (AttributeError, TypeError) as exc:
             logger.warning('organizer_override_score unavailable (%s), using fallback', exc)
@@ -227,6 +230,67 @@ class TOCMatchesService:
         match.save(update_fields=['state', 'completed_at', 'lobby_info'])
         return cls._serialize_match(match)
 
+    @classmethod
+    @transaction.atomic
+    def reset_match(cls, match_id: int, tournament: Tournament, *, user_id: int) -> Dict[str, Any]:
+        """Reset score, verification artifacts, and state for a match."""
+        match = Match.objects.select_for_update().get(pk=match_id, tournament=tournament)
+
+        submission_ids = list(
+            MatchResultSubmission.objects.filter(match=match).values_list('id', flat=True)
+        )
+        if submission_ids:
+            ResultVerificationLog.objects.filter(submission_id__in=submission_ids).delete()
+            DisputeRecord.objects.filter(submission_id__in=submission_ids).delete()
+            MatchResultSubmission.objects.filter(id__in=submission_ids).delete()
+
+        lobby_info = dict(match.lobby_info or {})
+        for key in ('paused', 'paused_at', 'resumed_at', 'force_completed_by', 'score_override', 'forfeit'):
+            lobby_info.pop(key, None)
+
+        workflow = lobby_info.get('match_lobby_workflow')
+        if isinstance(workflow, dict):
+            workflow['result_status'] = 'pending'
+            workflow.pop('final_result', None)
+            workflow.pop('result_submissions', None)
+            if str(workflow.get('phase') or '').lower() in ('results', 'completed'):
+                workflow['phase'] = 'lobby_setup'
+            lobby_info['match_lobby_workflow'] = workflow
+
+        match.participant1_score = 0
+        match.participant2_score = 0
+        match.winner_id = None
+        match.loser_id = None
+        match.started_at = None
+        match.completed_at = None
+
+        if match.participant1_checked_in and match.participant2_checked_in:
+            match.state = Match.READY
+        elif match.participant1_checked_in or match.participant2_checked_in:
+            match.state = Match.CHECK_IN
+        else:
+            match.state = Match.SCHEDULED
+
+        lobby_info['reset'] = {
+            'reset_at': timezone.now().isoformat(),
+            'reset_by_user_id': user_id,
+        }
+        match.lobby_info = lobby_info
+        match.save(
+            update_fields=[
+                'state',
+                'participant1_score',
+                'participant2_score',
+                'winner_id',
+                'loser_id',
+                'started_at',
+                'completed_at',
+                'lobby_info',
+                'updated_at',
+            ]
+        )
+        return cls._serialize_match(match)
+
     # ── S6-B7: Reschedule ────────────────────────────────────
 
     @classmethod
@@ -269,10 +333,19 @@ class TOCMatchesService:
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
         try:
+            if forfeiter_id == match.participant1_id:
+                forfeiting_participant = 1
+            elif forfeiter_id == match.participant2_id:
+                forfeiting_participant = 2
+            else:
+                raise ValueError('Forfeiter must be one of the match participants.')
+
+            actor_username = cls._resolve_username(user_id)
             updated = MatchService.organizer_forfeit_match(
                 match=match,
-                loser_id=forfeiter_id,
-                user_id=user_id,
+                forfeiting_participant=forfeiting_participant,
+                reason='TOC organizer forfeit',
+                forfeited_by_username=actor_username,
             )
         except (AttributeError, TypeError) as exc:
             logger.warning('organizer_forfeit_match unavailable (%s), using fallback', exc)
@@ -588,6 +661,14 @@ class TOCMatchesService:
         if p1_score is None or p2_score is None:
             raise ValueError('Scores are required for confirm action.')
 
+        try:
+            p1_score = int(p1_score)
+            p2_score = int(p2_score)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Scores must be valid integers.') from exc
+        if p1_score < 0 or p2_score < 0:
+            raise ValueError('Scores must be non-negative.')
+
         match.participant1_score = p1_score
         match.participant2_score = p2_score
         if p1_score > p2_score:
@@ -755,6 +836,29 @@ class TOCMatchesService:
         if isinstance(raw, list):
             return raw
         return []
+
+    @staticmethod
+    def _resolve_username(user_id: int) -> str:
+        try:
+            uid = int(user_id)
+        except (TypeError, ValueError):
+            return 'system'
+        if uid <= 0:
+            return 'system'
+
+        try:
+            username = (
+                get_user_model()
+                .objects.filter(id=uid)
+                .values_list('username', flat=True)
+                .first()
+            )
+            if username:
+                return str(username)
+        except Exception:
+            pass
+
+        return f'user-{uid}'
 
     # ── Private serializer ───────────────────────────────────
 

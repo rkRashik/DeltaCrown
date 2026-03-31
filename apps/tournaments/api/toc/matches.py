@@ -77,11 +77,22 @@ class MatchScoreView(TOCBaseView):
     """S6-B2: Submit / override score."""
 
     def post(self, request, slug, pk):
+        try:
+            p1_score = int(request.data.get('participant1_score', 0))
+            p2_score = int(request.data.get('participant2_score', 0))
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'participant1_score and participant2_score must be integers'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if p1_score < 0 or p2_score < 0:
+            return Response({'error': 'Scores must be non-negative'}, status=status.HTTP_400_BAD_REQUEST)
+
         data = TOCMatchesService.submit_score(
             match_id=pk,
             tournament=self.tournament,
-            p1_score=int(request.data.get('participant1_score', 0)),
-            p2_score=int(request.data.get('participant2_score', 0)),
+            p1_score=p1_score,
+            p2_score=p2_score,
             user_id=request.user.id,
         )
         bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
@@ -130,6 +141,15 @@ class MatchForceCompleteView(TOCBaseView):
         return Response(data)
 
 
+class MatchResetView(TOCBaseView):
+    """Reset scores and match verification artifacts."""
+
+    def post(self, request, slug, pk):
+        data = TOCMatchesService.reset_match(pk, self.tournament, user_id=request.user.id)
+        bump_toc_scopes(self.tournament.id, 'matches', 'disputes', 'overview', 'analytics')
+        return Response(data)
+
+
 class MatchRescheduleView(TOCBaseView):
     """S6-B7: Request reschedule."""
 
@@ -149,14 +169,22 @@ class MatchForfeitView(TOCBaseView):
     """S6-B8: Declare forfeit."""
 
     def post(self, request, slug, pk):
-        data = TOCMatchesService.forfeit_match(
-            match_id=pk,
-            tournament=self.tournament,
-            forfeiter_id=int(request.data.get('forfeiter_id')),
-            user_id=request.user.id,
-        )
-        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
-        return Response(data)
+        try:
+            forfeiter_id = int(request.data.get('forfeiter_id'))
+        except (TypeError, ValueError):
+            return Response({'error': 'forfeiter_id must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = TOCMatchesService.forfeit_match(
+                match_id=pk,
+                tournament=self.tournament,
+                forfeiter_id=forfeiter_id,
+                user_id=request.user.id,
+            )
+            bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
+            return Response(data)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MatchNoteView(TOCBaseView):
@@ -233,14 +261,34 @@ class MatchVerifyView(TOCBaseView):
                 {'error': 'action must be confirm, dispute, or note'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        p1_score = None
+        p2_score = None
+        if action in ('confirm', 'dispute'):
+            raw_p1 = request.data.get('participant1_score')
+            raw_p2 = request.data.get('participant2_score')
+            try:
+                p1_score = int(raw_p1)
+                p2_score = int(raw_p2)
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'participant1_score and participant2_score must be integers'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if p1_score < 0 or p2_score < 0:
+                return Response(
+                    {'error': 'Scores must be non-negative'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         try:
             data = TOCMatchesService.verify_match(
                 match_id=pk,
                 tournament=self.tournament,
                 action=action,
                 user_id=request.user.id,
-                p1_score=request.data.get('participant1_score'),
-                p2_score=request.data.get('participant2_score'),
+                p1_score=p1_score,
+                p2_score=p2_score,
                 notes=request.data.get('notes', ''),
                 reason_code=request.data.get('reason_code', 'other'),
             )

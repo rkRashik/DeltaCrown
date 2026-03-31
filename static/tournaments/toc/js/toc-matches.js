@@ -43,6 +43,11 @@
 
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
 
+  function isRoomOpenState(state) {
+    var token = String(state || '').toLowerCase();
+    return token !== 'completed' && token !== 'cancelled' && token !== 'forfeit';
+  }
+
   function parseApiError(err) {
     if (!err) return 'Something went wrong. Please try again.';
     if (err.payload && typeof err.payload === 'object') {
@@ -489,6 +494,7 @@
       var isWinner1 = m.winner_id && m.winner_id === m.participant1_id;
       var isWinner2 = m.winner_id && m.winner_id === m.participant2_id;
       var isLive = m.state === 'live';
+      var canOpenRoom = isRoomOpenState(m.state);
       var liveDot = m.state === 'live' ? '<span class="w-2 h-2 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
       var groupTag = m.group_label ? ' <span class="text-theme/70">&middot;</span> <span class="text-theme font-bold">' + esc(m.group_label) + '</span>' : '';
       var disputedBorder = m.state === 'disputed' ? ' ring-1 ring-dc-danger/30' : '';
@@ -522,8 +528,11 @@
       var scoreA = showSeries ? sp1 : (m.participant1_score != null ? m.participant1_score : '-');
       var scoreB = showSeries ? sp2 : (m.participant2_score != null ? m.participant2_score : '-');
       var boLabel = bestOf > 1 ? '<span class="text-[8px] font-mono text-dc-text/40">BO' + bestOf + '</span> ' : '';
-      var liveCta = isLive
-        ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" onclick="event.stopPropagation()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/40 bg-emerald-500/15 text-emerald-200 text-[10px] font-black uppercase tracking-widest animate-pulse hover:bg-emerald-500/25 transition-colors">LIVE - Enter Lobby</a>'
+      var roomCtaClass = isLive
+        ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/40 bg-emerald-500/15 text-emerald-200 text-[10px] font-black uppercase tracking-widest animate-pulse hover:bg-emerald-500/25 transition-colors'
+        : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-theme/30 bg-theme/10 text-theme text-[10px] font-black uppercase tracking-widest hover:bg-theme/20 transition-colors';
+      var liveCta = canOpenRoom
+        ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" onclick="event.stopPropagation()" class="' + roomCtaClass + '">' + (isLive ? 'LIVE - Enter Lobby' : 'Enter Lobby') + '</a>'
         : '';
 
       return '<div class="match-card px-4 py-3 cursor-pointer transition-all hover:bg-white/[0.03]' +
@@ -554,7 +563,7 @@
         new Date(m.scheduled_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
         '</div>' : '') +
 
-        (isLive ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
+        (canOpenRoom ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
 
         '</div>';
     }).join('');
@@ -688,8 +697,9 @@
 
     var li = m.lobby_info || {};
     var hasLobby = li.lobby_code || li.map || li.server;
+    var roomOpen = isRoomOpenState(m.state);
 
-    if (hasLobby || m.state === 'check_in' || m.state === 'ready' || m.state === 'live') {
+    if (hasLobby || roomOpen) {
       row.classList.remove('hidden');
     } else {
       row.classList.add('hidden');
@@ -738,11 +748,11 @@
     var roomUrl = '/tournaments/' + slug + '/matches/' + m.id + '/room/';
     if (roomLink) {
       roomLink.href = roomUrl;
-      roomLink.classList.remove('hidden');
+      roomLink.classList.toggle('hidden', !roomOpen);
     }
     if (roomLinkAdmin) {
       roomLinkAdmin.href = roomUrl + '?admin=1';
-      roomLinkAdmin.classList.remove('hidden');
+      roomLinkAdmin.classList.toggle('hidden', !roomOpen);
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons();

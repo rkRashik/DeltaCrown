@@ -55,6 +55,45 @@ Inspired by FotMob live matches + VCT brackets:
 .slide-in-2 { animation-delay: 0.1s; }
 .slide-in-3 { animation-delay: 0.15s; }
 .slide-in-4 { animation-delay: 0.2s; }
+
+.live-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.62rem 1rem;
+    border-radius: 0.8rem;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease, border-color 0.18s ease;
+}
+.live-cta-btn:hover { transform: translateY(-1px); }
+.live-cta-primary {
+    color: #041018;
+    background: linear-gradient(135deg, rgba(var(--game-color-rgb), 0.98), #22d3ee);
+    box-shadow: 0 10px 26px rgba(var(--game-color-rgb), 0.28);
+}
+.live-cta-primary:hover {
+    box-shadow: 0 14px 30px rgba(var(--game-color-rgb), 0.34);
+    filter: saturate(1.08);
+}
+.live-cta-secondary {
+    color: #d8f6ff;
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    background: linear-gradient(135deg, rgba(18, 49, 67, 0.78), rgba(8, 30, 44, 0.86));
+    box-shadow: 0 8px 20px rgba(8, 30, 44, 0.26);
+}
+.live-cta-secondary:hover {
+    border-color: rgba(110, 231, 255, 0.7);
+    color: #effcff;
+}
+.live-cta-disabled {
+    color: #9fb0bf;
+    border: 1px dashed rgba(148, 163, 184, 0.45);
+    background: rgba(15, 23, 42, 0.55);
+}
 {% endblock %}
 
 {% block phase_nav %}
@@ -95,7 +134,7 @@ Inspired by FotMob live matches + VCT brackets:
 <!-- YOUR NEXT MATCH (Participants Only) -->
 {% if user_next_match %}
 <div class="glass-panel p-5 rounded-2xl border-l-4 slide-in" style="border-left-color: var(--game-color);">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(var(--game-color-rgb), 0.15);">
                 <i data-lucide="swords" class="w-5 h-5 game-accent"></i>
@@ -111,12 +150,26 @@ Inspired by FotMob live matches + VCT brackets:
                 </p>
             </div>
         </div>
-        <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-              class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 hover:scale-110 active:scale-95 animate-pulse shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_28px_rgba(0,240,255,0.55)]"
-              style="background: var(--game-color); color: black; box-shadow: 0 0 22px rgba(var(--game-color-rgb), 0.42);">
-            {% if user_next_match.state == 'live' %}Enter Lobby{% else %}Open Lobby{% endif %}
-        </a>
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+            {% if user_next_match_lobby_open %}
+            <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}" class="live-cta-btn live-cta-primary">
+                {% if user_next_match.state == 'live' %}Enter Lobby{% else %}Open Lobby{% endif %}
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </a>
+            {% else %}
+            <span class="live-cta-btn live-cta-disabled">
+                Lobby Opens {% if user_next_match_lobby_opens_at %}{{ user_next_match_lobby_opens_at|date:"g:i A" }}{% else %}Soon{% endif %}
+            </span>
+            {% endif %}
+            <a href="{% url 'tournaments:tournament_hub' tournament.slug %}" class="live-cta-btn live-cta-secondary">
+                Open HUB
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+            </a>
+        </div>
     </div>
+    {% if not user_next_match_lobby_open %}
+    <p class="mt-3 text-[10px] text-gray-400">Match lobby becomes available 30 minutes before scheduled kickoff for participants.</p>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -364,24 +417,22 @@ Inspired by FotMob live matches + VCT brackets:
 <!-- Live Phase Sidebar CTA -->
 {% if is_registered %}
 <div class="space-y-2">
-    {% if user_next_match %}
+    {% if user_next_match and user_next_match_lobby_open %}
     <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-         class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-all duration-200 animate-pulse hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.55)]"
-         style="background: var(--game-color); color: black; box-shadow: 0 0 24px rgba(var(--game-color-rgb), 0.46);">
-        Enter Lobby
-    </a>
-    <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-         class="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(0,240,255,0.32)] hover:shadow-[0_0_28px_rgba(0,240,255,0.46)]"
-         style="background: rgba(var(--game-color-rgb), 0.16); border: 1px solid rgba(var(--game-color-rgb), 0.4); color: rgb(var(--game-color-rgb)); box-shadow: 0 0 18px rgba(var(--game-color-rgb), 0.38);">
-        Go to Your Match →
-    </a>
-    {% else %}
-    <a href="/tournaments/{{ tournament.slug }}/lobby/"
-       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-transform duration-200 hover:scale-105 active:scale-95"
-       style="background: var(--game-color); color: black; box-shadow: 0 0 14px rgba(var(--game-color-rgb), 0.3);">
+         class="live-cta-btn live-cta-primary w-full text-center">
         Enter Lobby
     </a>
     {% endif %}
+    {% if user_next_match and not user_next_match_lobby_open %}
+    <div class="live-cta-btn live-cta-disabled w-full text-center">
+        Lobby Opens {% if user_next_match_lobby_opens_at %}{{ user_next_match_lobby_opens_at|date:"g:i A" }}{% else %}Soon{% endif %}
+    </div>
+    <p class="text-[10px] text-gray-400">Available 30 minutes before match time.</p>
+    {% endif %}
+    <a href="{% url 'tournaments:tournament_hub' tournament.slug %}"
+       class="live-cta-btn live-cta-secondary w-full text-center">
+        Open HUB
+    </a>
 </div>
 {% else %}
 <div class="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">

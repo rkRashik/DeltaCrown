@@ -129,11 +129,11 @@ class Notification(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="notifications_category_allowed_values",
-                check=models.Q(category__in=_ALLOWED_NOTIFICATION_TYPES),
+                condition=models.Q(category__in=_ALLOWED_NOTIFICATION_TYPES),
             ),
             models.CheckConstraint(
                 name="notifications_notification_type_allowed_values",
-                check=models.Q(notification_type__in=_ALLOWED_NOTIFICATION_TYPES),
+                condition=models.Q(notification_type__in=_ALLOWED_NOTIFICATION_TYPES),
             ),
         ]
 

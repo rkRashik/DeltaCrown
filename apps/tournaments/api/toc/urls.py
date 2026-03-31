@@ -139,6 +139,7 @@ urlpatterns = [
     path('<slug:slug>/matches/<int:pk>/pause/', matches.MatchPauseView.as_view(), name='match-pause'),
     path('<slug:slug>/matches/<int:pk>/resume/', matches.MatchResumeView.as_view(), name='match-resume'),
     path('<slug:slug>/matches/<int:pk>/force-complete/', matches.MatchForceCompleteView.as_view(), name='match-force-complete'),
+    path('<slug:slug>/matches/<int:pk>/reset/', matches.MatchResetView.as_view(), name='match-reset'),
     path('<slug:slug>/matches/<int:pk>/reschedule/', matches.MatchRescheduleView.as_view(), name='match-reschedule'),
     path('<slug:slug>/matches/<int:pk>/forfeit/', matches.MatchForfeitView.as_view(), name='match-forfeit'),
     path('<slug:slug>/matches/<int:pk>/add-note/', matches.MatchNoteView.as_view(), name='match-add-note'),

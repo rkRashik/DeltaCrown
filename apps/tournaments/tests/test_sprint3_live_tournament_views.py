@@ -362,6 +362,46 @@ class MatchDetailViewTests(TestCase):
         self.assertIsInstance(timeline, list)
         self.assertGreater(len(timeline), 0)
 
+    def test_match_detail_team_participation_does_not_crash_for_spectator(self):
+        """Regression: spectator view must not reference non-existent participant_type field."""
+        self.tournament.participation_type = Tournament.TEAM
+        self.tournament.save(update_fields=['participation_type'])
+
+        url = reverse('tournaments:match_detail', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': self.match.id,
+        })
+        self.client.login(username='spectator', password='pass123')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['is_participant'])
+
+    def test_match_detail_hides_lobby_before_30_min_window(self):
+        """Participants should only see lobby details within 30 minutes of scheduled kickoff."""
+        locked_match = Match.objects.create(
+            tournament=self.tournament,
+            round_number=1,
+            match_number=2,
+            participant1_id=self.participant1.id,
+            participant2_id=self.participant2.id,
+            state=Match.SCHEDULED,
+            scheduled_time=timezone.now() + timedelta(hours=1),
+            lobby_info={'lobby_code': 'LOCKED-123'},
+        )
+
+        url = reverse('tournaments:match_detail', kwargs={
+            'slug': self.tournament.slug,
+            'match_id': locked_match.id,
+        })
+        self.client.login(username='participant1', password='pass123')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['is_participant'])
+        self.assertFalse(response.context['lobby_open_for_participant'])
+        self.assertFalse(response.context['show_lobby_info'])
+
 
 class TournamentResultsViewTests(TestCase):
     """Tests for FE-T-018: Tournament Results Page"""

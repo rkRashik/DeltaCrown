@@ -13,10 +13,11 @@ from django.views.generic import DetailView
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.http import Http404
+from django.utils import timezone
 from django.utils.safestring import mark_safe
+from datetime import timedelta
 import json
 from decimal import Decimal
-import json
 
 from apps.tournaments.models import Tournament, Match, Registration
 from apps.tournaments.models.result import TournamentResult
@@ -447,20 +448,33 @@ class MatchDetailView(DetailView):
         context['mvp'] = mvp_stat
 
         # Is participant?
+        lobby_window_opens_at = None
+        lobby_open_for_participant = False
         if self.request.user.is_authenticated:
             is_part = (
                 match.participant1_id == self.request.user.id or
                 match.participant2_id == self.request.user.id
             )
-            if not is_part and tournament.participant_type == 'team':
+            if not is_part and getattr(tournament, 'participation_type', '') == 'team':
                 from apps.organizations.models import TeamMembership
                 active_teams = set(TeamMembership.objects.filter(user=self.request.user, status=TeamMembership.Status.ACTIVE).values_list('team_id', flat=True))
                 if match.participant1_id in active_teams or match.participant2_id in active_teams:
                     is_part = True
+
+            if is_part:
+                always_open_states = {'live', 'pending_result', 'completed', 'forfeit', 'disputed', 'cancelled'}
+                if match.state in always_open_states or not match.scheduled_time:
+                    lobby_open_for_participant = True
+                else:
+                    lobby_window_opens_at = match.scheduled_time - timedelta(minutes=30)
+                    lobby_open_for_participant = timezone.now() >= lobby_window_opens_at
+
             context['is_participant'] = is_part
         else:
             context['is_participant'] = False
-        context['show_lobby_info'] = context['is_participant'] and match.lobby_info
+        context['lobby_open_for_participant'] = bool(context['is_participant'] and lobby_open_for_participant)
+        context['lobby_window_opens_at'] = lobby_window_opens_at
+        context['show_lobby_info'] = bool(context['lobby_open_for_participant'] and match.lobby_info)
 
         # Timeline
         context['timeline'] = self._build_match_timeline(match)

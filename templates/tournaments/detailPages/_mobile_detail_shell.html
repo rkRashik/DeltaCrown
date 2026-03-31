@@ -472,7 +472,7 @@
   <div class="dc-mobile-sticky-cta" id="dc-mobile-sticky-cta">
     {% if tournament.status == 'completed' or tournament.status == 'archived' %}
     <a id="dc-mobile-cta-button" data-cta-kind="results" class="dc-mobile-cta-button" href="/tournaments/{{ tournament.slug }}/results/">View Results</a>
-    {% elif tournament.status == 'live' and user_next_match %}
+    {% elif tournament.status == 'live' and user_next_match and user_next_match_lobby_open %}
     <a id="dc-mobile-cta-button" data-cta-kind="enter_match" class="dc-mobile-cta-button" href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}">Enter Lobby</a>
     {% elif is_registered %}
     <a id="dc-mobile-cta-button" data-cta-kind="hub" class="dc-mobile-cta-button" href="/tournaments/{{ tournament.slug }}/hub/">Go to HUB</a>
