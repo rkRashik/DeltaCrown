@@ -1149,6 +1149,14 @@ def _normalized_env_url(name: str) -> str:
 
     return value
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Parse a bool-like environment variable with a safe default."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
 # Build defaults: append DB number then add TLS params if needed.
 _celery_broker_default = _celery_ssl_url(
     _redis_url_with_db(_BASE_REDIS_URL, 1) if _BASE_REDIS_URL else 'redis://localhost:6379/1'
@@ -1174,9 +1182,38 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', 
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv('CELERY_TASK_SOFT_TIME_LIMIT', '120'))
 CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', '180'))
 
-# Task deduplication - prevent double execution
-CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
-CELERY_TASK_EAGER_PROPAGATES = True
+# Local dev safety: avoid request hangs when Redis/Celery broker is not running.
+# Default to eager sync execution on local Windows/dev when broker URLs are unset
+# (which otherwise fall back to localhost Redis and can block on retries).
+_celery_urls_unset = not _normalized_env_url('CELERY_BROKER_URL') and not _BASE_REDIS_URL
+_local_windows_runtime = os.name == 'nt' and not os.getenv('RENDER')
+_default_local_sync_fallback = _celery_urls_unset and (_local_windows_runtime or DEBUG)
+
+CELERY_LOCAL_FALLBACK_SYNC = _env_bool('CELERY_LOCAL_FALLBACK_SYNC', _default_local_sync_fallback)
+
+# Primary toggle: can still be overridden explicitly via env var.
+CELERY_TASK_ALWAYS_EAGER = _env_bool('CELERY_TASK_ALWAYS_EAGER', CELERY_LOCAL_FALLBACK_SYNC)
+CELERY_TASK_EAGER_PROPAGATES = _env_bool(
+    'CELERY_TASK_EAGER_PROPAGATES',
+    default=False if CELERY_TASK_ALWAYS_EAGER else True,
+)
+CELERY_TASK_STORE_EAGER_RESULT = _env_bool('CELERY_TASK_STORE_EAGER_RESULT', default=False)
+
+# Fail fast when asynchronous Celery is used and broker is degraded/unreachable.
+CELERY_TASK_PUBLISH_RETRY = _env_bool('CELERY_TASK_PUBLISH_RETRY', default=not CELERY_TASK_ALWAYS_EAGER)
+CELERY_BROKER_CONNECTION_RETRY = _env_bool('CELERY_BROKER_CONNECTION_RETRY', default=not CELERY_TASK_ALWAYS_EAGER)
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = _env_bool(
+    'CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP',
+    default=not CELERY_TASK_ALWAYS_EAGER,
+)
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'max_retries': int(os.getenv('CELERY_BROKER_MAX_RETRIES', '0' if CELERY_TASK_ALWAYS_EAGER else '1')),
+    'interval_start': float(os.getenv('CELERY_BROKER_RETRY_INTERVAL_START', '0')),
+    'interval_step': float(os.getenv('CELERY_BROKER_RETRY_INTERVAL_STEP', '0.2')),
+    'interval_max': float(os.getenv('CELERY_BROKER_RETRY_INTERVAL_MAX', '0.5')),
+    'socket_connect_timeout': float(os.getenv('CELERY_BROKER_SOCKET_CONNECT_TIMEOUT', '1.0')),
+    'socket_timeout': float(os.getenv('CELERY_BROKER_SOCKET_TIMEOUT', '1.0')),
+}
 
 # -----------------------------------------------------------------------------
 # Discord Webhook Configuration

@@ -578,7 +578,17 @@ class ResultSubmissionService:
         Args:
             submission_id: Submission ID
         """
+        from django.conf import settings
         from apps.tournament_ops.tasks_result_submission import auto_confirm_submission_task
+
+        # In local eager mode, do not execute countdown tasks immediately.
+        # This keeps manual testing realistic while still bypassing Redis.
+        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+            logger.info(
+                "Skipping auto-confirm Celery countdown in eager mode for submission %s",
+                submission_id,
+            )
+            return
         
         # Schedule task to run after 24 hours
         # Using Celery's eta (estimated time of arrival)
