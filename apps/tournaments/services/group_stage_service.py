@@ -32,7 +32,7 @@ import logging
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.db.models import Q, F
+from django.db.models import Q, F, Prefetch
 import random
 import hashlib
 import json
@@ -985,7 +985,11 @@ class GroupStageService:
         return total_matches
     
     @staticmethod
-    def calculate_group_standings(stage_id: int) -> Dict[int, List[Dict]]:
+    def calculate_group_standings(
+        stage_id: int,
+        group_ids: Optional[List[int]] = None,
+        include_scored_data: bool = True,
+    ) -> Dict[int, List[Dict]]:
         """
         Calculate standings for all groups in a stage (Epic 3.2).
         
@@ -1041,22 +1045,58 @@ class GroupStageService:
             tiebreaker_rules = stage.config.get('tiebreaker_rules', ['points', 'wins', 'goal_difference', 'goals_for'])
         
         rules_engine = GameRulesEngine()
-        groups = Group.objects.filter(tournament=stage.tournament).prefetch_related('standings')
+        groups_qs = Group.objects.filter(tournament=stage.tournament, is_deleted=False)
+        if group_ids:
+            groups_qs = groups_qs.filter(id__in=group_ids)
+
+        groups = list(
+            groups_qs.prefetch_related(
+                Prefetch(
+                    'standings',
+                    queryset=GroupStanding.objects.filter(is_deleted=False),
+                    to_attr='_active_standings',
+                )
+            )
+        )
+
+        selected_group_ids = [group.id for group in groups]
+        group_matches: Dict[int, List[Match]] = {group_id: [] for group_id in selected_group_ids}
+        if selected_group_ids:
+            matches_qs = Match.objects.filter(
+                tournament=stage.tournament,
+                lobby_info__group_id__in=selected_group_ids,
+                state=Match.COMPLETED,
+                is_deleted=False,
+            ).only(
+                'id',
+                'lobby_info',
+                'participant1_id',
+                'participant2_id',
+                'participant1_score',
+                'participant2_score',
+                'winner_id',
+                'state',
+            )
+            for match in matches_qs:
+                lobby = match.lobby_info or {}
+                raw_group_id = lobby.get('group_id')
+                try:
+                    match_group_id = int(raw_group_id)
+                except (TypeError, ValueError):
+                    continue
+                if match_group_id in group_matches:
+                    group_matches[match_group_id].append(match)
         
         result = {}
         
         for group in groups:
-            # Get all matches for this group
-            matches = Match.objects.filter(
-                tournament=stage.tournament,
-                lobby_info__group_id=group.id,
-                state=Match.COMPLETED
-            )
+            matches = group_matches.get(group.id, [])
+            standings_for_group = list(getattr(group, '_active_standings', []))
             
             # If no matches exist yet, return existing GroupStanding data (for testing/manual entry)
-            if not matches.exists():
+            if not matches:
                 existing_standings = []
-                for standing in group.standings.filter(is_deleted=False).order_by('rank'):
+                for standing in sorted(standings_for_group, key=lambda s: s.rank or 0):
                     participant_id = standing.team_id if standing.team_id else standing.user_id
                     existing_standings.append({
                         "participant_id": participant_id,
@@ -1075,8 +1115,12 @@ class GroupStageService:
             
             # Initialize standings data
             standings_data = {}
-            for standing in group.standings.filter(is_deleted=False):
+            standing_objects_by_participant: Dict[int, GroupStanding] = {}
+            for standing in standings_for_group:
                 participant_id = standing.team_id if standing.team_id else standing.user_id
+                if not participant_id:
+                    continue
+                standing_objects_by_participant[participant_id] = standing
                 standings_data[participant_id] = {
                     "participant_id": participant_id,
                     "rank": 0,
@@ -1112,13 +1156,14 @@ class GroupStageService:
                     "winner_id": match.winner_id,
                 }
                 
-                try:
-                    scoring_result = rules_engine.score_match(game_slug, match_payload)
-                    # Store game-specific scoring breakdown
-                    standings_data[p1_id]["scored_data"][match.id] = scoring_result.get('participant1', {})
-                    standings_data[p2_id]["scored_data"][match.id] = scoring_result.get('participant2', {})
-                except Exception as e:
-                    logger.warning(f"GameRulesEngine scoring failed for match {match.id}: {e}, using fallback")
+                if include_scored_data:
+                    try:
+                        scoring_result = rules_engine.score_match(game_slug, match_payload)
+                        # Store game-specific scoring breakdown
+                        standings_data[p1_id]["scored_data"][match.id] = scoring_result.get('participant1', {})
+                        standings_data[p2_id]["scored_data"][match.id] = scoring_result.get('participant2', {})
+                    except Exception as e:
+                        logger.warning(f"GameRulesEngine scoring failed for match {match.id}: {e}, using fallback")
                 
                 # Determine outcome
                 if match.winner_id == p1_id:
@@ -1138,8 +1183,8 @@ class GroupStageService:
                     standings_data[p2_id]["points"] += Decimal(str(points_system['draw']))
                 
                 # Goal/score tracking from Match fields
-                p1_score = match.participant1_score
-                p2_score = match.participant2_score
+                p1_score = match.participant1_score or 0
+                p2_score = match.participant2_score or 0
                 standings_data[p1_id]["goals_for"] += p1_score
                 standings_data[p1_id]["goals_against"] += p2_score
                 standings_data[p2_id]["goals_for"] += p2_score
@@ -1200,29 +1245,48 @@ class GroupStageService:
             )
             
             # Assign ranks and update database
+            standings_to_update: List[GroupStanding] = []
             for rank, data in enumerate(sorted_standings, start=1):
                 data["rank"] = rank
                 data["matches_played"] = data["wins"] + data["draws"] + data["losses"]
-                
-                GroupStanding.objects.filter(
-                    group=group,
-                    **({"team_id": data["participant_id"]} if group.standings.filter(team_id=data["participant_id"]).exists()
-                       else {"user_id": data["participant_id"]})
-                ).update(
-                    rank=rank,
-                    matches_played=data["matches_played"],
-                    points=data["points"],
-                    matches_won=data["wins"],
-                    matches_drawn=data["draws"],
-                    matches_lost=data["losses"],
-                    goals_for=data["goals_for"],
-                    goals_against=data["goals_against"],
-                    goal_difference=data["goal_diff"],
+                standing_obj = standing_objects_by_participant.get(data["participant_id"])
+                if not standing_obj:
+                    continue
+                standing_obj.rank = rank
+                standing_obj.matches_played = data["matches_played"]
+                standing_obj.points = data["points"]
+                standing_obj.matches_won = data["wins"]
+                standing_obj.matches_drawn = data["draws"]
+                standing_obj.matches_lost = data["losses"]
+                standing_obj.goals_for = data["goals_for"]
+                standing_obj.goals_against = data["goals_against"]
+                standing_obj.goal_difference = data["goal_diff"]
+                standings_to_update.append(standing_obj)
+
+            if standings_to_update:
+                GroupStanding.objects.bulk_update(
+                    standings_to_update,
+                    fields=[
+                        'rank',
+                        'matches_played',
+                        'points',
+                        'matches_won',
+                        'matches_drawn',
+                        'matches_lost',
+                        'goals_for',
+                        'goals_against',
+                        'goal_difference',
+                    ],
                 )
             
             result[group.id] = sorted_standings
         
-        logger.info(f"Calculated standings for {len(result)} groups in stage {stage_id} using GameRulesEngine")
+        logger.info(
+            "Calculated standings for %s groups in stage %s using GameRulesEngine%s",
+            len(result),
+            stage_id,
+            "" if include_scored_data else " (scored_data skipped)",
+        )
         return result
     
     @staticmethod

@@ -341,6 +341,13 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
     if new_state not in (Match.COMPLETED, Match.FORFEIT):
         return
 
+    lobby_info = instance.lobby_info or {}
+    raw_group_id = lobby_info.get('group_id')
+    try:
+        match_group_id = int(raw_group_id) if raw_group_id is not None else None
+    except (TypeError, ValueError):
+        match_group_id = None
+
     # 1) Advance bracket nodes for knockout-linked matches.
     if instance.winner_id:
         try:
@@ -372,10 +379,21 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
 
         stage = GroupStage.objects.filter(tournament=tournament).order_by('-created_at').first()
         if stage:
-            GroupStageService.calculate_group_standings(stage.id)
+            if match_group_id is not None:
+                GroupStageService.calculate_group_standings(
+                    stage.id,
+                    group_ids=[match_group_id],
+                    include_scored_data=False,
+                )
+            else:
+                GroupStageService.calculate_group_standings(
+                    stage.id,
+                    include_scored_data=False,
+                )
         else:
             game_slug = getattr(getattr(tournament, 'game', None), 'slug', '') or ''
-            for group_id in groups.values_list('id', flat=True):
+            group_ids = [match_group_id] if match_group_id is not None else list(groups.values_list('id', flat=True))
+            for group_id in group_ids:
                 GroupStageService.calculate_standings(group_id=group_id, game_slug=game_slug)
 
         group_stage_matches = Match.objects.filter(
