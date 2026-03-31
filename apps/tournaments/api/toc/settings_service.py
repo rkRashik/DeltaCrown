@@ -89,6 +89,15 @@ class TOCSettingsService:
         "FREE_FOR_ALL": "Free For All",
     }
 
+    MATCH_CONFIG_SCHEMA_VERSION = "1.0"
+    MATCH_CONFIG_META_KEYS = {
+        "game_key",
+        "schema_version",
+        "values",
+        "fields",
+        "veto_sequence",
+    }
+
     @staticmethod
     def _coerce_bool(value: Any, default: bool = False) -> bool:
         if value is None:
@@ -104,6 +113,72 @@ class TOCSettingsService:
         if token in {"0", "false", "no", "n", "off", ""}:
             return False
         return bool(default)
+
+    @staticmethod
+    def _safe_json_dict(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return dict(value)
+        return {}
+
+    @staticmethod
+    def _canonical_match_game_key(game: Any) -> str:
+        token = str(getattr(game, "slug", "") or "").strip().lower()
+        if not token:
+            return ""
+        if "efootball" in token or token == "pes":
+            return "efootball"
+        if "valorant" in token:
+            return "valorant"
+        return token
+
+    @staticmethod
+    def _normalize_match_settings_payload(tournament: Tournament, raw_settings: Any) -> dict[str, Any]:
+        payload = TOCSettingsService._safe_json_dict(raw_settings)
+
+        values = payload.get("values")
+        if not isinstance(values, dict):
+            values = payload.get("fields")
+        if isinstance(values, dict):
+            normalized_values = dict(values)
+        else:
+            normalized_values = {
+                key: value
+                for key, value in payload.items()
+                if key not in TOCSettingsService.MATCH_CONFIG_META_KEYS
+            }
+
+        game_key = str(
+            payload.get("game_key")
+            or TOCSettingsService._canonical_match_game_key(getattr(tournament, "game", None))
+            or ""
+        ).strip().lower()
+
+        schema_version = str(payload.get("schema_version") or TOCSettingsService.MATCH_CONFIG_SCHEMA_VERSION).strip()
+        if not schema_version:
+            schema_version = TOCSettingsService.MATCH_CONFIG_SCHEMA_VERSION
+
+        normalized = dict(payload)
+        normalized["game_key"] = game_key
+        normalized["schema_version"] = schema_version
+        normalized["values"] = normalized_values
+        normalized.pop("fields", None)
+        return normalized
+
+    @staticmethod
+    def _merge_match_settings(existing: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(existing)
+        incoming_dict = TOCSettingsService._safe_json_dict(incoming)
+
+        for key, value in incoming_dict.items():
+            if key in {"values", "fields"} and isinstance(value, dict):
+                current_values = TOCSettingsService._safe_json_dict(merged.get("values"))
+                current_values.update(value)
+                merged["values"] = current_values
+                merged.pop("fields", None)
+                continue
+            merged[key] = value
+
+        return merged
 
     @staticmethod
     def _lobby_capabilities_for_tournament(tournament: Tournament) -> dict[str, Any]:
@@ -1095,39 +1170,91 @@ class TOCSettingsService:
         try:
             cfg = tournament.game_match_config
         except GameMatchConfig.DoesNotExist:
+            cfg = None
+
+        cfg_match_settings = TOCSettingsService._safe_json_dict(getattr(cfg, "match_settings", {})) if cfg else {}
+        tournament_match_settings = TOCSettingsService._safe_json_dict(getattr(tournament, "match_settings", {}))
+
+        source_match_settings = cfg_match_settings or tournament_match_settings
+        if cfg is None and not source_match_settings:
             return None
-        ms = cfg.match_settings or {}
+
+        ms = TOCSettingsService._normalize_match_settings_payload(tournament, source_match_settings)
+
         return {
-            "id": str(cfg.id),
-            "game_id": cfg.game_id,
-            "default_match_format": cfg.default_match_format,
-            "scoring_rules": cfg.scoring_rules,
+            "id": str(cfg.id) if cfg else "",
+            "game_id": getattr(cfg, "game_id", None),
+            "default_match_format": getattr(cfg, "default_match_format", "bo1"),
+            "scoring_rules": TOCSettingsService._safe_json_dict(getattr(cfg, "scoring_rules", {})) if cfg else {},
             "match_settings": ms,
-            "enable_veto": cfg.enable_veto,
-            "veto_type": cfg.veto_type,
+            "enable_veto": bool(getattr(cfg, "enable_veto", False)) if cfg else False,
+            "veto_type": getattr(cfg, "veto_type", "standard") if cfg else "standard",
             "veto_sequence": ms.get("veto_sequence", []),
         }
 
     @staticmethod
     def save_game_config(tournament: Tournament, data: dict) -> dict:
-        match_settings = data.get("match_settings", {})
-        if not isinstance(match_settings, dict):
-            match_settings = {}
-        # Merge veto_sequence into match_settings if provided separately
+        try:
+            existing_cfg = tournament.game_match_config
+        except GameMatchConfig.DoesNotExist:
+            existing_cfg = None
+
+        existing_match_settings = TOCSettingsService._safe_json_dict(
+            getattr(existing_cfg, "match_settings", {}) if existing_cfg else {}
+        )
+        if not existing_match_settings:
+            existing_match_settings = TOCSettingsService._safe_json_dict(getattr(tournament, "match_settings", {}))
+
+        incoming_match_settings = data.get("match_settings")
+        if isinstance(incoming_match_settings, dict):
+            merged_match_settings = TOCSettingsService._merge_match_settings(
+                existing_match_settings,
+                incoming_match_settings,
+            )
+        else:
+            merged_match_settings = dict(existing_match_settings)
+
         if "veto_sequence" in data:
-            match_settings["veto_sequence"] = data["veto_sequence"]
+            merged_match_settings["veto_sequence"] = data.get("veto_sequence") or []
+
+        normalized_match_settings = TOCSettingsService._normalize_match_settings_payload(
+            tournament,
+            merged_match_settings,
+        )
+
         cfg, created = GameMatchConfig.objects.update_or_create(
             tournament=tournament,
             defaults={
-                "game_id": data.get("game_id"),
-                "default_match_format": data.get("default_match_format", "bo1"),
-                "scoring_rules": data.get("scoring_rules", {}),
-                "match_settings": match_settings,
-                "enable_veto": data.get("enable_veto", False),
-                "veto_type": data.get("veto_type", "standard"),
+                "game_id": data.get("game_id", getattr(existing_cfg, "game_id", None)),
+                "default_match_format": data.get(
+                    "default_match_format",
+                    getattr(existing_cfg, "default_match_format", "bo1"),
+                ),
+                "scoring_rules": data.get(
+                    "scoring_rules",
+                    TOCSettingsService._safe_json_dict(getattr(existing_cfg, "scoring_rules", {})),
+                ),
+                "match_settings": normalized_match_settings,
+                "enable_veto": TOCSettingsService._coerce_bool(
+                    data.get("enable_veto", getattr(existing_cfg, "enable_veto", False)),
+                    default=False,
+                ),
+                "veto_type": data.get("veto_type", getattr(existing_cfg, "veto_type", "standard")),
             },
         )
-        return {"id": str(cfg.id), "created": created}
+
+        if TOCSettingsService._safe_json_dict(getattr(tournament, "match_settings", {})) != normalized_match_settings:
+            tournament.match_settings = normalized_match_settings
+            update_fields = ["match_settings"]
+            if hasattr(tournament, "updated_at"):
+                update_fields.append("updated_at")
+            tournament.save(update_fields=update_fields)
+
+        return {
+            "id": str(cfg.id),
+            "created": created,
+            "match_settings": normalized_match_settings,
+        }
 
     # ------------------------------------------------------------------
     # Map Pool

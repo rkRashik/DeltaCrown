@@ -17,13 +17,265 @@
   const CACHE_TTL_MS = 25000;
   const AUTO_REFRESH_MS = 60000;
   const STAT_IDS = ['sections', 'faq', 'version', 'ack'];
-  const PANEL_IDS = ['rules-quick-ref', 'rules-sections-list', 'rules-faq-list', 'rules-prize-info'];
+  const PANEL_IDS = ['rules-quick-ref', 'rules-match-config-card', 'rules-sections-list', 'rules-faq-list', 'rules-prize-info'];
+
+  const MATCH_CONFIG_SCHEMAS = {
+    efootball: {
+      title: 'eFootball',
+      fields: [
+        { key: 'match_type', label: 'Match Type', type: 'text', placeholder: 'e.g. Exhibition Match' },
+        { key: 'match_time', label: 'Match Time (minutes)', type: 'number', placeholder: 'e.g. 10', min: 1 },
+        { key: 'injuries', label: 'Injuries', type: 'checkbox' },
+        { key: 'extra_time', label: 'Extra Time', type: 'checkbox' },
+        { key: 'penalties', label: 'Penalties', type: 'checkbox' },
+        { key: 'substitutions', label: 'Substitutions', type: 'text', placeholder: 'e.g. 5' },
+        { key: 'condition_home', label: 'Condition Home', type: 'text', placeholder: 'e.g. Normal' },
+        { key: 'condition_away', label: 'Condition Away', type: 'text', placeholder: 'e.g. Normal' },
+      ],
+    },
+    valorant: {
+      title: 'Valorant',
+      fields: [
+        { key: 'mode', label: 'Mode', type: 'text', placeholder: 'e.g. Competitive' },
+        { key: 'cheats', label: 'Cheats', type: 'checkbox' },
+        { key: 'tournament_mode', label: 'Tournament Mode', type: 'checkbox' },
+        { key: 'overtime_win_by_two', label: 'Overtime Win by Two', type: 'checkbox' },
+        { key: 'server_region', label: 'Server Region', type: 'text', placeholder: 'e.g. AP-South' },
+      ],
+    },
+  };
+
+  const MATCH_CONFIG_META_KEYS = new Set(['game_key', 'schema_version', 'values', 'fields', 'veto_sequence']);
 
   let dashData = null;
   let inflightPromise = null;
   let activeRequestId = 0;
   let lastFetchedAt = 0;
   let autoRefreshTimer = null;
+
+  let matchConfigEnvelope = {};
+  let matchConfigValues = {};
+  let matchConfigSchemaKey = '';
+
+  function asObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function asBool(value, fallback) {
+    if (value === true || value === false) return value;
+    if (typeof value === 'number') return value !== 0;
+    const token = String(value || '').trim().toLowerCase();
+    if (token === 'true' || token === '1' || token === 'yes' || token === 'on') return true;
+    if (token === 'false' || token === '0' || token === 'no' || token === 'off') return false;
+    return !!fallback;
+  }
+
+  function canonicalGameKey(raw) {
+    const token = String(raw || '').trim().toLowerCase();
+    if (!token) return '';
+    if (token.includes('efootball') || token === 'pes') return 'efootball';
+    if (token.includes('valorant')) return 'valorant';
+    return token;
+  }
+
+  function currentGameSchemaKey() {
+    const configKey = canonicalGameKey(window.TOC?.config?.gameSlug || window.TOC_CONFIG?.gameSlug || '');
+    return configKey;
+  }
+
+  function unpackMatchSettings(rawSettings) {
+    const payload = asObject(rawSettings);
+    let values = asObject(payload.values);
+
+    if (!Object.keys(values).length) {
+      values = asObject(payload.fields);
+    }
+
+    if (!Object.keys(values).length) {
+      values = {};
+      Object.keys(payload).forEach((key) => {
+        if (!MATCH_CONFIG_META_KEYS.has(key)) {
+          values[key] = payload[key];
+        }
+      });
+    }
+
+    return { payload, values };
+  }
+
+  function setMatchConfigStatus(message, tone) {
+    const el = $('#rules-match-config-status');
+    if (!el) return;
+
+    const mode = tone || 'muted';
+    el.className = 'text-[11px] mb-3';
+    if (mode === 'error') {
+      el.classList.add('text-dc-danger');
+    } else if (mode === 'success') {
+      el.classList.add('text-dc-success');
+    } else if (mode === 'warning') {
+      el.classList.add('text-dc-warning');
+    } else {
+      el.classList.add('text-dc-text');
+    }
+    el.textContent = message || '';
+  }
+
+  function renderMatchConfigEditor(schemaKey, values) {
+    const fieldsHost = $('#rules-match-config-fields');
+    const subtitle = $('#rules-match-config-subtitle');
+    const saveBtn = $('#rules-match-config-save-btn');
+    if (!fieldsHost) return;
+
+    const schema = MATCH_CONFIG_SCHEMAS[schemaKey] || null;
+    if (!schema) {
+      if (subtitle) subtitle.textContent = 'No supported schema for this game yet. Supported now: eFootball, Valorant.';
+      if (saveBtn) saveBtn.disabled = true;
+      fieldsHost.innerHTML = '<p class="text-xs text-dc-text text-center py-4 col-span-full opacity-60">This tournament game does not have a dynamic match configuration schema yet.</p>';
+      return;
+    }
+
+    if (subtitle) subtitle.textContent = `${schema.title} schema detected. Saved values will appear in the live match lobby rules panel.`;
+    if (saveBtn) saveBtn.disabled = false;
+
+    const safeValues = asObject(values);
+    let html = '';
+    schema.fields.forEach((field) => {
+      const key = String(field.key || '').trim();
+      if (!key) return;
+      const label = esc(field.label || key);
+      const type = String(field.type || 'text').toLowerCase();
+      const current = safeValues[key];
+
+      if (type === 'checkbox') {
+        html += `
+          <label class="flex items-center justify-between gap-3 rounded-lg border border-dc-border/70 bg-dc-surface/40 px-3 py-2.5 text-xs text-dc-text cursor-pointer">
+            <span class="font-semibold text-dc-textBright">${label}</span>
+            <input data-match-config-field="${esc(key)}" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" ${asBool(current, false) ? 'checked' : ''}>
+          </label>`;
+        return;
+      }
+
+      const inputType = type === 'number' ? 'number' : 'text';
+      const placeholder = esc(field.placeholder || '');
+      const minAttr = inputType === 'number' && Number.isFinite(field.min) ? ` min="${field.min}"` : '';
+      const valueAttr = current == null ? '' : String(current);
+
+      html += `
+        <div>
+          <label class="block text-[10px] text-dc-text uppercase tracking-widest mb-1">${label}</label>
+          <input data-match-config-field="${esc(key)}" data-input-type="${inputType}" type="${inputType}"${minAttr} value="${esc(valueAttr)}" placeholder="${placeholder}" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+        </div>`;
+    });
+
+    fieldsHost.innerHTML = html || '<p class="text-xs text-dc-text text-center py-4 col-span-full opacity-60">No configurable fields in this schema.</p>';
+  }
+
+  async function loadMatchConfig(options) {
+    const opts = options || {};
+    const silent = opts.silent === true;
+
+    if (!silent) {
+      setMatchConfigStatus('Loading match configuration...', 'muted');
+    }
+
+    try {
+      const data = await API.get('settings/game-config/');
+      matchConfigEnvelope = asObject(data);
+
+      const unpacked = unpackMatchSettings(matchConfigEnvelope.match_settings);
+      matchConfigValues = asObject(unpacked.values);
+
+      const payloadKey = canonicalGameKey(unpacked.payload.game_key);
+      matchConfigSchemaKey = payloadKey || currentGameSchemaKey();
+
+      renderMatchConfigEditor(matchConfigSchemaKey, matchConfigValues);
+      setMatchConfigStatus('Configuration is ready. Save after making edits to sync with match lobby rules.', 'success');
+      return matchConfigEnvelope;
+    } catch (e) {
+      const detail = e && e.message ? String(e.message) : 'Request failed';
+      setMatchConfigStatus(`Could not load match configuration: ${detail}`, 'error');
+      renderMatchConfigEditor(currentGameSchemaKey(), {});
+      return null;
+    }
+  }
+
+  function collectMatchConfigValues(schemaKey) {
+    const schema = MATCH_CONFIG_SCHEMAS[schemaKey];
+    if (!schema) return {};
+
+    const values = {};
+    schema.fields.forEach((field) => {
+      const key = String(field.key || '').trim();
+      if (!key) return;
+
+      const input = document.querySelector(`[data-match-config-field="${key}"]`);
+      if (!input) return;
+
+      const type = String(field.type || 'text').toLowerCase();
+      if (type === 'checkbox') {
+        values[key] = !!input.checked;
+        return;
+      }
+
+      const rawValue = String(input.value || '').trim();
+      if (!rawValue) return;
+      if (type === 'number') {
+        const parsed = Number(rawValue);
+        values[key] = Number.isFinite(parsed) ? parsed : rawValue;
+        return;
+      }
+      values[key] = rawValue;
+    });
+    return values;
+  }
+
+  async function saveMatchConfig() {
+    const schema = MATCH_CONFIG_SCHEMAS[matchConfigSchemaKey];
+    if (!schema) {
+      toast('No supported match configuration schema for this game.', 'error');
+      return;
+    }
+
+    const nextValues = collectMatchConfigValues(matchConfigSchemaKey);
+    const currentSettings = asObject(matchConfigEnvelope.match_settings);
+
+    const nextSettings = {
+      ...currentSettings,
+      game_key: matchConfigSchemaKey,
+      schema_version: String(currentSettings.schema_version || '1.0'),
+      values: nextValues,
+    };
+    delete nextSettings.fields;
+
+    const payload = {
+      game_id: matchConfigEnvelope.game_id || null,
+      default_match_format: matchConfigEnvelope.default_match_format || 'bo1',
+      scoring_rules: asObject(matchConfigEnvelope.scoring_rules),
+      enable_veto: asBool(matchConfigEnvelope.enable_veto, false),
+      veto_type: String(matchConfigEnvelope.veto_type || 'standard'),
+      match_settings: nextSettings,
+    };
+
+    try {
+      setMatchConfigStatus('Saving match configuration...', 'warning');
+      await API.put('settings/game-config/', payload);
+
+      matchConfigEnvelope = {
+        ...matchConfigEnvelope,
+        ...payload,
+        match_settings: nextSettings,
+      };
+      matchConfigValues = nextValues;
+
+      setMatchConfigStatus('Match configuration saved. Match lobby rules are now synced.', 'success');
+      toast('Match configuration saved', 'success');
+    } catch (e) {
+      const detail = e && e.message ? String(e.message) : 'Save failed';
+      setMatchConfigStatus(`Failed to save match configuration: ${detail}`, 'error');
+      toast('Failed to save match configuration', 'error');
+    }
+  }
 
   function isRulesTabActive() {
     return (window.location.hash || '').replace('#', '') === 'rules';
@@ -126,6 +378,7 @@
 
     if (dashData && !force) {
       renderDashboard(dashData);
+      loadMatchConfig({ silent: true });
       if (hasFreshCache()) return dashData;
     }
 
@@ -144,6 +397,7 @@
         dashData = data;
         lastFetchedAt = Date.now();
         renderDashboard(data);
+        loadMatchConfig({ silent: true });
         return data;
       } catch (e) {
         if (requestId !== activeRequestId) return dashData;
@@ -498,6 +752,7 @@
   window.TOC = window.TOC || {};
   window.TOC.rules = {
     refresh, invalidate,
+    saveMatchConfig,
     addSection, _submitAddSection,
     editSection, _submitEditSection, deleteSection,
     addFaq, _submitAddFaq,

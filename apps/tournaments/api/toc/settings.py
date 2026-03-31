@@ -82,6 +82,11 @@ class GameConfigView(TOCBaseView):
         result = TOCSettingsService.save_game_config(self.tournament, request.data)
         return Response(result)
 
+    def post(self, request, slug):
+        # Backward compatibility for callers that still POST updates.
+        result = TOCSettingsService.save_game_config(self.tournament, request.data)
+        return Response(result)
+
 
 # ------------------------------------------------------------------
 # S8-B3: Map Pool Management

@@ -1338,7 +1338,7 @@
             </div>
 
             {# Matches tab — Sprint 26: Full Control Room Rebuild #}
-            <div id="view-matches" data-tab-content="matches" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-0">
+            <div id="view-matches" data-tab-content="matches" class="hidden-view p-6 lg:p-8 max-w-[1800px] mx-auto space-y-4">
 
                 {# S6-F7: Ghost icon — Swords #}
                 <i data-lucide="swords" class="ghost-icon w-[500px] h-[500px] fixed right-[-100px] top-[200px] opacity-[0.012] pointer-events-none"></i>
@@ -1363,10 +1363,10 @@
                 <div id="matches-error-banner" class="hidden rounded-lg border border-dc-danger/30 bg-dc-dangerBg px-4 py-3 mb-3"></div>
 
                 {# ━━━ Master-Detail Grid ━━━ #}
-                <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 h-[calc(100vh-220px)] min-h-[600px]">
+                <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4 h-[calc(100vh-240px)] min-h-[620px]">
 
                     {# ═══ LEFT: Match List Panel ═══ #}
-                    <div class="glass-box rounded-l-xl lg:rounded-r-none rounded-xl lg:border-r-0 flex flex-col overflow-hidden">
+                    <div class="glass-box rounded-xl flex flex-col overflow-hidden min-h-0">
 
                         {# Filter bar #}
                         <div class="p-3 border-b border-dc-borderLight bg-dc-panel/50 space-y-2 shrink-0">
@@ -1393,7 +1393,7 @@
                         </div>
 
                         {# Scrollable match list #}
-                        <div id="match-list" class="flex-1 overflow-y-auto divide-y divide-dc-border/20" role="listbox" aria-label="Match list">
+                        <div id="match-list" class="flex-1 overflow-y-auto overflow-x-hidden divide-y divide-dc-border/20 pr-1" role="listbox" aria-label="Match list">
                             <div class="flex items-center justify-center h-40">
                                 <div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div>
                             </div>
@@ -1421,7 +1421,7 @@
                     </div>
 
                     {# ═══ RIGHT: Match Detail Panel ═══ #}
-                    <div class="glass-box rounded-r-xl lg:rounded-l-none rounded-xl flex flex-col overflow-hidden">
+                    <div class="glass-box rounded-xl flex flex-col overflow-hidden min-h-0 min-w-0">
 
                         {# Empty state (no match selected) #}
                         <div id="match-detail-empty" class="flex-1 flex items-center justify-center">
@@ -1519,7 +1519,7 @@
                             </div>
 
                             {# Detail tabs — Score Editor / Evidence / Audit #}
-                            <div class="border-b border-dc-borderLight shrink-0" role="tablist" aria-label="Match detail tabs">
+                            <div class="border-b border-dc-borderLight shrink-0 overflow-x-auto" role="tablist" aria-label="Match detail tabs">
                                 <div class="flex">
                                     <button onclick="TOC.matches.switchDetailTab('score')" class="detail-tab active flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="score" role="tab" aria-selected="true" aria-controls="detail-tab-score">
                                         <i data-lucide="edit-3" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Score
@@ -3550,41 +3550,41 @@
                 </div>
 
                 <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-                    <div class="xl:col-span-8 space-y-5">
-                        <div class="glass-box rounded-xl p-4 md:p-5">
+                    <div class="xl:col-span-8 space-y-5 min-w-0">
+                        <div class="glass-box rounded-xl p-4 md:p-5 flex flex-col min-h-[220px]">
                             <div class="flex items-center justify-between mb-3">
                                 <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
                                     <i data-lucide="siren" class="w-4 h-4 text-dc-warning"></i> Priority Queue
                                 </h3>
                                 <span class="text-[10px] font-mono text-dc-text">Needs immediate action first</span>
                             </div>
-                            <div id="lobby-priority-queue" class="space-y-2">
+                            <div id="lobby-priority-queue" class="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                                 <div class="flex items-center justify-center h-14"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
                             </div>
                         </div>
 
-                        <div class="glass-box rounded-xl p-4 md:p-5">
+                        <div class="glass-box rounded-xl p-4 md:p-5 flex flex-col min-h-[300px]">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                                 <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
                                     <i data-lucide="gamepad-2" class="w-4 h-4 text-theme"></i> Match Rooms
                                 </h3>
                                 <span class="text-[10px] font-mono text-dc-text">Create, close, and jump to score operations directly</span>
                             </div>
-                            <div id="lobby-matches-list" class="space-y-2">
+                            <div id="lobby-matches-list" class="space-y-2 max-h-[360px] overflow-y-auto pr-1">
                                 <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="xl:col-span-4 space-y-5">
-                        <div class="glass-box rounded-xl p-4 md:p-5">
+                    <div class="xl:col-span-4 space-y-5 min-w-0">
+                        <div class="glass-box rounded-xl p-4 md:p-5 flex flex-col min-h-[250px]">
                             <div class="flex items-center justify-between mb-3">
                                 <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
                                     <i data-lucide="server-cog" class="w-4 h-4 text-theme"></i> Server Fleet
                                 </h3>
                                 <span class="text-[10px] font-mono text-dc-text" id="lobby-server-utilization">0% utilization</span>
                             </div>
-                            <div id="lobby-servers-list" class="space-y-2">
+                            <div id="lobby-servers-list" class="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                                 <div class="flex items-center justify-center h-16"><div class="w-5 h-5 border-2 border-theme border-t-transparent rounded-full animate-spin"></div></div>
                             </div>
                         </div>
@@ -3690,6 +3690,24 @@
                     </div>
                     <div id="rules-quick-ref" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                         <p class="text-dc-text text-xs text-center py-4 col-span-full opacity-50">Not configured</p>
+                    </div>
+                </div>
+
+                <div class="glass-box rounded-xl p-5" id="rules-match-config-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4 text-theme"></i> Match Configuration
+                            </h3>
+                            <p id="rules-match-config-subtitle" class="text-xs text-dc-text mt-1">Define game-specific lobby rules that will appear in the live match room.</p>
+                        </div>
+                        <button id="rules-match-config-save-btn" onclick="TOC.rules.saveMatchConfig()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                            <i data-lucide="save" class="w-3 h-3"></i> Save Configuration
+                        </button>
+                    </div>
+                    <p id="rules-match-config-status" class="text-[11px] text-dc-text mb-3">Loading match configuration...</p>
+                    <div id="rules-match-config-fields" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <p class="text-xs text-dc-text text-center py-4 col-span-full opacity-50">Loading fields...</p>
                     </div>
                 </div>
 

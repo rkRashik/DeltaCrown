@@ -304,7 +304,105 @@ def test_build_room_payload_efootball_rules_surface_platform_and_match_time(monk
     assert "Map Pool" not in rule_map
 
 
-def test_build_room_payload_masks_opponent_result_until_reveal(monkeypatch):
+def test_build_room_payload_uses_dynamic_match_configuration_schema(monkeypatch):
+    tournament = SimpleNamespace(
+        id=90,
+        slug="schema-cup",
+        name="Schema Cup",
+        match_settings={
+            "game_key": "efootball",
+            "schema_version": "1.0",
+            "values": {
+                "match_type": "Exhibition",
+                "match_time": 10,
+                "injuries": False,
+                "extra_time": True,
+                "penalties": True,
+                "substitutions": "5",
+                "condition_home": "Excellent",
+                "condition_away": "Normal",
+            },
+        },
+    )
+    match = SimpleNamespace(
+        id=225,
+        state=Match.SCHEDULED,
+        get_state_display=lambda: "Scheduled",
+        round_number=1,
+        match_number=1,
+        participant1_id=4101,
+        participant1_name="Team One",
+        participant1_score=0,
+        participant1_checked_in=False,
+        participant2_id=4102,
+        participant2_name="Team Two",
+        participant2_score=0,
+        participant2_checked_in=False,
+        winner_id=None,
+        scheduled_time=None,
+        started_at=None,
+        completed_at=None,
+        tournament=tournament,
+        tournament_id=tournament.id,
+        best_of=1,
+    )
+
+    runtime = {
+        "game_name": "eFootball",
+        "game_slug": "efootball",
+        "pipeline_game_key": "efootball",
+        "phase_mode": "direct",
+        "credential_schema": [
+            {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
+            {"key": "password", "label": "Password", "kind": "text", "required": False},
+        ],
+        "best_of": 1,
+        "map_pool": [],
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "phase1_kind": "direct",
+        "policy": {},
+        "check_in_window": {"required": False},
+        "presence": {"1": {}, "2": {}},
+    }
+
+    workflow = {
+        "phase": "lobby_setup",
+        "phase_order": runtime["phase_order"],
+        "phase1_kind": "direct",
+        "policy": {},
+        "check_in_window": runtime["check_in_window"],
+        "presence": {"1": {}, "2": {}},
+        "credentials": {"lobby_code": "SC-10"},
+        "result_submissions": {"1": None, "2": None},
+        "result_status": "pending",
+    }
+
+    monkeypatch.setattr(match_room_view, "_side_submission_map", lambda _match: {})
+    monkeypatch.setattr(match_room_view, "_participant_media_map", lambda _match: {})
+
+    payload = match_room_view._build_room_payload(
+        match,
+        {"user_id": 4101, "user_side": 1, "is_staff": False, "admin_mode": False},
+        {"lobby_code": "SC-10"},
+        workflow,
+        runtime,
+    )
+
+    rules = payload["game"]["match_rules"]
+    rule_map = {row["title"]: row["value"] for row in rules}
+
+    assert rule_map["Match Type"] == "Exhibition"
+    assert rule_map["Match Time"] == "10 min"
+    assert rule_map["Injuries"] == "Disabled"
+    assert rule_map["Extra Time"] == "Enabled"
+    assert rule_map["Penalties"] == "Enabled"
+    assert rule_map["Substitutions"] == "5"
+    assert rule_map["Condition (Home)"] == "Excellent"
+    assert rule_map["Condition (Away)"] == "Normal"
+    assert "Pipeline" not in rule_map
+
+
+def test_build_room_payload_masks_opponent_result_for_participants_and_reveals_for_admin(monkeypatch):
     tournament = SimpleNamespace(id=89, slug="blind-cup", name="Blind Cup")
     match = SimpleNamespace(
         id=224,
@@ -392,23 +490,38 @@ def test_build_room_payload_masks_opponent_result_until_reveal(monkeypatch):
     assert hidden_rows["1"]["score_for"] == 2
     assert hidden_rows["2"]["blind_masked"] is True
     assert "score_for" not in hidden_rows["2"]
+    assert hidden_payload["me"]["can_submit_result"] is False
     assert hidden_visibility["opponent_revealed"] is False
     assert hidden_visibility["both_submitted"] is True
 
-    revealed_workflow = dict(workflow)
-    revealed_workflow["result_status"] = "verified"
-
-    revealed_payload = match_room_view._build_room_payload(
+    participant_verified_workflow = dict(workflow)
+    participant_verified_workflow["result_status"] = "verified"
+    participant_verified_payload = match_room_view._build_room_payload(
         match,
         {"user_id": 3001, "user_side": 1, "is_staff": False, "admin_mode": False},
         {"lobby_code": "L-10"},
-        revealed_workflow,
+        participant_verified_workflow,
         runtime,
     )
 
-    revealed_rows = revealed_payload["workflow"]["result_submissions"]
-    revealed_visibility = revealed_payload["workflow"]["result_visibility"]
+    participant_verified_rows = participant_verified_payload["workflow"]["result_submissions"]
+    participant_verified_visibility = participant_verified_payload["workflow"]["result_visibility"]
 
-    assert revealed_rows["2"]["score_for"] == 1
-    assert revealed_rows["2"].get("blind_masked") is None
-    assert revealed_visibility["opponent_revealed"] is True
+    assert participant_verified_rows["2"]["blind_masked"] is True
+    assert "score_for" not in participant_verified_rows["2"]
+    assert participant_verified_visibility["opponent_revealed"] is False
+
+    admin_payload = match_room_view._build_room_payload(
+        match,
+        {"user_id": 9999, "user_side": None, "is_staff": True, "admin_mode": True},
+        {"lobby_code": "L-10"},
+        participant_verified_workflow,
+        runtime,
+    )
+
+    admin_rows = admin_payload["workflow"]["result_submissions"]
+    admin_visibility = admin_payload["workflow"]["result_visibility"]
+
+    assert admin_rows["1"]["score_for"] == 2
+    assert admin_rows["2"]["score_for"] == 1
+    assert admin_visibility["opponent_revealed"] is True

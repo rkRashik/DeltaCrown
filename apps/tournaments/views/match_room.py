@@ -81,21 +81,6 @@ EFOOTBALL_CREDENTIAL_SCHEMA = [
 
 PRESENCE_STALE_SECONDS = 45
 
-RESULT_SUBMISSION_EDITABLE_STATUSES = {
-    MatchResultSubmission.STATUS_PENDING,
-    MatchResultSubmission.STATUS_CONFIRMED,
-    MatchResultSubmission.STATUS_DISPUTED,
-    MatchResultSubmission.STATUS_AUTO_CONFIRMED,
-}
-
-RESULT_REVEAL_STATUSES = {
-    "verified",
-    "mismatch",
-    "tie_pending_review",
-    "admin_overridden",
-    "admin_tie_pending_review",
-}
-
 TOURNAMENT_PLATFORM_LABELS = {
     "pc": "PC",
     "mobile": "Mobile",
@@ -108,6 +93,52 @@ TOURNAMENT_MODE_LABELS = {
     "online": "Online",
     "lan": "LAN",
     "hybrid": "Hybrid",
+}
+
+MATCH_CONFIGURATION_SCHEMAS = {
+    "efootball": [
+        ("match_type", "Match Type"),
+        ("match_time", "Match Time"),
+        ("injuries", "Injuries"),
+        ("extra_time", "Extra Time"),
+        ("penalties", "Penalties"),
+        ("substitutions", "Substitutions"),
+        ("condition_home", "Condition (Home)"),
+        ("condition_away", "Condition (Away)"),
+    ],
+    "valorant": [
+        ("mode", "Mode"),
+        ("cheats", "Cheats"),
+        ("tournament_mode", "Tournament Mode"),
+        ("overtime_win_by_two", "Overtime Win by Two"),
+        ("server_region", "Server Region"),
+    ],
+}
+
+MATCH_CONFIGURATION_SCHEMA_SIGNAL_KEYS = {
+    "efootball": {
+        "match_type",
+        "match_time",
+        "injuries",
+        "substitutions",
+        "condition_home",
+        "condition_away",
+    },
+    "valorant": {
+        "mode",
+        "cheats",
+        "tournament_mode",
+        "overtime_win_by_two",
+        "server_region",
+    },
+}
+
+MATCH_CONFIGURATION_META_KEYS = {
+    "game_key",
+    "schema_version",
+    "values",
+    "fields",
+    "veto_sequence",
 }
 
 
@@ -274,6 +305,97 @@ def _build_check_in_rule_text(match: Match, check_in_window: Dict[str, Any]) -> 
     return f"{p1_text} / {p2_text}"
 
 
+def _canonical_match_configuration_game_key(value: Any) -> str:
+    token = str(value or "").strip().lower()
+    if not token:
+        return ""
+    if "efootball" in token or token == "pes":
+        return "efootball"
+    if "valorant" in token:
+        return "valorant"
+    return token
+
+
+def _dynamic_match_configuration_values(
+    match_settings: Dict[str, Any],
+    *,
+    runtime_game_key: str,
+    runtime_game_slug: str,
+) -> Tuple[str, Dict[str, Any]]:
+    schema_key = _canonical_match_configuration_game_key(
+        _setting_value(match_settings, "game_key", "game", "game_slug")
+        or runtime_game_key
+        or runtime_game_slug
+    )
+
+    values = _safe_dict(match_settings.get("values"))
+    if not values:
+        values = _safe_dict(match_settings.get("fields"))
+    if not values:
+        values = {
+            key: value
+            for key, value in match_settings.items()
+            if key not in MATCH_CONFIGURATION_META_KEYS
+        }
+
+    return schema_key, values
+
+
+def _format_dynamic_match_configuration_value(field_key: str, value: Any) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, bool):
+        return "Enabled" if value else "Disabled"
+
+    if isinstance(value, (list, tuple)):
+        text_list = [str(item).strip() for item in value if str(item).strip()]
+        return ", ".join(text_list)
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    if field_key == "match_time":
+        minutes = _coerce_positive_int(text)
+        if minutes:
+            return f"{minutes} min"
+
+    return text
+
+
+def _build_dynamic_match_configuration_rules(
+    match_settings: Dict[str, Any],
+    *,
+    runtime_game_key: str,
+    runtime_game_slug: str,
+) -> List[Dict[str, str]]:
+    schema_key, values = _dynamic_match_configuration_values(
+        match_settings,
+        runtime_game_key=runtime_game_key,
+        runtime_game_slug=runtime_game_slug,
+    )
+    schema = MATCH_CONFIGURATION_SCHEMAS.get(schema_key, [])
+    if not schema or not values:
+        return []
+
+    signal_keys = MATCH_CONFIGURATION_SCHEMA_SIGNAL_KEYS.get(schema_key, set())
+    has_schema_signal = any(key in values for key in signal_keys)
+    if not has_schema_signal:
+        return []
+
+    cards: List[Dict[str, str]] = []
+    for field_key, label in schema:
+        if field_key not in values:
+            continue
+        formatted = _format_dynamic_match_configuration_value(field_key, values.get(field_key))
+        if not formatted:
+            continue
+        cards.append({"title": label, "value": formatted})
+
+    return cards
+
+
 def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, str]]:
     tournament = match.tournament
     game_key = str(runtime.get("pipeline_game_key") or runtime.get("game_slug") or "").lower()
@@ -284,7 +406,8 @@ def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, 
     map_pool = _safe_string_list(runtime.get("map_pool"))
     check_in_window = _safe_dict(runtime.get("check_in_window"))
 
-    match_settings: Dict[str, Any] = {}
+    tournament_match_settings = _safe_dict(getattr(tournament, "match_settings", {}))
+    match_settings: Dict[str, Any] = dict(tournament_match_settings)
     default_match_format = ""
     try:
         cfg = tournament.game_match_config
@@ -292,8 +415,17 @@ def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, 
         cfg = None
 
     if cfg:
-        match_settings = _safe_dict(getattr(cfg, "match_settings", {}))
+        if not match_settings:
+            match_settings = _safe_dict(getattr(cfg, "match_settings", {}))
         default_match_format = str(getattr(cfg, "default_match_format", "") or "").strip()
+
+    dynamic_rules = _build_dynamic_match_configuration_rules(
+        match_settings,
+        runtime_game_key=game_key,
+        runtime_game_slug=str(runtime.get("game_slug") or ""),
+    )
+    if dynamic_rules:
+        return dynamic_rules
 
     fallback_duration = None
     allow_draws = None
@@ -403,17 +535,15 @@ def _mask_result_submissions_for_view(
     *,
     submissions: Dict[str, Any],
     access: Dict[str, Any],
-    result_status: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     normalized_submissions: Dict[str, Optional[Dict[str, Any]]] = {
         "1": _safe_dict(submissions.get("1")) if isinstance(submissions.get("1"), dict) else None,
         "2": _safe_dict(submissions.get("2")) if isinstance(submissions.get("2"), dict) else None,
     }
 
-    is_staff = bool(access.get("is_staff"))
+    is_admin_view = bool(access.get("admin_mode"))
     viewer_side = access.get("user_side") if access.get("user_side") in (1, 2) else None
     both_submitted = isinstance(normalized_submissions.get("1"), dict) and isinstance(normalized_submissions.get("2"), dict)
-    reveal_for_participant = bool(viewer_side in (1, 2) and both_submitted and result_status in RESULT_REVEAL_STATUSES)
 
     masked: Dict[str, Any] = {"1": None, "2": None}
 
@@ -428,7 +558,7 @@ def _mask_result_submissions_for_view(
         except (TypeError, ValueError):
             side_value = None
 
-        row_visible = bool(is_staff or (viewer_side and viewer_side == side_value) or reveal_for_participant)
+        row_visible = bool(is_admin_view or (viewer_side and viewer_side == side_value))
         masked[side_key] = _safe_dict(row) if row_visible else _blind_mask_submission(row)
 
     viewer_submission = normalized_submissions.get(str(viewer_side)) if viewer_side in (1, 2) else None
@@ -437,7 +567,7 @@ def _mask_result_submissions_for_view(
         "viewer_side": viewer_side,
         "viewer_submitted": bool(isinstance(viewer_submission, dict)),
         "both_submitted": bool(both_submitted),
-        "opponent_revealed": bool(is_staff or reveal_for_participant),
+        "opponent_revealed": bool(is_admin_view),
     }
 
     return masked, visibility
@@ -1111,12 +1241,12 @@ def _build_room_payload(
     merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
     for side, submission in _side_submission_map(match).items():
         merged_submissions[str(side)] = _serialize_side_submission(submission, side)
+    viewer_submission = merged_submissions.get(str(user_side)) if user_side in (1, 2) else None
+    can_submit_result = bool(user_side in (1, 2) and not isinstance(viewer_submission, dict))
 
-    result_status = str(workflow_payload.get("result_status") or "pending").strip().lower()
     masked_submissions, result_visibility = _mask_result_submissions_for_view(
         submissions=merged_submissions,
         access=access,
-        result_status=result_status,
     )
 
     workflow_payload["result_submissions"] = masked_submissions
@@ -1191,7 +1321,7 @@ def _build_room_payload(
             "is_staff": bool(access.get("is_staff")),
             "admin_mode": bool(access.get("admin_mode")),
             "can_edit_credentials": bool(access.get("is_staff") or is_host),
-            "can_submit_result": bool(access.get("is_staff") or user_side in (1, 2)),
+            "can_submit_result": can_submit_result,
             "can_force_phase": bool(access.get("admin_mode")),
             "can_override_result": bool(access.get("admin_mode")),
             "can_broadcast_system": bool(access.get("admin_mode")),
@@ -1605,17 +1735,15 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 "submitted_at": timezone.now().isoformat(),
             }
 
-            submission = _latest_submission_for_side(side)
-            if submission and submission.status not in RESULT_SUBMISSION_EDITABLE_STATUSES:
-                submission = None
+            if _latest_submission_for_side(side):
+                raise ValueError("Result already submitted for this side. Contact admin for correction.")
 
-            if submission is None:
-                submission = MatchResultSubmission(
-                    match=match,
-                    submitted_by_user_id=access.get("user_id"),
-                    submitted_by_team_id=team_id,
-                    source=MatchResultSubmission.SOURCE_MANUAL,
-                )
+            submission = MatchResultSubmission(
+                match=match,
+                submitted_by_user_id=access.get("user_id"),
+                submitted_by_team_id=team_id,
+                source=MatchResultSubmission.SOURCE_MANUAL,
+            )
 
             submission.raw_result_payload = submission_payload
             submission.submitter_notes = note
@@ -1823,6 +1951,9 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
         elif action == "submit_result":
             if actor_side not in (1, 2):
                 raise ValueError("Only participating sides can submit results.")
+
+            if _latest_submission_for_side(actor_side):
+                raise ValueError("Result already submitted. You cannot edit it. Contact admin for correction.")
 
             score_for = self._parse_int(payload.get("score_for"), "score_for")
             score_against = self._parse_int(payload.get("score_against"), "score_against")

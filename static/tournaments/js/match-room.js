@@ -113,6 +113,7 @@
 
   function init() {
     bindStaticEvents();
+    updateShellViewportHeight();
     ensureNoShowTicker();
     renderAll();
     initMobileTopNavBehavior();
@@ -292,6 +293,21 @@
     elements.mobilePanelOverlay.style.top = `${navHeight}px`;
   }
 
+  function updateShellViewportHeight() {
+    if (!elements.shell) {
+      return;
+    }
+
+    const rect = elements.shell.getBoundingClientRect();
+    const topOffset = Math.max(0, Math.round(rect.top || 0));
+    const viewportHeight = window.visualViewport && Number.isFinite(window.visualViewport.height)
+      ? Math.round(window.visualViewport.height)
+      : Math.round(window.innerHeight || 0);
+
+    const shellHeight = Math.max(420, viewportHeight - topOffset);
+    elements.shell.style.setProperty('--room-shell-height', `${shellHeight}px`);
+  }
+
   function setMobileTopNavHidden(hidden) {
     if (!elements.topNav) {
       return;
@@ -331,12 +347,21 @@
     elements.mainScroll.addEventListener('scroll', handleMainScrollForNav, { passive: true });
 
     window.addEventListener('resize', function () {
+      updateShellViewportHeight();
       if (window.innerWidth >= 1024) {
         setMobileTopNavHidden(false);
       }
       updateMobileOverlayTopOffset();
     }, { passive: true });
 
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () {
+        updateShellViewportHeight();
+        updateMobileOverlayTopOffset();
+      }, { passive: true });
+    }
+
+    updateShellViewportHeight();
     updateMobileOverlayTopOffset();
   }
 
@@ -623,12 +648,38 @@
     return sideOnline(1) && sideOnline(2);
   }
 
+  function hasSubmittedResultForSide(side) {
+    if (side !== 1 && side !== 2) {
+      return false;
+    }
+    const row = workflowSubmission(side);
+    if (!row || typeof row !== 'object') {
+      return false;
+    }
+    return Boolean(row.submission_id || row.submitted_at);
+  }
+
+  function bypassPresenceLock() {
+    const side = mySide();
+    if (side !== 1 && side !== 2) {
+      return true;
+    }
+    if (bool(asObject(state.room.me).admin_mode, false)) {
+      return true;
+    }
+    const phase = currentPhase();
+    if (phase === 'completed') {
+      return true;
+    }
+    return hasSubmittedResultForSide(side);
+  }
+
   function waitingLocked() {
     const side = mySide();
     if (side !== 1 && side !== 2) {
       return false;
     }
-    if (bool(asObject(state.room.me).admin_mode, false)) {
+    if (bypassPresenceLock()) {
       return false;
     }
     return !bothSidesOnline();
@@ -865,26 +916,8 @@
       ? backendCards
       : [
         {
-          title: 'Pipeline',
-          value: mode === 'direct' ? 'Direct Setup (eFootball)' : 'Toss -> Veto -> Setup (Valorant)',
-        },
-        {
-          title: 'Best Of',
-          value: `Bo${toInt(match.best_of, 1)}`,
-        },
-        {
-          title: 'Check-In',
-          value: bool(checkIn.required, false)
-            ? `${p1.checked_in ? 'P1 ready' : 'P1 pending'} / ${p2.checked_in ? 'P2 ready' : 'P2 pending'}`
-            : 'Not required',
-        },
-        {
-          title: 'Map Pool',
-          value: maps.length ? maps.join(', ') : 'Managed in lobby',
-        },
-        {
-          title: 'Scheduled',
-          value: formatLocalTime(match.scheduled_time),
+          title: 'Match Configuration',
+          value: 'This match has no published configuration yet. Ask the organizer to save it from TOC Rules & Info.',
         },
       ];
 
@@ -893,7 +926,7 @@
         return `
           <div class="p-3 rounded-xl bg-white/5 border border-white/10">
             <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">${esc(item.title)}</p>
-            <p class="text-xs text-white leading-relaxed">${esc(item.value)}</p>
+            <p class="text-xs text-white leading-relaxed break-words">${esc(item.value)}</p>
           </div>
         `;
       })
@@ -1366,6 +1399,7 @@
     const canSubmit = bool(me.can_submit_result, false) && (side === 1 || side === 2);
     const submission = side ? workflowSubmission(side) : null;
     const oppSubmission = side ? workflowSubmission(opponentSide()) : null;
+    const hasSubmitted = Boolean(submission && (submission.submission_id || submission.submitted_at));
 
     const scoreFor = submission ? toInt(submission.score_for, 0) : 0;
     const scoreAgainst = submission ? toInt(submission.score_against, 0) : 0;
@@ -1375,11 +1409,15 @@
     const prefix = inlineAfterLive ? 'Live Follow-up' : 'Result Desk';
     const header = inlineAfterLive ? 'Submit Result When Match Ends' : 'Result Submission';
     const blindCopy = bool(visibility.opponent_revealed, false)
-      ? 'Each side submits score independently. Matching submissions auto-verify.'
-      : 'Blind mode is active. Opponent score remains hidden until both sides submit.';
+      ? 'Admin view active. Opponent submission details are visible here.'
+      : 'Blind mode is active. Opponent score is hidden from participants and visible to admins only.';
 
     const myStatus = submission ? String(submission.status || 'submitted') : 'pending';
     const oppStatus = oppSubmission ? String(oppSubmission.status || 'submitted') : 'pending';
+    const submitDisabled = !(canSubmit && !waitingLocked() && !state.requestBusy);
+    const lockHint = hasSubmitted
+      ? '<p class="mt-3 text-[11px] text-amber-200">Your result is locked after first submission. Contact admin for corrections.</p>'
+      : '';
 
     return `
       <section class="glass-panel rounded-2xl p-5 md:p-7 ${inlineAfterLive ? 'border border-white/10' : 'border-t-4 border-ac'}">
@@ -1411,9 +1449,11 @@
               <textarea id="result-note" class="lobby-input mt-1 min-h-[72px]" ${canSubmit ? '' : 'disabled'}>${esc(note)}</textarea>
             </label>
 
+            ${lockHint}
+
             <div class="mt-4 flex justify-end">
-              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${(canSubmit && !waitingLocked() && !state.requestBusy) ? '' : 'opacity-50 cursor-not-allowed'}" ${(canSubmit && !waitingLocked() && !state.requestBusy) ? '' : 'disabled'}>
-                Submit Result
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider ${submitDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${submitDisabled ? 'disabled' : ''}>
+                ${hasSubmitted ? 'Submitted' : 'Submit Result'}
               </button>
             </div>
           </form>
@@ -1441,7 +1481,7 @@
       return `
         <div class="mt-4 space-y-2">
           <p class="text-sm text-white font-semibold">Opponent has submitted.</p>
-          <p class="text-xs text-gray-400">Score stays hidden until both sides submit.</p>
+          <p class="text-xs text-gray-400">Score is hidden for participants. Only admin can view opponent score.</p>
           <p class="text-xs text-gray-500">Submitted at ${esc(shortClock(row.submitted_at))}</p>
         </div>
       `;
@@ -1535,6 +1575,11 @@
         elements.waitingOverlay.classList.add('overlay-hidden');
         return;
       }
+    }
+
+    if (bypassPresenceLock()) {
+      elements.waitingOverlay.classList.add('overlay-hidden');
+      return;
     }
 
     const meOnline = sideOnline(side) || state.wsConnected;
@@ -1658,12 +1703,7 @@
 
     if (elements.helpSignalBtn) {
       elements.helpSignalBtn.addEventListener('click', function () {
-        const reportUrl = String(asObject(state.room.urls).report_dispute || '');
-        if (!reportUrl) {
-          showToast('Dispute endpoint unavailable.', 'error');
-          return;
-        }
-        window.location.href = reportUrl;
+        signalReferee();
       });
     }
 
@@ -1982,6 +2022,65 @@
     } finally {
       state.requestBusy = false;
       renderEngine();
+    }
+  }
+
+  async function signalReferee() {
+    const reportUrl = String(asObject(state.room.urls).report_dispute || '');
+    if (!reportUrl) {
+      showToast('Dispute endpoint unavailable.', 'error');
+      return;
+    }
+
+    if (bool(asObject(state.room.me).is_staff, false)) {
+      showToast('Use TOC verification panel for organizer dispute actions.', 'info');
+      return;
+    }
+
+    const reasonRaw = window.prompt('Dispute reason code', 'score_mismatch');
+    if (reasonRaw === null) {
+      return;
+    }
+    const reason = String(reasonRaw || '').trim();
+    if (!reason) {
+      showToast('Dispute reason is required.', 'error');
+      return;
+    }
+
+    const descriptionRaw = window.prompt('Describe the issue for referee review');
+    if (descriptionRaw === null) {
+      return;
+    }
+    const description = String(descriptionRaw || '').trim();
+    if (!description) {
+      showToast('Dispute description is required.', 'error');
+      return;
+    }
+
+    const body = new URLSearchParams();
+    body.set('reason', reason);
+    body.set('description', description);
+
+    try {
+      const response = await fetch(reportUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: body.toString(),
+      });
+
+      const data = await parseJsonResponse(response);
+      if (!response.ok || !bool(data.success, false)) {
+        throw new Error(String(data.error || 'Failed to notify referee.'));
+      }
+
+      showToast(String(data.message || 'Referee notified.'), 'success');
+    } catch (error) {
+      showToast(String(error && error.message ? error.message : 'Failed to notify referee.'), 'error');
     }
   }
 

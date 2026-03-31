@@ -590,6 +590,13 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text='Advanced tournament configuration and feature flags (JSONB)'
     )
+
+    # Dynamic match configuration authored from TOC Rules & Info tab
+    match_settings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Game-specific match configuration rendered in match lobby rules (JSONB)'
+    )
     
     # Managers
     objects = SoftDeleteManager()
