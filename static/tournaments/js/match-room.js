@@ -21,6 +21,14 @@
   const VALID_PHASES = new Set(PHASE_FALLBACK);
   const MOBILE_TABS = ['engine', 'chat', 'intel'];
   const ALLOWED_CREDENTIAL_KEYS = new Set(['lobby_code', 'password', 'map', 'server', 'game_mode', 'notes']);
+  const DEFAULT_TIMEZONE = 'Asia/Dhaka';
+  const DEFAULT_TIME_FORMAT = '12h';
+
+  var timePrefs = {
+    timezone: DEFAULT_TIMEZONE,
+    timeFormat: DEFAULT_TIME_FORMAT,
+  };
+  var timePrefsPromise = null;
 
   const THEME_PRESETS = {
     valorant: {
@@ -123,6 +131,11 @@
     updateShellViewportHeight();
     ensureNoShowTicker();
     renderAll();
+    loadTimePreferences().then(function () {
+      renderAll();
+    }).catch(function () {
+      // Keep default timezone/time-format fallback when prefs API is unavailable.
+    });
     initMobileTopNavBehavior();
     connectSocket();
     startPresenceHeartbeat();
@@ -188,11 +201,125 @@
     return Date.now();
   }
 
+  function sanitizeCsrfToken(value) {
+    var raw = String(value || '').trim();
+    if (!raw) {
+      return '';
+    }
+    return raw.replace(/^['\"]|['\"]$/g, '');
+  }
+
+  function getCookie(name) {
+    var chunks = String(document.cookie || '').split(';');
+    var prefix = String(name || '') + '=';
+    for (var i = 0; i < chunks.length; i++) {
+      var item = chunks[i].trim();
+      if (!item.startsWith(prefix)) {
+        continue;
+      }
+      return decodeURIComponent(item.slice(prefix.length));
+    }
+    return '';
+  }
+
+  function normalizeTimeFormat(value) {
+    var token = String(value || '').trim().toLowerCase();
+    if (token === '24' || token === '24h') {
+      return '24h';
+    }
+    return '12h';
+  }
+
+  function normalizeTimezone(value) {
+    var tz = String(value || '').trim();
+    return tz || DEFAULT_TIMEZONE;
+  }
+
+  function timeFormatOptions(options, includeTime) {
+    var next = (options && typeof options === 'object') ? Object.assign({}, options) : {};
+    if (!next.timeZone) {
+      next.timeZone = timePrefs.timezone;
+    }
+    if (includeTime && next.hour12 === undefined && next.hourCycle === undefined) {
+      next.hour12 = timePrefs.timeFormat !== '24h';
+    }
+    return next;
+  }
+
+  function formatDateTimeWithPrefs(value, options) {
+    var dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) {
+      return '';
+    }
+    return dt.toLocaleString([], timeFormatOptions(options, true));
+  }
+
+  function formatTimeWithPrefs(value, options) {
+    var dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) {
+      return '';
+    }
+    return dt.toLocaleTimeString([], timeFormatOptions(options, true));
+  }
+
+  function loadTimePreferences() {
+    if (timePrefsPromise) {
+      return timePrefsPromise;
+    }
+
+    timePrefsPromise = fetch('/me/settings/platform-global/', {
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error('settings_http_' + resp.status);
+        }
+        return resp.json().catch(function () { return {}; });
+      })
+      .then(function (payload) {
+        var prefs = (payload && typeof payload === 'object' && payload.preferences)
+          ? payload.preferences
+          : {};
+        timePrefs = {
+          timezone: normalizeTimezone(prefs.timezone || prefs.timezone_pref),
+          timeFormat: normalizeTimeFormat(prefs.time_format),
+        };
+        return Object.assign({}, timePrefs);
+      })
+      .catch(function () {
+        return Object.assign({}, timePrefs);
+      });
+
+    return timePrefsPromise;
+  }
+
   function getCsrfToken() {
-    const row = document.cookie
-      .split('; ')
-      .find((chunk) => chunk.startsWith('csrftoken='));
-    return row ? decodeURIComponent(row.slice('csrftoken='.length)) : '';
+    var payloadToken = sanitizeCsrfToken(parsedPayload && parsedPayload.csrf_token ? parsedPayload.csrf_token : '');
+    if (payloadToken) {
+      return payloadToken;
+    }
+
+    var explicitToken = sanitizeCsrfToken(byId('match-room-csrf-token') ? byId('match-room-csrf-token').value : '');
+    if (explicitToken) {
+      return explicitToken;
+    }
+
+    var hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    var hiddenToken = sanitizeCsrfToken(hiddenInput ? hiddenInput.value : '');
+    if (hiddenToken) {
+      return hiddenToken;
+    }
+
+    var meta = document.querySelector('meta[name="csrf-token"], meta[name="csrfmiddlewaretoken"]');
+    var metaToken = sanitizeCsrfToken(meta ? meta.getAttribute('content') : '');
+    if (metaToken) {
+      return metaToken;
+    }
+
+    return sanitizeCsrfToken(getCookie('csrftoken'));
   }
 
   function maybeRunIcons() {
@@ -209,7 +336,7 @@
     if (Number.isNaN(dt.getTime())) {
       return 'N/A';
     }
-    return dt.toLocaleString([], {
+    return formatDateTimeWithPrefs(dt, {
       month: 'short',
       day: '2-digit',
       hour: '2-digit',
@@ -225,7 +352,7 @@
     if (Number.isNaN(dt.getTime())) {
       return 'now';
     }
-    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatTimeWithPrefs(dt, { hour: '2-digit', minute: '2-digit' });
   }
 
   function parseTimestamp(value) {

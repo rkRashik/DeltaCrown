@@ -88,13 +88,33 @@ class MatchScoreView(TOCBaseView):
         if p1_score < 0 or p2_score < 0:
             return Response({'error': 'Scores must be non-negative'}, status=status.HTTP_400_BAD_REQUEST)
 
-        data = TOCMatchesService.submit_score(
-            match_id=pk,
-            tournament=self.tournament,
-            p1_score=p1_score,
-            p2_score=p2_score,
-            user_id=request.user.id,
-        )
+        winner_side = None
+        winner_side_raw = request.data.get('winner_side', None)
+        if winner_side_raw not in (None, ''):
+            token = str(winner_side_raw).strip().lower()
+            if token in {'1', 'a', 'p1', 'participant1', 'left', 'team1'}:
+                winner_side = 1
+            elif token in {'2', 'b', 'p2', 'participant2', 'right', 'team2'}:
+                winner_side = 2
+            elif token in {'draw', 'tie', 'd'}:
+                winner_side = 'draw'
+            else:
+                return Response(
+                    {'error': 'winner_side must be one of: a, b, 1, 2, draw'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        try:
+            data = TOCMatchesService.submit_score(
+                match_id=pk,
+                tournament=self.tournament,
+                p1_score=p1_score,
+                p2_score=p2_score,
+                user_id=request.user.id,
+                winner_side=winner_side,
+            )
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
         return Response(data)
 

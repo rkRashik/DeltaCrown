@@ -76,11 +76,12 @@ def match(db, tournament, organizer, opponent):
 def test_submit_score_uses_match_service_override_signature(match, tournament, organizer, monkeypatch):
     captured = {}
 
-    def fake_override(match, score1, score2, reason, overridden_by_username):
+    def fake_override(match, score1, score2, reason, overridden_by_username, winner_side=None):
         captured['score1'] = score1
         captured['score2'] = score2
         captured['reason'] = reason
         captured['overridden_by_username'] = overridden_by_username
+        captured['winner_side'] = winner_side
         match.participant1_score = score1
         match.participant2_score = score2
         return match
@@ -98,6 +99,7 @@ def test_submit_score_uses_match_service_override_signature(match, tournament, o
     assert captured['score1'] == 5
     assert captured['score2'] == 2
     assert captured['overridden_by_username'] == organizer.username
+    assert captured['winner_side'] is None
     assert payload['participant1_score'] == 5
     assert payload['participant2_score'] == 2
 

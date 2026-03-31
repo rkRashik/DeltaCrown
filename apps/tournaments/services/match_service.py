@@ -1257,6 +1257,85 @@ class MatchService:
         match.save()
         
         return match
+
+    @staticmethod
+    def _coerce_optional_bool(value: Any) -> Optional[bool]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+
+        token = str(value).strip().lower()
+        if token in {'1', 'true', 'yes', 'y', 'on', 'allow', 'allowed', 'enabled'}:
+            return True
+        if token in {'0', 'false', 'no', 'n', 'off', 'disallow', 'disallowed', 'disabled', ''}:
+            return False
+        return None
+
+    @staticmethod
+    def _normalize_winner_side(winner_side: Any) -> Optional[Any]:
+        if winner_side is None:
+            return None
+        token = str(winner_side).strip().lower()
+        if token in {'', 'none', 'null'}:
+            return None
+        if token in {'1', 'a', 'p1', 'participant1', 'left', 'team1'}:
+            return 1
+        if token in {'2', 'b', 'p2', 'participant2', 'right', 'team2'}:
+            return 2
+        if token in {'draw', 'tie', 'd'}:
+            return 'draw'
+        return None
+
+    @classmethod
+    def draws_allowed_for_match(cls, match: Match) -> bool:
+        tournament = getattr(match, 'tournament', None)
+        if tournament is None:
+            return False
+
+        format_token = str(getattr(tournament, 'format', '') or '').strip().lower()
+        format_default = format_token in {
+            str(Tournament.ROUND_ROBIN).lower(),
+            str(Tournament.GROUP_PLAYOFF).lower(),
+            'group_stage',
+            'league',
+        }
+
+        lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+        match_settings = lobby_info.get('match_settings') if isinstance(lobby_info.get('match_settings'), dict) else {}
+        for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+            parsed = cls._coerce_optional_bool(match_settings.get(key))
+            if parsed is not None:
+                return parsed
+
+        tournament_settings = getattr(tournament, 'settings', None)
+        if isinstance(tournament_settings, dict):
+            top_level = tournament_settings
+            nested_match_settings = (
+                tournament_settings.get('match_settings')
+                if isinstance(tournament_settings.get('match_settings'), dict)
+                else {}
+            )
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(nested_match_settings.get(key))
+                if parsed is not None:
+                    return parsed
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(top_level.get(key))
+                if parsed is not None:
+                    return parsed
+
+        game = getattr(tournament, 'game', None)
+        game_config = getattr(game, 'tournament_config', None)
+        if isinstance(game_config, dict):
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(game_config.get(key))
+                if parsed is not None:
+                    return parsed
+
+        return format_default
     
     @staticmethod
     @transaction.atomic
@@ -1265,7 +1344,8 @@ class MatchService:
         score1: int,
         score2: int,
         reason: str,
-        overridden_by_username: str
+        overridden_by_username: str,
+        winner_side: Optional[Any] = None,
     ) -> Match:
         """
         Override match score (organizer correction action).
@@ -1279,6 +1359,7 @@ class MatchService:
             score2: New score for participant 2
             reason: Reason for override
             overridden_by_username: Username of organizer
+            winner_side: Optional explicit winner side for tied scores when draws are disabled
         
         Returns:
             Updated Match instance
@@ -1286,31 +1367,68 @@ class MatchService:
         # Store old scores for audit
         old_score1 = match.participant1_score
         old_score2 = match.participant2_score
+
+        if score1 < 0 or score2 < 0:
+            raise ValidationError('Scores must be non-negative')
         
         # Update match
         match.participant1_score = score1
         match.participant2_score = score2
+
+        normalized_winner_side = MatchService._normalize_winner_side(winner_side)
+        draw_allowed = MatchService.draws_allowed_for_match(match)
         
         # Determine winner
-        if score1 > score2:
-            match.winner_id = match.participant1_id
-            match.loser_id = match.participant2_id
+        if score1 == score2:
+            if draw_allowed:
+                match.winner_id = None
+                match.loser_id = None
+            else:
+                if normalized_winner_side == 'draw':
+                    raise ValidationError('Draw results are not allowed for this match format.')
+                if normalized_winner_side == 1:
+                    match.winner_id = match.participant1_id
+                    match.loser_id = match.participant2_id
+                elif normalized_winner_side == 2:
+                    match.winner_id = match.participant2_id
+                    match.loser_id = match.participant1_id
+                else:
+                    raise ValidationError('Tied scores require selecting a winner for this format.')
         else:
-            match.winner_id = match.participant2_id
-            match.loser_id = match.participant1_id
+            if normalized_winner_side == 'draw':
+                raise ValidationError('Draw winner selection is only valid when both scores are tied.')
+            if score1 > score2:
+                match.winner_id = match.participant1_id
+                match.loser_id = match.participant2_id
+            else:
+                match.winner_id = match.participant2_id
+                match.loser_id = match.participant1_id
         
-        match.state = 'completed'
+        match.state = Match.COMPLETED
+        if not match.completed_at:
+            match.completed_at = timezone.now()
+
+        lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+        resolved_winner_side = 0
+        if match.winner_id == match.participant1_id:
+            resolved_winner_side = 1
+        elif match.winner_id == match.participant2_id:
+            resolved_winner_side = 2
         
         # Store override metadata in lobby_info
-        match.lobby_info['score_override'] = {
+        lobby_info['score_override'] = {
             'old_score1': old_score1,
             'old_score2': old_score2,
             'new_score1': score1,
             'new_score2': score2,
             'reason': reason,
+            'winner_side': resolved_winner_side,
+            'draw_allowed': draw_allowed,
+            'result_mode': 'draw' if resolved_winner_side == 0 else 'winner',
             'overridden_at': timezone.now().isoformat(),
             'overridden_by': overridden_by_username,
         }
+        match.lobby_info = lobby_info
         match.save()
         
         return match

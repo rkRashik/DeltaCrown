@@ -38,6 +38,17 @@
     const _inflightGetRequests = new Map();
     let _activeTabId = '';
 
+    const DEFAULT_TIME_PREFS = Object.freeze({ timezone: 'Asia/Dhaka', timeFormat: '12h' });
+    let _timePrefs = { ...DEFAULT_TIME_PREFS };
+    let _timePrefsPromise = null;
+    let _dateLocalePatched = false;
+
+    const _nativeDateFormatters = {
+        toLocaleString: Date.prototype.toLocaleString,
+        toLocaleDateString: Date.prototype.toLocaleDateString,
+        toLocaleTimeString: Date.prototype.toLocaleTimeString,
+    };
+
     /* ───────────────────────────────────────────────
        S0-J3: Tab Router (hash-based)
        ─────────────────────────────────────────────── */
@@ -103,6 +114,157 @@
 
 
     /* ───────────────────────────────────────────────
+       Shared Runtime Helpers (CSRF + Time Prefs)
+       ─────────────────────────────────────────────── */
+
+    function _sanitizeCsrfToken(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        return raw.replace(/^['\"]|['\"]$/g, '');
+    }
+
+    function _readCookie(name) {
+        const needle = `${name}=`;
+        const chunks = String(document.cookie || '').split(';');
+        for (const chunk of chunks) {
+            const item = chunk.trim();
+            if (!item.startsWith(needle)) continue;
+            return _sanitizeCsrfToken(decodeURIComponent(item.slice(needle.length)));
+        }
+        return '';
+    }
+
+    function _resolveCsrfToken() {
+        const direct = _sanitizeCsrfToken(CFG.csrfToken);
+        if (direct) return direct;
+
+        const hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        const inputToken = _sanitizeCsrfToken(hiddenInput ? hiddenInput.value : '');
+        if (inputToken) return inputToken;
+
+        const meta = document.querySelector('meta[name="csrf-token"], meta[name="csrfmiddlewaretoken"]');
+        const metaToken = _sanitizeCsrfToken(meta ? meta.getAttribute('content') : '');
+        if (metaToken) return metaToken;
+
+        return _readCookie('csrftoken');
+    }
+
+    function _normalizeTimeFormat(value) {
+        const token = String(value || '').trim().toLowerCase();
+        if (token === '24' || token === '24h') return '24h';
+        return '12h';
+    }
+
+    function _normalizeTimezone(value) {
+        const tz = String(value || '').trim();
+        return tz || DEFAULT_TIME_PREFS.timezone;
+    }
+
+    function _normalizeLocaleArgs(locales, options) {
+        if (
+            options === undefined
+            && locales
+            && typeof locales === 'object'
+            && !Array.isArray(locales)
+        ) {
+            return { locales: undefined, options: locales };
+        }
+        return { locales, options };
+    }
+
+    function _withTimePrefs(options, includeTime) {
+        const next = (options && typeof options === 'object') ? { ...options } : {};
+        if (!next.timeZone) {
+            next.timeZone = _timePrefs.timezone;
+        }
+        if (includeTime && next.hour12 === undefined && next.hourCycle === undefined) {
+            next.hour12 = _timePrefs.timeFormat !== '24h';
+        }
+        return next;
+    }
+
+    function _updateTimePrefs(preferences) {
+        _timePrefs = {
+            timezone: _normalizeTimezone(preferences && (preferences.timezone || preferences.timezone_pref)),
+            timeFormat: _normalizeTimeFormat(preferences && preferences.time_format),
+        };
+    }
+
+    function _patchDateLocaleFormatters() {
+        if (_dateLocalePatched) return;
+        _dateLocalePatched = true;
+
+        Date.prototype.toLocaleString = function patchedToLocaleString(locales, options) {
+            const args = _normalizeLocaleArgs(locales, options);
+            return _nativeDateFormatters.toLocaleString.call(this, args.locales, _withTimePrefs(args.options, true));
+        };
+
+        Date.prototype.toLocaleDateString = function patchedToLocaleDateString(locales, options) {
+            const args = _normalizeLocaleArgs(locales, options);
+            return _nativeDateFormatters.toLocaleDateString.call(this, args.locales, _withTimePrefs(args.options, false));
+        };
+
+        Date.prototype.toLocaleTimeString = function patchedToLocaleTimeString(locales, options) {
+            const args = _normalizeLocaleArgs(locales, options);
+            return _nativeDateFormatters.toLocaleTimeString.call(this, args.locales, _withTimePrefs(args.options, true));
+        };
+    }
+
+    function _formatWithPrefs(value, method, options, locales) {
+        if (!value && value !== 0) return '';
+        const dt = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(dt.getTime())) return '';
+        const args = _normalizeLocaleArgs(locales, options);
+        if (method === 'date') {
+            return _nativeDateFormatters.toLocaleDateString.call(dt, args.locales, _withTimePrefs(args.options, false));
+        }
+        if (method === 'time') {
+            return _nativeDateFormatters.toLocaleTimeString.call(dt, args.locales, _withTimePrefs(args.options, true));
+        }
+        return _nativeDateFormatters.toLocaleString.call(dt, args.locales, _withTimePrefs(args.options, true));
+    }
+
+    async function _fetchPlatformTimePrefs() {
+        const res = await fetch('/me/settings/platform-global/', {
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+        if (!res.ok) {
+            throw new Error(`settings_http_${res.status}`);
+        }
+        const payload = await res.json().catch(() => ({}));
+        const prefs = payload && typeof payload === 'object'
+            ? (payload.preferences || {})
+            : {};
+        _updateTimePrefs(prefs);
+        return { ..._timePrefs };
+    }
+
+    function ensureTimePrefs() {
+        if (_timePrefsPromise) return _timePrefsPromise;
+
+        _timePrefsPromise = _fetchPlatformTimePrefs()
+            .catch(() => ({ ..._timePrefs }))
+            .finally(() => {
+                document.dispatchEvent(new CustomEvent('toc:timeprefs-updated', {
+                    detail: { ..._timePrefs },
+                }));
+            });
+
+        return _timePrefsPromise;
+    }
+
+    function getTimePrefs() {
+        return { ..._timePrefs };
+    }
+
+    _patchDateLocaleFormatters();
+    ensureTimePrefs();
+
+
+    /* ───────────────────────────────────────────────
        S0-J4: Fetch Wrapper (CSRF-aware)
        ─────────────────────────────────────────────── */
 
@@ -116,7 +278,7 @@
         const defaults = {
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': CFG.csrfToken || '',
+                'X-CSRFToken': _resolveCsrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'same-origin',
@@ -616,6 +778,7 @@
         initSidebarCollapse();
         initCmdK();
         initKeyboard();
+        ensureTimePrefs();
 
         // Set platform-aware modifier key label
         const modKeyEl = $('#toc-search-mod-key');
@@ -650,17 +813,33 @@
     api.delete = (path) => tocFetch(_apiUrl(path), { method: 'DELETE' });
     api.getRaw = async (path) => {
         const res = await fetch(_apiUrl(path), {
-            headers: { 'X-CSRFToken': CFG.csrfToken || '', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: { 'X-CSRFToken': _resolveCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         });
         if (!res.ok) throw new Error(`TOC API ${res.status}`);
         return res;
     };
 
+    const time = {
+        ensurePrefs: ensureTimePrefs,
+        getPrefs: getTimePrefs,
+        formatDateTime(value, options, locales) {
+            return _formatWithPrefs(value, 'datetime', options || {}, locales);
+        },
+        formatDate(value, options, locales) {
+            return _formatWithPrefs(value, 'date', options || {}, locales);
+        },
+        formatTime(value, options, locales) {
+            return _formatWithPrefs(value, 'time', options || {}, locales);
+        },
+    };
+
     window.TOC = {
         config: CFG,
         slug: CFG.tournamentSlug || '',
         api,
+        getCsrfToken: _resolveCsrfToken,
+        time,
         navigate,
         fetch: tocFetch,
         tocFetch: tocFetch,

@@ -639,6 +639,7 @@
   <div id="room-toast"></div>
 </div>
 
+<input type="hidden" id="match-room-csrf-token" value="{{ csrf_token }}">
 {{ room_payload|json_script:"match-room-payload" }}
 {% endblock %}
 

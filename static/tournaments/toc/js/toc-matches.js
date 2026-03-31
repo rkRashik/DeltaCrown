@@ -61,6 +61,143 @@
     return err.message || 'Something went wrong. Please try again.';
   }
 
+  function timeApi() {
+    return window.TOC && window.TOC.time ? window.TOC.time : null;
+  }
+
+  function formatDateTime(value, options) {
+    if (!value) return '';
+    var t = timeApi();
+    if (t && typeof t.formatDateTime === 'function') {
+      return t.formatDateTime(value, options || {});
+    }
+    var dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleString(undefined, options || {});
+  }
+
+  function formatClock(value, options) {
+    if (!value) return '';
+    var t = timeApi();
+    if (t && typeof t.formatTime === 'function') {
+      return t.formatTime(value, options || {});
+    }
+    var dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleTimeString(undefined, options || {});
+  }
+
+  function toTimestamp(value) {
+    if (!value) return 0;
+    var dt = new Date(value);
+    var ts = dt.getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function compareByTimeProximity(a, b) {
+    var now = Date.now();
+    var ta = toTimestamp(a && a.scheduled_time);
+    var tb = toTimestamp(b && b.scheduled_time);
+    var hasA = ta > 0;
+    var hasB = tb > 0;
+
+    if (hasA && hasB) {
+      var da = Math.abs(ta - now);
+      var db = Math.abs(tb - now);
+      if (da !== db) return da - db;
+      if (ta !== tb) return ta - tb;
+    } else if (hasA) {
+      return -1;
+    } else if (hasB) {
+      return 1;
+    }
+
+    var ar = Number(a && a.round_number) || 0;
+    var br = Number(b && b.round_number) || 0;
+    if (ar !== br) return ar - br;
+    return (Number(a && a.match_number) || 0) - (Number(b && b.match_number) || 0);
+  }
+
+  function nameInitials(name) {
+    var text = String(name || '').trim();
+    if (!text) return '??';
+    var bits = text.split(/\s+/).filter(Boolean);
+    if (!bits.length) return text.slice(0, 2).toUpperCase();
+    if (bits.length === 1) return bits[0].slice(0, 2).toUpperCase();
+    return (bits[0].slice(0, 1) + bits[1].slice(0, 1)).toUpperCase();
+  }
+
+  function renderParticipantIdentity(name, logoUrl, side, isWinner) {
+    var label = name || 'TBD';
+    var textClass = isWinner ? 'text-dc-success font-bold' : 'text-dc-textBright';
+    var avatar = logoUrl
+      ? '<span class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-dc-bg shrink-0"><img src="' + esc(logoUrl) + '" alt="" class="h-full w-full object-cover"></span>'
+      : '<span class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-dc-bg text-[10px] font-black text-dc-textBright shrink-0">' + esc(nameInitials(label)) + '</span>';
+
+    if (side === 'left') {
+      return '<span class="flex-1 min-w-0 flex items-center gap-2 justify-end">'
+        + '<span class="text-sm ' + textClass + ' truncate text-right">' + esc(label) + '</span>'
+        + avatar
+        + '</span>';
+    }
+
+    return '<span class="flex-1 min-w-0 flex items-center gap-2 justify-start">'
+      + avatar
+      + '<span class="text-sm ' + textClass + ' truncate text-left">' + esc(label) + '</span>'
+      + '</span>';
+  }
+
+  function isDrawAllowed(match) {
+    if (!match) return false;
+    if (match.draw_allowed === true) return true;
+    return String(match.draw_allowed || '').toLowerCase() === 'true';
+  }
+
+  function normalizeWinnerSide(raw) {
+    var token = String(raw || '').trim().toLowerCase();
+    if (!token) return '';
+    if (token === 'a' || token === '1' || token === 'p1' || token === 'participant1' || token === 'team1') return '1';
+    if (token === 'b' || token === '2' || token === 'p2' || token === 'participant2' || token === 'team2') return '2';
+    if (token === 'draw' || token === 'tie' || token === 'd') return 'draw';
+    return '';
+  }
+
+  function syncWinnerSelectForMatch(match) {
+    var winSel = $('#score-winner');
+    var inputA = $('#score-input-a');
+    var inputB = $('#score-input-b');
+    if (!winSel || !inputA || !inputB) return;
+
+    var drawAllowed = isDrawAllowed(match);
+    var drawOpt = winSel.querySelector('option[value="draw"]');
+    if (drawAllowed && !drawOpt) {
+      drawOpt = document.createElement('option');
+      drawOpt.value = 'draw';
+      drawOpt.id = 'winner-opt-draw';
+      drawOpt.textContent = 'Draw';
+      winSel.appendChild(drawOpt);
+    }
+    if (!drawAllowed && drawOpt) {
+      drawOpt.remove();
+    }
+
+    var p1 = parseInt(inputA.value, 10);
+    var p2 = parseInt(inputB.value, 10);
+    if (!Number.isFinite(p1) || !Number.isFinite(p2)) {
+      winSel.value = '';
+      return;
+    }
+    if (p1 > p2) {
+      winSel.value = 'a';
+    } else if (p2 > p1) {
+      winSel.value = 'b';
+    } else if (drawAllowed) {
+      winSel.value = 'draw';
+    } else {
+      winSel.value = '';
+    }
+  }
+
   function groupsAreDrawn(groupsPayload) {
     var stageState = (groupsPayload && groupsPayload.stage && groupsPayload.stage.state)
       ? String(groupsPayload.stage.state).toLowerCase()
@@ -188,7 +325,7 @@
 
     if (_matchesLastFetchedAt > 0) {
       el.className = 'text-[10px] font-mono text-dc-text mt-1';
-      el.textContent = 'Last sync ' + new Date(_matchesLastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      el.textContent = 'Last sync ' + formatClock(_matchesLastFetchedAt, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       return;
     }
 
@@ -488,11 +625,15 @@
       return;
     }
 
-    list.innerHTML = matches.map(function (m) {
+    var orderedMatches = matches.slice().sort(compareByTimeProximity);
+
+    list.innerHTML = orderedMatches.map(function (m) {
       var sc = stateConfig[m.state] || stateConfig.scheduled;
       var isSelected = m.id === selectedMatchId;
       var isWinner1 = m.winner_id && m.winner_id === m.participant1_id;
       var isWinner2 = m.winner_id && m.winner_id === m.participant2_id;
+      var p1Logo = m.p1_logo_url || m.participant1_logo_url || m.participant1_logo || m.participant1_avatar_url || '';
+      var p2Logo = m.p2_logo_url || m.participant2_logo_url || m.participant2_logo || m.participant2_avatar_url || '';
       var isLive = m.state === 'live';
       var canOpenRoom = isRoomOpenState(m.state);
       var liveDot = m.state === 'live' ? '<span class="w-2 h-2 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
@@ -529,8 +670,8 @@
       var scoreB = showSeries ? sp2 : (m.participant2_score != null ? m.participant2_score : '-');
       var boLabel = bestOf > 1 ? '<span class="text-[8px] font-mono text-dc-text/40">BO' + bestOf + '</span> ' : '';
       var roomCtaClass = isLive
-        ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/40 bg-emerald-500/15 text-emerald-200 text-[10px] font-black uppercase tracking-widest animate-pulse hover:bg-emerald-500/25 transition-colors'
-        : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-theme/30 bg-theme/10 text-theme text-[10px] font-black uppercase tracking-widest hover:bg-theme/20 transition-colors';
+        ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/45 bg-gradient-to-r from-emerald-500/30 via-emerald-400/20 to-teal-300/25 text-emerald-100 text-[10px] font-black uppercase tracking-widest shadow-[0_0_18px_rgba(16,185,129,0.26)] animate-pulse hover:brightness-110 transition-all'
+        : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-theme/35 bg-gradient-to-r from-theme/25 via-theme/12 to-cyan-300/20 text-cyan-100 text-[10px] font-black uppercase tracking-widest shadow-[0_0_14px_rgba(34,211,238,0.18)] hover:brightness-110 transition-all';
       var liveCta = canOpenRoom
         ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" onclick="event.stopPropagation()" class="' + roomCtaClass + '">' + (isLive ? 'LIVE - Enter Lobby' : 'Enter Lobby') + '</a>'
         : '';
@@ -552,15 +693,15 @@
 
         // Row 2: Teams + score
         '<div class="flex items-center gap-3">' +
-        '<span class="flex-1 text-right text-sm ' + (isWinner1 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant1_name || 'TBD') + '</span>' +
+  renderParticipantIdentity(m.participant1_name || 'TBD', p1Logo, 'left', isWinner1) +
         '<span class="font-mono font-black text-sm text-white px-3 py-1 rounded bg-dc-bg border border-dc-border min-w-[56px] text-center">' + boLabel + scoreA + ' \u2013 ' + scoreB + '</span>' +
-        '<span class="flex-1 text-left text-sm ' + (isWinner2 ? 'text-dc-success font-bold' : 'text-dc-textBright') + ' truncate">' + esc(m.participant2_name || 'TBD') + '</span>' +
+  renderParticipantIdentity(m.participant2_name || 'TBD', p2Logo, 'right', isWinner2) +
         '</div>' +
 
         // Row 3: Time info (if scheduled)
         (m.scheduled_time ? '<div class="mt-1.5 text-xs text-dc-text/50 font-mono text-center">' +
         '<i data-lucide="clock" class="w-3 h-3 inline-block mr-1"></i>' +
-        new Date(m.scheduled_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
+  formatDateTime(m.scheduled_time, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
         '</div>' : '') +
 
         (canOpenRoom ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
@@ -667,10 +808,12 @@
     if (scoreB) scoreB.textContent = m.participant2_score != null ? m.participant2_score : '-';
 
     var roundEl = $('#detail-round');
-    if (roundEl) roundEl.textContent = 'Round ' + m.round_number + (m.scheduled_time ? ' | ' + new Date(m.scheduled_time).toLocaleString() : '');
+    if (roundEl) {
+      roundEl.textContent = 'Round ' + m.round_number + (m.scheduled_time ? ' | ' + formatDateTime(m.scheduled_time) : '');
+    }
 
-    renderAvatar('detail-avatar-a', m.participant1_avatar_url);
-    renderAvatar('detail-avatar-b', m.participant2_avatar_url);
+    renderAvatar('detail-avatar-a', m.participant1_avatar_url || m.p1_logo_url || m.participant1_logo_url);
+    renderAvatar('detail-avatar-b', m.participant2_avatar_url || m.p2_logo_url || m.participant2_logo_url);
 
     // Lobby info row
     renderLobbyRow(m);
@@ -837,6 +980,14 @@
     if (winSel) winSel.value = '';
     var noteEl = $('#score-note');
     if (noteEl) noteEl.value = '';
+
+    syncWinnerSelectForMatch(m);
+    if (inputA) {
+      inputA.oninput = function () { syncWinnerSelectForMatch(m); };
+    }
+    if (inputB) {
+      inputB.oninput = function () { syncWinnerSelectForMatch(m); };
+    }
 
     // Render series UI
     renderSeriesPanel(m);
@@ -1091,7 +1242,7 @@
         '<div class="flex-1 min-w-0">' +
         '<p class="text-sm text-dc-textBright">' + esc(e.text) + '</p>' +
         '<div class="flex items-center gap-2 mt-0.5">' +
-        '<span class="text-xs text-dc-text font-mono">' + (e.time ? new Date(e.time).toLocaleString() : '') + '</span>' +
+        '<span class="text-xs text-dc-text font-mono">' + (e.time ? formatDateTime(e.time) : '') + '</span>' +
         (e.by ? '<span class="text-xs text-dc-text">&middot; ' + esc(e.by) + '</span>' : '') +
         '</div></div></div>';
     }).join('');
@@ -1163,9 +1314,31 @@
     var p2 = parseInt($('#score-input-b')?.value) || 0;
     var winner = $('#score-winner')?.value || '';
     var note = $('#score-note')?.value || '';
+    var selected = allMatches.find(function (x) { return x.id === selectedMatchId; });
+    var drawAllowed = isDrawAllowed(selected);
+    var winnerSide = normalizeWinnerSide(winner);
+
+    if (p1 === p2) {
+      if (drawAllowed) {
+        winnerSide = 'draw';
+      } else if (!winnerSide) {
+        toast('Tie scores require selecting a winner for this format.', 'error');
+        return;
+      }
+    } else if (winnerSide === 'draw') {
+      toast('Draw can only be selected when scores are tied.', 'error');
+      return;
+    } else if (!winnerSide) {
+      winnerSide = p1 > p2 ? '1' : '2';
+    }
+
+    if (winnerSide === 'draw' && !drawAllowed) {
+      toast('Draw results are disabled for this match format.', 'error');
+      return;
+    }
 
     var body = { participant1_score: p1, participant2_score: p2 };
-    if (winner) body.winner_side = winner;
+    if (winnerSide) body.winner_side = winnerSide;
     if (note) body.admin_note = note;
 
     try {
@@ -1909,6 +2082,18 @@
 
   document.addEventListener('toc:tab-changed', function (e) {
     if (e.detail?.tab === 'matches') init();
+  });
+
+  document.addEventListener('toc:timeprefs-updated', function () {
+    if (!allMatches.length) return;
+    applyGroupFilter();
+    if (selectedMatchDetail) {
+      renderAuditTrail(selectedMatchDetail);
+      if (selectedMatchDetail.match) {
+        renderDetailHeader(selectedMatchDetail.match);
+      }
+    }
+    setMatchesSyncStatus('ok');
   });
 
   document.addEventListener('visibilitychange', function () {

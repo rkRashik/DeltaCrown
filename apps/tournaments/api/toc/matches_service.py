@@ -15,6 +15,7 @@ from math import ceil
 from typing import Any, Dict, List, Optional
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -123,7 +124,16 @@ class TOCMatchesService:
                 participant_ids.add(match.participant2_id)
 
         group_cache = cls._build_group_cache(tournament, participant_ids=participant_ids)
-        matches = [cls._serialize_match(m, group_cache=group_cache) for m in page_matches]
+        participant_media_map = cls._build_participant_media_map(tournament, participant_ids=participant_ids)
+        matches = [
+            cls._serialize_match(
+                m,
+                tournament=tournament,
+                group_cache=group_cache,
+                participant_media_map=participant_media_map,
+            )
+            for m in page_matches
+        ]
 
         total_pages = max(1, int(ceil(total / float(page_size)))) if page_size else 1
         has_next = page < total_pages
@@ -154,8 +164,10 @@ class TOCMatchesService:
         p1_score: int,
         p2_score: int,
         user_id: int,
+        winner_side: Optional[Any] = None,
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
+        normalized_winner_side = cls._normalize_winner_side(winner_side)
         try:
             actor_username = cls._resolve_username(user_id)
             updated = MatchService.organizer_override_score(
@@ -164,17 +176,36 @@ class TOCMatchesService:
                 score2=p2_score,
                 reason='TOC organizer score override',
                 overridden_by_username=actor_username,
+                winner_side=normalized_winner_side,
             )
+        except ValidationError as exc:
+            raise ValueError(str(exc)) from exc
         except (AttributeError, TypeError) as exc:
             logger.warning('organizer_override_score unavailable (%s), using fallback', exc)
+            draw_allowed = cls._draws_allowed_for_match(match)
             match.participant1_score = p1_score
             match.participant2_score = p2_score
-            if p1_score > p2_score:
+
+            if p1_score == p2_score:
+                if draw_allowed:
+                    match.winner_id = None
+                    match.loser_id = None
+                else:
+                    if normalized_winner_side == 1:
+                        match.winner_id = match.participant1_id
+                        match.loser_id = match.participant2_id
+                    elif normalized_winner_side == 2:
+                        match.winner_id = match.participant2_id
+                        match.loser_id = match.participant1_id
+                    else:
+                        raise ValueError('Tied scores require selecting a winner for this format.')
+            elif p1_score > p2_score:
                 match.winner_id = match.participant1_id
                 match.loser_id = match.participant2_id
-            elif p2_score > p1_score:
+            else:
                 match.winner_id = match.participant2_id
                 match.loser_id = match.participant1_id
+
             if match.state not in ('completed', 'cancelled'):
                 match.state = Match.COMPLETED
                 match.completed_at = timezone.now()
@@ -805,6 +836,152 @@ class TOCMatchesService:
     # ── Private helpers ──────────────────────────────────────
 
     @staticmethod
+    def _coerce_optional_bool(value: Any) -> Optional[bool]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        token = str(value).strip().lower()
+        if token in {'1', 'true', 'yes', 'y', 'on', 'allow', 'allowed', 'enabled'}:
+            return True
+        if token in {'0', 'false', 'no', 'n', 'off', 'disallow', 'disallowed', 'disabled', ''}:
+            return False
+        return None
+
+    @staticmethod
+    def _normalize_winner_side(value: Any) -> Optional[Any]:
+        if value is None:
+            return None
+        token = str(value).strip().lower()
+        if token in {'', 'none', 'null'}:
+            return None
+        if token in {'1', 'a', 'p1', 'participant1', 'left', 'team1'}:
+            return 1
+        if token in {'2', 'b', 'p2', 'participant2', 'right', 'team2'}:
+            return 2
+        if token in {'draw', 'tie', 'd'}:
+            return 'draw'
+        return None
+
+    @classmethod
+    def _draws_allowed_for_match(cls, match: Match, tournament: Optional[Tournament] = None) -> bool:
+        try:
+            return bool(MatchService.draws_allowed_for_match(match))
+        except Exception:
+            pass
+
+        if tournament is None:
+            tournament = getattr(match, 'tournament', None)
+        if tournament is None:
+            return False
+
+        format_token = str(getattr(tournament, 'format', '') or '').strip().lower()
+        format_default = format_token in {
+            str(Tournament.ROUND_ROBIN).lower(),
+            str(Tournament.GROUP_PLAYOFF).lower(),
+            'group_stage',
+            'league',
+        }
+
+        lobby_info = match.lobby_info if isinstance(match.lobby_info, dict) else {}
+        match_settings = lobby_info.get('match_settings') if isinstance(lobby_info.get('match_settings'), dict) else {}
+        for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+            parsed = cls._coerce_optional_bool(match_settings.get(key))
+            if parsed is not None:
+                return parsed
+
+        tournament_settings = getattr(tournament, 'settings', None)
+        if isinstance(tournament_settings, dict):
+            nested_match_settings = (
+                tournament_settings.get('match_settings')
+                if isinstance(tournament_settings.get('match_settings'), dict)
+                else {}
+            )
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(nested_match_settings.get(key))
+                if parsed is not None:
+                    return parsed
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(tournament_settings.get(key))
+                if parsed is not None:
+                    return parsed
+
+        game = getattr(tournament, 'game', None)
+        game_config = getattr(game, 'tournament_config', None)
+        if isinstance(game_config, dict):
+            for key in ('allow_draws', 'draw_allowed', 'draws_allowed'):
+                parsed = cls._coerce_optional_bool(game_config.get(key))
+                if parsed is not None:
+                    return parsed
+
+        return format_default
+
+    @staticmethod
+    def _user_avatar_url(user) -> str:
+        if not user:
+            return ''
+        try:
+            profile = getattr(user, 'profile', None)
+            avatar = getattr(profile, 'avatar', None)
+            if avatar:
+                return avatar.url
+        except Exception:
+            pass
+        username = str(getattr(user, 'username', '') or '').strip() or 'User'
+        return f"https://ui-avatars.com/api/?name={username[:2]}&background=0A0A0E&color=fff&size=64"
+
+    @classmethod
+    def _build_participant_media_map(
+        cls,
+        tournament: Tournament,
+        *,
+        participant_ids: Optional[set] = None,
+    ) -> Dict[int, str]:
+        if tournament is None:
+            return {}
+
+        normalized_ids = set()
+        for raw_id in participant_ids or set():
+            if not raw_id:
+                continue
+            try:
+                normalized_ids.add(int(raw_id))
+            except (TypeError, ValueError):
+                continue
+
+        if not normalized_ids:
+            return {}
+
+        media_map: Dict[int, str] = {}
+        is_team = str(getattr(tournament, 'participation_type', '') or '').lower() == 'team'
+
+        if is_team:
+            try:
+                from apps.organizations.models import Team
+                for team in Team.objects.filter(id__in=normalized_ids).only('id', 'logo'):
+                    logo_url = ''
+                    try:
+                        if getattr(team, 'logo', None):
+                            logo_url = team.logo.url
+                    except Exception:
+                        logo_url = ''
+                    media_map[int(team.id)] = logo_url
+            except Exception:
+                return media_map
+            return media_map
+
+        try:
+            User = get_user_model()
+            users = User.objects.filter(id__in=normalized_ids).select_related('profile')
+            for user in users:
+                media_map[int(user.id)] = cls._user_avatar_url(user)
+        except Exception:
+            pass
+        return media_map
+
+    @staticmethod
     def _safe_game_scores(m):
         """
         Always return a normalised list of game-score dicts for the frontend.
@@ -863,21 +1040,61 @@ class TOCMatchesService:
     # ── Private serializer ───────────────────────────────────
 
     @classmethod
-    def _serialize_match(cls, m: Match, *, group_cache: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
+    def _serialize_match(
+        cls,
+        m: Match,
+        *,
+        tournament: Optional[Tournament] = None,
+        group_cache: Optional[Dict[int, str]] = None,
+        participant_media_map: Optional[Dict[int, str]] = None,
+    ) -> Dict[str, Any]:
         lobby = m.lobby_info or {}
+        if tournament is None:
+            tournament = getattr(m, 'tournament', None)
+        if participant_media_map is None:
+            participant_media_map = cls._build_participant_media_map(
+                tournament,
+                participant_ids={m.participant1_id, m.participant2_id},
+            )
+
+        p1_logo_url = str(participant_media_map.get(m.participant1_id, '') or '')
+        p2_logo_url = str(participant_media_map.get(m.participant2_id, '') or '')
+
+        winner_side = 0
+        winner_name = ''
+        winner_logo_url = ''
+        if m.winner_id and m.winner_id == m.participant1_id:
+            winner_side = 1
+            winner_name = str(m.participant1_name or '')
+            winner_logo_url = p1_logo_url
+        elif m.winner_id and m.winner_id == m.participant2_id:
+            winner_side = 2
+            winner_name = str(m.participant2_name or '')
+            winner_logo_url = p2_logo_url
+
+        draw_allowed = cls._draws_allowed_for_match(m, tournament=tournament)
+
         return {
             'id': m.id,
             'round_number': m.round_number,
             'match_number': m.match_number,
             'participant1_id': m.participant1_id,
             'participant1_name': m.participant1_name,
+            'participant1_logo_url': p1_logo_url,
+            'p1_logo_url': p1_logo_url,
             'participant2_id': m.participant2_id,
             'participant2_name': m.participant2_name,
+            'participant2_logo_url': p2_logo_url,
+            'p2_logo_url': p2_logo_url,
             'participant1_score': m.participant1_score,
             'participant2_score': m.participant2_score,
             'state': m.state,
             'winner_id': m.winner_id,
             'loser_id': m.loser_id,
+            'winner_side': winner_side,
+            'winner_name': winner_name,
+            'winner_logo_url': winner_logo_url,
+            'draw_allowed': draw_allowed,
             'scheduled_time': m.scheduled_time.isoformat() if m.scheduled_time else None,
             'started_at': m.started_at.isoformat() if m.started_at else None,
             'completed_at': m.completed_at.isoformat() if m.completed_at else None,

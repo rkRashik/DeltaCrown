@@ -43,6 +43,8 @@ const HubEngine = (() => {
   const PRE_MATCH_LOBBY_WINDOW_MINUTES = 30;
   const SIDEBAR_COLLAPSE_KEY = 'hub_sidebar_collapsed';
   const PARTICIPANTS_SORT_KEY = 'hub_participants_sort';
+  const DEFAULT_TIMEZONE = 'Asia/Dhaka';
+  const DEFAULT_TIME_FORMAT = '12h';
 
   // ── State ───────────────────────────────────────────────
   let _shell       = null;
@@ -50,7 +52,8 @@ const HubEngine = (() => {
   let _pollStateId = null;
   let _pollAnnId   = null;
   let _countdownId = null;
-  let _csrfToken   = '';
+  let _timePrefs = { timezone: DEFAULT_TIMEZONE, timeFormat: DEFAULT_TIME_FORMAT };
+  let _timePrefsPromise = null;
 
   // Lazy-load caches (fetched once per session)
   let _prizesCache       = null;
@@ -223,6 +226,102 @@ const HubEngine = (() => {
     return _buildHubApiPath(`matches/${encodeURIComponent(id)}/reschedule/respond/`);
   }
 
+  function _normalizeTimeFormat(value) {
+    const token = String(value || '').trim().toLowerCase();
+    if (token === '24' || token === '24h') return '24h';
+    return '12h';
+  }
+
+  function _normalizeTimezone(value) {
+    const tz = String(value || '').trim();
+    return tz || DEFAULT_TIMEZONE;
+  }
+
+  function _timeFormatOptions(options, includeTime = true) {
+    const next = (options && typeof options === 'object') ? { ...options } : {};
+    if (!next.timeZone) {
+      next.timeZone = _timePrefs.timezone;
+    }
+    if (includeTime && next.hour12 === undefined && next.hourCycle === undefined) {
+      next.hour12 = _timePrefs.timeFormat !== '24h';
+    }
+    return next;
+  }
+
+  function _formatDateTime(value, options) {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleString([], _timeFormatOptions(options, true));
+  }
+
+  function _formatTime(value, options) {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleTimeString([], _timeFormatOptions(options, true));
+  }
+
+  function _formatDate(value, options) {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleDateString([], _timeFormatOptions(options, false));
+  }
+
+  function _loadTimePreferences() {
+    if (_timePrefsPromise) return _timePrefsPromise;
+
+    _timePrefsPromise = fetch('/me/settings/platform-global/', {
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+      .then(async (resp) => {
+        if (!resp.ok) throw new Error(`settings_http_${resp.status}`);
+        const payload = await resp.json().catch(() => ({}));
+        const preferences = (payload && typeof payload === 'object' && payload.preferences)
+          ? payload.preferences
+          : {};
+        _timePrefs = {
+          timezone: _normalizeTimezone(preferences.timezone || preferences.timezone_pref),
+          timeFormat: _normalizeTimeFormat(preferences.time_format),
+        };
+        return _timePrefs;
+      })
+      .catch(() => _timePrefs)
+      .then((prefs) => {
+        _updateAnnouncementSyncLabel();
+        _rerenderMatchSurfacesFromCache();
+        return prefs;
+      });
+
+    return _timePrefsPromise;
+  }
+
+  function _maybeDefaultToParticipantViewOnMobile() {
+    if (!_shell || !_isMobileViewport()) return false;
+    if (_shell.dataset.canToggleViewMode !== 'true') return false;
+    if (_shell.dataset.isStaffView !== 'true') return false;
+
+    const targetRaw = String(_shell.dataset.viewAsParticipantUrl || '').trim();
+    if (!targetRaw) return false;
+
+    try {
+      const currentUrl = new URL(window.location.href);
+      const targetUrl = new URL(targetRaw, window.location.origin);
+      if (!targetUrl.hash && currentUrl.hash) {
+        targetUrl.hash = currentUrl.hash;
+      }
+      if (targetUrl.href !== currentUrl.href) {
+        window.location.replace(targetUrl.href);
+        return true;
+      }
+    } catch (_err) {
+      return false;
+    }
+
+    return false;
+  }
+
   function _toDatetimeLocalValue(dateInput) {
     const dt = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (Number.isNaN(dt.getTime())) return '';
@@ -244,7 +343,7 @@ const HubEngine = (() => {
     if (!dt || Number.isNaN(dt.getTime())) {
       return 'a proposed time';
     }
-    return dt.toLocaleString([], {
+    return _formatDateTime(dt, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -365,7 +464,11 @@ const HubEngine = (() => {
     _shell = document.getElementById('hub-shell');
     if (!_shell) return;
 
-    _csrfToken = _getCookie('csrftoken');
+    if (_maybeDefaultToParticipantViewOnMobile()) {
+      return;
+    }
+
+    _loadTimePreferences();
 
     // Start countdown
     _startCountdown();
@@ -845,10 +948,9 @@ const HubEngine = (() => {
     try {
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
       });
 
@@ -1130,7 +1232,7 @@ const HubEngine = (() => {
       stamp.textContent = 'Waiting for first sync';
       return;
     }
-    stamp.textContent = `Synced ${_announcementLastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    stamp.textContent = `Synced ${_formatTime(_announcementLastUpdatedAt, { hour: '2-digit', minute: '2-digit' })}`;
   }
 
   function _toggleAnnouncementLoadMoreLoading(isLoadingMore, isLoading) {
@@ -1359,10 +1461,9 @@ const HubEngine = (() => {
     try {
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
         body: JSON.stringify({
           membership_id: membershipId,
@@ -1652,10 +1753,9 @@ const HubEngine = (() => {
     try {
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
         body: JSON.stringify({
           transaction_id: parseInt(txId),
@@ -2626,7 +2726,7 @@ const HubEngine = (() => {
     if (subtitle) {
       const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
       const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
-        ? `Scheduled ${scheduled.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+        ? `Scheduled ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
         : 'Schedule time pending.';
       subtitle.textContent = `${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
     }
@@ -2696,7 +2796,7 @@ const HubEngine = (() => {
       if (subtitle) {
         const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
         const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
-          ? `Match starts ${scheduled.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+          ? `Match starts ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
           : 'Schedule time pending.';
 
         if (isLobbyWindowOpen) {
@@ -2833,12 +2933,46 @@ const HubEngine = (() => {
   // Utilities
   // ──────────────────────────────────────────────────────────
   function _getCookie(name) {
-    const cookies = document.cookie.split(';');
+    const cookies = String(document.cookie || '').split(';');
+    const needle = `${name}=`;
     for (const c of cookies) {
-      const [k, v] = c.trim().split('=');
-      if (k === name) return decodeURIComponent(v);
+      const item = c.trim();
+      if (!item.startsWith(needle)) continue;
+      return decodeURIComponent(item.slice(needle.length));
     }
     return '';
+  }
+
+  function _sanitizeCsrfToken(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.replace(/^['\"]|['\"]$/g, '');
+  }
+
+  function _resolveCsrfToken() {
+    const shellToken = _sanitizeCsrfToken(_shell?.dataset?.csrfToken || '');
+    if (shellToken) return shellToken;
+
+    const hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const inputToken = _sanitizeCsrfToken(hiddenInput ? hiddenInput.value : '');
+    if (inputToken) return inputToken;
+
+    const meta = document.querySelector('meta[name="csrf-token"], meta[name="csrfmiddlewaretoken"]');
+    const metaToken = _sanitizeCsrfToken(meta ? meta.getAttribute('content') : '');
+    if (metaToken) return metaToken;
+
+    return _sanitizeCsrfToken(_getCookie('csrftoken'));
+  }
+
+  function _csrfHeaders(extraHeaders) {
+    const base = {
+      'X-CSRFToken': _resolveCsrfToken(),
+      'X-Requested-With': 'XMLHttpRequest',
+    };
+    return {
+      ...base,
+      ...(extraHeaders || {}),
+    };
   }
 
   function _esc(str) {
@@ -3750,7 +3884,7 @@ const HubEngine = (() => {
                 </div>
                 ${lobbyCode ? `<div class="text-right"><p class="text-[10px] text-gray-500">Lobby Code</p><p class="text-sm font-bold text-[#00F0FF]" style="font-family:'Space Grotesk',monospace;">${_esc(lobbyCode)}</p></div>` : ''}
               </div>
-              ${m.scheduled_at ? `<p class="text-[10px] text-gray-600 mt-2">Scheduled: ${new Date(m.scheduled_at).toLocaleString()}</p>` : ''}
+              ${m.scheduled_at ? `<p class="text-[10px] text-gray-600 mt-2">Scheduled: ${_formatDateTime(m.scheduled_at)}</p>` : ''}
               ${_renderMatchActionControls(m)}
             </div>`;
         });
@@ -3858,7 +3992,7 @@ const HubEngine = (() => {
 
     const html = sorted.slice(0, 10).map((m) => {
       const timeLabel = m.scheduled_at
-        ? new Date(m.scheduled_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        ? _formatDateTime(m.scheduled_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : 'Unscheduled';
       const stateColor = m.state === 'live'
         ? 'text-[#FF2A55]'
@@ -4119,7 +4253,7 @@ const HubEngine = (() => {
     const groups = {};
     sorted.forEach(m => {
       const day = m.scheduled_at
-        ? new Date(m.scheduled_at).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+        ? _formatDate(m.scheduled_at, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
         : 'Unscheduled';
       if (!groups[day]) groups[day] = [];
       groups[day].push(m);
@@ -4145,7 +4279,7 @@ const HubEngine = (() => {
         };
         const color = stateColors[m.state] || '#6b7280';
         const time = m.scheduled_at
-          ? new Date(m.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          ? _formatTime(m.scheduled_at, { hour: '2-digit', minute: '2-digit' })
           : '—';
         const isLive = m.state === 'live';
         const isCompleted = m.state === 'completed' || m.state === 'forfeit';
@@ -4220,7 +4354,10 @@ const HubEngine = (() => {
           } else if (isParticipantOwnMatch && participantOutcome === 'loss') {
             resultTag = '<span class="text-[10px] font-black text-[#FF93A8] uppercase tracking-widest">Defeat</span>';
           } else if (hasNumericScores && leftNumeric !== rightNumeric) {
-            resultTag = `<span class="text-[10px] font-black uppercase tracking-widest ${leftWon ? 'text-[#66FFAE]' : 'text-cyan-200'}">${leftWon ? 'P1 Winner' : 'P2 Winner'}</span>`;
+            const fallbackWinnerName = leftWon
+              ? (isParticipantOwnMatch ? 'You' : (m.p1_name || 'Participant 1'))
+              : (isParticipantOwnMatch ? 'Opponent' : (m.p2_name || 'Participant 2'));
+            resultTag = `<span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${leftWon ? 'text-[#66FFAE]' : 'text-cyan-200'}"><span>Winner</span><span class="text-white/90 font-semibold normal-case tracking-normal">${_esc(fallbackWinnerName)}</span></span>`;
           } else {
             resultTag = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Draw</span>';
           }
@@ -4401,7 +4538,7 @@ const HubEngine = (() => {
 
     if (noteLabelEl) noteLabelEl.textContent = 'Optional reason for your opponent';
     if (noteHintEl) noteHintEl.textContent = 'Keep this short and actionable (max 500 characters).';
-    if (helperEl) helperEl.textContent = 'Time is entered in your local timezone and sent to the server in UTC.';
+    if (helperEl) helperEl.textContent = 'Time is converted from your selected platform timezone and sent to the server in UTC.';
     noteInput.value = '';
     noteInput.placeholder = 'Example: Player has internet outage until 8:30 PM.';
 
@@ -4457,10 +4594,9 @@ const HubEngine = (() => {
 
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
         body: JSON.stringify({
           new_time: parsed.toISOString(),
@@ -4722,10 +4858,9 @@ const HubEngine = (() => {
 
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
         body: JSON.stringify({
           action: normalizedAction,
@@ -5440,10 +5575,9 @@ const HubEngine = (() => {
   async function _persistAlertDelete(slug, alertId) {
     const resp = await fetch(`/tournaments/${slug}/hub/api/alerts/${alertId}/delete/`, {
       method: 'POST',
-      headers: {
-        'X-CSRFToken': _csrfToken,
+      headers: _csrfHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
       credentials: 'same-origin',
     });
     const data = await resp.json();
@@ -6011,10 +6145,9 @@ const HubEngine = (() => {
 
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': _csrfToken,
+        headers: _csrfHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'same-origin',
         body: JSON.stringify({
           category: _supportCategory,
