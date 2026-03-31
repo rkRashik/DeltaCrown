@@ -349,27 +349,27 @@ def _resolve_hub_command_center(
             'participant2_name',
         ).order_by('scheduled_time', 'round_number', 'match_number', 'id')[:30]
     )
-    
-    target_reschedule = None
-    if not is_staff_view and participant_id:
-        pending_requests = RescheduleRequest.objects.filter(
-            match_id__in=[m.id for m in match_rows],
-            status=RescheduleRequest.PENDING
-        ).order_by('-created_at')
-        if pending_requests.exists():
-            for req in pending_requests:
-                for mm in match_rows:
-                    if mm.id == req.match_id:
-                        # Check if it needs our response
-                        is_p1 = mm.participant1_id == participant_id
-                        my_side = 1 if is_p1 else 2
-                        if int(req.proposer_side) != my_side:
-                            target_reschedule = req
-                            break
-                if target_reschedule:
-                    break
     if not match_rows:
         return payload
+
+    match_by_id = {m.id: m for m in match_rows}
+    target_reschedule = None
+    reschedule_match = None
+    if not is_staff_view and participant_id:
+        pending_requests = RescheduleRequest.objects.filter(
+            match_id__in=match_by_id.keys(),
+            status=RescheduleRequest.PENDING,
+        ).order_by('-created_at')
+        for req in pending_requests:
+            match_obj = match_by_id.get(req.match_id)
+            if not match_obj:
+                continue
+            is_p1 = match_obj.participant1_id == participant_id
+            my_side = 1 if is_p1 else 2
+            if int(req.proposer_side) != int(my_side):
+                target_reschedule = req
+                reschedule_match = match_obj
+                break
 
     state_priority = {
         Match.LIVE: 0,
@@ -384,14 +384,14 @@ def _resolve_hub_command_center(
         ts_weight = match_obj.scheduled_time or (now + timedelta(days=3650))
         return state_weight, ts_weight, match_obj.id
 
-    target = sorted(match_rows, key=_match_rank)[0]
+    target = reschedule_match or sorted(match_rows, key=_match_rank)[0]
     scheduled_at = target.scheduled_time
     seconds_to_match = None
     if scheduled_at:
         seconds_to_match = int((scheduled_at - now).total_seconds())
 
     within_priority_window = bool(
-        seconds_to_match is not None and 15 * 60 <= seconds_to_match <= 60 * 60
+        seconds_to_match is not None and 0 <= seconds_to_match <= 30 * 60
     )
     lobby_window_minutes_before = 30
     lobby_window_opens_at = (
@@ -414,6 +414,8 @@ def _resolve_hub_command_center(
     show_command = bool(target.state in active_states or within_priority_window)
     if tournament.status in {Tournament.DRAFT, Tournament.REGISTRATION_OPEN}:
         show_command = bool(target.state in active_states)
+    if target_reschedule:
+        show_command = True
 
     cta_action = 'view_schedule'
     cta_label = 'View Schedule'
@@ -429,20 +431,17 @@ def _resolve_hub_command_center(
     countdown_text = '--:--' if countdown_target else 'Awaiting schedule'
 
     if target_reschedule:
-        # Dynamic Action Card for Reschedule
+        # Dynamic Action Card for reschedule response
         badge_label = 'Response Required'
         badge_tone = 'warning'
-        title = 'Reschedule Request'
-        subtitle = f"{opponent_name} proposed a new match time."
+        title = f"Response Required: VS {opponent_name}"
+        subtitle = f"{opponent_name} proposed a new time for Match {target.match_number or ''}."
         hint = 'Accept or counter-propose to confirm the match schedule.'
         cta_action = 'respond_reschedule'
         cta_label = 'Review Proposal'
         countdown_label = 'Status'
         countdown_mode = 'static'
         countdown_text = 'Pending Review'
-        show_command = True
-        target = [m for m in match_rows if m.id == target_reschedule.match_id][0]
-        # Make sure we carry that into payload logic
         cta_url = ''
     elif target.state == Match.LIVE:
         badge_label = 'Live Match'
@@ -467,6 +466,9 @@ def _resolve_hub_command_center(
         countdown_label = 'Match Starts In'
         countdown_target = scheduled_at.isoformat() if scheduled_at else ''
         countdown_mode = 'countdown' if countdown_target else 'static'
+        if seconds_to_match is not None and 0 <= seconds_to_match <= 30 * 60:
+            badge_label = 'Match Starting Soon'
+            title = f"Match Starting Soon: VS {opponent_name}"
     elif target.state == Match.CHECK_IN or (check_in_status == 'open' and not (check_in and check_in.is_checked_in)):
         badge_label = 'Check-In Required'
         badge_tone = 'warning'
@@ -495,11 +497,7 @@ def _resolve_hub_command_center(
         hint = _critical_lock_reason(registration)
         cta_disabled = False
 
-    if target_reschedule and target:
-        # Override the match_id being sent
-        payload_match_id = target.id
-    else:
-        payload_match_id = target.id if target else None
+    payload_match_id = target.id if target else None
 
     payload.update({
         'show': show_command,
@@ -516,8 +514,8 @@ def _resolve_hub_command_center(
         'cta_action': cta_action,
         'cta_url': cta_url,
         'cta_disabled': cta_disabled,
-        'match_id': target.id,
-        'match_room_url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id}) if show_command else '',
+        'match_id': payload_match_id,
+        'match_room_url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id}) if (show_command and cta_action == 'enter_lobby') else '',
         'opponent_name': opponent_name,
         'match_state': target.state,
         'scheduled_at': scheduled_at.isoformat() if scheduled_at else None,
@@ -2896,6 +2894,13 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 elif m.participant2_id == participant_id:
                     my_side = 2
 
+            inferred_winner_id = m.winner_id
+            if not inferred_winner_id and m.state in (Match.COMPLETED, Match.FORFEIT):
+                p1_score = m.participant1_score
+                p2_score = m.participant2_score
+                if p1_score is not None and p2_score is not None and p1_score != p2_score:
+                    inferred_winner_id = m.participant1_id if p1_score > p2_score else m.participant2_id
+
             if is_staff_view:
                 # Staff/organizer sees both sides — no "your" vs "opponent"
                 is_p1 = True  # default perspective: p1 on left
@@ -2914,18 +2919,37 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_name = m.participant2_name if is_p1 else m.participant1_name
                 your_score = m.participant1_score if is_p1 else m.participant2_score
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
-                inferred_winner_id = m.winner_id
-                if not inferred_winner_id and m.state in (Match.COMPLETED, Match.FORFEIT):
-                    p1_score = m.participant1_score
-                    p2_score = m.participant2_score
-                    if p1_score is not None and p2_score is not None and p1_score != p2_score:
-                        inferred_winner_id = m.participant1_id if p1_score > p2_score else m.participant2_id
                 is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
             if bracket:
                 round_name = bracket.get_round_name(m.round_number)
             else:
                 round_name = f'Round {m.round_number}'
+
+            winner_name = getattr(m, 'winner_name', None)
+            if not winner_name and inferred_winner_id:
+                if inferred_winner_id == m.participant1_id:
+                    winner_name = m.participant1_name
+                elif inferred_winner_id == m.participant2_id:
+                    winner_name = m.participant2_name
+            winner_side = None
+            if inferred_winner_id == m.participant1_id:
+                winner_side = 1
+            elif inferred_winner_id == m.participant2_id:
+                winner_side = 2
+            if not inferred_winner_id and winner_name:
+                if winner_name == m.participant1_name:
+                    winner_side = 1
+                elif winner_name == m.participant2_name:
+                    winner_side = 2
+
+            winner_logo_url = ''
+            if inferred_winner_id:
+                winner_logo_url = participant_media_map.get(inferred_winner_id, '')
+            elif winner_side == 1:
+                winner_logo_url = participant_media_map.get(m.participant1_id, '')
+            elif winner_side == 2:
+                winner_logo_url = participant_media_map.get(m.participant2_id, '')
 
             # Normalize game_scores for JS consumption
             raw_gs = getattr(m, 'game_scores', None)
@@ -3008,6 +3032,8 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'p1_id': m.participant1_id,
+                'p2_id': m.participant2_id,
                 'p1_name': m.participant1_name or 'TBD',
                 'p2_name': m.participant2_name or 'TBD',
                 'opponent_name': opponent_name or 'TBD',
@@ -3016,7 +3042,10 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'p1_score': m.participant1_score,
                 'p2_score': m.participant2_score,
                 'is_winner': is_winner,
-                'winner_name': getattr(m, 'winner_name', None) or (m.participant1_name if inferred_winner_id == m.participant1_id else (m.participant2_name if inferred_winner_id == m.participant2_id else None)),
+                'winner_id': inferred_winner_id,
+                'winner_side': winner_side,
+                'winner_name': winner_name,
+                'winner_logo_url': winner_logo_url,
                 'is_staff_view': show_full_matchup,
                 'is_my_match': is_my_match,
                 'lobby_info': lobby_info,
@@ -3039,7 +3068,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                     'can_propose': can_propose,
                     'can_respond': can_respond,
                     'pending_request': _serialize_reschedule_request(pending_request),
-                    'can_counter_offer': bool(reschedule_enabled and not is_staff_view and is_my_match and pending_request),
+                    'can_counter_offer': bool(can_respond),
                 },
             }
 
@@ -3055,6 +3084,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                     'can_propose': False,
                     'can_respond': False,
                     'pending_request': None,
+                    'can_counter_offer': False,
                 }
 
             if is_my_match and not is_staff_view and not include_all_matches:
@@ -3289,8 +3319,8 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
             return _json_response({'error': 'invalid_payload'}, status=400, cache_control='no-store')
 
         action = str(body.get('action') or '').strip().lower()
-        if action not in {'accept', 'reject'}:
-            return _json_response({'error': 'action must be accept or reject.'}, status=400, cache_control='no-store')
+        if action not in {'accept', 'reject', 'counter'}:
+            return _json_response({'error': 'action must be accept, reject, or counter.'}, status=400, cache_control='no-store')
 
         request_id = body.get('request_id')
         pending_qs = RescheduleRequest.objects.filter(
@@ -3320,12 +3350,39 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
         if len(response_note) > 500:
             return _json_response({'error': 'response_note_too_long'}, status=400, cache_control='no-store')
 
+        counter_time = None
+        if action == 'counter':
+            if not match.scheduled_time:
+                return _json_response({'error': 'match_not_scheduled'}, status=400, cache_control='no-store')
+
+            policy = _participant_reschedule_policy(tournament)
+            deadline_at = match.scheduled_time - timedelta(minutes=policy['deadline_minutes_before'])
+            if now > deadline_at:
+                return _json_response({'error': 'proposal_deadline_passed', 'deadline_at': deadline_at.isoformat()}, status=400, cache_control='no-store')
+
+            new_time_str = body.get('new_time') or body.get('scheduled_time')
+            if not new_time_str:
+                return _json_response({'error': 'new_time is required.'}, status=400, cache_control='no-store')
+
+            counter_time = parse_datetime(str(new_time_str))
+            if not counter_time:
+                return _json_response({'error': 'invalid_datetime_format'}, status=400, cache_control='no-store')
+            if timezone.is_naive(counter_time):
+                counter_time = timezone.make_aware(counter_time)
+
+            if counter_time <= now + timedelta(minutes=5):
+                return _json_response({'error': 'new_time_must_be_future'}, status=400, cache_control='no-store')
+
+            if match.scheduled_time and abs((counter_time - match.scheduled_time).total_seconds()) < 60:
+                return _json_response({'error': 'new_time_must_differ'}, status=400, cache_control='no-store')
+
         pending_request.reviewed_by_id = request.user.id
         pending_request.reviewed_at = now
         pending_request.response_note = response_note
 
         notification_event = 'match_reschedule_rejected'
         notification_targets = []
+        response_request = pending_request
 
         if action == 'accept':
             old_time = match.scheduled_time
@@ -3364,9 +3421,28 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
                 )
             except Exception:
                 pass
-        else:
+        elif action == 'reject':
             pending_request.status = RescheduleRequest.REJECTED
             proposer_pid = match.participant1_id if pending_request.proposer_side == 1 else match.participant2_id
+            notification_targets = _participant_user_ids_for_side(tournament, proposer_pid)
+        else:
+            pending_request.status = RescheduleRequest.REJECTED
+            pending_request.response_note = response_note or 'Counter offer submitted.'
+            proposer_pid = match.participant1_id if pending_request.proposer_side == 1 else match.participant2_id
+
+            counter_request = RescheduleRequest.objects.create(
+                match=match,
+                requested_by_id=request.user.id,
+                proposer_side=actor_side,
+                old_time=match.scheduled_time,
+                new_time=counter_time,
+                reason=response_note,
+                status=RescheduleRequest.PENDING,
+                expires_at=match.scheduled_time,
+            )
+
+            response_request = counter_request
+            notification_event = 'match_reschedule_proposed'
             notification_targets = _participant_user_ids_for_side(tournament, proposer_pid)
 
         pending_request.save(update_fields=[
@@ -3391,7 +3467,7 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
                     'match_number': match.match_number,
                     'participant1': match.participant1_name or 'Participant 1',
                     'participant2': match.participant2_name or 'Participant 2',
-                    'proposed_time': timezone.localtime(pending_request.new_time).strftime('%b %d, %Y %I:%M %p') if pending_request.new_time else '',
+                    'proposed_time': timezone.localtime(response_request.new_time).strftime('%b %d, %Y %I:%M %p') if response_request.new_time else '',
                     'force_email': True,
                     'dedupe': False,
                     'url': f'/tournaments/{tournament.slug}/hub/?tab=matches',
@@ -3403,7 +3479,7 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
         return _json_response({
             'success': True,
             'action': action,
-            'request': _serialize_reschedule_request(pending_request),
+            'request': _serialize_reschedule_request(response_request),
             'scheduled_at': match.scheduled_time.isoformat() if match.scheduled_time else None,
         }, cache_control='no-store')
 

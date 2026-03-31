@@ -107,6 +107,8 @@
               onclick="HubEngine.performCheckIn()"
             {% elif hub_command_center.cta_action == 'enter_lobby' and hub_command_center.cta_url %}
               onclick="window.location.href='{{ hub_command_center.cta_url }}'"
+            {% elif hub_command_center.cta_action == 'respond_reschedule' and hub_command_center.match_id %}
+              onclick="HubEngine.respondReschedule('{{ hub_command_center.match_id }}')"
             {% elif hub_command_center.cta_action == 'open_matches' %}
               onclick="HubEngine.switchTab('matches')"
             {% elif hub_command_center.cta_action == 'open_support' %}
@@ -120,6 +122,8 @@
               <i data-lucide="shield-alert" class="w-5 h-5"></i>
             {% elif hub_command_center.cta_action == 'enter_lobby' %}
               <i data-lucide="swords" class="w-5 h-5"></i>
+            {% elif hub_command_center.cta_action == 'respond_reschedule' %}
+              <i data-lucide="clock-3" class="w-5 h-5"></i>
             {% elif hub_command_center.cta_action == 'open_support' %}
               <i data-lucide="life-buoy" class="w-5 h-5"></i>
             {% else %}

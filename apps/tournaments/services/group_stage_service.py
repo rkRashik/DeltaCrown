@@ -1012,11 +1012,10 @@ class GroupStageService:
         stage = GroupStage.objects.select_related('tournament', 'tournament__game').get(id=stage_id)
         game_slug = stage.tournament.game.slug
         
-        # 1. Fallback priority 1: Global tournament config point system
-        points_system = stage.tournament.config.get('points_system')
-        
+        default_points_system = {'win': 3, 'draw': 1, 'loss': 0}
+        points_system = (stage.tournament.config or {}).get('points_system')
+
         if not points_system:
-            # 2. Fallback priority 2: Get scoring rules from GameService
             try:
                 scoring_rules = GameService.get_scoring_rules(game_slug)
                 if scoring_rules:
@@ -1024,10 +1023,11 @@ class GroupStageService:
                     points_system = scoring_rule.config.get('points_system')
             except ValueError:
                 pass
-                
+
         if not points_system:
-             # 3. Fallback priority 3: Stage config or default
-             points_system = stage.config.get('points_system', {'win': 3, 'draw': 1, 'loss': 0})
+            points_system = stage.config.get('points_system', default_points_system)
+
+        points_system = {**default_points_system, **(points_system or {})}
         
         # Get tiebreaker rules from tournament config if available
         try:
