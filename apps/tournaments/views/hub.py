@@ -349,6 +349,25 @@ def _resolve_hub_command_center(
             'participant2_name',
         ).order_by('scheduled_time', 'round_number', 'match_number', 'id')[:30]
     )
+    
+    target_reschedule = None
+    if not is_staff_view and participant_id:
+        pending_requests = RescheduleRequest.objects.filter(
+            match_id__in=[m.id for m in match_rows],
+            status=RescheduleRequest.PENDING
+        ).order_by('-created_at')
+        if pending_requests.exists():
+            for req in pending_requests:
+                for mm in match_rows:
+                    if mm.id == req.match_id:
+                        # Check if it needs our response
+                        is_p1 = mm.participant1_id == participant_id
+                        my_side = 1 if is_p1 else 2
+                        if int(req.proposer_side) != my_side:
+                            target_reschedule = req
+                            break
+                if target_reschedule:
+                    break
     if not match_rows:
         return payload
 
@@ -409,7 +428,23 @@ def _resolve_hub_command_center(
     countdown_mode = 'countdown' if countdown_target else 'static'
     countdown_text = '--:--' if countdown_target else 'Awaiting schedule'
 
-    if target.state == Match.LIVE:
+    if target_reschedule:
+        # Dynamic Action Card for Reschedule
+        badge_label = 'Response Required'
+        badge_tone = 'warning'
+        title = 'Reschedule Request'
+        subtitle = f"{opponent_name} proposed a new match time."
+        hint = 'Accept or counter-propose to confirm the match schedule.'
+        cta_action = 'respond_reschedule'
+        cta_label = 'Review Proposal'
+        countdown_label = 'Status'
+        countdown_mode = 'static'
+        countdown_text = 'Pending Review'
+        show_command = True
+        target = [m for m in match_rows if m.id == target_reschedule.match_id][0]
+        # Make sure we carry that into payload logic
+        cta_url = ''
+    elif target.state == Match.LIVE:
         badge_label = 'Live Match'
         badge_tone = 'danger'
         cta_action = 'enter_lobby'
@@ -459,6 +494,12 @@ def _resolve_hub_command_center(
         cta_url = ''
         hint = _critical_lock_reason(registration)
         cta_disabled = False
+
+    if target_reschedule and target:
+        # Override the match_id being sent
+        payload_match_id = target.id
+    else:
+        payload_match_id = target.id if target else None
 
     payload.update({
         'show': show_command,
@@ -2975,7 +3016,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'p1_score': m.participant1_score,
                 'p2_score': m.participant2_score,
                 'is_winner': is_winner,
-                'winner_name': m.winner_name if hasattr(m, 'winner_name') else None,
+                'winner_name': getattr(m, 'winner_name', None) or (m.participant1_name if inferred_winner_id == m.participant1_id else (m.participant2_name if inferred_winner_id == m.participant2_id else None)),
                 'is_staff_view': show_full_matchup,
                 'is_my_match': is_my_match,
                 'lobby_info': lobby_info,
@@ -2998,6 +3039,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                     'can_propose': can_propose,
                     'can_respond': can_respond,
                     'pending_request': _serialize_reschedule_request(pending_request),
+                    'can_counter_offer': bool(reschedule_enabled and not is_staff_view and is_my_match and pending_request),
                 },
             }
 
