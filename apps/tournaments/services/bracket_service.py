@@ -1462,8 +1462,7 @@ class BracketService:
                 match_number=node.match_number_in_round,
                 participant1_id=node.participant1_id,
                 participant2_id=node.participant2_id,
-                status=Match.SCHEDULED,
-                bracket_node=node  # Link to bracket node
+                state=Match.SCHEDULED,
             )
             
             # Link match to node
@@ -1503,10 +1502,10 @@ class BracketService:
             >>> parent_node = BracketService.update_bracket_after_match(match)
         """
         # Validate match is completed
-        if match.status != Match.COMPLETED:
+        if match.state not in (Match.COMPLETED, Match.FORFEIT):
             raise ValidationError(
                 f"Cannot update bracket for match {match.id}: "
-                f"Match status is '{match.status}', expected 'completed'"
+                f"Match state is '{match.state}', expected one of: completed, forfeit"
             )
         
         if not match.winner_id:
@@ -1668,7 +1667,7 @@ class BracketService:
                             match_number=lb_node.match_number_in_round,
                             participant1_id=lb_node.participant1_id,
                             participant2_id=lb_node.participant2_id,
-                            status=Match.SCHEDULED,
+                            state=Match.SCHEDULED,
                         )
                         lb_node.match = lb_match
                         lb_node.save(update_fields=['match'])
@@ -1694,8 +1693,7 @@ class BracketService:
                 match_number=parent_node.match_number_in_round,
                 participant1_id=parent_node.participant1_id,
                 participant2_id=parent_node.participant2_id,
-                status=Match.SCHEDULED,
-                bracket_node=parent_node
+                state=Match.SCHEDULED,
             )
             
             parent_node.match = parent_match

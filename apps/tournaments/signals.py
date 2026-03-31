@@ -317,6 +317,99 @@ def handle_match_state_change(sender, instance, created, **kwargs):
                 logger.error(f"Failed to queue Discord match result: {e}")
 
 
+@receiver(post_save, sender=Match)
+def sync_match_completion_progression(sender, instance, created, **kwargs):
+    """
+    Post-match completion hook for standings + bracket progression.
+
+    Triggered when a match transitions into a terminal resolved state
+    (completed/forfeit). This keeps group standings and bracket advancement
+    synchronized even when completion originates from different endpoints.
+    """
+    if created:
+        return
+
+    if not hasattr(instance, '_original_state'):
+        return
+
+    old_state = instance._original_state
+    new_state = instance.state
+    if old_state == new_state:
+        return
+
+    if new_state not in (Match.COMPLETED, Match.FORFEIT):
+        return
+
+    # 1) Advance bracket nodes for knockout-linked matches.
+    if instance.winner_id:
+        try:
+            from apps.tournaments.services.bracket_service import BracketService
+
+            BracketService.update_bracket_after_match(instance)
+        except Exception as exc:
+            logger.warning(
+                "Bracket progression sync failed after match completion. match_id=%s state=%s err=%s",
+                instance.id,
+                new_state,
+                exc,
+            )
+
+    # 2) Recalculate group standings and auto-transition to knockout when ready.
+    try:
+        from apps.tournaments.models import Bracket as TournamentBracket
+        from apps.tournaments.models.group import Group, GroupStage
+        from apps.tournaments.services.group_stage_service import GroupStageService
+        from apps.tournaments.services.tournament_service import TournamentService
+
+        tournament = instance.tournament
+        groups = Group.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        )
+        if not groups.exists():
+            return
+
+        stage = GroupStage.objects.filter(tournament=tournament).order_by('-created_at').first()
+        if stage:
+            GroupStageService.calculate_group_standings(stage.id)
+        else:
+            game_slug = getattr(getattr(tournament, 'game', None), 'slug', '') or ''
+            for group_id in groups.values_list('id', flat=True):
+                GroupStageService.calculate_standings(group_id=group_id, game_slug=game_slug)
+
+        group_stage_matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            lobby_info__group_id__isnull=False,
+        )
+
+        if not group_stage_matches.exists():
+            return
+
+        all_group_matches_finished = not group_stage_matches.exclude(
+            state__in=[Match.COMPLETED, Match.FORFEIT, Match.CANCELLED],
+        ).exists()
+
+        if not all_group_matches_finished:
+            return
+
+        has_knockout_bracket = TournamentBracket.objects.filter(tournament=tournament).exists()
+        if has_knockout_bracket:
+            return
+
+        TournamentService.transition_to_knockout_stage(tournament.id)
+        logger.info(
+            "Auto-transitioned tournament to knockout stage after group completion. tournament_id=%s",
+            tournament.id,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Group standings/bracket auto-sync failed after match completion. match_id=%s err=%s",
+            instance.id,
+            exc,
+        )
+
+
 @receiver(pre_save, sender=Match)
 def track_match_state_change(sender, instance, **kwargs):
     """

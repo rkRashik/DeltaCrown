@@ -3625,6 +3625,7 @@ const HubEngine = (() => {
     const m = match || {};
     const matchId = JSON.stringify(String(m.id || ''));
     const hasLobby = Boolean(m.match_room_url);
+    const terminalState = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(String(m.state || '').toLowerCase());
     const lobbyWindow = _resolveLobbyWindow(m);
     const lobbyOpen = hasLobby && lobbyWindow.isOpen;
     const reschedule = m.reschedule || {};
@@ -3661,7 +3662,7 @@ const HubEngine = (() => {
         );
       } else {
         const opensAt = lobbyWindow.opensAt;
-        if (opensAt) {
+        if (opensAt && !terminalState) {
           pendingLine += `<p class="text-[10px] text-cyan-300">Lobby unlocks in ${_esc(_formatCountdownLabel(opensAt))}.</p>`;
         }
       }
@@ -4139,26 +4140,37 @@ const HubEngine = (() => {
           ? (m.opponent_score ?? 0)
           : (m.p2_score ?? 0);
 
+        const leftNumeric = Number(leftScore);
+        const rightNumeric = Number(rightScore);
+        const hasNumericScores = Number.isFinite(leftNumeric) && Number.isFinite(rightNumeric);
+        const participantOutcome = (() => {
+          if (!isParticipantOwnMatch) return null;
+          if (m.is_winner === true) return 'win';
+          if (m.is_winner === false) return 'loss';
+          if (!hasNumericScores) return null;
+          if (leftNumeric > rightNumeric) return 'win';
+          if (leftNumeric < rightNumeric) return 'loss';
+          return 'draw';
+        })();
+
         let leftScoreClass = 'text-white';
         let rightScoreClass = 'text-white';
         let resultTag = '';
 
         if (isCompleted) {
-          if (isParticipantOwnMatch && m.is_winner === true) {
+          if (isParticipantOwnMatch && participantOutcome === 'win') {
             leftScoreClass = 'text-[#66FFAE]';
             rightScoreClass = 'text-[#FF93A8] opacity-65';
             resultTag = '<span class="inline-flex items-center gap-1 text-[10px] font-black text-[#66FFAE] uppercase tracking-widest">WINNER <span aria-hidden="true">👑</span></span>';
-          } else if (isParticipantOwnMatch && m.is_winner === false) {
+          } else if (isParticipantOwnMatch && participantOutcome === 'loss') {
             leftScoreClass = 'text-[#FF93A8] opacity-70';
             rightScoreClass = 'text-[#66FFAE]';
             resultTag = '<span class="text-[10px] font-black text-[#FF93A8] uppercase tracking-widest">Defeat</span>';
           } else if (isParticipantOwnMatch) {
             resultTag = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Draw</span>';
           } else {
-            const leftValue = Number(leftScore);
-            const rightValue = Number(rightScore);
-            if (Number.isFinite(leftValue) && Number.isFinite(rightValue) && leftValue !== rightValue) {
-              const leftWon = leftValue > rightValue;
+            if (hasNumericScores && leftNumeric !== rightNumeric) {
+              const leftWon = leftNumeric > rightNumeric;
               leftScoreClass = leftWon ? 'text-[#66FFAE]' : 'text-[#FF93A8] opacity-70';
               rightScoreClass = leftWon ? 'text-[#FF93A8] opacity-70' : 'text-[#66FFAE]';
               resultTag = `<span class="text-[10px] font-black uppercase tracking-widest ${leftWon ? 'text-[#66FFAE]' : 'text-cyan-200'}">${leftWon ? 'P1 Winner' : 'P2 Winner'}</span>`;
@@ -4174,8 +4186,8 @@ const HubEngine = (() => {
 
         let participantBreakdown = '';
         if (isCompleted && isParticipantOwnMatch) {
-          const youWon = m.is_winner === true;
-          const youLost = m.is_winner === false;
+          const youWon = participantOutcome === 'win';
+          const youLost = participantOutcome === 'loss';
           const youCardClass = youWon
             ? 'border-[#00FF66]/35 bg-[#00FF66]/10'
             : youLost
@@ -4210,7 +4222,7 @@ const HubEngine = (() => {
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-                <p class="text-sm ${isCompleted && isParticipantOwnMatch && m.is_winner === false ? 'font-medium text-gray-300' : 'font-semibold text-white'} mt-0.5">${matchupLabel}</p>
+                <p class="text-sm ${isCompleted && isParticipantOwnMatch && participantOutcome === 'loss' ? 'font-medium text-gray-300' : 'font-semibold text-white'} mt-0.5">${matchupLabel}</p>
               </div>
               <div class="text-right shrink-0">
                 ${isLive || isCompleted

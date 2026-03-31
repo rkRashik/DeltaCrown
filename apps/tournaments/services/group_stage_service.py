@@ -489,9 +489,13 @@ class GroupStageService:
             standing1.points += Decimal(str(group.points_for_draw))
             standing2.points += Decimal(str(group.points_for_draw))
         
-        # Game-specific stat updates using config-driven approach
+        # Game-specific stat updates using config-driven approach.
+        # Legacy callers may pass Match instances without a result_data payload;
+        # use score fields as a stable fallback source of truth.
         from apps.games.services import game_service
-        match_data = match.result_data or {}
+        match_data = dict(getattr(match, 'result_data', {}) or {})
+        match_data.setdefault('participant1_score', match.participant1_score or 0)
+        match_data.setdefault('participant2_score', match.participant2_score or 0)
         
         # Get game tournament config for stat field mapping
         tournament_config = game_service.get_tournament_config(match.tournament.game)
@@ -1071,6 +1075,7 @@ class GroupStageService:
                 standings_data[participant_id] = {
                     "participant_id": participant_id,
                     "rank": 0,
+                    "matches_played": 0,
                     "points": Decimal('0'),
                     "wins": 0,
                     "draws": 0,
@@ -1121,7 +1126,7 @@ class GroupStageService:
                     standings_data[p2_id]["points"] += Decimal(str(points_system['win']))
                     standings_data[p1_id]["losses"] += 1
                     standings_data[p1_id]["points"] += Decimal(str(points_system['loss']))
-                elif match.winner_id is None and match.state == Match.STATE_COMPLETED:
+                elif match.winner_id is None and match.state == Match.COMPLETED:
                     standings_data[p1_id]["draws"] += 1
                     standings_data[p1_id]["points"] += Decimal(str(points_system['draw']))
                     standings_data[p2_id]["draws"] += 1
@@ -1192,6 +1197,7 @@ class GroupStageService:
             # Assign ranks and update database
             for rank, data in enumerate(sorted_standings, start=1):
                 data["rank"] = rank
+                data["matches_played"] = data["wins"] + data["draws"] + data["losses"]
                 
                 GroupStanding.objects.filter(
                     group=group,
@@ -1199,6 +1205,7 @@ class GroupStageService:
                        else {"user_id": data["participant_id"]})
                 ).update(
                     rank=rank,
+                    matches_played=data["matches_played"],
                     points=data["points"],
                     matches_won=data["wins"],
                     matches_drawn=data["draws"],
