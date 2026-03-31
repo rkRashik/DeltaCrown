@@ -14,6 +14,7 @@ import asyncio
 import logging
 from typing import Any, Dict, Optional
 
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -62,8 +63,6 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4001)
             return
 
-        from channels.db import database_sync_to_async
-
         match = await self._get_match(self.match_id)
         if not match:
             logger.warning(
@@ -75,6 +74,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
         self.tournament_id = match.tournament_id
         self.user_role = await database_sync_to_async(get_user_tournament_role)(self.user)
+        self.is_official_staff = bool(self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN))
+        self.chat_display_name = "Organizer" if self.is_official_staff else self.user.username
+        self.chat_avatar_url = await self._get_user_avatar_url(self.user.id)
 
         self.is_participant = self.user.id in [match.participant1_id, match.participant2_id]
         self.participant_side = None
@@ -302,8 +304,11 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                         "match_id": self.match_id,
                         "user_id": self.user.id,
                         "username": self.user.username,
+                        "display_name": self.chat_display_name,
                         "side": self.participant_side,
-                        "is_staff": bool(self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN)),
+                        "is_staff": self.is_official_staff,
+                        "persona": "organizer" if self.is_official_staff else "participant",
+                        "avatar_url": self.chat_avatar_url,
                         "text": text,
                         "timestamp": timezone.now().isoformat(),
                     },
@@ -439,6 +444,41 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     # ---------------------------------------------------------------------
     # Misc helpers
     # ---------------------------------------------------------------------
+
+    @staticmethod
+    async def _get_user_avatar_url(user_id: int) -> str:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+
+        @database_sync_to_async
+        def _resolve() -> str:
+            try:
+                user = User.objects.select_related("profile").get(pk=user_id)
+            except Exception:
+                return ""
+
+            profile = getattr(user, "profile", None)
+            if not profile:
+                return ""
+
+            try:
+                avatar_url = profile.get_avatar_url() if hasattr(profile, "get_avatar_url") else ""
+            except Exception:
+                avatar_url = ""
+
+            if avatar_url:
+                return str(avatar_url)
+
+            try:
+                if getattr(profile, "avatar", None):
+                    return str(profile.avatar.url or "")
+            except Exception:
+                return ""
+
+            return ""
+
+        return await _resolve()
 
     def _get_origin(self) -> Optional[str]:
         headers = dict(self.scope.get("headers", []))

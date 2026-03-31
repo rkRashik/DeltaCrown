@@ -55,6 +55,8 @@
     requestBusy: false,
     lastToastAt: 0,
     lastToastText: '',
+    localPresenceHoldUntilMs: 0,
+    lastWaitingLocked: false,
   };
 
   const elements = {
@@ -69,6 +71,9 @@
     navBackLink: byId('nav-back-link'),
     navMatchId: byId('nav-match-id'),
     navTourneyName: byId('nav-tourney-name'),
+    navKickoffBadge: byId('nav-kickoff-badge'),
+    navFormatBadge: byId('nav-format-badge'),
+    navFlowBadge: byId('nav-flow-badge'),
     socketPill: byId('socket-pill'),
     helpSignalBtn: byId('help-signal-btn'),
     heroTeamALogo: byId('hero-team-a-logo'),
@@ -112,6 +117,8 @@
   init();
 
   function init() {
+    setGlobalFocusMode(true);
+    state.lastWaitingLocked = waitingLocked();
     bindStaticEvents();
     updateShellViewportHeight();
     ensureNoShowTicker();
@@ -120,6 +127,14 @@
     connectSocket();
     startPresenceHeartbeat();
     startFallbackSync();
+  }
+
+  function setGlobalFocusMode(enabled) {
+    const body = document.body;
+    if (!body) {
+      return;
+    }
+    body.classList.toggle('match-room-focus-mode', Boolean(enabled));
   }
 
   function byId(id) {
@@ -707,6 +722,16 @@
     return order[0] || 'phase1';
   }
 
+  function effectivePolicy() {
+    const workflowPolicy = asObject(asObject(state.room.workflow).policy);
+    const pipelinePolicy = asObject(asObject(state.room.pipeline).policy);
+    return asObject(workflowPolicy.effective || pipelinePolicy.effective);
+  }
+
+  function requiresMatchEvidence() {
+    return bool(asObject(effectivePolicy()).require_match_evidence, false);
+  }
+
   function phaseLabel(phase) {
     if (phase === 'coin_toss') {
       return 'Coin Toss';
@@ -845,23 +870,16 @@
     }
 
     if (elements.navBackLink) {
-      elements.navBackLink.setAttribute('href', String(asObject(state.room.urls).match_detail || '#'));
+      elements.navBackLink.setAttribute('href', String(asObject(state.room.urls).hub || asObject(state.room.urls).match_detail || '#'));
     }
+
+    renderHeaderCommandBadges();
 
     if (elements.heroTeamAName) {
       elements.heroTeamAName.textContent = String(p1.name || 'Participant A');
     }
     if (elements.heroTeamBName) {
       elements.heroTeamBName.textContent = String(p2.name || 'Participant B');
-    }
-
-    if (elements.heroTeamAMeta) {
-      const online = sideOnline(1) ? 'Online' : 'Offline';
-      elements.heroTeamAMeta.textContent = `Side 1 - ${online}`;
-    }
-    if (elements.heroTeamBMeta) {
-      const online = sideOnline(2) ? 'Online' : 'Offline';
-      elements.heroTeamBMeta.textContent = `Side 2 - ${online}`;
     }
 
     if (elements.heroTeamALogo) {
@@ -875,6 +893,49 @@
       const bestOf = toInt(match.best_of, 1);
       const flowLabel = canonicalMode() === 'direct' ? 'Direct Setup' : 'Map Veto';
       elements.heroFormatLabel.textContent = `Bo${bestOf} - ${flowLabel}`;
+    }
+
+    renderHeaderPresenceMeta();
+  }
+
+  function renderHeaderCommandBadges() {
+    const match = asObject(state.room.match);
+    const bestOf = Math.max(1, toInt(match.best_of, 1));
+    const scheduledToken = String(match.scheduled_time || '').trim();
+    const roundText = Number.isFinite(Number(match.round_number)) ? `R${match.round_number}` : 'R?';
+    const kickoffText = scheduledToken ? `${roundText} • ${shortClock(scheduledToken)}` : `${roundText} • TBD`;
+    const formatText = `Bo${bestOf} • ${phaseLabel(currentPhase())}`;
+
+    const policy = effectivePolicy();
+    const requiresCheckIn = bool(policy.require_check_in, false);
+    const evidenceRequired = bool(policy.require_match_evidence, false);
+    const flowText = `${requiresCheckIn ? 'Check-In Req' : 'Check-In Opt'} • ${evidenceRequired ? 'Evidence Req' : 'Evidence Opt'}`;
+
+    setCommandBadgeText(elements.navKickoffBadge, kickoffText);
+    setCommandBadgeText(elements.navFormatBadge, formatText);
+    setCommandBadgeText(elements.navFlowBadge, flowText);
+  }
+
+  function setCommandBadgeText(node, text) {
+    if (!node) {
+      return;
+    }
+    const labelNode = node.querySelector('span');
+    if (labelNode) {
+      labelNode.textContent = String(text || '');
+      return;
+    }
+    node.textContent = String(text || '');
+  }
+
+  function renderHeaderPresenceMeta() {
+    if (elements.heroTeamAMeta) {
+      const onlineA = sideOnline(1) ? 'Online' : 'Offline';
+      elements.heroTeamAMeta.textContent = `Side 1 - ${onlineA}`;
+    }
+    if (elements.heroTeamBMeta) {
+      const onlineB = sideOnline(2) ? 'Online' : 'Offline';
+      elements.heroTeamBMeta.textContent = `Side 2 - ${onlineB}`;
     }
   }
 
@@ -996,32 +1057,82 @@
     }
 
     const phase = currentPhase();
+    const actionTitle = phaseLabel(phase);
+    const actionNarrative = phaseNarrative(phase);
+    const actionBody = renderPhaseCoreBlock(phase);
+    const showCheckInGate = phase === 'coin_toss' || phase === 'phase1' || phase === 'lobby_setup';
+
     const blocks = [];
-
-    blocks.push(renderCheckInBlock());
-
-    if (phase === 'coin_toss') {
-      blocks.push(renderCoinTossBlock());
-    } else if (phase === 'phase1') {
-      blocks.push(phase1Kind() === 'direct' ? renderDirectReadyBlock() : renderVetoBlock());
-    } else if (phase === 'lobby_setup') {
-      blocks.push(renderLobbySetupBlock());
-    } else if (phase === 'live') {
-      blocks.push(renderLiveBlock());
-    } else if (phase === 'results') {
-      blocks.push(renderResultsBlock(false));
-    } else if (phase === 'completed') {
-      blocks.push(renderCompletedBlock());
-    } else {
-      blocks.push(renderFallbackBlock());
+    if (showCheckInGate) {
+      blocks.push(renderCheckInBlock());
     }
 
-    if (phase === 'live') {
-      blocks.push(renderResultsBlock(true));
-    }
+    blocks.push(`
+      <section class="phase-morph-shell glass-panel rounded-2xl p-4 md:p-5 border border-white/10" data-active-phase="${esc(phase)}">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Dynamic Action Card</p>
+            <h3 class="text-lg md:text-xl font-black text-white">${esc(actionTitle)}</h3>
+            <p class="text-xs text-gray-400 mt-1">${esc(actionNarrative)}</p>
+          </div>
+          <span class="phase-chip">${phase === 'live' ? '<span class="live-pulse"></span>' : ''}${esc(actionTitle)}</span>
+        </div>
+        <div class="mt-4 md:mt-5">${actionBody}</div>
+      </section>
+    `);
 
     elements.engineContainer.innerHTML = blocks.join('');
+    state.lastWaitingLocked = waitingLocked();
     maybeRunIcons();
+  }
+
+  function phaseNarrative(phase) {
+    if (phase === 'coin_toss') {
+      return 'Resolve first control so both sides can start with a fair edge.';
+    }
+    if (phase === 'phase1') {
+      return phase1Kind() === 'direct'
+        ? 'Both sides confirm ready status before host credentials unlock.'
+        : 'Run bans and picks in order to lock the final battleground.';
+    }
+    if (phase === 'lobby_setup') {
+      return 'Host publishes lobby credentials and both teams sync in one room.';
+    }
+    if (phase === 'live') {
+      return 'Match is live. Finish gameplay, then move to result declaration.';
+    }
+    if (phase === 'results') {
+      if (requiresMatchEvidence()) {
+        return 'Blind-submit your scoreline with required image evidence, then wait for verification.';
+      }
+      return 'Blind-submit your scoreline with optional proof and wait for verification.';
+    }
+    if (phase === 'completed') {
+      return 'Result finalized. Jump to hub or bracket for the next assignment.';
+    }
+    return 'Realtime sync in progress. Refresh if this panel stalls.';
+  }
+
+  function renderPhaseCoreBlock(phase) {
+    if (phase === 'coin_toss') {
+      return renderCoinTossBlock();
+    }
+    if (phase === 'phase1') {
+      return phase1Kind() === 'direct' ? renderDirectReadyBlock() : renderVetoBlock();
+    }
+    if (phase === 'lobby_setup') {
+      return renderLobbySetupBlock();
+    }
+    if (phase === 'live') {
+      return renderLiveBlock();
+    }
+    if (phase === 'results') {
+      return renderResultsBlock(false);
+    }
+    if (phase === 'completed') {
+      return renderCompletedBlock();
+    }
+    return renderFallbackBlock();
   }
 
   function renderCheckInBlock() {
@@ -1088,14 +1199,58 @@
     const onlineClass = effectiveOnline ? 'bg-emerald-400' : 'bg-gray-600';
 
     return `
-      <div class="rounded-xl border border-white/10 bg-black/35 p-3">
+      <div class="rounded-xl border border-white/10 bg-black/35 p-3" data-check-chip-side="${esc(String(side))}">
         <div class="flex items-center justify-between">
           <p class="text-xs font-semibold text-white truncate">${esc(name)}</p>
-          <span class="w-2.5 h-2.5 rounded-full ${onlineClass}"></span>
+          <span data-check-chip-dot="${esc(String(side))}" class="w-2.5 h-2.5 rounded-full ${onlineClass}"></span>
         </div>
-        <p class="mt-2 inline-flex px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${checkedClass}">${checkedText}</p>
+        <p data-check-chip-label="${esc(String(side))}" class="mt-2 inline-flex px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${checkedClass}">${checkedText}</p>
       </div>
     `;
+  }
+
+  function refreshPresenceSurfaces() {
+    renderHeaderPresenceMeta();
+    renderCheckInPresenceChips();
+    updateWaitingOverlay();
+
+    const nextWaitingLocked = waitingLocked();
+    if (nextWaitingLocked !== state.lastWaitingLocked) {
+      state.lastWaitingLocked = nextWaitingLocked;
+      renderEngine();
+      return;
+    }
+
+    state.lastWaitingLocked = nextWaitingLocked;
+  }
+
+  function renderCheckInPresenceChips() {
+    [1, 2].forEach(function (side) {
+      const root = document.querySelector(`[data-check-chip-side="${side}"]`);
+      if (!root) {
+        return;
+      }
+
+      const checkedIn = sideCheckedIn(side);
+      const online = sideOnline(side) || (side === mySide() && state.wsConnected);
+      const label = checkedIn ? 'Ready' : (online ? 'Online' : 'Pending');
+      const dotNode = root.querySelector(`[data-check-chip-dot="${side}"]`);
+      const labelNode = root.querySelector(`[data-check-chip-label="${side}"]`);
+
+      if (dotNode) {
+        dotNode.className = `w-2.5 h-2.5 rounded-full ${online ? 'bg-emerald-400' : 'bg-gray-600'}`;
+      }
+
+      if (labelNode) {
+        const checkedClass = checkedIn
+          ? 'text-green-300 border-green-400/30 bg-green-500/10'
+          : (online
+            ? 'text-cyan-200 border-cyan-400/25 bg-cyan-500/10'
+            : 'text-amber-200 border-amber-400/20 bg-amber-500/10');
+        labelNode.className = `mt-2 inline-flex px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${checkedClass}`;
+        labelNode.textContent = label;
+      }
+    });
   }
 
   function renderCoinTossBlock() {
@@ -1371,9 +1526,12 @@
           <div>
             <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Match Runtime</p>
             <h3 class="text-2xl md:text-3xl font-black text-white">Live Match In Progress</h3>
-            <p class="text-xs text-gray-400 mt-2">Play the match and submit your score once complete.</p>
+            <p class="text-xs text-gray-400 mt-2">Play the match now. Result Desk unlocks for final score declaration in the next phase.</p>
           </div>
-          <i data-lucide="swords" class="w-10 h-10 text-green-300"></i>
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-green-400/30 bg-green-500/10 text-green-200 text-[10px] font-black uppercase tracking-widest">
+            <span class="live-pulse"></span>
+            Match Live
+          </div>
         </div>
 
         <div class="mt-5 ${gridClass}">
@@ -1405,12 +1563,16 @@
     const scoreAgainst = submission ? toInt(submission.score_against, 0) : 0;
     const note = submission ? String(submission.note || '') : '';
     const proof = submission ? String(submission.proof_screenshot_url || '') : '';
+    const evidenceRequired = requiresMatchEvidence();
 
     const prefix = inlineAfterLive ? 'Live Follow-up' : 'Result Desk';
     const header = inlineAfterLive ? 'Submit Result When Match Ends' : 'Result Submission';
     const blindCopy = bool(visibility.opponent_revealed, false)
       ? 'Admin view active. Opponent submission details are visible here.'
       : 'Blind mode is active. Opponent score is hidden from participants and visible to admins only.';
+    const evidenceCopy = evidenceRequired
+      ? 'Organizer policy requires an evidence image upload before score submission.'
+      : 'Attach an evidence image if available. External proof URL is optional.';
 
     const myStatus = submission ? String(submission.status || 'submitted') : 'pending';
     const oppStatus = oppSubmission ? String(oppSubmission.status || 'submitted') : 'pending';
@@ -1424,6 +1586,7 @@
         <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">${esc(prefix)}</p>
         <h3 class="text-xl md:text-2xl font-black text-white">${esc(header)}</h3>
         <p class="text-xs text-gray-400 mt-2">${esc(blindCopy)}</p>
+        <p class="text-[11px] text-gray-500 mt-1">${esc(evidenceCopy)}</p>
 
         <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
           <form id="result-submit-form" class="rounded-xl border border-white/10 bg-black/45 p-4">
@@ -1441,9 +1604,15 @@
               </label>
             </div>
 
+            <label class="block text-xs text-gray-400 mt-3">Evidence Image ${evidenceRequired ? '(required)' : '(optional)'}
+              <input id="result-proof-file" type="file" accept="image/*" class="lobby-input mt-1 py-2.5" ${canSubmit ? (evidenceRequired ? 'required' : '') : 'disabled'} />
+            </label>
+
             <label class="block text-xs text-gray-400 mt-3">Proof URL (optional)
               <input id="result-proof-url" class="lobby-input mt-1" value="${esc(proof)}" ${canSubmit ? '' : 'disabled'} />
             </label>
+
+            ${proof ? `<p class="mt-2 text-[11px] text-gray-400">Current proof: <a class="text-ac underline" href="${esc(proof)}" target="_blank" rel="noopener">Open image</a></p>` : ''}
 
             <label class="block text-xs text-gray-400 mt-3">Note
               <textarea id="result-note" class="lobby-input mt-1 min-h-[72px]" ${canSubmit ? '' : 'disabled'}>${esc(note)}</textarea>
@@ -1477,6 +1646,7 @@
     }
 
     const row = asObject(submission);
+    const proof = String(row.proof_screenshot_url || '').trim();
     if (bool(row.blind_masked, false)) {
       return `
         <div class="mt-4 space-y-2">
@@ -1491,6 +1661,7 @@
       <div class="mt-4 space-y-2">
         <p class="text-sm text-white font-semibold">Score: ${esc(String(row.score_for || 0))} - ${esc(String(row.score_against || 0))}</p>
         <p class="text-xs text-gray-400">Submitted at ${esc(shortClock(row.submitted_at))}</p>
+        ${proof ? `<p class="text-xs text-gray-400">Proof: <a class="text-ac underline" href="${esc(proof)}" target="_blank" rel="noopener">Open image</a></p>` : ''}
       </div>
     `;
   }
@@ -1514,6 +1685,7 @@
     const workflow = asObject(state.room.workflow);
     const finalResult = asObject(workflow.final_result);
     const match = asObject(state.room.match);
+    const urls = asObject(state.room.urls);
 
     const p1 = asObject(match.participant1);
     const p2 = asObject(match.participant2);
@@ -1527,11 +1699,19 @@
       ? `${p1.name || 'Side 1'} wins`
       : (winnerSide === 2 ? `${p2.name || 'Side 2'} wins` : 'Tie pending review');
 
+    const bracketHref = String(urls.bracket || urls.match_detail || '#');
+    const hubHref = String(urls.hub || urls.match_detail || '#');
+
     return `
-      <section class="glass-panel rounded-2xl p-6 md:p-8 border-t-4 border-green-500">
+      <section class="rounded-2xl p-5 md:p-7 border border-white/10 bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent backdrop-blur-xl">
         <p class="text-[10px] font-black uppercase tracking-widest text-gray-500">Completed</p>
-        <h3 class="text-2xl md:text-3xl font-black text-white">Match Finalized</h3>
-        <p class="text-xs text-gray-400 mt-2">${esc(winnerText)}</p>
+        <h3 class="text-2xl md:text-3xl font-black text-white">Result Locked</h3>
+        <p class="text-xs text-gray-300 mt-2">${esc(winnerText)}</p>
+
+        <div class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-green-400/30 bg-green-500/12 text-green-200 text-[10px] font-black uppercase tracking-widest">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          Match report archived
+        </div>
 
         <div class="mt-5 grid grid-cols-3 gap-2 items-center max-w-md">
           <div class="p-3 rounded-xl bg-black/45 border border-white/10 text-center">
@@ -1545,8 +1725,15 @@
           </div>
         </div>
 
-        <div class="mt-5">
-          <a href="${esc(String(asObject(state.room.urls).match_detail || '#'))}" class="inline-flex px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors">Back To Match Detail</a>
+        <div class="mt-6 flex flex-wrap items-center gap-2">
+          <a href="${esc(bracketHref)}" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity">
+            <i data-lucide="git-branch" class="w-4 h-4"></i>
+            View Bracket
+          </a>
+          <a href="${esc(hubHref)}" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-white/25 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors">
+            <i data-lucide="house" class="w-4 h-4"></i>
+            Back To Hub
+          </a>
         </div>
       </section>
     `;
@@ -1623,22 +1810,28 @@
       return;
     }
 
-    const base = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border';
+    const base = 'inline-flex items-center justify-center h-5 w-5 rounded-full border';
 
     if (state.wsConnected) {
-      elements.socketPill.className = `${base} bg-green-500/10 border-green-400/25`;
-      elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span><span class="text-[10px] font-mono text-green-300 uppercase tracking-widest">Socket Live</span>';
+      elements.socketPill.className = `${base} bg-green-500/10 border-green-400/30`;
+      elements.socketPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>';
+      elements.socketPill.setAttribute('title', 'Socket live');
+      elements.socketPill.setAttribute('aria-label', 'Socket live');
       return;
     }
 
     if (state.reconnectTimer) {
-      elements.socketPill.className = `${base} bg-amber-500/10 border-amber-400/30`;
-      elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span><span class="text-[10px] font-mono text-amber-200 uppercase tracking-widest">Reconnecting</span>';
+      elements.socketPill.className = `${base} bg-amber-500/10 border-amber-400/35`;
+      elements.socketPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>';
+      elements.socketPill.setAttribute('title', 'Socket reconnecting');
+      elements.socketPill.setAttribute('aria-label', 'Socket reconnecting');
       return;
     }
 
-    elements.socketPill.className = `${base} bg-red-500/10 border-red-400/30`;
-    elements.socketPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-300"></span><span class="text-[10px] font-mono text-red-200 uppercase tracking-widest">Socket Down</span>';
+    elements.socketPill.className = `${base} bg-red-500/10 border-red-400/35`;
+    elements.socketPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-300"></span>';
+    elements.socketPill.setAttribute('title', 'Socket offline');
+    elements.socketPill.setAttribute('aria-label', 'Socket offline');
   }
 
   function bindStaticEvents() {
@@ -1716,6 +1909,10 @@
       if (state.wsConnected) {
         sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
       }
+    });
+
+    window.addEventListener('beforeunload', function () {
+      setGlobalFocusMode(false);
     });
   }
 
@@ -1962,14 +2159,40 @@
       return;
     }
 
-    const payload = {
-      score_for: scoreFor,
-      score_against: scoreAgainst,
-      note: valueOf('result-note'),
-      proof_screenshot_url: valueOf('result-proof-url'),
-    };
+    const proofFileInput = byId('result-proof-file');
+    const proofFile = proofFileInput && proofFileInput.files && proofFileInput.files.length
+      ? proofFileInput.files[0]
+      : null;
+    const proofUrl = valueOf('result-proof-url');
 
-    await sendWorkflowAction('submit_result', payload);
+    if (requiresMatchEvidence() && !proofFile) {
+      showToast('Evidence image is required before submitting.', 'error');
+      return;
+    }
+
+    if (proofFile && !String(proofFile.type || '').toLowerCase().startsWith('image/')) {
+      showToast('Only image files are allowed for evidence upload.', 'error');
+      return;
+    }
+
+    if (proofFile && Number(proofFile.size || 0) > (10 * 1024 * 1024)) {
+      showToast('Evidence image exceeds 10MB limit.', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'submit_result');
+    formData.append('score_for', String(scoreFor));
+    formData.append('score_against', String(scoreAgainst));
+    formData.append('note', valueOf('result-note'));
+    if (proofUrl) {
+      formData.append('proof_screenshot_url', proofUrl);
+    }
+    if (proofFile) {
+      formData.append('proof', proofFile);
+    }
+
+    await sendWorkflowMultipartAction(formData);
   }
 
   function valueOf(id) {
@@ -2026,39 +2249,99 @@
   }
 
   async function signalReferee() {
-    const reportUrl = String(asObject(state.room.urls).report_dispute || '');
-    if (!reportUrl) {
-      showToast('Dispute endpoint unavailable.', 'error');
-      return;
-    }
-
     if (bool(asObject(state.room.me).is_staff, false)) {
       showToast('Use TOC verification panel for organizer dispute actions.', 'info');
       return;
     }
 
-    const reasonRaw = window.prompt('Dispute reason code', 'score_mismatch');
-    if (reasonRaw === null) {
-      return;
-    }
-    const reason = String(reasonRaw || '').trim();
-    if (!reason) {
-      showToast('Dispute reason is required.', 'error');
+    const summaryRaw = window.prompt('SOS headline', 'Opponent disconnected / technical issue');
+    if (summaryRaw === null) {
       return;
     }
 
-    const descriptionRaw = window.prompt('Describe the issue for referee review');
+    const summary = String(summaryRaw || '').trim();
+    if (summary.length < 3) {
+      showToast('SOS headline must be at least 3 characters.', 'error');
+      return;
+    }
+
+    const descriptionRaw = window.prompt('Describe the issue for TOC support (minimum 10 characters).');
     if (descriptionRaw === null) {
       return;
     }
+
     const description = String(descriptionRaw || '').trim();
-    if (!description) {
-      showToast('Dispute description is required.', 'error');
+    if (description.length < 10) {
+      showToast('Description must be at least 10 characters.', 'error');
       return;
     }
 
+    const matchRef = String(asObject(state.room.match).id || '');
+    let supportSent = false;
+    let supportMessage = 'Support alert sent.';
+
+    try {
+      supportMessage = await submitSupportTicket(summary, description, matchRef);
+      supportSent = true;
+    } catch (_err) {
+      supportSent = false;
+    }
+
+    let disputeFallbackSent = false;
+    if (!supportSent) {
+      disputeFallbackSent = await notifyDisputeFallback(summary, description);
+    }
+
+    if (supportSent || disputeFallbackSent) {
+      showToast(supportSent ? supportMessage : 'Support alert sent via dispute channel.', 'success');
+      appendSystemChat('SOS alert sent to tournament support.');
+      return;
+    }
+
+    showToast('Failed to notify support. Please retry.', 'error');
+  }
+
+  async function submitSupportTicket(summary, description, matchRef) {
+    const supportUrl = String(asObject(state.room.urls).support || '');
+    if (!supportUrl) {
+      throw new Error('Support channel unavailable.');
+    }
+
+    const matchId = matchRef || String(asObject(state.room.match).id || 'N/A');
+    const body = {
+      category: 'technical',
+      subject: `SOS Match ${matchId}: ${summary}`,
+      message: description,
+      match_ref: String(matchId),
+    };
+
+    const response = await fetch(supportUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(String(data.error || 'Support request failed.'));
+    }
+
+    return String(data.message || 'Support ticket sent to TOC.');
+  }
+
+  async function notifyDisputeFallback(summary, description) {
+    const reportUrl = String(asObject(state.room.urls).report_dispute || '');
+    if (!reportUrl) {
+      return false;
+    }
+
     const body = new URLSearchParams();
-    body.set('reason', reason);
+    body.set('reason', deriveDisputeReason(summary));
     body.set('description', description);
 
     try {
@@ -2075,13 +2358,24 @@
 
       const data = await parseJsonResponse(response);
       if (!response.ok || !bool(data.success, false)) {
-        throw new Error(String(data.error || 'Failed to notify referee.'));
+        return false;
       }
 
-      showToast(String(data.message || 'Referee notified.'), 'success');
-    } catch (error) {
-      showToast(String(error && error.message ? error.message : 'Failed to notify referee.'), 'error');
+      return true;
+    } catch (_error) {
+      return false;
     }
+  }
+
+  function deriveDisputeReason(summary) {
+    const token = String(summary || '').toLowerCase();
+    if (token.includes('score') || token.includes('mismatch') || token.includes('result')) {
+      return 'score_mismatch';
+    }
+    if (token.includes('disconnect') || token.includes('lag') || token.includes('tech')) {
+      return 'technical_issue';
+    }
+    return 'other';
   }
 
   async function sendWorkflowAction(action, payload) {
@@ -2112,6 +2406,56 @@
           'X-Requested-With': 'XMLHttpRequest',
         },
         body: JSON.stringify(Object.assign({ action }, asObject(payload))),
+      });
+
+      const data = await parseJsonResponse(response);
+      if (!response.ok || !bool(data.success, false)) {
+        throw new Error(String(data.error || 'Action failed.'));
+      }
+
+      if (data.room && typeof data.room === 'object') {
+        applyRoom(data.room);
+      }
+
+      if (data.message) {
+        appendSystemChat(String(data.message));
+        showToast(String(data.message), 'success');
+      }
+    } catch (error) {
+      showToast(String(error && error.message ? error.message : 'Action failed.'), 'error');
+    } finally {
+      state.requestBusy = false;
+      renderEngine();
+    }
+  }
+
+  async function sendWorkflowMultipartAction(formData) {
+    if (state.requestBusy) {
+      return;
+    }
+
+    if (waitingLocked()) {
+      showToast('Waiting for opponent websocket presence.', 'info');
+      return;
+    }
+
+    const endpoint = String(asObject(state.room.urls).workflow || '');
+    if (!endpoint) {
+      showToast('Workflow endpoint unavailable.', 'error');
+      return;
+    }
+
+    state.requestBusy = true;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData,
       });
 
       const data = await parseJsonResponse(response);
@@ -2196,13 +2540,13 @@
     state.ws.addEventListener('open', function () {
       state.wsConnected = true;
       state.reconnectAttempts = 0;
+      state.localPresenceHoldUntilMs = nowMs() + 12000;
       updateSocketPill();
       sendSocket({ type: 'subscribe' });
       sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
       updatePresenceLocal(mySide(), true, 'online');
-      renderHeader();
-      renderEngine();
-      updateWaitingOverlay();
+      renderHeaderPresenceMeta();
+      refreshPresenceSurfaces();
       showToast('Socket connected.', 'success');
     });
 
@@ -2221,9 +2565,8 @@
       state.wsConnected = false;
       updateSocketPill();
       updatePresenceLocal(mySide(), false, 'offline');
-      renderHeader();
-      renderEngine();
-      updateWaitingOverlay();
+      renderHeaderPresenceMeta();
+      refreshPresenceSurfaces();
       scheduleReconnect();
     });
 
@@ -2263,13 +2606,11 @@
     if (type === 'match_presence') {
       const payload = asObject(message.data);
       const sides = asObject(payload.sides);
-      const normalized = resolvePresence(sides, state.room.match);
+      const normalized = applyLocalPresenceHold(resolvePresence(sides, state.room.match));
       state.socketPresence = normalized;
       state.room.presence = normalized;
       state.room.workflow.presence = normalized;
-      renderHeader();
-      renderEngine();
-      updateWaitingOverlay();
+      refreshPresenceSurfaces();
       return;
     }
 
@@ -2301,9 +2642,41 @@
     }
   }
 
+  function applyLocalPresenceHold(snapshotValue) {
+    const snapshot = resolvePresence(snapshotValue, state.room.match);
+    const side = mySide();
+    if (side !== 1 && side !== 2) {
+      return snapshot;
+    }
+
+    const key = String(side);
+    const row = asObject(snapshot[key]);
+    if (bool(row.online, false)) {
+      state.localPresenceHoldUntilMs = 0;
+      return snapshot;
+    }
+
+    const shouldHold = state.wsConnected && nowMs() <= state.localPresenceHoldUntilMs;
+    if (!shouldHold) {
+      return snapshot;
+    }
+
+    snapshot[key] = Object.assign({}, row, {
+      online: true,
+      status: document.hidden ? 'away' : 'online',
+      user_id: row.user_id || asObject(state.room.me).user_id || null,
+      last_seen: new Date().toISOString(),
+    });
+
+    return snapshot;
+  }
+
   function updatePresenceLocal(side, online, status) {
     if (side !== 1 && side !== 2) {
       return;
+    }
+    if (online) {
+      state.localPresenceHoldUntilMs = Math.max(state.localPresenceHoldUntilMs, nowMs() + 10000);
     }
     const key = String(side);
     if (!state.socketPresence || typeof state.socketPresence !== 'object') {
@@ -2392,6 +2765,36 @@
     input.value = '';
   }
 
+  function clearChatEmptyState() {
+    const rows = document.querySelectorAll('#chat-empty-state');
+    rows.forEach(function (node) {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  }
+
+  function renderChatAvatar(payload, mine, sideToken, isOfficial) {
+    const side = toInt(payload.side, 0);
+    const avatarUrl = String(payload.avatar_url || '').trim();
+
+    if (isOfficial) {
+      return '<div class="w-8 h-8 rounded-lg border border-amber-300/45 bg-amber-500/15 text-amber-200 flex items-center justify-center shrink-0"><i data-lucide="shield-check" class="w-4 h-4"></i></div>';
+    }
+
+    if (avatarUrl) {
+      return `<div class="w-8 h-8 rounded-lg overflow-hidden border border-white/20 shrink-0"><img src="${esc(avatarUrl)}" alt="${esc(String(payload.username || 'Participant'))}" class="w-full h-full object-cover" loading="lazy" /></div>`;
+    }
+
+    const tone = mine
+      ? 'bg-ac-subtle text-ac border-ac-subtle'
+      : (side === 1
+        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30'
+        : 'bg-rose-500/20 text-rose-200 border-rose-400/30');
+
+    return `<div class="w-8 h-8 rounded-lg ${tone} border flex items-center justify-center text-xs font-black shrink-0">${esc(sideToken)}</div>`;
+  }
+
   function appendChatBubble(payload) {
     if (!elements.chatWindow) {
       return;
@@ -2404,37 +2807,52 @@
     state.chatIds.add(messageId);
 
     const mine = toInt(payload.user_id, -1) === toInt(asObject(state.room.me).user_id, -2);
-    const username = String(payload.username || 'Player');
+    const isOfficial = bool(payload.is_staff, false) || String(payload.persona || '').toLowerCase() === 'organizer';
+    const username = String(payload.display_name || payload.username || (isOfficial ? 'Organizer' : 'Player'));
     const text = String(payload.text || '').trim();
     if (!text) {
       return;
     }
 
+    clearChatEmptyState();
+
     const sideToken = initials(username);
     const stamp = shortClock(payload.timestamp);
+    const avatar = renderChatAvatar(payload, mine, sideToken, isOfficial);
+    const staffTag = isOfficial
+      ? '<span class="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded-full border border-amber-300/35 bg-amber-500/12 text-[8px] font-black uppercase tracking-widest text-amber-200"><i data-lucide="shield-check" class="w-2.5 h-2.5"></i>Organizer</span>'
+      : '';
+
+    const bubbleToneMine = isOfficial
+      ? 'bg-amber-500/15 border border-amber-300/35 text-amber-50'
+      : 'bg-white/10 border border-white/10 text-white';
+    const bubbleToneOther = isOfficial
+      ? 'bg-amber-500/12 border border-amber-300/30 text-amber-50'
+      : 'bg-black/55 border border-white/10 text-white';
 
     const bubble = mine
       ? `
-        <div class="flex gap-3 flex-row-reverse text-right">
-          <div class="w-8 h-8 rounded-lg bg-ac-subtle text-ac flex items-center justify-center text-xs font-black shrink-0">${esc(sideToken)}</div>
+        <div class="flex gap-3 flex-row-reverse text-right" data-chat-entry="1">
+          ${avatar}
           <div class="max-w-[85%] flex flex-col items-end">
-            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)} - ${esc(stamp)}</span>
-            <p class="text-sm text-white px-4 py-2.5 rounded-2xl rounded-tr-sm bg-white/10 border border-white/10 break-words">${esc(text)}</p>
+            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)}${staffTag} - ${esc(stamp)}</span>
+            <p class="text-sm px-4 py-2.5 rounded-2xl rounded-tr-sm break-words ${bubbleToneMine}">${esc(text)}</p>
           </div>
         </div>
       `
       : `
-        <div class="flex gap-3">
-          <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-300 flex items-center justify-center text-xs font-black shrink-0">${esc(sideToken)}</div>
+        <div class="flex gap-3" data-chat-entry="1">
+          ${avatar}
           <div class="max-w-[85%] flex flex-col items-start">
-            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)} - ${esc(stamp)}</span>
-            <p class="text-sm text-white px-4 py-2.5 rounded-2xl rounded-tl-sm bg-black/55 border border-white/10 break-words">${esc(text)}</p>
+            <span class="text-[9px] font-bold text-gray-500 mb-1">${esc(username)}${staffTag} - ${esc(stamp)}</span>
+            <p class="text-sm px-4 py-2.5 rounded-2xl rounded-tl-sm break-words ${bubbleToneOther}">${esc(text)}</p>
           </div>
         </div>
       `;
 
     elements.chatWindow.insertAdjacentHTML('beforeend', bubble);
     elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+    maybeRunIcons();
     syncMobileMirror();
   }
 
@@ -2448,9 +2866,11 @@
       return;
     }
 
+    clearChatEmptyState();
+
     elements.chatWindow.insertAdjacentHTML(
       'beforeend',
-      `<div class="flex justify-center my-2"><span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-ac text-center">${esc(content)}</span></div>`
+      `<div class="flex justify-center my-2" data-chat-system="1"><span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-ac text-center">${esc(content)}</span></div>`
     );
 
     elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;

@@ -57,6 +57,23 @@ def test_get_lobby_policy_config_coerces_string_booleans():
     assert policy["require_map_veto"] is False
 
 
+def test_get_lobby_policy_config_exposes_match_evidence_toggle():
+    tournament = _build_tournament_stub(
+        slug="valorant",
+        category="FPS",
+        game_type="TEAM_VS_TEAM",
+        config={
+            "lobby_policy": {
+                "require_match_evidence": "true",
+            },
+        },
+    )
+
+    policy = TOCSettingsService._get_lobby_policy_config(tournament)
+
+    assert policy["require_match_evidence"] is True
+
+
 def test_validate_settings_payload_rejects_unsupported_lobby_enables():
     direct_capabilities = resolve_lobby_game_profile(slug="efootball", category="SPORTS", game_type="1V1")
 

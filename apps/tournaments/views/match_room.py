@@ -141,6 +141,16 @@ MATCH_CONFIGURATION_META_KEYS = {
     "veto_sequence",
 }
 
+PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES = 30
+PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES = {
+    "live",
+    "pending_result",
+    "completed",
+    "forfeit",
+    "disputed",
+    "cancelled",
+}
+
 
 def _is_truthy(value: Any) -> bool:
     token = str(value or "").strip().lower()
@@ -405,6 +415,9 @@ def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, 
     best_of = int(runtime.get("best_of") or getattr(match, "best_of", 1) or 1)
     map_pool = _safe_string_list(runtime.get("map_pool"))
     check_in_window = _safe_dict(runtime.get("check_in_window"))
+    evidence_required = bool(
+        _safe_dict(_safe_dict(runtime.get("policy")).get("effective")).get("require_match_evidence")
+    )
 
     tournament_match_settings = _safe_dict(getattr(tournament, "match_settings", {}))
     match_settings: Dict[str, Any] = dict(tournament_match_settings)
@@ -425,6 +438,12 @@ def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, 
         runtime_game_slug=str(runtime.get("game_slug") or ""),
     )
     if dynamic_rules:
+        dynamic_rules.append(
+            {
+                "title": "Result Evidence",
+                "value": "Required (image upload)" if evidence_required else "Optional",
+            }
+        )
         return dynamic_rules
 
     fallback_duration = None
@@ -493,6 +512,7 @@ def _build_match_rules(match: Match, runtime: Dict[str, Any]) -> List[Dict[str, 
     _append_rule("Pipeline", pipeline_label)
     _append_rule("Match Format", _format_match_format(default_match_format, best_of))
     _append_rule("Check-In", _build_check_in_rule_text(match, check_in_window))
+    _append_rule("Result Evidence", "Required (image upload)" if evidence_required else "Optional")
 
     if is_efootball:
         _append_rule("Platform", _tournament_platform_label(tournament))
@@ -681,6 +701,7 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
         "require_check_in": _coerce_bool(getattr(tournament, "enable_check_in", False), default=False),
         "require_coin_toss": bool(game_profile.get("default_require_coin_toss", True)),
         "require_map_veto": bool(game_profile.get("default_require_map_veto", True)),
+        "require_match_evidence": False,
     }
 
     base = apply_lobby_policy_capabilities(
@@ -690,6 +711,10 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
             "require_map_veto": _coerce_bool(raw_policy.get("require_map_veto"), defaults["require_map_veto"]),
         },
         game_profile,
+    )
+    base["require_match_evidence"] = _coerce_bool(
+        raw_policy.get("require_match_evidence"),
+        defaults["require_match_evidence"],
     )
 
     round_overrides = clamp_lobby_round_overrides(
@@ -714,8 +739,10 @@ def _resolve_lobby_policy(match: Match) -> Dict[str, Any]:
         effective["require_coin_toss"] = False
     if not bool(base.get("require_map_veto")):
         effective["require_map_veto"] = False
+    effective["require_match_evidence"] = bool(base.get("require_match_evidence"))
 
     effective = apply_lobby_policy_capabilities(effective, game_profile)
+    effective["require_match_evidence"] = bool(base.get("require_match_evidence"))
 
     return {
         "base": base,
@@ -1056,6 +1083,8 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
             "admin_mode": False,
             "user_side": None,
             "user_id": None,
+            "denied_reason": "not_authenticated",
+            "lobby_opens_at": None,
         }
 
     is_staff = bool(getattr(user, "is_staff", False) or match.tournament.organizer_id == user.id)
@@ -1082,12 +1111,26 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
         except Exception:
             user_side = None
 
+    denied_reason = None
+    lobby_opens_at = None
+    is_participant = user_side in (1, 2)
+
+    if is_participant and not is_staff:
+        state = str(getattr(match, "state", "") or "").lower()
+        scheduled_time = getattr(match, "scheduled_time", None)
+        if state not in PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES and scheduled_time:
+            lobby_opens_at = scheduled_time - timedelta(minutes=PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES)
+            if timezone.now() < lobby_opens_at:
+                denied_reason = "lobby_not_open"
+
     return {
-        "allowed": bool(is_staff or user_side in (1, 2)),
+        "allowed": bool(is_staff or (is_participant and denied_reason is None)),
         "is_staff": is_staff,
         "admin_mode": bool(is_staff and admin_mode_requested),
         "user_side": user_side,
         "user_id": user.id,
+        "denied_reason": denied_reason,
+        "lobby_opens_at": lobby_opens_at,
     }
 
 
@@ -1332,6 +1375,9 @@ def _build_room_payload(
             "submit_result": reverse("tournaments:submit_result", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
             "report_dispute": reverse("tournaments:report_dispute", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
             "match_detail": reverse("tournaments:match_detail", kwargs={"slug": match.tournament.slug, "match_id": match.id}),
+            "hub": reverse("tournaments:tournament_hub", kwargs={"slug": match.tournament.slug}),
+            "bracket": reverse("tournaments:bracket", kwargs={"slug": match.tournament.slug}),
+            "support": reverse("tournaments:hub_support_api", kwargs={"slug": match.tournament.slug}),
         },
         "websocket": {
             "path": f"/ws/match/{match.id}/",
@@ -1401,7 +1447,21 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
         )
 
         if not self.access["allowed"]:
-            messages.warning(request, "Only match participants and staff can access the match lobby.")
+            if self.access.get("denied_reason") == "lobby_not_open":
+                opens_at = self.access.get("lobby_opens_at")
+                if opens_at:
+                    try:
+                        opens_at_label = timezone.localtime(opens_at).strftime("%b %d, %I:%M %p")
+                    except Exception:
+                        opens_at_label = str(opens_at)
+                    messages.info(
+                        request,
+                        f"Match lobby opens at {opens_at_label} (30 minutes before kickoff).",
+                    )
+                else:
+                    messages.info(request, "Match lobby opens 30 minutes before kickoff.")
+            else:
+                messages.warning(request, "Only match participants and staff can access the match lobby.")
             return redirect(
                 "tournaments:match_detail",
                 slug=self.object.tournament.slug,
@@ -1449,6 +1509,19 @@ class MatchCheckInView(LoginRequiredMixin, View):
 
         access = _resolve_match_room_access(request.user, match)
         if not access["allowed"]:
+            if access.get("denied_reason") == "lobby_not_open":
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
+                opens_at = access.get("lobby_opens_at")
+                if opens_at:
+                    try:
+                        opens_at_label = timezone.localtime(opens_at).strftime("%b %d, %I:%M %p")
+                    except Exception:
+                        opens_at_label = str(opens_at)
+                    messages.error(request, f"Match lobby opens at {opens_at_label}.")
+                else:
+                    messages.error(request, "Match lobby opens 30 minutes before kickoff.")
+                return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"success": False, "error": "forbidden"}, status=403)
             messages.error(request, "Only participants can check in for this match.")
@@ -1558,6 +1631,8 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             admin_mode_requested=_is_truthy(request.GET.get("admin")),
         )
         if not access["allowed"]:
+            if access.get("denied_reason") == "lobby_not_open":
+                return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
             return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
         lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=True)
@@ -1595,6 +1670,8 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 admin_mode_requested=_is_truthy(request.GET.get("admin")),
             )
             if not access["allowed"]:
+                if access.get("denied_reason") == "lobby_not_open":
+                    return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
                 return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
             lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=False)
@@ -1960,6 +2037,10 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             note = str(payload.get("note") or "").strip()
             proof_url = str(payload.get("proof_screenshot_url") or payload.get("evidence_url") or "").strip()
             proof_file = files.get("proof") or files.get("proof_file") or files.get("evidence")
+            require_match_evidence = bool(policy_effective.get("require_match_evidence"))
+
+            if require_match_evidence and proof_file is None:
+                raise ValueError("Evidence image is required before submitting a result.")
 
             if proof_file is not None:
                 content_type = str(getattr(proof_file, "content_type", "") or "").lower()

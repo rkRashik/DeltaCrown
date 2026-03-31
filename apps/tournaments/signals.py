@@ -27,6 +27,7 @@ Planning Documents:
 """
 
 import logging
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -310,7 +311,7 @@ def handle_match_state_change(sender, instance, created, **kwargs):
                     logger.debug(f"Skipping Discord queue dispatch for match {instance.pk} during tests")
                 else:
                     from apps.organizations.tasks.discord_sync import send_match_result_to_discord
-                    send_match_result_to_discord.delay(instance.pk)
+                    send_match_result_to_discord.apply_async(args=(instance.pk,), retry=False)
                     logger.info(f"Queued Discord match result for match {instance.pk}")
             except Exception as e:
                 logger.error(f"Failed to queue Discord match result: {e}")
@@ -388,6 +389,29 @@ def handle_tournament_status_change(sender, instance, created, **kwargs):
         f"Tournament completed: tournament_id={instance.id}, name='{instance.name}', "
         f"participants={instance.registrations.filter(status='confirmed').count()}"
     )
+
+    def _enqueue_result_evidence_cleanup() -> None:
+        try:
+            from apps.tournaments.tasks.evidence_cleanup import purge_tournament_result_evidence_files_task
+
+            purge_tournament_result_evidence_files_task.delay(instance.id)
+        except Exception as exc:
+            logger.warning(
+                "Failed queueing async tournament evidence cleanup; running synchronously. tournament_id=%s err=%s",
+                instance.id,
+                exc,
+            )
+            try:
+                from apps.tournaments.services.evidence_cleanup import purge_tournament_result_evidence_files
+
+                purge_tournament_result_evidence_files(instance.id)
+            except Exception:
+                logger.exception(
+                    "Synchronous tournament evidence cleanup failed",
+                    extra={"tournament_id": instance.id},
+                )
+
+    transaction.on_commit(_enqueue_result_evidence_cleanup)
     
     # Get all confirmed participants
     confirmed_registrations = instance.registrations.filter(

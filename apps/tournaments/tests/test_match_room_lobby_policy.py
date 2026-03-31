@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from apps.tournaments.models import Match
 from apps.tournaments.views import match_room as match_room_view
@@ -99,6 +101,20 @@ def test_ensure_match_workflow_global_coin_toss_disable_wins_over_round_override
     assert runtime["policy"]["base"]["require_coin_toss"] is False
     assert runtime["policy"]["effective"]["require_coin_toss"] is False
     assert "coin_toss" not in runtime["phase_order"]
+
+
+def test_ensure_match_workflow_exposes_match_evidence_toggle():
+    match = _build_match_stub(
+        slug="valorant",
+        category="FPS",
+        game_type="TEAM_VS_TEAM",
+        policy={"require_match_evidence": True},
+    )
+
+    _lobby_info, _workflow, runtime, _changed = _ensure_match_workflow(match, persist=False)
+
+    assert runtime["policy"]["base"]["require_match_evidence"] is True
+    assert runtime["policy"]["effective"]["require_match_evidence"] is True
 
 
 def test_build_phase_order_never_includes_coin_toss_in_direct_mode():
@@ -525,3 +541,57 @@ def test_build_room_payload_masks_opponent_result_for_participants_and_reveals_f
     assert admin_rows["1"]["score_for"] == 2
     assert admin_rows["2"]["score_for"] == 1
     assert admin_visibility["opponent_revealed"] is True
+
+
+def test_resolve_match_room_access_blocks_participant_before_30_minutes():
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(hours=2),
+        tournament=SimpleNamespace(organizer_id=999),
+    )
+    user = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(user, match)
+
+    assert access["allowed"] is False
+    assert access["user_side"] == 1
+    assert access["denied_reason"] == "lobby_not_open"
+    assert access["lobby_opens_at"] is not None
+
+
+def test_resolve_match_room_access_allows_participant_within_30_minutes():
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(minutes=25),
+        tournament=SimpleNamespace(organizer_id=999),
+    )
+    user = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(user, match)
+
+    assert access["allowed"] is True
+    assert access["denied_reason"] is None
+
+
+def test_resolve_match_room_access_allows_staff_before_window():
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(hours=2),
+        tournament=SimpleNamespace(organizer_id=999),
+    )
+    staff_user = SimpleNamespace(is_authenticated=True, is_staff=True, id=500)
+
+    access = match_room_view._resolve_match_room_access(staff_user, match)
+
+    assert access["allowed"] is True
+    assert access["is_staff"] is True
+    assert access["denied_reason"] is None

@@ -257,11 +257,16 @@ class TOCSettingsService:
             },
             capabilities,
         )
+        require_match_evidence = TOCSettingsService._coerce_bool(
+            raw_policy.get("require_match_evidence"),
+            default=False,
+        )
 
         return {
             "require_check_in": bool(flags.get("require_check_in")),
             "require_coin_toss": bool(flags.get("require_coin_toss")),
             "require_map_veto": bool(flags.get("require_map_veto")),
+            "require_match_evidence": require_match_evidence,
             "check_in_per_round": TOCSettingsService._coerce_bool(
                 raw_policy.get("require_check_in_per_round", checkin_cfg.get("per_round", False)),
                 default=False,
@@ -636,6 +641,7 @@ class TOCSettingsService:
                 "require_check_in": lobby_policy["require_check_in"],
                 "require_coin_toss": lobby_policy["require_coin_toss"],
                 "require_map_veto": lobby_policy["require_map_veto"],
+                "require_match_evidence": lobby_policy["require_match_evidence"],
                 "check_in_per_round": lobby_policy["check_in_per_round"],
                 "lobby_round_overrides": lobby_policy["lobby_round_overrides"],
                 "lobby_capabilities": lobby_policy["lobby_capabilities"],
@@ -790,6 +796,13 @@ class TOCSettingsService:
             lobby_policy["require_map_veto"] = TOCSettingsService._coerce_bool(
                 data.get("require_map_veto"),
                 default=bool(lobby_capabilities.get("default_require_map_veto", True)),
+            )
+            config_changed = True
+
+        if "require_match_evidence" in data:
+            lobby_policy["require_match_evidence"] = TOCSettingsService._coerce_bool(
+                data.get("require_match_evidence"),
+                default=False,
             )
             config_changed = True
 
