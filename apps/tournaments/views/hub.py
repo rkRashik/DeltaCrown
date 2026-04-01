@@ -1383,20 +1383,28 @@ def _time_ago(dt, now=None):
 
 
 def _normalize_media_url(value):
+    """Normalise a media field .url value for the browser.
+
+    Cloudinary-backed DBs store paths with a ``media/`` prefix
+    (e.g. ``media/user_avatars/3/avatar_abc``).  Locally FileSystemStorage
+    prepends MEDIA_URL ``/media/`` again, giving ``/media/media/…``.  This
+    double-prefix is *intentional* — the MediaProxyMiddleware strips the
+    leading ``/media/`` and uses the remainder (which still contains
+    ``media/…``) as the Cloudinary public-ID.  Never collapse it.
+    """
     raw = str(value or '').strip()
     if not raw:
         return ''
+    # Absolute URL — already a CDN link, pass through.
     if raw.startswith('http://') or raw.startswith('https://'):
         return raw
-    if raw.startswith('/media/media/'):
-        return '/media/' + raw[len('/media/media/'):]
-    if raw.startswith('media/media/'):
-        return '/media/' + raw[len('media/media/'):]
-    if raw.startswith('media/'):
-        return '/media/' + raw[len('media/'):]
-    if not raw.startswith('/'):
-        return '/media/' + raw
-    return raw
+    # Already has a leading slash — treat as ready-to-use path.
+    if raw.startswith('/'):
+        return raw
+    # Bare relative path from DB (e.g. "media/user_avatars/…" or
+    # "user_avatars/…") — prepend MEDIA_URL so the browser requests
+    # /media/media/… or /media/user_avatars/… correctly.
+    return '/media/' + raw
 
 
 def _get_avatar_url(user):

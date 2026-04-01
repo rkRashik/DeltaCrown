@@ -925,15 +925,9 @@ class TOCMatchesService:
             return ''
         if raw.startswith('http://') or raw.startswith('https://'):
             return raw
-        if raw.startswith('/media/media/'):
-            return '/media/' + raw[len('/media/media/'):]
-        if raw.startswith('media/media/'):
-            return '/media/' + raw[len('media/media/'):]
-        if raw.startswith('media/'):
-            return '/media/' + raw[len('media/'):]
-        if not raw.startswith('/'):
-            return '/media/' + raw
-        return raw
+        if raw.startswith('/'):
+            return raw
+        return '/media/' + raw
 
     @staticmethod
     def _user_avatar_url(user) -> str:

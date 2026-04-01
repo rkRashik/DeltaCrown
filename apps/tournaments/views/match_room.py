@@ -1196,18 +1196,14 @@ def _normalize_media_url(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    # Already an absolute URL (e.g. Cloudinary CDN) — return as-is
+    # Absolute URL (e.g. Cloudinary CDN) — pass through.
     if raw.startswith("http://") or raw.startswith("https://"):
         return raw
-    if raw.startswith('/media/media/'):
-        return '/media/' + raw[len('/media/media/'):]
-    if raw.startswith('media/media/'):
-        return '/media/' + raw[len('media/media/'):]
-    if raw.startswith('media/'):
-        return '/media/' + raw[len('media/'):]
-    if not raw.startswith('/'):
-        return '/media/' + raw
-    return raw
+    # Already has leading slash — use as-is (e.g. /media/media/…).
+    if raw.startswith("/"):
+        return raw
+    # Bare relative DB path — prepend MEDIA_URL.
+    return "/media/" + raw
 
 
 def _participant_media_map(match: Match) -> Dict[int, str]:

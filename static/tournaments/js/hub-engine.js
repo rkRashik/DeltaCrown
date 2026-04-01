@@ -3831,7 +3831,7 @@ const HubEngine = (() => {
           html += `<td class="stnd-td">${row.drawn}</td>`;
           html += `<td class="stnd-td stnd-l">${row.lost}</td>`;
           html += `<td class="stnd-td">${row.goal_difference > 0 ? '+' : ''}${row.goal_difference}</td>`;
-          html += `<td class="stnd-td font-bold text-white">${row.points}</td>`;
+          html += `<td class="stnd-td"><span class="stnd-pts-glow">${row.points}</span></td>`;
           html += `</tr>`;
         });
 
@@ -5381,7 +5381,7 @@ const HubEngine = (() => {
       // Logo / avatar (prefer logo_url, fall back to profile_avatar_url)
       const avatarSrc = p.logo_url || p.profile_avatar_url || '';
       const logo = avatarSrc
-        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\'font-black text-xl\' style=\'font-family:Outfit,sans-serif\'>${_esc(p.tag)}</span>')">`
+        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-xl\\' style=\\'font-family:Outfit,sans-serif\\'>${_esc(p.tag)}</span>')">`
         : `<span class="font-black text-xl" style="font-family:Outfit,sans-serif;">${_esc(p.tag)}</span>`;
       const logoColorClass = p.is_you ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-gray-400';
 

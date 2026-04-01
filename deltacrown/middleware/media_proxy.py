@@ -39,13 +39,17 @@ class MediaProxyMiddleware:
         if not (self.cloud_name or self.proxy_url):
             return response
 
-        # Strip the leading MEDIA_URL to get the relative path stored in the DB.
-        # Cloudinary-backed DBs store paths like "media/games/logos/X", so
-        # request.path = "/media/media/games/logos/X" → relative = "media/games/logos/X".
+        # Strip the leading MEDIA_URL to get the relative path.
         relative_path = request.path[len(settings.MEDIA_URL):]
 
-        # Strategy 1: Cloudinary CDN (preferred, works for Cloudinary-backed DBs)
+        # Strategy 1: Cloudinary CDN (preferred)
         if self.cloud_name:
+            # django-cloudinary-storage uploads under a "media/" folder on
+            # Cloudinary (MEDIA_TAG).  DB entries may or may not include
+            # this prefix depending on when the file was saved.  Normalise
+            # so the public-ID always starts with "media/".
+            if not relative_path.startswith("media/"):
+                relative_path = "media/" + relative_path
             cdn = (
                 f"https://res.cloudinary.com/{self.cloud_name}"
                 f"/image/upload/{relative_path}"
