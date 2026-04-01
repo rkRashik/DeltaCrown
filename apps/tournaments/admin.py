@@ -54,6 +54,7 @@ from apps.tournaments.admin_bracket import BracketAdmin
 from apps.tournaments.admin_certificate import CertificateAdmin
 from apps.tournaments.admin_result import TournamentResultAdmin
 from apps.tournaments.admin_prize import PrizeTransactionAdmin
+from apps.tournaments.admin_staff import TournamentStaffRoleAdmin  # noqa: F401 — registers @admin.register
 # TournamentStaffInline removed (TournamentStaff model deleted)
 
 

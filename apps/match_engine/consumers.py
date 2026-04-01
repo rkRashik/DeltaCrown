@@ -32,6 +32,8 @@ def _get_redis_presence():
     """Return an async Redis client for presence (DB 2, or same as REDIS_URL).
 
     Falls back to None when Redis is unavailable (dev without Redis).
+    Uses a shared connection pool to avoid creating a new TCP connection per
+    operation.  The pool is lazily created once and cached on the module.
     """
     import os
 
@@ -42,11 +44,20 @@ def _get_redis_presence():
     base_url = os.getenv("REDIS_URL", "")
     if not base_url:
         return None
-    # Use DB 2 for presence data — isolated from cache (0) and Celery (1).
-    from deltacrown.settings import _redis_url_with_db
 
-    url = _redis_url_with_db(base_url, 2)
-    return aioredis.from_url(url, decode_responses=True)
+    global _redis_presence_pool  # noqa: PLW0603
+    if _redis_presence_pool is None:
+        from deltacrown.settings import _redis_url_with_db
+        url = _redis_url_with_db(base_url, 2)
+        _redis_presence_pool = aioredis.ConnectionPool.from_url(
+            url, decode_responses=True, max_connections=8,
+        )
+
+    return aioredis.Redis(connection_pool=_redis_presence_pool)
+
+
+# Module-level connection pool (lazily initialised by _get_redis_presence).
+_redis_presence_pool = None
 
 
 class MatchConsumer(AsyncJsonWebsocketConsumer):
@@ -192,11 +203,24 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             self.heartbeat_task.cancel()
             try:
                 await self.heartbeat_task
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, Exception):
                 pass
 
-        await self._unregister_presence()
-        await self._broadcast_presence()
+        try:
+            await self._unregister_presence()
+        except (asyncio.CancelledError, Exception):
+            logger.debug(
+                "Presence unregister suppressed during disconnect",
+                extra={"match_id": getattr(self, "match_id", None)},
+            )
+
+        try:
+            await self._broadcast_presence()
+        except (asyncio.CancelledError, Exception):
+            logger.debug(
+                "Presence broadcast suppressed during disconnect",
+                extra={"match_id": getattr(self, "match_id", None)},
+            )
 
         if hasattr(self, "room_group_name"):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -428,8 +452,6 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             await rds.setex(key, self.HEARTBEAT_TIMEOUT, payload)
         except Exception:
             logger.warning("Redis presence SET failed", extra={"match_id": self.match_id, "user_id": self.user.id})
-        finally:
-            await rds.aclose()
 
     async def _unregister_presence(self) -> None:
         match_id = getattr(self, "match_id", None)
@@ -444,8 +466,6 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             await rds.delete(key)
         except Exception:
             logger.warning("Redis presence DEL failed", extra={"match_id": match_id, "user_id": user.id})
-        finally:
-            await rds.aclose()
 
     async def _build_presence_snapshot(self) -> Dict[str, Any]:
         match_id = getattr(self, "match_id", None)
@@ -484,8 +504,6 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     break
         except Exception:
             logger.warning("Redis presence SCAN failed", extra={"match_id": match_id})
-        finally:
-            await rds.aclose()
 
         return {
             "match_id": match_id,

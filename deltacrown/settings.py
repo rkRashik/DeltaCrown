@@ -1889,11 +1889,6 @@ if _HAS_UNFOLD:
                         "link": reverse_lazy("admin:tournaments_tournamentstaffrole_changelist"),
                     },
                     {
-                        "title": "Staff",
-                        "icon": "supervisor_account",
-                        "link": reverse_lazy("admin:tournaments_tournamentstaff_changelist"),
-                    },
-                    {
                         "title": "Webhooks",
                         "icon": "webhook",
                         "link": reverse_lazy("admin:tournaments_formwebhook_changelist"),
