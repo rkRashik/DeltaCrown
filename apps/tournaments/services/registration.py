@@ -46,9 +46,11 @@ def _update_pv_for_registration(reg, method: Optional[str], reference: Optional[
         try:
             pv = PV.objects.create(registration=reg)
         except Exception:
-            pv = PV.objects.filter(registration=reg).first()
+            pv = PV.all_objects.filter(registration=reg).first()
             if not pv:
                 return
+            if getattr(pv, "is_deleted", False):
+                pv.restore()
 
     if method:
         try:

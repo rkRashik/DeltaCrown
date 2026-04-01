@@ -1783,7 +1783,7 @@ if _HAS_UNFOLD:
                     {
                         "title": "Brackets",
                         "icon": "account_tree",
-                        "link": reverse_lazy("admin:tournaments_bracket_changelist"),
+                        "link": reverse_lazy("admin:brackets_bracket_changelist"),
                     },
                     {
                         "title": "Results",

@@ -188,14 +188,14 @@ class BracketAdminTests(TestCase):
         self.client.login(username='admin', password='admin123')
     
     def test_bracket_list_loads(self):
-        """Test /admin/tournaments/bracket/ loads"""
-        response = self.client.get(reverse('admin:tournaments_bracket_changelist'))
+        """Test /admin/brackets/bracket/ loads"""
+        response = self.client.get(reverse('admin:brackets_bracket_changelist'))
         self.assertEqual(response.status_code, 200)
     
     def test_bracket_change_loads(self):
-        """Test /admin/tournaments/bracket/<id>/change/ loads - THIS WAS FAILING"""
+        """Test /admin/brackets/bracket/<id>/change/ loads - THIS WAS FAILING"""
         response = self.client.get(
-            reverse('admin:tournaments_bracket_change', args=[self.bracket.id])
+            reverse('admin:brackets_bracket_change', args=[self.bracket.id])
         )
         self.assertEqual(response.status_code, 200)
 
@@ -244,14 +244,14 @@ class BracketNodeAdminTests(TestCase):
         self.client.login(username='admin', password='admin123')
     
     def test_bracketnode_list_loads(self):
-        """Test /admin/tournaments/bracketnode/ loads"""
-        response = self.client.get(reverse('admin:tournaments_bracketnode_changelist'))
+        """Test /admin/brackets/bracketnode/ loads"""
+        response = self.client.get(reverse('admin:brackets_bracketnode_changelist'))
         self.assertEqual(response.status_code, 200)
     
     def test_bracketnode_change_loads(self):
-        """Test /admin/tournaments/bracketnode/<id>/change/ loads"""
+        """Test /admin/brackets/bracketnode/<id>/change/ loads"""
         response = self.client.get(
-            reverse('admin:tournaments_bracketnode_change', args=[self.node.id])
+            reverse('admin:brackets_bracketnode_change', args=[self.node.id])
         )
         self.assertEqual(response.status_code, 200)
 

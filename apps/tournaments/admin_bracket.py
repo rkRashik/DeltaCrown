@@ -419,7 +419,7 @@ class BracketNodeAdmin(ModelAdmin):
     
     def bracket_link(self, obj):
         """Link to bracket admin page"""
-        url = reverse('admin:tournaments_bracket_change', args=[obj.bracket.id])
+        url = reverse('admin:brackets_bracket_change', args=[obj.bracket.id])
         return format_html(
             '<a href="{}">{}</a>',
             url,
@@ -476,7 +476,7 @@ class BracketNodeAdmin(ModelAdmin):
     def parent_link(self, obj):
         """Link to parent node"""
         if obj.parent_node:
-            url = reverse('admin:tournaments_bracketnode_change', args=[obj.parent_node.id])
+            url = reverse('admin:brackets_bracketnode_change', args=[obj.parent_node.id])
             return format_html(
                 '<a href="{}">Position {}</a>',
                 url,
@@ -522,10 +522,10 @@ class BracketNodeAdmin(ModelAdmin):
         if obj.child1_node or obj.child2_node:
             html += '<strong>Children (feeds from):</strong><br>'
             if obj.child1_node:
-                url = reverse('admin:tournaments_bracketnode_change', args=[obj.child1_node.id])
+                url = reverse('admin:brackets_bracketnode_change', args=[obj.child1_node.id])
                 html += f'  ├─ Child 1: <a href="{url}">Position {obj.child1_node.position}</a><br>'
             if obj.child2_node:
-                url = reverse('admin:tournaments_bracketnode_change', args=[obj.child2_node.id])
+                url = reverse('admin:brackets_bracketnode_change', args=[obj.child2_node.id])
                 html += f'  └─ Child 2: <a href="{url}">Position {obj.child2_node.position}</a><br>'
             html += '<br>'
         
@@ -536,7 +536,7 @@ class BracketNodeAdmin(ModelAdmin):
         # Show parent (next round)
         if obj.parent_node:
             html += '<strong>Parent (advances to):</strong><br>'
-            url = reverse('admin:tournaments_bracketnode_change', args=[obj.parent_node.id])
+            url = reverse('admin:brackets_bracketnode_change', args=[obj.parent_node.id])
             html += f'  └─ <a href="{url}">Position {obj.parent_node.position}</a> (Slot {obj.parent_slot})<br>'
         
         html += '</div>'

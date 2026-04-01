@@ -44,13 +44,16 @@ def _sync_to_payment_verification(payment: Payment) -> None:
     so the primary Payment write is never blocked.
     """
     try:
-        pv, created = PaymentVerification.objects.get_or_create(
+        pv, created = PaymentVerification.all_objects.get_or_create(
             registration_id=payment.registration_id,
             defaults={
                 'method': payment.payment_method if payment.payment_method != 'deltacoin' else 'other',
                 'status': PaymentVerification.Status.PENDING,
             },
         )
+        # Restore if previously soft-deleted
+        if not created and pv.is_deleted:
+            pv.restore()
 
         # Map Payment fields → PaymentVerification fields
         method_map = {'bkash': 'bkash', 'nagad': 'nagad', 'rocket': 'rocket', 'bank': 'bank'}

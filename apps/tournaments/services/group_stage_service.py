@@ -141,10 +141,11 @@ class GroupStageService:
             ]
         
         # Delete existing groups and their standings
+        _now = timezone.now()
         GroupStanding.objects.filter(
             group__tournament=tournament, is_deleted=False
-        ).update(is_deleted=True)
-        Group.objects.filter(tournament=tournament).update(is_deleted=True)
+        ).update(is_deleted=True, deleted_at=_now)
+        Group.objects.filter(tournament=tournament).update(is_deleted=True, deleted_at=_now)
         
         # Create groups
         groups = []

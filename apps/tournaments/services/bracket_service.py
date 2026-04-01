@@ -466,8 +466,8 @@ class BracketService:
         if hasattr(tournament, 'bracket'):
             old_bracket = tournament.bracket
             if not old_bracket.is_finalized:
-                # Delete old bracket nodes and bracket
-                BracketNode.objects.filter(bracket=old_bracket).delete()
+                # Delete old bracket nodes and bracket (use all_objects to include soft-deleted)
+                BracketNode.all_objects.filter(bracket=old_bracket).delete()
                 old_bracket.delete()
         
         # Generate bracket based on format
@@ -1781,11 +1781,11 @@ class BracketService:
         
         if force:
             # Force regeneration - delete everything and start fresh
-            # Delete all matches linked to bracket nodes
+            # Delete all matches linked to bracket nodes (use all_objects to include soft-deleted)
             Match.objects.filter(bracket_node__bracket=bracket).delete()
             
-            # Delete all bracket nodes
-            BracketNode.objects.filter(bracket=bracket).delete()
+            # Delete all bracket nodes (use all_objects to include soft-deleted)
+            BracketNode.all_objects.filter(bracket=bracket).delete()
             
             # Delete bracket
             bracket.delete()

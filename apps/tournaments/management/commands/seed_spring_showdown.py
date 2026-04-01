@@ -656,12 +656,12 @@ class Command(BaseCommand):
             MatchPlayerStat.objects.filter(match__tournament_id=tid).delete()
             self.PrizeTransaction.objects.filter(tournament_id=tid).delete()
             self.TournamentResult.objects.filter(tournament_id=tid).delete()
-            self.BracketNode.objects.filter(bracket__tournament_id=tid).delete()
-            self.Match.objects.filter(tournament_id=tid).delete()
+            self.BracketNode.all_objects.filter(bracket__tournament_id=tid).delete()
+            self.Match.objects.with_deleted().filter(tournament_id=tid).delete()
             self.Bracket.objects.filter(tournament_id=tid).delete()
-            self.PaymentVerification.objects.filter(registration__tournament_id=tid).delete()
+            self.PaymentVerification.all_objects.filter(registration__tournament_id=tid).delete()
             self.Payment.objects.filter(registration__tournament_id=tid).delete()
-            self.Registration.objects.filter(tournament_id=tid).delete()
+            self.Registration.objects.with_deleted().filter(tournament_id=tid).delete()
             # Hard delete (bypass soft delete)
             type(t).objects.with_deleted().filter(pk=tid).delete()
             self.stdout.write(f"  Deleted tournament ID={tid}")
@@ -966,7 +966,7 @@ class Command(BaseCommand):
             # Must delete protected references before registrations
             self.TournamentResult.objects.filter(tournament=tournament).delete()
             self.PrizeTransaction.objects.filter(tournament=tournament).delete()
-            self.PaymentVerification.objects.filter(registration__tournament=tournament).delete()
+            self.PaymentVerification.all_objects.filter(registration__tournament=tournament).delete()
             self.Payment.objects.filter(registration__tournament=tournament).delete()
             existing.delete()
             self.stdout.write("  Cleaned existing registrations")
@@ -1024,7 +1024,7 @@ class Command(BaseCommand):
 
             # PaymentVerification — used by TOC service
             txn_id = f"BK{random.randint(100000000, 999999999)}"
-            pv, _ = self.PaymentVerification.objects.get_or_create(
+            pv, created = self.PaymentVerification.all_objects.get_or_create(
                 registration=reg,
                 defaults={
                     "method": "bkash",
@@ -1038,6 +1038,8 @@ class Command(BaseCommand):
                     "last_action_reason": "Payment verified during registration",
                 },
             )
+            if not created and getattr(pv, "is_deleted", False):
+                pv.restore()
 
             registrations[idx] = reg
             self.stdout.write(f"  Registered: {team.name} (seed {idx+1})")
@@ -1049,7 +1051,7 @@ class Command(BaseCommand):
         self.stdout.write("\nCreating bracket...")
 
         # Clean up existing bracket data (idempotent)
-        self.BracketNode.objects.filter(bracket__tournament=tournament).delete()
+        self.BracketNode.all_objects.filter(bracket__tournament=tournament).delete()
         self.Bracket.objects.filter(tournament=tournament).delete()
 
         bracket, _ = self.Bracket.objects.get_or_create(

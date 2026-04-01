@@ -963,7 +963,8 @@ class GroupDrawConsumer(AsyncJsonWebsocketConsumer):
         if len(existing) > num_groups:
             for g in existing[num_groups:]:
                 g.is_deleted = True
-                g.save(update_fields=["is_deleted"])
+                g.deleted_at = timezone.now()
+                g.save(update_fields=["is_deleted", "deleted_at"])
             existing = existing[:num_groups]
 
         # Update existing groups

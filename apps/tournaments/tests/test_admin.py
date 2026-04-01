@@ -131,28 +131,28 @@ class BracketAdminStabilityTest(TestCase):
     
     def test_bracket_admin_list_loads(self):
         """Test that bracket admin list loads"""
-        url = reverse('admin:tournaments_bracket_changelist')
+        url = reverse('admin:brackets_bracket_changelist')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
     
     def test_bracket_admin_detail_loads(self):
         """Test that bracket admin detail loads"""
-        url = reverse('admin:tournaments_bracket_change', args=[self.bracket.id])
+        url = reverse('admin:brackets_bracket_change', args=[self.bracket.id])
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
     
     def test_bracketnode_admin_list_loads(self):
         """Test that bracket node admin list loads"""
-        url = reverse('admin:tournaments_bracketnode_changelist')
+        url = reverse('admin:brackets_bracketnode_changelist')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
     
     def test_bracketnode_admin_detail_loads(self):
         """Test that bracket node detail loads without AttributeError"""
-        url = reverse('admin:tournaments_bracketnode_change', args=[self.node.id])
+        url = reverse('admin:brackets_bracketnode_change', args=[self.node.id])
         response = self.client.get(url)
         
         # This was crashing before with AttributeError
