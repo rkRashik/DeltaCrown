@@ -37,7 +37,6 @@ from .bracket import (
 )
 from .match import (
     Match,    # Full implementation (Module 1.4)
-    Dispute,  # Full implementation (Module 1.4)
 )
 from .security import (
     AuditLog,  # Full implementation (Module 2.4)
@@ -64,7 +63,6 @@ from .payment_config import (
 )
 from .staff import (
     TournamentStaffRole,  # Staff role definitions with permissions
-    TournamentStaff,  # Staff assignments to tournaments
     StaffPermissionChecker,  # Utility for permission checking
 )
 from .staffing import (
@@ -90,14 +88,13 @@ from .stage import (
 from .lobby import (
     TournamentLobby,  # Tournament lobby/participant hub
     CheckIn,  # Check-in tracking
-    LobbyAnnouncement,  # Lobby announcements
 )
 from .form_template import (
     RegistrationFormTemplate,  # Dynamic form templates
     TournamentRegistrationForm,  # Per-tournament form config
     FormResponse,  # Registration submissions
 )
-# NOTE: TemplateRating removed - deprecated marketplace feature
+# NOTE: TemplateRating, RatingHelpful, Dispute (legacy), LobbyAnnouncement, TournamentStaff removed — Phase 1 cleanup
 from .webhooks import (
     FormWebhook,  # Webhook configurations
     WebhookDelivery,  # Webhook delivery tracking
@@ -186,14 +183,12 @@ __all__ = [
     'Bracket',
     'BracketNode',
     'Match',
-    'Dispute',
     'AuditLog',
     'TournamentResult',
     'PrizeTransaction',
     'Certificate',
     'TournamentPaymentMethod',
     'TournamentStaffRole',
-    'TournamentStaff',
     'StaffPermissionChecker',
     'TournamentAnnouncement',
     'Group',
@@ -202,7 +197,6 @@ __all__ = [
     'TournamentStage',
     'TournamentLobby',
     'CheckIn',
-    'LobbyAnnouncement',
     'RegistrationFormTemplate',
     'TournamentRegistrationForm',
     'FormResponse',

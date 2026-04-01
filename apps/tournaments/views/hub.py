@@ -33,14 +33,13 @@ from apps.tournaments.models import (
     Registration,
     TournamentLobby,
     CheckIn,
-    LobbyAnnouncement,
     TournamentAnnouncement,
     TournamentSponsor,
     PrizeClaim,
-    TournamentStaff,
     HubSupportTicket,
     RescheduleRequest,
 )
+from apps.tournaments.models.staffing import TournamentStaffAssignment
 from apps.notifications.models import Notification
 from apps.tournaments.models.bracket import Bracket, BracketNode
 from apps.tournaments.models.group import Group, GroupStanding
@@ -71,11 +70,7 @@ def _is_tournament_staff_or_organizer(user, tournament):
     # Organizer / superuser / site staff
     if user == tournament.organizer or user.is_staff or user.is_superuser:
         return True
-    # Legacy TournamentStaff assignments
-    if TournamentStaff.objects.filter(tournament=tournament, user=user).exists():
-        return True
-    # Phase 7 StaffAssignment
-    from apps.tournaments.models.staffing import TournamentStaffAssignment
+    # Phase 7 StaffAssignment (canonical)
     if TournamentStaffAssignment.objects.filter(
         tournament=tournament,
         user=user,
@@ -241,31 +236,7 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0):
             'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
         })
 
-    # Fallback to legacy lobby announcements only when no TOC announcements exist.
-    if not items:
-        lobby = getattr(tournament, 'lobby', None)
-        if lobby:
-            legacy_rows = LobbyAnnouncement.objects.filter(
-                lobby=lobby,
-                is_visible=True,
-                is_deleted=False,
-            ).select_related('posted_by').order_by('-is_pinned', '-created_at')[offset:offset + limit]
-            for row in legacy_rows:
-                visuals = _announcement_visuals_from_text(row.title, row.message, row.announcement_type == 'urgent')
-                items.append({
-                    'id': f'lobby-{row.id}',
-                    'title': row.title,
-                    'message': row.message,
-                    'type': row.announcement_type or visuals['type'],
-                    'icon': visuals['icon'],
-                    'symbol': visuals['symbol'],
-                    'is_pinned': bool(row.is_pinned),
-                    'is_important': row.announcement_type == 'urgent',
-                    'posted_by': row.posted_by.username if row.posted_by else 'Organizer',
-                    'created_at': row.created_at.isoformat() if row.created_at else None,
-                    'sort_ts': (row.created_at.timestamp() if row.created_at else 0),
-                    'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
-                })
+    # Legacy LobbyAnnouncement fallback removed — Phase 1 cleanup.
 
     items.sort(key=lambda entry: (0 if entry.get('is_pinned') else 1, -float(entry.get('sort_ts') or 0)))
     return items[:limit]
@@ -1832,6 +1803,98 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
                 'next_offset': (offset + len(data)) if has_more else None,
             },
         }, cache_control='private, max-age=15')
+
+
+class HubUnifiedAPIView(LoginRequiredMixin, View):
+    """
+    GET: Unified hub endpoint returning state + announcements in one request.
+    Replaces separate state/announcements polling with a single call.
+    Supports ETag for conditional requests (304 Not Modified).
+    """
+
+    def get(self, request, slug):
+        import hashlib
+
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
+            return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
+
+        view_mode = _resolve_hub_view_mode(request, tournament, registration)
+        now = timezone.now()
+        lobby = getattr(tournament, 'lobby', None)
+        hub_critical_locked = _critical_actions_locked(request.user, tournament, registration)
+        check_in_status = lobby.check_in_status if lobby else 'not_configured'
+
+        # Check-in state
+        check_in = None
+        if lobby:
+            from apps.organizations.models import TeamMembership
+            if tournament.participation_type == 'team' and registration and registration.team_id:
+                check_in = CheckIn.objects.filter(
+                    tournament=tournament,
+                    team_id=registration.team_id,
+                    is_deleted=False,
+                ).first()
+            elif registration:
+                check_in = CheckIn.objects.filter(
+                    tournament=tournament,
+                    user=request.user,
+                    is_deleted=False,
+                ).first()
+
+        phase_event = _get_next_phase_event(tournament, lobby, now)
+        command_center = _resolve_hub_command_center(
+            tournament, registration, request.user,
+            now=now, check_in=check_in, check_in_status=check_in_status,
+            hub_critical_locked=hub_critical_locked,
+            is_staff_view=view_mode['is_staff_view'],
+        )
+        lifecycle_pipeline = _build_hub_lifecycle_pipeline(tournament, command_center=command_center)
+
+        reg_count = Registration.objects.filter(
+            tournament=tournament, is_deleted=False,
+            status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
+        ).count()
+
+        # Announcements (compact: first 20)
+        announcements = _build_hub_announcements(tournament, now=now, limit=20, offset=0)
+
+        payload = {
+            'state': {
+                'tournament_status': tournament.status,
+                'user_status': _registration_status_label(registration, check_in),
+                'phase_event': phase_event,
+                'command_center': command_center,
+                'lifecycle_pipeline': lifecycle_pipeline,
+                'check_in': {
+                    'status': check_in_status,
+                    'is_open': lobby.is_check_in_open if lobby else False,
+                    'is_checked_in': check_in.is_checked_in if check_in else False,
+                    'countdown': lobby.check_in_countdown_seconds if lobby else 0,
+                },
+                'reg_count': reg_count,
+                'server_time': now.isoformat(),
+            },
+            'announcements': announcements,
+        }
+
+        # ETag: hash of tournament.updated_at + status + reg_count + announcement count
+        etag_source = f"{tournament.updated_at.isoformat()}:{tournament.status}:{reg_count}:{len(announcements)}"
+        etag = '"' + hashlib.md5(etag_source.encode()).hexdigest() + '"'
+
+        # Check If-None-Match
+        if_none_match = request.META.get('HTTP_IF_NONE_MATCH', '')
+        if if_none_match == etag:
+            resp = JsonResponse({}, status=304)
+            resp['ETag'] = etag
+            resp['Cache-Control'] = 'private, max-age=10'
+            return resp
+
+        resp = JsonResponse(payload, status=200)
+        resp['Cache-Control'] = 'private, max-age=10'
+        resp['ETag'] = etag
+        return resp
 
 
 class HubAlertDeleteAPIView(LoginRequiredMixin, View):

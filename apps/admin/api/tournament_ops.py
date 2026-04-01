@@ -19,7 +19,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from apps.tournaments.models import Tournament, Payment, Match, Dispute
+from apps.tournaments.models import Tournament, Payment, Match
+from apps.tournaments.models.dispute import DisputeRecord
 
 
 @api_view(['GET'])
@@ -324,45 +325,47 @@ def tournament_disputes(request, tournament_id):
     limit = min(int(request.query_params.get('limit', 100)), 500)
     offset = int(request.query_params.get('offset', 0))
     
-    # Build queryset
-    disputes_qs = Dispute.objects.filter(
-        match__tournament=tournament
-    ).select_related('match')
+    # Build queryset (DisputeRecord links through submission → match)
+    disputes_qs = DisputeRecord.objects.filter(
+        submission__match__tournament=tournament
+    ).select_related('submission__match')
     
     if status_filter:
         disputes_qs = disputes_qs.filter(status=status_filter)
     if reason_code_filter:
-        disputes_qs = disputes_qs.filter(reason=reason_code_filter)
+        disputes_qs = disputes_qs.filter(reason_code=reason_code_filter)
     
     # Status breakdown (all disputes regardless of filter)
-    all_disputes = Dispute.objects.filter(match__tournament=tournament)
+    all_disputes = DisputeRecord.objects.filter(submission__match__tournament=tournament)
+    resolved_statuses = [
+        DisputeRecord.RESOLVED_FOR_SUBMITTER,
+        DisputeRecord.RESOLVED_FOR_OPPONENT,
+        DisputeRecord.RESOLVED_CUSTOM,
+    ]
     status_breakdown = {
-        'open': all_disputes.filter(status=Dispute.OPEN).count(),
-        'under_review': all_disputes.filter(status=Dispute.UNDER_REVIEW).count(),
-        'resolved': all_disputes.filter(status=Dispute.RESOLVED).count(),
-        'escalated': all_disputes.filter(status=Dispute.ESCALATED).count(),
+        'open': all_disputes.filter(status=DisputeRecord.OPEN).count(),
+        'under_review': all_disputes.filter(status=DisputeRecord.UNDER_REVIEW).count(),
+        'resolved': all_disputes.filter(status__in=resolved_statuses).count(),
+        'escalated': all_disputes.filter(status=DisputeRecord.ESCALATED).count(),
     }
     
     # Paginate
     total_count = disputes_qs.count()
-    disputes_page = disputes_qs.order_by('-created_at')[offset:offset+limit]
+    disputes_page = disputes_qs.order_by('-opened_at')[offset:offset+limit]
     
     # Serialize (IDs only, no PII - use reason_code enum instead of free text)
     disputes_data = [
         {
             'dispute_id': d.id,
-            'match_id': d.match_id,
-            'round_number': d.match.round_number,
-            'match_number': d.match.match_number,
-            'reason_code': d.reason.upper() if d.reason else 'OTHER',  # Normalize to enum
+            'match_id': d.submission.match_id,
+            'round_number': d.submission.match.round_number,
+            'match_number': d.submission.match.match_number,
+            'reason_code': d.reason_code.upper() if d.reason_code else 'OTHER',
             'status': d.status,
-            'initiated_by_id': d.initiated_by_id,
-            'resolved_by_id': d.resolved_by_id,
-            'final_participant1_score': d.final_participant1_score,
-            'final_participant2_score': d.final_participant2_score,
-            'has_evidence_screenshot': bool(d.evidence_screenshot),
-            'has_evidence_video': bool(d.evidence_video_url),
-            'created_at': d.created_at.isoformat(),
+            'initiated_by_id': d.opened_by_user_id,
+            'resolved_by_id': d.resolved_by_user_id,
+            'has_evidence': d.evidence.exists(),
+            'created_at': d.opened_at.isoformat(),
             'resolved_at': d.resolved_at.isoformat() if d.resolved_at else None,
         }
         for d in disputes_page

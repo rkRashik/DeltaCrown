@@ -13,7 +13,8 @@ from .serializers_matches import (
     MatchResolveDisputeSerializer,
     MatchCancelSerializer,
 )
-from ..models import Match, Dispute
+from ..models import Match
+from apps.tournaments.models.dispute import DisputeRecord
 
 
 class IsParticipant(permissions.BasePermission):
@@ -295,7 +296,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         ser = MatchDisputeSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         
-        # Create dispute record
+        # Create dispute record via MatchService
         reason_map = {
             'SCORE_MISMATCH': 'score_mismatch',
             'NO_SHOW': 'no_show',
@@ -303,14 +304,13 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'TECHNICAL_ISSUE': 'technical_issue',
             'OTHER': 'other'
         }
-        
-        Dispute.objects.create(
+
+        from apps.tournaments.services.match_service import MatchService
+        MatchService.report_dispute(
             match=match,
             initiated_by_id=request.user.id,
             reason=reason_map.get(ser.validated_data['reason_code'], 'other'),
             description=str(ser.validated_data.get('notes', {})),
-            evidence_video_url=ser.validated_data.get('evidence', ''),
-            status='open'
         )
         
         # Transition to DISPUTED

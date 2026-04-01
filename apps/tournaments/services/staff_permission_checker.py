@@ -28,17 +28,8 @@ def _get_phase7_assignment(tournament_id: int, user_id: int):
 
 
 def _get_legacy_staff(tournament_id: int, user_id: int):
-    """Return the active legacy TournamentStaff record or None."""
-    try:
-        from apps.tournaments.models import TournamentStaff
-        return (
-            TournamentStaff.objects
-            .select_related('role')
-            .filter(tournament_id=tournament_id, user_id=user_id, is_active=True)
-            .first()
-        )
-    except Exception:
-        return None
+    """Legacy TournamentStaff model removed. Always returns None."""
+    return None
 
 
 class StaffPermissionChecker:

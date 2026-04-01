@@ -31,9 +31,9 @@ except ImportError:
 
 from apps.tournaments.models import (
     Game, Tournament, CustomField, TournamentVersion, TournamentTemplate,
-    Registration, Payment, Match, Dispute, Bracket, Certificate,
+    Registration, Payment, Match, Bracket, Certificate,
     TournamentResult, PrizeTransaction, TournamentPaymentMethod,
-    TournamentStaffRole, TournamentStaff, TournamentAnnouncement,
+    TournamentStaffRole, TournamentAnnouncement,
     RegistrationFormTemplate, TournamentRegistrationForm, FormResponse,
     TournamentFormConfiguration,
     TournamentSponsor, PrizeClaim,
@@ -49,12 +49,12 @@ from deltacrown.admin_widgets import (
 
 # Import specialized admin classes from separate modules
 from apps.tournaments.admin_registration import RegistrationAdmin, PaymentAdmin
-from apps.tournaments.admin_match import MatchAdmin, DisputeAdmin
+from apps.tournaments.admin_match import MatchAdmin
 from apps.tournaments.admin_bracket import BracketAdmin
 from apps.tournaments.admin_certificate import CertificateAdmin
 from apps.tournaments.admin_result import TournamentResultAdmin
 from apps.tournaments.admin_prize import PrizeTransactionAdmin
-from apps.tournaments.admin_staff import TournamentStaffInline  # Import staff inline
+# TournamentStaffInline removed (TournamentStaff model deleted)
 
 
 # ============================================================================

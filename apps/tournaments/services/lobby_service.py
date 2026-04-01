@@ -24,7 +24,6 @@ from apps.tournaments.models import (
     Registration,
     TournamentLobby,
     CheckIn,
-    LobbyAnnouncement,
 )
 
 
@@ -278,7 +277,6 @@ class LobbyService:
         }
     
     @staticmethod
-    @transaction.atomic
     def post_announcement(
         tournament_id: int,
         user_id: int,
@@ -287,119 +285,14 @@ class LobbyService:
         announcement_type: str = 'info',
         is_pinned: bool = False,
         display_until: Optional[timezone.datetime] = None,
-    ) -> LobbyAnnouncement:
-        """
-        Post announcement to lobby.
-        
-        Args:
-            tournament_id: Tournament ID
-            user_id: User posting (must be organizer)
-            title: Announcement title
-            message: Announcement message
-            announcement_type: 'info', 'warning', 'urgent', 'success'
-            is_pinned: Whether to pin announcement
-            display_until: Auto-hide after this time
-        
-        Returns:
-            Created LobbyAnnouncement
-        
-        Raises:
-            ValidationError: If user lacks permission
-        """
-        from apps.tournaments.models import Tournament
-        from apps.accounts.models import User
-        
-        tournament = Tournament.objects.get(id=tournament_id)
-        user = User.objects.get(id=user_id)
-        
-        # Verify user is organizer
-        if tournament.organizer != user:
-            # Check if user is tournament staff with announcement permission
-            from apps.tournaments.models import TournamentStaff
-            staff = TournamentStaff.objects.filter(
-                tournament=tournament,
-                user=user,
-                is_active=True
-            ).first()
-            
-            if not staff or not staff.role.can_post_announcements:
-                raise ValidationError("You don't have permission to post announcements")
-        
-        # Get lobby
-        if not hasattr(tournament, 'lobby'):
-            raise ValidationError("Tournament lobby not configured")
-        
-        lobby = tournament.lobby
-        
-        announcement = LobbyAnnouncement.objects.create(
-            lobby=lobby,
-            posted_by=user,
-            title=title,
-            message=message,
-            announcement_type=announcement_type,
-            is_pinned=is_pinned,
-            display_until=display_until,
-            is_visible=True,
+    ):
+        """DEPRECATED: LobbyAnnouncement model removed. Use TournamentAnnouncement."""
+        raise NotImplementedError(
+            "LobbyAnnouncement has been removed. "
+            "Use TournamentAnnouncement via the hub announcements system instead."
         )
-        
-        # Notify confirmed tournament participants of the new announcement (Module 2.x)
-        try:
-            from apps.notifications.services import notify as _notify_users
-            from django.contrib.auth import get_user_model
-            _User = get_user_model()
-            _participant_ids = list(
-                Registration.objects.filter(
-                    tournament_id=tournament_id,
-                    status=Registration.CONFIRMED,
-                    is_deleted=False,
-                ).values_list('user_id', flat=True).distinct()
-            )
-            if _participant_ids:
-                _recipients = list(_User.objects.filter(id__in=_participant_ids, is_active=True))
-                if _recipients:
-                    _notify_users(
-                        _recipients,
-                        event='lobby_announcement',
-                        title=title,
-                        body=message[:500],
-                        tournament_id=tournament_id,
-                    )
-        except Exception as _exc:
-            import logging as _logging
-            _logging.getLogger(__name__).warning(
-                f"Lobby announcement notification failed for tournament {tournament_id}: {_exc}"
-            )
-        
-        return announcement
-    
+
     @staticmethod
-    def get_announcements(tournament_id: int) -> List[LobbyAnnouncement]:
-        """
-        Get active lobby announcements.
-        
-        Args:
-            tournament_id: Tournament ID
-        
-        Returns:
-            List of visible announcements
-        """
-        from apps.tournaments.models import Tournament
-        
-        tournament = Tournament.objects.get(id=tournament_id)
-        
-        if not hasattr(tournament, 'lobby'):
-            return []
-        
-        lobby = tournament.lobby
-        
-        now = timezone.now()
-        
-        announcements = LobbyAnnouncement.objects.filter(
-            lobby=lobby,
-            is_visible=True,
-            is_deleted=False
-        ).filter(
-            Q(display_until__isnull=True) | Q(display_until__gt=now)
-        ).select_related('posted_by').order_by('-is_pinned', '-created_at')
-        
-        return list(announcements)
+    def get_announcements(tournament_id: int) -> list:
+        """DEPRECATED: LobbyAnnouncement model removed. Use TournamentAnnouncement."""
+        return []

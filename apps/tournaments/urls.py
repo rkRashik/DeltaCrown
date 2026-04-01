@@ -50,10 +50,7 @@ from apps.tournaments.views.registration import (
     PaymentProofUploadView,
     PaymentRetryView,
 )
-# Form Builder - Registration Dashboard (player's "My Registrations")
-from apps.tournaments.views.dynamic_registration import (
-    RegistrationDashboardView,
-)
+# RegistrationDashboardView removed in Phase 1 cleanup (replaced by dynamic_registration flow)
 # ──────────────────────────────────────────────────────────────────
 # TOC Great Purge (Sprint 0) — Legacy organizer/management imports
 # commented out. Files archived to backups/toc_legacy_feb2026/.
@@ -115,6 +112,7 @@ from apps.tournaments.views.hub import (
     HubStateAPIView,
     HubCheckInAPIView,
     HubAnnouncementsAPIView,
+    HubUnifiedAPIView,
     HubAlertDeleteAPIView,
     HubAlertsClearAPIView,
     HubRosterAPIView,
@@ -202,7 +200,7 @@ urlpatterns = [
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
     path('my/matches/', TournamentPlayerMatchesView.as_view(), name='my_matches'),
-    path('my/registrations/', RegistrationDashboardView.as_view(), name='registration_dashboard'),
+    # RegistrationDashboardView URL removed in Phase 1 cleanup
     # [TOC Purge] path('my/permissions/', my_permission_requests, name='my_permissions'),
     
     # [TOC Purge] Permission Request Workflows (archived)
@@ -308,6 +306,7 @@ urlpatterns = [
     
     # Sprint 12: The Hub — Unified Participant Mission Control (v3)
     path('<slug:slug>/hub/', HubMainView.as_view(), name='tournament_hub'),
+    path('<slug:slug>/hub/api/unified/', HubUnifiedAPIView.as_view(), name='hub_unified_api'),
     path('<slug:slug>/hub/api/state/', HubStateAPIView.as_view(), name='hub_state_api'),
     path('<slug:slug>/hub/api/check-in/', HubCheckInAPIView.as_view(), name='hub_checkin_api'),
     path('<slug:slug>/hub/api/announcements/', HubAnnouncementsAPIView.as_view(), name='hub_announcements_api'),

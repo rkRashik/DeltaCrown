@@ -41,10 +41,10 @@ from django.db.models import Q, QuerySet
 from apps.tournaments.models import (
     Tournament,
     Match,
-    Dispute,
     Bracket,
     Registration
 )
+from apps.tournaments.models.dispute import DisputeRecord
 
 # User Profile Integration
 from apps.user_profile.integrations.tournaments import (
@@ -645,67 +645,67 @@ class MatchService:
         initiated_by_id: int,
         reason: str,
         description: str,
-        evidence_screenshot = None,
+        evidence_screenshot=None,
         evidence_video_url: str = ""
-    ) -> Dispute:
+    ) -> DisputeRecord:
         """
-        Create dispute for match result.
-        
+        Create dispute for match result (DisputeRecord via MatchResultSubmission).
+
         Args:
             match: Match instance
             initiated_by_id: User ID initiating dispute
-            reason: Dispute reason (use Dispute.REASON_CHOICES)
+            reason: Dispute reason code (use DisputeRecord.REASON_CHOICES)
             description: Detailed description
-            evidence_screenshot: Optional screenshot file
-            evidence_video_url: Optional video URL
-            
+            evidence_screenshot: Ignored (use DisputeEvidence after creation)
+            evidence_video_url: Ignored (use DisputeEvidence after creation)
+
         Returns:
-            Created Dispute instance
-            
+            Created DisputeRecord instance
+
         Raises:
             ValidationError: If dispute not allowed
-            
-        Example:
-            dispute = MatchService.report_dispute(
-                match=match,
-                initiated_by_id=102,
-                reason=Dispute.SCORE_MISMATCH,
-                description="Claimed score is incorrect",
-                evidence_video_url="https://youtube.com/evidence"
-            )
         """
+        from apps.tournaments.models.result_submission import MatchResultSubmission
+
         # Validation
         if match.state not in [Match.PENDING_RESULT, Match.COMPLETED]:
             raise ValidationError(f"Cannot dispute match in state: {match.state}")
-        
+
         # Verify initiator is a participant
         if initiated_by_id not in [match.participant1_id, match.participant2_id]:
             raise ValidationError("Only participants can initiate disputes")
-        
-        # Check if dispute already exists
-        existing_dispute = Dispute.objects.filter(
-            match=match,
-            status__in=[Dispute.OPEN, Dispute.UNDER_REVIEW, Dispute.ESCALATED]
+
+        # Find the latest result submission for this match
+        submission = (
+            MatchResultSubmission.objects.filter(match=match)
+            .order_by('-submitted_at')
+            .first()
+        )
+        if not submission:
+            raise ValidationError("No result submission found to dispute")
+
+        # Check if active dispute already exists
+        existing_dispute = DisputeRecord.objects.filter(
+            submission__match=match,
+            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED]
         ).first()
-        
+
         if existing_dispute:
             raise ValidationError("An active dispute already exists for this match")
-        
-        # Create dispute
-        dispute = Dispute.objects.create(
-            match=match,
-            initiated_by_id=initiated_by_id,
-            reason=reason,
+
+        # Create dispute record
+        dispute = DisputeRecord.objects.create(
+            submission=submission,
+            opened_by_user_id=initiated_by_id,
+            reason_code=reason,
             description=description,
-            evidence_screenshot=evidence_screenshot,
-            evidence_video_url=evidence_video_url,
-            status=Dispute.OPEN
+            status=DisputeRecord.OPEN,
         )
-        
+
         # Update match state
         match.state = Match.DISPUTED
         match.save()
-        
+
         # User Profile Integration Hook - Dispute Opened
         def _notify_profile():
             try:
@@ -714,19 +714,16 @@ class MatchService:
                     match_id=match.id,
                     tournament_id=match.tournament_id,
                     dispute_id=dispute.id,
-                    submission_id=match.id,  # Use match.id as submission identifier
+                    submission_id=submission.id,
                     reason_code=reason,
                 )
             except Exception:
                 pass  # Non-blocking
         transaction.on_commit(_notify_profile)
-        
-        # =====================================================================
-        # Module 4.5: WebSocket broadcast - dispute_created event
-        # =====================================================================
+
+        # WebSocket broadcast - dispute_created event
         from apps.tournaments.realtime.utils import broadcast_tournament_event
-        
-        # Broadcast to both tournament and match rooms
+
         dispute_data = {
             'match_id': match.id,
             'tournament_id': match.tournament_id,
@@ -734,35 +731,29 @@ class MatchService:
             'initiated_by': initiated_by_id,
             'reason': reason,
             'status': dispute.status,
-            'timestamp': dispute.created_at.isoformat(),
+            'timestamp': dispute.opened_at.isoformat(),
         }
-        
-        # Broadcast to tournament room
+
         broadcast_tournament_event(
             tournament_id=match.tournament_id,
             event_type='dispute_created',
-            data=dispute_data
+            data=dispute_data,
         )
-        
-        # Broadcast to match room
+
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
-        
+
         channel_layer = get_channel_layer()
         if channel_layer:
             try:
                 async_to_sync(channel_layer.group_send)(
                     f'match_{match.id}',
-                    {
-                        'type': 'dispute_created',
-                        'data': dispute_data,
-                    }
+                    {'type': 'dispute_created', 'data': dispute_data},
                 )
-                logger.info(f"Broadcast dispute_created to match_{match.id}")
             except Exception as e:
                 logger.error(f"Failed to broadcast dispute_created to match room: {e}")
-        
-        # Notify tournament organizer of new dispute (Module 2.x)
+
+        # Notify tournament organizer
         try:
             from django.contrib.auth import get_user_model
             from apps.tournaments.models import Tournament as _Tournament
@@ -781,80 +772,59 @@ class MatchService:
                     )
         except Exception as _exc:
             logger.warning(f"dispute organizer notification failed for match {match.id}: {_exc}")
-        
+
         return dispute
     
     @staticmethod
     @transaction.atomic
     def resolve_dispute(
-        dispute: Dispute,
+        dispute: DisputeRecord,
         resolved_by_id: int,
         resolution_notes: str,
         final_participant1_score: int,
         final_participant2_score: int,
         status: str = None
-    ) -> Tuple[Dispute, Match]:
+    ) -> Tuple[DisputeRecord, Match]:
         """
         Resolve dispute with final decision.
-        
-        Module 2.4: Security Hardening - Audit logging added
-        
+
         Args:
-            dispute: Dispute instance
+            dispute: DisputeRecord instance
             resolved_by_id: User ID resolving (organizer or admin)
             resolution_notes: Notes explaining resolution
             final_participant1_score: Final score for participant 1
             final_participant2_score: Final score for participant 2
-            status: Optional status (defaults to RESOLVED, can be ESCALATED)
-            
+            status: Optional status (defaults to RESOLVED_CUSTOM, can be ESCALATED)
+
         Returns:
-            Tuple of (Updated Dispute, Updated Match)
-            
-        Raises:
-            ValidationError: If resolution not allowed
-            
-        Example:
-            dispute, match = MatchService.resolve_dispute(
-                dispute=dispute,
-                resolved_by_id=1,
-                resolution_notes="Verified from game logs",
-                final_participant1_score=13,
-                final_participant2_score=11
-            )
+            Tuple of (Updated DisputeRecord, Updated Match)
         """
-        # Validation
-        if dispute.status not in [Dispute.OPEN, Dispute.UNDER_REVIEW, Dispute.ESCALATED]:
+        if dispute.status not in [DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW, DisputeRecord.ESCALATED]:
             raise ValidationError(f"Cannot resolve dispute with status: {dispute.status}")
-        
+
         if final_participant1_score < 0 or final_participant2_score < 0:
             raise ValidationError("Scores cannot be negative")
-        
-        # Store original status for audit
+
         original_status = dispute.status
-        
+        match = dispute.submission.match
+
         # Update dispute
-        dispute.status = status or Dispute.RESOLVED
-        dispute.resolved_by_id = resolved_by_id
+        dispute.status = status or DisputeRecord.RESOLVED_CUSTOM
+        dispute.resolved_by_user_id = resolved_by_id
         dispute.resolved_at = timezone.now()
         dispute.resolution_notes = resolution_notes
-        dispute.final_participant1_score = final_participant1_score
-        dispute.final_participant2_score = final_participant2_score
         dispute.save()
-        
+
         # User Profile Integration Hook - Dispute Resolved
         def _notify_profile_dispute():
             try:
-                # Determine if resolution finalizes match result
                 winner_user_ids = None
                 loser_user_ids = None
-                
-                if status != Dispute.ESCALATED:
-                    # Resolution finalizes the match (will be computed after match updated)
-                    pass  # Will be set after match.save()
-                
+                if status != DisputeRecord.ESCALATED:
+                    pass  # Set after match.save()
                 on_dispute_resolved(
-                    match_id=dispute.match_id,
-                    tournament_id=dispute.match.tournament_id if dispute.match else None,
+                    match_id=match.id,
+                    tournament_id=match.tournament_id,
                     dispute_id=dispute.id,
                     resolution_type=status or 'resolved',
                     actor_user_id=resolved_by_id,
@@ -862,67 +832,67 @@ class MatchService:
                     loser_user_ids=loser_user_ids,
                 )
             except Exception:
-                pass  # Non-blocking
+                pass
         transaction.on_commit(_notify_profile_dispute)
-        
-        # =====================================================================
-        # MODULE 2.4: Audit Logging
-        # =====================================================================
+
+        # Audit Logging
         from apps.tournaments.security.audit import audit_event, AuditAction
         from django.contrib.auth import get_user_model
-        
+
         User = get_user_model()
         resolved_by = User.objects.filter(id=resolved_by_id).first()
-        
-        # Determine audit action based on status
-        if status == Dispute.ESCALATED:
+
+        if status == DisputeRecord.ESCALATED:
             audit_action = AuditAction.DISPUTE_ESCALATE
         else:
             audit_action = AuditAction.DISPUTE_RESOLVE
-        
+
         audit_event(
             user=resolved_by,
             action=audit_action,
             meta={
                 'dispute_id': dispute.id,
-                'match_id': dispute.match_id,
-                'tournament_id': dispute.match.tournament_id if dispute.match else None,
+                'match_id': match.id,
+                'tournament_id': match.tournament_id,
                 'original_status': original_status,
                 'new_status': dispute.status,
                 'final_participant1_score': final_participant1_score,
                 'final_participant2_score': final_participant2_score,
-                'resolution_notes': resolution_notes[:200],  # Truncate for audit
+                'resolution_notes': resolution_notes[:200],
             }
         )
-        
+
         # Update match with final scores
-        match = dispute.match
         match.participant1_score = final_participant1_score
         match.participant2_score = final_participant2_score
-        
-        # Determine winner
+
         if final_participant1_score > final_participant2_score:
             match.winner_id = match.participant1_id
             match.loser_id = match.participant2_id
         else:
             match.winner_id = match.participant2_id
             match.loser_id = match.participant1_id
-        
-        # Finalize match if resolved (not escalated)
-        if dispute.status == Dispute.RESOLVED:
+
+        if dispute.status in (
+            DisputeRecord.RESOLVED_FOR_SUBMITTER,
+            DisputeRecord.RESOLVED_FOR_OPPONENT,
+            DisputeRecord.RESOLVED_CUSTOM,
+        ):
             match.state = Match.COMPLETED
             match.completed_at = timezone.now()
-        
+
         match.save()
-        
-        # User Profile Integration Hook - Match Finalized (when dispute resolved)
-        if dispute.status == Dispute.RESOLVED:
+
+        # User Profile Integration Hook - Match Finalized
+        if dispute.status in (
+            DisputeRecord.RESOLVED_FOR_SUBMITTER,
+            DisputeRecord.RESOLVED_FOR_OPPONENT,
+            DisputeRecord.RESOLVED_CUSTOM,
+        ):
             def _notify_profile():
                 try:
-                    # Get user IDs from participants
                     winner_user_ids = [match.winner_id] if match.winner_id else []
                     loser_user_ids = [match.loser_id] if match.loser_id else []
-                    
                     on_match_finalized(
                         match_id=match.id,
                         tournament_id=match.tournament_id,
@@ -932,10 +902,10 @@ class MatchService:
                         loser_user_ids=loser_user_ids,
                     )
                 except Exception:
-                    pass  # Non-blocking
+                    pass
             transaction.on_commit(_notify_profile)
-        
-        # Notify both participants of dispute resolution (Module 2.x)
+
+        # Notify both participants of dispute resolution
         try:
             from django.contrib.auth import get_user_model
             _User = get_user_model()
@@ -952,16 +922,20 @@ class MatchService:
                 )
         except Exception as _exc:
             logger.warning(f"dispute_resolved notification failed for dispute {dispute.id}: {_exc}")
-        
-        # Update bracket progression if match was completed by this resolution (Module 1.5)
-        if dispute.status == Dispute.RESOLVED:
+
+        # Update bracket progression if resolved
+        if dispute.status in (
+            DisputeRecord.RESOLVED_FOR_SUBMITTER,
+            DisputeRecord.RESOLVED_FOR_OPPONENT,
+            DisputeRecord.RESOLVED_CUSTOM,
+        ):
             try:
                 from apps.tournaments.services.bracket_service import BracketService
                 BracketService.update_bracket_after_match(match)
             except Exception as _exc:
                 logger.error(f"Bracket update failed after dispute resolution (match {match.id}): {_exc}")
-        
-        # Broadcast dispute_resolved event to tournament room (ADR-007)
+
+        # Broadcast dispute_resolved event
         try:
             from apps.tournaments.realtime.broadcast import broadcast_event
             broadcast_event(
@@ -978,46 +952,48 @@ class MatchService:
             )
         except Exception as _exc:
             logger.warning(f"dispute_resolved broadcast failed for match {match.id}: {_exc}")
-        
+
         return dispute, match
     
     @staticmethod
     @transaction.atomic
     def escalate_dispute(
-        dispute: Dispute,
+        dispute: DisputeRecord,
         escalated_by_id: int,
         escalation_notes: str
-    ) -> Dispute:
+    ) -> DisputeRecord:
         """
         Escalate dispute to admin level.
-        
+
         Args:
-            dispute: Dispute instance
+            dispute: DisputeRecord instance
             escalated_by_id: User ID escalating (organizer)
             escalation_notes: Reason for escalation
-            
+
         Returns:
-            Updated Dispute instance
+            Updated DisputeRecord instance
         """
-        if dispute.status not in [Dispute.OPEN, Dispute.UNDER_REVIEW]:
+        if dispute.status not in [DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW]:
             raise ValidationError(f"Cannot escalate dispute with status: {dispute.status}")
-        
-        dispute.status = Dispute.ESCALATED
+
+        dispute.status = DisputeRecord.ESCALATED
         dispute.resolution_notes = f"ESCALATED: {escalation_notes}"
+        dispute.escalated_at = timezone.now()
         dispute.save()
-        
-        # Notify tournament organizer and staff admins about escalation (Module 2.x)
+
+        match = dispute.submission.match
+
+        # Notify tournament organizer and staff admins about escalation
         try:
             from django.contrib.auth import get_user_model
             from apps.tournaments.models import Tournament as _Tournament
             _User = get_user_model()
-            _tournament = _Tournament.objects.filter(id=dispute.match.tournament_id).first()
+            _tournament = _Tournament.objects.filter(id=match.tournament_id).first()
             _recipients = []
             if _tournament and _tournament.organizer_id:
                 _organizer = _User.objects.filter(id=_tournament.organizer_id).first()
                 if _organizer:
                     _recipients.append(_organizer)
-            # Also notify site staff/admins (capped at 10 to avoid blast)
             _admin_qs = _User.objects.filter(
                 is_staff=True, is_active=True,
             ).exclude(id__in=[u.id for u in _recipients])[:10]
@@ -1029,11 +1005,11 @@ class MatchService:
                     title="Dispute escalated — admin action required",
                     body=f"A dispute has been escalated and requires admin review. {escalation_notes[:200]}",
                     tournament_id=_tournament.id if _tournament else None,
-                    match_id=dispute.match_id,
+                    match_id=match.id,
                 )
         except Exception as _exc:
             logger.warning(f"escalation notification failed for dispute {dispute.id}: {_exc}")
-        
+
         return dispute
     
     # =========================

@@ -23,7 +23,7 @@ from django.urls import reverse
 from django.db.models import Count, Q
 from django.contrib import messages
 
-from apps.tournaments.models import TournamentStaffRole, TournamentStaff
+from apps.tournaments.models import TournamentStaffRole
 
 
 @admin.register(TournamentStaffRole)
@@ -185,123 +185,5 @@ class TournamentStaffRoleAdmin(ModelAdmin):
         return readonly
 
 
-@admin.register(TournamentStaff)
-class TournamentStaffAdmin(ModelAdmin):
-    """Admin interface for managing staff assignments."""
-    
-    list_display = [
-        'user_link', 'tournament_link', 'role', 'status_badge',
-        'assigned_at', 'assigned_by', 'quick_actions'
-    ]
-    list_filter = [
-        'is_active', 'role', 'assigned_at',
-        ('tournament', admin.RelatedOnlyFieldListFilter),
-    ]
-    search_fields = [
-        'user__username', 'user__email', 'user__first_name', 'user__last_name',
-        'tournament__name', 'tournament__slug', 'role__name'
-    ]
-    readonly_fields = [
-        'assigned_at', 'assigned_by', 'deactivated_at', 'deactivated_by'
-    ]
-    autocomplete_fields = ['user', 'tournament', 'assigned_by', 'deactivated_by']
-    list_per_page = 25
-
-    def get_queryset(self, request):
-        """Optimize with select_related for FK fields used in list_display."""
-        return super().get_queryset(request).select_related(
-            'user', 'tournament', 'role', 'assigned_by'
-        )
-
-    fieldsets = (
-        ('Staff Assignment', {
-            'fields': ('tournament', 'user', 'role', 'is_active')
-        }),
-        ('Assignment Details', {
-            'fields': ('notes', 'assigned_at', 'assigned_by')
-        }),
-        ('Deactivation Info', {
-            'fields': ('deactivated_at', 'deactivated_by'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    actions = ['activate_assignments', 'deactivate_assignments']
-    
-    def user_link(self, obj):
-        """Display user with link to their profile."""
-        url = reverse('admin:accounts_user_change', args=[obj.user.id])
-        return format_html(
-            '<a href="{}">{}</a> <span style="color: gray; font-size: 11px;">({})</span>',
-            url, obj.user.get_full_name() or obj.user.username, obj.user.username
-        )
-    user_link.short_description = 'Staff Member'
-    user_link.admin_order_field = 'user__username'
-    
-    def tournament_link(self, obj):
-        """Display tournament with link."""
-        url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
-        return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
-    tournament_link.short_description = 'Tournament'
-    tournament_link.admin_order_field = 'tournament__name'
-    
-    @display(description='Status', ordering='is_active', boolean=True)
-    def status_badge(self, obj):
-        """Display active/inactive status as boolean icon."""
-        return obj.is_active
-    
-    def quick_actions(self, obj):
-        """Display quick action buttons."""
-        if obj.is_active:
-            return format_html(
-                '<a class="button" href="#" onclick="return confirm(\'Deactivate this staff assignment?\');">Deactivate</a>'
-            )
-        else:
-            return format_html(
-                '<a class="button" href="#">Reactivate</a>'
-            )
-    quick_actions.short_description = 'Actions'
-    
-    def activate_assignments(self, request, queryset):
-        """Activate selected staff assignments."""
-        count = 0
-        for assignment in queryset.filter(is_active=False):
-            assignment.reactivate()
-            count += 1
-        
-        self.message_user(request, f'{count} assignment(s) reactivated.', messages.SUCCESS)
-    activate_assignments.short_description = "✅ Activate selected assignments"
-    
-    def deactivate_assignments(self, request, queryset):
-        """Deactivate selected staff assignments."""
-        count = 0
-        for assignment in queryset.filter(is_active=True):
-            assignment.deactivate(deactivated_by=request.user)
-            count += 1
-        
-        self.message_user(request, f'{count} assignment(s) deactivated.', messages.INFO)
-    deactivate_assignments.short_description = "❌ Deactivate selected assignments"
-    
-    def save_model(self, request, obj, form, change):
-        """Track who assigned the staff member."""
-        if not change:  # New assignment
-            obj.assigned_by = request.user
-        
-        super().save_model(request, obj, form, change)
-
-
-# Inline for TournamentAdmin
-class TournamentStaffInline(TabularInline):
-    """Inline editor for staff assignments within Tournament admin."""
-    model = TournamentStaff
-    extra = 0
-    can_delete = True
-    show_change_link = True
-    
-    fields = ['user', 'role', 'is_active', 'notes']
-    autocomplete_fields = ['user']
-    
-    def get_queryset(self, request):
-        """Show only active assignments by default."""
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'role')
+# TournamentStaffAdmin and TournamentStaffInline removed in Phase 1 cleanup.
+# TournamentStaff model has been deleted. Use TournamentStaffAssignment instead.

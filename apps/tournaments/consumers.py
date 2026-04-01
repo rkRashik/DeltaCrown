@@ -182,13 +182,17 @@ from asgiref.sync import async_to_sync
 
 @receiver(post_save, sender=Match)
 def broadcast_match_update(sender, instance, created, **kwargs):
-    """Broadcast match updates to WebSocket clients (match, bracket, and Hub groups)."""
+    """Broadcast match updates via WS — two groups only (match + hub).
+
+    Phase 1 consolidation: removed legacy tournament_bracket_{slug} group and
+    the duplicate bracket_updated event. Spectator clients now react to
+    score_updated / match_completed directly.
+    """
     channel_layer = get_channel_layer()
-    
-    # Broadcast to match-specific group
-    match_group = f'match_{instance.id}'
+
+    # 1) Match-specific group — room participants
     async_to_sync(channel_layer.group_send)(
-        match_group,
+        f'match_{instance.id}',
         {
             'type': 'match_update',
             'match_data': {
@@ -200,24 +204,8 @@ def broadcast_match_update(sender, instance, created, **kwargs):
             }
         }
     )
-    
-    # Broadcast to tournament bracket group (legacy slug-based consumer)
-    bracket_group = f'tournament_bracket_{instance.tournament.slug}'
-    async_to_sync(channel_layer.group_send)(
-        bracket_group,
-        {
-            'type': 'bracket_update',
-            'matches_data': [{
-                'id': instance.id,
-                'state': instance.state,
-                'p1_score': instance.participant1_score,
-                'p2_score': instance.participant2_score,
-                'winner_id': instance.winner_id,
-            }]
-        }
-    )
 
-    # Broadcast to Hub group (tournament_{id} — TournamentConsumer)
+    # 2) Hub group — spectators + hub engine (single event per save)
     hub_group = f'tournament_{instance.tournament_id}'
     if instance.state == Match.COMPLETED:
         async_to_sync(channel_layer.group_send)(
@@ -244,28 +232,5 @@ def broadcast_match_update(sender, instance, created, **kwargs):
                     'participant1_score': instance.participant1_score,
                     'participant2_score': instance.participant2_score,
                 }
-            }
-        )
-
-    # Also send bracket_updated to Hub group for bracket refresh
-    async_to_sync(channel_layer.group_send)(
-        hub_group,
-        {
-            'type': 'bracket_updated',
-            'data': {
-                'tournament_id': instance.tournament_id,
-                'action': 'refresh',
-            }
-        }
-    )
-    
-    # Legacy: bracket group match_completed event
-    if instance.state == Match.COMPLETED:
-        async_to_sync(channel_layer.group_send)(
-            bracket_group,
-            {
-                'type': 'match_completed',
-                'match_id': instance.id,
-                'winner_id': instance.winner_id,
             }
         )

@@ -35,7 +35,8 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
-from apps.tournaments.models.match import Match, Dispute
+from apps.tournaments.models.match import Match
+from apps.tournaments.models.dispute import DisputeRecord
 from apps.tournaments.services.match_service import MatchService
 from apps.tournaments.api.result_serializers import (
     ResultSubmissionSerializer,

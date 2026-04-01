@@ -1,6 +1,6 @@
 # apps/tournaments/api/serializers_matches.py
 from rest_framework import serializers
-from ..models import Match, Dispute
+from ..models import Match
 
 
 class MatchSerializer(serializers.ModelSerializer):

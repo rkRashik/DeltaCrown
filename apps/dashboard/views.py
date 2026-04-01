@@ -858,7 +858,6 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         Registration = _safe_model("tournaments.Registration")
         Tournament = _safe_model("tournaments.Tournament")
         Match = _safe_model("tournaments.Match")
-        TournamentStaff = _safe_model("tournaments.TournamentStaff")
         TournamentStaffAssignment = _safe_model("tournaments.TournamentStaffAssignment")
         if Registration and Tournament:
             excluded_statuses = ["cancelled", "rejected", "draft"]
@@ -872,20 +871,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 .order_by("-created_at")[:8]
             )
             tournament_ids = [r.tournament_id for r in regs if getattr(r, "tournament_id", None)]
-            legacy_staff_tournament_ids = set()
             vnext_staff_tournament_ids = set()
-
-            if tournament_ids and TournamentStaff:
-                try:
-                    legacy_staff_tournament_ids = set(
-                        TournamentStaff.objects.filter(
-                            user=user,
-                            is_active=True,
-                            tournament_id__in=tournament_ids,
-                        ).values_list("tournament_id", flat=True)
-                    )
-                except Exception:
-                    legacy_staff_tournament_ids = set()
 
             if tournament_ids and TournamentStaffAssignment:
                 try:
@@ -905,7 +891,6 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     can_manage = bool(
                         user.is_staff
                         or getattr(t, "organizer_id", None) == user.id
-                        or t.id in legacy_staff_tournament_ids
                         or t.id in vnext_staff_tournament_ids
                     )
                     active_tournaments.append({

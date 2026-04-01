@@ -5,7 +5,8 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
-from apps.tournaments.models import Match, Tournament, Bracket, Dispute
+from apps.tournaments.models import Match, Tournament, Bracket
+from apps.tournaments.models.dispute import DisputeRecord as Dispute
 
 User = get_user_model()
 

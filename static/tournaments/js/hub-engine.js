@@ -1026,8 +1026,13 @@ const HubEngine = (() => {
   // State Polling
   // ──────────────────────────────────────────────────────────
   function _startPolling() {
-    const stateInterval = _wsConnected ? POLL_STATE_INTERVAL_WS : POLL_STATE_INTERVAL;
-    const annInterval = _wsConnected ? POLL_ANN_INTERVAL_WS : POLL_ANN_INTERVAL;
+    // WS-first: no HTTP polling when WebSocket is healthy
+    if (_wsConnected) {
+      _stopPolling();
+      return;
+    }
+    const stateInterval = POLL_STATE_INTERVAL;
+    const annInterval = POLL_ANN_INTERVAL;
 
     if (!_pollStateId) {
       _pollStateId = setInterval(_pollState, stateInterval);

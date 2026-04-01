@@ -20,7 +20,8 @@ Planning Documents:
 """
 
 from rest_framework import serializers
-from apps.tournaments.models.match import Match, Dispute
+from apps.tournaments.models.match import Match
+from apps.tournaments.models.dispute import DisputeRecord
 
 
 class ResultSubmissionSerializer(serializers.Serializer):
@@ -203,7 +204,7 @@ class DisputeReportSerializer(serializers.Serializer):
     """
     
     reason = serializers.ChoiceField(
-        choices=Dispute.REASON_CHOICES,
+        choices=DisputeRecord.REASON_CHOICES,
         required=True,
         help_text="Reason for dispute (score_mismatch, no_show, cheating, technical_issue, other)"
     )
@@ -311,31 +312,25 @@ class MatchResultSerializer(serializers.ModelSerializer):
 
 class DisputeSerializer(serializers.ModelSerializer):
     """
-    Read-only serializer for dispute details.
-    
-    Used for response payloads after dispute creation.
-    
-    Fields:
-    - id: Dispute ID
-    - match_id: Match ID
-    - initiated_by_id: User ID who initiated dispute
-    - reason: Dispute reason
-    - description: Dispute description
-    - evidence_video_url: Video evidence URL (if provided)
-    - status: Dispute status
-    - created_at: Creation timestamp
+    Read-only serializer for dispute details (DisputeRecord).
     """
-    
+    match_id = serializers.SerializerMethodField()
+    initiated_by_id = serializers.IntegerField(source='opened_by_user_id', read_only=True)
+    reason = serializers.CharField(source='reason_code', read_only=True)
+    created_at = serializers.DateTimeField(source='opened_at', read_only=True)
+
     class Meta:
-        model = Dispute
+        model = DisputeRecord
         fields = [
             'id',
             'match_id',
             'initiated_by_id',
             'reason',
             'description',
-            'evidence_video_url',
             'status',
-            'created_at'
+            'created_at',
         ]
-        read_only_fields = fields  # All fields read-only
+        read_only_fields = fields
+
+    def get_match_id(self, obj):
+        return obj.submission.match_id if obj.submission_id else None

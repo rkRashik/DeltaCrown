@@ -60,13 +60,13 @@
                         </svg>
                         Live Matches
                     </h2>
-                    <span class="text-xs text-gray-500">Auto-refresh 15s</span>
+                    <span class="text-xs text-gray-500">Auto-refresh 60s</span>
                 </div>
                 
-                <!-- htmx auto-refresh container -->
+                <!-- htmx auto-refresh container (60s fallback; WS drives immediate refresh) -->
                 <div 
                     hx-get="{% url 'spectator:tournament_matches_fragment' tournament_id %}"
-                    hx-trigger="load, every 15s"
+                    hx-trigger="load, every 60s"
                     hx-swap="innerHTML"
                     class="space-y-3"
                 >
@@ -88,13 +88,13 @@
                         </svg>
                         Leaderboard
                     </h2>
-                    <span class="text-xs text-gray-500">Auto-refresh 10s</span>
+                    <span class="text-xs text-gray-500">Auto-refresh 60s</span>
                 </div>
                 
-                <!-- htmx auto-refresh container -->
+                <!-- htmx auto-refresh container (60s fallback; WS drives immediate refresh) -->
                 <div 
                     hx-get="{% url 'spectator:tournament_leaderboard_fragment' tournament_id %}"
-                    hx-trigger="load, every 10s"
+                    hx-trigger="load, every 60s"
                     hx-swap="outerHTML"
                 >
                     <!-- Initial load from server -->
@@ -153,14 +153,9 @@
                         
                         this.lastUpdate = new Date().toLocaleTimeString();
                         
-                        // Handle different event types
+                        // Handle event types — refresh both panels on any match event
                         if (data.type === 'score_updated' || data.type === 'match_completed') {
-                            // Trigger htmx refresh for matches
                             htmx.trigger(document.querySelector('[hx-get*="matches/fragment"]'), 'refresh');
-                        }
-                        
-                        if (data.type === 'bracket_updated') {
-                            // Trigger htmx refresh for leaderboard
                             htmx.trigger(document.querySelector('[hx-get*="leaderboard/fragment"]'), 'refresh');
                         }
                     };

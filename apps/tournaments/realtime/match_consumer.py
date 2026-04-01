@@ -11,6 +11,7 @@ Phase 9.3 rebuild goals:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any, Dict, Optional
 
@@ -25,6 +26,27 @@ from apps.tournaments.security import TournamentRole, get_user_tournament_role
 logger = logging.getLogger(__name__)
 
 
+def _get_redis_presence():
+    """Return an async Redis client for presence (DB 2, or same as REDIS_URL).
+
+    Falls back to None when Redis is unavailable (dev without Redis).
+    """
+    import os
+
+    try:
+        import redis.asyncio as aioredis
+    except ImportError:
+        return None
+    base_url = os.getenv("REDIS_URL", "")
+    if not base_url:
+        return None
+    # Use DB 2 for presence data — isolated from cache (0) and Celery (1).
+    from deltacrown.settings import _redis_url_with_db
+
+    url = _redis_url_with_db(base_url, 2)
+    return aioredis.from_url(url, decode_responses=True)
+
+
 class MatchConsumer(AsyncJsonWebsocketConsumer):
     """Realtime consumer for a single match room."""
 
@@ -32,9 +54,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     HEARTBEAT_TIMEOUT = 50
     PRESENCE_STALE_SECONDS = 45
 
-    # In-process presence registry per room. Keys:
-    # - room_group_name -> {channel_name -> presence_row}
-    _presence_registry: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    # Presence now lives in Redis (Phase 1 migration).
+    # Key pattern: presence:match:{match_id}:user:{user_id}
+    # Value: JSON blob, TTL = HEARTBEAT_TIMEOUT seconds.
 
     @staticmethod
     def get_allowed_origins() -> Optional[list]:
@@ -360,70 +382,98 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             )
 
     # ---------------------------------------------------------------------
-    # Presence helpers
+    # Presence helpers  (Redis-backed — Phase 1)
     # ---------------------------------------------------------------------
 
-    def _get_room_presence(self) -> Dict[str, Dict[str, Any]]:
-        if not hasattr(self, "room_group_name"):
-            return {}
-        return self._presence_registry.setdefault(self.room_group_name, {})
+    @staticmethod
+    def _presence_key(match_id: int, user_id: int) -> str:
+        return f"presence:match:{match_id}:user:{user_id}"
+
+    @staticmethod
+    def _presence_pattern(match_id: int) -> str:
+        return f"presence:match:{match_id}:user:*"
 
     async def _register_presence(self, status: str = "online"):
         if not getattr(self, "is_participant", False):
             return
         if getattr(self, "participant_side", None) not in (1, 2):
             return
-        room_presence = self._get_room_presence()
-        room_presence[self.channel_name] = {
+        rds = _get_redis_presence()
+        if rds is None:
+            return
+        key = self._presence_key(self.match_id, self.user.id)
+        payload = json.dumps({
             "user_id": self.user.id,
             "username": self.user.username,
             "side": int(self.participant_side),
             "status": status if status in {"online", "away"} else "online",
             "last_seen": timezone.now().isoformat(),
-        }
+        })
+        try:
+            await rds.setex(key, self.HEARTBEAT_TIMEOUT, payload)
+        except Exception:
+            logger.warning("Redis presence SET failed", extra={"match_id": self.match_id, "user_id": self.user.id})
+        finally:
+            await rds.aclose()
 
     async def _unregister_presence(self):
-        if not hasattr(self, "room_group_name"):
+        match_id = getattr(self, "match_id", None)
+        user = getattr(self, "user", None)
+        if not match_id or not user or not getattr(user, "id", None):
             return
-        room_presence = self._presence_registry.get(self.room_group_name)
-        if not room_presence:
+        rds = _get_redis_presence()
+        if rds is None:
             return
-        room_presence.pop(self.channel_name, None)
-        if not room_presence:
-            self._presence_registry.pop(self.room_group_name, None)
+        key = self._presence_key(match_id, user.id)
+        try:
+            await rds.delete(key)
+        except Exception:
+            logger.warning("Redis presence DEL failed", extra={"match_id": match_id, "user_id": user.id})
+        finally:
+            await rds.aclose()
 
-    def _build_presence_snapshot(self) -> Dict[str, Any]:
-        room_presence = self._presence_registry.get(getattr(self, "room_group_name", ""), {})
-        now = timezone.now()
-
+    async def _build_presence_snapshot(self) -> Dict[str, Any]:
+        match_id = getattr(self, "match_id", None)
         sides: Dict[str, Dict[str, Any]] = {
             "1": {"online": False, "status": "offline", "user_id": None, "username": None},
             "2": {"online": False, "status": "offline", "user_id": None, "username": None},
         }
+        if not match_id:
+            return {"match_id": None, "sides": sides, "both_online": False, "updated_at": timezone.now().isoformat()}
 
-        for row in room_presence.values():
-            side = row.get("side")
-            if side not in (1, 2):
-                continue
-            last_seen = parse_datetime(str(row.get("last_seen") or ""))
-            if not last_seen:
-                continue
-            try:
-                fresh = (now - last_seen).total_seconds() <= self.PRESENCE_STALE_SECONDS
-            except Exception:
-                fresh = False
-            if not fresh:
-                continue
+        rds = _get_redis_presence()
+        if rds is None:
+            return {"match_id": match_id, "sides": sides, "both_online": False, "updated_at": timezone.now().isoformat()}
 
-            side_key = str(side)
-            status = str(row.get("status") or "online")
-            sides[side_key]["online"] = True
-            sides[side_key]["status"] = "away" if status == "away" else "online"
-            sides[side_key]["user_id"] = row.get("user_id")
-            sides[side_key]["username"] = row.get("username")
+        try:
+            pattern = self._presence_pattern(match_id)
+            cursor = 0
+            while True:
+                cursor, keys = await rds.scan(cursor=cursor, match=pattern, count=20)
+                if keys:
+                    values = await rds.mget(*keys)
+                    for raw in values:
+                        if not raw:
+                            continue
+                        row = json.loads(raw)
+                        side = row.get("side")
+                        if side not in (1, 2):
+                            continue
+                        side_key = str(side)
+                        status = str(row.get("status") or "online")
+                        sides[side_key]["online"] = True
+                        sides[side_key]["status"] = "away" if status == "away" else "online"
+                        sides[side_key]["user_id"] = row.get("user_id")
+                        sides[side_key]["username"] = row.get("username")
+                if cursor == 0:
+                    break
+        except Exception:
+            logger.warning("Redis presence SCAN failed", extra={"match_id": match_id})
+        finally:
+            await rds.aclose()
 
         return {
-            "match_id": getattr(self, "match_id", None),
+            "match_id": match_id,
             "sides": sides,
             "both_online": bool(sides["1"]["online"] and sides["2"]["online"]),
             "updated_at": timezone.now().isoformat(),
@@ -432,7 +482,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     async def _broadcast_presence(self):
         if not hasattr(self, "room_group_name"):
             return
-        snapshot = self._build_presence_snapshot()
+        snapshot = await self._build_presence_snapshot()
         await self.channel_layer.group_send(
             self.room_group_name,
             {

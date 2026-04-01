@@ -12,7 +12,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from apps.tournaments.models import Tournament, Game, Match, Bracket, Payment, Registration
-from apps.tournaments.models.match import Dispute
+from apps.tournaments.models.dispute import DisputeRecord as Dispute
 from apps.tournaments.services.dispute_service import DisputeService
 from apps.tournaments.services.match_service import MatchService
 from apps.tournaments.services.payment_service import PaymentService

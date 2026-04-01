@@ -31,7 +31,8 @@ from django.core.exceptions import PermissionDenied
 
 from apps.tournaments.models.tournament import Tournament
 from apps.tournaments.models.registration import Registration, Payment
-from apps.tournaments.models.match import Match, Dispute
+from apps.tournaments.models.match import Match
+from apps.tournaments.models.dispute import DisputeRecord
 
 
 class DashboardService:
@@ -123,10 +124,10 @@ class DashboardService:
         ).count()
         
         # Open disputes count
-        open_disputes = Dispute.objects.filter(
-            match__tournament__organizer_id=organizer_id,
-            match__tournament__deleted_at__isnull=True,
-            status__in=[Dispute.OPEN, Dispute.UNDER_REVIEW]
+        open_disputes = DisputeRecord.objects.filter(
+            submission__match__tournament__organizer_id=organizer_id,
+            submission__match__tournament__deleted_at__isnull=True,
+            status__in=[DisputeRecord.OPEN, DisputeRecord.UNDER_REVIEW]
         ).count()
         
         return {

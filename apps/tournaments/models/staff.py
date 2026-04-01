@@ -185,257 +185,80 @@ class TournamentStaffRole(models.Model):
         ])
 
 
-class TournamentStaff(models.Model):
-    """
-    DEPRECATED: Use ``TournamentStaffAssignment`` (staffing.py) instead.
-    
-    Assigns staff members to tournaments with specific roles.
-    Kept for backward-compatibility with existing data and migrations.
-    New code should use TournamentStaffAssignment with StaffRole capabilities.
-    """
-    
-    # Relations
-    tournament = models.ForeignKey(
-        'Tournament',
-        on_delete=models.CASCADE,
-        related_name='staff_assignments',
-        help_text='Tournament this staff member is assigned to'
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='tournament_staff_roles',
-        help_text='User assigned as staff'
-    )
-    role = models.ForeignKey(
-        TournamentStaffRole,
-        on_delete=models.PROTECT,
-        related_name='staff_assignments',
-        help_text='Role and permissions for this staff member'
-    )
-    
-    # Assignment details
-    is_active = models.BooleanField(
-        default=True,
-        db_index=True,
-        help_text='Whether this staff assignment is currently active'
-    )
-    notes = models.TextField(
-        blank=True,
-        help_text='Internal notes about this staff assignment (not visible to staff member)'
-    )
-    
-    # Assignment tracking
-    assigned_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text='When this staff member was assigned'
-    )
-    assigned_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='staff_assignments_made',
-        help_text='Organizer who assigned this staff member'
-    )
-    
-    # Deactivation tracking
-    deactivated_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text='When this assignment was deactivated'
-    )
-    deactivated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='staff_assignments_deactivated',
-        help_text='Who deactivated this assignment'
-    )
-    
-    class Meta:
-        db_table = 'tournaments_staff_assignment'
-        verbose_name = 'Tournament Staff Assignment'
-        verbose_name_plural = 'Tournament Staff Assignments'
-        ordering = ['tournament', 'role__name', 'user__username']
-        unique_together = [('tournament', 'user', 'role')]
-        indexes = [
-            models.Index(fields=['tournament', 'is_active']),
-            models.Index(fields=['user', 'is_active']),
-            models.Index(fields=['tournament', 'user']),
-        ]
-    
-    def __str__(self):
-        status = "✓" if self.is_active else "✗"
-        return f"{status} {self.user.username} - {self.role.name} @ {self.tournament.name}"
-    
-    def clean(self):
-        """Validate staff assignment."""
-        super().clean()
-        
-        # Prevent assigning tournament organizer as staff (they already have full access)
-        if self.tournament.organizer_id == self.user_id:
-            raise ValidationError({
-                'user': 'Tournament organizer cannot be assigned as staff (already has full access).'
-            })
-        
-        # Warn if role has no permissions (but allow it)
-        if not self.role.has_any_permission():
-            raise ValidationError({
-                'role': f'Role "{self.role.name}" has no permissions assigned. Please configure role permissions first.'
-            })
-    
-    def deactivate(self, deactivated_by=None):
-        """
-        Deactivate this staff assignment.
-        
-        Args:
-            deactivated_by: User who is deactivating this assignment
-        """
-        from django.utils import timezone
-        
-        self.is_active = False
-        self.deactivated_at = timezone.now()
-        if deactivated_by:
-            self.deactivated_by = deactivated_by
-        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
-    
-    def reactivate(self):
-        """Reactivate this staff assignment."""
-        self.is_active = True
-        self.deactivated_at = None
-        self.deactivated_by = None
-        self.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by'])
-    
-    # Permission check methods (delegate to role)
-    def can_review_participants(self):
-        return self.is_active and self.role.can_review_participants
-    
-    def can_verify_payments(self):
-        return self.is_active and self.role.can_verify_payments
-    
-    def can_manage_brackets(self):
-        return self.is_active and self.role.can_manage_brackets
-    
-    def can_manage_matches(self):
-        return self.is_active and self.role.can_manage_matches
-    
-    def can_enter_scores(self):
-        return self.is_active and self.role.can_enter_scores
-    
-    def can_handle_disputes(self):
-        return self.is_active and self.role.can_handle_disputes
-    
-    def can_send_notifications(self):
-        return self.is_active and self.role.can_send_notifications
-    
-    def can_manage_social_media(self):
-        return self.is_active and self.role.can_manage_social_media
-    
-    def can_access_support(self):
-        return self.is_active and self.role.can_access_support
-    
-    def can_modify_tournament(self):
-        return self.is_active and self.role.can_modify_tournament
-    
-    def can_view_pii(self):
-        return self.is_active and self.role.can_view_pii
-    
-    def can_view_payment_proofs(self):
-        return self.is_active and self.role.can_view_payment_proofs
-    
-    def can_export_data(self):
-        return self.is_active and self.role.can_export_data
+# TournamentStaff model removed in Phase 1 cleanup.
+# Use TournamentStaffAssignment (staffing.py) instead.
 
 
 # Staff permission checker utility
 class StaffPermissionChecker:
     """
     Utility class for checking tournament staff permissions.
-    
-    Usage:
-        checker = StaffPermissionChecker(tournament, user)
-        if checker.can_verify_payments():
-            # Allow payment verification
+    Uses TournamentStaffAssignment exclusively (legacy TournamentStaff removed).
     """
-    
+
     def __init__(self, tournament, user):
         self.tournament = tournament
         self.user = user
         self._assignments = None
-    
+
     def _get_assignments(self):
-        """Lazy-load active staff assignments for this user."""
         if self._assignments is None:
-            self._assignments = TournamentStaff.objects.filter(
+            from apps.tournaments.models.staffing import TournamentStaffAssignment
+            self._assignments = TournamentStaffAssignment.objects.filter(
                 tournament=self.tournament,
                 user=self.user,
                 is_active=True
             ).select_related('role')
         return self._assignments
-    
+
     def is_organizer(self):
-        """Check if user is the tournament organizer."""
         return self.tournament.organizer_id == self.user.id
-    
+
     def is_staff(self):
-        """Check if user has any active staff assignment."""
         return self._get_assignments().exists()
-    
+
     def has_permission(self, permission_name):
-        """
-        Check if user has a specific permission.
-        
-        Args:
-            permission_name: Name of permission field (e.g., 'can_verify_payments')
-        
-        Returns:
-            True if user is organizer or has any role with this permission
-        """
         if self.is_organizer():
             return True
-        
         assignments = self._get_assignments()
         return any(getattr(a.role, permission_name, False) for a in assignments)
-    
-    # Convenience methods for common permission checks
+
     def can_review_participants(self):
         return self.has_permission('can_review_participants')
-    
+
     def can_verify_payments(self):
         return self.has_permission('can_verify_payments')
-    
+
     def can_manage_brackets(self):
         return self.has_permission('can_manage_brackets')
-    
+
     def can_manage_matches(self):
         return self.has_permission('can_manage_matches')
-    
+
     def can_enter_scores(self):
         return self.has_permission('can_enter_scores')
-    
+
     def can_handle_disputes(self):
         return self.has_permission('can_handle_disputes')
-    
+
     def can_send_notifications(self):
         return self.has_permission('can_send_notifications')
-    
+
     def can_manage_social_media(self):
         return self.has_permission('can_manage_social_media')
-    
+
     def can_access_support(self):
         return self.has_permission('can_access_support')
-    
+
     def can_modify_tournament(self):
         return self.has_permission('can_modify_tournament')
-    
+
     def can_view_pii(self):
         return self.has_permission('can_view_pii')
-    
+
     def can_view_payment_proofs(self):
         return self.has_permission('can_view_payment_proofs')
-    
+
     def can_export_data(self):
         return self.has_permission('can_export_data')
     
