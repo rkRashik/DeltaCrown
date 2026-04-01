@@ -919,6 +919,19 @@ class TOCMatchesService:
         return format_default
 
     @staticmethod
+    def _normalize_media_url(value: Any) -> str:
+        raw = str(value or '').strip()
+        if not raw:
+            return ''
+        if raw.startswith('/media/media/'):
+            return '/media/' + raw[len('/media/media/'):]
+        if raw.startswith('media/media/'):
+            return '/media/' + raw[len('media/media/'):]
+        if raw.startswith('media/'):
+            return '/media/' + raw[len('media/'):]
+        return raw
+
+    @staticmethod
     def _user_avatar_url(user) -> str:
         if not user:
             return ''
@@ -926,7 +939,7 @@ class TOCMatchesService:
             profile = getattr(user, 'profile', None)
             avatar = getattr(profile, 'avatar', None)
             if avatar:
-                return avatar.url
+                return TOCMatchesService._normalize_media_url(avatar.url)
         except Exception:
             pass
         username = str(getattr(user, 'username', '') or '').strip() or 'User'
@@ -964,7 +977,7 @@ class TOCMatchesService:
                     logo_url = ''
                     try:
                         if getattr(team, 'logo', None):
-                            logo_url = team.logo.url
+                            logo_url = cls._normalize_media_url(team.logo.url)
                     except Exception:
                         logo_url = ''
                     media_map[int(team.id)] = logo_url

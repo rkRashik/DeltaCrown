@@ -20,6 +20,25 @@ class TOCStandingsService:
     """All read operations for the Standings / Leaderboards tab."""
 
     @staticmethod
+    def _sorted_group_rows(rows: list[dict]) -> list[dict]:
+        def _num(value, default=0):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return float(default)
+
+        return sorted(
+            rows,
+            key=lambda row: (
+                -_num(row.get("points"), 0),
+                -_num(row.get("wins"), 0),
+                -_num(row.get("goal_difference"), 0),
+                -_num(row.get("goals_for"), 0),
+                str(row.get("name") or "").lower(),
+            ),
+        )
+
+    @staticmethod
     def get_standings(tournament: Tournament, group_id: str = "", stage: str = "") -> dict:
         """Return full standings data for the tournament."""
         from apps.tournaments.models.group import Group, GroupStanding, GroupStage
@@ -102,6 +121,11 @@ class TOCStandingsService:
 
             qualify_count = g.advancement_count or 0
             config = g.config or {}
+
+            rows = TOCStandingsService._sorted_group_rows(rows)
+            for idx, row in enumerate(rows, start=1):
+                row["rank"] = idx
+
             group_standings.append({
                 "group_id": g.id,
                 "group_name": g.name,
@@ -226,11 +250,17 @@ class TOCStandingsService:
         groups = Group.objects.filter(tournament=tournament, is_deleted=False)
         tracker = []
         for g in groups:
-            standings = GroupStanding.objects.filter(group=g, is_deleted=False).order_by("rank")
+            standings = GroupStanding.objects.filter(group=g, is_deleted=False).order_by(
+                "-points",
+                "-matches_won",
+                "-goal_difference",
+                "-goals_for",
+                "id",
+            )
             adv_count = g.advancement_count or 0
             rows = []
             qualified = []
-            for s in standings:
+            for idx, s in enumerate(standings, start=1):
                 # Resolve name
                 name = "Unknown"
                 if s.team_id:
@@ -247,9 +277,9 @@ class TOCStandingsService:
                     except Exception:
                         name = f"Player #{s.user_id}"
 
-                qualifies = s.rank <= adv_count if adv_count > 0 else False
+                qualifies = idx <= adv_count if adv_count > 0 else False
                 rows.append({
-                    "rank": s.rank,
+                    "rank": idx,
                     "team_id": s.team_id,
                     "user_id": s.user_id,
                     "name": name,
@@ -259,7 +289,7 @@ class TOCStandingsService:
                     "is_eliminated": s.is_eliminated,
                 })
                 if qualifies or s.is_advancing:
-                    qualified.append({"name": name, "rank": s.rank})
+                    qualified.append({"name": name, "rank": idx})
 
             tracker.append({
                 "group_id": g.id,

@@ -76,8 +76,20 @@ def on_match_completed(sender, instance, created, **kwargs):
     if instance.state != 'completed':
         return
     
-    # Must have winner and loser
+    # Draws can be completed without winner/loser IDs.
     if not instance.winner_id or not instance.loser_id:
+        is_completed_draw = (
+            instance.winner_id is None
+            and instance.loser_id is None
+            and instance.participant1_score == instance.participant2_score
+        )
+        if is_completed_draw:
+            logger.debug(
+                "Skipping match activity for match %s: completed draw has no winner/loser",
+                instance.id,
+            )
+            return
+
         logger.warning(
             f"Match {instance.id} is COMPLETED but missing winner/loser IDs"
         )

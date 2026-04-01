@@ -827,6 +827,15 @@
     return !bothSidesOnline();
   }
 
+  function actionRequiresPresence(action) {
+    var token = String(action || '').trim().toLowerCase();
+    return token === 'coin_toss'
+      || token === 'veto_action'
+      || token === 'save_credentials'
+      || token === 'start_live'
+      || token === 'submit_result';
+  }
+
   function phaseOrder() {
     const wfOrder = asList(asObject(state.room.workflow).phase_order)
       .map((phase) => String(phase || '').trim())
@@ -1502,7 +1511,6 @@
     const meReady = side === 1 ? ready1 : (side === 2 ? ready2 : false);
     const canReady = (side === 1 || side === 2)
       && !meReady
-      && !waitingLocked()
       && !state.requestBusy;
 
     return `
@@ -1797,7 +1805,7 @@
     const workflow = asObject(state.room.workflow);
     const status = String(workflow.result_status || 'pending').toLowerCase();
 
-    if (status === 'verified' || status === 'admin_overridden') {
+    if (status === 'verified' || status === 'admin_overridden' || status === 'verified_draw' || status === 'admin_overridden_draw') {
       return '<p class="mt-4 px-3 py-2 rounded-lg bg-green-500/15 border border-green-400/30 text-xs text-green-300 font-bold uppercase tracking-wide">Result verified.</p>';
     }
 
@@ -1824,7 +1832,7 @@
 
     const winnerText = winnerSide === 1
       ? `${p1.name || 'Side 1'} wins`
-      : (winnerSide === 2 ? `${p2.name || 'Side 2'} wins` : 'Tie pending review');
+      : (winnerSide === 2 ? `${p2.name || 'Side 2'} wins` : 'Match ended in a draw');
 
     const bracketHref = String(urls.bracket || urls.match_detail || '#');
     const hubHref = String(urls.hub || urls.match_detail || '#');
@@ -2510,7 +2518,7 @@
       return;
     }
 
-    if (waitingLocked() && action !== 'presence_ping') {
+    if (actionRequiresPresence(action) && waitingLocked() && action !== 'presence_ping') {
       showToast('Waiting for opponent websocket presence.', 'info');
       return;
     }
@@ -2561,7 +2569,8 @@
       return;
     }
 
-    if (waitingLocked()) {
+    const action = String(formData.get('action') || '').trim().toLowerCase();
+    if (actionRequiresPresence(action) && waitingLocked()) {
       showToast('Waiting for opponent websocket presence.', 'info');
       return;
     }

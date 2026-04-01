@@ -6,6 +6,7 @@ Phase 0 Refactor: Tests for ORM mutations moved from organizer views to service 
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 
@@ -284,6 +285,68 @@ class TestMatchServiceOverrideScore:
         live_match.refresh_from_db()
         assert live_match.winner_id == live_match.participant1_id
         assert live_match.loser_id == live_match.participant2_id
+
+    def test_override_score_tie_requires_winner_when_draws_disallowed(
+        self,
+        live_match,
+        organizer_user,
+    ):
+        """Single-elimination ties must choose an explicit winner side."""
+        with pytest.raises(ValidationError, match='Tied scores require selecting a winner'):
+            MatchService.organizer_override_score(
+                live_match,
+                12,
+                12,
+                'Manual correction for tie game',
+                organizer_user.username,
+            )
+
+    def test_override_score_tie_accepts_explicit_winner_when_draws_disallowed(
+        self,
+        live_match,
+        organizer_user,
+    ):
+        """Single-elimination ties can still be finalized via explicit winner side."""
+        MatchService.organizer_override_score(
+            live_match,
+            12,
+            12,
+            'Admin decision after review',
+            organizer_user.username,
+            winner_side=1,
+        )
+
+        live_match.refresh_from_db()
+        assert live_match.winner_id == live_match.participant1_id
+        assert live_match.loser_id == live_match.participant2_id
+        assert live_match.state == Match.COMPLETED
+        assert live_match.lobby_info['score_override']['winner_side'] == 1
+        assert live_match.lobby_info['score_override']['result_mode'] == 'winner'
+
+    def test_override_score_tie_allows_draw_when_tournament_format_supports_it(
+        self,
+        live_match,
+        organizer_user,
+    ):
+        """Round-robin ties should finalize as completed draws with null winner."""
+        tournament = live_match.tournament
+        tournament.format = Tournament.ROUND_ROBIN
+        tournament.save(update_fields=['format'])
+
+        MatchService.organizer_override_score(
+            live_match,
+            9,
+            9,
+            'Round robin draw result',
+            organizer_user.username,
+        )
+
+        live_match.refresh_from_db()
+        assert live_match.winner_id is None
+        assert live_match.loser_id is None
+        assert live_match.state == Match.COMPLETED
+        assert live_match.lobby_info['score_override']['winner_side'] == 0
+        assert live_match.lobby_info['score_override']['result_mode'] == 'draw'
 
 
 @pytest.mark.django_db

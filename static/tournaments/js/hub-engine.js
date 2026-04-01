@@ -19,7 +19,10 @@ const HubEngine = (() => {
   const POLL_ANN_INTERVAL     = 15_000;   // 15s
   const POLL_STATE_INTERVAL_WS = 45_000;  // 45s when WS is healthy
   const POLL_ANN_INTERVAL_WS   = 60_000;  // 60s safety poll when WS is healthy
+  const POLL_STATE_MIN_GAP    = 3_500;    // Burst guard for manual/WS-triggered polls
+  const POLL_ANN_MIN_GAP      = 5_000;    // Burst guard for announcements
   const COUNTDOWN_TICK        = 1_000;    // 1s
+  const BROKEN_AVATAR_CACHE_KEY = 'hub_broken_avatar_urls';
   const HUB_TABS = new Set([
     'overview', 'announcements', 'matches', 'squad', 'schedule',
     'bracket', 'standings', 'prizes', 'resources',
@@ -83,6 +86,10 @@ const HubEngine = (() => {
   let _announcementLastUpdatedAt = null;
   let _announcementLoading = false;
   let _announcementScrollTimer = null;
+  let _statePollInFlight = false;
+  let _statePollQueued = false;
+  let _lastStatePollStartedAt = 0;
+  let _lastAnnouncementPollStartedAt = 0;
   let _lastPolledState = null;
   let _scheduleFilter = 'all';
   let _overviewMatchRefreshInFlight = false;
@@ -109,6 +116,7 @@ const HubEngine = (() => {
   let _lastViewportScrollTop = 0;
   const WS_RECONNECT_MAX = 3;
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
+  const _brokenAvatarUrls = new Set();
 
   function _isMobileViewport() {
     return window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
@@ -464,6 +472,8 @@ const HubEngine = (() => {
     _shell = document.getElementById('hub-shell');
     if (!_shell) return;
 
+    _loadBrokenAvatarUrlCache();
+
     if (_maybeDefaultToParticipantViewOnMobile()) {
       return;
     }
@@ -574,8 +584,8 @@ const HubEngine = (() => {
         return;
       }
       _startPolling();
-      _pollState();
-      _pollAnnouncements();
+      _pollState({ force: true });
+      _pollAnnouncements({ force: true });
     };
     document.addEventListener('visibilitychange', _onVisibilityChange);
 
@@ -1043,9 +1053,26 @@ const HubEngine = (() => {
     }
   }
 
-  async function _pollState() {
+  async function _pollState(options = {}) {
     const url = _shell?.dataset.apiState;
     if (!url) return;
+
+    const force = Boolean(options && options.force);
+
+    if (_statePollInFlight) {
+      if (force) {
+        _statePollQueued = true;
+      }
+      return;
+    }
+
+    const now = Date.now();
+    if (!force && (now - _lastStatePollStartedAt) < POLL_STATE_MIN_GAP) {
+      return;
+    }
+
+    _statePollInFlight = true;
+    _lastStatePollStartedAt = now;
 
     try {
       const resp = await fetch(url, { credentials: 'same-origin' });
@@ -1119,23 +1146,33 @@ const HubEngine = (() => {
       const hasBackendCommand = Boolean(data.command_center && Object.prototype.hasOwnProperty.call(data.command_center, 'show'));
       const shouldRefreshOverviewMatch = ['live', 'check_in', 'registration_closed', 'registration_open'].includes(status)
         || !_matchesCache;
-      const isStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 25000;
+      const isStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 60000;
       if (!hasBackendCommand && shouldRefreshOverviewMatch && isStale) {
         _refreshOverviewActionCard({ forceFetch: true, stateData: data });
       }
 
     } catch (err) {
       console.warn('[HubEngine] State poll failed:', err.message);
+    } finally {
+      _statePollInFlight = false;
+      if (_statePollQueued) {
+        _statePollQueued = false;
+        _pollState({ force: true });
+      }
     }
   }
 
   // ──────────────────────────────────────────────────────────
   // Announcements Polling
   // ──────────────────────────────────────────────────────────
-  async function _pollAnnouncements({ append = false, forceLimit = null } = {}) {
+  async function _pollAnnouncements({ append = false, forceLimit = null, force = false } = {}) {
     const url = _shell?.dataset.apiAnnouncements;
     if (!url) return;
     if (_announcementLoading) return;
+
+    if (!append && !force && (Date.now() - _lastAnnouncementPollStartedAt) < POLL_ANN_MIN_GAP) {
+      return;
+    }
 
     const currentCount = Array.isArray(_announcementItems) ? _announcementItems.length : 0;
     const offset = append ? currentCount : 0;
@@ -1144,6 +1181,7 @@ const HubEngine = (() => {
       : (_currentTab === 'announcements' ? 60 : 20);
 
     _announcementLoading = true;
+    _lastAnnouncementPollStartedAt = Date.now();
     _toggleAnnouncementLoadMoreLoading(append, true);
 
     try {
@@ -2131,12 +2169,69 @@ const HubEngine = (() => {
     return safe.slice(0, maxChars).toUpperCase();
   }
 
-  function _renderAvatarInner(name, mediaUrl, initialClass = 'stnd-team-initial', imageClass = 'stnd-team-avatar-img') {
-    const safeName = _esc(name || 'Participant');
-    if (mediaUrl) {
-      return `<img src="${_esc(mediaUrl)}" class="${imageClass}" alt="${safeName}" loading="lazy" decoding="async">`;
+  function _loadBrokenAvatarUrlCache() {
+    try {
+      const raw = window.sessionStorage.getItem(BROKEN_AVATAR_CACHE_KEY);
+      if (!raw) return;
+      const values = JSON.parse(raw);
+      if (!Array.isArray(values)) return;
+      values.forEach((value) => {
+        const url = String(value || '').trim();
+        if (url) _brokenAvatarUrls.add(url);
+      });
+    } catch (_err) {
+      // Ignore malformed cache.
     }
+  }
+
+  function _persistBrokenAvatarUrlCache() {
+    try {
+      const values = Array.from(_brokenAvatarUrls).slice(-180);
+      window.sessionStorage.setItem(BROKEN_AVATAR_CACHE_KEY, JSON.stringify(values));
+    } catch (_err) {
+      // Ignore storage failures.
+    }
+  }
+
+  function _markAvatarUrlBroken(url) {
+    const key = String(url || '').trim();
+    if (!key) return;
+    if (_brokenAvatarUrls.has(key)) return;
+    _brokenAvatarUrls.add(key);
+    _persistBrokenAvatarUrlCache();
+  }
+
+  function _renderAvatarInitial(name, initialClass = 'stnd-team-initial') {
     return `<span class="${initialClass}">${_esc(_initials(name, 2))}</span>`;
+  }
+
+  function _renderAvatarInner(name, mediaUrl, initialClass = 'stnd-team-initial', imageClass = 'stnd-team-avatar-img') {
+    const safeNameRaw = String(name || 'Participant');
+    const safeName = _esc(safeNameRaw);
+    const normalizedUrl = String(mediaUrl || '').trim();
+
+    if (normalizedUrl && !_brokenAvatarUrls.has(normalizedUrl)) {
+      return `<img src="${_esc(normalizedUrl)}" class="${imageClass}" alt="${safeName}" loading="lazy" decoding="async" data-avatar-name="${safeName}" data-avatar-url="${_esc(normalizedUrl)}" data-avatar-initial-class="${_esc(initialClass)}" onerror="HubEngine.handleAvatarLoadError(this)">`;
+    }
+    return _renderAvatarInitial(safeNameRaw, initialClass);
+  }
+
+  function handleAvatarLoadError(imageEl) {
+    if (!imageEl) return;
+
+    const failedUrl = String(
+      imageEl.getAttribute('data-avatar-url') || imageEl.getAttribute('src') || ''
+    ).trim();
+    if (failedUrl) {
+      _markAvatarUrlBroken(failedUrl);
+    }
+
+    const parent = imageEl.parentElement;
+    if (!parent) return;
+
+    const fallbackName = imageEl.getAttribute('data-avatar-name') || imageEl.getAttribute('alt') || 'Participant';
+    const initialClass = imageEl.getAttribute('data-avatar-initial-class') || 'stnd-team-initial';
+    parent.innerHTML = _renderAvatarInitial(fallbackName, initialClass);
   }
 
   function _humanTournamentStatus(rawStatus) {
@@ -2856,7 +2951,7 @@ const HubEngine = (() => {
       return;
     }
 
-    const freshEnough = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < 25000;
+    const freshEnough = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < 60000;
     if (!forceFetch && freshEnough) {
       _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
       return;
@@ -3767,6 +3862,97 @@ const HubEngine = (() => {
     }
   }
 
+  function _matchStatePriority(match) {
+    const state = String(match?.state || '').toLowerCase();
+    if (state === 'live') return 0;
+    if (state === 'ready') return 1;
+    if (state === 'check_in') return 2;
+    if (state === 'pending_result') return 3;
+    if (state === 'scheduled') return 4;
+    return 5;
+  }
+
+  function _sortMatchesByUrgency(matches) {
+    const list = Array.isArray(matches) ? matches.slice() : [];
+    const nowMs = Date.now();
+
+    return list.sort((a, b) => {
+      const aPriority = _matchStatePriority(a);
+      const bPriority = _matchStatePriority(b);
+      if (aPriority !== bPriority) return aPriority - bPriority;
+
+      const aTime = _toValidDate(a?.scheduled_at);
+      const bTime = _toValidDate(b?.scheduled_at);
+      const aTs = aTime ? aTime.getTime() : Number.POSITIVE_INFINITY;
+      const bTs = bTime ? bTime.getTime() : Number.POSITIVE_INFINITY;
+
+      const aDistance = Number.isFinite(aTs) ? Math.abs(aTs - nowMs) : Number.POSITIVE_INFINITY;
+      const bDistance = Number.isFinite(bTs) ? Math.abs(bTs - nowMs) : Number.POSITIVE_INFINITY;
+      if (aDistance !== bDistance) return aDistance - bDistance;
+      if (aTs !== bTs) return aTs - bTs;
+
+      const aNumber = Number.parseInt(String(a?.match_number || '0'), 10);
+      const bNumber = Number.parseInt(String(b?.match_number || '0'), 10);
+      return aNumber - bNumber;
+    });
+  }
+
+  function _sortMatchHistory(matches) {
+    const list = Array.isArray(matches) ? matches.slice() : [];
+    return list.sort((a, b) => {
+      const aTime = _toValidDate(a?.completed_at) || _toValidDate(a?.scheduled_at);
+      const bTime = _toValidDate(b?.completed_at) || _toValidDate(b?.scheduled_at);
+      const aTs = aTime ? aTime.getTime() : 0;
+      const bTs = bTime ? bTime.getTime() : 0;
+      if (aTs !== bTs) return bTs - aTs;
+
+      const aNumber = Number.parseInt(String(a?.match_number || '0'), 10);
+      const bNumber = Number.parseInt(String(b?.match_number || '0'), 10);
+      return bNumber - aNumber;
+    });
+  }
+
+  function _renderMatchIdentityBlock(name, mediaUrl, sideLabel, sideClass = '') {
+    const safeName = name || 'TBD';
+    const avatar = _renderAvatarInner(safeName, mediaUrl || '', 'hub-match-side-initial', 'hub-match-side-image');
+    return `
+      <div class="hub-match-side ${sideClass}">
+        <div class="hub-match-side-avatar">${avatar}</div>
+        <div class="min-w-0">
+          <p class="hub-match-side-label">${_esc(sideLabel || 'Side')}</p>
+          <p class="hub-match-side-name" title="${_esc(safeName)}">${_esc(safeName)}</p>
+        </div>
+      </div>`;
+  }
+
+  function _matchKickoffLabel(match) {
+    const scheduled = _toValidDate(match?.scheduled_at);
+    if (!scheduled) return 'Schedule pending';
+    return _formatDateTime(scheduled, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  function _matchUrgencyText(match, lobbyWindow, lobbyOpen) {
+    const state = String(match?.state || '').toLowerCase();
+    if (state === 'live') {
+      return 'Match is live. Lock in and report right after final whistle.';
+    }
+    if (lobbyOpen) {
+      return `Room is open ${lobbyWindow.minutesBefore} minutes before kickoff.`;
+    }
+    if (lobbyWindow.opensAt) {
+      return `Room unlocks in ${_formatCountdownLabel(lobbyWindow.opensAt)}.`;
+    }
+    const scheduled = _toValidDate(match?.scheduled_at);
+    if (!scheduled) return 'Kickoff time will appear after organizer scheduling.';
+    if (scheduled.getTime() < Date.now()) return 'Kickoff window passed. Waiting for organizer update.';
+    return `Kickoff in ${_formatCountdownLabel(scheduled)}.`;
+  }
+
   function _renderMatchActionControls(match, { compact = false } = {}) {
     const m = match || {};
     const matchId = JSON.stringify(String(m.id || ''));
@@ -3786,7 +3972,7 @@ const HubEngine = (() => {
 
     const proposedLabel = _formatRescheduleDatetimeLabel(pendingRequest?.new_time);
 
-    let pendingLine = '';
+    const notices = [];
     if (pendingRequest) {
       let text = `Reschedule proposal pending for ${proposedLabel}.`;
       if (canRespond) {
@@ -3794,59 +3980,53 @@ const HubEngine = (() => {
       } else if (iProposed) {
         text = `You proposed ${proposedLabel}. Waiting for opponent response.`;
       }
-      pendingLine = `<p class="text-[10px] text-gray-400">${_esc(text)}</p>`;
+      notices.push(`<p class="hub-match-note warning">${_esc(text)}</p>`);
     }
 
     const buttonBase = compact
-      ? 'px-2.5 py-1.5 text-[10px]'
-      : 'px-3 py-1.5 text-[11px]';
+      ? 'hub-match-cta hub-match-cta-compact'
+      : 'hub-match-cta';
+
+    const makeButton = (label, clickHandler, tone = 'neutral', { disabled = false } = {}) => {
+      const disabledAttr = disabled ? ' disabled' : '';
+      const disabledClass = disabled ? ' hub-match-cta-disabled' : '';
+      return `<button onclick='${clickHandler}' class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${_esc(label)}</button>`;
+    };
 
     const buttons = [];
     if (hasLobby) {
       if (lobbyOpen) {
-        buttons.push(
-          `<button onclick='HubEngine.openMatchLobby(${matchId})' class='${buttonBase} rounded-lg border border-[#00FF66]/30 bg-[#00FF66]/10 text-[#66FFAE] font-bold uppercase tracking-wide hover:bg-[#00FF66]/15 transition-colors'>Enter Lobby</button>`
-        );
+        buttons.push(makeButton('Enter Lobby', `HubEngine.openMatchLobby(${matchId})`, 'primary'));
       } else {
         const opensAt = lobbyWindow.opensAt;
         if (opensAt && !terminalState) {
-          pendingLine += `<p class="text-[10px] text-cyan-300">Lobby unlocks in ${_esc(_formatCountdownLabel(opensAt))}.</p>`;
+          notices.push(`<p class="hub-match-note info">Lobby unlocks in ${_esc(_formatCountdownLabel(opensAt))}.</p>`);
         }
       }
     }
 
     if (canPropose) {
-      buttons.push(
-        `<button onclick='HubEngine.openRescheduleProposal(${matchId})' class='${buttonBase} rounded-lg border border-amber-300/30 bg-amber-300/10 text-amber-200 font-bold uppercase tracking-wide hover:bg-amber-300/15 transition-colors'>Propose New Time</button>`
-      );
+      buttons.push(makeButton('Propose New Time', `HubEngine.openRescheduleProposal(${matchId})`, 'neutral'));
     }
 
     if (pendingRequest && iProposed) {
-      buttons.push(
-        `<button disabled class='${buttonBase} rounded-lg border border-cyan-300/30 bg-cyan-300/12 text-cyan-100 font-bold uppercase tracking-wide opacity-85 cursor-not-allowed'>Reschedule Pending</button>`
-      );
+      buttons.push(makeButton('Reschedule Pending', 'void(0)', 'neutral', { disabled: true }));
     }
 
     if (canRespond) {
-      buttons.push(
-        `<button onclick='HubEngine.respondReschedule(${matchId}, "accept")' class='${buttonBase} rounded-lg border border-[#00FF66]/30 bg-[#00FF66]/10 text-[#66FFAE] font-bold uppercase tracking-wide hover:bg-[#00FF66]/20 transition-colors'>Accept</button>`
-      );
+      buttons.push(makeButton('Accept', `HubEngine.respondReschedule(${matchId}, "accept")`, 'positive'));
       if (canCounter) {
-        buttons.push(
-          `<button onclick='HubEngine.respondReschedule(${matchId}, "counter")' class='${buttonBase} rounded-lg border border-blue-400/30 bg-blue-400/10 text-blue-100 font-bold uppercase tracking-wide hover:bg-blue-400/20 transition-colors'>Propose New Time</button>`
-        );
+        buttons.push(makeButton('Counter Offer', `HubEngine.respondReschedule(${matchId}, "counter")`, 'info'));
       }
-      buttons.push(
-        `<button onclick='HubEngine.respondReschedule(${matchId}, "reject")' class='${buttonBase} rounded-lg border border-[#FF2A55]/30 bg-[#FF2A55]/10 text-[#FF8AA0] font-bold uppercase tracking-wide hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>`
-      );
+      buttons.push(makeButton('Reject', `HubEngine.respondReschedule(${matchId}, "reject")`, 'danger'));
     }
 
-    if (!pendingLine && buttons.length === 0) return '';
+    if (!notices.length && buttons.length === 0) return '';
 
     return `
-      <div class="${compact ? 'mt-2' : 'mt-3'} space-y-2">
-        ${pendingLine}
-        ${buttons.length ? `<div class="flex flex-wrap gap-2">${buttons.join('')}</div>` : ''}
+      <div class="${compact ? 'mt-2.5' : 'mt-4'} space-y-2.5">
+        ${notices.join('')}
+        ${buttons.length ? `<div class="hub-match-cta-row">${buttons.join('')}</div>` : ''}
       </div>`;
   }
 
@@ -3854,39 +4034,101 @@ const HubEngine = (() => {
     _hide('matches-skeleton');
     _renderOverviewActionCard(data, _lastPolledState);
 
-    const isStaff = data.active_matches?.some(m => m.is_staff_view) || data.match_history?.some(m => m.is_staff_view);
+    const activeMatches = _sortMatchesByUrgency(data?.active_matches || []);
+    const historyMatches = _sortMatchHistory(data?.match_history || []);
+    const isStaff = activeMatches.some((m) => m.is_staff_view) || historyMatches.some((m) => m.is_staff_view);
 
     // Active matches
     const cardsEl = document.getElementById('hub-match-cards');
     if (cardsEl) {
-      if (data.active_matches && data.active_matches.length > 0) {
+      if (activeMatches.length > 0) {
         _hide('matches-empty');
         let html = '';
-        data.active_matches.forEach(m => {
-          const stateColor = m.state === 'live' ? '#FF2A55' : m.state === 'ready' ? '#00FF66' : '#00F0FF';
+        activeMatches.forEach((m) => {
+          const stateRaw = String(m?.state || '').toLowerCase();
+          const isLive = stateRaw === 'live';
+          const isReady = stateRaw === 'ready';
+          const hasLobby = Boolean(m?.match_room_url);
+          const lobbyWindow = _resolveLobbyWindow(m);
+          const lobbyOpen = hasLobby && lobbyWindow.isOpen;
+          const cardTone = isLive
+            ? 'tone-live'
+            : (lobbyOpen || isReady)
+              ? 'tone-ready'
+              : stateRaw === 'pending_result'
+                ? 'tone-review'
+                : 'tone-scheduled';
+          const statusIcon = isLive
+            ? 'radio-tower'
+            : lobbyOpen
+              ? 'door-open'
+              : isReady
+                ? 'shield-check'
+                : stateRaw === 'pending_result'
+                  ? 'scale'
+                  : 'clock-3';
+          const statusLabel = lobbyOpen && !isLive
+            ? 'Lobby Open'
+            : (m.state_display || m.state || 'Scheduled');
+
+          let side1Label = 'Side 1';
+          let side2Label = 'Side 2';
+          const opponentName = String(m?.opponent_name || '').trim().toLowerCase();
+          const p1NameNorm = String(m?.p1_name || '').trim().toLowerCase();
+          const p2NameNorm = String(m?.p2_name || '').trim().toLowerCase();
+          if (!m?.is_staff_view && opponentName) {
+            if (p1NameNorm && p1NameNorm === opponentName) {
+              side1Label = 'Opponent';
+              side2Label = 'You';
+            } else if (p2NameNorm && p2NameNorm === opponentName) {
+              side1Label = 'You';
+              side2Label = 'Opponent';
+            }
+          }
+
+          const p1Name = m?.p1_name || (!isStaff ? 'You' : 'TBD');
+          const p2Name = m?.p2_name || m?.opponent_name || 'TBD';
+          const p1Logo = m?.p1_logo_url || '';
+          const p2Logo = m?.p2_logo_url || m?.opponent_logo_url || '';
+          const kickoffLabel = _matchKickoffLabel(m);
           const lobbyCode = m.lobby_info?.lobby_code || '';
-          const matchLabel = isStaff
-            ? `${_esc(m.p1_name)} vs ${_esc(m.p2_name)}`
-            : `vs ${_esc(m.opponent_name)}`;
+          const urgencyText = _matchUrgencyText(m, lobbyWindow, lobbyOpen);
+          const showScoreline = isLive || stateRaw === 'pending_result';
+
           html += `
-            <div class="hub-glass rounded-xl p-5 border-l-4 match-card-active" style="border-left-color: ${stateColor}">
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${_esc(m.round_name)} &middot; Match ${m.match_number}</span>
-                <span class="hub-badge" style="background:${stateColor}20;color:${stateColor}">
-                  ${m.state === 'live' ? '<span class="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style="background:' + stateColor + '"></span> ' : ''}
-                  ${_esc(m.state_display)}
+            <article class="hub-match-priority-card ${cardTone} match-card-active">
+              <div class="hub-match-card-header">
+                <div>
+                  <p class="hub-match-kicker">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</p>
+                  <p class="hub-match-urgency">${_esc(urgencyText)}</p>
+                </div>
+                <span class="hub-match-status-pill">
+                  <i data-lucide="${statusIcon}" class="w-3.5 h-3.5"></i>
+                  <span>${_esc(statusLabel)}</span>
                 </span>
               </div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-bold text-white">${matchLabel}</p>
-                  ${m.state === 'live' ? `<p class="text-lg font-black text-white mt-1" style="font-family:Outfit,sans-serif;">${m.p1_score ?? 0} — ${m.p2_score ?? 0}</p>` : ''}
-                </div>
-                ${lobbyCode ? `<div class="text-right"><p class="text-[10px] text-gray-500">Lobby Code</p><p class="text-sm font-bold text-[#00F0FF]" style="font-family:'Space Grotesk',monospace;">${_esc(lobbyCode)}</p></div>` : ''}
+
+              <div class="hub-match-vs-grid">
+                ${_renderMatchIdentityBlock(p1Name, p1Logo, side1Label)}
+                <div class="hub-match-vs-pill">VS</div>
+                ${_renderMatchIdentityBlock(p2Name, p2Logo, side2Label, 'hub-match-side-right')}
               </div>
-              ${m.scheduled_at ? `<p class="text-[10px] text-gray-600 mt-2">Scheduled: ${_formatDateTime(m.scheduled_at)}</p>` : ''}
+
+              ${showScoreline ? `<div class="hub-match-scoreline">${Number(m.p1_score || 0)} <span>:</span> ${Number(m.p2_score || 0)}</div>` : ''}
+
+              <div class="hub-match-meta-row">
+                <div class="hub-match-meta-chip">
+                  <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
+                  <span>${_esc(kickoffLabel)}</span>
+                </div>
+                <div class="hub-match-meta-chip ${lobbyCode ? 'is-accent' : ''}">
+                  <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+                  <span>${lobbyCode ? `Room ${_esc(lobbyCode)}` : 'Room pending'}</span>
+                </div>
+              </div>
+
               ${_renderMatchActionControls(m)}
-            </div>`;
+            </article>`;
         });
         cardsEl.innerHTML = html;
         cardsEl.classList.remove('hidden');
@@ -3904,11 +4146,11 @@ const HubEngine = (() => {
     // Match history
     const historyEl = document.getElementById('hub-match-history');
     if (historyEl) {
-      if (data.match_history && data.match_history.length > 0) {
+      if (historyMatches.length > 0) {
         // Store match data for map viewer access
-        window._hubMatchHistory = data.match_history;
+        window._hubMatchHistory = historyMatches;
         let html = '';
-        data.match_history.forEach((m, mi) => {
+        historyMatches.forEach((m, mi) => {
           const resultClass = m.is_winner === true ? 'text-[#00FF66]' : m.is_winner === false ? 'text-[#FF2A55]' : 'text-gray-400';
           const resultLabel = isStaff ? (m.winner_name ? _esc(m.winner_name) + ' won' : '—') : (m.is_winner === true ? 'WIN' : m.is_winner === false ? 'LOSS' : 'DRAW');
           const matchLabel = isStaff
@@ -3983,34 +4225,53 @@ const HubEngine = (() => {
       return;
     }
 
-    const sorted = allMatches.slice().sort((a, b) => {
-      if (!a.scheduled_at && !b.scheduled_at) return 0;
-      if (!a.scheduled_at) return 1;
-      if (!b.scheduled_at) return -1;
-      return new Date(a.scheduled_at) - new Date(b.scheduled_at);
-    });
+    const sorted = _sortMatchesByUrgency(allMatches);
 
     const html = sorted.slice(0, 10).map((m) => {
-      const timeLabel = m.scheduled_at
-        ? _formatDateTime(m.scheduled_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      const scheduled = _toValidDate(m?.scheduled_at);
+      const timeLabel = scheduled
+        ? _formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : 'Unscheduled';
-      const stateColor = m.state === 'live'
-        ? 'text-[#FF2A55]'
-        : m.state === 'completed'
+      const state = String(m?.state || '').toLowerCase();
+      const stateColor = state === 'live'
+        ? 'text-[#FF6B88]'
+        : state === 'completed' || state === 'forfeit'
           ? 'text-gray-400'
-          : 'text-cyan-300';
-      const title = m.is_staff_view
-        ? `${_esc(m.p1_name || 'TBD')} vs ${_esc(m.p2_name || 'TBD')}`
-        : `vs ${_esc(m.opponent_name || 'TBD')}`;
+          : state === 'ready'
+            ? 'text-[#88FFB7]'
+            : 'text-cyan-200';
+
+      const p1Name = m?.p1_name || (!m?.is_staff_view ? 'You' : 'TBD');
+      const p2Name = m?.p2_name || m?.opponent_name || 'TBD';
+      const p1Avatar = _renderAvatarInner(p1Name, m?.p1_logo_url || '', 'hub-mobile-schedule-initial', 'hub-mobile-schedule-image');
+      const p2Avatar = _renderAvatarInner(p2Name, m?.p2_logo_url || m?.opponent_logo_url || '', 'hub-mobile-schedule-initial', 'hub-mobile-schedule-image');
+
+      const relative = scheduled ? _formatCountdownLabel(scheduled) : 'TBD';
 
       return `
-        <div class="hub-glass rounded-xl p-3 border border-white/10">
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
+        <div class="hub-mobile-schedule-card">
+          <div class="hub-mobile-schedule-top">
+            <p class="text-[10px] text-gray-400 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
             <span class="text-[10px] font-bold uppercase tracking-wider ${stateColor}">${_esc(m.state_display || m.state || 'scheduled')}</span>
           </div>
-          <p class="text-sm font-bold text-white mt-1">${title}</p>
-          <p class="text-[11px] text-gray-400 mt-1">${timeLabel}</p>
+
+          <div class="hub-mobile-schedule-versus">
+            <div class="hub-mobile-schedule-side">
+              <div class="hub-mobile-schedule-avatar">${p1Avatar}</div>
+              <p class="hub-mobile-schedule-name" title="${_esc(p1Name)}">${_esc(p1Name)}</p>
+            </div>
+            <p class="hub-mobile-schedule-vs">VS</p>
+            <div class="hub-mobile-schedule-side hub-mobile-schedule-side-right">
+              <p class="hub-mobile-schedule-name" title="${_esc(p2Name)}">${_esc(p2Name)}</p>
+              <div class="hub-mobile-schedule-avatar">${p2Avatar}</div>
+            </div>
+          </div>
+
+          <div class="hub-mobile-schedule-meta">
+            <span>${_esc(timeLabel)}</span>
+            <span class="hub-mobile-schedule-dot"></span>
+            <span>${_esc(relative)}</span>
+          </div>
         </div>`;
     }).join('');
 
@@ -4028,6 +4289,10 @@ const HubEngine = (() => {
     const countdownEl = document.getElementById('hub-mobile-lobby-countdown');
     const roomEl = document.getElementById('hub-mobile-lobby-room');
     const joinBtn = document.getElementById('hub-mobile-lobby-join');
+    const sideAAvatarEl = document.getElementById('hub-mobile-lobby-side-a-avatar');
+    const sideANameEl = document.getElementById('hub-mobile-lobby-side-a-name');
+    const sideBAvatarEl = document.getElementById('hub-mobile-lobby-side-b-avatar');
+    const sideBNameEl = document.getElementById('hub-mobile-lobby-side-b-name');
     const noteWrap = document.getElementById('hub-mobile-lobby-admin-note');
     const noteText = document.getElementById('hub-mobile-lobby-admin-note-text');
 
@@ -4040,18 +4305,30 @@ const HubEngine = (() => {
     });
     const target = live || ready || warmup || allMatches[0] || null;
 
+    panel.classList.remove('hub-mobile-lobby-live', 'hub-mobile-lobby-ready', 'hub-mobile-lobby-waiting');
+
     if (!target) {
+      panel.classList.add('hub-mobile-lobby-waiting');
       if (statusEl) {
         statusEl.className = 'hub-badge hub-badge-neutral';
         statusEl.textContent = 'Waiting';
       }
       if (roundEl) roundEl.textContent = 'No active round';
       if (titleEl) titleEl.textContent = 'No active match yet';
-      if (subtitleEl) subtitleEl.textContent = 'You will be auto-focused here when your match goes live.';
+      if (subtitleEl) subtitleEl.textContent = 'No room assignment yet. This tab will auto-focus when your match opens.';
       if (countdownEl) countdownEl.textContent = '--:--';
       if (roomEl) roomEl.textContent = 'TBD';
+      if (sideAAvatarEl) {
+        sideAAvatarEl.innerHTML = _renderAvatarInner('Team A', '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+      }
+      if (sideBAvatarEl) {
+        sideBAvatarEl.innerHTML = _renderAvatarInner('Team B', '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+      }
+      if (sideANameEl) sideANameEl.textContent = 'Team A';
+      if (sideBNameEl) sideBNameEl.textContent = 'Team B';
       if (joinBtn) {
-        joinBtn.textContent = 'Open Match + Submit Result';
+        joinBtn.textContent = 'Open Match Queue';
+        joinBtn.classList.remove('hub-mobile-lobby-primary-live');
         joinBtn.onclick = () => switchTab('matches');
       }
       if (noteWrap) noteWrap.classList.add('hidden');
@@ -4064,22 +4341,41 @@ const HubEngine = (() => {
     const lobbyWindow = _resolveLobbyWindow(target);
     const isWarmup = !isLive && !isReady && lobbyWindow.isOpen && Boolean(target.match_room_url);
 
+    if (isLive) {
+      panel.classList.add('hub-mobile-lobby-live');
+    } else if (isReady || isWarmup) {
+      panel.classList.add('hub-mobile-lobby-ready');
+    } else {
+      panel.classList.add('hub-mobile-lobby-waiting');
+    }
+
     if (statusEl) {
       statusEl.className = `hub-badge ${isLive ? 'hub-badge-danger' : (isReady || isWarmup) ? 'hub-badge-live' : 'hub-badge-info'}`;
-      statusEl.textContent = isLive ? 'Live' : (isWarmup ? 'Lobby Open' : (target.state_display || 'Ready'));
+      statusEl.textContent = isLive ? 'Live' : (isWarmup ? 'Room Open' : (target.state_display || 'Ready'));
     }
     if (roundEl) roundEl.textContent = `${target.round_name || 'Round'} · Match ${target.match_number || ''}`;
     if (titleEl) {
       const p1 = target.p1_name || 'Team A';
       const p2 = target.p2_name || target.opponent_name || 'Team B';
       titleEl.textContent = `${p1} vs ${p2}`;
+
+      if (sideAAvatarEl) {
+        sideAAvatarEl.innerHTML = _renderAvatarInner(p1, target.p1_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+      }
+      if (sideBAvatarEl) {
+        sideBAvatarEl.innerHTML = _renderAvatarInner(p2, target.p2_logo_url || target.opponent_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+      }
+      if (sideANameEl) sideANameEl.textContent = p1;
+      if (sideBNameEl) sideBNameEl.textContent = p2;
     }
     if (subtitleEl) {
       subtitleEl.textContent = isLive
-        ? 'Match is live now. Submit results immediately after completion.'
+        ? 'Room is live. Finish strong and submit the result right away.'
         : (isWarmup
-          ? `Lobby unlocked ${lobbyWindow.minutesBefore} minutes before kickoff. Enter now and coordinate with your opponent.`
-          : 'Lobby is warming up. Prepare your team and join when ready.');
+          ? `Room opened ${lobbyWindow.minutesBefore} minutes before kickoff. Lock settings and get ready.`
+          : (target.scheduled_at
+            ? `Kickoff at ${_formatDateTime(target.scheduled_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}. Stay warmed up.`
+            : 'Room setup is in progress. Keep your squad ready.'));
     }
 
     const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
@@ -4087,11 +4383,7 @@ const HubEngine = (() => {
       if (isLive) {
         countdownEl.textContent = 'LIVE';
       } else if (scheduled && !Number.isNaN(scheduled.getTime())) {
-        const diffMs = Math.max(0, scheduled.getTime() - Date.now());
-        const mins = Math.floor(diffMs / 60000);
-        const hours = Math.floor(mins / 60);
-        const rem = mins % 60;
-        countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+        countdownEl.textContent = _formatCountdownLabel(scheduled);
       } else {
         countdownEl.textContent = '--:--';
       }
@@ -4103,11 +4395,11 @@ const HubEngine = (() => {
 
     if (joinBtn) {
       if ((isLive || isReady || isWarmup) && matchRoomUrl) {
-        joinBtn.textContent = roomCode && roomCode !== 'Pending'
-          ? `Join Lobby ${roomCode}`
-          : 'Enter Match Lobby';
+        joinBtn.textContent = 'Enter Match Room';
+        joinBtn.classList.add('hub-mobile-lobby-primary-live');
       } else {
-        joinBtn.textContent = 'Open Match + Submit Result';
+        joinBtn.textContent = 'Open Match Queue';
+        joinBtn.classList.remove('hub-mobile-lobby-primary-live');
       }
       joinBtn.onclick = () => {
         if ((isLive || isReady || isWarmup) && matchRoomUrl) {
@@ -5323,7 +5615,7 @@ const HubEngine = (() => {
         break;
 
       case 'announcement_refresh':
-        _pollAnnouncements();
+        _pollAnnouncements({ force: true });
         break;
 
       case 'ping':
@@ -5341,7 +5633,7 @@ const HubEngine = (() => {
 
       default:
         // Unknown event — do a general poll refresh
-        _pollState();
+        _pollState({ force: true });
         break;
     }
   }
@@ -6245,5 +6537,6 @@ const HubEngine = (() => {
     openMapViewer,
     closeMapViewer,
     retryAction: _runRetryAction,
+    handleAvatarLoadError,
   };
 })();

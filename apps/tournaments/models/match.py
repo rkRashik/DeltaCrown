@@ -319,10 +319,16 @@ class Match(SoftDeleteModel, TimestampedModel):
                 condition=models.Q(participant1_score__gte=0) & models.Q(participant2_score__gte=0),
                 name='chk_match_scores_positive'
             ),
-            # If COMPLETED, must have winner and loser
+            # If COMPLETED, require winner/loser unless this is a tied draw result.
             models.CheckConstraint(
                 condition=(
                     models.Q(state='completed', winner_id__isnull=False, loser_id__isnull=False) |
+                    models.Q(
+                        state='completed',
+                        winner_id__isnull=True,
+                        loser_id__isnull=True,
+                        participant1_score=models.F('participant2_score'),
+                    ) |
                     ~models.Q(state='completed')
                 ),
                 name='chk_match_completed_has_winner'

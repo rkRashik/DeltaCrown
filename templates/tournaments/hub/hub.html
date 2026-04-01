@@ -469,10 +469,14 @@
       <div id="hub-tab-lobby" class="hub-tab-content lg:hidden">
         <div class="p-4 max-w-[900px] mx-auto space-y-4">
           <div class="hub-glass rounded-2xl p-4 border border-cyan-400/25 hub-mobile-lobby-shell" id="hub-mobile-lobby-panel">
-            <div class="flex items-center justify-between gap-3 mb-3">
+            <div class="hub-mobile-lobby-grid-overlay" aria-hidden="true"></div>
+            <div class="hub-mobile-lobby-glow hub-mobile-lobby-glow-a" aria-hidden="true"></div>
+            <div class="hub-mobile-lobby-glow hub-mobile-lobby-glow-b" aria-hidden="true"></div>
+
+            <div class="hub-mobile-lobby-headline">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">Lobby</p>
-                <h3 class="text-lg font-black text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Live Match Command</h3>
+                <p class="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200">Mobile Lobby</p>
+                <h3 class="text-lg font-black text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Match Control Deck</h3>
               </div>
               <span id="hub-mobile-lobby-status" class="hub-badge hub-badge-info">Waiting</span>
             </div>
@@ -481,9 +485,25 @@
               <p id="hub-mobile-lobby-round" class="text-[10px] text-gray-500 uppercase tracking-wider">No active round</p>
               <p id="hub-mobile-lobby-title" class="text-base font-bold text-white mt-1">No active match yet</p>
               <p id="hub-mobile-lobby-subtitle" class="text-xs text-gray-400 mt-1">You will be auto-focused here when your match goes live.</p>
+
+              <div class="hub-mobile-lobby-team-grid">
+                <div class="hub-mobile-lobby-team">
+                  <div id="hub-mobile-lobby-side-a-avatar" class="hub-mobile-lobby-team-avatar">
+                    <span class="hub-mobile-lobby-team-initial">A</span>
+                  </div>
+                  <p id="hub-mobile-lobby-side-a-name" class="hub-mobile-lobby-team-name">Team A</p>
+                </div>
+                <div class="hub-mobile-lobby-vs">VS</div>
+                <div class="hub-mobile-lobby-team">
+                  <div id="hub-mobile-lobby-side-b-avatar" class="hub-mobile-lobby-team-avatar">
+                    <span class="hub-mobile-lobby-team-initial">B</span>
+                  </div>
+                  <p id="hub-mobile-lobby-side-b-name" class="hub-mobile-lobby-team-name">Team B</p>
+                </div>
+              </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mt-3">
+            <div class="grid grid-cols-2 gap-2.5 mt-3 hub-mobile-lobby-metrics-wrap">
               <div class="rounded-xl border border-white/10 bg-black/25 p-3 hub-mobile-lobby-metric">
                 <p class="text-[10px] text-gray-500 uppercase tracking-wider">Countdown</p>
                 <p id="hub-mobile-lobby-countdown" class="text-xl font-black text-white mt-1" style="font-family:'Space Grotesk',monospace;">--:--</p>
@@ -494,12 +514,13 @@
               </div>
             </div>
 
-            <div class="mt-3 grid grid-cols-1 gap-2">
+            <div class="mt-3 grid grid-cols-1 gap-2.5 hub-mobile-lobby-action-wrap">
               <button id="hub-mobile-lobby-join" type="button" class="w-full py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 font-black text-xs uppercase tracking-[0.12em] hub-mobile-lobby-primary" onclick="HubEngine.switchTab('matches')">
-                Open Match + Submit Result
+                Open Match Queue
               </button>
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-3 gap-2">
                 <button type="button" class="py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('rulebook')">Rules</button>
+                <button type="button" class="py-2.5 rounded-xl bg-cyan-400/10 border border-cyan-300/30 text-cyan-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('schedule')">Schedule</button>
                 <button type="button" class="py-2.5 rounded-xl bg-amber-400/10 border border-amber-300/30 text-amber-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('support')">Dispute</button>
               </div>
             </div>

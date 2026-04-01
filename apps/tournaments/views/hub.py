@@ -50,6 +50,14 @@ from apps.tournaments.services.match_lobby_service import ensure_match_lobby_inf
 logger = logging.getLogger(__name__)
 
 
+def _is_mobile_hub_request(request):
+    ua = str(request.META.get('HTTP_USER_AGENT') or '').lower()
+    if not ua:
+        return False
+    mobile_tokens = ('android', 'iphone', 'ipad', 'ipod', 'mobile', 'opera mini', 'iemobile')
+    return any(token in ua for token in mobile_tokens)
+
+
 # ────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────
@@ -121,6 +129,11 @@ def _resolve_hub_view_mode(request, tournament, registration):
     is_staff_or_organizer = _is_tournament_staff_or_organizer(request.user, tournament)
     can_toggle_view_mode = bool(is_staff_or_organizer and registration)
     view_as = (request.GET.get('view_as') or '').strip().lower()
+
+    # Dual-role users default to participant view on mobile unless they explicitly request staff view.
+    if can_toggle_view_mode and not view_as and _is_mobile_hub_request(request):
+        view_as = 'participant'
+
     is_participant_view = can_toggle_view_mode and view_as == 'participant'
     is_staff_view = bool(is_staff_or_organizer and not is_participant_view)
 
@@ -1387,11 +1400,24 @@ def _time_ago(dt, now=None):
     return f'{d} day{"s" if d != 1 else ""} ago'
 
 
+def _normalize_media_url(value):
+    raw = str(value or '').strip()
+    if not raw:
+        return ''
+    if raw.startswith('/media/media/'):
+        return '/media/' + raw[len('/media/media/'):]
+    if raw.startswith('media/media/'):
+        return '/media/' + raw[len('media/media/'):]
+    if raw.startswith('media/'):
+        return '/media/' + raw[len('media/'):]
+    return raw
+
+
 def _get_avatar_url(user):
     """Return user avatar URL or fallback."""
     try:
         if user.profile and user.profile.avatar:
-            return user.profile.avatar.url
+            return _normalize_media_url(user.profile.avatar.url)
     except Exception:
         pass
     return f"https://ui-avatars.com/api/?name={user.username[:2]}&background=0A0A0E&color=fff&size=64"
@@ -1421,7 +1447,7 @@ def _build_participant_media_map(tournament, participant_ids):
             logo_url = ''
             try:
                 if hasattr(team, 'logo') and team.logo:
-                    logo_url = team.logo.url
+                    logo_url = _normalize_media_url(team.logo.url)
             except Exception:
                 logo_url = ''
             media_map[team.id] = logo_url
@@ -2611,7 +2637,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                 standings = GroupStanding.objects.filter(
                     group=group,
                     is_deleted=False,
-                ).select_related('user', 'user__profile').order_by('rank', '-points', '-goal_difference', 'id')
+                ).select_related('user', 'user__profile').order_by('-points', '-matches_won', '-goal_difference', '-goals_for', 'id')
 
                 team_meta_map = {}
                 if is_team:
@@ -2670,6 +2696,18 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                         'rounds_lost': s.rounds_lost,
                     })
 
+                rows.sort(
+                    key=lambda row: (
+                        -float(row.get('points') or 0),
+                        -int(row.get('won') or 0),
+                        -int(row.get('goal_difference') or 0),
+                        -int(row.get('rounds_won') or 0),
+                        str(row.get('name') or '').lower(),
+                    )
+                )
+                for idx, row in enumerate(rows, 1):
+                    row['rank'] = idx
+
                 groups_data.append({
                     'name': group.name,
                     'standings': rows,
@@ -2693,7 +2731,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
         # Aggregate W/L per participant
         from collections import defaultdict
         stats = defaultdict(lambda: {
-            'wins': 0, 'losses': 0, 'map_wins': 0, 'map_losses': 0,
+            'wins': 0, 'draws': 0, 'losses': 0, 'map_wins': 0, 'map_losses': 0,
             'round_wins': 0, 'round_losses': 0, 'name': 'TBD',
         })
 
@@ -2709,6 +2747,8 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                     entry['name'] = pname
                 if m.winner_id == pid:
                     entry['wins'] += 1
+                elif m.winner_id is None:
+                    entry['draws'] += 1
                 else:
                     entry['losses'] += 1
                 entry['map_wins'] += own_score or 0
@@ -2745,8 +2785,9 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                 'logo_url': participant_media_map.get(pid, ''),
                 'is_you': pid == participant_id if participant_id else False,
                 'wins': s['wins'],
+                'draws': s['draws'],
                 'losses': s['losses'],
-                'points': s['wins'] * 3,
+                'points': (s['wins'] * 3) + s['draws'],
                 'map_diff': s['map_wins'] - s['map_losses'],
                 'round_diff': s['round_wins'] - s['round_losses'],
                 'map_wins': s['map_wins'],
@@ -2755,7 +2796,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                 'round_losses': s['round_losses'],
             })
 
-        rows.sort(key=lambda r: (-r['wins'], -r['map_diff'], -r['round_diff']))
+        rows.sort(key=lambda r: (-r['points'], -r['wins'], -r['map_diff'], -r['round_diff']))
         for i, r in enumerate(rows, 1):
             r['rank'] = i
 

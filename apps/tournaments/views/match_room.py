@@ -193,6 +193,31 @@ def _coerce_optional_bool(value: Any) -> Optional[bool]:
     return None
 
 
+def _draws_allowed_for_match(match: Match) -> bool:
+    """Resolve whether a tied completed score can be finalized as draw."""
+    try:
+        from apps.tournaments.services.match_service import MatchService
+
+        return bool(MatchService.draws_allowed_for_match(match))
+    except Exception:
+        pass
+
+    tournament = getattr(match, "tournament", None)
+    if tournament is None:
+        return False
+
+    format_token = str(getattr(tournament, "format", "") or "").strip().lower()
+    if format_token in {
+        str(Tournament.ROUND_ROBIN).lower(),
+        str(Tournament.GROUP_PLAYOFF).lower(),
+        "group_stage",
+        "league",
+    }:
+        return True
+
+    return False
+
+
 def _coerce_positive_int(value: Any) -> Optional[int]:
     try:
         parsed = int(str(value).strip())
@@ -1139,6 +1164,19 @@ def _fallback_avatar_url(seed: str) -> str:
     return f"https://ui-avatars.com/api/?name={token}&background=0A0A0E&color=fff&size=64"
 
 
+def _normalize_media_url(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith('/media/media/'):
+        return '/media/' + raw[len('/media/media/'):]
+    if raw.startswith('media/media/'):
+        return '/media/' + raw[len('media/media/'):]
+    if raw.startswith('media/'):
+        return '/media/' + raw[len('media/'):]
+    return raw
+
+
 def _participant_media_map(match: Match) -> Dict[int, str]:
     participant_ids = {int(pid) for pid in (match.participant1_id, match.participant2_id) if pid}
     if not participant_ids:
@@ -1154,7 +1192,7 @@ def _participant_media_map(match: Match) -> Dict[int, str]:
             logo_url = ""
             try:
                 if team.logo:
-                    logo_url = str(team.logo.url or "")
+                    logo_url = _normalize_media_url(str(team.logo.url or ""))
             except Exception:
                 logo_url = ""
             media_map[team.id] = logo_url
@@ -1169,7 +1207,7 @@ def _participant_media_map(match: Match) -> Dict[int, str]:
         try:
             profile = getattr(user, "profile", None)
             if profile and profile.avatar:
-                avatar_url = str(profile.avatar.url or "")
+                avatar_url = _normalize_media_url(str(profile.avatar.url or ""))
         except Exception:
             avatar_url = ""
         media_map[user.id] = avatar_url or _fallback_avatar_url(getattr(user, "username", ""))
@@ -1204,10 +1242,10 @@ def _safe_submission_proof_url(submission: MatchResultSubmission) -> str:
     proof = getattr(submission, "proof_screenshot", None)
     if proof:
         try:
-            return str(proof.url or "")
+            return _normalize_media_url(str(proof.url or ""))
         except Exception:
             pass
-    return str(submission.proof_screenshot_url or "")
+    return _normalize_media_url(str(submission.proof_screenshot_url or ""))
 
 
 def _serialize_side_submission(submission: MatchResultSubmission, side: int) -> Dict[str, Any]:
@@ -2088,21 +2126,55 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     match.participant2_score = p2_score
 
                     if p1_score == p2_score:
-                        for side_sub in (sub_1, sub_2):
-                            if not side_sub:
-                                continue
-                            side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
-                            side_sub.confirmed_at = timezone.now()
-                            side_sub.confirmed_by_user_id = access.get("user_id")
-                            side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
-
-                        workflow["result_status"] = "tie_pending_review"
-                        workflow["phase"] = "results"
-                        match.state = Match.PENDING_RESULT
+                        draw_allowed = _draws_allowed_for_match(match)
                         match.winner_id = None
                         match.loser_id = None
-                        workflow["final_result"] = None
-                        message = "Scores match but ended tied. Staff review required."
+
+                        if draw_allowed:
+                            match.state = Match.COMPLETED
+                            if not match.completed_at:
+                                match.completed_at = timezone.now()
+
+                            for side_sub in (sub_1, sub_2):
+                                if not side_sub:
+                                    continue
+                                side_sub.status = MatchResultSubmission.STATUS_FINALIZED
+                                side_sub.confirmed_at = timezone.now()
+                                side_sub.confirmed_by_user_id = access.get("user_id")
+                                side_sub.finalized_at = timezone.now()
+                                side_sub.save(
+                                    update_fields=[
+                                        "status",
+                                        "confirmed_at",
+                                        "confirmed_by_user",
+                                        "finalized_at",
+                                    ]
+                                )
+
+                            workflow["result_status"] = "verified_draw"
+                            workflow["phase"] = "completed"
+                            workflow["final_result"] = {
+                                "participant1_score": p1_score,
+                                "participant2_score": p2_score,
+                                "winner_side": 0,
+                                "result_mode": "draw",
+                                "verified_at": timezone.now().isoformat(),
+                            }
+                            message = "Result verified as draw."
+                        else:
+                            for side_sub in (sub_1, sub_2):
+                                if not side_sub:
+                                    continue
+                                side_sub.status = MatchResultSubmission.STATUS_CONFIRMED
+                                side_sub.confirmed_at = timezone.now()
+                                side_sub.confirmed_by_user_id = access.get("user_id")
+                                side_sub.save(update_fields=["status", "confirmed_at", "confirmed_by_user"])
+
+                            workflow["result_status"] = "tie_pending_review"
+                            workflow["phase"] = "results"
+                            match.state = Match.PENDING_RESULT
+                            workflow["final_result"] = None
+                            message = "Scores match but ended tied. Staff review required."
                     else:
                         winner_side = 1 if p1_score > p2_score else 2
                         winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
@@ -2168,11 +2240,28 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if p1_score == p2_score:
                 match.winner_id = None
                 match.loser_id = None
-                match.state = Match.PENDING_RESULT
-                workflow["result_status"] = "admin_tie_pending_review"
-                workflow["phase"] = "results"
-                workflow["final_result"] = None
-                message = "Admin override saved as tied score."
+                draw_allowed = _draws_allowed_for_match(match)
+
+                if draw_allowed:
+                    match.state = Match.COMPLETED
+                    if not match.completed_at:
+                        match.completed_at = timezone.now()
+                    workflow["result_status"] = "admin_overridden_draw"
+                    workflow["phase"] = "completed"
+                    workflow["final_result"] = {
+                        "participant1_score": p1_score,
+                        "participant2_score": p2_score,
+                        "winner_side": 0,
+                        "result_mode": "draw",
+                        "verified_at": timezone.now().isoformat(),
+                    }
+                    message = "Admin override finalized as draw result."
+                else:
+                    match.state = Match.PENDING_RESULT
+                    workflow["result_status"] = "admin_tie_pending_review"
+                    workflow["phase"] = "results"
+                    workflow["final_result"] = None
+                    message = "Admin override saved as tied score."
             else:
                 winner_side = 1 if p1_score > p2_score else 2
                 match.winner_id = match.participant1_id if winner_side == 1 else match.participant2_id
@@ -2192,7 +2281,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             submission_status = (
                 MatchResultSubmission.STATUS_CONFIRMED
-                if p1_score == p2_score
+                if p1_score == p2_score and match.state != Match.COMPLETED
                 else MatchResultSubmission.STATUS_FINALIZED
             )
 
