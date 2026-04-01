@@ -27,7 +27,7 @@ Admin Features:
 """
 
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
@@ -339,3 +339,42 @@ class MatchIntegrityCheckAdmin(ModelAdmin):
         'source', 'status', 'fetched_at', 'created_at', 'updated_at',
     ]
     ordering = ['-created_at']
+
+
+# ---------------------------------------------------------------------------
+# DisputeRecord admin (replaces legacy DisputeAdmin)
+# ---------------------------------------------------------------------------
+
+from apps.tournaments.models.dispute import DisputeRecord, DisputeEvidence
+
+
+class DisputeEvidenceInline(TabularInline):
+    model = DisputeEvidence
+    extra = 0
+    readonly_fields = ['uploaded_by', 'created_at']
+    fields = ['evidence_type', 'url', 'evidence_file', 'notes', 'uploaded_by', 'created_at']
+
+
+@admin.register(DisputeRecord)
+class DisputeRecordAdmin(ModelAdmin):
+    list_display = ['id', 'submission', 'status', 'reason_code', 'opened_by_user', 'opened_at', 'resolved_at']
+    list_filter = ['status', 'reason_code', 'flagged_by_system']
+    search_fields = ['description', 'resolution_notes', 'opened_by_user__username']
+    readonly_fields = ['id', 'opened_at', 'updated_at']
+    list_select_related = ['submission', 'opened_by_user', 'resolved_by_user']
+    ordering = ['-opened_at']
+    inlines = [DisputeEvidenceInline]
+    fieldsets = (
+        (None, {
+            'fields': ('submission', 'status', 'reason_code', 'flagged_by_system'),
+        }),
+        ('Parties', {
+            'fields': ('opened_by_user', 'opened_by_team_id', 'resolved_by_user'),
+        }),
+        ('Details', {
+            'fields': ('description', 'resolution_notes'),
+        }),
+        ('Timestamps', {
+            'fields': ('id', 'opened_at', 'updated_at', 'resolved_at', 'escalated_at'),
+        }),
+    )

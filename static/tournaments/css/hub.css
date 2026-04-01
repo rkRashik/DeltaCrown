@@ -301,7 +301,7 @@ body.hub-mobile-nav-open {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease;
-  z-index: 40;
+  z-index: 55;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 184, 0, 0.26) 0%, rgba(255, 184, 0, 0.05) 44%, rgba(2, 2, 3, 0.74) 100%),
     radial-gradient(circle at 50% 75%, rgba(0, 240, 255, 0.1) 0%, rgba(0, 240, 255, 0.01) 50%, transparent 100%),

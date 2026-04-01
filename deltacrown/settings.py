@@ -1793,7 +1793,7 @@ if _HAS_UNFOLD:
                     {
                         "title": "Disputes",
                         "icon": "gavel",
-                        "link": reverse_lazy("admin:tournaments_dispute_changelist"),
+                        "link": reverse_lazy("admin:tournaments_disputerecord_changelist"),
                     },
                     {
                         "title": "Challenges",

@@ -673,6 +673,17 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         ).select_related('user', 'user__profile')
         member_by_user_id = {m.user_id: m for m in members}
 
+        # Bulk-fetch passports for all team members (single query instead of N*2)
+        _passport_map = {}
+        if tournament.game:
+            try:
+                from apps.user_profile.services.game_passport_service import GamePassportService
+                all_user_ids = [e.get('user_id') for e in (lineup_snapshot or [])] or [m.user_id for m in members]
+                all_user_ids = [uid for uid in all_user_ids if uid]
+                _passport_map = GamePassportService.get_passports_bulk(all_user_ids, tournament.game.slug)
+            except Exception:
+                pass
+
         if lineup_snapshot and isinstance(lineup_snapshot, list) and len(lineup_snapshot) > 0:
             # ── Use lineup_snapshot as source of truth ──
             for entry in lineup_snapshot:
@@ -680,24 +691,20 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
                 tm = member_by_user_id.get(user_id)
                 user_obj = tm.user if tm else None
 
-                # Fresh passport lookup
+                # Fresh passport lookup (from bulk-fetched map)
                 has_passport = True
                 game_id = entry.get('game_id', '')
                 if user_obj and tournament.game:
-                    try:
-                        from apps.user_profile.services.game_passport_service import GamePassportService
-                        passport = GamePassportService.get_passport(user_obj, tournament.game.slug)
-                        if passport and passport.ign:
-                            game_id = passport.ign
-                            if passport.discriminator:
-                                d = passport.discriminator
-                                if not d.startswith('#') and not d.startswith('-'):
-                                    d = f'#{d}'
-                                game_id = f"{passport.ign}{d}"
-                        else:
-                            has_passport = False
-                    except Exception:
-                        has_passport = bool(game_id)
+                    passport = _passport_map.get(user_id)
+                    if passport and passport.ign:
+                        game_id = passport.ign
+                        if passport.discriminator:
+                            d = passport.discriminator
+                            if not d.startswith('#') and not d.startswith('-'):
+                                d = f'#{d}'
+                            game_id = f"{passport.ign}{d}"
+                    else:
+                        has_passport = False
                 elif not game_id:
                     has_passport = False
 
@@ -729,19 +736,15 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
             for m in members:
                 has_passport = True
                 game_id = ''
-                try:
-                    from apps.user_profile.services.game_passport_service import GamePassportService
-                    passport = GamePassportService.get_passport(m.user, tournament.game.slug)
-                    if passport and passport.ign:
-                        game_id = passport.ign
-                        if passport.discriminator:
-                            d = passport.discriminator
-                            if not d.startswith('#') and not d.startswith('-'):
-                                d = f'#{d}'
-                            game_id = f"{passport.ign}{d}"
-                    else:
-                        has_passport = False
-                except Exception:
+                passport = _passport_map.get(m.user_id)
+                if passport and passport.ign:
+                    game_id = passport.ign
+                    if passport.discriminator:
+                        d = passport.discriminator
+                        if not d.startswith('#') and not d.startswith('-'):
+                            d = f'#{d}'
+                        game_id = f"{passport.ign}{d}"
+                else:
                     has_passport = False
 
                 # Properly determine roster_slot from TeamMembership role

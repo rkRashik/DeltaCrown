@@ -10,7 +10,7 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.tournaments.models import (
     Tournament, Game, Registration, Match, Bracket, BracketNode, 
-    Payment, Dispute, CustomField
+    Payment, DisputeRecord, CustomField, MatchResultSubmission
 )
 
 User = get_user_model()
@@ -391,7 +391,7 @@ class PaymentAdminTests(TestCase):
 
 
 class DisputeAdminTests(TestCase):
-    """Test Dispute admin interface"""
+    """Test DisputeRecord admin interface"""
     
     def setUp(self):
         self.admin = User.objects.create_superuser(
@@ -450,24 +450,30 @@ class DisputeAdminTests(TestCase):
             participant1_score=2,
             participant2_score=1
         )
-        self.dispute = Dispute.objects.create(
+        self.submission = MatchResultSubmission.objects.create(
             match=self.match,
-            initiated_by_id=self.player1.id,
-            reason=Dispute.SCORE_MISMATCH,
+            submitted_by_user=self.player1,
+            raw_result_payload={'score': [2, 1]},
+            status=MatchResultSubmission.STATUS_DISPUTED,
+        )
+        self.dispute = DisputeRecord.objects.create(
+            submission=self.submission,
+            opened_by_user=self.player2,
+            reason_code=DisputeRecord.REASON_SCORE_MISMATCH,
             description='Score is wrong',
-            status=Dispute.OPEN
+            status=DisputeRecord.OPEN
         )
         self.client = Client()
         self.client.login(username='admin', password='admin123')
     
     def test_dispute_list_loads(self):
-        """Test /admin/tournaments/dispute/ loads"""
-        response = self.client.get(reverse('admin:tournaments_dispute_changelist'))
+        """Test /admin/tournaments/disputerecord/ loads"""
+        response = self.client.get(reverse('admin:tournaments_disputerecord_changelist'))
         self.assertEqual(response.status_code, 200)
     
     def test_dispute_change_loads(self):
-        """Test /admin/tournaments/dispute/<id>/change/ loads"""
+        """Test /admin/tournaments/disputerecord/<id>/change/ loads"""
         response = self.client.get(
-            reverse('admin:tournaments_dispute_change', args=[self.dispute.id])
+            reverse('admin:tournaments_disputerecord_change', args=[self.dispute.id])
         )
         self.assertEqual(response.status_code, 200)

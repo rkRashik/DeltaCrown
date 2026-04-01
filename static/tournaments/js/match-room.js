@@ -2839,6 +2839,15 @@
     }
 
     state.reconnectAttempts += 1;
+
+    // Hard cap: stop retrying after 8 attempts to prevent battery/memory drain
+    if (state.reconnectAttempts > 8) {
+      console.warn('[MatchRoom] WebSocket reconnect limit reached, switching to HTTP polling');
+      updateSocketPill();
+      startFallbackSync();
+      return;
+    }
+
     const delayMs = Math.min(20000, 1000 * Math.max(1, state.reconnectAttempts));
 
     state.reconnectTimer = window.setTimeout(function () {

@@ -728,6 +728,22 @@ class GamePassportService:
     def get_all_passports(user: User) -> List[GameProfile]:
         """Get all passports for user (ordered: pinned first)"""
         return list(GameProfile.objects.filter(user=user).select_related('game'))
+
+    @staticmethod
+    def get_passports_bulk(user_ids: list, game_slug: str) -> dict:
+        """
+        Bulk-fetch passports for multiple users and a single game.
+        Returns dict mapping user_id -> GameProfile (or None).
+        Single query instead of 2N queries.
+        """
+        try:
+            game_obj = Game.objects.get(slug=game_slug)
+        except Game.DoesNotExist:
+            return {}
+        profiles = GameProfile.objects.filter(
+            user_id__in=user_ids, game=game_obj
+        ).select_related('user')
+        return {p.user_id: p for p in profiles}
     
     @staticmethod
     def get_alias_history(user: User, game: str) -> List[GameProfileAlias]:

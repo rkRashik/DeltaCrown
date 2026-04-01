@@ -33,6 +33,9 @@ except Exception:
 # Import competition admin status view (safe - no model queries)
 from apps.competition.admin import competition_admin_status
 
+# User preferences API (consumed by match-room-core.js)
+from apps.user_profile.views.settings_api import get_platform_preferences as _user_prefs_view
+
 
 urlpatterns = [
     # Root + health
@@ -142,6 +145,9 @@ urlpatterns = [
     
     # Phase 10: Challenge & Bounty competitive system API
     path("api/v1/", include("apps.api.urls.challenge_urls")),
+
+    # User preferences API (consumed by match-room-core.js)
+    path("api/v1/user/preferences/", _user_prefs_view, name="api_v1_user_preferences"),
     
     # REMOVED: Legacy apps.teams API — all team APIs now in api/vnext/ (organizations_api)
     

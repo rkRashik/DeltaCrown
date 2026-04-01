@@ -88,6 +88,7 @@ const HubEngine = (() => {
   let _announcementScrollTimer = null;
   let _statePollInFlight = false;
   let _statePollQueued = false;
+  let _statePollFailCount = 0;
   let _lastStatePollStartedAt = 0;
   let _lastAnnouncementPollStartedAt = 0;
   let _lastPolledState = null;
@@ -1084,6 +1085,7 @@ const HubEngine = (() => {
       if (!resp.ok) return;
       const data = await resp.json();
       _lastPolledState = data;
+      _statePollFailCount = 0;
 
       if (data.tournament_status) {
         _syncTournamentStatusUi(data.tournament_status);
@@ -1157,7 +1159,11 @@ const HubEngine = (() => {
       }
 
     } catch (err) {
+      _statePollFailCount++;
       console.warn('[HubEngine] State poll failed:', err.message);
+      if (_statePollFailCount === 3 && typeof window.showToast === 'function') {
+        window.showToast('Failed to sync hub data. Check your connection.', 'warning');
+      }
     } finally {
       _statePollInFlight = false;
       if (_statePollQueued) {
