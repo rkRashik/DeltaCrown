@@ -16,6 +16,12 @@
     /* Module state                                                   */
     /* ────────────────────────────────────────────────────────────── */
 
+    function esc(s) {
+        const d = document.createElement('div');
+        d.textContent = s ?? '';
+        return d.innerHTML;
+    }
+
     const state = {
         emergencySubs: [],
         freeAgents: [],
@@ -40,7 +46,7 @@
             expired:   'bg-dc-panel text-dc-text border-dc-border',
         };
         const cls = map[status] || 'bg-dc-panel text-dc-text border-dc-border';
-        return `<span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${cls}">${status}</span>`;
+        return `<span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${cls}">${esc(status)}</span>`;
     }
 
     function timeAgo(iso) {
@@ -108,7 +114,7 @@
                             <i data-lucide="user-minus" class="w-3.5 h-3.5 text-dc-danger"></i>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-white">${sub.dropping_player || '—'}</p>
+                            <p class="text-xs font-bold text-white">${esc(sub.dropping_player || '—')}</p>
                             <p class="text-[9px] text-dc-text">Dropping</p>
                         </div>
                     </div>
@@ -118,12 +124,12 @@
                             <i data-lucide="user-plus" class="w-3.5 h-3.5 text-dc-success"></i>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-white">${sub.substitute_player || '—'}</p>
+                            <p class="text-xs font-bold text-white">${esc(sub.substitute_player || '—')}</p>
                             <p class="text-[9px] text-dc-text">Substitute</p>
                         </div>
                     </div>
                 </div>
-                <p class="text-[11px] text-dc-text mb-3 italic">"${sub.reason}"</p>
+                <p class="text-[11px] text-dc-text mb-3 italic">"${esc(sub.reason)}"</p>
                 ${sub.status === 'pending' ? `
                 <div class="flex items-center gap-2 pt-2 border-t border-dc-border/50">
                     <button onclick="TOC.participantsAdv.approveEmergencySub('${sub.id}')" class="flex-1 px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">
@@ -134,8 +140,8 @@
                     </button>
                 </div>` : `
                 <div class="pt-2 border-t border-dc-border/50 text-[10px] text-dc-text">
-                    Reviewed by <span class="text-white font-bold">${sub.reviewed_by || '—'}</span>
-                    ${sub.review_notes ? ` — "${sub.review_notes}"` : ''}
+                    Reviewed by <span class="text-white font-bold">${esc(sub.reviewed_by || '—')}</span>
+                    ${sub.review_notes ? ` — "${esc(sub.review_notes)}"` : ''}
                 </div>`}
             </div>
         `).join('');
@@ -301,8 +307,8 @@
                         #${w.position || idx + 1}
                     </div>
                     <div>
-                        <p class="text-xs font-bold text-white">${w.participant_name}</p>
-                        <p class="text-[9px] text-dc-text font-mono">${w.registration_number || ''} · ${timeAgo(w.registered_at)}</p>
+                        <p class="text-xs font-bold text-white">${esc(w.participant_name)}</p>
+                        <p class="text-[9px] text-dc-text font-mono">${esc(w.registration_number || '')} · ${timeAgo(w.registered_at)}</p>
                     </div>
                 </div>
                 <button onclick="TOC.participantsAdv.promoteWaitlist(${w.id})" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">

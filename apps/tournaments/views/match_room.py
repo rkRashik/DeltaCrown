@@ -2058,9 +2058,27 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             credentials = _safe_dict(workflow.get("credentials"))
             schema_keys = _credential_schema_keys(runtime.get("credential_schema"))
+            schema_key_set = set(schema_keys)
+
+            # Reject payload keys that are not in the credential schema (anti-injection)
+            submitted_keys = {
+                k for k in payload.keys()
+                if k not in ("action", "csrfmiddlewaretoken")
+            }
+            extra_keys = submitted_keys - schema_key_set
+            if extra_keys:
+                raise ValueError(
+                    f"Unexpected credential fields rejected: {', '.join(sorted(extra_keys))}"
+                )
+
             for key in schema_keys:
                 if key in payload:
-                    credentials[key] = str(payload.get(key) or "").strip()
+                    raw_value = str(payload.get(key) or "").strip()
+                    if len(raw_value) > 500:
+                        raise ValueError(
+                            f"Credential field '{key}' exceeds maximum length (500 chars)."
+                        )
+                    credentials[key] = raw_value
 
             workflow["credentials"] = credentials
 

@@ -288,32 +288,34 @@ class PayoutService:
                 # Convert Decimal to int (Delta Coins are stored as integers in economy)
                 amount_int = int(amount)
                 
-                # Create DeltaCrownTransaction via economy service
-                coin_tx = award(
-                    profile=profile,
-                    amount=amount_int,
-                    reason=DeltaCrownTransaction.Reason.WINNER if placement_key == '1st' else (
-                        DeltaCrownTransaction.Reason.RUNNER_UP if placement_key == '2nd' else 
-                        DeltaCrownTransaction.Reason.TOP4
-                    ),
-                    tournament=tournament,
-                    registration=registration,
-                    note=f"Prize payout - {placement_key} place",
-                    created_by=processed_by,
-                    idempotency_key=idempotency_key,
-                )
-                
-                # Create PrizeTransaction audit record
-                prize_tx = PrizeTransaction.objects.create(
-                    tournament=tournament,
-                    participant=registration,
-                    placement=placement_enum,
-                    amount=amount,
-                    coin_transaction_id=coin_tx.id,  # IntegerField reference to economy
-                    status=PrizeTransaction.Status.COMPLETED,
-                    processed_by=processed_by,
-                    notes=f"Prize payout processed successfully. Economy TX ID: {coin_tx.id}"
-                )
+                # Atomic: both economy credit and prize audit record succeed or fail together
+                with transaction.atomic():
+                    # Create DeltaCrownTransaction via economy service
+                    coin_tx = award(
+                        profile=profile,
+                        amount=amount_int,
+                        reason=DeltaCrownTransaction.Reason.WINNER if placement_key == '1st' else (
+                            DeltaCrownTransaction.Reason.RUNNER_UP if placement_key == '2nd' else 
+                            DeltaCrownTransaction.Reason.TOP4
+                        ),
+                        tournament=tournament,
+                        registration=registration,
+                        note=f"Prize payout - {placement_key} place",
+                        created_by=processed_by,
+                        idempotency_key=idempotency_key,
+                    )
+                    
+                    # Create PrizeTransaction audit record
+                    prize_tx = PrizeTransaction.objects.create(
+                        tournament=tournament,
+                        participant=registration,
+                        placement=placement_enum,
+                        amount=amount,
+                        coin_transaction_id=coin_tx.id,  # IntegerField reference to economy
+                        status=PrizeTransaction.Status.COMPLETED,
+                        processed_by=processed_by,
+                        notes=f"Prize payout processed successfully. Economy TX ID: {coin_tx.id}"
+                    )
                 
                 created_transaction_ids.append(coin_tx.id)
                 logger.info(

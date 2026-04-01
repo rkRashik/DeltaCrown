@@ -18,6 +18,9 @@
   const slug = window.TOC?.slug;
   if (!API || !slug) return;
 
+  /* ─── XSS escaping ───────────────────────────────────────── */
+  function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+
   /* ─── state ───────────────────────────────────────────────── */
   let currentPage = 1;
   const pageSize = 20;
@@ -221,8 +224,8 @@
             ${isCheckable ? `<input type="checkbox" class="toc-checkbox pay-row-cb" data-id="${p.id}" ${checked} onclick="TOC.payments.toggleRow('${p.id}', this)">` : ''}
           </td>
           <td class="px-3 py-3">
-            <p class="text-dc-textBright font-semibold text-xs leading-tight">${p.participant_name || 'Unknown'}</p>
-            <p class="text-[10px] text-dc-text font-mono mt-0.5">${p.team_name || ''}</p>
+            <p class="text-dc-textBright font-semibold text-xs leading-tight">${esc(p.participant_name || 'Unknown')}</p>
+            <p class="text-[10px] text-dc-text font-mono mt-0.5">${esc(p.team_name || '')}</p>
           </td>
           <td class="px-3 py-3 text-right font-mono text-dc-textBright font-bold">${money(p.amount, p.currency)}</td>
           <td class="px-3 py-3">
@@ -241,7 +244,7 @@
                 <button onclick="TOC.payments.reject('${p.id}')" title="Reject" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
               ` : ''}
               ${p.status === 'verified' ? `
-                <button onclick="TOC.payments.openRefund('${p.id}', '${(p.participant_name||'').replace(/'/g,'')}', '${p.amount}')" title="Refund" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
+                <button onclick="TOC.payments.openRefund('${p.id}', '${esc((p.participant_name||'').replace(/'/g,'&#39;'))}', '${p.amount}')" title="Refund" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
               ` : ''}
             </div>
           </td>
@@ -565,8 +568,8 @@
       <div class="bg-dc-bg border border-dc-border rounded-xl p-4 hover:border-dc-borderLight transition-colors group">
         <div class="flex items-start justify-between mb-2">
           <div>
-            <h4 class="text-sm font-bold text-white leading-tight">${b.name}</h4>
-            <span class="text-[9px] font-bold uppercase tracking-widest text-dc-text">${bountyTypeLabels[b.bounty_type] || b.bounty_type}</span>
+            <h4 class="text-sm font-bold text-white leading-tight">${esc(b.name)}</h4>
+            <span class="text-[9px] font-bold uppercase tracking-widest text-dc-text">${esc(bountyTypeLabels[b.bounty_type] || b.bounty_type)}</span>
           </div>
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             ${!b.is_assigned ? `
@@ -577,12 +580,12 @@
             `}
           </div>
         </div>
-        ${b.description ? `<p class="text-[10px] text-dc-text line-clamp-2 mb-2">${b.description}</p>` : ''}
+        ${b.description ? `<p class="text-[10px] text-dc-text line-clamp-2 mb-2">${esc(b.description)}</p>` : ''}
         <div class="flex items-center justify-between mt-2">
           <span class="font-mono font-bold text-theme">${money(b.prize_amount, b.prize_currency)}</span>
           <div class="flex items-center gap-2">
-            <span class="text-[9px] text-dc-text uppercase">${b.source || ''}</span>
-            ${b.is_assigned && b.assigned_to_name ? `<span class="text-[10px] text-dc-textBright font-semibold">→ ${b.assigned_to_name}</span>` : ''}
+            <span class="text-[9px] text-dc-text uppercase">${esc(b.source || '')}</span>
+            ${b.is_assigned && b.assigned_to_name ? `<span class="text-[10px] text-dc-textBright font-semibold">→ ${esc(b.assigned_to_name)}</span>` : ''}
           </div>
         </div>
       </div>

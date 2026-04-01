@@ -146,6 +146,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 return
 
         self.room_group_name = f"match_{self.match_id}"
+        self._last_chat_ts = 0.0  # monotonic timestamp of last chat message
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -285,6 +286,17 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             return
 
         if message_type == "chat_message":
+            now_mono = asyncio.get_event_loop().time()
+            if now_mono - self._last_chat_ts < 2.0:
+                await self.send_json(
+                    {
+                        "type": "error",
+                        "code": "rate_limited",
+                        "message": "You are sending messages too quickly. Please wait.",
+                    }
+                )
+                return
+
             text = str(content.get("text") or "").strip()
             if not text:
                 await self.send_json(
@@ -336,6 +348,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     },
                 },
             )
+            self._last_chat_ts = now_mono
             return
 
         await self.send_json(

@@ -124,7 +124,13 @@ def _get_user_registration(user, tournament):
 def _resolve_hub_view_mode(request, tournament, registration):
     """Resolve whether this Hub request should render as staff or participant view."""
     is_staff_or_organizer = _is_tournament_staff_or_organizer(request.user, tournament)
-    can_toggle_view_mode = bool(is_staff_or_organizer and registration)
+    # Participant view requires a confirmed/auto-approved registration — prevent
+    # privilege escalation via view_as=participant for unconfirmed or waitlisted users.
+    has_confirmed_registration = bool(
+        registration
+        and registration.status in (Registration.CONFIRMED, Registration.AUTO_APPROVED)
+    )
+    can_toggle_view_mode = bool(is_staff_or_organizer and has_confirmed_registration)
     view_as = (request.GET.get('view_as') or '').strip().lower()
 
     # Dual-role users default to participant view on mobile unless they explicitly request staff view.
