@@ -36,6 +36,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "apps.match_engine.*",
+    "apps.brackets.*",
+    "apps.common.signals",
+]
+disallow_untyped_defs = true
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "deltacrown.settings_test_pg"
 python_files = ["test_*.py", "*_test.py"]

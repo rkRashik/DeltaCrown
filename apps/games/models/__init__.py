@@ -5,7 +5,8 @@ Games app models.
 import os
 
 from .game import Game
-from .match_pipeline import GameMatchPipeline
+# Phase 6: GameMatchPipeline moved to apps.match_engine — re-export for compat
+from apps.match_engine.models import GameMatchPipeline  # noqa: F401
 
 __all__ = ['Game', 'GameMatchPipeline']
 

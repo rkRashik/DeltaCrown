@@ -31,9 +31,10 @@ from .team_invitation import (
 from .payment_verification import (
     PaymentVerification,  # Payment proof submission (Module 3.x)
 )
-from .bracket import (
-    Bracket,       # Full implementation (Module 1.5)
-    BracketNode,   # Full implementation (Module 1.5)
+# Phase 6: Bracket models moved to apps.brackets — re-export for backward compat
+from apps.brackets.models import (
+    Bracket,       # Canonical: apps.brackets.models
+    BracketNode,   # Canonical: apps.brackets.models
 )
 from .match import (
     Match,    # Full implementation (Module 1.4)

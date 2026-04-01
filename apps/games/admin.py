@@ -13,7 +13,6 @@ from apps.games.models import (
     GamePlayerIdentityConfig,
     GameTournamentConfig,
     GameRole,
-    GameMatchPipeline,
 )
 from apps.games.models.rules import VetoConfiguration
 
@@ -126,11 +125,7 @@ class GameRoleAdmin(ModelAdmin):
     ordering = ['game', 'order', 'role_name']
 
 
-@admin.register(GameMatchPipeline)
-class GameMatchPipelineAdmin(ModelAdmin):
-    list_display = ['game', 'archetype', 'require_coin_toss', 'require_map_veto']
-    list_filter = ['archetype', 'require_coin_toss', 'require_map_veto']
-    search_fields = ['game__name', 'game__slug']
+# GameMatchPipeline admin now registered in apps.match_engine.admin (Phase 6)
 
 
 @admin.register(VetoConfiguration)

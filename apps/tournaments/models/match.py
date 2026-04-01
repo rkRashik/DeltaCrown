@@ -96,7 +96,7 @@ class Match(SoftDeleteModel, TimestampedModel):
     )
     
     bracket = models.ForeignKey(
-        'tournaments.Bracket',
+        'brackets.Bracket',
         on_delete=models.CASCADE,
         related_name='matches',
         verbose_name=_('Bracket'),

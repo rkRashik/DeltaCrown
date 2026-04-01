@@ -156,7 +156,7 @@ class TournamentOpsService:
         return self._result_submission_service
 
     @property
-    def match_service(self):
+    def match_service(self) -> "MatchService":
         """Lazy initialization of MatchService (Phase 4, Epic 4.3)."""
         if self._match_service is None:
             from apps.tournament_ops.services.match_service import MatchService
@@ -170,7 +170,7 @@ class TournamentOpsService:
         return self._match_service
 
     @property
-    def dispute_service(self):
+    def dispute_service(self) -> "DisputeService":
         """Lazy initialization of DisputeService (Phase 6, Epic 6.2 & 6.5)."""
         if not hasattr(self, '_dispute_service') or self._dispute_service is None:
             from apps.tournament_ops.services import DisputeService
@@ -184,7 +184,7 @@ class TournamentOpsService:
         return self._dispute_service
 
     @property
-    def review_inbox_service(self):
+    def review_inbox_service(self) -> "ReviewInboxService":
         """Lazy initialization of ReviewInboxService (Phase 6, Epic 6.3, 6.4, 6.5)."""
         if not hasattr(self, '_review_inbox_service') or self._review_inbox_service is None:
             from apps.tournament_ops.services import ReviewInboxService
@@ -204,7 +204,7 @@ class TournamentOpsService:
         return self._review_inbox_service
 
     @property
-    def result_verification_service(self):
+    def result_verification_service(self) -> "ResultVerificationService":
         """Lazy initialization of ResultVerificationService (Phase 6, Epic 6.4)."""
         if not hasattr(self, '_result_verification_service') or self._result_verification_service is None:
             from apps.tournament_ops.services import ResultVerificationService
@@ -257,7 +257,7 @@ class TournamentOpsService:
         return self._tournament_adapter
     
     @property
-    def notification_adapter(self):
+    def notification_adapter(self) -> "NotificationAdapter":
         """Lazy initialization of NotificationAdapter (Phase 6, Epic 6.5)."""
         if not hasattr(self, '_notification_adapter') or self._notification_adapter is None:
             from apps.tournament_ops.adapters import NotificationAdapter
@@ -265,7 +265,7 @@ class TournamentOpsService:
         return self._notification_adapter
     
     @property
-    def match_ops_service(self):
+    def match_ops_service(self) -> "MatchOpsService":
         """Lazy initialization of MatchOpsService (Phase 7, Epic 7.4)."""
         if not hasattr(self, '_match_ops_service') or self._match_ops_service is None:
             from apps.tournament_ops.services import MatchOpsService
@@ -278,7 +278,7 @@ class TournamentOpsService:
         return self._match_ops_service
     
     @property
-    def audit_log_service(self):
+    def audit_log_service(self) -> "AuditLogService":
         """Lazy initialization of AuditLogService (Phase 7, Epic 7.5)."""
         if not hasattr(self, '_audit_log_service') or self._audit_log_service is None:
             from apps.tournament_ops.services import AuditLogService
@@ -289,7 +289,7 @@ class TournamentOpsService:
         return self._audit_log_service
     
     @property
-    def help_and_onboarding_service(self):
+    def help_and_onboarding_service(self) -> "HelpAndOnboardingService":
         """Lazy initialization of HelpAndOnboardingService (Phase 7, Epic 7.6)."""
         if not hasattr(self, '_help_and_onboarding_service') or self._help_and_onboarding_service is None:
             from apps.tournament_ops.services import HelpAndOnboardingService
@@ -300,7 +300,7 @@ class TournamentOpsService:
         return self._help_and_onboarding_service
     
     @property
-    def user_stats_service(self):
+    def user_stats_service(self) -> "UserStatsService":
         """Lazy initialization of UserStatsService (Phase 8, Epic 8.2)."""
         if not hasattr(self, '_user_stats_service') or self._user_stats_service is None:
             from apps.tournament_ops.services import UserStatsService
@@ -311,7 +311,7 @@ class TournamentOpsService:
         return self._user_stats_service
 
     @property
-    def team_stats_service(self):
+    def team_stats_service(self) -> "TeamStatsService":
         """Lazy initialization of TeamStatsService (Phase 8, Epic 8.3)."""
         if not hasattr(self, '_team_stats_service') or self._team_stats_service is None:
             from apps.tournament_ops.services import TeamStatsService
@@ -323,7 +323,7 @@ class TournamentOpsService:
         return self._team_stats_service
 
     @property
-    def match_history_service(self):
+    def match_history_service(self) -> "MatchHistoryService":
         """Lazy initialization of MatchHistoryService (Phase 8, Epic 8.4)."""
         if not hasattr(self, '_match_history_service') or self._match_history_service is None:
             from apps.tournament_ops.services import MatchHistoryService
@@ -607,7 +607,7 @@ class TournamentOpsService:
     # -------------------------------------------------------------------------
 
     @property
-    def smart_registration_adapter(self):
+    def smart_registration_adapter(self) -> "SmartRegistrationAdapter":
         """Lazy initialization of SmartRegistrationAdapter."""
         if not hasattr(self, '_smart_registration_adapter') or self._smart_registration_adapter is None:
             from apps.tournament_ops.adapters import SmartRegistrationAdapter
@@ -615,7 +615,7 @@ class TournamentOpsService:
         return self._smart_registration_adapter
 
     @property
-    def smart_registration_service(self):
+    def smart_registration_service(self) -> "SmartRegistrationService":
         """Lazy initialization of SmartRegistrationService."""
         if not hasattr(self, '_smart_registration_service') or self._smart_registration_service is None:
             from apps.tournament_ops.services.smart_registration_service import SmartRegistrationService
@@ -1338,7 +1338,7 @@ class TournamentOpsService:
     # ========================================================================
     
     @property
-    def manual_scheduling_service(self):
+    def manual_scheduling_service(self) -> "ManualSchedulingService":
         """Lazy initialization of ManualSchedulingService (Phase 7, Epic 7.2)."""
         if not hasattr(self, '_manual_scheduling_service') or self._manual_scheduling_service is None:
             from apps.tournament_ops.services.manual_scheduling_service import ManualSchedulingService
@@ -1485,7 +1485,7 @@ class TournamentOpsService:
     # ========================================================================
     
     @property
-    def staffing_service(self):
+    def staffing_service(self) -> "StaffingService":
         """Lazy initialization of StaffingService (Phase 7, Epic 7.3)."""
         if not hasattr(self, '_staffing_service') or self._staffing_service is None:
             from apps.tournament_ops.services.staffing_service import StaffingService

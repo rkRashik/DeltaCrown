@@ -6,12 +6,19 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.common.models import SoftDeleteModel
+from apps.common.managers import SoftDeleteManager
 
-class PaymentVerification(models.Model):
+
+class PaymentVerification(SoftDeleteModel):
     """
     Payment proof submission for tournament registrations.
     One verification record per registration.
     """
+
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
         VERIFIED = "verified", _("Verified")

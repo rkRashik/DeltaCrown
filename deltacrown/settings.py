@@ -360,6 +360,8 @@ INSTALLED_APPS = [
     # Local apps
     "apps.common",
     "apps.corelib",
+    "apps.match_engine",  # Phase 6: Match room engine (consumer, pipeline) — before games (re-exports)
+    "apps.brackets",  # Phase 6: Bracket models & generation services — before tournaments (re-exports)
     "apps.games",  # Phase 3: Centralized game configuration
     "apps.organizations.apps.OrganizationsConfig",  # ALL team/org logic
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)

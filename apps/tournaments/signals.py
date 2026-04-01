@@ -32,6 +32,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.conf import settings
 
+from apps.common.signals import make_status_tracker
 from apps.tournaments.models import PaymentVerification, Match, Tournament, FormResponse
 from apps.notifications.services import notify
 
@@ -153,21 +154,9 @@ def handle_payment_status_change(sender, instance, created, **kwargs):
         )
 
 
-@receiver(pre_save, sender=PaymentVerification)
-def track_payment_status_change(sender, instance, **kwargs):
-    """
-    Track original status before save for comparison in post_save.
-    
-    Stores instance._original_status for use in handle_payment_status_change().
-    """
-    if instance.pk:
-        try:
-            old_instance = PaymentVerification.objects.get(pk=instance.pk)
-            instance._original_status = old_instance.status
-        except PaymentVerification.DoesNotExist:
-            instance._original_status = None
-    else:
-        instance._original_status = None
+# Phase 6: DRYed via make_status_tracker (apps/common/signals.py)
+track_payment_status_change = make_status_tracker('status', '_original_status')
+pre_save.connect(track_payment_status_change, sender=PaymentVerification)
 
 
 # ===========================
@@ -425,21 +414,9 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
         )
 
 
-@receiver(pre_save, sender=Match)
-def track_match_state_change(sender, instance, **kwargs):
-    """
-    Track original state before save for comparison in post_save.
-    
-    Stores instance._original_state for use in handle_match_state_change().
-    """
-    if instance.pk:
-        try:
-            old_instance = Match.objects.get(pk=instance.pk)
-            instance._original_state = old_instance.state
-        except Match.DoesNotExist:
-            instance._original_state = None
-    else:
-        instance._original_state = None
+# Phase 6: DRYed via make_status_tracker (apps/common/signals.py)
+track_match_state_change = make_status_tracker('state', '_original_state')
+pre_save.connect(track_match_state_change, sender=Match)
 
 
 # ===========================
@@ -574,21 +551,9 @@ def handle_tournament_status_change(sender, instance, created, **kwargs):
         logger.error(f"Failed to auto-generate certificates: {e}")
 
 
-@receiver(pre_save, sender=Tournament)
-def track_tournament_status_change(sender, instance, **kwargs):
-    """
-    Track original status before save for comparison in post_save.
-    
-    Stores instance._original_status for use in handle_tournament_completed().
-    """
-    if instance.pk:
-        try:
-            old_instance = Tournament.objects.get(pk=instance.pk)
-            instance._original_status = old_instance.status
-        except Tournament.DoesNotExist:
-            instance._original_status = None
-    else:
-        instance._original_status = None
+# Phase 6: DRYed via make_status_tracker (apps/common/signals.py)
+track_tournament_status_change = make_status_tracker('status', '_original_status')
+pre_save.connect(track_tournament_status_change, sender=Tournament)
 
 
 # ===========================

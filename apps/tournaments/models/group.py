@@ -25,10 +25,11 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, CheckConstraint, UniqueConstraint, F
 from decimal import Decimal
 
-from apps.common.models import TimestampedModel
+from apps.common.models import TimestampedModel, SoftDeleteModel
+from apps.common.managers import SoftDeleteManager
 
 
-class Group(TimestampedModel):
+class Group(SoftDeleteModel, TimestampedModel):
     """
     Represents a group in a group stage tournament.
     
@@ -97,12 +98,9 @@ class Group(TimestampedModel):
         help_text=_('Random seed used for provable draw (transparency)')
     )
     
-    is_deleted = models.BooleanField(
-        default=False,
-        verbose_name=_('Is Deleted'),
-        help_text=_('Soft delete flag')
-    )
-    
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = 'tournament_groups'
         verbose_name = _('Group')

@@ -40,7 +40,7 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
         help_text="Winner participant (Registration record)"
     )
     final_bracket = models.ForeignKey(
-        'tournaments.Bracket',
+        'brackets.Bracket',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

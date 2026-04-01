@@ -24,7 +24,7 @@ Usage:
 
 from django.urls import path
 from . import consumers
-from .match_consumer import MatchConsumer
+from apps.match_engine.consumers import MatchConsumer  # Phase 6: canonical location
 from apps.tournaments.consumers.live_draw_consumer import LiveDrawConsumer
 from apps.tournaments.consumers.group_draw_consumer import GroupDrawConsumer
 
