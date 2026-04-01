@@ -17,6 +17,7 @@ if os.environ.get("DELTA_MINIMAL_TEST_APPS") != "1":
     from .rules import (
         GameMatchResultSchema,
         GameScoringRule,
+        VetoConfiguration,
     )
 
     __all__.extend([
@@ -26,4 +27,5 @@ if os.environ.get("DELTA_MINIMAL_TEST_APPS") != "1":
         'GameRole',
         'GameMatchResultSchema',
         'GameScoringRule',
+        'VetoConfiguration',
     ])

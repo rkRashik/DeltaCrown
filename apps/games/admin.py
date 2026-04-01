@@ -12,8 +12,10 @@ from apps.games.models import (
     GameRosterConfig,
     GamePlayerIdentityConfig,
     GameTournamentConfig,
-    GameRole
+    GameRole,
+    GameMatchPipeline,
 )
+from apps.games.models.rules import VetoConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -122,3 +124,17 @@ class GameRoleAdmin(ModelAdmin):
     list_filter = ['game', 'is_competitive', 'is_active']
     search_fields = ['game__name', 'role_name', 'role_code']
     ordering = ['game', 'order', 'role_name']
+
+
+@admin.register(GameMatchPipeline)
+class GameMatchPipelineAdmin(ModelAdmin):
+    list_display = ['game', 'archetype', 'require_coin_toss', 'require_map_veto']
+    list_filter = ['archetype', 'require_coin_toss', 'require_map_veto']
+    search_fields = ['game__name', 'game__slug']
+
+
+@admin.register(VetoConfiguration)
+class VetoConfigurationAdmin(ModelAdmin):
+    list_display = ['game', 'name', 'domain', 'time_per_action_seconds', 'is_active']
+    list_filter = ['domain', 'is_active']
+    search_fields = ['game__name', 'name']

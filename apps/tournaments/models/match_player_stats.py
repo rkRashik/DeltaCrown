@@ -104,6 +104,86 @@ class MatchPlayerStat(TimestampedModel):
         help_text=_('Spike defuses'),
     )
 
+    # ── MOBA stats (Dota 2 / MLBB) ─────────────────────────
+    hero_played = models.CharField(
+        max_length=60, blank=True, default='',
+        verbose_name=_('Hero'),
+        help_text=_('Primary hero/champion played'),
+    )
+    gpm = models.DecimalField(
+        max_digits=7, decimal_places=1, default=0,
+        verbose_name=_('GPM'),
+        help_text=_('Gold per minute'),
+    )
+    xpm = models.DecimalField(
+        max_digits=7, decimal_places=1, default=0,
+        verbose_name=_('XPM'),
+        help_text=_('Experience per minute'),
+    )
+    hero_damage = models.PositiveIntegerField(
+        default=0, verbose_name=_('Hero Dmg'),
+        help_text=_('Total hero damage dealt'),
+    )
+    tower_damage = models.PositiveIntegerField(
+        default=0, verbose_name=_('Tower Dmg'),
+        help_text=_('Total tower/objective damage'),
+    )
+    healing = models.PositiveIntegerField(
+        default=0, verbose_name=_('Healing'),
+        help_text=_('Total healing done'),
+    )
+
+    # ── Battle Royale stats (PUBG / Free Fire) ──────────────
+    placement = models.PositiveIntegerField(
+        default=0, verbose_name=_('Placement'),
+        help_text=_('Final placement position'),
+    )
+    survival_time_seconds = models.PositiveIntegerField(
+        default=0, verbose_name=_('Survival (s)'),
+        help_text=_('Survival time in seconds'),
+    )
+    damage_dealt = models.PositiveIntegerField(
+        default=0, verbose_name=_('Damage'),
+        help_text=_('Total damage dealt'),
+    )
+    revives = models.PositiveIntegerField(
+        default=0, verbose_name=_('Revives'),
+        help_text=_('Teammates revived'),
+    )
+
+    # ── Sports stats (eFootball / FC26 / Rocket League) ─────
+    goals = models.PositiveIntegerField(
+        default=0, verbose_name=_('Goals'),
+    )
+    shots = models.PositiveIntegerField(
+        default=0, verbose_name=_('Shots'),
+    )
+    shots_on_target = models.PositiveIntegerField(
+        default=0, verbose_name=_('On Target'),
+    )
+    possession_pct = models.DecimalField(
+        max_digits=5, decimal_places=1, default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name=_('Possession %'),
+    )
+    passes = models.PositiveIntegerField(
+        default=0, verbose_name=_('Passes'),
+    )
+    tackles = models.PositiveIntegerField(
+        default=0, verbose_name=_('Tackles'),
+    )
+    saves = models.PositiveIntegerField(
+        default=0, verbose_name=_('Saves'),
+        help_text=_('Goalkeeper saves or RL saves'),
+    )
+
+    # ── Dynamic overflow (any game-specific extras) ─────────
+    extra_stats = models.JSONField(
+        default=dict, blank=True,
+        verbose_name=_('Extra Stats'),
+        help_text=_('Overflow JSON for game-specific fields not covered above.'),
+    )
+
     # Computed / cached
     kd_ratio = models.DecimalField(
         max_digits=5, decimal_places=2, default=0,
@@ -222,6 +302,36 @@ class MatchMapPlayerStat(TimestampedModel):
     )
     first_kills = models.PositiveIntegerField(default=0, verbose_name=_('FK'))
     first_deaths = models.PositiveIntegerField(default=0, verbose_name=_('FD'))
+
+    # ── MOBA per-map ────────────────────────────────────────
+    hero_played = models.CharField(max_length=60, blank=True, default='', verbose_name=_('Hero'))
+    gpm = models.DecimalField(max_digits=7, decimal_places=1, default=0, verbose_name=_('GPM'))
+    xpm = models.DecimalField(max_digits=7, decimal_places=1, default=0, verbose_name=_('XPM'))
+    hero_damage = models.PositiveIntegerField(default=0, verbose_name=_('Hero Dmg'))
+    tower_damage = models.PositiveIntegerField(default=0, verbose_name=_('Tower Dmg'))
+    healing = models.PositiveIntegerField(default=0, verbose_name=_('Healing'))
+
+    # ── Battle Royale per-map ───────────────────────────────
+    placement = models.PositiveIntegerField(default=0, verbose_name=_('Placement'))
+    survival_time_seconds = models.PositiveIntegerField(default=0, verbose_name=_('Survival (s)'))
+    damage_dealt = models.PositiveIntegerField(default=0, verbose_name=_('Damage'))
+    revives = models.PositiveIntegerField(default=0, verbose_name=_('Revives'))
+
+    # ── Sports per-map ──────────────────────────────────────
+    goals = models.PositiveIntegerField(default=0, verbose_name=_('Goals'))
+    shots = models.PositiveIntegerField(default=0, verbose_name=_('Shots'))
+    shots_on_target = models.PositiveIntegerField(default=0, verbose_name=_('On Target'))
+    possession_pct = models.DecimalField(
+        max_digits=5, decimal_places=1, default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name=_('Possession %'),
+    )
+    passes = models.PositiveIntegerField(default=0, verbose_name=_('Passes'))
+    tackles = models.PositiveIntegerField(default=0, verbose_name=_('Tackles'))
+    saves = models.PositiveIntegerField(default=0, verbose_name=_('Saves'))
+
+    # ── Dynamic overflow ────────────────────────────────────
+    extra_stats = models.JSONField(default=dict, blank=True, verbose_name=_('Extra Stats'))
 
     class Meta:
         db_table = 'tournament_match_map_player_stat'

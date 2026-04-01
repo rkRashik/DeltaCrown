@@ -320,3 +320,22 @@ class MatchAdmin(ModelAdmin):
 
 
 # Legacy DisputeAdmin removed — Phase 1 cleanup. Use DisputeRecord admin instead.
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: MatchIntegrityCheck admin
+# ---------------------------------------------------------------------------
+
+from apps.tournaments.models.result_ingestion import MatchIntegrityCheck
+
+
+@admin.register(MatchIntegrityCheck)
+class MatchIntegrityCheckAdmin(ModelAdmin):
+    list_display = ['match', 'source', 'status', 'fetched_at', 'reviewed_by']
+    list_filter = ['status', 'source']
+    search_fields = ['match__participant1_name', 'match__participant2_name']
+    readonly_fields = [
+        'id', 'match', 'manual_payload', 'api_payload', 'diff',
+        'source', 'status', 'fetched_at', 'created_at', 'updated_at',
+    ]
+    ordering = ['-created_at']

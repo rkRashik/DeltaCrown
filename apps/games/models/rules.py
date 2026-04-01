@@ -178,3 +178,82 @@ class GameScoringRule(models.Model):
                     {"config": "placement_order requires 'placement_points' in config"}
                 )
 
+
+# ---------------------------------------------------------------------------
+# Phase 5 §5.2: VetoConfiguration — game-level veto / draft template
+# ---------------------------------------------------------------------------
+
+class VetoConfiguration(models.Model):
+    """
+    Defines game-level veto / draft rules that serve as the template when
+    creating a MatchVetoSession.
+
+    Supports customizable sequences:
+      - Map veto: [{"action":"ban","team":"A"},{"action":"ban","team":"B"},
+                   {"action":"pick","team":"A"}, ...]
+      - Hero draft: [{"action":"ban","team":"A","count":2},
+                     {"action":"pick","team":"B","count":3}, ...]
+
+    The ``time_per_action_seconds`` field enforces strict draft timers.
+    """
+
+    VETO_DOMAIN_CHOICES = [
+        ("map", "Map Veto"),
+        ("hero", "Hero / Champion Draft"),
+        ("operator", "Operator / Agent Ban"),
+        ("custom", "Custom"),
+    ]
+
+    game = models.ForeignKey(
+        "games.Game",
+        on_delete=models.CASCADE,
+        related_name="veto_configurations",
+        help_text="The game this veto/draft configuration applies to.",
+    )
+    name = models.CharField(
+        max_length=120,
+        help_text='Human label, e.g. "BO3 Map Veto" or "Captain\'s Mode Draft".',
+    )
+    domain = models.CharField(
+        max_length=20,
+        choices=VETO_DOMAIN_CHOICES,
+        default="map",
+        help_text="What entity is being banned/picked (maps, heroes, etc.).",
+    )
+    sequence = models.JSONField(
+        default=list,
+        help_text=(
+            'Ordered list of veto steps. Each step: '
+            '{"action": "ban"|"pick", "team": "A"|"B", "count": 1}. '
+            'Example BO3: Ban-Ban-Pick-Pick-Ban-Ban-Decider.'
+        ),
+    )
+    pool = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Default pool of available items (map names, hero names, etc.).",
+    )
+    time_per_action_seconds = models.PositiveIntegerField(
+        default=30,
+        help_text="Seconds allowed per ban/pick action before auto-random.",
+    )
+    auto_random_on_timeout = models.BooleanField(
+        default=True,
+        help_text="If True, a random choice is made when the timer expires.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "games_veto_configuration"
+        verbose_name = "Veto Configuration"
+        verbose_name_plural = "Veto Configurations"
+        ordering = ["game", "name"]
+        unique_together = [("game", "name")]
+
+    def __str__(self):
+        return f"{self.game.slug}: {self.name} ({self.get_domain_display()})"
+
+    def total_steps(self):
+        return sum(step.get("count", 1) for step in (self.sequence or []))

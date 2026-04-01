@@ -3,11 +3,15 @@ Game-aware lobby policy profile helpers.
 
 This module centralizes how lobby flow is derived from game metadata so
 match-room runtime and TOC settings use the exact same compatibility matrix.
+
+Phase 5: Added archetype-aware pipeline resolution via GAME_ARCHETYPES.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict
+
+from apps.games.constants import get_archetype_for_game, GAME_ARCHETYPES
 
 
 KNOWN_DRAFT_GAME_KEYS = {
@@ -152,3 +156,29 @@ def clamp_lobby_round_overrides(
             normalized[str(round_key)] = row
 
     return normalized
+
+
+def resolve_archetype_pipeline(
+    game: Any | None = None,
+    *,
+    slug: Any = "",
+    game_type: Any = "",
+) -> Dict[str, Any]:
+    """Return the archetype key and its canonical phase list for a game.
+
+    This is the Phase 5 entry point that services and views should use
+    to determine which match-room phases apply.
+    """
+    if game is not None:
+        slug = slug or getattr(game, "slug", "")
+        game_type = game_type or getattr(game, "game_type", "")
+
+    arch_key = get_archetype_for_game(str(slug or ""), str(game_type or ""))
+    arch_def = GAME_ARCHETYPES.get(arch_key, GAME_ARCHETYPES["tactical_fps"])
+
+    return {
+        "archetype": arch_key,
+        "label": arch_def["label"],
+        "phases": list(arch_def["phases"]),
+        "description": arch_def["description"],
+    }

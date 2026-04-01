@@ -151,3 +151,80 @@ def is_game_supported(game_slug):
 def get_featured_games():
     """Get list of featured game slugs."""
     return FEATURED_GAMES
+
+
+# ---------------------------------------------------------------------------
+# Game Archetype Definitions (Phase 5)
+# ---------------------------------------------------------------------------
+
+GAME_ARCHETYPES = {
+    'tactical_fps': {
+        'label': 'Tactical FPS',
+        'games': ['valorant', 'cs2', 'r6siege', 'codm'],
+        'phases': [
+            'coin_toss', 'map_veto', 'side_selection',
+            'lobby_setup', 'live', 'results', 'completed',
+        ],
+        'description': 'Map veto and side selection before competitive play.',
+    },
+    'moba': {
+        'label': 'MOBA',
+        'games': ['dota2', 'mlbb'],
+        'phases': [
+            'coin_toss', 'hero_draft', 'side_selection',
+            'lobby_setup', 'live', 'results', 'completed',
+        ],
+        'description': 'Hero ban/pick draft followed by side selection.',
+    },
+    'battle_royale': {
+        'label': 'Battle Royale',
+        'games': ['pubgm', 'freefire'],
+        'phases': [
+            'lobby_distribution', 'server_assignment',
+            'live', 'matrix_results', 'completed',
+        ],
+        'description': 'Multi-team lobby with placement + kill scoring.',
+    },
+    'sports': {
+        'label': 'Sports',
+        'games': ['ea-fc', 'efootball', 'rocketleague'],
+        'phases': [
+            'direct_ready', 'lobby_setup', 'live', 'results', 'completed',
+        ],
+        'description': 'Direct ready check into match lobby.',
+    },
+    'duel_1v1': {
+        'label': '1v1 / Duel',
+        'games': [],  # assigned dynamically via game_type == '1V1'
+        'phases': [
+            'direct_ready', 'platform_match', 'live', 'results', 'completed',
+        ],
+        'description': 'Lightweight 1v1 flow with platform-handled matchmaking.',
+    },
+}
+
+# Reverse lookup: game_slug → archetype_key
+GAME_TO_ARCHETYPE = {}
+for _arch_key, _arch_def in GAME_ARCHETYPES.items():
+    for _g in _arch_def['games']:
+        GAME_TO_ARCHETYPE[_g] = _arch_key
+
+
+def get_archetype_for_game(game_slug, game_type=''):
+    """Resolve archetype key for a game slug, falling back to game_type."""
+    slug = game_slug.lower().replace('_', '-') if game_slug else ''
+    arch = GAME_TO_ARCHETYPE.get(slug)
+    if arch:
+        return arch
+    gtype = (game_type or '').upper()
+    if gtype == '1V1':
+        return 'duel_1v1'
+    if gtype == 'BATTLE_ROYALE':
+        return 'battle_royale'
+    return 'tactical_fps'  # safe default
+
+
+def get_archetype_phases(game_slug, game_type=''):
+    """Return the canonical phase list for a game."""
+    key = get_archetype_for_game(game_slug, game_type)
+    return list(GAME_ARCHETYPES.get(key, GAME_ARCHETYPES['tactical_fps'])['phases'])

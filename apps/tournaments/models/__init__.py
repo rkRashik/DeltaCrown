@@ -169,6 +169,9 @@ from .match_player_stats import (
     MatchPlayerStat,      # Per-player aggregated match stats (kills, ACS, etc.)
     MatchMapPlayerStat,   # Per-player per-map stats within a series
 )
+from .result_ingestion import (
+    MatchIntegrityCheck,  # Phase 5: Automated API vs manual score comparison
+)
 
 __all__ = [
     'Game',
@@ -259,4 +262,6 @@ __all__ = [
     # Match Player Statistics
     'MatchPlayerStat',
     'MatchMapPlayerStat',
+    # Phase 5: Automated Result Ingestion
+    'MatchIntegrityCheck',
 ]
