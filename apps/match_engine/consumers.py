@@ -47,13 +47,20 @@ def _get_redis_presence():
 
     global _redis_presence_pool  # noqa: PLW0603
     if _redis_presence_pool is None:
-        from deltacrown.settings import _redis_url_with_db
-        url = _redis_url_with_db(base_url, 2)
-        _redis_presence_pool = aioredis.ConnectionPool.from_url(
-            url, decode_responses=True, max_connections=8,
-        )
+        try:
+            from deltacrown.settings import _redis_url_with_db
+            url = _redis_url_with_db(base_url, 2)
+            _redis_presence_pool = aioredis.ConnectionPool.from_url(
+                url, decode_responses=True, max_connections=8,
+            )
+        except Exception:
+            logger.debug("Redis presence pool creation failed — presence disabled")
+            return None
 
-    return aioredis.Redis(connection_pool=_redis_presence_pool)
+    try:
+        return aioredis.Redis(connection_pool=_redis_presence_pool)
+    except Exception:
+        return None
 
 
 # Module-level connection pool (lazily initialised by _get_redis_presence).
@@ -451,7 +458,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         try:
             await rds.setex(key, self.HEARTBEAT_TIMEOUT, payload)
         except Exception:
-            logger.warning("Redis presence SET failed", extra={"match_id": self.match_id, "user_id": self.user.id})
+            logger.debug("Redis presence SET failed", extra={"match_id": self.match_id, "user_id": self.user.id})
 
     async def _unregister_presence(self) -> None:
         match_id = getattr(self, "match_id", None)
@@ -465,7 +472,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         try:
             await rds.delete(key)
         except Exception:
-            logger.warning("Redis presence DEL failed", extra={"match_id": match_id, "user_id": user.id})
+            logger.debug("Redis presence DEL failed", extra={"match_id": match_id, "user_id": user.id})
 
     async def _build_presence_snapshot(self) -> Dict[str, Any]:
         match_id = getattr(self, "match_id", None)
@@ -503,7 +510,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 if cursor == 0:
                     break
         except Exception:
-            logger.warning("Redis presence SCAN failed", extra={"match_id": match_id})
+            logger.debug("Redis presence SCAN failed", extra={"match_id": match_id})
 
         return {
             "match_id": match_id,

@@ -658,7 +658,7 @@ class TOCSettingsService:
                 "auto_forfeit_no_shows": getattr(t, "auto_forfeit_no_shows", False),
                 "waitlist_auto_promote": getattr(t, "waitlist_auto_promote", False),
                 "enable_no_show_timer": getattr(t, "enable_no_show_timer", False),
-                "no_show_timeout_minutes": getattr(t, "no_show_timeout_minutes", 10),
+                "no_show_timeout_minutes": getattr(t, "no_show_timeout_minutes", 5),
                 "max_waitlist_size": getattr(t, "max_waitlist_size", 0),
             },
             "seo": {

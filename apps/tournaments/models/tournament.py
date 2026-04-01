@@ -501,7 +501,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Automatically promote waitlisted registrations when slots become available'
     )
     no_show_timeout_minutes = models.PositiveIntegerField(
-        default=10,
+        default=5,
         help_text='Minutes after scheduled start before a no-show forfeit is issued (requires enable_no_show_timer)'
     )
     max_waitlist_size = models.PositiveIntegerField(

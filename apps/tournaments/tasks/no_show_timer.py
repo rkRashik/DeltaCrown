@@ -64,7 +64,7 @@ def check_no_show_matches(self):
         if match.id in processed_ids:
             continue
 
-        timeout_mins = timeout_map.get(match.tournament_id, 10)
+        timeout_mins = timeout_map.get(match.tournament_id, 5)
         deadline = match.scheduled_time + timedelta(minutes=timeout_mins)
 
         if now <= deadline:

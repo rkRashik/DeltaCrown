@@ -1386,12 +1386,16 @@ def _normalize_media_url(value):
     raw = str(value or '').strip()
     if not raw:
         return ''
+    if raw.startswith('http://') or raw.startswith('https://'):
+        return raw
     if raw.startswith('/media/media/'):
         return '/media/' + raw[len('/media/media/'):]
     if raw.startswith('media/media/'):
         return '/media/' + raw[len('media/media/'):]
     if raw.startswith('media/'):
         return '/media/' + raw[len('media/'):]
+    if not raw.startswith('/'):
+        return '/media/' + raw
     return raw
 
 
