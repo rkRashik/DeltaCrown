@@ -68,6 +68,19 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         (CANCELLED, 'Cancelled'),
         (ARCHIVED, 'Archived'),
     ]
+
+    # Allowed state transitions — mirrors lifecycle_service.TRANSITIONS graph.
+    ALLOWED_TRANSITIONS = {
+        DRAFT: frozenset({PUBLISHED, PENDING_APPROVAL, REGISTRATION_OPEN, CANCELLED}),
+        PENDING_APPROVAL: frozenset({PUBLISHED, CANCELLED}),
+        PUBLISHED: frozenset({REGISTRATION_OPEN, CANCELLED}),
+        REGISTRATION_OPEN: frozenset({REGISTRATION_CLOSED, CANCELLED}),
+        REGISTRATION_CLOSED: frozenset({LIVE, CANCELLED}),
+        LIVE: frozenset({COMPLETED, CANCELLED}),
+        COMPLETED: frozenset({ARCHIVED}),
+        CANCELLED: frozenset({ARCHIVED}),
+        ARCHIVED: frozenset(),
+    }
     
     # Format choices
     SINGLE_ELIM = 'single_elimination'
@@ -672,7 +685,32 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         """
         Auto-generate slug from name if not provided.
         Auto-assign official organizer for official tournaments.
+        Enforce state-machine transition rules on status changes.
         """
+        # ── Status transition validation ────────────────────────────────
+        update_fields = kwargs.get('update_fields')
+        skip_status = getattr(self, '_skip_status_validation', False)
+
+        if (
+            not skip_status
+            and self.pk
+            and (update_fields is None or 'status' in update_fields)
+        ):
+            old_status = (
+                Tournament.objects.filter(pk=self.pk)
+                .values_list('status', flat=True)
+                .first()
+            )
+            if old_status is not None and old_status != self.status:
+                allowed = self.ALLOWED_TRANSITIONS.get(old_status, frozenset())
+                if self.status not in allowed:
+                    raise ValueError(
+                        f"Invalid tournament status transition: "
+                        f"'{old_status}' → '{self.status}'. "
+                        f"Allowed from '{old_status}': {sorted(allowed)}"
+                    )
+
+        # ── Slug generation ─────────────────────────────────────────────
         if not self.slug:
             base_slug = slugify(self.name)
             unique_slug = base_slug

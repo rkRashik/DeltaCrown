@@ -28,7 +28,9 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_protect
 from django.views.generic import DetailView
 
 from apps.tournaments.models import Match, MatchResultSubmission
@@ -1625,6 +1627,7 @@ class MatchCheckInView(LoginRequiredMixin, View):
         return redirect("tournaments:match_room", slug=slug, match_id=match_id)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class MatchRoomWorkflowView(LoginRequiredMixin, View):
     """JSON API for match lobby workflow actions."""
 

@@ -10,8 +10,10 @@ Reference:
 Created: December 12, 2025
 """
 
+import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.validators import FileExtensionValidator
 
 User = get_user_model()
 
@@ -215,6 +217,12 @@ class DisputeRecord(models.Model):
         )
 
 
+def _dispute_evidence_upload_to(instance, filename):
+    """UUID-based path to prevent filename enumeration."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'bin'
+    return f"disputes/evidence/{uuid.uuid4().hex}.{ext}"
+
+
 class DisputeEvidence(models.Model):
     """
     Evidence attached to a dispute (screenshots, videos, chat logs, etc.).
@@ -273,9 +281,12 @@ class DisputeEvidence(models.Model):
     )
 
     evidence_file = models.FileField(
-        upload_to='disputes/evidence/%Y/%m/',
+        upload_to=_dispute_evidence_upload_to,
         blank=True,
         null=True,
+        validators=[FileExtensionValidator(
+            allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm'],
+        )],
         help_text='Direct file upload (screenshot, video clip). Max 10MB recommended.'
     )
     

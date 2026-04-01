@@ -22,8 +22,10 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
+from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.views import View
+from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 
 from apps.tournaments.models import (
@@ -1762,6 +1764,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
         return _json_response(data, cache_control='no-store')
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class HubCheckInAPIView(LoginRequiredMixin, View):
     """POST: perform check-in for the current user/team."""
 
@@ -2080,6 +2083,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
 # Module 5: Bounty Board (Prize Claims) API
 # ────────────────────────────────────────────────────────────
 
+@method_decorator(csrf_protect, name='dispatch')
 class HubPrizeClaimAPIView(LoginRequiredMixin, View):
     """
     GET:  Returns the user's prize transactions + claim status for this tournament.
@@ -3209,6 +3213,7 @@ class HubRescheduleSettingsAPIView(LoginRequiredMixin, View):
         }, cache_control='no-store')
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class HubMatchRescheduleProposalAPIView(LoginRequiredMixin, View):
     """POST participant proposal for match rescheduling negotiation."""
 

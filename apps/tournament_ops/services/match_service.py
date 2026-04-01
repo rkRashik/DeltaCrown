@@ -113,6 +113,15 @@ class MatchService:
                 f"Expected one of {valid_states}."
             )
 
+        # Validate participants are active registrants
+        match_obj = Match.objects.get(pk=match_id)
+        try:
+            match_obj.validate_participants()
+        except Exception as exc:
+            raise MatchLifecycleError(
+                f"Participant validation failed for match {match_id}: {exc}"
+            ) from exc
+
         # Update match to SCHEDULED state with scheduled_time
         updated_match = self.match_adapter.update_match_state(
             match_id=match_id,
@@ -179,6 +188,15 @@ class MatchService:
                 f"Cannot report result for match {match_id} with state '{match.state}'. "
                 f"Expected one of {valid_states}."
             )
+
+        # Validate participants are active registrants
+        match_obj = Match.objects.get(pk=match_id)
+        try:
+            match_obj.validate_participants()
+        except Exception as exc:
+            raise MatchLifecycleError(
+                f"Participant validation failed for match {match_id}: {exc}"
+            ) from exc
 
         # Validate result payload schema using GameAdapter
         # NOTE: In Phase 4, we do basic validation. Full game-specific validation

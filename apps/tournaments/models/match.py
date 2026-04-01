@@ -398,6 +398,49 @@ class Match(SoftDeleteModel, TimestampedModel):
         self.lobby_info[key] = value
         self.save(update_fields=['lobby_info'])
 
+    def validate_participants(self) -> None:
+        """
+        Validate that non-null participant IDs correspond to active
+        registrations for this tournament.
+
+        Raises:
+            ValidationError: If any participant is not an active registrant.
+        """
+        from django.core.exceptions import ValidationError
+        from apps.tournaments.models.registration import Registration
+
+        if not self.tournament_id:
+            return
+
+        active_statuses = (Registration.CONFIRMED, Registration.AUTO_APPROVED)
+        errors = {}
+
+        for field_name, pid in [
+            ('participant1_id', self.participant1_id),
+            ('participant2_id', self.participant2_id),
+        ]:
+            if pid is None:
+                continue  # BYE slot or TBD — allowed
+            exists = Registration.objects.filter(
+                tournament_id=self.tournament_id,
+                status__in=active_statuses,
+                is_deleted=False,
+            ).filter(
+                models.Q(user_id=pid) | models.Q(team_id=pid)
+            ).exists()
+            if not exists:
+                errors[field_name] = (
+                    f"Participant ID {pid} is not an active registrant "
+                    f"for tournament {self.tournament_id}."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def clean(self):
+        super().clean()
+        self.validate_participants()
+
 
 class Dispute(TimestampedModel):
     """

@@ -10,9 +10,17 @@ Architecture:
 - No business logic here (pure Django models)
 """
 
+import uuid
 from django.db import models
+from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from datetime import timedelta
+
+
+def _proof_screenshot_upload_to(instance, filename):
+    """UUID-based path to prevent filename enumeration."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'png'
+    return f"matches/evidence/{uuid.uuid4().hex}.{ext}"
 
 
 class MatchResultSubmission(models.Model):
@@ -98,9 +106,12 @@ class MatchResultSubmission(models.Model):
     )
 
     proof_screenshot = models.ImageField(
-        upload_to='matches/evidence/%Y/%m/',
+        upload_to=_proof_screenshot_upload_to,
         blank=True,
         null=True,
+        validators=[FileExtensionValidator(
+            allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        )],
         help_text='Direct file upload of proof screenshot. Max 10MB recommended.'
     )
     
