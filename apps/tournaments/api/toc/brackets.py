@@ -42,14 +42,13 @@ class BracketGetView(TOCBaseView):
     """S5-B5: GET /api/toc/<slug>/brackets/"""
 
     def get(self, request, slug):
-        bucket = int(timezone.now().timestamp() // 8)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'bracket', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'bracket')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
         data = TOCBracketsService.get_bracket(self.tournament)
-        cache.set(cache_key, data, timeout=12)
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 
@@ -119,14 +118,13 @@ class ScheduleGetView(TOCBaseView):
     """S5-B9: GET /api/toc/<slug>/schedule/"""
 
     def get(self, request, slug):
-        bucket = int(timezone.now().timestamp() // 8)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'schedule', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'schedule')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
         data = TOCBracketsService.get_schedule(self.tournament)
-        cache.set(cache_key, data, timeout=12)
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 
@@ -368,14 +366,13 @@ class GroupStageView(TOCBaseView):
     """S5-B10: GET /api/toc/<slug>/groups/"""
 
     def get(self, request, slug):
-        bucket = int(timezone.now().timestamp() // 8)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'groups', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'groups')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
         data = TOCBracketsService.get_groups(self.tournament)
-        cache.set(cache_key, data, timeout=12)
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 
@@ -475,14 +472,13 @@ class GroupStandingsView(TOCBaseView):
     """S5-B10: GET /api/toc/<slug>/groups/standings/"""
 
     def get(self, request, slug):
-        bucket = int(timezone.now().timestamp() // 8)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'group_standings', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'group_standings')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
         data = TOCBracketsService.get_group_standings(self.tournament)
-        cache.set(cache_key, data, timeout=12)
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
 
 
@@ -492,14 +488,13 @@ class PipelineListCreateView(TOCBaseView):
     """S5-B11: GET/POST /api/toc/<slug>/pipelines/"""
 
     def get(self, request, slug):
-        bucket = int(timezone.now().timestamp() // 10)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'pipelines', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'pipelines')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
         data = TOCBracketsService.list_pipelines(self.tournament)
-        cache.set(cache_key, data, timeout=15)
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
 
     def post(self, request, slug):
@@ -546,8 +541,7 @@ class SwissStandingsView(TOCBaseView):
         from apps.tournaments.models.bracket import Bracket
         from apps.tournaments.services.swiss_service import SwissService
 
-        bucket = int(timezone.now().timestamp() // 8)
-        cache_key = toc_cache_key('brackets', self.tournament.id, 'swiss_standings', bucket)
+        cache_key = toc_cache_key('brackets', self.tournament.id, 'swiss_standings')
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
@@ -564,7 +558,7 @@ class SwissStandingsView(TOCBaseView):
             "total_rounds": bracket.total_rounds,
             "standings": standings,
         }
-        cache.set(cache_key, payload, timeout=12)
+        cache.set(cache_key, payload, timeout=300)
         return Response(payload)
 
 

@@ -173,8 +173,7 @@ body.tournament-hub {
 }
 
 .dc-stat-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--dc-radius-md);
     padding: var(--dc-space-md);
@@ -599,8 +598,7 @@ body.tournament-hub {
     left: var(--dc-space-sm);
     width: 48px;
     height: 48px;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.85);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--dc-radius-md);
     padding: var(--dc-space-xs);
@@ -633,7 +631,6 @@ body.tournament-hub {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    backdrop-filter: blur(10px);
 }
 
 .dc-badge-live {

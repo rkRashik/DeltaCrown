@@ -164,8 +164,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.8);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 0.875rem;
@@ -3850,7 +3849,6 @@
     letter-spacing: 0.05em;
     border-radius: 1rem;
     z-index: 2;
-    backdrop-filter: blur(8px);
 }
 
 .td-type-team {

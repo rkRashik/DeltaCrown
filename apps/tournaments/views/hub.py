@@ -1639,7 +1639,7 @@ class TournamentHubView(LoginRequiredMixin, View):
 
     def get(self, request, slug):
         tournament = get_object_or_404(
-            Tournament.objects.select_related('game'),
+            Tournament.objects.select_related('game', 'lobby'),
             slug=slug,
         )
 
@@ -1675,7 +1675,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
     """
 
     def get(self, request, slug):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -1821,7 +1821,7 @@ class HubUnifiedAPIView(LoginRequiredMixin, View):
     def get(self, request, slug):
         import hashlib
 
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -2067,7 +2067,7 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
 
     def get(self, request, slug):
         tournament = get_object_or_404(
-            Tournament.objects.select_related('game'),
+            Tournament.objects.select_related('game', 'lobby'),
             slug=slug,
         )
         registration = _get_user_registration(request.user, tournament)
@@ -2354,7 +2354,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
     """
 
     def get(self, request, slug):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -2689,7 +2689,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
     """
 
     def get(self, request, slug):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -2937,7 +2937,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
     """
 
     def get(self, request, slug):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -3287,7 +3287,7 @@ class HubMatchRescheduleProposalAPIView(LoginRequiredMixin, View):
     """POST participant proposal for match rescheduling negotiation."""
 
     def post(self, request, slug, match_id):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -3406,7 +3406,7 @@ class HubMatchRescheduleRespondAPIView(LoginRequiredMixin, View):
     """POST accept/reject for a pending participant reschedule proposal."""
 
     def post(self, request, slug, match_id):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')
@@ -3607,7 +3607,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
     """GET: Returns all confirmed participants/teams + user's own if pending."""
 
     def get(self, request, slug):
-        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        tournament = get_object_or_404(Tournament.objects.select_related('game', 'lobby'), slug=slug)
         registration = _get_user_registration(request.user, tournament)
         if not registration and not _is_tournament_staff_or_organizer(request.user, tournament):
             return _json_response({'error': 'not_registered'}, status=403, cache_control='no-store')

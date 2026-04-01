@@ -86,13 +86,20 @@ class TournamentBracketView(DetailView):
                         teams_map[t.id] = {'name': t.name, 'logo': logo, 'tag': t.tag}
 
             # Organize matches by round with enriched data
+            # Pre-build round name lookup to avoid O(n) scan per match
+            _round_name_map = {}
+            if hasattr(tournament, 'bracket') and tournament.bracket:
+                for rd in (tournament.bracket.bracket_structure or {}).get('rounds', []):
+                    if isinstance(rd, dict) and rd.get('round_number') is not None:
+                        _round_name_map[rd['round_number']] = rd.get('round_name', f"Round {rd['round_number']}")
+
             matches_by_round = {}
             for match in all_matches:
                 round_num = match.round_number
                 if round_num not in matches_by_round:
                     matches_by_round[round_num] = {
                         'round_number': round_num,
-                        'round_name': self._get_round_name(round_num, tournament),
+                        'round_name': _round_name_map.get(round_num, f'Round {round_num}'),
                         'matches': []
                     }
 
@@ -133,7 +140,7 @@ class TournamentBracketView(DetailView):
                     'round_number': match.round_number,
                     'state': match.state,
                     'bracket_type': bracket_type,
-                    'round_label': self._get_round_name(round_num, tournament),
+                    'round_label': _round_name_map.get(round_num, f'Round {round_num}'),
                     'team1_name': t1.get('name') or match.participant1_name or 'TBD',
                     'team2_name': t2.get('name') or match.participant2_name or 'TBD',
                     'team1_logo': t1.get('logo', ''),

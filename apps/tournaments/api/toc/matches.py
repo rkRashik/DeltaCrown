@@ -115,7 +115,7 @@ class MatchScoreView(TOCBaseView):
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
+        bump_toc_scopes(self.tournament.id, 'matches', 'brackets', 'overview', 'analytics')
         return Response(data)
 
 
@@ -157,7 +157,7 @@ class MatchForceCompleteView(TOCBaseView):
 
     def post(self, request, slug, pk):
         data = TOCMatchesService.force_complete(pk, self.tournament, user_id=request.user.id)
-        bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
+        bump_toc_scopes(self.tournament.id, 'matches', 'brackets', 'overview', 'analytics')
         return Response(data)
 
 
@@ -201,7 +201,7 @@ class MatchForfeitView(TOCBaseView):
                 forfeiter_id=forfeiter_id,
                 user_id=request.user.id,
             )
-            bump_toc_scopes(self.tournament.id, 'matches', 'overview', 'analytics')
+            bump_toc_scopes(self.tournament.id, 'matches', 'brackets', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -312,7 +312,7 @@ class MatchVerifyView(TOCBaseView):
                 notes=request.data.get('notes', ''),
                 reason_code=request.data.get('reason_code', 'other'),
             )
-            bump_toc_scopes(self.tournament.id, 'matches', 'disputes', 'overview', 'analytics')
+            bump_toc_scopes(self.tournament.id, 'matches', 'brackets', 'disputes', 'overview', 'analytics')
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

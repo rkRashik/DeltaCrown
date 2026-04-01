@@ -594,40 +594,18 @@
   }
 
   /* ============================================================
-     LEFT PANEL: Match List (redesigned cards)
+     LEFT PANEL: Match List (virtual-scrolled cards)
   ============================================================ */
-  function renderMatchList(matches) {
-    var list = $('#match-list');
-    if (!list) return;
 
-    var countEl = $('#match-list-count');
-    if (countEl) {
-      var totalCount = Number(matchesPagination.total_count || matches.length || 0);
-      countEl.textContent = 'Showing ' + matches.length + ' of ' + totalCount + ' match' + (totalCount !== 1 ? 'es' : '');
-    }
+  /* --- Virtual scroll state -------------------------------- */
+  var _vsItems = [];       // sorted match array for current render
+  var _vsRafId = 0;
+  var _vsLastStart = -1;
+  var _vsLastEnd = -1;
+  var CARD_H = 92;         // estimated card height in px
+  var VS_BUFFER = 4;       // extra items above/below viewport
 
-    if (!matches.length) {
-      list.innerHTML =
-        '<div class="flex items-center justify-center h-full min-h-[300px]">' +
-        '<div class="text-center max-w-xs px-6">' +
-        '<div class="w-16 h-16 rounded-2xl bg-dc-border/10 mx-auto mb-4 flex items-center justify-center">' +
-        '<i data-lucide="swords" class="w-8 h-8 text-dc-border/50"></i></div>' +
-        '<h3 class="text-sm font-bold text-dc-text/60 mb-2">No Matches Yet</h3>' +
-        '<p class="text-xs text-dc-text/40 mb-5">Matches have not been generated for this tournament yet. Generate them here, then continue with scheduling.</p>' +
-        '<div class="flex flex-col sm:flex-row items-center justify-center gap-2">' +
-        '<button onclick="TOC.matches.generateMatchesFromEmptyState()" class="px-4 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">' +
-        '<i data-lucide="swords" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Generate Matches</button>' +
-        '<button onclick="TOC.navigate && TOC.navigate(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
-        '<i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Go to Schedule</button>' +
-        '</div>' +
-        '</div></div>';
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-      return;
-    }
-
-    var orderedMatches = matches.slice().sort(compareByTimeProximity);
-
-    list.innerHTML = orderedMatches.map(function (m) {
+  function _buildMatchCard(m) {
       var sc = stateConfig[m.state] || stateConfig.scheduled;
       var isSelected = m.id === selectedMatchId;
       var isWinner1 = m.winner_id && m.winner_id === m.participant1_id;
@@ -707,9 +685,89 @@
         (canOpenRoom ? '<div class="mt-2 flex items-center justify-center">' + liveCta + '</div>' : '') +
 
         '</div>';
-    }).join('');
+  }
 
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+  function _vsOnScroll() {
+    cancelAnimationFrame(_vsRafId);
+    _vsRafId = requestAnimationFrame(_vsRenderVisible);
+  }
+
+  function _vsRenderVisible() {
+    var list = $('#match-list');
+    if (!list || !_vsItems.length) return;
+    var viewport = list.querySelector('#vs-viewport');
+    if (!viewport) return;
+
+    var scrollTop = list.scrollTop;
+    var viewH = list.clientHeight;
+    var total = _vsItems.length;
+
+    var startIdx = Math.max(0, Math.floor(scrollTop / CARD_H) - VS_BUFFER);
+    var endIdx = Math.min(total, Math.ceil((scrollTop + viewH) / CARD_H) + VS_BUFFER);
+
+    // Skip re-render if visible window hasn't changed
+    if (startIdx === _vsLastStart && endIdx === _vsLastEnd) return;
+    _vsLastStart = startIdx;
+    _vsLastEnd = endIdx;
+
+    list.querySelector('#vs-top').style.height = (startIdx * CARD_H) + 'px';
+    list.querySelector('#vs-bottom').style.height = ((total - endIdx) * CARD_H) + 'px';
+
+    var html = '';
+    for (var i = startIdx; i < endIdx; i++) {
+      html += _buildMatchCard(_vsItems[i]);
+    }
+    viewport.innerHTML = html;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [viewport] });
+  }
+
+  function renderMatchList(matches) {
+    var list = $('#match-list');
+    if (!list) return;
+
+    var countEl = $('#match-list-count');
+    if (countEl) {
+      var totalCount = Number(matchesPagination.total_count || matches.length || 0);
+      countEl.textContent = 'Showing ' + matches.length + ' of ' + totalCount + ' match' + (totalCount !== 1 ? 'es' : '');
+    }
+
+    if (!matches.length) {
+      _vsItems = [];
+      list.removeEventListener('scroll', _vsOnScroll);
+      list.innerHTML =
+        '<div class="flex items-center justify-center h-full min-h-[300px]">' +
+        '<div class="text-center max-w-xs px-6">' +
+        '<div class="w-16 h-16 rounded-2xl bg-dc-border/10 mx-auto mb-4 flex items-center justify-center">' +
+        '<i data-lucide="swords" class="w-8 h-8 text-dc-border/50"></i></div>' +
+        '<h3 class="text-sm font-bold text-dc-text/60 mb-2">No Matches Yet</h3>' +
+        '<p class="text-xs text-dc-text/40 mb-5">Matches have not been generated for this tournament yet. Generate them here, then continue with scheduling.</p>' +
+        '<div class="flex flex-col sm:flex-row items-center justify-center gap-2">' +
+        '<button onclick="TOC.matches.generateMatchesFromEmptyState()" class="px-4 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">' +
+        '<i data-lucide="swords" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Generate Matches</button>' +
+        '<button onclick="TOC.navigate && TOC.navigate(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
+        '<i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Go to Schedule</button>' +
+        '</div>' +
+        '</div></div>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    _vsItems = matches.slice().sort(compareByTimeProximity);
+    _vsLastStart = -1;
+    _vsLastEnd = -1;
+
+    // Scaffold virtual-scroll sentinel divs
+    list.innerHTML =
+      '<div id="vs-top" style="height:0"></div>' +
+      '<div id="vs-viewport"></div>' +
+      '<div id="vs-bottom" style="height:0"></div>';
+
+    list.removeEventListener('scroll', _vsOnScroll);
+    list.addEventListener('scroll', _vsOnScroll, { passive: true });
+
+    // Initial render of visible window
+    _vsRenderVisible();
   }
 
   /* ============================================================
@@ -1995,8 +2053,12 @@
       }
       if (filteredMatches[next]) {
         selectMatch(filteredMatches[next].id);
-        var card = document.querySelector('.match-card[data-match-id="' + filteredMatches[next].id + '"]');
-        if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        // Scroll virtual-scroll container to ensure card is visible
+        var vsIdx = _vsItems.findIndex(function(m) { return m.id === filteredMatches[next].id; });
+        if (vsIdx >= 0) {
+          var list = $('#match-list');
+          if (list) list.scrollTop = Math.max(0, vsIdx * CARD_H - list.clientHeight / 2);
+        }
       }
     }
 

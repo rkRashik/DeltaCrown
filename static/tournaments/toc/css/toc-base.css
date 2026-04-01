@@ -47,7 +47,6 @@ body.toc-shell {
 .data-grid th {
   @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-3 text-left;
   @apply font-display text-[0.7rem] font-extrabold uppercase tracking-widest text-dc-text;
-  backdrop-filter: blur(12px);
 }
 
 .data-grid td {

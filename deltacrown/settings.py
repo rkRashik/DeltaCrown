@@ -661,7 +661,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5 MB (Django default)
 # -----------------------------------------------------------------------------
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"
@@ -669,6 +669,11 @@ STORAGES = {
         else "django.core.files.storage.FileSystemStorage",
     },
 }
+
+# WhiteNoise: immutable cache headers for hashed static assets (1 year).
+# CompressedManifestStaticFilesStorage adds content hashes to filenames,
+# making aggressive caching safe.
+WHITENOISE_MAX_AGE = 31536000  # 1 year in seconds
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------

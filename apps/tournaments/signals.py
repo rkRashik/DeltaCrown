@@ -378,23 +378,19 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
             return
 
         stage = GroupStage.objects.filter(tournament=tournament).order_by('-created_at').first()
-        if stage:
-            if match_group_id is not None:
+        if match_group_id is not None:
+            # Only recompute the specific group containing this match.
+            if stage:
                 GroupStageService.calculate_group_standings(
                     stage.id,
                     group_ids=[match_group_id],
                     include_scored_data=False,
                 )
             else:
-                GroupStageService.calculate_group_standings(
-                    stage.id,
-                    include_scored_data=False,
-                )
-        else:
-            game_slug = getattr(getattr(tournament, 'game', None), 'slug', '') or ''
-            group_ids = [match_group_id] if match_group_id is not None else list(groups.values_list('id', flat=True))
-            for group_id in group_ids:
-                GroupStageService.calculate_standings(group_id=group_id, game_slug=game_slug)
+                game_slug = getattr(getattr(tournament, 'game', None), 'slug', '') or ''
+                GroupStageService.calculate_standings(group_id=match_group_id, game_slug=game_slug)
+        # When match_group_id is None the match is not part of the group
+        # stage (e.g. knockout round); skip the expensive full-stage recalc.
 
         group_stage_matches = Match.objects.filter(
             tournament=tournament,
