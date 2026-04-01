@@ -987,6 +987,20 @@ class TOCMatchesService:
                     media_map[int(team.id)] = logo_url
             except Exception:
                 return media_map
+
+            # Fallback: for teams without logos, use registrant avatar
+            empty_team_ids = {tid for tid, url in media_map.items() if not url}
+            if empty_team_ids:
+                try:
+                    from apps.tournaments.models.registration import Registration
+                    for reg in Registration.objects.filter(
+                        tournament=tournament,
+                        team_id__in=empty_team_ids,
+                    ).select_related('user', 'user__profile')[:len(empty_team_ids)]:
+                        if reg.team_id and not media_map.get(int(reg.team_id)):
+                            media_map[int(reg.team_id)] = cls._user_avatar_url(reg.user)
+                except Exception:
+                    pass
             return media_map
 
         try:

@@ -5378,9 +5378,10 @@ const HubEngine = (() => {
         avatarStack += '</div>';
       }
 
-      // Logo / avatar
-      const logo = p.logo_url
-        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\'font-black text-xl\' style=\'font-family:Outfit,sans-serif\'>${_esc(p.tag)}</span>')">`
+      // Logo / avatar (prefer logo_url, fall back to profile_avatar_url)
+      const avatarSrc = p.logo_url || p.profile_avatar_url || '';
+      const logo = avatarSrc
+        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\'font-black text-xl\' style=\'font-family:Outfit,sans-serif\'>${_esc(p.tag)}</span>')">`
         : `<span class="font-black text-xl" style="font-family:Outfit,sans-serif;">${_esc(p.tag)}</span>`;
       const logoColorClass = p.is_you ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-gray-400';
 
@@ -5427,8 +5428,9 @@ const HubEngine = (() => {
     const html = source.slice(0, 12).map((p) => {
       const name = _esc(p.name || 'Participant');
       const tag = _esc(p.tag || '?');
-      const avatar = p.logo_url
-        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-sm\\' style=\\'font-family:Outfit,sans-serif\\'>${tag}</span>')">`
+      const avatarSrc = p.logo_url || p.profile_avatar_url || '';
+      const avatar = avatarSrc
+        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-sm\\' style=\\'font-family:Outfit,sans-serif\\'>${tag}</span>')">`
         : `<span class="font-black text-sm" style="font-family:Outfit,sans-serif;">${tag}</span>`;
       const metaPill = _participantMetaPill(p);
       const seed = p.seed ? `<span class="text-[10px] text-slate-400 font-semibold">#${p.seed}</span>` : '';

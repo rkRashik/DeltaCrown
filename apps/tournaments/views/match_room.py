@@ -1229,6 +1229,24 @@ def _participant_media_map(match: Match) -> Dict[int, str]:
             except Exception:
                 logo_url = ""
             media_map[team.id] = logo_url
+
+        # Fallback: for teams without logos, use registrant avatar
+        empty_team_ids = {tid for tid, url in media_map.items() if not url}
+        if empty_team_ids:
+            from apps.tournaments.models.registration import Registration
+            for reg in Registration.objects.filter(
+                tournament=tournament,
+                team_id__in=empty_team_ids,
+            ).select_related("user", "user__profile")[:len(empty_team_ids)]:
+                if reg.team_id and not media_map.get(reg.team_id):
+                    avatar_url = ""
+                    try:
+                        profile = getattr(reg.user, "profile", None)
+                        if profile and profile.avatar:
+                            avatar_url = _normalize_media_url(str(profile.avatar.url or ""))
+                    except Exception:
+                        pass
+                    media_map[reg.team_id] = avatar_url or _fallback_avatar_url(getattr(reg.user, "username", ""))
         return media_map
 
     from django.contrib.auth import get_user_model

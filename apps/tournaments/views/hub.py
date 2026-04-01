@@ -1001,7 +1001,7 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
             team_name = team.name
             team_tag = team.tag or team.name[:3].upper()
             if hasattr(team, 'logo') and team.logo:
-                team_logo_url = team.logo.url
+                team_logo_url = _normalize_media_url(team.logo.url)
             roster_locked = getattr(team, 'roster_locked', False)
             team_detail_url = f'/teams/{team.slug}/' if hasattr(team, 'slug') and team.slug else ''
         except Exception:
@@ -1112,9 +1112,9 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         'game_primary_color': tournament.game.primary_color if tournament.game else '#00F0FF',
         'game_secondary_color': tournament.game.secondary_color if tournament.game else '#0C0C10',
         'game_accent_color': (tournament.game.accent_color or '#FFFFFF') if tournament.game else '#FFFFFF',
-        'game_icon_url': tournament.game.icon.url if tournament.game and tournament.game.icon else '',
-        'game_logo_url': tournament.game.logo.url if tournament.game and hasattr(tournament.game, 'logo') and tournament.game.logo else '',
-        'game_card_url': tournament.game.card_image.url if tournament.game and hasattr(tournament.game, 'card_image') and tournament.game.card_image else '',
+        'game_icon_url': _normalize_media_url(tournament.game.icon.url) if tournament.game and tournament.game.icon else '',
+        'game_logo_url': _normalize_media_url(tournament.game.logo.url) if tournament.game and hasattr(tournament.game, 'logo') and tournament.game.logo else '',
+        'game_card_url': _normalize_media_url(tournament.game.card_image.url) if tournament.game and hasattr(tournament.game, 'card_image') and tournament.game.card_image else '',
 
         # API endpoints (JS will poll these)
         'api_state_url': f'/tournaments/{tournament.slug}/hub/api/state/{query_suffix}',
@@ -1437,6 +1437,17 @@ def _build_participant_media_map(tournament, participant_ids):
             except Exception:
                 logo_url = ''
             media_map[team.id] = logo_url
+
+        # Fallback: for teams without logos, use the registrant's avatar
+        empty_team_ids = {tid for tid, url in media_map.items() if not url}
+        if empty_team_ids:
+            from apps.tournaments.models.registration import Registration
+            for reg in Registration.objects.filter(
+                tournament=tournament,
+                team_id__in=empty_team_ids,
+            ).select_related('user', 'user__profile')[:len(empty_team_ids)]:
+                if reg.team_id and not media_map.get(reg.team_id):
+                    media_map[reg.team_id] = _get_avatar_url(reg.user)
         return media_map
 
     from django.contrib.auth import get_user_model
@@ -2128,8 +2139,8 @@ class HubResourcesAPIView(LoginRequiredMixin, View):
                 'name': s.name,
                 'tier': s.tier,
                 'tier_display': s.get_tier_display(),
-                'logo_url': s.logo.url if s.logo else '',
-                'banner_url': s.banner_image.url if s.banner_image else '',
+                'logo_url': _normalize_media_url(s.logo.url) if s.logo else '',
+                'banner_url': _normalize_media_url(s.banner_image.url) if s.banner_image else '',
                 'website_url': s.website_url or '',
                 'description': s.description or '',
             })
@@ -2728,7 +2739,7 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                             logo_url = ''
                             try:
                                 if hasattr(team, 'logo') and team.logo:
-                                    logo_url = team.logo.url
+                                    logo_url = _normalize_media_url(team.logo.url)
                             except Exception:
                                 logo_url = ''
                             team_meta_map[team.id] = {
@@ -3746,7 +3757,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                             continue
                         avatar = ''
                         if hasattr(member.user, 'profile') and hasattr(member.user.profile, 'avatar') and member.user.profile.avatar:
-                            avatar = member.user.profile.avatar.url
+                            avatar = _normalize_media_url(member.user.profile.avatar.url)
                         slots.append({
                             'initial': (member.user.get_full_name() or member.user.username)[:1].upper(),
                             'avatar_url': avatar,
@@ -3816,7 +3827,8 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     team = Team.objects.get(id=reg.team_id)
                 logo_url = ''
                 if hasattr(team, 'logo') and team.logo:
-                    logo_url = team.logo.url
+                    logo_url = _normalize_media_url(team.logo.url)
+                user_avatar = _get_avatar_url(reg.user) if include_profile_avatars else ''
                 team_detail_url = f'/teams/{team.slug}/' if hasattr(team, 'slug') and team.slug else ''
 
                 member_avatars = prefetch.get('team_member_avatars', {}).get(reg.team_id, [])
@@ -3840,7 +3852,8 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     'type': 'team',
                     'name': team.name,
                     'tag': team.tag or team.name[:3].upper(),
-                    'logo_url': logo_url,
+                    'logo_url': logo_url or user_avatar,
+                    'profile_avatar_url': user_avatar,
                     'detail_url': team_detail_url,
                     'is_you': bool(user_registration and user_registration.team_id and reg.team_id == user_registration.team_id),
                     'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
@@ -3868,6 +3881,7 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                 'name': reg.user.get_full_name() or reg.user.username,
                 'tag': reg.user.username[:3].upper(),
                 'logo_url': avatar_url,
+                'profile_avatar_url': avatar_url,
                 'detail_url': f'/profile/{user_slug}/' if user_slug else '',
                 'is_you': reg.user_id == current_user.id,
                 'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
