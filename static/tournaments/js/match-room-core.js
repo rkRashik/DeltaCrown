@@ -138,6 +138,13 @@
     mobilePanelOverlay: byId('mobile-panel-overlay'),
     mobilePanelContent: byId('mobile-panel-content'),
     rulesList: byId('rules-list'),
+    heroTeamAName: byId('hero-team-a-name'),
+    heroTeamBName: byId('hero-team-b-name'),
+    heroTeamAMeta: byId('hero-team-a-meta'),
+    heroTeamBMeta: byId('hero-team-b-meta'),
+    heroTeamALogo: byId('hero-team-a-logo'),
+    heroTeamBLogo: byId('hero-team-b-logo'),
+    heroFormatLabel: byId('hero-format-label'),
   };
 
   // =====================================================================
@@ -713,6 +720,14 @@
     if (elements.navBackLink) elements.navBackLink.setAttribute('href', String(asObject(state.room.urls).hub || '#'));
     renderLogo(elements.navP1Logo, p1, 1);
     renderLogo(elements.navP2Logo, p2, 2);
+    // Hero VS section
+    if (elements.heroTeamAName) elements.heroTeamAName.textContent = String(p1.name || 'TBD');
+    if (elements.heroTeamBName) elements.heroTeamBName.textContent = String(p2.name || 'TBD');
+    if (elements.heroTeamAMeta) elements.heroTeamAMeta.textContent = 'Side 1';
+    if (elements.heroTeamBMeta) elements.heroTeamBMeta.textContent = 'Side 2';
+    if (elements.heroFormatLabel) elements.heroFormatLabel.textContent = 'BO' + String(toInt(match.best_of, 1));
+    renderLogo(elements.heroTeamALogo, p1, 1);
+    renderLogo(elements.heroTeamBLogo, p2, 2);
     renderHeaderCommandBadges();
     renderHeaderPresenceMeta();
   }

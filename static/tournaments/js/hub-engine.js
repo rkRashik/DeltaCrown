@@ -4109,10 +4109,7 @@ const HubEngine = (() => {
           html += `
             <article class="hub-match-priority-card ${cardTone} match-card-active">
               <div class="hub-match-card-header">
-                <div>
-                  <p class="hub-match-kicker">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</p>
-                  <p class="hub-match-urgency">${_esc(urgencyText)}</p>
-                </div>
+                <p class="hub-match-kicker">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</p>
                 <span class="hub-match-status-pill">
                   <i data-lucide="${statusIcon}" class="w-3.5 h-3.5"></i>
                   <span>${_esc(statusLabel)}</span>
@@ -4121,21 +4118,18 @@ const HubEngine = (() => {
 
               <div class="hub-match-vs-grid">
                 ${_renderMatchIdentityBlock(p1Name, p1Logo, side1Label)}
-                <div class="hub-match-vs-pill">VS</div>
+                <div class="flex flex-col items-center gap-1">
+                  ${showScoreline ? `<div class="hub-match-scoreline">${Number(m.p1_score || 0)} <span>:</span> ${Number(m.p2_score || 0)}</div>` : `<div class="hub-match-vs-pill">VS</div>`}
+                </div>
                 ${_renderMatchIdentityBlock(p2Name, p2Logo, side2Label, 'hub-match-side-right')}
               </div>
 
-              ${showScoreline ? `<div class="hub-match-scoreline">${Number(m.p1_score || 0)} <span>:</span> ${Number(m.p2_score || 0)}</div>` : ''}
-
-              <div class="hub-match-meta-row">
+              <div class="hub-match-meta-row" style="margin-top:1rem;">
                 <div class="hub-match-meta-chip">
                   <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
                   <span>${_esc(kickoffLabel)}</span>
                 </div>
-                <div class="hub-match-meta-chip ${lobbyCode ? 'is-accent' : ''}">
-                  <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
-                  <span>${lobbyCode ? `Room ${_esc(lobbyCode)}` : 'Room pending'}</span>
-                </div>
+                ${lobbyCode ? `<div class="hub-match-meta-chip is-accent"><i data-lucide="key-round" class="w-3.5 h-3.5"></i><span>Room ${_esc(lobbyCode)}</span></div>` : ''}
               </div>
 
               ${_renderMatchActionControls(m)}
@@ -4666,10 +4660,6 @@ const HubEngine = (() => {
           }
         }
 
-        const matchupLabel = m.is_staff_view
-          ? `${_esc(m.p1_name || 'TBD')} vs ${_esc(m.p2_name || 'TBD')}`
-          : `vs ${_esc(m.opponent_name || 'TBD')}`;
-
         let participantBreakdown = '';
         if (isCompleted && isParticipantOwnMatch) {
           const youWon = participantOutcome === 'win';
@@ -4698,26 +4688,45 @@ const HubEngine = (() => {
             </div>`;
         }
 
+        const p1Name = m.is_staff_view
+          ? _esc(m.p1_name || 'TBD')
+          : (isParticipantOwnMatch ? 'You' : _esc(m.p1_name || 'TBD'));
+        const p2Name = m.is_staff_view
+          ? _esc(m.p2_name || 'TBD')
+          : (isParticipantOwnMatch ? _esc(m.opponent_name || 'TBD') : _esc(m.p2_name || 'TBD'));
+
+        const p1Logo = m.p1_logo_url || '';
+        const p2Logo = m.is_staff_view ? (m.p2_logo_url || '') : (m.opponent_logo_url || m.p2_logo_url || '');
+        const p1AvatarHtml = _renderAvatarInner(p1Name, p1Logo, 'text-xs font-black text-white', 'w-full h-full object-cover rounded-lg');
+        const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-xs font-black text-white', 'w-full h-full object-cover rounded-lg');
+
         html += `
-          <div class="hub-glass rounded-xl p-4 border-l-3 transition-all hover:border-l-4" style="border-left-color:${color}">
-            <div class="flex items-center gap-4">
-              <div class="w-14 text-center shrink-0">
-                <p class="text-sm font-bold ${isLive ? 'text-[#FF2A55]' : 'text-white'}" style="font-family:'Space Grotesk',monospace;">
-                  ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse inline-block mr-1"></span>LIVE' : time}
-                </p>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-                <p class="text-sm ${isCompleted && isParticipantOwnMatch && participantOutcome === 'loss' ? 'font-medium text-gray-300' : 'font-semibold text-white'} mt-0.5">${matchupLabel}</p>
-              </div>
-              <div class="text-right shrink-0">
-                ${isLive || isCompleted
-                  ? `<p class="text-lg font-black" style="font-family:Outfit,sans-serif;"><span class="${leftScoreClass}">${_esc(String(leftScore))}</span> <span class="text-gray-600">—</span> <span class="${rightScoreClass}">${_esc(String(rightScore))}</span></p>`
-                  : ''}
-                ${resultTag}
-                ${!isLive && !isCompleted ? `<span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>` : ''}
+          <div class="hub-match-priority-card ${isLive ? 'tone-live' : isCompleted ? '' : 'tone-scheduled'}" style="border-left: 3px solid ${color}; padding: 1rem 1.1rem;">
+            <div class="flex items-center justify-between gap-3 mb-2.5">
+              <p class="text-[10px] font-black text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
+              <div class="flex items-center gap-2">
+                ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>' : ''}
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>
               </div>
             </div>
+
+            <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">${p1AvatarHtml}</div>
+                <p class="text-sm font-bold text-white truncate">${p1Name}</p>
+              </div>
+              <div class="flex flex-col items-center">
+                ${(isLive || isCompleted)
+                  ? `<div class="flex items-center gap-1"><span class="text-lg font-black ${leftScoreClass}" style="font-family:Outfit,sans-serif;">${_esc(String(leftScore))}</span><span class="text-xs text-gray-600">:</span><span class="text-lg font-black ${rightScoreClass}" style="font-family:Outfit,sans-serif;">${_esc(String(rightScore))}</span></div>`
+                  : `<span class="text-[10px] font-black text-gray-600 uppercase tracking-widest">${time}</span>`
+                }
+              </div>
+              <div class="flex items-center gap-2.5 min-w-0 justify-end">
+                <p class="text-sm font-bold text-white truncate text-right">${p2Name}</p>
+                <div class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">${p2AvatarHtml}</div>
+              </div>
+            </div>
+            ${isCompleted ? `<div class="mt-2.5 flex items-center justify-center">${resultTag}</div>` : ''}
             ${participantBreakdown}
             ${_renderMatchActionControls(m, { compact: true })}
           </div>`;
@@ -5361,7 +5370,7 @@ const HubEngine = (() => {
         avatarStack = '<div class="flex -space-x-2 overflow-hidden mt-3">';
         p.member_avatars.slice(0, 3).forEach(ma => {
           if (ma.avatar_url) {
-            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async">`;
+            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white',textContent:'${_esc(ma.initial)}'}))">`;
           } else {
             avatarStack += `<div class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">${_esc(ma.initial)}</div>`;
           }
@@ -5371,7 +5380,7 @@ const HubEngine = (() => {
 
       // Logo / avatar
       const logo = p.logo_url
-        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async">`
+        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\'font-black text-xl\' style=\'font-family:Outfit,sans-serif\'>${_esc(p.tag)}</span>')">`
         : `<span class="font-black text-xl" style="font-family:Outfit,sans-serif;">${_esc(p.tag)}</span>`;
       const logoColorClass = p.is_you ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-gray-400';
 
@@ -5419,7 +5428,7 @@ const HubEngine = (() => {
       const name = _esc(p.name || 'Participant');
       const tag = _esc(p.tag || '?');
       const avatar = p.logo_url
-        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async">`
+        ? `<img src="${_esc(p.logo_url)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-sm\\' style=\\'font-family:Outfit,sans-serif\\'>${tag}</span>')">`
         : `<span class="font-black text-sm" style="font-family:Outfit,sans-serif;">${tag}</span>`;
       const metaPill = _participantMetaPill(p);
       const seed = p.seed ? `<span class="text-[10px] text-slate-400 font-semibold">#${p.seed}</span>` : '';

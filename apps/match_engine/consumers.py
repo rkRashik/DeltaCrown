@@ -66,6 +66,39 @@ def _get_redis_presence():
 # Module-level connection pool (lazily initialised by _get_redis_presence).
 _redis_presence_pool = None
 
+# In-memory presence fallback when Redis is unavailable (local dev).
+# Structure: { "presence:match:{id}:user:{uid}": {"payload": str, "expires": float} }
+_memory_presence: dict = {}
+
+
+def _memory_presence_set(key: str, value: str, ttl: int) -> None:
+    """Store presence in memory with a TTL (seconds)."""
+    import time
+    _memory_presence[key] = {"payload": value, "expires": time.monotonic() + ttl}
+
+
+def _memory_presence_del(key: str) -> None:
+    """Remove presence from memory store."""
+    _memory_presence.pop(key, None)
+
+
+def _memory_presence_scan(pattern: str):
+    """Return list of (key, value) matching a glob pattern from memory store."""
+    import fnmatch
+    import time
+    now = time.monotonic()
+    results = []
+    expired_keys = []
+    for k, v in _memory_presence.items():
+        if v["expires"] < now:
+            expired_keys.append(k)
+            continue
+        if fnmatch.fnmatch(k, pattern):
+            results.append((k, v["payload"]))
+    for k in expired_keys:
+        _memory_presence.pop(k, None)
+    return results
+
 
 class MatchConsumer(AsyncJsonWebsocketConsumer):
     """Realtime consumer for a single match room."""
@@ -444,9 +477,6 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             return
         if getattr(self, "participant_side", None) not in (1, 2):
             return
-        rds = _get_redis_presence()
-        if rds is None:
-            return
         key = self._presence_key(self.match_id, self.user.id)
         payload = json.dumps({
             "user_id": self.user.id,
@@ -455,24 +485,31 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             "status": status if status in {"online", "away"} else "online",
             "last_seen": timezone.now().isoformat(),
         })
+        rds = _get_redis_presence()
+        if rds is None:
+            _memory_presence_set(key, payload, self.HEARTBEAT_TIMEOUT)
+            return
         try:
             await rds.setex(key, self.HEARTBEAT_TIMEOUT, payload)
         except Exception:
-            logger.debug("Redis presence SET failed", extra={"match_id": self.match_id, "user_id": self.user.id})
+            _memory_presence_set(key, payload, self.HEARTBEAT_TIMEOUT)
+            logger.debug("Redis presence SET failed, using memory fallback", extra={"match_id": self.match_id, "user_id": self.user.id})
 
     async def _unregister_presence(self) -> None:
         match_id = getattr(self, "match_id", None)
         user = getattr(self, "user", None)
         if not match_id or not user or not getattr(user, "id", None):
             return
+        key = self._presence_key(match_id, user.id)
         rds = _get_redis_presence()
         if rds is None:
+            _memory_presence_del(key)
             return
-        key = self._presence_key(match_id, user.id)
         try:
             await rds.delete(key)
         except Exception:
-            logger.debug("Redis presence DEL failed", extra={"match_id": match_id, "user_id": user.id})
+            _memory_presence_del(key)
+            logger.debug("Redis presence DEL failed, using memory fallback", extra={"match_id": match_id, "user_id": user.id})
 
     async def _build_presence_snapshot(self) -> Dict[str, Any]:
         match_id = getattr(self, "match_id", None)
@@ -485,7 +522,28 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
         rds = _get_redis_presence()
         if rds is None:
-            return {"match_id": match_id, "sides": sides, "both_online": False, "updated_at": timezone.now().isoformat()}
+            # In-memory fallback (local dev without Redis)
+            pattern = self._presence_pattern(match_id)
+            for _key, raw in _memory_presence_scan(pattern):
+                try:
+                    row = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                side = row.get("side")
+                if side not in (1, 2):
+                    continue
+                side_key = str(side)
+                status = str(row.get("status") or "online")
+                sides[side_key]["online"] = True
+                sides[side_key]["status"] = "away" if status == "away" else "online"
+                sides[side_key]["user_id"] = row.get("user_id")
+                sides[side_key]["username"] = row.get("username")
+            return {
+                "match_id": match_id,
+                "sides": sides,
+                "both_online": bool(sides["1"]["online"] and sides["2"]["online"]),
+                "updated_at": timezone.now().isoformat(),
+            }
 
         try:
             pattern = self._presence_pattern(match_id)
