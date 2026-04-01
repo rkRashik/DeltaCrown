@@ -998,6 +998,31 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     policy = _resolve_lobby_policy(match)
     effective_policy = _safe_dict(policy.get("effective"))
     phase_order, phase1_kind = _build_phase_order(phase_mode, effective_policy)
+
+    # Override with GameMatchPipeline if one exists for this game
+    pipeline_phases = None
+    if game:
+        try:
+            pipeline = game.match_pipeline
+            pipeline_phases = pipeline.get_phase_order()
+        except Exception:
+            pass
+    if pipeline_phases:
+        # Map pipeline keys to the legacy phase1 system:
+        # "direct_ready" and "map_veto" become "phase1" internally
+        mapped = []
+        for p in pipeline_phases:
+            if p == "direct_ready":
+                mapped.append("phase1")
+                phase1_kind = "direct"
+            elif p == "map_veto":
+                mapped.append("phase1")
+                phase1_kind = "veto"
+            elif p in PHASES:
+                mapped.append(p)
+        if mapped:
+            phase_order = mapped
+
     check_in_window = _resolve_check_in_window(match, effective_policy)
     credential_schema = _credential_schema_for_game(
         game_key=game_key,
@@ -1088,6 +1113,7 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
         "game_name": getattr(game, "display_name", "") or getattr(game, "name", "Game"),
         "game_slug": game_slug,
         "pipeline_game_key": game_key,
+        "pipeline_phases": pipeline_phases,
         "phase_mode": phase_mode,
         "credential_schema": credential_schema,
         "best_of": best_of,
@@ -1375,6 +1401,7 @@ def _build_room_payload(
             "name": runtime["game_name"],
             "slug": runtime["game_slug"],
             "pipeline_game_key": runtime.get("pipeline_game_key", ""),
+            "pipeline_phases": runtime.get("pipeline_phases") or [],
             "phase_mode": runtime["phase_mode"],
             "map_pool": runtime["map_pool"],
             "credentials_schema": _safe_list(runtime.get("credential_schema")),

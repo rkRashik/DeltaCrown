@@ -5,8 +5,9 @@ Games app models.
 import os
 
 from .game import Game
+from .match_pipeline import GameMatchPipeline
 
-__all__ = ['Game']
+__all__ = ['Game', 'GameMatchPipeline']
 
 if os.environ.get("DELTA_MINIMAL_TEST_APPS") != "1":
     from .roster_config import GameRosterConfig
