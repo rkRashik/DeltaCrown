@@ -1,18 +1,18 @@
 {% comment %}
-  Tab: Standings — Group stage leaderboard with "You" highlight
+  Tab: Standings — Group stage leaderboard with "You" highlight (2050 Premium Design)
   Data loaded async via /hub/api/standings/ and rendered by hub-engine.js
 {% endcomment %}
 
-<div class="p-4 md:p-8 lg:p-10 max-w-[1400px] mx-auto space-y-8">
+<div class="p-4 md:p-8 lg:p-10 max-w-[1200px] mx-auto space-y-8">
 
   {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
-  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
     <div>
-      <h2 class="font-black text-2xl lg:text-3xl text-white hub-mobile-heading" style="font-family:Outfit,sans-serif;">Standings</h2>
-      <p class="text-sm text-gray-400 mt-1">Live leaderboard updated automatically after every match.</p>
+      <h2 class="font-black text-3xl lg:text-4xl text-white tracking-wide hub-mobile-heading" style="font-family:Outfit,sans-serif;">Rankings</h2>
+      <p class="text-xs text-gray-400 mt-2" style="font-family:'JetBrains Mono','Space Grotesk',monospace;">Group stage leaderboard. Data updates strictly post-match.</p>
     </div>
     <div id="standings-format-badge" class="hidden">
-      <span class="hub-badge hub-badge-info">{{ tournament.get_format_display }}</span>
+      <span class="hub-badge bg-black/50 border border-white/10 text-gray-300 px-4 py-2 text-xs">{{ tournament.get_format_display }}</span>
     </div>
   </div>
 
@@ -20,7 +20,7 @@
   <div id="standings-skeleton" class="space-y-4 animate-pulse">
     <div class="h-4 bg-white/10 rounded w-32 mb-4"></div>
     {% for _ in "12345" %}
-    <div class="hub-glass rounded-xl p-4 flex items-center gap-4">
+    <div class="premium-card rounded-xl p-4 flex items-center gap-4">
       <div class="w-8 h-8 rounded-full bg-white/10"></div>
       <div class="flex-1 space-y-2">
         <div class="h-3 bg-white/10 rounded w-1/3"></div>
@@ -34,7 +34,7 @@
   <div id="hub-standings-container" class="space-y-8 hidden"></div>
 
   {% comment %}── Empty State ─────────────────────────────────────────────{% endcomment %}
-  <div id="standings-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
+  <div id="standings-empty" class="premium-card p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
     <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
       <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
     </div>
@@ -44,10 +44,10 @@
     </p>
   </div>
 
-  <div class="lg:hidden hub-glass rounded-2xl p-4 border border-white/10 space-y-3">
+  <div class="lg:hidden premium-card p-4 border border-white/10 space-y-3">
     <div class="flex items-center justify-between gap-3">
       <h3 class="text-xs font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
-        <i data-lucide="users" class="w-4 h-4 text-cyan-300"></i>
+        <i data-lucide="users" class="w-4 h-4 text-[#00F0FF]"></i>
         Participants & Squad
       </h3>
       <button type="button" class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300" onclick="HubEngine.switchTab('support')">

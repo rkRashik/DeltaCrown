@@ -285,13 +285,17 @@
         </a>
         <div class="h-6 w-px bg-white/8 hidden sm:block"></div>
         {% comment %}DeltaCrown Logo{% endcomment %}
-        <a href="/" class="hub-logo-link shrink-0" title="DeltaCrown Home">
-          <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-9 h-9">
+        <a href="/" class="hub-logo-link shrink-0 group" title="DeltaCrown Home">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--game-primary)] to-purple-600 p-[1px] shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+            <div class="w-full h-full bg-[#050508] rounded-xl flex items-center justify-center group-hover:bg-transparent transition-colors duration-300">
+              <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-7 h-7">
+            </div>
+          </div>
         </a>
         <div class="h-6 w-px bg-white/8 hidden sm:block"></div>
         {% comment %}Tournament Identity{% endcomment %}
         <div class="flex flex-col min-w-0">
-          <span class="text-base font-bold text-white truncate leading-tight" style="font-family:Outfit,sans-serif;">
+          <span class="text-base font-bold text-white truncate leading-tight text-gradient" style="font-family:Outfit,sans-serif;">
             {{ tournament.name|truncatechars:40 }}
           </span>
           <div class="flex items-center gap-2 mt-0.5">
@@ -371,7 +375,7 @@
         <div class="h-5 w-px bg-white/8 hidden sm:block"></div>
 
         {% comment %}User Avatar + Info{% endcomment %}
-        <a href="/dashboard/" class="flex items-center gap-2 group cursor-pointer" title="{{ request.user.username }} — Dashboard">
+        <a href="/dashboard/" class="flex items-center gap-2 group cursor-pointer hover:bg-white/5 p-1.5 pr-3 rounded-xl transition border border-transparent hover:border-white/10" title="{{ request.user.username }} — Dashboard">
           <div class="text-right hidden md:block">
             <p class="text-sm font-bold text-white group-hover:text-[var(--game-primary)] transition-colors leading-none">{{ request.user.get_full_name|default:request.user.username }}</p>
             <p class="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors" style="font-family:'Space Grotesk',monospace;">
@@ -386,12 +390,13 @@
               {% endif %}
             </p>
           </div>
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-[var(--game-primary)]/20 to-[#7000FF]/20 border border-white/10 overflow-hidden">
+          <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-[var(--game-primary)]/20 to-[#7000FF]/20 border border-white/10 overflow-hidden relative group-hover:border-[var(--game-primary)] transition-colors">
             {% if request.user.profile.avatar %}
               <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
             {% else %}
               <div class="w-full h-full flex items-center justify-center text-[11px] font-bold text-white">{{ request.user.username|truncatechars:2 }}</div>
             {% endif %}
+            <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00FF66] rounded-full border-2 border-[#050508]"></div>
           </div>
         </a>
       </div>
@@ -416,7 +421,7 @@
   <div class="flex-1 flex overflow-hidden w-full relative" style="z-index:10;">
 
     {% comment %}Desktop Sidebar{% endcomment %}
-    <aside id="hub-sidebar-desktop" class="hub-sidebar-desktop w-[240px] xl:w-[270px] flex flex-col hub-glass-heavy border-r border-white/5 shrink-0" style="z-index:20;">
+    <aside id="hub-sidebar-desktop" class="hub-sidebar-desktop w-[260px] xl:w-[280px] flex flex-col hub-glass-heavy border-r border-white/5 shrink-0" style="z-index:20;">
       {% include "tournaments/hub/_sidebar.html" %}
     </aside>
 
