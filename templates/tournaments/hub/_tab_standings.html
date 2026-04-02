@@ -1,20 +1,18 @@
 {% comment %}
-  Tab: Standings — Group stage leaderboard with "You" highlight
-  Data loaded async via /hub/api/standings/ and rendered by hub-engine.js
-  Design matches demo_hub_2.html "tab-standings" exactly.
+  Tab: Standings — Rankings
+  Visual design: EXACT copy of demo_hub_2.html #tab-standings
+  Header + format badge. Table content rendered by hub-engine.js.
 {% endcomment %}
 
-<div class="p-4 md:p-8 lg:p-10 max-w-[1200px] mx-auto space-y-8">
+<div class="p-4 md:p-8 lg:p-10 max-w-[1200px] mx-auto">
 
-  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
   <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
     <div>
-      <h2 class="font-display font-black text-4xl text-white tracking-wide hub-mobile-heading">Rankings</h2>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide">Rankings</h2>
       <p class="font-mono text-xs text-gray-400 mt-2">Group stage leaderboard. Data updates strictly post-match.</p>
     </div>
-    <div id="standings-format-badge" class="hidden">
-      <span class="hub-badge bg-black/50 border border-white/10 text-gray-300 px-4 py-2 text-xs">{{ tournament.get_format_display }}</span>
-    </div>
+    <span id="standings-format-badge" class="hub-badge bg-black/50 border border-white/10 text-gray-300 px-4 py-2 text-xs">{{ tournament.get_format_display|default:"Phase: Groups" }}</span>
   </div>
 
   {% comment %}── Loading Skeleton ────────────────────────────────────────{% endcomment %}
@@ -35,30 +33,16 @@
   <div id="hub-standings-container" class="space-y-8 hidden"></div>
 
   {% comment %}── Empty State ─────────────────────────────────────────────{% endcomment %}
-  <div id="standings-empty" class="premium-card p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
+  <div id="standings-empty" class="premium-card p-10 flex flex-col items-center justify-center text-center hidden">
     <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
       <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
     </div>
     <h3 class="font-display text-lg font-bold text-white mb-2">Standings Unavailable</h3>
-    <p class="text-sm text-gray-500 max-w-md">
-      Standings will be populated once matches have been played and results have been submitted.
-    </p>
+    <p class="text-sm text-gray-500 max-w-md">Standings will be populated once matches have been played and results have been submitted.</p>
   </div>
 
-  {% comment %}── Mobile: Participants & Squad Shortcut ────────────────────{% endcomment %}
-  <div class="lg:hidden premium-card p-4 border border-white/10 space-y-3">
-    <div class="flex items-center justify-between gap-3">
-      <h3 class="font-display text-xs font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
-        <i data-lucide="users" class="w-4 h-4 text-[#00F0FF]"></i>
-        Participants & Squad
-      </h3>
-      <button type="button" class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300" onclick="HubEngine.switchTab('support')">
-        Need Help
-      </button>
-    </div>
-    <input id="hub-mobile-standings-search" type="search" placeholder="Search player or team"
-           class="w-full rounded-xl bg-black/35 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-gray-500">
-    <div id="hub-mobile-standings-participants" class="space-y-2"></div>
-  </div>
+  {% comment %}Hidden JS binding elements{% endcomment %}
+  <input id="hub-mobile-standings-search" type="hidden" value="">
+  <div id="hub-mobile-standings-participants" class="hidden"></div>
 
 </div>

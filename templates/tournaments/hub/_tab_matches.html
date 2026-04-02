@@ -1,15 +1,15 @@
 {% comment %}
-  Tab: Match Lobby — Check-in action, live match cards, match history
-  Data loaded async via /hub/api/matches/ and rendered by hub-engine.js
-  Design matches demo_hub_2.html "tab-lobby" exactly.
+  Tab: Match Lobby — Check-in, live match, match history
+  Visual design: EXACT copy of demo_hub_2.html #tab-lobby
+  Dynamic data via hub-engine.js renders into container IDs.
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1300px] mx-auto">
 
-  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
   <div class="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-white/10 pb-6 mb-8 gap-6">
     <div>
-      <h2 class="font-display font-black text-4xl text-white tracking-wide glow-text-primary hub-mobile-heading">Match Lobby</h2>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide glow-text-primary">Match Lobby</h2>
       <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time. Do not leave this tab during an active match.</p>
     </div>
     <div class="flex flex-wrap gap-2 shrink-0">
@@ -25,69 +25,63 @@
     </div>
   </div>
 
-  {% comment %}── Check-In Section ────────────────────────────────────────{% endcomment %}
+  {% comment %}── Check-In Card — neon left bar + gradient overlay (demo exact) ─{% endcomment %}
   {% if check_in_status != 'not_configured' %}
-  <div class="premium-card p-6 md:p-8 mb-10 overflow-hidden relative
-    {% if check_in_status == 'open' and not is_checked_in %}border-l-4 border-l-[#00F0FF]
-    {% elif is_checked_in %}border-l-4 border-l-[#00FF66]
-    {% else %}border-l-4 border-l-gray-700{% endif %}">
+  <div class="premium-card p-6 md:p-8 mb-10 overflow-hidden relative">
 
     {% if check_in_status == 'open' and not is_checked_in %}
-      <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_20px_#00F0FF]"></div>
-      <div class="absolute inset-0 bg-gradient-to-r from-[#00F0FF]/10 to-transparent pointer-events-none opacity-80"></div>
+    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_20px_#00F0FF]"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-[#00F0FF]/10 to-transparent pointer-events-none opacity-80"></div>
     {% endif %}
 
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-3">
           {% if check_in_status == 'open' %}
-            <span class="hub-badge bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40">
-              <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" style="box-shadow:0 0 8px #00F0FF"></span> Check-In Open
-            </span>
+          <span class="hub-badge bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40">
+            <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" style="box-shadow:0 0 8px #00F0FF"></span> Check-In Open
+          </span>
           {% elif check_in_status == 'closed' %}
-            <span class="hub-badge hub-badge-danger">Check-In Closed</span>
+          <span class="hub-badge hub-badge-danger">Check-In Closed</span>
           {% elif check_in_status == 'not_open' %}
-            <span class="hub-badge hub-badge-neutral">Awaiting Check-In</span>
+          <span class="hub-badge hub-badge-neutral">Awaiting Check-In</span>
           {% endif %}
         </div>
 
         {% if is_checked_in %}
-          <h3 class="font-display font-black text-2xl text-white mb-2">You're Checked In</h3>
-          <p class="text-sm text-gray-300 max-w-xl">Stand by for matches. The bracket will be generated once check-in closes.</p>
+        <h3 class="font-display font-black text-2xl text-white mb-2">You're Checked In</h3>
+        <p class="text-sm text-gray-300 max-w-xl">Stand by for matches. The bracket will be generated once check-in closes.</p>
         {% elif check_in_status == 'open' %}
-          <h3 class="font-display font-black text-2xl text-white mb-2">Pre-Match Verification</h3>
-          <p class="text-sm text-gray-300 max-w-xl">
-            Confirm your presence before the window closes. Failure to check in results in an automatic walkover.
-            {% if is_team %}All team members should be ready.{% endif %}
-          </p>
+        <h3 class="font-display font-black text-2xl text-white mb-2">Pre-Match Verification</h3>
+        <p class="text-sm text-gray-300 max-w-xl">Confirm your presence for the upcoming round. Failure to check in before the timer expires results in an automatic walkover.{% if is_team %} All team members should be ready.{% endif %}</p>
         {% elif check_in_status == 'not_open' %}
-          <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Window</h3>
-          <p class="text-sm text-gray-300 max-w-xl">Check-in hasn't opened yet. Watch the countdown on the Overview tab.</p>
+        <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Window</h3>
+        <p class="text-sm text-gray-300 max-w-xl">Check-in hasn't opened yet. Watch the countdown on the Overview tab.</p>
         {% else %}
-          <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Closed</h3>
-          <p class="text-sm text-gray-300 max-w-xl">The check-in window has ended.</p>
+        <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Closed</h3>
+        <p class="text-sm text-gray-300 max-w-xl">The check-in window has ended.</p>
         {% endif %}
       </div>
 
       <div class="flex flex-col items-end gap-3 w-full md:w-auto shrink-0">
         {% if check_in_status == 'open' and not is_checked_in %}
-          <button id="hub-checkin-btn-lobby"
-                  class="w-full md:w-auto px-10 py-4 rounded-xl btn-solid-primary font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2"
-                  {% if hub_critical_locked %}disabled{% endif %}
-                  onclick="HubEngine.performCheckIn()">
-            <i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now
-          </button>
+        <button id="hub-checkin-btn-lobby"
+                class="w-full md:w-auto px-10 py-4 rounded-xl btn-solid-primary font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                {% if hub_critical_locked %}disabled{% endif %}
+                onclick="HubEngine.performCheckIn()">
+          <i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now
+        </button>
         {% elif is_checked_in %}
-          <div class="w-full md:w-auto px-10 py-4 rounded-xl bg-[#00FF66]/15 border border-[#00FF66]/30 text-[#00FF66] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-            <i data-lucide="check" class="w-5 h-5"></i> Confirmed
-          </div>
+        <div class="w-full md:w-auto px-10 py-4 rounded-xl bg-[#00FF66]/15 border border-[#00FF66]/30 text-[#00FF66] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-5 h-5"></i> Confirmed
+        </div>
         {% endif %}
       </div>
     </div>
   </div>
   {% endif %}
 
-  {% comment %}── Active Combat ────────────────────────────────────────────{% endcomment %}
+  {% comment %}── Active Combat — demo exact section heading ──────────────{% endcomment %}
   <div class="mb-10">
     <div class="flex items-center gap-3 mb-6">
       <h3 class="font-display text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
@@ -96,7 +90,6 @@
       <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
     </div>
 
-    {% comment %}Loading skeleton{% endcomment %}
     <div id="matches-skeleton" class="space-y-4">
       {% for _ in "12" %}
       <div class="premium-card p-6 animate-pulse">
@@ -113,20 +106,16 @@
 
     <div id="hub-match-cards" class="space-y-4 hidden"></div>
 
-    {% comment %}No matches placeholder{% endcomment %}
-    <div id="matches-empty" class="premium-card p-10 flex flex-col items-center justify-center text-center hidden hub-empty-state-panel">
+    <div id="matches-empty" class="premium-card p-10 flex flex-col items-center justify-center text-center hidden">
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="crosshair" class="w-8 h-8 text-gray-600"></i>
       </div>
       <h3 class="font-display text-lg font-bold text-white mb-2">No Active Matches</h3>
-      <p class="text-sm text-gray-500 max-w-md">
-        When the tournament goes live and matches are scheduled, your matchups will appear here
-        with live lobby controls and result submission.
-      </p>
+      <p class="text-sm text-gray-500 max-w-md">When the tournament goes live and matches are scheduled, your matchups will appear here with live lobby controls and result submission.</p>
     </div>
   </div>
 
-  {% comment %}── Match History ────────────────────────────────────────────{% endcomment %}
+  {% comment %}── Match History — demo exact section heading ──────────────{% endcomment %}
   <div>
     <div class="flex items-center gap-3 mb-6">
       <h3 class="font-display text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">

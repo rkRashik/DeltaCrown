@@ -1,45 +1,22 @@
 {% comment %}
-  Tab: Announcements — Premium Feed & Updates (2050 Design)
-  Matches demo_hub_2.html "tab-announcements" exactly.
+  Tab: Announcements — Feed & Updates
+  Visual design: EXACT copy of demo_hub_2.html #tab-announcements
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto">
 
-  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
     <div>
       <h2 class="font-display font-black text-4xl text-white tracking-wide">Feed & Updates</h2>
       <p class="font-mono text-xs text-gray-400 mt-2 tracking-wide">Live broadcast from Tournament Admins.</p>
     </div>
-    <div class="flex items-center gap-3">
-      <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-[10px] font-black uppercase tracking-wider text-[#00F0FF]" id="hub-ann-count">
-        {{ announcements|length }} update{{ announcements|length|pluralize }}
-      </span>
-    </div>
-  </div>
-
-  {% comment %}── Filters & Search ────────────────────────────────────────{% endcomment %}
-  <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between mb-8">
-    <div class="relative w-full lg:max-w-xl">
-      <i data-lucide="search" class="w-3.5 h-3.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-      <input id="hub-ann-search" type="text" placeholder="Search announcements"
-             class="w-full bg-black/30 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00F0FF]/50">
-    </div>
     <div class="flex bg-black/40 p-1 rounded-xl border border-white/10" id="hub-ann-filters">
       <button type="button" data-hub-feed-filter="all" class="px-5 py-2 rounded-lg bg-white/10 text-white text-xs font-bold">All</button>
-      <button type="button" data-hub-feed-filter="pinned" class="px-5 py-2 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">Pinned</button>
       <button type="button" data-hub-feed-filter="urgent" class="px-5 py-2 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">Urgent</button>
-      <button type="button" onclick="HubEngine.refreshAnnouncements()" class="px-5 py-2 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">
-        <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i>
-      </button>
+      <button type="button" data-hub-feed-filter="success" class="px-5 py-2 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">Results</button>
     </div>
   </div>
 
-  <div class="mb-4">
-    <p id="hub-ann-last-sync" class="text-[10px] text-gray-500 font-mono">Waiting for first sync</p>
-  </div>
-
-  {% comment %}── Feed Items (premium-card per announcement) ─────────────{% endcomment %}
   <div class="space-y-5" id="hub-announcements-feed">
     {% for ann in announcements %}
     <div class="premium-card p-6 md:p-8
@@ -49,19 +26,16 @@
       {% else %}border-l-4 border-l-[#00F0FF]{% endif %}">
 
       {% if ann.type == 'urgent' %}
-      <div class="absolute right-0 top-0 p-6 opacity-5 pointer-events-none"><i data-lucide="siren" class="w-32 h-32 text-[#FF2A55]"></i></div>
+      <div class="absolute right-0 top-0 p-6 opacity-5 pointer-events-none">
+        <i data-lucide="siren" class="w-32 h-32 text-[#FF2A55]"></i>
+      </div>
       {% endif %}
 
       <div class="flex items-center gap-3 mb-4 relative z-10">
         {% if ann.is_pinned %}
-          <span class="hub-badge bg-[#FF2A55]/20 text-[#FF8AA0] border border-[#FF2A55]/40" style="box-shadow: 0 0 15px rgba(255,42,85,0.3)">
-            <i data-lucide="pin" class="w-3 h-3"></i> Pinned
-          </span>
-        {% endif %}
-        {% if ann.is_important %}
-          <span class="hub-badge bg-[#FFB800]/20 text-[#FFD86B] border border-[#FFB800]/40">
-            <i data-lucide="alert-triangle" class="w-3 h-3"></i> Important
-          </span>
+        <span class="hub-badge bg-[#FF2A55]/20 text-[#FF8AA0] border border-[#FF2A55]/40" style="box-shadow: 0 0 15px rgba(255,42,85,0.3)">
+          <i data-lucide="pin" class="w-3 h-3"></i> Pinned
+        </span>
         {% endif %}
         <span class="hub-badge
           {% if ann.type == 'urgent' %}bg-[#FF2A55]/10 text-[#FF2A55] border border-[#FF2A55]/30
@@ -70,21 +44,18 @@
           {% else %}bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30{% endif %}">
           {{ ann.type|default:"Info" }}
         </span>
-        {% if ann.symbol %}
-        <span class="text-sm leading-none">{{ ann.symbol }}</span>
-        {% endif %}
         <span class="font-mono text-[10px] text-gray-400">{{ ann.time_ago }}</span>
       </div>
 
       {% if ann.title %}
-        <h3 class="font-display font-bold text-xl md:text-2xl text-white mb-3 relative z-10
-          {% if ann.type == 'urgent' %}glow-text-primary{% endif %}"
-          {% if ann.type == 'urgent' %}style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"{% endif %}>
-          {% if ann.icon %}<i data-lucide="{{ ann.icon }}" class="w-4 h-4 text-[#00F0FF] inline mr-1"></i>{% endif %}
-          {{ ann.title }}
-        </h3>
+      <h3 class="font-display font-bold {% if ann.type == 'urgent' %}text-2xl{% else %}text-xl{% endif %} text-white mb-3 relative z-10
+        {% if ann.type == 'urgent' %}glow-text-primary{% endif %}"
+        {% if ann.type == 'urgent' %}style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"{% endif %}>
+        {{ ann.title }}
+      </h3>
       {% endif %}
-      <p class="text-sm text-gray-300 leading-relaxed relative z-10 max-w-3xl">{{ ann.message }}</p>
+
+      <p class="text-sm {% if ann.type == 'urgent' %}text-gray-300{% else %}text-gray-400{% endif %} leading-relaxed relative z-10 max-w-3xl">{{ ann.message }}</p>
     </div>
     {% empty %}
     <div class="premium-card p-10 flex flex-col items-center justify-center text-center">
@@ -97,11 +68,12 @@
     {% endfor %}
   </div>
 
-  <div id="hub-ann-load-more-wrap" class="hidden justify-center pt-6">
-    <button type="button" id="hub-ann-load-more-btn" onclick="HubEngine.loadMoreAnnouncements()"
-            class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all">
-      Load Older
-    </button>
+  {% comment %}Hidden JS binding elements — hub-engine.js writes to these{% endcomment %}
+  <span id="hub-ann-count" class="hidden">{{ announcements|length }}</span>
+  <input id="hub-ann-search" type="hidden" value="">
+  <p id="hub-ann-last-sync" class="hidden"></p>
+  <div id="hub-ann-load-more-wrap" class="hidden">
+    <button type="button" id="hub-ann-load-more-btn" onclick="HubEngine.loadMoreAnnouncements()">Load Older</button>
   </div>
 
 </div>

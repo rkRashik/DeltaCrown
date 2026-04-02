@@ -1,155 +1,35 @@
 {% comment %}
-  Tab: Schedule — Tournament timeline / phase schedule + match fixtures
-  Design matches demo_hub_2.html "tab-schedule" exactly.
-  Renders tournament date milestones from context, match cards via JS.
+  Tab: Schedule — Timeline
+  Visual design: EXACT copy of demo_hub_2.html #tab-schedule
+  No vertical timeline — just header + filter + match cards (rendered by JS).
 {% endcomment %}
 
-<div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto space-y-8">
+<div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto">
 
-  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
   <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
     <div>
-      <h2 class="font-display font-black text-4xl text-white tracking-wide hub-mobile-heading">Timeline</h2>
-      <p class="font-mono text-xs text-gray-400 mt-2">Official tournament phases and upcoming fixtures.</p>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide">Timeline</h2>
+      <p class="font-mono text-xs text-gray-400 mt-2">Upcoming fixtures and past results.</p>
     </div>
+    {% if not is_staff_view %}
+    <div id="schedule-match-filter" class="flex bg-black/40 p-1 rounded-xl border border-white/10">
+      <button type="button"
+              data-schedule-filter="my"
+              class="hub-schedule-filter-btn active px-5 py-2.5 rounded-lg bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/30 text-xs font-bold shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+        My Matches
+      </button>
+      <button type="button"
+              data-schedule-filter="all"
+              class="hub-schedule-filter-btn px-5 py-2.5 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">
+        All Matches
+      </button>
+    </div>
+    {% endif %}
   </div>
 
-  {% comment %}── Phase Timeline ──────────────────────────────────────────{% endcomment %}
-  <div class="relative border-l-2 border-white/10 ml-4 md:ml-8 space-y-10 pb-12">
-
-    {% comment %}── Registration Start ────────────────────────────────────{% endcomment %}
-    {% if tournament.registration_start %}
-    <div class="relative pl-8 md:pl-12 {% if tournament.status != 'registration_open' and tournament.status != 'draft' and tournament.status != 'published' %}opacity-50{% endif %}">
-      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
-        {% if tournament.status == 'registration_open' %}bg-[#00FF66]/20 border-2 border-[#00FF66]
-        {% else %}bg-gray-800 border-4 border-[#020203]{% endif %}">
-        {% if tournament.status == 'registration_open' %}
-          <div class="w-full h-full rounded-full flex items-center justify-center">
-            <div class="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse"></div>
-          </div>
-        {% endif %}
-      </div>
-      <p class="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
-        {{ tournament.registration_start|date:"M d, Y — H:i" }}
-      </p>
-      <h3 class="font-display font-bold text-xl text-white">Registration Opens</h3>
-      <p class="text-sm text-gray-400 mt-1">Teams can begin registering and paying entry fees.</p>
-    </div>
-    {% endif %}
-
-    {% comment %}── Registration End ──────────────────────────────────────{% endcomment %}
-    {% if tournament.registration_end %}
-    <div class="relative pl-8 md:pl-12 {% if tournament.status == 'registration_open' or tournament.status == 'draft' or tournament.status == 'published' %}{% else %}opacity-50{% endif %}">
-      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
-        {% if tournament.status == 'registration_closed' %}bg-[#FFB800]/20 border-2 border-[#FFB800]
-        {% else %}bg-gray-800 border-4 border-[#020203]{% endif %}"></div>
-      <p class="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
-        {{ tournament.registration_end|date:"M d, Y — H:i" }}
-      </p>
-      <h3 class="font-display font-bold text-xl text-white">Registration Closes</h3>
-      <p class="text-sm text-gray-400 mt-1">Late entries finalized. Waitlist promotions processed.</p>
-    </div>
-    {% endif %}
-
-    {% comment %}── Check-In Window ───────────────────────────────────────{% endcomment %}
-    {% if lobby and lobby.check_in_opens_at %}
-    <div class="relative pl-8 md:pl-12">
-      {% if check_in_status == 'open' %}
-        <div class="absolute -left-[13px] top-1 w-6 h-6 rounded-full bg-[#00F0FF]/20 border-2 border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.5)] flex items-center justify-center">
-          <div class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></div>
-        </div>
-        <div class="premium-card p-6 rounded-2xl border-[#00F0FF]/30 mt-[-0.5rem]">
-          <p class="font-mono text-[10px] font-bold text-[#00F0FF] uppercase tracking-widest mb-1">Right Now</p>
-          <h3 class="font-display font-black text-2xl text-white">Check-In Open</h3>
-          <p class="text-sm text-gray-400 mt-1">
-            Confirm your presence now.
-            {% if lobby.check_in_closes_at %}Window closes at {{ lobby.check_in_closes_at|date:"H:i" }}.{% endif %}
-          </p>
-        </div>
-      {% else %}
-        <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-gray-800 border-4 border-[#020203]"></div>
-        <p class="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
-          {{ lobby.check_in_opens_at|date:"M d, Y — H:i" }}
-        </p>
-        <h3 class="font-display font-bold text-xl text-white">Check-In Window</h3>
-        <p class="text-sm text-gray-400 mt-1">
-          Opens for registered participants.
-          {% if lobby.check_in_closes_at %}Closes at {{ lobby.check_in_closes_at|date:"H:i" }}.{% endif %}
-        </p>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {% comment %}── Tournament Start ──────────────────────────────────────{% endcomment %}
-    {% if tournament.tournament_start %}
-    <div class="relative pl-8 md:pl-12">
-      {% if tournament.status == 'live' %}
-        <div class="absolute -left-[13px] top-1 w-6 h-6 rounded-full bg-[#00FF66]/20 border-2 border-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.5)] flex items-center justify-center">
-          <div class="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></div>
-        </div>
-        <div class="premium-card p-6 rounded-2xl border-[#00FF66]/30 mt-[-0.5rem]">
-          <p class="font-mono text-[10px] font-bold text-[#00FF66] uppercase tracking-widest mb-1">Live Now</p>
-          <h3 class="font-display font-black text-2xl text-white">Tournament In Progress</h3>
-          <p class="text-sm text-gray-400 mt-1">Matches are underway. Report scores immediately after completion.</p>
-        </div>
-      {% else %}
-        <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-white/10 border-4 border-[#020203]"></div>
-        <p class="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
-          {{ tournament.tournament_start|date:"M d, Y — H:i" }}
-        </p>
-        <h3 class="font-display font-bold text-xl text-white">Tournament Begins</h3>
-        <p class="text-sm text-gray-400 mt-1">First round matches go live.</p>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {% comment %}── Tournament End ────────────────────────────────────────{% endcomment %}
-    {% if tournament.tournament_end %}
-    <div class="relative pl-8 md:pl-12 {% if tournament.status != 'completed' %}opacity-40{% endif %}">
-      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
-        {% if tournament.status == 'completed' %}bg-gray-500 border-4 border-[#020203]
-        {% else %}bg-white/5 border-4 border-[#020203]{% endif %}"></div>
-      <p class="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
-        {{ tournament.tournament_end|date:"M d, Y — H:i" }}
-      </p>
-      <h3 class="font-display font-bold text-xl text-white">
-        {% if tournament.status == 'completed' %}Tournament Concluded{% else %}Grand Finals{% endif %}
-      </h3>
-      <p class="text-sm text-gray-400 mt-1">Final matches and prize distribution.</p>
-    </div>
-    {% endif %}
-
-  </div>
-
-  {% comment %}── Match-Level Schedule — loaded dynamically via JS ─────{% endcomment %}
-  <div id="hub-match-schedule-section" class="mt-10 border-t border-white/10 pt-8">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-      <div>
-        <h3 class="font-display font-bold text-xl text-white">Match Schedule</h3>
-        <p class="font-mono text-xs text-gray-400 mt-1">Upcoming fixtures and past results.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        {% if not is_staff_view %}
-        <div id="schedule-match-filter" class="flex bg-black/40 p-1 rounded-xl border border-white/10">
-          <button type="button"
-                  data-schedule-filter="my"
-                  class="hub-schedule-filter-btn active px-5 py-2.5 rounded-lg bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/30 text-xs font-bold" style="box-shadow: 0 0 20px rgba(0,240,255,0.3)">
-            My Matches
-          </button>
-          <button type="button"
-                  data-schedule-filter="all"
-                  class="hub-schedule-filter-btn px-5 py-2.5 rounded-lg text-gray-500 hover:text-white text-xs font-medium transition">
-            All Matches
-          </button>
-        </div>
-        {% endif %}
-        <button onclick="HubEngine.refreshScheduleMatches && HubEngine.refreshScheduleMatches()"
-                class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
-                title="Refresh schedule">
-          <i data-lucide="refresh-cw" class="w-4 h-4 text-gray-400"></i>
-        </button>
-      </div>
-    </div>
+  {% comment %}── Match Schedule — dynamic content area ─────────────────{% endcomment %}
+  <div id="hub-match-schedule-section">
 
     {% comment %}Skeleton loader{% endcomment %}
     <div id="schedule-match-skeleton" class="space-y-3">
@@ -165,8 +45,9 @@
       <p class="text-xs text-gray-600 mt-1">Match times will appear here once the bracket is generated.</p>
     </div>
 
-    {% comment %}Match cards container{% endcomment %}
+    {% comment %}Match cards rendered by JS into this container{% endcomment %}
     <div id="schedule-match-list" class="hidden space-y-3"></div>
+
   </div>
 
 </div>
