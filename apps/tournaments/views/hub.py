@@ -2780,6 +2780,32 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                         logo_url = _get_avatar_url(s.user) if s.user else ''
                         is_you = s.user_id == request.user.id
 
+                    # Compute recent form (last 5 match results)
+                    pid = s.team_id if is_team and s.team_id else s.user_id
+                    form = []
+                    if pid:
+                        recent = (
+                            Match.objects.filter(
+                                tournament=tournament,
+                                state='completed',
+                            )
+                            .filter(
+                                models.Q(participant1_id=pid) | models.Q(participant2_id=pid)
+                            )
+                            .order_by('-completed_at')[:5]
+                        )
+                        for rm in recent:
+                            if rm.winner_id == pid:
+                                form.append('W')
+                            elif rm.winner_id is None:
+                                form.append('D')
+                            else:
+                                form.append('L')
+
+                    # Format points: show integer if whole number
+                    pts_val = s.points or 0
+                    pts_str = str(int(pts_val)) if float(pts_val) == int(float(pts_val)) else str(pts_val)
+
                     rows.append({
                         'rank': s.rank,
                         'name': name,
@@ -2789,10 +2815,11 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                         'won': s.matches_won,
                         'drawn': s.matches_drawn,
                         'lost': s.matches_lost,
-                        'points': str(s.points),
+                        'points': pts_str,
                         'goal_difference': s.goal_difference,
                         'rounds_won': s.rounds_won,
                         'rounds_lost': s.rounds_lost,
+                        'form': form,
                     })
 
                 rows.sort(

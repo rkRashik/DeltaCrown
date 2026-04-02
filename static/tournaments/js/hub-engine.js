@@ -1370,6 +1370,7 @@ const HubEngine = (() => {
       const filtered = source.filter((ann) => {
         if (_announcementFilter === 'pinned' && !ann.is_pinned) return false;
         if (_announcementFilter === 'urgent' && String(ann.type || '').toLowerCase() !== 'urgent') return false;
+        if (_announcementFilter === 'success' && String(ann.type || '').toLowerCase() !== 'success') return false;
         if (_announcementSearch) {
           const title = String(ann.title || '').toLowerCase();
           const message = String(ann.message || '').toLowerCase();
@@ -1378,36 +1379,42 @@ const HubEngine = (() => {
         return true;
       });
 
-      const html = filtered.map((ann, i) => {
-        const dotClass = ann.type === 'urgent' ? 'ann-dot-urgent'
-                       : ann.type === 'warning' ? 'ann-dot-warning'
-                       : ann.type === 'success' ? 'ann-dot-success'
-                       : 'ann-dot-info';
-
-        const typeClass = ann.type === 'urgent' ? 'bg-[#FF2A55]/20 text-[#FF2A55]'
-                        : ann.type === 'warning' ? 'bg-[#FFB800]/20 text-[#FFB800]'
-                        : ann.type === 'success' ? 'bg-[#00FF66]/20 text-[#00FF66]'
-                        : 'bg-white/10 text-gray-300';
-
-        const isLast = i === filtered.length - 1;
+      const html = filtered.map((ann) => {
+        const type = String(ann.type || 'info').toLowerCase();
+        const borderColor = type === 'urgent' ? '#FF2A55'
+                          : type === 'warning' ? '#FFB800'
+                          : type === 'success' ? '#00FF66'
+                          : '#00F0FF';
+        const borderStyle = type === 'success' ? 'border-dashed' : '';
+        const badgeBg = type === 'urgent' ? 'bg-[#FF2A55]/10 text-[#FF2A55] border border-[#FF2A55]/30'
+                      : type === 'warning' ? 'bg-[#FFB800]/10 text-[#FFB800] border border-[#FFB800]/30'
+                      : type === 'success' ? 'bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30'
+                      : 'bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30';
+        const titleSize = type === 'urgent' ? 'text-2xl' : 'text-xl';
+        const bodyColor = type === 'urgent' ? 'text-gray-300' : 'text-gray-400';
+        const glowStyle = type === 'urgent' ? ' style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"' : '';
 
         return `
-          <div class="relative pl-6 border-l border-white/5 ${isLast ? '' : 'pb-6'}">
-            <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px] ${dotClass}"></div>
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              ${ann.is_pinned ? '<span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>' : ''}
-              ${ann.is_important ? '<span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>' : ''}
-              <span class="px-1.5 py-0.5 rounded ${typeClass} text-[8px] font-black uppercase">${_esc(ann.type || 'Info')}</span>
-              ${ann.symbol ? `<span class="text-sm leading-none">${_esc(ann.symbol)}</span>` : ''}
-              <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">${_esc(ann.time_ago)}</span>
+          <div class="premium-card p-6 md:p-8 border-l-4 ${borderStyle}" style="border-left-color:${borderColor}">
+            ${type === 'urgent' ? '<div class="absolute right-0 top-0 p-6 opacity-5 pointer-events-none"><i data-lucide="siren" class="w-32 h-32 text-[#FF2A55]"></i></div>' : ''}
+            <div class="flex items-center gap-3 mb-4 relative z-10">
+              ${ann.is_pinned ? '<span class="hub-badge bg-[#FF2A55]/20 text-[#FF8AA0] border border-[#FF2A55]/40" style="box-shadow: 0 0 15px rgba(255,42,85,0.3)"><i data-lucide="pin" class="w-3 h-3"></i> Pinned</span>' : ''}
+              <span class="hub-badge ${badgeBg}">${_esc(ann.type || 'Info')}</span>
+              <span class="font-mono text-[10px] text-gray-400">${_esc(ann.time_ago)}</span>
             </div>
-            ${ann.title ? `<p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">${ann.icon ? `<i data-lucide="${_esc(ann.icon)}" class="w-3.5 h-3.5 text-cyan-200"></i>` : ''}<span>${_esc(ann.title)}</span></p>` : ''}
-            <p class="text-xs text-gray-400 leading-relaxed">${_esc(ann.message)}</p>
+            ${ann.title ? `<h3 class="font-display font-bold ${titleSize} text-white mb-3 relative z-10"${glowStyle}>${_esc(ann.title)}</h3>` : ''}
+            <p class="text-sm ${bodyColor} leading-relaxed relative z-10 max-w-3xl">${_esc(ann.message)}</p>
           </div>`;
       }).join('');
 
       if (feed) {
-        feed.innerHTML = html || '<div class="flex flex-col items-center justify-center py-12 text-center"><i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i><p class="text-sm text-gray-500 font-medium">No feed updates for this filter</p><p class="text-xs text-gray-600 mt-1">Try another filter or search keyword.</p></div>';
+        feed.innerHTML = html || `<div class="premium-card p-10 flex flex-col items-center justify-center text-center">
+          <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+            <i data-lucide="radio" class="w-8 h-8 text-gray-600"></i>
+          </div>
+          <h3 class="font-display text-lg font-bold text-white mb-2">No announcements yet</h3>
+          <p class="text-sm text-gray-500 max-w-md">Organizer updates will appear here in real-time.</p>
+        </div>`;
       }
 
       _renderOverviewAnnouncements(source);
@@ -1431,12 +1438,13 @@ const HubEngine = (() => {
       const filters = document.getElementById('hub-ann-filters');
       if (filters) {
         filters.querySelectorAll('[data-hub-feed-filter]').forEach((btn) => {
-          const active = btn.getAttribute('data-hub-feed-filter') === _announcementFilter;
-          btn.classList.toggle('bg-cyan-400/15', active);
-          btn.classList.toggle('text-cyan-200', active);
-          btn.classList.toggle('border-cyan-400/30', active);
-          btn.classList.toggle('border-white/20', !active);
-          btn.classList.toggle('text-gray-300', !active);
+          const f = btn.getAttribute('data-hub-feed-filter');
+          const active = f === _announcementFilter || (f === 'all' && _announcementFilter === 'all');
+          btn.classList.toggle('bg-white/10', active);
+          btn.classList.toggle('text-white', active);
+          btn.classList.toggle('font-bold', active);
+          btn.classList.toggle('text-gray-500', !active);
+          btn.classList.toggle('font-medium', !active);
         });
       }
 
@@ -1670,13 +1678,29 @@ const HubEngine = (() => {
         let html = '';
         entries.forEach(([place, share]) => {
           const cardClass = place === '1' ? 'gold' : place === '2' ? 'silver' : place === '3' ? 'bronze' : '';
-          const emoji = place === '1' ? '🥇' : place === '2' ? '🥈' : place === '3' ? '🥉' : '🏅';
           const label = _ordinal(place) + ' Place';
+
+          // Tier-specific visual treatment
+          let tierIcon, tierGlow;
+          if (place === '1') {
+            tierIcon = `<div style="background:linear-gradient(135deg,#FFB800,#E08800);box-shadow:0 0 25px rgba(255,184,0,0.35);" class="w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto"><i data-lucide="trophy" class="w-6 h-6 text-white"></i></div>`;
+            tierGlow = '';
+          } else if (place === '2') {
+            tierIcon = `<div style="background:linear-gradient(135deg,#D0D0D0,#909090);box-shadow:0 0 20px rgba(192,192,192,0.2);" class="w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto"><i data-lucide="medal" class="w-6 h-6 text-gray-900"></i></div>`;
+            tierGlow = '';
+          } else if (place === '3') {
+            tierIcon = `<div style="background:linear-gradient(135deg,#CD7F32,#7B4A1A);box-shadow:0 0 20px rgba(205,127,50,0.2);" class="w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto"><i data-lucide="award" class="w-6 h-6 text-white"></i></div>`;
+            tierGlow = '';
+          } else {
+            tierIcon = `<div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-3 mx-auto border border-white/10"><i data-lucide="gift" class="w-6 h-6 text-gray-400"></i></div>`;
+            tierGlow = '';
+          }
+
           html += `
-            <div class="prize-placement-card ${cardClass}">
-              <div class="text-lg mb-1">${emoji}</div>
-              <p class="text-xs font-bold text-white">${_esc(label)}</p>
-              <p class="text-lg font-black text-[#FFB800]" style="font-family:Outfit,sans-serif;">${_esc(String(share))}</p>
+            <div class="prize-placement-card ${cardClass} text-center ${tierGlow}">
+              ${tierIcon}
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">${_esc(label)}</p>
+              <p class="text-2xl font-black text-[#FFB800]" style="font-family:Outfit,sans-serif;">${_esc(String(share))}</p>
             </div>`;
         });
         distContent.innerHTML = html;
@@ -3311,7 +3335,7 @@ const HubEngine = (() => {
   }
 
   function _buildBracketGroupTables(groups, message, groupContext) {
-    let html = '<div class="space-y-5">';
+    let html = '<div class="space-y-8">';
 
     const projectedPanel = _buildProjectedSeedingPanel(groupContext);
     if (projectedPanel) {
@@ -3319,55 +3343,65 @@ const HubEngine = (() => {
     }
 
     html += `
-      <div class="hub-glass rounded-xl p-5 border border-[#00F0FF]/20 bg-[#00F0FF]/[0.04]">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-[#00F0FF] mb-2">Group Stage</p>
-        <h3 class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Group Tables Are Ready</h3>
-        <p class="text-sm text-gray-300 mt-2">${_esc(message || 'Groups are drawn. The organizer will generate round-robin matches next; current group standings are shown below.')}</p>
+      <div class="premium-card p-6 border-l-4 border-l-[#00F0FF]">
+        <p class="font-mono text-[10px] font-bold uppercase tracking-widest text-[#00F0FF] mb-2">Group Stage</p>
+        <h3 class="font-display font-bold text-xl text-white">Group Tables Are Ready</h3>
+        <p class="text-sm text-gray-400 mt-2">${_esc(message || 'Groups are drawn. The organizer will generate round-robin matches next; current group standings are shown below.')}</p>
       </div>`;
 
     groups.forEach((group) => {
       const standings = Array.isArray(group?.standings) ? group.standings : [];
       html += `
-        <div class="stnd-group">
-          <h3 class="stnd-group-title"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i> ${_esc(group?.name || 'Group')}</h3>
-          <div class="stnd-table-wrap">
-            <table class="stnd-table">
-              <thead><tr>
-                <th class="stnd-th stnd-th-rank">#</th>
-                <th class="stnd-th stnd-th-team">TEAM</th>
-                <th class="stnd-th">P</th>
-                <th class="stnd-th">W</th>
-                <th class="stnd-th">D</th>
-                <th class="stnd-th">L</th>
-                <th class="stnd-th">GD</th>
-                <th class="stnd-th">PTS</th>
+        <div class="mb-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-8 h-8 rounded-lg bg-[#00F0FF]/20 flex items-center justify-center border border-[#00F0FF]/30">
+              <i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i>
+            </div>
+            <h3 class="font-display font-bold text-2xl text-white">${_esc(group?.name || 'Group')}</h3>
+          </div>
+          <div class="premium-card overflow-x-auto p-1">
+            <table class="w-full text-left border-collapse">
+              <thead><tr class="bg-black/40 border-b border-white/10">
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest w-12 text-center">#</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-[180px]">Team</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">P</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">W</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">D</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">L</th>
+                <th class="p-4 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden md:table-cell">GD</th>
+                <th class="p-4 font-mono text-sm font-black text-[#00F0FF] uppercase tracking-widest text-right pr-6">PTS</th>
               </tr></thead>
-              <tbody>`;
+              <tbody class="divide-y divide-white/5">`;
 
       if (!standings.length) {
-        html += `
-                <tr>
-                  <td colspan="8" class="stnd-td text-center text-gray-500 py-6">No standings rows available yet.</td>
-                </tr>`;
+        html += `<tr><td colspan="8" class="p-6 text-center text-sm text-gray-500">No standings rows available yet.</td></tr>`;
       } else {
         standings.forEach((row) => {
           const gd = Number(row?.goal_difference || 0);
-          const avatarInner = _renderAvatarInner(row?.name || 'TBD', row?.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
+          const isYou = row?.is_you;
+          const avatarInner = _renderAvatarInner(row?.name || 'TBD', row?.logo_url || '', '', 'w-9 h-9 rounded-lg object-cover');
+          let rankBadge;
+          if (row.rank === 1) {
+            rankBadge = `<div class="w-7 h-7 rounded bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-black text-xs flex items-center justify-center mx-auto">${row.rank}</div>`;
+          } else if (row.rank === 2) {
+            rankBadge = `<div class="w-7 h-7 rounded bg-gray-700 text-white font-black text-xs flex items-center justify-center mx-auto">${row.rank}</div>`;
+          } else {
+            rankBadge = `<div class="w-7 h-7 rounded bg-gray-800 text-gray-400 font-black text-xs flex items-center justify-center mx-auto">${row.rank ?? '-'}</div>`;
+          }
+          const rowCls = isYou ? 'bg-[#00F0FF]/5 border-l-4 border-l-[#00F0FF]' : 'hover:bg-white/5 transition';
+          const nameCls = isYou ? 'font-display font-bold text-white text-[#00F0FF]' : 'font-display font-bold text-white';
+          const ptsCls = isYou ? 'font-mono font-black text-xl text-[#00F0FF] glow-text-primary' : 'font-mono font-black text-xl text-white';
+          const youTag = isYou ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#00F0FF] font-bold">You</span>` : '';
           html += `
-                <tr class="stnd-row${row?.is_you ? ' stnd-row-you' : ''}">
-                  <td class="stnd-td stnd-td-rank">${row?.rank ?? '-'}</td>
-                  <td class="stnd-td stnd-td-team">
-                    <div class="stnd-team-cell">
-                      <div class="stnd-team-avatar">${avatarInner}</div>
-                      <span class="stnd-team-name">${_esc(row?.name || 'TBD')}${row?.is_you ? ' <span class="stnd-you">YOU</span>' : ''}</span>
-                    </div>
-                  </td>
-                  <td class="stnd-td">${row?.matches_played ?? 0}</td>
-                  <td class="stnd-td stnd-w">${row?.won ?? 0}</td>
-                  <td class="stnd-td">${row?.drawn ?? 0}</td>
-                  <td class="stnd-td stnd-l">${row?.lost ?? 0}</td>
-                  <td class="stnd-td">${gd > 0 ? '+' : ''}${gd}</td>
-                  <td class="stnd-td font-bold text-white">${_esc(String(row?.points ?? 0))}</td>
+                <tr class="${rowCls}">
+                  <td class="p-4 text-center">${rankBadge}</td>
+                  <td class="p-4"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-[#050508] overflow-hidden${isYou ? ' ring-2 ring-[#00F0FF]' : ''}">${avatarInner}</div><div class="flex flex-col"><span class="${nameCls}">${_esc(row?.name || 'TBD')}</span>${youTag}</div></div></td>
+                  <td class="p-4 text-center font-mono text-gray-300">${row?.matches_played ?? 0}</td>
+                  <td class="p-4 text-center font-mono text-[#00FF66] font-bold">${row?.won ?? 0}</td>
+                  <td class="p-4 text-center font-mono text-gray-500">${row?.drawn ?? 0}</td>
+                  <td class="p-4 text-center font-mono ${(row?.lost || 0) > 0 ? 'text-[#FF2A55] font-bold' : 'text-gray-600'}">${row?.lost ?? 0}</td>
+                  <td class="p-4 text-center font-mono ${gd > 0 ? 'text-[#00FF66]' : gd < 0 ? 'text-[#FF2A55]' : 'text-gray-400'} hidden md:table-cell">${gd > 0 ? '+' : ''}${gd}</td>
+                  <td class="p-4 text-right pr-6 ${ptsCls}">${_esc(String(row?.points ?? 0))}</td>
                 </tr>`;
         });
       }
@@ -3472,25 +3506,88 @@ const HubEngine = (() => {
     const fmtEl = document.getElementById('bracket-format-label');
     if (fmtEl && data.format_display) fmtEl.textContent = data.format_display;
 
-    // ── Match card renderer ──
+    // ── Match card renderer (premium demo design) ──
     function matchHTML(m) {
       const p1 = m.participant1 || { name: 'TBD', score: null, is_winner: false };
       const p2 = m.participant2 || { name: 'TBD', score: null, is_winner: false };
-      const st = m.state === 'live' ? 'bk-live' : (m.state === 'completed' || m.state === 'forfeit') ? 'bk-done' : '';
-      const matchNum = m.match_number ? `<span class="bk-mnum">M${m.match_number}</span>` : '';
-      const liveBadge = m.state === 'live'
-        ? '<span class="bk-badge-live"><span class="bk-dot"></span>LIVE</span>' : '';
-      const p1Avatar = _renderAvatarInner(p1.name || 'TBD', p1.logo_url || '', 'bk-team-avatar-initial', 'bk-team-avatar-img');
-      const p2Avatar = _renderAvatarInner(p2.name || 'TBD', p2.logo_url || '', 'bk-team-avatar-initial', 'bk-team-avatar-img');
-      return `<div class="bk-match ${st}" data-mid="${m.id || ''}">
-        <div class="bk-match-head">${matchNum}${liveBadge}</div>
-        <div class="bk-team${p1.is_winner ? ' bk-w' : ''}">
-          <span class="bk-team-meta"><span class="bk-team-avatar">${p1Avatar}</span><span class="bk-name">${_esc(p1.name)}</span></span>
-          <span class="bk-sc">${p1.score != null ? p1.score : '-'}</span>
+      const isLive = m.state === 'live';
+      const isDone = m.state === 'completed' || m.state === 'forfeit';
+      const isPending = !isDone && !isLive;
+      const isTBD = isPending && p1.name === 'TBD' && p2.name === 'TBD';
+      const p1Avatar = _renderAvatarInner(p1.name || 'TBD', p1.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+      const p2Avatar = _renderAvatarInner(p2.name || 'TBD', p2.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+
+      // Winner highlight: glow left bar + brighter text
+      const p1BarCls = p1.is_winner ? 'absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_15px_#00F0FF]' : 'absolute left-0 top-0 bottom-0 w-1.5 bg-gray-800';
+      const p2BarCls = p2.is_winner ? 'absolute left-0 top-0 bottom-0 w-1.5 bg-[#00FF66] shadow-[0_0_15px_#00FF66]' : '';
+      const p1NameCls = p1.is_winner ? 'font-display text-sm font-bold text-white' : 'font-display text-sm text-white';
+      const p2NameCls = p2.is_winner ? 'font-display text-sm font-bold text-white' : 'font-display text-sm text-white';
+      const p1ScoreCls = p1.is_winner ? 'font-mono text-base font-black text-[#00F0FF]' : 'font-mono text-base font-bold text-gray-500';
+      const p2ScoreCls = p2.is_winner ? 'font-mono text-base font-black text-[#00FF66]' : 'font-mono text-base font-bold text-gray-500';
+      const p1Opacity = !p1.is_winner && isDone ? 'opacity-40 grayscale' : '';
+      const p2Opacity = !p2.is_winner && isDone ? 'opacity-40 grayscale' : '';
+      const p1AvatarBorder = p1.is_winner ? 'border border-[#00FF66]' : '';
+      const p2AvatarBorder = p2.is_winner ? 'border border-[#00FF66]' : '';
+
+      if (isLive) {
+        // Live match: glowing border + header badge
+        return `<div class="bk-match premium-card bg-black border border-[#00F0FF]/40 rounded-xl overflow-hidden relative group shadow-[0_0_20px_rgba(0,240,255,0.3)]" data-mid="${m.id || ''}">
+          <div class="glow-border"></div>
+          <div class="bg-[#00F0FF]/15 px-4 py-1.5 border-b border-[#00F0FF]/30 flex items-center justify-between">
+            <span class="font-mono text-[9px] font-black uppercase text-[#00F0FF] tracking-widest">Match Live</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse"></span>
+          </div>
+          <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/5">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-[#050508] overflow-hidden">${p1Avatar}</div><span class="font-display text-base font-bold text-white">${_esc(p1.name)}</span></div>
+            <span class="font-mono text-lg font-bold text-gray-400">${p1.score != null ? p1.score : '-'}</span>
+          </div>
+          <div class="flex justify-between items-center p-4 bg-white/5">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-[#050508] overflow-hidden">${p2Avatar}</div><span class="font-display text-base font-bold text-white">${_esc(p2.name)}</span></div>
+            <span class="font-mono text-lg font-bold text-gray-400">${p2.score != null ? p2.score : '-'}</span>
+          </div>
+        </div>`;
+      }
+
+      // ── Upcoming / unplayed match ──
+      if (isPending) {
+        const upLabel = m.state === 'check_in' ? 'CHECK IN' : m.state === 'ready' ? 'READY' : 'UPCOMING';
+        const headerBg = isTBD ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)';
+        const cardBorder = isTBD ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,184,0,0.2)';
+        const labelColor = isTBD ? '#374151' : 'rgba(255,184,0,0.75)';
+        const nameStyle = isTBD ? 'color:#374151;font-style:italic;' : 'color:#6b7280;';
+        return `<div class="bk-match rounded-xl overflow-hidden relative" style="background:rgba(5,5,8,0.55);border:${cardBorder};" data-mid="${m.id || ''}">
+          <div style="background:${headerBg};border-bottom:1px solid rgba(255,255,255,0.04);" class="px-4 py-1.5 flex items-center justify-between">
+            <span class="font-mono text-[9px] uppercase tracking-widest font-bold" style="color:${labelColor}">${upLabel}</span>
+            ${!isTBD ? `<span class="w-1.5 h-1.5 rounded-full" style="background:#FFB800;opacity:0.5;"></span>` : ''}
+          </div>
+          <div class="flex justify-between items-center p-4 border-b" style="border-color:rgba(255,255,255,0.04);opacity:0.55;">
+            <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded overflow-hidden" style="background:#050508;">${p1Avatar}</div>
+              <span class="font-display text-sm" style="${nameStyle}">${_esc(p1.name)}</span>
+            </div>
+            <span class="font-mono text-sm" style="color:#1f2937;">—</span>
+          </div>
+          <div class="flex justify-between items-center p-4" style="opacity:0.55;">
+            <div class="flex items-center gap-3">
+              <div class="w-7 h-7 rounded overflow-hidden" style="background:#050508;">${p2Avatar}</div>
+              <span class="font-display text-sm" style="${nameStyle}">${_esc(p2.name)}</span>
+            </div>
+            <span class="font-mono text-sm" style="color:#1f2937;">—</span>
+          </div>
+        </div>`;
+      }
+
+      // ── Completed / Default match ──
+      return `<div class="bk-match premium-card bg-black/60 border border-white/5 rounded-xl overflow-hidden relative" data-mid="${m.id || ''}">
+        <div class="flex justify-between items-center p-4 border-b border-white/5 ${p1Opacity}" style="position:relative">
+          ${p1.is_winner ? '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_15px_#00F0FF]"></div>' : ''}
+          <div class="flex items-center gap-3"><div class="w-7 h-7 rounded bg-[#050508] overflow-hidden ${p1AvatarBorder}">${p1Avatar}</div><span class="${p1NameCls}">${_esc(p1.name)}</span></div>
+          <span class="${p1ScoreCls}">${p1.score != null ? p1.score : '-'}</span>
         </div>
-        <div class="bk-team${p2.is_winner ? ' bk-w' : ''}">
-          <span class="bk-team-meta"><span class="bk-team-avatar">${p2Avatar}</span><span class="bk-name">${_esc(p2.name)}</span></span>
-          <span class="bk-sc">${p2.score != null ? p2.score : '-'}</span>
+        <div class="flex justify-between items-center p-4 ${p2Opacity}" style="position:relative">
+          ${p2.is_winner ? '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00FF66] shadow-[0_0_15px_#00FF66]"></div>' : ''}
+          <div class="flex items-center gap-3"><div class="w-7 h-7 rounded bg-[#050508] overflow-hidden ${p2AvatarBorder}">${p2Avatar}</div><span class="${p2NameCls}">${_esc(p2.name)}</span></div>
+          <span class="${p2ScoreCls}">${p2.score != null ? p2.score : '-'}</span>
         </div>
       </div>`;
     }
@@ -3544,31 +3641,92 @@ const HubEngine = (() => {
         : buildGroupSectionsFromRounds(data.rounds);
 
       let groupedHtml = _buildProjectedSeedingPanel(data.group_context || null);
+
       groupSections.forEach((group) => {
         const rounds = Array.isArray(group?.rounds) ? group.rounds : [];
         if (!rounds.length) return;
 
-        const maxMatches = Math.max(...rounds.map((round) => (round.matches || []).length), 1);
-        const secH = Math.max(maxMatches * 92, 200);
+        // Premium group header
+        groupedHtml += `<div class="mb-10">`;
+        groupedHtml += `<div class="flex items-center gap-3 mb-6">`;
+        groupedHtml += `<div class="w-8 h-8 rounded-lg bg-[#00F0FF]/20 flex items-center justify-center border border-[#00F0FF]/30"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i></div>`;
+        groupedHtml += `<h3 class="font-display font-bold text-2xl text-white">${_esc(group?.group_name || 'Group')}</h3>`;
+        groupedHtml += `</div>`;
 
-        groupedHtml += `<div class="bk-label bk-group">${_esc(group?.group_name || 'Group')}</div>`;
-        groupedHtml += `<div class="bk-section bk-group-section" data-sec="bk-group">`;
         rounds.forEach((round) => {
           const title = round?.round_name || (round?.round_number ? `Round ${round.round_number}` : 'Round');
-          groupedHtml += `<div class="bk-col">`;
-          groupedHtml += `<div class="bk-col-title">${_esc(title)}</div>`;
-          groupedHtml += `<div class="bk-col-body" style="height:${secH}px">`;
-          (round.matches || []).forEach((match) => { groupedHtml += matchHTML(match); });
-          groupedHtml += `</div></div>`;
+          const matches = round.matches || [];
+          if (!matches.length) return;
+
+          groupedHtml += `<div class="mb-6">`;
+          groupedHtml += `<div class="flex items-center gap-3 mb-4">`;
+          groupedHtml += `<span class="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">${_esc(title)}</span>`;
+          groupedHtml += `<div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>`;
+          groupedHtml += `</div>`;
+
+          groupedHtml += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+          matches.forEach((m) => {
+            const p1 = m.participant1 || { name: 'TBD', score: null, is_winner: false };
+            const p2 = m.participant2 || { name: 'TBD', score: null, is_winner: false };
+            const isLive = m.state === 'live';
+            const isDone = m.state === 'completed' || m.state === 'forfeit';
+
+            const stateColors = {
+              live: '#FF2A55', ready: '#00FF66', check_in: '#00F0FF',
+              scheduled: '#FFB800', completed: '#4B5563', forfeit: '#4B5563'
+            };
+            const borderColor = isLive ? stateColors.live : isDone
+              ? (p1.is_winner || p2.is_winner ? '#00FF66' : '#4B5563')
+              : (stateColors[m.state] || '#4B5563');
+
+            const p1Avatar = _renderAvatarInner(p1.name || 'TBD', p1.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+            const p2Avatar = _renderAvatarInner(p2.name || 'TBD', p2.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+
+            const p1NameCls = p1.is_winner ? 'font-display font-bold text-sm text-white' : (isDone && !p1.is_winner ? 'font-display text-sm text-gray-500' : 'font-display text-sm text-white');
+            const p2NameCls = p2.is_winner ? 'font-display font-bold text-sm text-white' : (isDone && !p2.is_winner ? 'font-display text-sm text-gray-500' : 'font-display text-sm text-white');
+            const p1ScoreCls = p1.is_winner ? 'font-mono font-black text-[#00FF66]' : 'font-mono text-gray-500';
+            const p2ScoreCls = p2.is_winner ? 'font-mono font-black text-[#00FF66]' : 'font-mono text-gray-500';
+
+            let stateHtml = '';
+            if (isLive) {
+              stateHtml = `<span class="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#FF2A55]"><span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span> LIVE</span>`;
+            } else if (isDone) {
+              stateHtml = `<span class="text-[9px] font-bold uppercase tracking-widest text-gray-600">FT</span>`;
+            } else {
+              const upLabel = m.state === 'check_in' ? 'CI' : m.state === 'ready' ? 'RDY' : 'VS';
+              stateHtml = `<span class="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded" style="color:rgba(255,184,0,0.7);background:rgba(255,184,0,0.08);">${upLabel}</span>`;
+            }
+
+            const cardOpacity = !isDone && !isLive ? 'opacity-60' : '';
+            const pendingCardStyle = !isDone && !isLive ? 'background:rgba(5,5,8,0.5);' : '';
+
+            groupedHtml += `
+              <div class="premium-card p-4 border-l-4 hover:bg-white/5 transition ${cardOpacity}" style="border-left-color:${borderColor};${pendingCardStyle}">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="w-8 h-8 rounded bg-[#050508] overflow-hidden shrink-0">${p1Avatar}</div>
+                    <span class="${p1NameCls} truncate">${_esc(p1.name)}</span>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0 mx-4">
+                    <span class="${p1ScoreCls}">${p1.score != null ? p1.score : '-'}</span>
+                    ${stateHtml}
+                    <span class="${p2ScoreCls}">${p2.score != null ? p2.score : '-'}</span>
+                  </div>
+                  <div class="flex items-center gap-3 flex-1 min-w-0 justify-end">
+                    <span class="${p2NameCls} truncate text-right">${_esc(p2.name)}</span>
+                    <div class="w-8 h-8 rounded bg-[#050508] overflow-hidden shrink-0">${p2Avatar}</div>
+                  </div>
+                </div>
+              </div>`;
+          });
+          groupedHtml += `</div>`;
+          groupedHtml += `</div>`;
         });
+
         groupedHtml += `</div>`;
       });
 
       tree.innerHTML = groupedHtml;
-
-      requestAnimationFrame(() => {
-        tree.querySelectorAll('.bk-group-section').forEach((sec) => _drawBracketConnectors(sec));
-      });
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
     }
@@ -3738,100 +3896,137 @@ const HubEngine = (() => {
     // ── Bracket-derived standings (no groups) ──
     if (data.standings_type === 'bracket' && Array.isArray(data.rows)) {
 
-      // ── Champion banner ──
+      // ── Champion banner (premium) ──
       const champ = data.rows.find(r => r.rank === 1);
       if (champ) {
-        html += `<div class="stnd-champion-banner">
-          <div class="stnd-champ-icon">👑</div>
-          <div class="stnd-champ-info">
-            <div class="stnd-champ-label">TOURNAMENT CHAMPION</div>
-            <div class="stnd-champ-name">${_esc(champ.name)}</div>
-            <div class="stnd-champ-stat">${champ.wins}W – ${champ.losses}L &nbsp;·&nbsp; Maps ${champ.map_wins || 0}–${champ.map_losses || 0} &nbsp;·&nbsp; RD ${champ.round_diff > 0 ? '+' : ''}${champ.round_diff}</div>
-          </div>
-        </div>`;
+        html += `<div class="premium-card p-8 mb-8 border-l-4 border-l-yellow-400 relative overflow-hidden">`;
+        html += `<div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-400/10 to-transparent rounded-bl-full"></div>`;
+        html += `<div class="flex items-center gap-6 relative z-10">`;
+        html += `<div style="background:linear-gradient(135deg,#FFB800,#E08800);box-shadow:0 0 30px rgba(255,184,0,0.3);" class="w-16 h-16 rounded-xl flex items-center justify-center text-3xl">👑</div>`;
+        html += `<div>`;
+        html += `<div class="font-mono text-[10px] uppercase tracking-widest text-yellow-400 mb-1">Tournament Champion</div>`;
+        html += `<div class="font-display font-black text-3xl text-white">${_esc(champ.name)}</div>`;
+        html += `<div class="font-mono text-xs text-gray-400 mt-1">${champ.wins}W – ${champ.losses}L · Maps ${champ.map_wins || 0}–${champ.map_losses || 0} · RD ${champ.round_diff > 0 ? '+' : ''}${champ.round_diff}</div>`;
+        html += `</div></div></div>`;
       }
 
-      // ── Final placements table (esports-style) ──
-      html += `<div class="stnd-table-wrap">`;
-      html += `<table class="stnd-table">`;
-      html += `<thead><tr>`;
-      html += `<th class="stnd-th stnd-th-rank">PLACE</th>`;
-      html += `<th class="stnd-th stnd-th-team">TEAM</th>`;
-      html += `<th class="stnd-th">SERIES</th>`;
-      html += `<th class="stnd-th">MAPS</th>`;
-      html += `<th class="stnd-th">RND DIFF</th>`;
-      html += `<th class="stnd-th">WIN%</th>`;
-      html += `</tr></thead><tbody>`;
+      // ── Final placements table (premium) ──
+      html += `<div class="premium-card overflow-x-auto p-1">`;
+      html += `<table class="w-full text-left border-collapse">`;
+      html += `<thead><tr class="bg-black/40 border-b border-white/10">`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest w-16 text-center">Place</th>`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-[200px]">Team</th>`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Series</th>`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden md:table-cell">Maps</th>`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden md:table-cell">Rnd Diff</th>`;
+      html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right pr-8">Win%</th>`;
+      html += `</tr></thead><tbody class="divide-y divide-white/5">`;
 
       data.rows.forEach(row => {
         const tc = tierColor(row.rank);
-        const bg = tierBg(row.rank);
-        const icon = tierIcon(row.rank);
-        const youTag = row.is_you ? ` <span class="stnd-you">YOU</span>` : '';
-        const youCls = row.is_you ? ' stnd-row-you' : '';
+        let rankBadge;
+        if (row.rank === 1) {
+          rankBadge = `<div style="background:linear-gradient(135deg,#FFB800,#E08800);box-shadow:0 0 12px rgba(255,184,0,0.35);" class="w-8 h-8 rounded font-black flex items-center justify-center mx-auto text-white">1</div>`;
+        } else if (row.rank === 2) {
+          rankBadge = `<div style="background:linear-gradient(135deg,#C0C0C0,#808080);" class="w-8 h-8 rounded font-black flex items-center justify-center mx-auto text-gray-900">${row.rank}</div>`;
+        } else if (row.rank <= 4) {
+          rankBadge = `<div style="background:linear-gradient(135deg,#CD7F32,#7B4A1A);" class="w-8 h-8 rounded font-black flex items-center justify-center mx-auto text-white">${row.rank}</div>`;
+        } else {
+          rankBadge = `<div class="w-8 h-8 rounded bg-gray-800 text-gray-400 font-black flex items-center justify-center mx-auto">${row.rank}</div>`;
+        }
+        const isYou = row.is_you;
+        const youRowCls = isYou ? 'bg-[#00F0FF]/5 hover:bg-[#00F0FF]/10 transition border-l-4 border-l-[#00F0FF] relative' : 'hover:bg-white/5 transition';
+        const nameCls = isYou ? 'font-display font-bold text-lg text-[#00F0FF]' : 'font-display font-bold text-lg text-white';
+        const avatarRing = isYou ? ' ring-2 ring-[#00F0FF]' : '';
+        const youLabel = isYou ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#00F0FF] font-bold">You</span>` : '';
         const totalGames = row.wins + row.losses;
         const winPct = totalGames > 0 ? Math.round((row.wins / totalGames) * 100) : 0;
         const mapW = row.map_wins || 0;
         const mapL = row.map_losses || 0;
         const rdSign = row.round_diff > 0 ? '+' : '';
-        const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
+        const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', '', 'w-10 h-10 rounded-lg object-cover');
 
-        html += `<tr class="stnd-row${youCls}" style="background:${bg}">`;
-        // Placement
-        html += `<td class="stnd-td stnd-td-rank"><span class="stnd-rank-badge" style="color:${tc};border-color:${tc}40">${icon ? icon + ' ' : ''}${placementLabel(row.rank, data.rows.length)}</span></td>`;
-        // Team
-        html += `<td class="stnd-td stnd-td-team">`;
-        html += `<div class="stnd-team-cell">`;
-        html += `<div class="stnd-team-avatar" style="border-color:${tc}30">${avatarInner}</div>`;
-        html += `<div class="stnd-team-info"><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></div>`;
-        html += `</div></td>`;
-        // Series record (W-L)
-        html += `<td class="stnd-td"><span class="stnd-series"><span class="stnd-w">${row.wins}</span><span class="stnd-sep">–</span><span class="stnd-l">${row.losses}</span></span></td>`;
-        // Maps record
-        html += `<td class="stnd-td"><span class="stnd-maps">${mapW}–${mapL}</span></td>`;
-        // Round diff
-        html += `<td class="stnd-td"><span class="stnd-rd ${row.round_diff > 0 ? 'stnd-pos' : row.round_diff < 0 ? 'stnd-neg' : ''}">${rdSign}${row.round_diff}</span></td>`;
-        // Win %
-        html += `<td class="stnd-td"><div class="stnd-winpct-bar"><div class="stnd-winpct-fill" style="width:${winPct}%;background:${tc}"></div><span class="stnd-winpct-txt">${winPct}%</span></div></td>`;
+        html += `<tr class="${youRowCls}">`;
+        html += `<td class="p-5 text-center">${rankBadge}</td>`;
+        html += `<td class="p-5"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg bg-[#050508] overflow-hidden${avatarRing}">${avatarInner}</div><div class="flex flex-col"><span class="${nameCls}">${_esc(row.name)}</span>${youLabel}</div></div></td>`;
+        html += `<td class="p-5 text-center"><span class="font-mono"><span style="color:#00FF66" class="font-bold">${row.wins}</span><span class="text-gray-600 mx-1">–</span><span style="color:#FF2A55">${row.losses}</span></span></td>`;
+        html += `<td class="p-5 text-center font-mono text-gray-300 hidden md:table-cell">${mapW}–${mapL}</td>`;
+        html += `<td class="p-5 text-center font-mono ${row.round_diff > 0 ? 'text-[#00FF66]' : row.round_diff < 0 ? 'text-[#FF2A55]' : 'text-gray-400'} hidden md:table-cell">${rdSign}${row.round_diff}</td>`;
+        html += `<td class="p-5 text-right pr-8"><div class="flex items-center gap-2 justify-end"><div class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${winPct}%;background:${tc}"></div></div><span class="font-mono text-sm font-bold text-gray-300">${winPct}%</span></div></td>`;
         html += `</tr>`;
       });
 
       html += `</tbody></table></div>`;
     }
 
-    // ── Group-based standings ──
+    // ── Group-based standings (premium) ──
     else if (Array.isArray(data.groups) && data.groups.length > 0) {
       data.groups.forEach(group => {
-        html += `<div class="stnd-group">`;
-        html += `<h3 class="stnd-group-title"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i> ${_esc(group.name)}</h3>`;
+        html += `<div class="mb-10">`;
+        html += `<div class="flex items-center gap-3 mb-6">`;
+        html += `<div class="w-8 h-8 rounded-lg bg-[#00F0FF]/20 flex items-center justify-center border border-[#00F0FF]/30"><i data-lucide="flag" class="w-4 h-4 text-[#00F0FF]"></i></div>`;
+        html += `<h3 class="font-display font-bold text-2xl text-white">${_esc(group.name)}</h3>`;
+        html += `</div>`;
 
-        html += `<div class="stnd-table-wrap">`;
-        html += `<table class="stnd-table">`;
-        html += `<thead><tr>`;
-        html += `<th class="stnd-th stnd-th-rank">#</th>`;
-        html += `<th class="stnd-th stnd-th-team">TEAM</th>`;
-        html += `<th class="stnd-th">P</th>`;
-        html += `<th class="stnd-th">W</th>`;
-        html += `<th class="stnd-th">D</th>`;
-        html += `<th class="stnd-th">L</th>`;
-        html += `<th class="stnd-th">GD</th>`;
-        html += `<th class="stnd-th">PTS</th>`;
-        html += `</tr></thead><tbody>`;
+        html += `<div class="premium-card overflow-x-auto p-1">`;
+        html += `<table class="w-full text-left border-collapse">`;
+        html += `<thead><tr class="bg-black/40 border-b border-white/10">`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest w-16 text-center">Rank</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-[200px]">Participant</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">PLD</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">W</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">D</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">L</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden md:table-cell">GD</th>`;
+        html += `<th class="p-5 font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden lg:table-cell">Form</th>`;
+        html += `<th class="p-5 font-mono text-sm font-black text-[#00F0FF] uppercase tracking-widest text-right pr-8">PTS</th>`;
+        html += `</tr></thead><tbody class="divide-y divide-white/5">`;
 
         (group.standings || []).forEach(row => {
-          const youCls = row.is_you ? ' stnd-row-you' : '';
-          const youTag = row.is_you ? ` <span class="stnd-you">YOU</span>` : '';
-          const qualCls = row.rank <= 2 ? 'stnd-qualified' : row.rank <= 4 ? 'stnd-playoff' : '';
-          const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', 'stnd-team-initial', 'stnd-team-avatar-img');
-          html += `<tr class="stnd-row${youCls}">`;
-          html += `<td class="stnd-td stnd-td-rank ${qualCls}">${row.rank}</td>`;
-          html += `<td class="stnd-td stnd-td-team"><div class="stnd-team-cell"><div class="stnd-team-avatar">${avatarInner}</div><span class="stnd-team-name">${_esc(row.name)}${youTag}</span></div></td>`;
-          html += `<td class="stnd-td">${row.matches_played}</td>`;
-          html += `<td class="stnd-td stnd-w">${row.won}</td>`;
-          html += `<td class="stnd-td">${row.drawn}</td>`;
-          html += `<td class="stnd-td stnd-l">${row.lost}</td>`;
-          html += `<td class="stnd-td">${row.goal_difference > 0 ? '+' : ''}${row.goal_difference}</td>`;
-          html += `<td class="stnd-td"><span class="stnd-pts-glow">${row.points}</span></td>`;
+          const isYou = row.is_you;
+          let rankBadge;
+          if (row.rank === 1) {
+            rankBadge = `<div style="background:linear-gradient(135deg,#FFB800,#E08800);box-shadow:0 0 12px rgba(255,184,0,0.35);" class="w-8 h-8 rounded font-black flex items-center justify-center mx-auto text-white">${row.rank}</div>`;
+          } else if (row.rank === 2) {
+            rankBadge = `<div style="background:linear-gradient(135deg,#C0C0C0,#808080);" class="w-8 h-8 rounded font-black flex items-center justify-center mx-auto text-gray-900">${row.rank}</div>`;
+          } else {
+            rankBadge = `<div class="w-8 h-8 rounded bg-gray-800 text-gray-400 font-black flex items-center justify-center mx-auto">${row.rank}</div>`;
+          }
+          const youRowCls = isYou
+            ? 'bg-[#00F0FF]/5 hover:bg-[#00F0FF]/10 transition border-l-4 border-l-[#00F0FF] relative'
+            : (row.rank > 2 ? 'hover:bg-white/5 transition opacity-70' : 'hover:bg-white/5 transition');
+          const nameCls = isYou ? 'font-display font-bold text-lg text-[#00F0FF]' : 'font-display font-bold text-lg text-white';
+          const avatarRing = isYou ? ' ring-2 ring-[#00F0FF]' : '';
+          const youLabel = isYou ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#00F0FF] font-bold">You</span>` : '';
+          const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', '', 'w-10 h-10 rounded-lg object-cover');
+
+          const gdColor = row.goal_difference > 0 ? 'text-[#00FF66]' : row.goal_difference < 0 ? 'text-[#FF2A55]' : 'text-gray-300';
+          const gdSign = row.goal_difference > 0 ? '+' : '';
+
+          // Form indicators (W/L/D colored blocks)
+          let formHtml = '';
+          if (Array.isArray(row.form) && row.form.length > 0) {
+            formHtml = row.form.map(r => {
+              const u = String(r).toUpperCase();
+              const formStyle = u === 'W' ? 'background:#00FF66;color:#000;' : u === 'L' ? 'background:#FF2A55;color:#fff;' : 'background:#6b7280;color:#fff;';
+              return `<span style="${formStyle}" class="w-4 h-4 rounded text-[8px] font-black flex items-center justify-center">${u}</span>`;
+            }).join('');
+          }
+
+          const ptsCls = isYou
+            ? 'p-5 text-right pr-8 font-mono font-black text-2xl text-[#00F0FF] glow-text-primary'
+            : 'p-5 text-right pr-8 font-mono font-black text-2xl text-white';
+
+          html += `<tr class="${youRowCls}">`;
+          html += `<td class="p-5 text-center">${rankBadge}</td>`;
+          html += `<td class="p-5"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg bg-[#050508] overflow-hidden${avatarRing}">${avatarInner}</div><div class="flex flex-col"><span class="${nameCls}">${_esc(row.name)}</span>${youLabel}</div></div></td>`;
+          html += `<td class="p-5 text-center font-mono text-gray-300">${row.matches_played}</td>`;
+          html += `<td class="p-5 text-center font-mono font-bold" style="color:#00FF66">${row.won}</td>`;
+          html += `<td class="p-5 text-center font-mono text-gray-500">${row.drawn}</td>`;
+          html += `<td class="p-5 text-center font-mono ${row.lost > 0 ? 'font-bold' : 'text-gray-600'}" ${row.lost > 0 ? 'style="color:#FF2A55"' : ''}>${row.lost}</td>`;
+          html += `<td class="p-5 text-center font-mono ${gdColor} hidden md:table-cell">${gdSign}${row.goal_difference}</td>`;
+          html += `<td class="p-5 text-center hidden lg:table-cell"><div class="flex items-center justify-center gap-1">${formHtml}</div></td>`;
+          html += `<td class="${ptsCls}">${row.points}</td>`;
           html += `</tr>`;
         });
 
@@ -4062,77 +4257,82 @@ const HubEngine = (() => {
           const hasLobby = Boolean(m?.match_room_url);
           const lobbyWindow = _resolveLobbyWindow(m);
           const lobbyOpen = hasLobby && lobbyWindow.isOpen;
-          const cardTone = isLive
-            ? 'tone-live'
-            : (lobbyOpen || isReady)
-              ? 'tone-ready'
-              : stateRaw === 'pending_result'
-                ? 'tone-review'
-                : 'tone-scheduled';
-          const statusIcon = isLive
-            ? 'radio-tower'
-            : lobbyOpen
-              ? 'door-open'
-              : isReady
-                ? 'shield-check'
-                : stateRaw === 'pending_result'
-                  ? 'scale'
-                  : 'clock-3';
-          const statusLabel = lobbyOpen && !isLive
-            ? 'Lobby Open'
-            : (m.state_display || m.state || 'Scheduled');
 
-          let side1Label = 'Side 1';
-          let side2Label = 'Side 2';
-          const opponentName = String(m?.opponent_name || '').trim().toLowerCase();
-          const p1NameNorm = String(m?.p1_name || '').trim().toLowerCase();
-          const p2NameNorm = String(m?.p2_name || '').trim().toLowerCase();
-          if (!m?.is_staff_view && opponentName) {
-            if (p1NameNorm && p1NameNorm === opponentName) {
-              side1Label = 'Opponent';
-              side2Label = 'You';
-            } else if (p2NameNorm && p2NameNorm === opponentName) {
-              side1Label = 'You';
-              side2Label = 'Opponent';
-            }
-          }
+          const stateColors = { live: '#FF2A55', ready: '#00FF66', check_in: '#00F0FF', scheduled: '#FFB800', pending_result: '#f97316' };
+          const borderColor = stateColors[stateRaw] || '#4B5563';
+          const statusLabel = lobbyOpen && !isLive ? 'Lobby Open' : (m.state_display || m.state || 'Scheduled');
+
+          // Badge classes
+          const badgeCls = isLive ? 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30'
+            : (lobbyOpen || isReady) ? 'bg-[#00FF66]/10 text-[#00FF66] border-[#00FF66]/30'
+            : stateRaw === 'pending_result' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+            : 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30';
 
           const p1Name = m?.p1_name || (!isStaff ? 'You' : 'TBD');
           const p2Name = m?.p2_name || m?.opponent_name || 'TBD';
           const p1Logo = m?.p1_logo_url || '';
           const p2Logo = m?.p2_logo_url || m?.opponent_logo_url || '';
+          const p1AvatarHtml = _renderAvatarInner(p1Name, p1Logo, 'text-[10px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+          const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-[10px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
           const kickoffLabel = _matchKickoffLabel(m);
           const lobbyCode = m.lobby_info?.lobby_code || '';
-          const urgencyText = _matchUrgencyText(m, lobbyWindow, lobbyOpen);
           const showScoreline = isLive || stateRaw === 'pending_result';
 
+          // Determine which side is "you"
+          const isParticipantOwn = Boolean(m.is_my_match && !m.is_staff_view);
+          const opponentName = String(m?.opponent_name || '').trim().toLowerCase();
+          const isP1You = isParticipantOwn && String(m?.p1_name || '').trim().toLowerCase() !== opponentName;
+          const p1Border = isP1You ? 'ring-2 ring-[#00F0FF]' : '';
+          const p2Border = (!isP1You && isParticipantOwn) ? 'ring-2 ring-[#00F0FF]' : '';
+          const p1NameCls = isP1You ? 'text-[#00F0FF]' : 'text-white';
+          const p2NameCls = (!isP1You && isParticipantOwn) ? 'text-[#00F0FF]' : 'text-gray-300';
+
+          // Card glow for live
+          const cardCls = isLive
+            ? 'premium-card p-0 overflow-hidden border-l-4 relative group shadow-[0_0_20px_rgba(255,42,85,0.2)]'
+            : 'premium-card p-0 overflow-hidden border-l-4 relative group hover:bg-white/5 transition';
+
           html += `
-            <article class="hub-match-priority-card ${cardTone} match-card-active">
-              <div class="hub-match-card-header">
-                <p class="hub-match-kicker">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</p>
-                <span class="hub-match-status-pill">
-                  <i data-lucide="${statusIcon}" class="w-3.5 h-3.5"></i>
-                  <span>${_esc(statusLabel)}</span>
-                </span>
-              </div>
-
-              <div class="hub-match-vs-grid">
-                ${_renderMatchIdentityBlock(p1Name, p1Logo, side1Label)}
-                <div class="flex flex-col items-center gap-1">
-                  ${showScoreline ? `<div class="hub-match-scoreline">${Number(m.p1_score || 0)} <span>:</span> ${Number(m.p2_score || 0)}</div>` : `<div class="hub-match-vs-pill">VS</div>`}
+            <article class="${cardCls}" style="border-left-color:${borderColor}">
+              ${isLive ? '<div class="glow-border"></div>' : ''}
+              <div class="p-5 md:p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-5">
+                  <div class="flex items-center gap-3">
+                    <span class="font-mono text-[10px] text-gray-500 uppercase tracking-widest">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</span>
+                  </div>
+                  <span class="hub-badge ${badgeCls} shrink-0">
+                    ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>' : '<i data-lucide="clock" class="w-3 h-3"></i>'}
+                    ${_esc(statusLabel)}
+                  </span>
                 </div>
-                ${_renderMatchIdentityBlock(p2Name, p2Logo, side2Label, 'hub-match-side-right')}
-              </div>
 
-              <div class="hub-match-meta-row" style="margin-top:1rem;">
-                <div class="hub-match-meta-chip">
-                  <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
-                  <span>${_esc(kickoffLabel)}</span>
+                <div class="flex items-center justify-between md:justify-center gap-4 md:gap-10">
+                  <div class="flex items-center gap-4 flex-1 md:flex-none justify-end md:justify-start">
+                    <span class="font-display font-bold text-lg ${p1NameCls} text-right truncate">${_esc(p1Name)}</span>
+                    <div class="w-14 h-14 rounded-xl bg-[#050508] overflow-hidden shrink-0 border border-white/10 ${p1Border}">${p1AvatarHtml}</div>
+                  </div>
+                  <div class="shrink-0">
+                    ${showScoreline
+                      ? `<div class="flex items-center gap-3"><span class="font-mono font-bold text-2xl text-white">${Number(m.p1_score || 0)}</span><span class="text-xs font-bold text-gray-600 bg-black/50 px-2 py-0.5 rounded">${isLive ? 'LIVE' : 'FT'}</span><span class="font-mono font-bold text-2xl text-white">${Number(m.p2_score || 0)}</span></div>`
+                      : `<span class="font-display font-black text-sm text-gray-600 bg-black/50 px-4 py-2 rounded-lg border border-white/5">VS</span>`
+                    }
+                  </div>
+                  <div class="flex items-center gap-4 flex-1 md:flex-none">
+                    <div class="w-14 h-14 rounded-xl bg-[#050508] overflow-hidden shrink-0 border border-white/10 ${p2Border}">${p2AvatarHtml}</div>
+                    <span class="font-display font-bold text-lg ${p2NameCls} truncate">${_esc(p2Name)}</span>
+                  </div>
                 </div>
-                ${lobbyCode ? `<div class="hub-match-meta-chip is-accent"><i data-lucide="key-round" class="w-3.5 h-3.5"></i><span>Room ${_esc(lobbyCode)}</span></div>` : ''}
-              </div>
 
-              ${_renderMatchActionControls(m)}
+                <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-white/5">
+                  <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-[#00F0FF]"></i>
+                    <span class="font-mono">${_esc(kickoffLabel)}</span>
+                  </div>
+                  ${lobbyCode ? `<div class="flex items-center gap-2 text-xs text-[#00F0FF]"><i data-lucide="key-round" class="w-3.5 h-3.5"></i><span class="font-mono">Room ${_esc(lobbyCode)}</span></div>` : ''}
+                </div>
+
+                ${_renderMatchActionControls(m)}
+              </div>
             </article>`;
         });
         cardsEl.innerHTML = html;
@@ -4156,55 +4356,52 @@ const HubEngine = (() => {
         window._hubMatchHistory = historyMatches;
         let html = '';
         historyMatches.forEach((m, mi) => {
-          const resultClass = m.is_winner === true ? 'text-[#00FF66]' : m.is_winner === false ? 'text-[#FF2A55]' : 'text-gray-400';
-          const resultLabel = isStaff ? (m.winner_name ? _esc(m.winner_name) + ' won' : '—') : (m.is_winner === true ? 'WIN' : m.is_winner === false ? 'LOSS' : 'DRAW');
-          const matchLabel = isStaff
-            ? `${_esc(m.p1_name)} vs ${_esc(m.p2_name)}`
-            : `vs ${_esc(m.opponent_name)}`;
+          const isWin = m.is_winner === true;
+          const isLoss = m.is_winner === false;
+          const borderColor = isWin ? '#00FF66' : isLoss ? '#FF2A55' : '#4B5563';
+          const resultBadge = isStaff
+            ? (m.winner_name ? _esc(m.winner_name) : '—')
+            : (isWin ? 'W' : isLoss ? 'L' : 'D');
+          const resultBgClass = isWin ? 'text-[#00FF66] bg-[#00FF66]/10' : isLoss ? 'text-[#FF2A55] bg-[#FF2A55]/10' : 'text-gray-400 bg-white/5';
+          const p1Score = m.p1_score ?? 0;
+          const p2Score = m.p2_score ?? 0;
+          const p1ScoreClass = isWin ? 'text-[#00FF66] glow-text-success' : 'text-gray-500';
+          const p2ScoreClass = isLoss ? 'text-white' : 'text-gray-500';
 
-          // Map-level scores (game_scores) — inline pills
-          let mapsHtml = '';
-          const gs = Array.isArray(m.game_scores) ? m.game_scores : [];
-          if (gs.length > 0) {
-            mapsHtml = '<div class="flex items-center gap-2 mt-2">';
-            gs.forEach((g, i) => {
-              const mapName = g.map_name || `Map ${i + 1}`;
-              const p1r = g.p1_score ?? 0;
-              const p2r = g.p2_score ?? 0;
-              const p1Win = p1r > p2r;
-              const p1Class = p1Win ? 'text-[#00FF66]' : 'text-[#FF2A55]';
-              const p2Class = p1Win ? 'text-[#FF2A55]' : 'text-[#00FF66]';
-              mapsHtml += `
-                <div class="hub-glass rounded-lg px-2.5 py-1.5 text-center" style="min-width:3.5rem">
-                  <p class="text-[9px] text-gray-500 truncate" style="max-width:4rem">${_esc(mapName)}</p>
-                  <p class="text-xs font-black" style="font-family:'Space Grotesk',monospace;">
-                    <span class="${p1Class}">${p1r}</span><span class="text-gray-600">-</span><span class="${p2Class}">${p2r}</span>
-                  </p>
-                </div>`;
-            });
-            mapsHtml += '</div>';
-          }
+          const p1Name = isStaff ? _esc(m.p1_name || 'TBD') : _esc(m.p1_name || 'You');
+          const p2Name = isStaff ? _esc(m.p2_name || 'TBD') : _esc(m.opponent_name || 'TBD');
+          const p1Logo = m.p1_logo_url || '';
+          const p2Logo = isStaff ? (m.p2_logo_url || '') : (m.opponent_logo_url || m.p2_logo_url || '');
+          const p1AvatarHtml = _renderAvatarInner(p1Name, p1Logo, 'text-[10px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+          const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-[10px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
 
-          const hasDetail = gs.length > 0;
-          const cursorCls = hasDetail ? 'cursor-pointer hover:border-white/15' : '';
+          const hasDetail = Array.isArray(m.game_scores) && m.game_scores.length > 0;
+          const cursorCls = hasDetail ? 'cursor-pointer' : '';
           const clickAttr = hasDetail ? `onclick="HubEngine.openMapViewer(window._hubMatchHistory[${mi}])"` : '';
 
           html += `
-            <div class="hub-glass rounded-xl p-4 match-history-card ${cursorCls} transition-colors" ${clickAttr}>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <span class="text-xs font-black ${resultClass} w-14">${resultLabel}</span>
-                  <div>
-                    <p class="text-sm font-medium text-white">${matchLabel}</p>
-                    <p class="text-[10px] text-gray-500">${_esc(m.round_name)}</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3">
-                  <p class="text-lg font-black text-white" style="font-family:Outfit,sans-serif;">${m.p1_score ?? 0} — ${m.p2_score ?? 0}</p>
-                  ${hasDetail ? '<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' : ''}
+            <div class="premium-card p-4 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 bg-black/40 hover:bg-black/60 transition ${cursorCls}" style="border-left-color:${borderColor}" ${clickAttr}>
+              <div class="flex items-center gap-4 w-full md:w-1/3">
+                <span class="font-mono text-[10px] text-gray-500 w-16">${_esc(m.round_name || 'Round')}</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded bg-[#050508] overflow-hidden">${p1AvatarHtml}</div>
+                  <span class="font-display font-bold text-white">${p1Name}</span>
                 </div>
               </div>
-              ${mapsHtml}
+
+              <div class="flex items-center justify-center gap-4 w-full md:w-1/3">
+                <span class="font-mono font-bold text-xl ${p1ScoreClass}">${p1Score}</span>
+                <span class="text-xs text-gray-600 bg-black/50 px-2 py-0.5 rounded">FT</span>
+                <span class="font-mono font-bold text-xl ${p2ScoreClass}">${p2Score}</span>
+              </div>
+
+              <div class="flex items-center justify-end gap-4 w-full md:w-1/3">
+                <div class="flex items-center gap-2">
+                  <span class="font-display font-medium text-gray-400 text-right">${p2Name}</span>
+                  <div class="w-8 h-8 rounded bg-[#050508] overflow-hidden opacity-50">${p2AvatarHtml}</div>
+                </div>
+                <span class="w-8 text-center text-xs font-black ${resultBgClass} py-1 rounded">${resultBadge}</span>
+              </div>
             </div>`;
         });
         historyEl.innerHTML = html;
@@ -4506,10 +4703,15 @@ const HubEngine = (() => {
     }
   }
 
+  // ── Schedule date tape state ──
+  let _scheduleSelectedDay = null; // null = show all (default: today)
+
   function _renderScheduleMatches(data) {
     const skeleton = document.getElementById('schedule-match-skeleton');
     const empty    = document.getElementById('schedule-match-empty');
     const list     = document.getElementById('schedule-match-list');
+    const tapeWrap = document.getElementById('schedule-date-tape-wrapper');
+    const tape     = document.getElementById('schedule-date-tape');
 
     if (skeleton) skeleton.classList.add('hidden');
 
@@ -4525,6 +4727,7 @@ const HubEngine = (() => {
       : allMatches;
 
     if (filteredMatches.length === 0) {
+      if (tapeWrap) tapeWrap.classList.add('hidden');
       if (empty) {
         empty.classList.remove('hidden');
         empty.innerHTML = `
@@ -4546,26 +4749,128 @@ const HubEngine = (() => {
       return new Date(a.scheduled_at) - new Date(b.scheduled_at);
     });
 
-    // Group by day
-    const groups = {};
+    // Group by day key (YYYY-MM-DD)
+    const dayGroups = {};
+    const todayStr = new Date().toDateString();
     sorted.forEach(m => {
+      const dt = m.scheduled_at ? new Date(m.scheduled_at) : null;
+      const dayKey = dt ? dt.toDateString() : 'Unscheduled';
+      if (!dayGroups[dayKey]) dayGroups[dayKey] = { matches: [], date: dt };
+      dayGroups[dayKey].matches.push(m);
+    });
+
+    // ── Build date tape chips ──
+    if (tape && tapeWrap) {
+      const dayKeys = Object.keys(dayGroups);
+      let tapeHtml = '';
+
+      // "All" chip
+      const allActive = _scheduleSelectedDay === null;
+      tapeHtml += `<button onclick="HubEngine.scheduleSelectDay(null)" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all ${allActive ? 'bg-[#00F0FF]/20 border-[#00F0FF]/40 shadow-[0_0_15px_rgba(0,240,255,0.3)]' : 'bg-black/40 border-white/10 hover:border-white/20'}">
+        <div class="font-mono text-[10px] uppercase tracking-widest ${allActive ? 'text-[#00F0FF]' : 'text-gray-500'}">All</div>
+        <div class="font-mono font-bold text-sm ${allActive ? 'text-[#00F0FF]' : 'text-gray-400'}">${filteredMatches.length}</div>
+      </button>`;
+
+      let todayIdx = -1;
+      let chipIdx = 1; // 0 is the "All" chip
+      dayKeys.forEach((dayKey) => {
+        const info = dayGroups[dayKey];
+        const isToday = dayKey === todayStr;
+        const isSelected = _scheduleSelectedDay === dayKey;
+        const isActive = isSelected;
+        const matchCount = info.matches.length;
+        const hasLive = info.matches.some(m => m.state === 'live');
+
+        if (isToday) todayIdx = chipIdx;
+
+        let dayLabel, dateLabel;
+        if (dayKey === 'Unscheduled') {
+          dayLabel = 'TBD';
+          dateLabel = 'Unsched.';
+        } else {
+          const d = info.date;
+          dayLabel = isToday ? 'TODAY' : ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()];
+          dateLabel = `${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+        }
+
+        const activeCls = isActive
+          ? 'bg-[#00F0FF]/20 border-[#00F0FF]/40 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+          : isToday
+            ? 'bg-white/5 border-[#00F0FF]/20 hover:border-[#00F0FF]/40'
+            : 'bg-black/40 border-white/10 hover:border-white/20';
+        const textCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-white' : 'text-gray-400';
+        const subCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-[#00F0FF]' : 'text-gray-500';
+
+        tapeHtml += `<button onclick="HubEngine.scheduleSelectDay('${_esc(dayKey)}')" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all min-w-[72px] ${activeCls} relative" data-tape-day="${_esc(dayKey)}">
+          ${hasLive ? '<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>' : ''}
+          <div class="font-mono text-[10px] uppercase tracking-widest ${subCls}">${dayLabel}</div>
+          <div class="font-mono font-bold text-sm ${textCls}">${dateLabel}</div>
+          <div class="font-mono text-[9px] ${subCls} mt-0.5">${matchCount} match${matchCount !== 1 ? 'es' : ''}</div>
+        </button>`;
+        chipIdx++;
+      });
+
+      tape.innerHTML = tapeHtml;
+      tapeWrap.classList.remove('hidden');
+
+      // Auto-scroll to today chip (or first chip if no today)
+      requestAnimationFrame(() => {
+        const targetIdx = todayIdx >= 0 ? todayIdx : 0;
+        const chips = tape.children;
+        if (chips[targetIdx]) {
+          chips[targetIdx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      });
+
+      // If first render and today exists, select today
+      if (_scheduleSelectedDay === null && todayIdx >= 0) {
+        // Show all on first render by default, tape highlights today
+      }
+    }
+
+    // ── Filter matches by selected day ──
+    const displayMatches = _scheduleSelectedDay
+      ? sorted.filter(m => {
+          if (_scheduleSelectedDay === 'Unscheduled') return !m.scheduled_at;
+          const dt = m.scheduled_at ? new Date(m.scheduled_at) : null;
+          return dt && dt.toDateString() === _scheduleSelectedDay;
+        })
+      : sorted;
+
+    if (displayMatches.length === 0) {
+      if (list) list.classList.add('hidden');
+      if (empty) {
+        empty.classList.remove('hidden');
+        empty.innerHTML = `
+          <i data-lucide="calendar-x" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+          <p class="text-sm text-gray-500">No matches on this day.</p>
+        `;
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    // Re-group display matches by day for rendering
+    const displayGroups = {};
+    displayMatches.forEach(m => {
       const day = m.scheduled_at
         ? _formatDate(m.scheduled_at, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
         : 'Unscheduled';
-      if (!groups[day]) groups[day] = [];
-      groups[day].push(m);
+      if (!displayGroups[day]) displayGroups[day] = [];
+      displayGroups[day].push(m);
     });
 
-    let html = _renderIncomingRescheduleInbox(filteredMatches);
-    for (const [day, matches] of Object.entries(groups)) {
-      const isToday = day !== 'Unscheduled' && new Date(matches[0].scheduled_at).toDateString() === new Date().toDateString();
+    let html = _renderIncomingRescheduleInbox(displayMatches);
+    for (const [day, matches] of Object.entries(displayGroups)) {
+      const isToday = day !== 'Unscheduled' && new Date(matches[0].scheduled_at).toDateString() === todayStr;
       html += `
-        <div class="mb-6">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="text-[10px] font-bold ${isToday ? 'text-[#00FF66]' : 'text-gray-500'} uppercase tracking-widest" style="font-family:'Space Grotesk',monospace;">
-              ${isToday ? '● Today — ' : ''}${_esc(day)}
-            </span>
-            <div class="flex-1 h-px bg-white/5"></div>
+        <div class="mb-8">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="px-3 py-1.5 ${isToday ? 'bg-[#00F0FF]/10 border-[#00F0FF]/30' : 'bg-white/5 border-white/10'} border rounded-lg flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 ${isToday ? 'text-[#00F0FF]' : 'text-gray-500'}"></i>
+              <span class="font-mono text-xs ${isToday ? 'text-[#00F0FF]' : 'text-white'} font-bold tracking-widest">${isToday ? 'TODAY' : _esc(day).toUpperCase()}</span>
+            </div>
+            <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
           </div>`;
 
       matches.forEach(m => {
@@ -4582,111 +4887,11 @@ const HubEngine = (() => {
         const isCompleted = m.state === 'completed' || m.state === 'forfeit';
         const isParticipantOwnMatch = Boolean(m.is_my_match && !m.is_staff_view);
 
-        const leftScore = isParticipantOwnMatch
-          ? (m.your_score ?? 0)
-          : (m.p1_score ?? 0);
-        const rightScore = isParticipantOwnMatch
-          ? (m.opponent_score ?? 0)
-          : (m.p2_score ?? 0);
-
-        const leftNumeric = Number(leftScore);
-        const rightNumeric = Number(rightScore);
-        const hasNumericScores = Number.isFinite(leftNumeric) && Number.isFinite(rightNumeric);
-        const participantOutcome = (() => {
-          if (!isParticipantOwnMatch) return null;
-          if (m.is_winner === true) return 'win';
-          if (m.is_winner === false) return 'loss';
-          if (!hasNumericScores) return null;
-          if (leftNumeric > rightNumeric) return 'win';
-          if (leftNumeric < rightNumeric) return 'loss';
-          return 'draw';
-        })();
-
-        const winnerSide = Number(m.winner_side || 0);
-        const winnerName = String(m.winner_name || '').trim();
-        const winnerLogo = String(m.winner_logo_url || '').trim();
-        const winnerAvatar = winnerName
-          ? _renderAvatarInner(
-            winnerName,
-            winnerLogo,
-            'h-4 w-4 rounded-full bg-white/10 text-[8px] font-black text-white flex items-center justify-center',
-            'h-4 w-4 rounded-full object-cover'
-          )
-          : '';
-        const winnerBadge = winnerName
-          ? `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/12 text-[9px] font-black uppercase tracking-widest text-[#66FFAE]"><span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/40 overflow-hidden">${winnerAvatar}</span><span>Winner</span><span class="text-white/90 font-semibold normal-case tracking-normal">${_esc(winnerName)}</span></span>`
-          : '';
-
-        let leftScoreClass = 'text-white';
-        let rightScoreClass = 'text-white';
-        let resultTag = '';
-
-        if (isCompleted) {
-          let leftWon = false;
-          let rightWon = false;
-          if (isParticipantOwnMatch) {
-            leftWon = participantOutcome === 'win';
-            rightWon = participantOutcome === 'loss';
-          } else if (winnerSide === 1) {
-            leftWon = true;
-          } else if (winnerSide === 2) {
-            rightWon = true;
-          } else if (hasNumericScores && leftNumeric !== rightNumeric) {
-            leftWon = leftNumeric > rightNumeric;
-            rightWon = rightNumeric > leftNumeric;
-          }
-
-          if (leftWon) {
-            leftScoreClass = 'text-[#66FFAE]';
-            rightScoreClass = 'text-[#FF93A8] opacity-70';
-          } else if (rightWon) {
-            leftScoreClass = 'text-[#FF93A8] opacity-70';
-            rightScoreClass = 'text-[#66FFAE]';
-          }
-
-          if (winnerBadge) {
-            resultTag = winnerBadge;
-          } else if (isParticipantOwnMatch && participantOutcome === 'win') {
-            resultTag = '<span class="inline-flex items-center gap-1 text-[10px] font-black text-[#66FFAE] uppercase tracking-widest">Winner <span aria-hidden="true">👑</span></span>';
-          } else if (isParticipantOwnMatch && participantOutcome === 'loss') {
-            resultTag = '<span class="text-[10px] font-black text-[#FF93A8] uppercase tracking-widest">Defeat</span>';
-          } else if (hasNumericScores && leftNumeric !== rightNumeric) {
-            const fallbackWinnerName = leftWon
-              ? (isParticipantOwnMatch ? 'You' : (m.p1_name || 'Participant 1'))
-              : (isParticipantOwnMatch ? 'Opponent' : (m.p2_name || 'Participant 2'));
-            resultTag = `<span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${leftWon ? 'text-[#66FFAE]' : 'text-cyan-200'}"><span>Winner</span><span class="text-white/90 font-semibold normal-case tracking-normal">${_esc(fallbackWinnerName)}</span></span>`;
-          } else {
-            resultTag = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Draw</span>';
-          }
-        }
-
-        let participantBreakdown = '';
-        if (isCompleted && isParticipantOwnMatch) {
-          const youWon = participantOutcome === 'win';
-          const youLost = participantOutcome === 'loss';
-          const youCardClass = youWon
-            ? 'border-[#00FF66]/35 bg-[#00FF66]/10'
-            : youLost
-              ? 'border-[#FF2A55]/25 bg-[#FF2A55]/10 opacity-80'
-              : 'border-white/10 bg-white/[0.03]';
-          const oppCardClass = youLost
-            ? 'border-[#00FF66]/35 bg-[#00FF66]/10'
-            : youWon
-              ? 'border-[#FF2A55]/25 bg-[#FF2A55]/10 opacity-80'
-              : 'border-white/10 bg-white/[0.03]';
-
-          participantBreakdown = `
-            <div class="grid grid-cols-2 gap-2 mt-3">
-              <div class="rounded-lg border p-2 ${youCardClass}">
-                <p class="text-[9px] text-gray-400 uppercase tracking-wider">You</p>
-                <p class="text-lg font-black ${youWon ? 'text-[#66FFAE]' : youLost ? 'text-[#FF8AA0]' : 'text-gray-200'}" style="font-family:Outfit,sans-serif;">${_esc(String(leftScore))}</p>
-              </div>
-              <div class="rounded-lg border p-2 ${oppCardClass}">
-                <p class="text-[9px] text-gray-400 uppercase tracking-wider">Opponent</p>
-                <p class="text-lg font-black ${youLost ? 'text-[#66FFAE]' : youWon ? 'text-[#FF8AA0]' : 'text-gray-200'}" style="font-family:Outfit,sans-serif;">${_esc(String(rightScore))}</p>
-              </div>
-            </div>`;
-        }
+        const stateLabel = m.state_display || m.state || 'Scheduled';
+        const stateBadgeClass = isLive ? 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30'
+                              : m.state === 'ready' ? 'bg-[#00FF66]/10 text-[#00FF66] border-[#00FF66]/30'
+                              : isCompleted ? 'bg-white/5 text-gray-400 border-white/10'
+                              : 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30';
 
         const p1Name = m.is_staff_view
           ? _esc(m.p1_name || 'TBD')
@@ -4697,37 +4902,61 @@ const HubEngine = (() => {
 
         const p1Logo = m.p1_logo_url || '';
         const p2Logo = m.is_staff_view ? (m.p2_logo_url || '') : (m.opponent_logo_url || m.p2_logo_url || '');
-        const p1AvatarHtml = _renderAvatarInner(p1Name, p1Logo, 'text-xs font-black text-white', 'w-full h-full object-cover rounded-lg');
-        const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-xs font-black text-white', 'w-full h-full object-cover rounded-lg');
+        const isP1You = isParticipantOwnMatch && p1Name === 'You';
+        const p1Border = isP1You ? 'border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.2)]' : 'border-white/10';
+        const p2Border = (!isP1You && isParticipantOwnMatch) ? 'border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.2)]' : 'border-white/10';
+        const p1NameClass = isP1You ? 'text-[#00F0FF]' : 'text-white';
+        const p2NameClass = (!isP1You && isParticipantOwnMatch) ? 'text-[#00F0FF]' : 'text-gray-400';
+        const p1AvatarHtml = _renderAvatarInner(p1Name, p1Logo, 'text-xs font-black text-white', 'w-full h-full object-cover');
+        const p2AvatarHtml = _renderAvatarInner(p2Name, p2Logo, 'text-xs font-black text-white', 'w-full h-full object-cover opacity-50');
+
+        // Score display for completed matches
+        let centerContent;
+        if (isLive || isCompleted) {
+          const leftScore = isParticipantOwnMatch ? (m.your_score ?? 0) : (m.p1_score ?? 0);
+          const rightScore = isParticipantOwnMatch ? (m.opponent_score ?? 0) : (m.p2_score ?? 0);
+          const leftNum = Number(leftScore);
+          const rightNum = Number(rightScore);
+          const leftWon = leftNum > rightNum;
+          const leftClass = leftWon ? 'text-[#00FF66] glow-text-success' : 'text-gray-500';
+          const rightClass = !leftWon && rightNum > leftNum ? 'text-[#00FF66] glow-text-success' : 'text-gray-500';
+          centerContent = `
+            <div class="flex items-center gap-4">
+              <span class="font-mono font-bold text-xl ${leftClass}">${leftScore}</span>
+              <span class="text-xs text-gray-600 bg-black/50 px-2 py-0.5 rounded">${isCompleted ? 'FT' : 'LIVE'}</span>
+              <span class="font-mono font-bold text-xl ${rightClass}">${rightScore}</span>
+            </div>`;
+        } else {
+          centerContent = `<span class="font-display font-black text-sm text-gray-600 shrink-0 bg-black/50 px-3 py-1.5 rounded-lg border border-white/5">VS</span>`;
+        }
 
         html += `
-          <div class="hub-match-priority-card ${isLive ? 'tone-live' : isCompleted ? '' : 'tone-scheduled'}" style="border-left: 3px solid ${color}; padding: 1rem 1.1rem;">
-            <div class="flex items-center justify-between gap-3 mb-2.5">
-              <p class="text-[10px] font-black text-gray-500 uppercase tracking-wider">${_esc(m.round_name || 'Round')} · Match ${m.match_number || ''}</p>
-              <div class="flex items-center gap-2">
-                ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>' : ''}
-                <span class="text-[10px] font-bold uppercase tracking-wider" style="color:${color}">${_esc(m.state_display || m.state)}</span>
+          <div class="premium-card p-5 border-l-4 mb-4 hover:bg-white/5 transition group" style="border-left-color:${color}">
+            <div class="flex flex-col md:flex-row items-center gap-6 relative z-10">
+              <div class="w-full md:w-32 text-center border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6 shrink-0">
+                <p class="font-mono font-bold text-3xl text-white">${_esc(time)}</p>
+                <p class="font-mono text-[10px] text-[#00F0FF] mt-1 tracking-widest uppercase">${_esc(m.round_name || 'Round')}</p>
               </div>
-            </div>
 
-            <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">${p1AvatarHtml}</div>
-                <p class="text-sm font-bold text-white truncate">${p1Name}</p>
+              <div class="flex-1 w-full flex items-center justify-between md:justify-center gap-4 md:gap-10">
+                <div class="flex items-center gap-4 w-[40%] md:w-auto justify-end">
+                  <span class="font-display font-bold text-lg ${p1NameClass} text-right truncate">${p1Name}</span>
+                  <div class="w-12 h-12 rounded-xl bg-[#050508] overflow-hidden shrink-0 border ${p1Border}">${p1AvatarHtml}</div>
+                </div>
+                ${centerContent}
+                <div class="flex items-center gap-4 w-[40%] md:w-auto justify-start">
+                  <div class="w-12 h-12 rounded-xl bg-[#050508] overflow-hidden shrink-0 border ${p2Border}">${p2AvatarHtml}</div>
+                  <span class="font-display font-bold text-lg ${p2NameClass} truncate">${p2Name}</span>
+                </div>
               </div>
-              <div class="flex flex-col items-center">
-                ${(isLive || isCompleted)
-                  ? `<div class="flex items-center gap-1"><span class="text-lg font-black ${leftScoreClass}" style="font-family:Outfit,sans-serif;">${_esc(String(leftScore))}</span><span class="text-xs text-gray-600">:</span><span class="text-lg font-black ${rightScoreClass}" style="font-family:Outfit,sans-serif;">${_esc(String(rightScore))}</span></div>`
-                  : `<span class="text-[10px] font-black text-gray-600 uppercase tracking-widest">${time}</span>`
-                }
-              </div>
-              <div class="flex items-center gap-2.5 min-w-0 justify-end">
-                <p class="text-sm font-bold text-white truncate text-right">${p2Name}</p>
-                <div class="w-9 h-9 rounded-lg border border-white/15 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">${p2AvatarHtml}</div>
+
+              <div class="w-full md:w-auto mt-4 md:mt-0 shrink-0">
+                <span class="hub-badge ${stateBadgeClass}">
+                  ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>' : '<i data-lucide="clock" class="w-3 h-3"></i>'}
+                  ${_esc(stateLabel)}
+                </span>
               </div>
             </div>
-            ${isCompleted ? `<div class="mt-2.5 flex items-center justify-center">${resultTag}</div>` : ''}
-            ${participantBreakdown}
             ${_renderMatchActionControls(m, { compact: true })}
           </div>`;
       });
@@ -4744,9 +4973,18 @@ const HubEngine = (() => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
+  function scheduleSelectDay(dayKey) {
+    _scheduleSelectedDay = dayKey;
+    // Re-render with current cached data
+    if (_scheduleMatchesCache) {
+      _renderScheduleMatches(_scheduleMatchesCache);
+    }
+  }
+
   // Public helper for refresh button
   function refreshScheduleMatches() {
     _scheduleMatchesCache = null;
+    _scheduleSelectedDay = null;
     _fetchScheduleMatches();
   }
 
@@ -5364,6 +5602,12 @@ const HubEngine = (() => {
       const memberCount = (isTeam && p.member_count) ? `<p class="text-[10px] text-gray-500 uppercase tracking-widest" style="font-family:'Space Grotesk',monospace;">${p.member_count} Member${p.member_count !== 1 ? 's' : ''}</p>` : '';
       const metaPill = _participantMetaPill(p);
 
+      // Seed badge (top-right of card)
+      let seedBadge = '';
+      if (p.seed) {
+        seedBadge = `<div class="absolute top-3 right-3 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border ${p.seed <= 4 ? 'bg-[#FFB800]/10 border-[#FFB800]/30 text-[#FFB800]' : 'bg-white/5 border-white/10 text-gray-500'}">#${p.seed}</div>`;
+      }
+
       // Stacked member avatars (team mode)
       let avatarStack = '';
       if (isTeam && p.member_avatars && p.member_avatars.length > 0) {
@@ -5390,7 +5634,8 @@ const HubEngine = (() => {
       const tag = p.detail_url ? 'a' : 'div';
 
       html += `
-        <${tag}${href} class="hub-glass p-5 rounded-xl border${youBorder} hover:border-white/20 transition-all group cursor-pointer block" data-participant-name="${_esc(p.name.toLowerCase())}">
+        <${tag}${href} class="hub-glass p-5 rounded-xl border${youBorder} hover:border-white/20 transition-all group cursor-pointer block relative" data-participant-name="${_esc(p.name.toLowerCase())}">
+          ${seedBadge}
           <div class="flex items-center gap-4 mb-1">
             <div class="w-12 h-12 rounded-lg ${logoColorClass} flex items-center justify-center overflow-hidden border border-white/10 shrink-0 group-hover:scale-110 transition-transform">
               ${logo}
@@ -6551,6 +6796,7 @@ const HubEngine = (() => {
     // S27: WebSocket status
     isWsConnected: () => _ws && _ws.readyState === WebSocket.OPEN,
     refreshScheduleMatches,
+    scheduleSelectDay,
     openMatchLobby,
     openRescheduleProposal,
     closeRescheduleModal,

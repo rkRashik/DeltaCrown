@@ -825,7 +825,7 @@ body.hub-mobile-nav-open {
 
 /* ── Prizes Tab ───────────────────────────────────────────── */
 .prize-placement-card {
-  padding: 1rem 1.25rem;
+  padding: 1.5rem 1.25rem;
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.02);
@@ -834,19 +834,29 @@ body.hub-mobile-nav-open {
 .prize-placement-card:hover {
   border-color: rgba(255, 184, 0, 0.2);
   background: rgba(255, 184, 0, 0.03);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
 }
 .prize-placement-card.gold {
-  border-color: rgba(255, 184, 0, 0.2);
-  background: linear-gradient(135deg, rgba(255, 184, 0, 0.05) 0%, transparent 60%);
+  border-color: rgba(255, 184, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.08) 0%, rgba(255, 184, 0, 0.02) 40%, transparent 70%);
+}
+.prize-placement-card.gold:hover {
+  border-color: rgba(255, 184, 0, 0.5);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.12) 0%, rgba(255, 184, 0, 0.04) 40%, transparent 70%);
 }
 .prize-placement-card.silver {
-  border-color: rgba(192, 192, 192, 0.15);
-  background: linear-gradient(135deg, rgba(192, 192, 192, 0.04) 0%, transparent 60%);
+  border-color: rgba(192, 192, 192, 0.2);
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.06) 0%, rgba(192, 192, 192, 0.02) 40%, transparent 70%);
+}
+.prize-placement-card.silver:hover {
+  border-color: rgba(192, 192, 192, 0.35);
 }
 .prize-placement-card.bronze {
-  border-color: rgba(205, 127, 50, 0.15);
-  background: linear-gradient(135deg, rgba(205, 127, 50, 0.04) 0%, transparent 60%);
+  border-color: rgba(205, 127, 50, 0.2);
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.06) 0%, rgba(205, 127, 50, 0.02) 40%, transparent 70%);
+}
+.prize-placement-card.bronze:hover {
+  border-color: rgba(205, 127, 50, 0.35);
 }
 .prize-your-card {
   padding: 1rem 1.25rem;
@@ -2899,6 +2909,13 @@ body.hub-mobile-nav-open {
   -webkit-overflow-scrolling: touch;
   min-width: 0;
 }
+
+/* Schedule date tape - hide scrollbar but keep scroll */
+#schedule-date-tape {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#schedule-date-tape::-webkit-scrollbar { display: none; }
 
 @media (max-width: 768px) {
   .bk-section {

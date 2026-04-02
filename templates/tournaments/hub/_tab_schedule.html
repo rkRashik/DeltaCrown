@@ -1,16 +1,15 @@
 {% comment %}
-  Tab: Schedule — Timeline
-  Visual design: EXACT copy of demo_hub_2.html #tab-schedule
-  No vertical timeline — just header + filter + match cards (rendered by JS).
+  Tab: Schedule — Smart Date Tape + Timeline
+  Horizontal scrollable date tape with today's matches prominent.
 {% endcomment %}
 
-<div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto">
+<div class="p-4 md:p-8 lg:p-10 max-w-[1100px] mx-auto">
 
-  {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
-  <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+  {% comment %}── Header ────────────────────────{% endcomment %}
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
     <div>
       <h2 class="font-display font-black text-4xl text-white tracking-wide">Timeline</h2>
-      <p class="font-mono text-xs text-gray-400 mt-2">Upcoming fixtures and past results.</p>
+      <p class="font-mono text-xs text-gray-400 mt-2">Swipe the date tape to browse past and future fixtures.</p>
     </div>
     {% if not is_staff_view %}
     <div id="schedule-match-filter" class="flex bg-black/40 p-1 rounded-xl border border-white/10">
@@ -28,7 +27,18 @@
     {% endif %}
   </div>
 
-  {% comment %}── Match Schedule — dynamic content area ─────────────────{% endcomment %}
+  {% comment %}── Date Tape — horizontal scrolling day strip ─────────────{% endcomment %}
+  <div id="schedule-date-tape-wrapper" class="hidden mb-8">
+    <div class="relative">
+      <div id="schedule-date-tape" class="flex gap-2 overflow-x-auto pb-2 scroll-smooth custom-scrollbar" style="scrollbar-width:thin">
+        {% comment %}Date chips rendered by JS{% endcomment %}
+      </div>
+      <div class="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-[#0a0a0f] to-transparent pointer-events-none z-10"></div>
+      <div class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-[#0a0a0f] to-transparent pointer-events-none z-10"></div>
+    </div>
+  </div>
+
+  {% comment %}── Match Content Area ─────────────────{% endcomment %}
   <div id="hub-match-schedule-section">
 
     {% comment %}Skeleton loader{% endcomment %}
@@ -45,7 +55,7 @@
       <p class="text-xs text-gray-600 mt-1">Match times will appear here once the bracket is generated.</p>
     </div>
 
-    {% comment %}Match cards rendered by JS into this container{% endcomment %}
+    {% comment %}Match cards rendered by JS{% endcomment %}
     <div id="schedule-match-list" class="hidden space-y-3"></div>
 
   </div>

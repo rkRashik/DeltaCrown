@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown | 2050 Esports Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace'],
+                    },
+                    colors: {
+                        game: {
+                            primary: '#00F0FF',
+                            accent: '#FF2A55',
+                            success: '#00FF66',
+                            warning: '#FFB800',
+                            dark: '#050508',
+                            panel: 'rgba(12, 14, 20, 0.65)',
+                        }
+                    },
+                    backgroundImage: {
+                        'cinematic': 'radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, rgba(5, 5, 8, 1) 60%)',
+                        'grid-pattern': 'linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: theme('colors.game.dark');
+            color: #fff;
+            overflow: hidden; /* Prevent body scroll, handle internally */
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: theme('colors.game.panel');
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 10px 40px -10px rgba(0, 240, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Neon Glow Utilities */
+        .glow-text-primary { text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
+        .glow-text-success { text-shadow: 0 0 10px rgba(0, 255, 102, 0.5); }
+        .glow-text-accent { text-shadow: 0 0 10px rgba(255, 42, 85, 0.5); }
+
+        .border-glow-live {
+            position: relative;
+        }
+        .border-glow-live::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(45deg, #00F0FF, #7000FF, #00F0FF);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* Typography & Badges */
+        .meta-text {
+            font-family: 'Space Grotesk', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .badge-live { background: rgba(0, 255, 102, 0.1); color: #00FF66; border: 1px solid rgba(0, 255, 102, 0.3); }
+        .badge-scheduled { background: rgba(0, 240, 255, 0.1); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.3); }
+        .badge-warning { background: rgba(255, 184, 0, 0.1); color: #FFB800; border: 1px solid rgba(255, 184, 0, 0.3); }
+        .badge-neutral { background: rgba(255, 255, 255, 0.05); color: #A1A1AA; border: 1px solid rgba(255, 255, 255, 0.1); }
+
+        /* Avatars with Fallback */
+        .avatar-container {
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(112, 0, 255, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .avatar-initials {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.3); }
+
+        /* Mobile Dock */
+        @media (max-width: 1023px) {
+            .main-content { height: calc(100vh - 60px - 70px); } /* Header - Dock */
+        }
+        @media (min-width: 1024px) {
+            .main-content { height: calc(100vh - 70px); }
+        }
+
+        /* Tab Transitions */
+        .tab-content { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .tab-content.active { display: block; opacity: 1; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .action-btn {
+            background: linear-gradient(to right, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: #00F0FF;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            transform: scale(1.02);
+        }
+        .action-btn-danger {
+            background: rgba(255, 42, 85, 0.1);
+            border-color: rgba(255, 42, 85, 0.3);
+            color: #FF2A55;
+        }
+        .action-btn-danger:hover {
+            background: rgba(255, 42, 85, 0.2);
+            box-shadow: 0 0 15px rgba(255, 42, 85, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-cinematic text-gray-300 antialiased selection:bg-game-primary selection:text-black relative">
+
+    <div class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-20 pointer-events-none z-0"></div>
+
+    <header class="glass-panel h-[70px] fixed top-0 w-full z-50 flex items-center justify-between px-4 lg:px-8 border-b border-white/10">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-game-primary to-purple-600 p-[1px]">
+                <div class="w-full h-full bg-game-dark rounded-xl flex items-center justify-center">
+                    <i data-lucide="crown" class="w-5 h-5 text-game-primary"></i>
+                </div>
+            </div>
+            <div>
+                <h1 class="font-display font-bold text-lg lg:text-xl text-white leading-none tracking-wide">eFootball Genesis Cup</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-game-success animate-pulse shadow-[0_0_8px_#00FF66]"></span>
+                    <span class="meta-text text-[9px] text-game-success">Tournament Live</span>
+                    <span class="meta-text text-[9px] text-gray-500 border-l border-white/10 pl-2">PS5 / Xbox / PC</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                <i data-lucide="wifi" class="w-3.5 h-3.5 text-game-primary"></i>
+                <span class="meta-text text-[9px] text-game-primary">Socket Connected 12ms</span>
+            </div>
+
+            <div class="h-8 w-px bg-white/10 hidden lg:block"></div>
+
+            <div class="flex items-center gap-3 cursor-pointer group">
+                <div class="text-right hidden sm:block">
+                    <p class="font-bold text-sm text-white group-hover:text-game-primary transition">Redwan_Rashik</p>
+                    <p class="meta-text text-[9px] text-gray-400">Participant View</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl avatar-container ring-2 ring-transparent group-hover:ring-game-primary/50 transition">
+                    <span class="avatar-initials text-sm">RR</span>
+                    <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" class="w-full h-full object-cover relative z-10" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-screen pt-[70px]">
+
+        <aside class="hidden lg:flex flex-col w-[260px] glass-panel border-r border-white/10 z-40 h-full">
+            <div class="p-4">
+                <p class="meta-text text-[10px] text-gray-500 mb-4 px-2">Command Center</p>
+                <nav class="space-y-1">
+                    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition group" onclick="switchTab('lobby')">
+                        <i data-lucide="crosshair" class="w-5 h-5 group-hover:text-game-primary transition"></i>
+                        <span class="font-display font-medium text-sm tracking-wide">Match Lobby</span>
+                        <span class="ml-auto w-2 h-2 rounded-full bg-game-accent shadow-[0_0_8px_#FF2A55]"></span>
+                    </button>
+                    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition group" onclick="switchTab('schedule')">
+                        <i data-lucide="calendar" class="w-5 h-5 group-hover:text-game-primary transition"></i>
+                        <span class="font-display font-medium text-sm tracking-wide">Schedule</span>
+                    </button>
+                    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition group" onclick="switchTab('standings')">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 group-hover:text-game-primary transition"></i>
+                        <span class="font-display font-medium text-sm tracking-wide">Standings</span>
+                    </button>
+                    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition group" onclick="switchTab('bracket')">
+                        <i data-lucide="git-merge" class="w-5 h-5 transform rotate-90 group-hover:text-game-primary transition"></i>
+                        <span class="font-display font-medium text-sm tracking-wide">Bracket</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="mt-auto p-4 border-t border-white/10">
+                <button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 transition">
+                    <i data-lucide="life-buoy" class="w-4 h-4"></i> Contact Admin
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto relative z-10 main-content pb-24 lg:pb-0" id="main-scroll-area">
+
+            <div id="tab-lobby" class="tab-content active p-4 md:p-8 max-w-[1200px] mx-auto">
+
+                <div class="mb-8">
+                    <h2 class="font-display font-black text-3xl md:text-4xl text-white tracking-wide glow-text-primary">Match Lobby</h2>
+                    <p class="text-gray-400 mt-2 text-sm max-w-2xl">Your active staging area. Check in, verify opponents, and orchestrate your matches in real-time. Do not leave this page during an active match.</p>
+                </div>
+
+                <div class="glass-card mb-8 overflow-hidden relative group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-game-warning/20 to-transparent pointer-events-none"></div>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-game-warning"></div>
+
+                    <div class="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                        <div>
+                            <span class="badge badge-warning mb-3">Action Required</span>
+                            <h3 class="font-display font-bold text-2xl text-white">Digital Check-in Open</h3>
+                            <p class="text-sm text-gray-300 mt-1">Confirm your presence to avoid a 5-minute No-Show Forfeit. Window closes in <span class="font-mono text-white font-bold">14:59</span>.</p>
+                        </div>
+                        <button class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-game-warning hover:bg-yellow-400 text-black font-black uppercase tracking-widest text-sm transition-transform transform hover:scale-105 shadow-[0_0_20px_rgba(255,184,0,0.4)]">
+                            Confirm Presence
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mb-4 mt-10">
+                    <h3 class="meta-text text-sm text-game-primary flex items-center gap-2">
+                        <i data-lucide="crosshair" class="w-4 h-4"></i> Priority Queue
+                    </h3>
+                </div>
+
+                <div class="glass-card border-glow-live p-6 md:p-8 mb-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                        <i data-lucide="swords" class="w-48 h-48"></i>
+                    </div>
+
+                    <div class="flex justify-between items-start mb-6 relative z-10">
+                        <div>
+                            <span class="badge badge-live mb-2"><span class="w-1.5 h-1.5 rounded-full bg-game-success animate-pulse"></span> Match Live</span>
+                            <p class="meta-text text-xs text-gray-400">Round 2 • Best of 3</p>
+                        </div>
+                        <button class="action-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="message-square" class="w-4 h-4"></i> Lobby Chat <span class="w-2 h-2 rounded-full bg-game-accent"></span>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 relative z-10 py-4">
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl avatar-container shadow-[0_0_30px_rgba(0,240,255,0.2)] ring-2 ring-game-primary border-none mb-4">
+                                <span class="avatar-initials text-2xl">RK</span>
+                                <img src="invalid-url.jpg" alt="rkrashik" class="w-full h-full object-cover relative z-10" onerror="this.style.display='none'">
+                            </div>
+                            <h4 class="font-display font-bold text-xl md:text-2xl text-white text-center">rkrashik</h4>
+                            <span class="px-2 py-0.5 mt-2 rounded bg-white/10 text-[10px] font-bold uppercase tracking-widest text-game-primary">You</span>
+                        </div>
+
+                        <div class="flex flex-col items-center justify-center shrink-0">
+                            <div class="px-4 py-2 rounded-xl bg-black/50 border border-white/10 backdrop-blur-md">
+                                <span class="font-display font-black text-2xl text-white opacity-50">VS</span>
+                            </div>
+                            <p class="meta-text text-[10px] text-gray-500 mt-3">Match ID: #1303</p>
+                        </div>
+
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl avatar-container shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/10 mb-4">
+                                <span class="avatar-initials text-2xl">BH</span>
+                                <img src="https://i.pravatar.cc/150?u=bhaan" alt="Bhaanja" class="w-full h-full object-cover relative z-10" onerror="this.style.display='none'">
+                            </div>
+                            <h4 class="font-display font-bold text-xl md:text-2xl text-white text-center">Bhaanja</h4>
+                            <span class="px-2 py-0.5 mt-2 rounded bg-game-success/10 text-[10px] font-bold uppercase tracking-widest text-game-success flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 bg-game-success rounded-full animate-pulse"></span> Present
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                                <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
+                            </div>
+                            <div>
+                                <p class="meta-text text-[10px] text-gray-500">Lobby Password</p>
+                                <p class="font-mono text-sm text-white font-bold">EFO-9921-X</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <button class="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-bold text-white transition">Copy Info</button>
+                            <button class="flex-1 sm:flex-none action-btn px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest">Enter Match Room</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 opacity-80 hover:opacity-100 transition">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <div class="w-12 h-12 rounded-xl avatar-container">
+                                <span class="avatar-initials text-sm">TO</span>
+                            </div>
+                            <div>
+                                <p class="meta-text text-[10px] text-gray-500 mb-1">Round 3 • Starts in 2h 15m</p>
+                                <h4 class="font-display font-bold text-lg text-white">vs Toofan</h4>
+                            </div>
+                        </div>
+                        <span class="badge badge-scheduled w-full md:w-auto justify-center">Scheduled</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div id="tab-schedule" class="tab-content p-4 md:p-8 max-w-[1000px] mx-auto">
+
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-3xl md:text-4xl text-white tracking-wide">Event Schedule</h2>
+                        <p class="text-gray-400 mt-2 text-sm">Official timeline and historical results.</p>
+                    </div>
+                    <div class="flex bg-black/40 p-1 rounded-lg border border-white/10 shrink-0">
+                        <button class="px-4 py-1.5 rounded-md bg-white/10 text-white text-xs font-bold shadow-sm">My Matches</button>
+                        <button class="px-4 py-1.5 rounded-md text-gray-500 hover:text-white text-xs font-medium transition">All Matches</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 mb-6">
+                    <h3 class="meta-text text-xs text-game-primary font-bold">Today — April 2, 2026</h3>
+                    <div class="h-px flex-1 bg-gradient-to-r from-game-primary/30 to-transparent"></div>
+                </div>
+
+                <div class="space-y-4 mb-10">
+
+                    <div class="glass-card border-l-4 border-l-game-warning p-4 md:p-5 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-game-warning/10 to-transparent pointer-events-none"></div>
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-game-warning/10 border border-game-warning/30 flex items-center justify-center shrink-0">
+                                    <i data-lucide="clock" class="w-5 h-5 text-game-warning"></i>
+                                </div>
+                                <div>
+                                    <span class="meta-text text-[9px] text-game-warning block mb-1">Response Required</span>
+                                    <h4 class="font-display font-bold text-white text-lg">Reschedule Proposal: Round 1</h4>
+                                    <p class="text-xs text-gray-400 mt-0.5"><span class="text-white font-medium">Hitman_Hafiz</span> proposed to move match to <span class="text-white font-mono">09:00 PM</span>.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <button class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-game-success/20 hover:bg-game-success/30 border border-game-success/30 text-game-success text-xs font-bold uppercase transition">Accept</button>
+                                <button class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-game-accent/10 hover:bg-game-accent/20 border border-game-accent/30 text-game-accent text-xs font-bold uppercase transition" onclick="alert('Opens Counter-Offer Modal')">Reject / Counter</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4 md:p-5 hover:bg-white/[0.02] transition cursor-pointer group">
+                        <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                            <div class="w-full md:w-24 text-left md:text-center border-b md:border-b-0 md:border-r border-white/10 pb-3 md:pb-0 md:pr-6 shrink-0">
+                                <p class="font-display font-bold text-2xl text-white leading-none">11:20</p>
+                                <p class="meta-text text-[10px] text-gray-500 mt-1">PM</p>
+                            </div>
+
+                            <div class="flex-1 w-full flex items-center justify-between md:justify-start gap-4 md:gap-8">
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-end md:justify-start">
+                                    <span class="font-display font-bold text-base text-white text-right md:text-left truncate">Nawab</span>
+                                    <div class="w-8 h-8 rounded-lg avatar-container shrink-0"><span class="avatar-initials text-xs">NA</span></div>
+                                </div>
+                                <span class="meta-text text-[10px] text-gray-600 shrink-0">VS</span>
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-start">
+                                    <div class="w-8 h-8 rounded-lg avatar-container shrink-0"><span class="avatar-initials text-xs">PP</span></div>
+                                    <span class="font-display font-bold text-base text-white truncate">Pistol_Pappu</span>
+                                </div>
+                            </div>
+
+                            <div class="w-full md:w-auto text-right mt-2 md:mt-0">
+                                <span class="badge badge-scheduled">Scheduled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 mb-6">
+                    <h3 class="meta-text text-xs text-gray-500 font-bold">Yesterday — April 1, 2026</h3>
+                    <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="glass-card p-4 md:p-5 relative overflow-hidden">
+                        <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                            <div class="w-full md:w-24 text-left md:text-center border-b md:border-b-0 md:border-r border-white/10 pb-3 md:pb-0 md:pr-6 shrink-0 opacity-50">
+                                <p class="font-display font-bold text-xl text-white leading-none">09:00</p>
+                                <p class="meta-text text-[10px] text-gray-500 mt-1">PM</p>
+                            </div>
+
+                            <div class="flex-1 w-full flex items-center justify-between md:justify-center gap-2 md:gap-8">
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-end opacity-40 grayscale">
+                                    <span class="font-display font-medium text-base text-white truncate">Gunda</span>
+                                    <div class="w-8 h-8 rounded-lg avatar-container shrink-0"><span class="avatar-initials text-xs">GU</span></div>
+                                </div>
+
+                                <div class="flex items-center gap-3 px-4 py-2 bg-black/40 rounded-xl border border-white/5 shrink-0">
+                                    <span class="font-mono font-bold text-xl text-gray-500">0</span>
+                                    <span class="text-gray-700">-</span>
+                                    <span class="font-mono font-black text-2xl text-game-primary glow-text-primary">4</span>
+                                </div>
+
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-start">
+                                    <div class="w-8 h-8 rounded-lg avatar-container ring-1 ring-game-primary shrink-0"><span class="avatar-initials text-xs">SI</span></div>
+                                    <div class="flex flex-col">
+                                        <span class="font-display font-bold text-base text-white truncate">SIUU</span>
+                                        <span class="text-[9px] text-game-primary font-bold uppercase tracking-widest flex items-center gap-1"><i data-lucide="crown" class="w-3 h-3"></i> Winner</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4 md:p-5 relative overflow-hidden">
+                        <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                            <div class="w-full md:w-24 text-left md:text-center border-b md:border-b-0 md:border-r border-white/10 pb-3 md:pb-0 md:pr-6 shrink-0 opacity-50">
+                                <p class="font-display font-bold text-xl text-white leading-none">06:00</p>
+                                <p class="meta-text text-[10px] text-gray-500 mt-1">PM</p>
+                            </div>
+
+                            <div class="flex-1 w-full flex items-center justify-between md:justify-center gap-2 md:gap-8">
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-end">
+                                    <span class="font-display font-medium text-base text-white truncate">Shadow</span>
+                                    <div class="w-8 h-8 rounded-lg avatar-container shrink-0"><span class="avatar-initials text-xs">SH</span></div>
+                                </div>
+
+                                <div class="flex flex-col items-center shrink-0">
+                                    <div class="flex items-center gap-3 px-4 py-1.5 bg-white/5 rounded-xl border border-white/10">
+                                        <span class="font-mono font-bold text-xl text-gray-300">1</span>
+                                        <span class="text-gray-600">-</span>
+                                        <span class="font-mono font-bold text-xl text-gray-300">1</span>
+                                    </div>
+                                    <span class="meta-text text-[9px] text-gray-400 mt-1">Draw</span>
+                                </div>
+
+                                <div class="flex items-center gap-3 w-[40%] md:w-auto justify-start">
+                                    <div class="w-8 h-8 rounded-lg avatar-container shrink-0"><span class="avatar-initials text-xs">BM</span></div>
+                                    <span class="font-display font-medium text-base text-white truncate">Boma_Mintu</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div id="tab-standings" class="tab-content p-4 md:p-8 max-w-[1200px] mx-auto">
+
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-3xl md:text-4xl text-white tracking-wide">Live Standings</h2>
+                        <p class="text-gray-400 mt-2 text-sm">Group stage leaderboard. Updated instantly post-match.</p>
+                    </div>
+                    <span class="badge badge-neutral bg-black/40 px-4 py-2">Group Stage + Playoff</span>
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="font-display font-bold text-xl text-white flex items-center gap-3 mb-4">
+                        <i data-lucide="flag" class="w-5 h-5 text-game-primary"></i> Group A
+                    </h3>
+
+                    <div class="glass-card overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-white/10 bg-black/20">
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest w-12 text-center">#</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-[200px]">Team</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">P</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">W</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">D</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">L</th>
+                                    <th class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center hidden md:table-cell">GD</th>
+                                    <th class="p-4 text-xs font-black text-white uppercase tracking-widest text-right pr-6">PTS</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                <tr class="bg-game-primary/5 hover:bg-game-primary/10 transition">
+                                    <td class="p-4 text-center">
+                                        <span class="w-6 h-6 rounded bg-game-primary/20 text-game-primary font-bold text-xs flex items-center justify-center mx-auto">1</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg avatar-container"><span class="avatar-initials text-xs">SI</span></div>
+                                            <span class="font-bold text-white">SIUU</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-center font-mono text-gray-400">3</td>
+                                    <td class="p-4 text-center font-mono text-game-success">3</td>
+                                    <td class="p-4 text-center font-mono text-gray-500">0</td>
+                                    <td class="p-4 text-center font-mono text-game-accent">0</td>
+                                    <td class="p-4 text-center font-mono text-gray-400 hidden md:table-cell">+8</td>
+                                    <td class="p-4 text-right pr-6 font-mono font-black text-lg text-game-primary glow-text-primary">9</td>
+                                </tr>
+                                <tr class="hover:bg-white/[0.02] transition border-l-2 border-transparent">
+                                    <td class="p-4 text-center font-mono text-gray-400">2</td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg avatar-container"><span class="avatar-initials text-xs">RO</span></div>
+                                            <span class="font-medium text-white">Rongbaj</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-center font-mono text-gray-400">3</td>
+                                    <td class="p-4 text-center font-mono text-game-success">2</td>
+                                    <td class="p-4 text-center font-mono text-gray-500">0</td>
+                                    <td class="p-4 text-center font-mono text-game-accent">1</td>
+                                    <td class="p-4 text-center font-mono text-gray-400 hidden md:table-cell">+2</td>
+                                    <td class="p-4 text-right pr-6 font-mono font-bold text-white">6</td>
+                                </tr>
+                                <tr class="bg-white/5 border-l-2 border-white hover:bg-white/10 transition relative">
+                                    <td class="p-4 text-center font-mono text-white font-bold">3</td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg avatar-container ring-1 ring-white/50"><span class="avatar-initials text-xs">RK</span></div>
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-white">rkrashik</span>
+                                                <span class="text-[8px] uppercase tracking-widest text-gray-400 font-bold">You</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-center font-mono text-gray-300">2</td>
+                                    <td class="p-4 text-center font-mono text-game-success">0</td>
+                                    <td class="p-4 text-center font-mono text-gray-400">1</td>
+                                    <td class="p-4 text-center font-mono text-game-accent">1</td>
+                                    <td class="p-4 text-center font-mono text-gray-400 hidden md:table-cell">-2</td>
+                                    <td class="p-4 text-right pr-6 font-mono font-bold text-white">1</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div id="tab-bracket" class="tab-content p-4 md:p-8 w-full max-w-[1400px] mx-auto">
+                <div class="mb-8">
+                    <h2 class="font-display font-black text-3xl md:text-4xl text-white tracking-wide">Playoff Bracket</h2>
+                    <p class="text-gray-400 mt-2 text-sm">Single Elimination • Quarterfinals live.</p>
+                </div>
+
+                <div class="overflow-x-auto pb-8">
+                    <div class="flex min-w-[800px] gap-12 items-center">
+
+                        <div class="flex flex-col gap-8 w-64 shrink-0">
+                            <div class="glass-card bg-black/40 border border-white/10 rounded-lg overflow-hidden relative">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gray-700"></div>
+                                <div class="flex justify-between items-center p-3 border-b border-white/5 opacity-50">
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">GU</span></div><span class="text-xs text-white">Gunda</span></div>
+                                    <span class="font-mono text-sm text-gray-500">0</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-white/5 relative">
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-game-primary shadow-[0_0_10px_#00F0FF]"></div>
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">SI</span></div><span class="text-xs font-bold text-white">SIUU</span></div>
+                                    <span class="font-mono text-sm font-bold text-game-primary">4</span>
+                                </div>
+                            </div>
+                            <div class="glass-card bg-black/40 border border-white/10 rounded-lg overflow-hidden relative mt-4">
+                                <div class="flex justify-between items-center p-3 border-b border-white/5 relative">
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-game-success shadow-[0_0_10px_#00FF66]"></div>
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">RK</span></div><span class="text-xs font-bold text-white">rkrashik</span></div>
+                                    <span class="font-mono text-sm font-bold text-game-success">2</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 opacity-50">
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">NA</span></div><span class="text-xs text-white">Nawab</span></div>
+                                    <span class="font-mono text-sm text-gray-500">1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col justify-center w-64 shrink-0 relative">
+                            <div class="absolute -left-12 top-1/4 bottom-1/4 w-6 border-y-2 border-r-2 border-white/10 rounded-r-lg"></div>
+                            <div class="absolute -left-6 top-1/2 w-6 border-b-2 border-white/10"></div>
+
+                            <div class="glass-card border-glow-live bg-black/60 rounded-lg overflow-hidden relative z-10">
+                                <div class="bg-game-primary/10 px-3 py-1 border-b border-game-primary/20"><span class="meta-text text-[8px] text-game-primary">Live Now</span></div>
+                                <div class="flex justify-between items-center p-3 border-b border-white/5">
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">SI</span></div><span class="text-xs font-bold text-white">SIUU</span></div>
+                                    <span class="font-mono text-sm text-gray-400">-</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3">
+                                    <div class="flex items-center gap-2"><div class="w-5 h-5 rounded avatar-container"><span class="avatar-initials text-[8px]">RK</span></div><span class="text-xs font-bold text-white">rkrashik</span></div>
+                                    <span class="font-mono text-sm text-gray-400">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col justify-center w-64 shrink-0 relative opacity-40">
+                            <div class="absolute -left-12 top-1/2 w-12 border-b-2 border-white/10 border-dashed"></div>
+                            <div class="glass-card border border-white/10 bg-transparent rounded-lg overflow-hidden border-dashed flex items-center justify-center p-6">
+                                <span class="meta-text text-xs text-gray-500">TBD vs TBD</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="lg:hidden fixed bottom-0 w-full glass-panel border-t border-white/10 z-50 flex items-center justify-around px-2 pb-safe pt-2 h-[70px]">
+            <button class="flex flex-col items-center gap-1 p-2 text-game-primary transition" onclick="switchTab('lobby')">
+                <div class="relative">
+                    <i data-lucide="crosshair" class="w-5 h-5"></i>
+                    <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-game-accent"></span>
+                </div>
+                <span class="text-[9px] font-bold uppercase tracking-widest">Lobby</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-white transition" onclick="switchTab('schedule')">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span class="text-[9px] font-bold uppercase tracking-widest">Schedule</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-white transition" onclick="switchTab('standings')">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                <span class="text-[9px] font-bold uppercase tracking-widest">Standings</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-white transition" onclick="switchTab('bracket')">
+                <i data-lucide="git-merge" class="w-5 h-5 rotate-90"></i>
+                <span class="text-[9px] font-bold uppercase tracking-widest">Bracket</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            // Scroll to top of main area
+            document.getElementById('main-scroll-area').scrollTo(0, 0);
+
+            // Update desktop nav styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-white/10', 'text-white', 'border-l-2', 'border-game-primary');
+                btn.classList.add('text-gray-400');
+                let icon = btn.querySelector('i');
+                icon.classList.remove('text-game-primary');
+            });
+
+            // Highlight active desktop nav
+            const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.innerText.toLowerCase().includes(tabId));
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('bg-white/10', 'text-white', 'border-l-2', 'border-game-primary');
+                activeBtn.querySelector('i').classList.add('text-game-primary');
+            }
+
+            // Update mobile nav styling
+            document.querySelectorAll('.lg\\:hidden.fixed.bottom-0 button').forEach(btn => {
+                btn.classList.remove('text-game-primary');
+                btn.classList.add('text-gray-500');
+            });
+            const mobileBtn = Array.from(document.querySelectorAll('.lg\\:hidden.fixed.bottom-0 button')).find(btn => btn.innerText.toLowerCase().includes(tabId));
+            if(mobileBtn) {
+                mobileBtn.classList.remove('text-gray-500');
+                mobileBtn.classList.add('text-game-primary');
+            }
+        }
+    </script>
+</body>
+</html>

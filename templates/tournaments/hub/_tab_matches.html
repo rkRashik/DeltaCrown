@@ -1,16 +1,15 @@
 {% comment %}
-  Tab: Match Lobby — Check-in, live match, match history
-  Visual design: EXACT copy of demo_hub_2.html #tab-lobby
+  Tab: Match Lobby — Premium redesign
   Dynamic data via hub-engine.js renders into container IDs.
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1300px] mx-auto">
 
-  {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
+  {% comment %}── Header ────────────────────────{% endcomment %}
   <div class="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-white/10 pb-6 mb-8 gap-6">
     <div>
-      <h2 class="font-display font-black text-4xl text-white tracking-wide glow-text-primary">Match Lobby</h2>
-      <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time. Do not leave this tab during an active match.</p>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide">Match Lobby</h2>
+      <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time.</p>
     </div>
     <div class="flex flex-wrap gap-2 shrink-0">
       <span class="inline-flex items-center gap-1.5 rounded-full border border-[#FF2A55]/40 bg-[#FF2A55]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]" style="box-shadow: 0 0 10px rgba(255,42,85,0.2)">
@@ -19,21 +18,16 @@
       <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#00F0FF]">
         <i data-lucide="clock-3" class="w-3.5 h-3.5"></i> Closest Kickoff
       </span>
-      <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#88FFB7]">
-        <i data-lucide="door-open" class="w-3.5 h-3.5"></i> Lobby Ready
-      </span>
     </div>
   </div>
 
-  {% comment %}── Check-In Card — neon left bar + gradient overlay (demo exact) ─{% endcomment %}
+  {% comment %}── Check-In Card ─{% endcomment %}
   {% if check_in_status != 'not_configured' %}
   <div class="premium-card p-6 md:p-8 mb-10 overflow-hidden relative">
-
     {% if check_in_status == 'open' and not is_checked_in %}
     <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_20px_#00F0FF]"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-[#00F0FF]/10 to-transparent pointer-events-none opacity-80"></div>
     {% endif %}
-
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-3">
@@ -47,13 +41,12 @@
           <span class="hub-badge hub-badge-neutral">Awaiting Check-In</span>
           {% endif %}
         </div>
-
         {% if is_checked_in %}
         <h3 class="font-display font-black text-2xl text-white mb-2">You're Checked In</h3>
         <p class="text-sm text-gray-300 max-w-xl">Stand by for matches. The bracket will be generated once check-in closes.</p>
         {% elif check_in_status == 'open' %}
         <h3 class="font-display font-black text-2xl text-white mb-2">Pre-Match Verification</h3>
-        <p class="text-sm text-gray-300 max-w-xl">Confirm your presence for the upcoming round. Failure to check in before the timer expires results in an automatic walkover.{% if is_team %} All team members should be ready.{% endif %}</p>
+        <p class="text-sm text-gray-300 max-w-xl">Confirm your presence for the upcoming round. Failure to check in before the timer expires results in an automatic walkover.</p>
         {% elif check_in_status == 'not_open' %}
         <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Window</h3>
         <p class="text-sm text-gray-300 max-w-xl">Check-in hasn't opened yet. Watch the countdown on the Overview tab.</p>
@@ -62,7 +55,6 @@
         <p class="text-sm text-gray-300 max-w-xl">The check-in window has ended.</p>
         {% endif %}
       </div>
-
       <div class="flex flex-col items-end gap-3 w-full md:w-auto shrink-0">
         {% if check_in_status == 'open' and not is_checked_in %}
         <button id="hub-checkin-btn-lobby"
@@ -81,11 +73,11 @@
   </div>
   {% endif %}
 
-  {% comment %}── Active Combat — demo exact section heading ──────────────{% endcomment %}
+  {% comment %}── Active Matches ──────────────{% endcomment %}
   <div class="mb-10">
     <div class="flex items-center gap-3 mb-6">
       <h3 class="font-display text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-        <i data-lucide="crosshair" class="w-5 h-5 text-[#00F0FF]"></i> Active Combat
+        <i data-lucide="crosshair" class="w-5 h-5 text-[#00F0FF]"></i> Active Matches
       </h3>
       <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
     </div>
@@ -111,11 +103,11 @@
         <i data-lucide="crosshair" class="w-8 h-8 text-gray-600"></i>
       </div>
       <h3 class="font-display text-lg font-bold text-white mb-2">No Active Matches</h3>
-      <p class="text-sm text-gray-500 max-w-md">When the tournament goes live and matches are scheduled, your matchups will appear here with live lobby controls and result submission.</p>
+      <p class="text-sm text-gray-500 max-w-md">When the tournament goes live and matches are scheduled, your matchups will appear here.</p>
     </div>
   </div>
 
-  {% comment %}── Match History — demo exact section heading ──────────────{% endcomment %}
+  {% comment %}── Match History ──────────────{% endcomment %}
   <div>
     <div class="flex items-center gap-3 mb-6">
       <h3 class="font-display text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
