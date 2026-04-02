@@ -1,5 +1,6 @@
 {% comment %}
   Tab: Announcements — Premium Feed & Updates (2050 Design)
+  Matches demo_hub_2.html "tab-announcements" exactly.
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto">
@@ -7,8 +8,8 @@
   {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
     <div>
-      <h2 class="font-black text-3xl lg:text-4xl text-white tracking-wide" style="font-family:Outfit,sans-serif;">Feed & Updates</h2>
-      <p class="text-xs text-gray-400 mt-2 tracking-wide" style="font-family:'JetBrains Mono','Space Grotesk',monospace;">Live broadcast from Tournament Admins.</p>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide">Feed & Updates</h2>
+      <p class="font-mono text-xs text-gray-400 mt-2 tracking-wide">Live broadcast from Tournament Admins.</p>
     </div>
     <div class="flex items-center gap-3">
       <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-[10px] font-black uppercase tracking-wider text-[#00F0FF]" id="hub-ann-count">
@@ -35,7 +36,7 @@
   </div>
 
   <div class="mb-4">
-    <p id="hub-ann-last-sync" class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">Waiting for first sync</p>
+    <p id="hub-ann-last-sync" class="text-[10px] text-gray-500 font-mono">Waiting for first sync</p>
   </div>
 
   {% comment %}── Feed Items (premium-card per announcement) ─────────────{% endcomment %}
@@ -72,14 +73,13 @@
         {% if ann.symbol %}
         <span class="text-sm leading-none">{{ ann.symbol }}</span>
         {% endif %}
-        <span class="text-[10px] text-gray-400" style="font-family:'JetBrains Mono','Space Grotesk',monospace;">{{ ann.time_ago }}</span>
+        <span class="font-mono text-[10px] text-gray-400">{{ ann.time_ago }}</span>
       </div>
 
       {% if ann.title %}
-        <h3 class="font-bold text-xl md:text-2xl text-white mb-3 relative z-10
+        <h3 class="font-display font-bold text-xl md:text-2xl text-white mb-3 relative z-10
           {% if ann.type == 'urgent' %}glow-text-primary{% endif %}"
-          {% if ann.type == 'urgent' %}style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"{% endif %}
-          >
+          {% if ann.type == 'urgent' %}style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"{% endif %}>
           {% if ann.icon %}<i data-lucide="{{ ann.icon }}" class="w-4 h-4 text-[#00F0FF] inline mr-1"></i>{% endif %}
           {{ ann.title }}
         </h3>
@@ -91,7 +91,7 @@
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="radio" class="w-8 h-8 text-gray-600"></i>
       </div>
-      <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">No announcements yet</h3>
+      <h3 class="font-display text-lg font-bold text-white mb-2">No announcements yet</h3>
       <p class="text-sm text-gray-500 max-w-md">Organizer updates will appear here in real-time.</p>
     </div>
     {% endfor %}

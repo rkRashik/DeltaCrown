@@ -1,6 +1,7 @@
 {% comment %}
-  Tab: Bracket — Tournament bracket visualization (2050 Premium Design)
+  Tab: Bracket — Tournament bracket visualization
   Data loaded async via /hub/api/bracket/ and rendered by hub-engine.js
+  Design matches demo_hub_2.html "tab-bracket" exactly.
 {% endcomment %}
 
 <div class="w-full" style="background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 20px 20px;">
@@ -10,10 +11,10 @@
        style="background: linear-gradient(to bottom, rgba(5,5,8,0.97) 70%, transparent);">
 
     <div>
-      <h2 class="font-black text-3xl lg:text-4xl text-white tracking-wide hub-mobile-heading" style="font-family:Outfit,sans-serif;">
+      <h2 class="font-display font-black text-4xl text-white tracking-wide hub-mobile-heading">
         Championship Bracket
       </h2>
-      <p class="text-xs text-gray-400 mt-2" style="font-family:'JetBrains Mono','Space Grotesk',monospace;">
+      <p class="font-mono text-xs text-gray-400 mt-2">
         <span id="bracket-format-label">{{ tournament.get_format_display|default:tournament.format|default:"Single Elimination" }}</span>
       </p>
     </div>
@@ -74,7 +75,7 @@
         <div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
           <i data-lucide="git-merge" class="w-10 h-10 text-gray-600 transform rotate-90"></i>
         </div>
-        <h3 id="bracket-empty-title" class="text-xl font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Bracket Not Generated</h3>
+        <h3 id="bracket-empty-title" class="font-display text-xl font-bold text-white mb-2">Bracket Not Generated</h3>
         <p id="bracket-empty-message" class="text-sm text-gray-500 max-w-md">
           The tournament bracket will appear here once the organizer generates matchups.
           This typically happens after check-in closes.

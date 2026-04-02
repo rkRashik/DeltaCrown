@@ -1,33 +1,33 @@
 {% comment %}
-  Tab: Matches — Check-in action, live match cards, match history
+  Tab: Match Lobby — Check-in action, live match cards, match history
   Data loaded async via /hub/api/matches/ and rendered by hub-engine.js
-  (Renamed from "Match Lobby" to "Matches" — 2050 Premium Design)
+  Design matches demo_hub_2.html "tab-lobby" exactly.
 {% endcomment %}
 
-<div class="p-4 md:p-8 lg:p-10 max-w-[1300px] mx-auto space-y-8">
+<div class="p-4 md:p-8 lg:p-10 max-w-[1300px] mx-auto">
 
   {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
-  <div class="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-white/10 pb-6 gap-6">
+  <div class="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-white/10 pb-6 mb-8 gap-6">
     <div>
-      <h2 class="font-black text-3xl lg:text-4xl text-white tracking-wide glow-text-primary hub-mobile-heading" style="font-family:Outfit,sans-serif;">Matches</h2>
-      <p class="text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed" style="font-family:'JetBrains Mono','Space Grotesk',monospace;">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time.</p>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <span class="inline-flex items-center gap-1.5 rounded-full border border-[#FF2A55]/40 bg-[#FF2A55]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]" style="box-shadow: 0 0 10px rgba(255,42,85,0.2)">
-          <i data-lucide="radio-tower" class="w-3.5 h-3.5"></i> Live First
-        </span>
-        <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#00F0FF]">
-          <i data-lucide="clock-3" class="w-3.5 h-3.5"></i> Closest Kickoff
-        </span>
-        <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#88FFB7]">
-          <i data-lucide="door-open" class="w-3.5 h-3.5"></i> Lobby Ready
-        </span>
-      </div>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide glow-text-primary hub-mobile-heading">Match Lobby</h2>
+      <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time. Do not leave this tab during an active match.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 shrink-0">
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-[#FF2A55]/40 bg-[#FF2A55]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]" style="box-shadow: 0 0 10px rgba(255,42,85,0.2)">
+        <i data-lucide="radio-tower" class="w-3.5 h-3.5"></i> Live First
+      </span>
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#00F0FF]">
+        <i data-lucide="clock-3" class="w-3.5 h-3.5"></i> Closest Kickoff
+      </span>
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#88FFB7]">
+        <i data-lucide="door-open" class="w-3.5 h-3.5"></i> Lobby Ready
+      </span>
     </div>
   </div>
 
   {% comment %}── Check-In Section ────────────────────────────────────────{% endcomment %}
   {% if check_in_status != 'not_configured' %}
-  <div class="premium-card p-6 md:p-8 relative overflow-hidden
+  <div class="premium-card p-6 md:p-8 mb-10 overflow-hidden relative
     {% if check_in_status == 'open' and not is_checked_in %}border-l-4 border-l-[#00F0FF]
     {% elif is_checked_in %}border-l-4 border-l-[#00FF66]
     {% else %}border-l-4 border-l-gray-700{% endif %}">
@@ -52,24 +52,24 @@
         </div>
 
         {% if is_checked_in %}
-          <h3 class="font-black text-2xl text-white mb-2" style="font-family:Outfit,sans-serif;">You're Checked In</h3>
+          <h3 class="font-display font-black text-2xl text-white mb-2">You're Checked In</h3>
           <p class="text-sm text-gray-300 max-w-xl">Stand by for matches. The bracket will be generated once check-in closes.</p>
         {% elif check_in_status == 'open' %}
-          <h3 class="font-black text-2xl text-white mb-2" style="font-family:Outfit,sans-serif;">Pre-Match Verification</h3>
+          <h3 class="font-display font-black text-2xl text-white mb-2">Pre-Match Verification</h3>
           <p class="text-sm text-gray-300 max-w-xl">
             Confirm your presence before the window closes. Failure to check in results in an automatic walkover.
             {% if is_team %}All team members should be ready.{% endif %}
           </p>
         {% elif check_in_status == 'not_open' %}
-          <h3 class="font-black text-2xl text-white mb-2" style="font-family:Outfit,sans-serif;">Check-In Window</h3>
+          <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Window</h3>
           <p class="text-sm text-gray-300 max-w-xl">Check-in hasn't opened yet. Watch the countdown on the Overview tab.</p>
         {% else %}
-          <h3 class="font-black text-2xl text-white mb-2" style="font-family:Outfit,sans-serif;">Check-In Closed</h3>
+          <h3 class="font-display font-black text-2xl text-white mb-2">Check-In Closed</h3>
           <p class="text-sm text-gray-300 max-w-xl">The check-in window has ended.</p>
         {% endif %}
       </div>
 
-      <div class="shrink-0 w-full md:w-auto flex flex-col items-end gap-3">
+      <div class="flex flex-col items-end gap-3 w-full md:w-auto shrink-0">
         {% if check_in_status == 'open' and not is_checked_in %}
           <button id="hub-checkin-btn-lobby"
                   class="w-full md:w-auto px-10 py-4 rounded-xl btn-solid-primary font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2"
@@ -87,11 +87,11 @@
   </div>
   {% endif %}
 
-  {% comment %}── Active Matches ──────────────────────────────────────────{% endcomment %}
-  <div>
+  {% comment %}── Active Combat ────────────────────────────────────────────{% endcomment %}
+  <div class="mb-10">
     <div class="flex items-center gap-3 mb-6">
-      <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2" style="font-family:Outfit,sans-serif;">
-        <i data-lucide="crosshair" class="w-5 h-5 text-[#00F0FF]"></i> Priority Match Queue
+      <h3 class="font-display text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+        <i data-lucide="crosshair" class="w-5 h-5 text-[#00F0FF]"></i> Active Combat
       </h3>
       <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
     </div>
@@ -118,7 +118,7 @@
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="crosshair" class="w-8 h-8 text-gray-600"></i>
       </div>
-      <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">No Active Matches</h3>
+      <h3 class="font-display text-lg font-bold text-white mb-2">No Active Matches</h3>
       <p class="text-sm text-gray-500 max-w-md">
         When the tournament goes live and matches are scheduled, your matchups will appear here
         with live lobby controls and result submission.
@@ -129,7 +129,7 @@
   {% comment %}── Match History ────────────────────────────────────────────{% endcomment %}
   <div>
     <div class="flex items-center gap-3 mb-6">
-      <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2" style="font-family:Outfit,sans-serif;">
+      <h3 class="font-display text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
         <i data-lucide="history" class="w-5 h-5 text-gray-500"></i> Match History
       </h3>
       <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
@@ -141,9 +141,9 @@
     </div>
   </div>
 
-  <div class="lg:hidden">
-    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-      <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-300"></i>
+  <div class="lg:hidden mt-8">
+    <h3 class="font-display text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+      <i data-lucide="calendar-clock" class="w-4 h-4 text-[#00F0FF]"></i>
       Full Match Schedule
     </h3>
     <div id="hub-mobile-matches-schedule" class="space-y-3"></div>
