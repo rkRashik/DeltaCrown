@@ -127,6 +127,15 @@ _heavy_schedule = {
         },
     },
 
+    # Auto-close expired match lobbies every 2 minutes
+    'auto-close-expired-lobbies': {
+        'task': 'apps.tournaments.tasks.auto_close_expired_lobbies',
+        'schedule': crontab(minute='*/2'),
+        'options': {
+            'expires': 120,
+        },
+    },
+
     # Phase 10: Sync Riot-backed Valorant passport stats
     'sync-all-active-riot-passports': {
         'task': 'user_profile.sync_all_active_riot_passports',

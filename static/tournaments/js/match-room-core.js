@@ -80,6 +80,9 @@
     localPresenceHoldUntilMs: 0,
     lastWaitingLocked: false,
     _rafRender: null,
+    _presenceVerifyTimer: null,
+    _presenceDiscoveryTimer: null,
+    _presenceDiscoveryTick: 0,
   };
 
   // ── DOM Element Cache ──────────────────────────────────────────────────
@@ -105,6 +108,8 @@
     navP2Dot: byId('nav-p2-dot'),
     navBestOf: byId('nav-best-of'),
     navFormatBadge: byId('nav-format-badge'),
+    navKickoffBadge: byId('nav-kickoff-badge'),
+    navFlowBadge: byId('nav-flow-badge'),
     navGameBadge: byId('nav-game-badge'),
     navMeta: byId('nav-meta'),
     socketPill: byId('socket-pill'),
@@ -733,9 +738,37 @@
   }
 
   function renderHeaderCommandBadges() {
+    // Format badge — DIRECT or VETO (preserve icon, update inner <span>)
     if (elements.navFormatBadge) {
       var label = phase1Kind() === 'direct' ? 'DIRECT' : 'VETO';
-      elements.navFormatBadge.textContent = label;
+      var fmtSpan = elements.navFormatBadge.querySelector('span');
+      if (fmtSpan) fmtSpan.textContent = label;
+      else elements.navFormatBadge.textContent = label;
+    }
+    // Kickoff badge — scheduled time
+    if (elements.navKickoffBadge) {
+      var scheduled = asObject(state.room.match).scheduled_time;
+      var kickoffSpan = elements.navKickoffBadge.querySelector('span');
+      var kickoffText = 'Kickoff --:--';
+      if (scheduled) {
+        try {
+          var dt = new Date(scheduled);
+          if (!isNaN(dt.getTime())) {
+            var use12h = timePrefs.timeFormat === '12h';
+            kickoffText = 'Kickoff ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: use12h, timeZone: timePrefs.timezone || undefined });
+          }
+        } catch (_) { /* keep fallback */ }
+      }
+      if (kickoffSpan) kickoffSpan.textContent = kickoffText;
+      else elements.navKickoffBadge.textContent = kickoffText;
+    }
+    // Flow badge — current phase label
+    if (elements.navFlowBadge) {
+      var phase = currentPhase();
+      var flowSpan = elements.navFlowBadge.querySelector('span');
+      var flowLabel = phaseLabel(phase);
+      if (flowSpan) flowSpan.textContent = flowLabel;
+      else elements.navFlowBadge.textContent = flowLabel;
     }
   }
 
@@ -932,12 +965,15 @@
     if (elements.waitingOpponentDot) elements.waitingOpponentDot.className = 'w-2.5 h-2.5 rounded-full ' + (oppOnline ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]' : 'bg-gray-600');
     if (elements.waitingOpponentName) elements.waitingOpponentName.textContent = String(opponent.name || 'Opponent');
     if (elements.waitingCopy) {
-      if (bothOnline) elements.waitingCopy.textContent = 'Both sides online. Lobby unlocked.';
-      else if (!meOnline) elements.waitingCopy.textContent = 'Connecting your websocket presence...';
-      else elements.waitingCopy.textContent = 'Waiting for opponent websocket presence.';
+      if (bothOnline) elements.waitingCopy.textContent = 'Both players connected. Lobby unlocked.';
+      else if (!meOnline) elements.waitingCopy.textContent = 'Establishing your connection...';
+      else elements.waitingCopy.textContent = 'Waiting for opponent to enter the lobby.';
     }
     if (bothOnline) elements.waitingOverlay.classList.add('overlay-hidden');
     else elements.waitingOverlay.classList.remove('overlay-hidden');
+    // Active presence polling — discover opponent even if group_send fails
+    if (bothOnline) stopPresenceDiscovery();
+    else if (side) startPresenceDiscovery();
   }
 
   function updateSocketPill() {
@@ -1210,7 +1246,10 @@
       sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
       updatePresenceLocal(mySide(), true, 'online');
       scheduleRender('presence');
-      showToast('Socket connected.', 'success');
+      // Connection success indicated by ambient Live Sync dot — no toast
+      // Deferred presence verification — if opponent isn't detected within
+      // a few seconds of connecting, re-ping + REST fallback to recover.
+      schedulePresenceVerification();
     });
 
     state.ws.addEventListener('message', function (event) {
@@ -1304,6 +1343,59 @@
     state.fallbackSyncTimer = window.setInterval(function () { if (!state.wsConnected) refreshRoom(); }, 20000);
   }
 
+  // Deferred presence verification — recovers when group_send doesn't deliver.
+  // Fires once ~3s after WS open; if opponent still not detected, re-pings
+  // the server and then falls back to a REST room refresh.
+  function schedulePresenceVerification() {
+    if (state._presenceVerifyTimer) window.clearTimeout(state._presenceVerifyTimer);
+    state._presenceVerifyTimer = window.setTimeout(function () {
+      state._presenceVerifyTimer = null;
+      var opp = opponentSide();
+      if (opp && sideOnline(opp)) return; // Already detected — nothing to do
+      // Re-ping presence via WS for a direct snapshot response
+      if (state.wsConnected) {
+        sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
+      }
+      // REST fallback 2s later if still stuck
+      window.setTimeout(function () {
+        var oppAfterRetry = opponentSide();
+        if (oppAfterRetry && sideOnline(oppAfterRetry)) return;
+        refreshRoom();
+      }, 2000);
+    }, 3000);
+  }
+
+  // Active presence discovery — runs while the waiting overlay is visible.
+  // Sends a WS presence_ping every 3s (consumer replies with a direct
+  // match_presence snapshot that bypasses unreliable group_send). Every
+  // 3rd tick does a REST refreshRoom() as ultimate fallback.
+  function startPresenceDiscovery() {
+    if (state._presenceDiscoveryTimer) return;
+    state._presenceDiscoveryTick = 0;
+    state._presenceDiscoveryTimer = window.setInterval(function () {
+      // Stop if opponent was detected between ticks
+      var opp = opponentSide();
+      if (opp && sideOnline(opp)) { stopPresenceDiscovery(); return; }
+      state._presenceDiscoveryTick++;
+      // Every tick: WS ping → guaranteed direct response from consumer
+      if (state.wsConnected) {
+        sendSocket({ type: 'presence_ping', status: document.hidden ? 'away' : 'online' });
+      }
+      // REST fallback: every 2nd tick when WS is live, EVERY tick when WS is down
+      if (!state.wsConnected || state._presenceDiscoveryTick % 2 === 0) {
+        refreshRoom();
+      }
+    }, 4000);
+  }
+
+  function stopPresenceDiscovery() {
+    if (state._presenceDiscoveryTimer) {
+      window.clearInterval(state._presenceDiscoveryTimer);
+      state._presenceDiscoveryTimer = null;
+    }
+    state._presenceDiscoveryTick = 0;
+  }
+
   // =====================================================================
   //  NETWORK ACTIONS
   // =====================================================================
@@ -1325,7 +1417,7 @@
 
   async function sendWorkflowAction(action, payload) {
     if (state.requestBusy) return;
-    if (actionRequiresPresence(action) && waitingLocked() && action !== 'presence_ping') { showToast('Waiting for opponent websocket presence.', 'info'); return; }
+    if (actionRequiresPresence(action) && waitingLocked() && action !== 'presence_ping') { showToast('Waiting for opponent to connect.', 'info'); return; }
     var endpoint = String(asObject(state.room.urls).workflow || '');
     if (!endpoint) { showToast('Workflow endpoint unavailable.', 'error'); return; }
     state.requestBusy = true;
@@ -1342,7 +1434,7 @@
   async function sendWorkflowMultipartAction(formData) {
     if (state.requestBusy) return;
     var action = String(formData.get('action') || '').trim().toLowerCase();
-    if (actionRequiresPresence(action) && waitingLocked()) { showToast('Waiting for opponent websocket presence.', 'info'); return; }
+    if (actionRequiresPresence(action) && waitingLocked()) { showToast('Waiting for opponent to connect.', 'info'); return; }
     var endpoint = String(asObject(state.room.urls).workflow || '');
     if (!endpoint) { showToast('Workflow endpoint unavailable.', 'error'); return; }
     state.requestBusy = true;

@@ -1925,11 +1925,11 @@
 
     if (elements.waitingCopy) {
       if (bothOnline) {
-        elements.waitingCopy.textContent = 'Both sides online. Lobby unlocked.';
+        elements.waitingCopy.textContent = 'Both players connected. Lobby unlocked.';
       } else if (!meOnline) {
-        elements.waitingCopy.textContent = 'Connecting your websocket presence...';
+        elements.waitingCopy.textContent = 'Establishing your connection...';
       } else {
-        elements.waitingCopy.textContent = 'Waiting for opponent websocket presence.';
+        elements.waitingCopy.textContent = 'Waiting for opponent to enter the lobby.';
       }
     }
 
@@ -2683,7 +2683,7 @@
       updatePresenceLocal(mySide(), true, 'online');
       renderHeaderPresenceMeta();
       refreshPresenceSurfaces();
-      showToast('Socket connected.', 'success');
+      // Connection success indicated by ambient Live Sync dot — no toast
     });
 
     state.ws.addEventListener('message', function (event) {

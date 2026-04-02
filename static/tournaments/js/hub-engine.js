@@ -2416,8 +2416,13 @@ const HubEngine = (() => {
     const opensAtFromApi = _toValidDate(match?.lobby_window_opens_at);
     const opensAt = opensAtFromApi || (scheduledAt ? new Date(scheduledAt.getTime() - (minutesBefore * 60 * 1000)) : null);
 
+    const LOBBY_CLOSE_AFTER_MINUTES = 10;
+    const closesAtFromApi = _toValidDate(match?.lobby_closes_at);
+    const closesAt = closesAtFromApi || (scheduledAt ? new Date(scheduledAt.getTime() + (LOBBY_CLOSE_AFTER_MINUTES * 60 * 1000)) : null);
+    const isClosed = !forcedOpen && closesAt ? Date.now() > closesAt.getTime() : false;
+
     const explicitOpen = match?.lobby_window_open === true;
-    const isOpen = !terminal && (
+    const isOpen = !terminal && !isClosed && (
       forcedOpen
       || explicitOpen
       || (opensAt ? Date.now() >= opensAt.getTime() : false)
@@ -2425,8 +2430,10 @@ const HubEngine = (() => {
 
     return {
       isOpen,
+      isClosed,
       minutesBefore,
       opensAt,
+      closesAt,
       scheduledAt,
       startsInSeconds: Number.isFinite(Number(match?.lobby_window_starts_in_seconds))
         ? Number(match?.lobby_window_starts_in_seconds)
@@ -2676,13 +2683,15 @@ const HubEngine = (() => {
         if (mode === 'live') {
           timeValue.dataset.matchTime = 'live';
           timeValue.textContent = 'LIVE NOW';
+          _stopOverviewCountdown();
         } else if (backendCommand.countdown_target) {
           const targetTime = _toValidDate(backendCommand.countdown_target);
           timeValue.dataset.matchTime = 'countdown';
-          timeValue.textContent = _formatCountdownLabel(targetTime);
+          _startOverviewCountdown(targetTime);
         } else {
           timeValue.dataset.matchTime = '';
           timeValue.textContent = backendCommand.countdown_text || 'Awaiting schedule';
+          _stopOverviewCountdown();
         }
       }
 
@@ -2869,9 +2878,10 @@ const HubEngine = (() => {
       if (isLive) {
         timeValue.dataset.matchTime = 'live';
         timeValue.textContent = 'LIVE NOW';
+        _stopOverviewCountdown();
       } else {
         timeValue.dataset.matchTime = 'countdown';
-        timeValue.textContent = _formatCountdownLabel(scheduled);
+        _startOverviewCountdown(scheduled);
       }
     }
 
@@ -2952,15 +2962,16 @@ const HubEngine = (() => {
         if (isLive) {
           timeValue.dataset.matchTime = 'live';
           timeValue.textContent = 'LIVE NOW';
+          _stopOverviewCountdown();
         } else if (isLobbyWindowOpen) {
           timeValue.dataset.matchTime = 'countdown';
-          timeValue.textContent = _formatCountdownLabel(scheduled);
+          _startOverviewCountdown(scheduled);
         } else if (opensAt) {
           timeValue.dataset.matchTime = 'countdown';
-          timeValue.textContent = _formatCountdownLabel(opensAt);
+          _startOverviewCountdown(opensAt);
         } else {
           timeValue.dataset.matchTime = 'countdown';
-          timeValue.textContent = _formatCountdownLabel(scheduled);
+          _startOverviewCountdown(scheduled);
         }
       }
 
@@ -4163,9 +4174,11 @@ const HubEngine = (() => {
     const m = match || {};
     const matchId = JSON.stringify(String(m.id || ''));
     const hasLobby = Boolean(m.match_room_url);
-    const terminalState = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(String(m.state || '').toLowerCase());
+    const stateRaw = String(m.state || '').toLowerCase();
+    const terminalState = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(stateRaw);
     const lobbyWindow = _resolveLobbyWindow(m);
     const lobbyOpen = hasLobby && lobbyWindow.isOpen;
+    const lobbyClosed = lobbyWindow.isClosed;
     const reschedule = m.reschedule || {};
     const pendingRequest = reschedule.pending_request || null;
     const canPropose = Boolean(reschedule.can_propose);
@@ -4179,6 +4192,16 @@ const HubEngine = (() => {
     const proposedLabel = _formatRescheduleDatetimeLabel(pendingRequest?.new_time);
 
     const notices = [];
+
+    // Lobby-closed alert banner
+    if (lobbyClosed && !terminalState) {
+      const closedReason = m.lobby_info?.lobby_closed_reason;
+      const reasonText = closedReason === 'both_no_show'
+        ? 'Both participants failed to check in within the allocated time.'
+        : 'The lobby window has expired.';
+      notices.push(`<div class="flex items-start gap-2.5 p-3 rounded-lg border border-[#FF2A55]/25 bg-[#FF2A55]/8"><i data-lucide="alert-triangle" class="w-4 h-4 text-[#FF2A55] shrink-0 mt-0.5"></i><p class="text-xs text-[#FF8AA0] leading-relaxed">Lobby Closed — ${_esc(reasonText)}</p></div>`);
+    }
+
     if (pendingRequest) {
       let text = `Reschedule proposal pending for ${proposedLabel}.`;
       if (canRespond) {
@@ -4193,44 +4216,48 @@ const HubEngine = (() => {
       ? 'hub-match-cta hub-match-cta-compact'
       : 'hub-match-cta';
 
-    const makeButton = (label, clickHandler, tone = 'neutral', { disabled = false } = {}) => {
+    const makeButton = (label, clickHandler, tone = 'neutral', { disabled = false, icon = '' } = {}) => {
       const disabledAttr = disabled ? ' disabled' : '';
       const disabledClass = disabled ? ' hub-match-cta-disabled' : '';
-      return `<button onclick='${clickHandler}' class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${_esc(label)}</button>`;
+      const iconHtml = icon ? `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i>` : '';
+      return `<button onclick='${clickHandler}' class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${iconHtml}${_esc(label)}</button>`;
     };
 
     const buttons = [];
-    if (hasLobby) {
+
+    if (lobbyClosed && !terminalState) {
+      // Only show reschedule contact button when lobby is closed
+      buttons.push(makeButton('Request Reschedule', `HubEngine.requestExpiredLobbyReschedule(${matchId})`, 'warning', { icon: 'calendar-x' }));
+    } else if (hasLobby) {
       if (lobbyOpen) {
-        buttons.push(makeButton('Enter Lobby', `HubEngine.openMatchLobby(${matchId})`, 'primary'));
-      } else {
-        const opensAt = lobbyWindow.opensAt;
-        if (opensAt && !terminalState) {
-          notices.push(`<p class="hub-match-note info">Lobby unlocks in ${_esc(_formatCountdownLabel(opensAt))}.</p>`);
+        buttons.push(makeButton('Enter Match Room', `HubEngine.openMatchLobby(${matchId})`, 'primary', { icon: 'log-in' }));
+      }
+      // No "unlocks in" notice — that info is in the footer metadata
+    }
+
+    // Reschedule buttons (only if lobby not closed — closed state has its own CTA)
+    if (!lobbyClosed) {
+      if (canPropose) {
+        buttons.push(makeButton('Propose New Time', `HubEngine.openRescheduleProposal(${matchId})`, 'neutral'));
+      }
+
+      if (pendingRequest && iProposed) {
+        buttons.push(makeButton('Reschedule Pending', 'void(0)', 'neutral', { disabled: true }));
+      }
+
+      if (canRespond) {
+        buttons.push(makeButton('Accept', `HubEngine.respondReschedule(${matchId}, "accept")`, 'positive'));
+        if (canCounter) {
+          buttons.push(makeButton('Counter Offer', `HubEngine.respondReschedule(${matchId}, "counter")`, 'info'));
         }
+        buttons.push(makeButton('Reject', `HubEngine.respondReschedule(${matchId}, "reject")`, 'danger'));
       }
-    }
-
-    if (canPropose) {
-      buttons.push(makeButton('Propose New Time', `HubEngine.openRescheduleProposal(${matchId})`, 'neutral'));
-    }
-
-    if (pendingRequest && iProposed) {
-      buttons.push(makeButton('Reschedule Pending', 'void(0)', 'neutral', { disabled: true }));
-    }
-
-    if (canRespond) {
-      buttons.push(makeButton('Accept', `HubEngine.respondReschedule(${matchId}, "accept")`, 'positive'));
-      if (canCounter) {
-        buttons.push(makeButton('Counter Offer', `HubEngine.respondReschedule(${matchId}, "counter")`, 'info'));
-      }
-      buttons.push(makeButton('Reject', `HubEngine.respondReschedule(${matchId}, "reject")`, 'danger'));
     }
 
     if (!notices.length && buttons.length === 0) return '';
 
     return `
-      <div class="${compact ? 'mt-2.5' : 'mt-4'} space-y-2.5">
+      <div class="${compact ? 'mt-2.5' : 'mt-3'} space-y-2">
         ${notices.join('')}
         ${buttons.length ? `<div class="hub-match-cta-row">${buttons.join('')}</div>` : ''}
       </div>`;
@@ -4257,16 +4284,44 @@ const HubEngine = (() => {
           const hasLobby = Boolean(m?.match_room_url);
           const lobbyWindow = _resolveLobbyWindow(m);
           const lobbyOpen = hasLobby && lobbyWindow.isOpen;
+          const lobbyClosed = lobbyWindow.isClosed;
 
           const stateColors = { live: '#FF2A55', ready: '#00FF66', check_in: '#00F0FF', scheduled: '#FFB800', pending_result: '#f97316' };
-          const borderColor = stateColors[stateRaw] || '#4B5563';
-          const statusLabel = lobbyOpen && !isLive ? 'Lobby Open' : (m.state_display || m.state || 'Scheduled');
+          const borderColor = lobbyClosed ? '#FF2A55' : (stateColors[stateRaw] || '#4B5563');
+
+          // Status label with lobby awareness
+          let statusLabel;
+          if (lobbyClosed && !isLive) {
+            statusLabel = 'Lobby Closed';
+          } else if (lobbyOpen && !isLive) {
+            statusLabel = 'Lobby Open';
+          } else {
+            statusLabel = m.state_display || m.state || 'Scheduled';
+          }
 
           // Badge classes
-          const badgeCls = isLive ? 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30'
-            : (lobbyOpen || isReady) ? 'bg-[#00FF66]/10 text-[#00FF66] border-[#00FF66]/30'
-            : stateRaw === 'pending_result' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-            : 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30';
+          let badgeCls;
+          if (lobbyClosed && !isLive) {
+            badgeCls = 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30';
+          } else if (isLive) {
+            badgeCls = 'bg-[#FF2A55]/10 text-[#FF2A55] border-[#FF2A55]/30';
+          } else if (lobbyOpen || isReady) {
+            badgeCls = 'bg-[#00FF66]/10 text-[#00FF66] border-[#00FF66]/30';
+          } else if (stateRaw === 'pending_result') {
+            badgeCls = 'bg-orange-500/10 text-orange-400 border-orange-500/30';
+          } else {
+            badgeCls = 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30';
+          }
+
+          // Badge icon
+          let badgeIcon;
+          if (lobbyClosed && !isLive) {
+            badgeIcon = '<i data-lucide="lock" class="w-3 h-3"></i>';
+          } else if (isLive) {
+            badgeIcon = '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>';
+          } else {
+            badgeIcon = '<i data-lucide="clock" class="w-3 h-3"></i>';
+          }
 
           const p1Name = m?.p1_name || (!isStaff ? 'You' : 'TBD');
           const p2Name = m?.p2_name || m?.opponent_name || 'TBD';
@@ -4278,57 +4333,70 @@ const HubEngine = (() => {
           const lobbyCode = m.lobby_info?.lobby_code || '';
           const showScoreline = isLive || stateRaw === 'pending_result';
 
+          // Presence indicator dots
+          const p1OnlineDot = m.p1_online
+            ? '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a0f]" style="background:#00FF66"></span>'
+            : '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a0f]" style="background:#4B5563"></span>';
+          const p2OnlineDot = m.p2_online
+            ? '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a0f]" style="background:#00FF66"></span>'
+            : '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a0f]" style="background:#4B5563"></span>';
+
           // Determine which side is "you"
           const isParticipantOwn = Boolean(m.is_my_match && !m.is_staff_view);
           const opponentName = String(m?.opponent_name || '').trim().toLowerCase();
           const isP1You = isParticipantOwn && String(m?.p1_name || '').trim().toLowerCase() !== opponentName;
-          const p1Border = isP1You ? 'ring-2 ring-[#00F0FF]' : '';
-          const p2Border = (!isP1You && isParticipantOwn) ? 'ring-2 ring-[#00F0FF]' : '';
+          const p1Border = isP1You ? 'ring-2 ring-[#00F0FF]/70' : '';
+          const p2Border = (!isP1You && isParticipantOwn) ? 'ring-2 ring-[#00F0FF]/70' : '';
           const p1NameCls = isP1You ? 'text-[#00F0FF]' : 'text-white';
           const p2NameCls = (!isP1You && isParticipantOwn) ? 'text-[#00F0FF]' : 'text-gray-300';
 
-          // Card glow for live
-          const cardCls = isLive
-            ? 'premium-card p-0 overflow-hidden border-l-4 relative group shadow-[0_0_20px_rgba(255,42,85,0.2)]'
-            : 'premium-card p-0 overflow-hidden border-l-4 relative group hover:bg-white/5 transition';
+          // Card styling — compact glassmorphism
+          const closedDim = (lobbyClosed && !isLive) ? ' opacity-80' : '';
+          const glowShadow = isLive ? 'shadow-[0_0_24px_rgba(255,42,85,0.18)]' : '';
+          const cardCls = `bg-black/40 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden border-l-4 relative group hover:bg-white/[0.04] transition${closedDim} ${glowShadow}`;
 
           html += `
             <article class="${cardCls}" style="border-left-color:${borderColor}">
-              ${isLive ? '<div class="glow-border"></div>' : ''}
-              <div class="p-5 md:p-6">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-5">
-                  <div class="flex items-center gap-3">
-                    <span class="font-mono text-[10px] text-gray-500 uppercase tracking-widest">${_esc(m.round_name || 'Round')} · Match ${_esc(String(m.match_number || ''))}</span>
-                  </div>
-                  <span class="hub-badge ${badgeCls} shrink-0">
-                    ${isLive ? '<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse"></span>' : '<i data-lucide="clock" class="w-3 h-3"></i>'}
-                    ${_esc(statusLabel)}
-                  </span>
+              ${isLive ? '<div class="absolute inset-0 bg-gradient-to-r from-[#FF2A55]/5 to-transparent pointer-events-none"></div>' : ''}
+              <div class="relative p-4 md:px-5 md:py-4">
+                <!-- Top row: Round info + Status Badge -->
+                <div class="flex items-center justify-between mb-3">
+                  <span class="font-mono text-[10px] text-gray-500 uppercase tracking-widest">${_esc(m.round_name || 'Round')} · #${_esc(String(m.match_number || ''))}</span>
+                  <span class="hub-badge ${badgeCls} shrink-0">${badgeIcon} ${_esc(statusLabel)}</span>
                 </div>
 
-                <div class="flex items-center justify-between md:justify-center gap-4 md:gap-10">
-                  <div class="flex items-center gap-4 flex-1 md:flex-none justify-end md:justify-start">
-                    <span class="font-display font-bold text-lg ${p1NameCls} text-right truncate">${_esc(p1Name)}</span>
-                    <div class="w-14 h-14 rounded-xl bg-[#050508] overflow-hidden shrink-0 border border-white/10 ${p1Border}">${p1AvatarHtml}</div>
+                <!-- Middle row: Team A → VS/Score → Team B -->
+                <div class="flex items-center justify-between gap-3 md:gap-6">
+                  <div class="flex items-center gap-3 flex-1 min-w-0 justify-end md:justify-start">
+                    <span class="font-bold text-base ${p1NameCls} text-right truncate" style="font-family:Outfit,sans-serif">${_esc(p1Name)}</span>
+                    <div class="relative w-12 h-12 rounded-lg bg-[#0a0a0f] overflow-visible shrink-0">
+                      <div class="w-full h-full rounded-lg overflow-hidden border border-white/10 ${p1Border}">${p1AvatarHtml}</div>
+                      ${p1OnlineDot}
+                    </div>
                   </div>
-                  <div class="shrink-0">
+                  <div class="shrink-0 px-1">
                     ${showScoreline
-                      ? `<div class="flex items-center gap-3"><span class="font-mono font-bold text-2xl text-white">${Number(m.p1_score || 0)}</span><span class="text-xs font-bold text-gray-600 bg-black/50 px-2 py-0.5 rounded">${isLive ? 'LIVE' : 'FT'}</span><span class="font-mono font-bold text-2xl text-white">${Number(m.p2_score || 0)}</span></div>`
-                      : `<span class="font-display font-black text-sm text-gray-600 bg-black/50 px-4 py-2 rounded-lg border border-white/5">VS</span>`
+                      ? `<div class="flex items-center gap-2"><span class="font-mono font-black text-xl text-white">${Number(m.p1_score || 0)}</span><span class="text-[10px] font-black text-gray-600 bg-black/60 px-1.5 py-0.5 rounded">${isLive ? 'LIVE' : 'FT'}</span><span class="font-mono font-black text-xl text-white">${Number(m.p2_score || 0)}</span></div>`
+                      : `<span class="font-black text-xs text-gray-600 bg-black/50 px-3 py-1.5 rounded-lg border border-white/5" style="font-family:Outfit,sans-serif">VS</span>`
                     }
                   </div>
-                  <div class="flex items-center gap-4 flex-1 md:flex-none">
-                    <div class="w-14 h-14 rounded-xl bg-[#050508] overflow-hidden shrink-0 border border-white/10 ${p2Border}">${p2AvatarHtml}</div>
-                    <span class="font-display font-bold text-lg ${p2NameCls} truncate">${_esc(p2Name)}</span>
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="relative w-12 h-12 rounded-lg bg-[#0a0a0f] overflow-visible shrink-0">
+                      <div class="w-full h-full rounded-lg overflow-hidden border border-white/10 ${p2Border}">${p2AvatarHtml}</div>
+                      ${p2OnlineDot}
+                    </div>
+                    <span class="font-bold text-base ${p2NameCls} truncate" style="font-family:Outfit,sans-serif">${_esc(p2Name)}</span>
                   </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-white/5">
-                  <div class="flex items-center gap-2 text-xs text-gray-400">
-                    <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-[#00F0FF]"></i>
+                <!-- Bottom row: Metadata + Action controls -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-white/5 text-[11px]">
+                  <div class="flex items-center gap-1.5 text-gray-400">
+                    <i data-lucide="calendar-clock" class="w-3 h-3 text-[#00F0FF]/70"></i>
                     <span class="font-mono">${_esc(kickoffLabel)}</span>
                   </div>
-                  ${lobbyCode ? `<div class="flex items-center gap-2 text-xs text-[#00F0FF]"><i data-lucide="key-round" class="w-3.5 h-3.5"></i><span class="font-mono">Room ${_esc(lobbyCode)}</span></div>` : ''}
+                  ${lobbyCode ? `<div class="flex items-center gap-1.5 text-[#00F0FF]"><i data-lucide="key-round" class="w-3 h-3"></i><span class="font-mono">Room ${_esc(lobbyCode)}</span></div>` : ''}
+                  ${(lobbyClosed && !isLive) ? '<div class="flex items-center gap-1.5 text-[#FF2A55]"><i data-lucide="timer-off" class="w-3 h-3"></i><span class="font-mono">Expired</span></div>' : ''}
                 </div>
 
                 ${_renderMatchActionControls(m)}
@@ -4337,6 +4405,7 @@ const HubEngine = (() => {
         });
         cardsEl.innerHTML = html;
         cardsEl.classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [cardsEl] });
       } else {
         cardsEl.innerHTML = '';
         cardsEl.classList.add('hidden');
@@ -4405,12 +4474,13 @@ const HubEngine = (() => {
             </div>`;
         });
         historyEl.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [historyEl] });
       } else {
         _show('match-history-empty');
       }
     }
 
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Icons for empty states and other containers handled by scoped calls above
   }
 
   function _renderMobileMatchesSchedule(data) {
@@ -4478,6 +4548,132 @@ const HubEngine = (() => {
     }).join('');
 
     wrap.innerHTML = html;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Mobile lobby countdown live ticker
+  // ──────────────────────────────────────────────────────────
+  let _mobileLobbyCountdownId = null;
+
+  function _startMobileLobbyCountdown(targetDate, closesAt, countdownEl, joinBtn, statusEl, panelEl) {
+    _stopMobileLobbyCountdown();
+    if (!countdownEl || !targetDate) return;
+
+    function tick() {
+      const now = Date.now();
+
+      // Check if lobby closed
+      if (closesAt && now > closesAt.getTime()) {
+        countdownEl.textContent = 'CLOSED';
+        countdownEl.style.color = '#ef4444';
+        if (statusEl) {
+          statusEl.className = 'hub-badge hub-badge-neutral';
+          statusEl.textContent = 'Lobby Closed';
+        }
+        if (joinBtn) {
+          joinBtn.textContent = 'Lobby Closed';
+          joinBtn.disabled = true;
+          joinBtn.classList.remove('hub-mobile-lobby-primary-live');
+        }
+        if (panelEl) {
+          panelEl.classList.remove('hub-mobile-lobby-live', 'hub-mobile-lobby-ready');
+          panelEl.classList.add('hub-mobile-lobby-waiting');
+        }
+        _stopMobileLobbyCountdown();
+        return;
+      }
+
+      const diff = targetDate.getTime() - now;
+      if (diff <= 0) {
+        countdownEl.textContent = 'NOW';
+        countdownEl.style.color = '';
+        // Show remaining lobby time if closesAt is available
+        if (closesAt) {
+          const lobbyRemaining = closesAt.getTime() - now;
+          if (lobbyRemaining > 0) {
+            const mins = Math.floor(lobbyRemaining / 60000);
+            const secs = Math.floor((lobbyRemaining % 60000) / 1000);
+            countdownEl.textContent = `Lobby: ${mins}:${String(secs).padStart(2, '0')}`;
+          }
+        }
+        return;
+      }
+
+      const totalSec = Math.floor(diff / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      countdownEl.style.color = '';
+
+      if (h > 0) {
+        countdownEl.textContent = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      } else {
+        countdownEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+      }
+    }
+
+    tick();
+    _mobileLobbyCountdownId = setInterval(tick, 1000);
+  }
+
+  function _stopMobileLobbyCountdown() {
+    if (_mobileLobbyCountdownId) {
+      clearInterval(_mobileLobbyCountdownId);
+      _mobileLobbyCountdownId = null;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Overview action card live countdown ticker
+  // ──────────────────────────────────────────────────────────
+  let _overviewCountdownId = null;
+  let _overviewCountdownTarget = null;
+
+  function _startOverviewCountdown(targetDate) {
+    const el = document.getElementById('hub-overview-action-time');
+    if (!el) return;
+
+    // Avoid restarting if same target
+    if (_overviewCountdownTarget && targetDate &&
+        _overviewCountdownTarget.getTime() === targetDate.getTime() && _overviewCountdownId) {
+      return;
+    }
+    _stopOverviewCountdown();
+    if (!targetDate || Number.isNaN(targetDate.getTime())) return;
+
+    _overviewCountdownTarget = targetDate;
+
+    function tick() {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff <= 0) {
+        el.textContent = 'NOW';
+        _stopOverviewCountdown();
+        _pollState();
+        return;
+      }
+      const totalSec = Math.floor(diff / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (h > 0) {
+        el.textContent = `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+      } else if (m > 0) {
+        el.textContent = `${m}m ${String(s).padStart(2, '0')}s`;
+      } else {
+        el.textContent = `${s}s`;
+      }
+    }
+
+    tick();
+    _overviewCountdownId = setInterval(tick, 1000);
+  }
+
+  function _stopOverviewCountdown() {
+    if (_overviewCountdownId) {
+      clearInterval(_overviewCountdownId);
+      _overviewCountdownId = null;
+    }
+    _overviewCountdownTarget = null;
   }
 
   function _renderMobileLobby(data) {
@@ -4562,10 +4758,20 @@ const HubEngine = (() => {
       titleEl.textContent = `${p1} vs ${p2}`;
 
       if (sideAAvatarEl) {
-        sideAAvatarEl.innerHTML = _renderAvatarInner(p1, target.p1_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+        const p1Online = Boolean(target.p1_online);
+        const dotColor = p1Online ? '#00FF66' : '#4B5563';
+        sideAAvatarEl.innerHTML = _renderAvatarInner(p1, target.p1_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image')
+          + `<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0e1222]" style="background:${dotColor}"></span>`;
+        sideAAvatarEl.style.position = 'relative';
+        sideAAvatarEl.style.overflow = 'visible';
       }
       if (sideBAvatarEl) {
-        sideBAvatarEl.innerHTML = _renderAvatarInner(p2, target.p2_logo_url || target.opponent_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image');
+        const p2Online = Boolean(target.p2_online);
+        const dotColor = p2Online ? '#00FF66' : '#4B5563';
+        sideBAvatarEl.innerHTML = _renderAvatarInner(p2, target.p2_logo_url || target.opponent_logo_url || '', 'hub-mobile-lobby-team-initial', 'hub-mobile-lobby-team-image')
+          + `<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0e1222]" style="background:${dotColor}"></span>`;
+        sideBAvatarEl.style.position = 'relative';
+        sideBAvatarEl.style.overflow = 'visible';
       }
       if (sideANameEl) sideANameEl.textContent = p1;
       if (sideBNameEl) sideBNameEl.textContent = p2;
@@ -4584,10 +4790,16 @@ const HubEngine = (() => {
     if (countdownEl) {
       if (isLive) {
         countdownEl.textContent = 'LIVE';
+        _stopMobileLobbyCountdown();
+      } else if (lobbyWindow.isClosed) {
+        countdownEl.textContent = 'CLOSED';
+        countdownEl.style.color = '#ef4444';
+        _stopMobileLobbyCountdown();
       } else if (scheduled && !Number.isNaN(scheduled.getTime())) {
-        countdownEl.textContent = _formatCountdownLabel(scheduled);
+        _startMobileLobbyCountdown(scheduled, lobbyWindow.closesAt || null, countdownEl, joinBtn, statusEl, panel);
       } else {
         countdownEl.textContent = '--:--';
+        _stopMobileLobbyCountdown();
       }
     }
 
@@ -4596,20 +4808,26 @@ const HubEngine = (() => {
     const matchRoomUrl = target.match_room_url || '';
 
     if (joinBtn) {
-      if ((isLive || isReady || isWarmup) && matchRoomUrl) {
+      if (lobbyWindow.isClosed && !isLive) {
+        joinBtn.textContent = 'Lobby Closed';
+        joinBtn.disabled = true;
+        joinBtn.classList.remove('hub-mobile-lobby-primary-live');
+        joinBtn.onclick = null;
+      } else if ((isLive || isReady || isWarmup) && matchRoomUrl) {
         joinBtn.textContent = 'Enter Match Room';
+        joinBtn.disabled = false;
         joinBtn.classList.add('hub-mobile-lobby-primary-live');
+        joinBtn.onclick = () => {
+          _openMatchRoom(matchRoomUrl);
+        };
       } else {
         joinBtn.textContent = 'Open Match Queue';
+        joinBtn.disabled = false;
         joinBtn.classList.remove('hub-mobile-lobby-primary-live');
-      }
-      joinBtn.onclick = () => {
-        if ((isLive || isReady || isWarmup) && matchRoomUrl) {
-          _openMatchRoom(matchRoomUrl);
-        } else {
+        joinBtn.onclick = () => {
           switchTab('matches');
-        }
-      };
+        };
+      }
     }
 
     const note = target.admin_note || target.note || '';
@@ -5027,6 +5245,34 @@ const HubEngine = (() => {
     if (_rescheduleModalBusy) return;
     _rescheduleModalState = null;
     _closeModal('hub-reschedule-modal');
+  }
+
+  function requestExpiredLobbyReschedule(matchId) {
+    const match = _findMatchById(matchId);
+    const matchLabel = match ? `Match #${match.match_number || match.id}` : `Match #${matchId}`;
+
+    // Switch to support tab and pre-fill the dispute form
+    switchTab('support');
+
+    // Small delay to let the tab render before populating fields
+    setTimeout(() => {
+      selectSupportCategory('dispute');
+
+      const matchRef = document.getElementById('support-match-ref');
+      if (matchRef) matchRef.value = matchLabel;
+
+      const subject = document.getElementById('support-subject');
+      if (subject) subject.value = `Reschedule Request — ${matchLabel} (Expired Lobby)`;
+
+      const message = document.getElementById('support-message');
+      if (message) {
+        message.value = `The match lobby for ${matchLabel} has expired. I would like to request an admin-mediated reschedule.\n\nReason: `;
+        message.focus();
+        _updateCharCount();
+      }
+
+      _emitToast('info', 'Expired lobby reschedules require organizer approval. Fill in the details below.');
+    }, 200);
   }
 
   function openRescheduleProposal(matchId) {
@@ -6799,6 +7045,7 @@ const HubEngine = (() => {
     scheduleSelectDay,
     openMatchLobby,
     openRescheduleProposal,
+    requestExpiredLobbyReschedule,
     closeRescheduleModal,
     respondReschedule,
     // Map viewer

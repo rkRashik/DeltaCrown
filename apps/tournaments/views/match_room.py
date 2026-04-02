@@ -144,7 +144,12 @@ MATCH_CONFIGURATION_META_KEYS = {
 }
 
 PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES = 30
+PARTICIPANT_LOBBY_CLOSE_AFTER_MINUTES = 10  # Auto-close lobby 10 min after scheduled_time
 PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES = {
+    "scheduled",
+    "check_in",
+    "ready",
+    "in_progress",
     "live",
     "pending_result",
     "completed",
@@ -875,12 +880,36 @@ def _resolve_check_in_window(match: Match, effective_policy: Dict[str, Any]) -> 
 
 
 def _resolve_presence_snapshot(workflow: Dict[str, Any], match: Match) -> Dict[str, Dict[str, Any]]:
+    # First check live presence from Redis/memory (authoritative source
+    # written by the WebSocket consumer).  Falls back to the workflow blob
+    # which may be stale because the consumer never writes there.
+    try:
+        from apps.match_engine.consumers import get_live_presence_sync
+        live = get_live_presence_sync(match.id)
+    except Exception:
+        live = {}
+
     presence_blob = _safe_dict(workflow.get("presence"))
     now = timezone.now()
 
     result: Dict[str, Dict[str, Any]] = {}
     for side in (1, 2):
         side_key = str(side)
+
+        # Prefer live presence from WS consumer store
+        live_row = _safe_dict(live.get(side_key))
+        if live_row.get("online"):
+            checked_in = bool(match.participant1_checked_in if side == 1 else match.participant2_checked_in)
+            result[side_key] = {
+                "status": str(live_row.get("status") or "online"),
+                "online": True,
+                "last_seen": None,
+                "user_id": live_row.get("user_id"),
+                "checked_in": checked_in,
+            }
+            continue
+
+        # Fallback: read from workflow blob
         row = _safe_dict(presence_blob.get(side_key))
         last_seen_raw = str(row.get("last_seen") or "")
         last_seen_dt = parse_datetime(last_seen_raw) if last_seen_raw else None
@@ -1166,6 +1195,7 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
 
     denied_reason = None
     lobby_opens_at = None
+    lobby_closes_at = None
     is_participant = user_side in (1, 2)
 
     if is_participant and not is_staff:
@@ -1173,8 +1203,12 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
         scheduled_time = getattr(match, "scheduled_time", None)
         if state not in PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES and scheduled_time:
             lobby_opens_at = scheduled_time - timedelta(minutes=PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES)
-            if timezone.now() < lobby_opens_at:
+            lobby_closes_at = scheduled_time + timedelta(minutes=PARTICIPANT_LOBBY_CLOSE_AFTER_MINUTES)
+            now = timezone.now()
+            if now < lobby_opens_at:
                 denied_reason = "lobby_not_open"
+            elif now > lobby_closes_at:
+                denied_reason = "lobby_closed"
 
     return {
         "allowed": bool(is_staff or (is_participant and denied_reason is None)),
@@ -1184,6 +1218,7 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
         "user_id": user.id,
         "denied_reason": denied_reason,
         "lobby_opens_at": lobby_opens_at,
+        "lobby_closes_at": lobby_closes_at,
     }
 
 
@@ -1410,6 +1445,7 @@ def _build_room_payload(
             "scheduled_time": match.scheduled_time.isoformat() if match.scheduled_time else None,
             "started_at": match.started_at.isoformat() if match.started_at else None,
             "completed_at": match.completed_at.isoformat() if match.completed_at else None,
+            "lobby_closes_at": access.get("lobby_closes_at").isoformat() if access.get("lobby_closes_at") else None,
         },
         "tournament": {
             "id": match.tournament_id,
@@ -1533,7 +1569,8 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
         )
 
         if not self.access["allowed"]:
-            if self.access.get("denied_reason") == "lobby_not_open":
+            denied = self.access.get("denied_reason")
+            if denied == "lobby_not_open":
                 opens_at = self.access.get("lobby_opens_at")
                 if opens_at:
                     try:
@@ -1546,6 +1583,11 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
                     )
                 else:
                     messages.info(request, "Match lobby opens 30 minutes before kickoff.")
+            elif denied == "lobby_closed":
+                messages.warning(
+                    request,
+                    "Match lobby has closed. Contact an admin if you need to reschedule.",
+                )
             else:
                 messages.warning(request, "Only match participants and staff can access the match lobby.")
             return redirect(
@@ -1595,7 +1637,8 @@ class MatchCheckInView(LoginRequiredMixin, View):
 
         access = _resolve_match_room_access(request.user, match)
         if not access["allowed"]:
-            if access.get("denied_reason") == "lobby_not_open":
+            denied = access.get("denied_reason")
+            if denied == "lobby_not_open":
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return JsonResponse({"success": False, "error": "lobby_not_open"}, status=403)
                 opens_at = access.get("lobby_opens_at")
@@ -1608,12 +1651,17 @@ class MatchCheckInView(LoginRequiredMixin, View):
                 else:
                     messages.error(request, "Match lobby opens 30 minutes before kickoff.")
                 return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
+            if denied == "lobby_closed":
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "lobby_closed"}, status=403)
+                messages.error(request, "Match lobby has closed. Contact an admin to reschedule.")
+                return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"success": False, "error": "forbidden"}, status=403)
             messages.error(request, "Only participants can check in for this match.")
             return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
 
-        _lobby_info, _workflow, runtime, _changed = _ensure_match_workflow(match, persist=False)
+        _lobby_info, _workflow, runtime, _changed = _ensure_match_workflow(match, persist=True)
         check_in_window = _safe_dict(runtime.get("check_in_window"))
         if check_in_window.get("required"):
             if check_in_window.get("is_pending"):

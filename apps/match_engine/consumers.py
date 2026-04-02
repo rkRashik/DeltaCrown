@@ -100,12 +100,73 @@ def _memory_presence_scan(pattern: str):
     return results
 
 
+def get_live_presence_sync(match_id: int) -> dict:
+    """Synchronous helper: read live presence from Redis/memory for a match.
+
+    Returns dict like:
+        {"1": {"online": True, "status": "online", "user_id": 5, ...},
+         "2": {"online": False, "status": "offline", ...}}
+
+    Safe to call from Django views (sync context).
+    """
+    import json as _json
+    pattern = f"presence:match:{match_id}:user:*"
+    sides: dict = {
+        "1": {"online": False, "status": "offline", "user_id": None, "username": None},
+        "2": {"online": False, "status": "offline", "user_id": None, "username": None},
+    }
+
+    def _apply(raw: str) -> None:
+        try:
+            row = _json.loads(raw)
+        except (ValueError, TypeError):
+            return
+        side = row.get("side")
+        if side not in (1, 2):
+            return
+        key = str(side)
+        status = str(row.get("status") or "online")
+        sides[key]["online"] = True
+        sides[key]["status"] = "away" if status == "away" else "online"
+        sides[key]["user_id"] = row.get("user_id")
+        sides[key]["username"] = row.get("username")
+
+    # 1) Try Redis (production)
+    import os
+    redis_url = os.getenv("REDIS_URL", "")
+    if redis_url:
+        try:
+            import redis as _sync_redis
+            from deltacrown.settings import _redis_url_with_db
+            url = _redis_url_with_db(redis_url, 2)
+            client = _sync_redis.Redis.from_url(url, decode_responses=True)
+            cursor = 0
+            while True:
+                cursor, keys = client.scan(cursor=cursor, match=pattern, count=20)
+                if keys:
+                    values = client.mget(*keys)
+                    for raw in values:
+                        if raw:
+                            _apply(raw)
+                if cursor == 0:
+                    break
+            return sides
+        except Exception:
+            pass  # fall through to memory
+
+    # 2) In-memory fallback (local dev without Redis)
+    for _key, raw in _memory_presence_scan(pattern):
+        _apply(raw)
+
+    return sides
+
+
 class MatchConsumer(AsyncJsonWebsocketConsumer):
     """Realtime consumer for a single match room."""
 
-    HEARTBEAT_INTERVAL = 25
-    HEARTBEAT_TIMEOUT = 50
-    PRESENCE_STALE_SECONDS = 45
+    HEARTBEAT_INTERVAL = 30
+    HEARTBEAT_TIMEOUT = 90
+    PRESENCE_STALE_SECONDS = 60
 
     # Presence now lives in Redis (Phase 1 migration).
     # Key pattern: presence:match:{match_id}:user:{user_id}
@@ -151,7 +212,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         self.user_role = await database_sync_to_async(get_user_tournament_role)(self.user)
         self.is_official_staff = bool(self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN))
         self.chat_display_name = "Organizer" if self.is_official_staff else self.user.username
-        self.chat_avatar_url = await self._get_user_avatar_url(self.user.id)
+        self.chat_avatar_url = ""  # Resolved lazily on first chat message
 
         self.is_participant = self.user.id in [match.participant1_id, match.participant2_id]
         self.participant_side = None
@@ -225,7 +286,24 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         )
 
         await self._register_presence(status="online")
-        await self._broadcast_presence()
+        try:
+            await self._broadcast_presence()
+        except Exception:
+            logger.debug(
+                "Presence broadcast suppressed during connect",
+                extra={"match_id": self.match_id, "user_id": self.user.id},
+            )
+
+        # Direct presence delivery — guarantees the connecting client receives
+        # the current snapshot even if group_send fails to deliver.
+        try:
+            snapshot = await self._build_presence_snapshot()
+            await self.send_json({"type": "match_presence", "data": snapshot})
+        except Exception:
+            logger.debug(
+                "Direct presence delivery suppressed during connect",
+                extra={"match_id": self.match_id, "user_id": self.user.id},
+            )
 
         logger.info(
             "Match WebSocket connected",
@@ -241,29 +319,25 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code) -> None:
         if hasattr(self, "heartbeat_task"):
             self.heartbeat_task.cancel()
-            try:
-                await self.heartbeat_task
-            except (asyncio.CancelledError, Exception):
-                pass
 
         try:
-            await self._unregister_presence()
-        except (asyncio.CancelledError, Exception):
-            logger.debug(
-                "Presence unregister suppressed during disconnect",
-                extra={"match_id": getattr(self, "match_id", None)},
-            )
+            await asyncio.wait_for(self._unregister_presence(), timeout=2.0)
+        except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+            pass
 
         try:
-            await self._broadcast_presence()
-        except (asyncio.CancelledError, Exception):
-            logger.debug(
-                "Presence broadcast suppressed during disconnect",
-                extra={"match_id": getattr(self, "match_id", None)},
-            )
+            await asyncio.wait_for(self._broadcast_presence(), timeout=2.0)
+        except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+            pass
 
         if hasattr(self, "room_group_name"):
-            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+            try:
+                await asyncio.wait_for(
+                    self.channel_layer.group_discard(self.room_group_name, self.channel_name),
+                    timeout=2.0,
+                )
+            except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+                pass
 
         logger.info(
             "Match WebSocket disconnected",
@@ -339,7 +413,19 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     },
                 }
             )
-            await self._broadcast_presence()
+            try:
+                await self._broadcast_presence()
+            except Exception:
+                logger.debug(
+                    "Presence broadcast suppressed during subscribe",
+                    extra={"match_id": self.match_id, "user_id": self.user.id},
+                )
+            # Direct presence delivery — guaranteed even if group_send fails
+            try:
+                snapshot = await self._build_presence_snapshot()
+                await self.send_json({"type": "match_presence", "data": snapshot})
+            except Exception:
+                pass
             return
 
         if message_type == "presence_ping":
@@ -347,7 +433,19 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             if status not in {"online", "away"}:
                 status = "online"
             await self._register_presence(status=status)
-            await self._broadcast_presence()
+            try:
+                await self._broadcast_presence()
+            except Exception:
+                logger.debug(
+                    "Presence broadcast suppressed during presence_ping",
+                    extra={"match_id": self.match_id, "user_id": self.user.id},
+                )
+            # Always send direct snapshot — guaranteed delivery if group_send fails
+            try:
+                snapshot = await self._build_presence_snapshot()
+                await self.send_json({"type": "match_presence", "data": snapshot})
+            except Exception:
+                pass
             await self.send_json({"type": "presence_synced", "data": {"status": status}})
             return
 
@@ -394,6 +492,13 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     }
                 )
                 return
+
+            # Lazily resolve avatar on first chat message
+            if not self.chat_avatar_url:
+                try:
+                    self.chat_avatar_url = await self._get_user_avatar_url(self.user.id)
+                except Exception:
+                    self.chat_avatar_url = ""
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -445,7 +550,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                             "time_since_pong": time_since_pong,
                         },
                     )
-                    await self.close(code=4004)
+                    await self.close(code=1000)
                     return
 
                 await self.send_json({"type": "ping", "timestamp": current_time})
@@ -642,7 +747,16 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
         @database_sync_to_async
         def get_match_sync():
-            return Match.objects.filter(id=match_id).first()
+            return (
+                Match.objects
+                .filter(id=match_id)
+                .only(
+                    "id", "tournament_id", "state",
+                    "participant1_id", "participant2_id",
+                    "participant1_name", "participant2_name",
+                )
+                .first()
+            )
 
         return await get_match_sync()
 

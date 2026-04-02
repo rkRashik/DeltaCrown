@@ -51,6 +51,77 @@ from apps.tournaments.services.match_lobby_service import ensure_match_lobby_inf
 logger = logging.getLogger(__name__)
 
 
+# ────────────────────────────────────────────────────────────
+# Presence helper (sync Redis check for hub API)
+# ────────────────────────────────────────────────────────────
+_sync_redis_presence = None
+
+
+def _get_sync_redis_presence():
+    """Return a sync Redis client pointing at presence DB 2, or None."""
+    import os
+    global _sync_redis_presence  # noqa: PLW0603
+    if _sync_redis_presence is not None:
+        return _sync_redis_presence
+    try:
+        import redis as sync_redis
+        base_url = os.getenv("REDIS_URL", "")
+        if not base_url:
+            return None
+        from deltacrown.settings import _redis_url_with_db
+        url = _redis_url_with_db(base_url, 2)
+        _sync_redis_presence = sync_redis.Redis.from_url(url, decode_responses=True, socket_timeout=1)
+        return _sync_redis_presence
+    except Exception:
+        return None
+
+
+def _bulk_match_presence(match_ids):
+    """
+    For a list of match IDs, return {match_id: set_of_user_ids_online}.
+    Falls back to in-memory presence when Redis is unavailable.
+    """
+    result = {mid: set() for mid in match_ids}
+    if not match_ids:
+        return result
+
+    rds = _get_sync_redis_presence()
+    if rds:
+        try:
+            for mid in match_ids:
+                pattern = f"presence:match:{mid}:user:*"
+                cursor = 0
+                while True:
+                    cursor, keys = rds.scan(cursor=cursor, match=pattern, count=50)
+                    for k in keys:
+                        parts = k.rsplit(":", 1)
+                        if len(parts) == 2:
+                            try:
+                                result[mid].add(int(parts[1]))
+                            except (ValueError, TypeError):
+                                pass
+                    if cursor == 0:
+                        break
+            return result
+        except Exception:
+            pass
+
+    # Fallback: in-memory presence
+    try:
+        from apps.match_engine.consumers import _memory_presence_scan
+        for mid in match_ids:
+            for key, _val in _memory_presence_scan(f"presence:match:{mid}:user:*"):
+                parts = key.rsplit(":", 1)
+                if len(parts) == 2:
+                    try:
+                        result[mid].add(int(parts[1]))
+                    except (ValueError, TypeError):
+                        pass
+    except Exception:
+        pass
+    return result
+
+
 def _is_mobile_hub_request(request):
     ua = str(request.META.get('HTTP_USER_AGENT') or '').lower()
     if not ua:
@@ -3039,6 +3110,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         reschedule_deadline_minutes = reschedule_policy['deadline_minutes_before']
         now = timezone.now()
         lobby_window_minutes_before = 30
+        lobby_close_after_minutes = 10
 
         pending_requests_by_match = {}
         if user_matches and reschedule_enabled:
@@ -3052,6 +3124,28 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
 
         active = []
         history = []
+
+        # Bulk presence lookup for active matches
+        active_match_ids = [
+            m.id for m in user_matches
+            if m.state not in (Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED)
+        ]
+        presence_map = _bulk_match_presence(active_match_ids)
+
+        # Pre-hydrate lobby_info for all matches to avoid per-match saves
+        matches_needing_save = []
+        lobby_info_cache = {}
+        for m in user_matches:
+            lobby_info, changed = hydrate_match_lobby_info(
+                m, create_if_missing=True, reset_reminder_marks=False,
+            )
+            lobby_info_cache[m.id] = lobby_info
+            if changed:
+                m.lobby_info = lobby_info
+                matches_needing_save.append(m)
+        if matches_needing_save:
+            Match.objects.bulk_update(matches_needing_save, ['lobby_info'], batch_size=50)
+
         for m in user_matches:
             is_my_match = bool(participant_id and (m.participant1_id == participant_id or m.participant2_id == participant_id))
             my_side = None
@@ -3141,11 +3235,7 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             if not isinstance(raw_gs, list):
                 raw_gs = []
 
-            lobby_info = ensure_match_lobby_info(
-                m,
-                create_if_missing=True,
-                reset_reminder_marks=False,
-            )
+            lobby_info = lobby_info_cache.get(m.id, {})
             pending_request = pending_requests_by_match.get(m.id)
             deadline_at = (
                 (m.scheduled_time - timedelta(minutes=reschedule_deadline_minutes))
@@ -3167,6 +3257,16 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             lobby_window_starts_in_seconds = None
             if lobby_window_opens_at_dt:
                 lobby_window_starts_in_seconds = int((lobby_window_opens_at_dt - now).total_seconds())
+
+            lobby_closes_at_dt = (
+                (m.scheduled_time + timedelta(minutes=lobby_close_after_minutes))
+                if m.scheduled_time else None
+            )
+
+            # Presence: who is online in this match room?
+            online_user_ids = presence_map.get(m.id, set())
+            p1_online = bool(m.participant1_id and m.participant1_id in online_user_ids)
+            p2_online = bool(m.participant2_id and m.participant2_id in online_user_ids)
 
             schedule_state_mutable = m.state in (Match.SCHEDULED, Match.CHECK_IN, Match.READY)
             within_deadline = bool(deadline_at and now <= deadline_at)
@@ -3222,6 +3322,9 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'lobby_window_open': bool(lobby_window_open),
                 'lobby_window_minutes_before': int(lobby_window_minutes_before),
                 'lobby_window_starts_in_seconds': lobby_window_starts_in_seconds,
+                'lobby_closes_at': lobby_closes_at_dt.isoformat() if lobby_closes_at_dt else None,
+                'p1_online': p1_online,
+                'p2_online': p2_online,
                 'game_scores': raw_gs,
                 'best_of': best_of,
                 'p1_logo_url': participant_media_map.get(m.participant1_id, ''),

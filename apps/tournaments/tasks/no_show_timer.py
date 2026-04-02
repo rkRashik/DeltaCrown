@@ -170,3 +170,126 @@ def _fire_notification(match, event: str, reason: str):
         TOCNotificationsService.fire_auto_event(match.tournament, event, context)
     except Exception as exc:
         logger.debug('no_show_timer: notification failed: %s', exc)
+
+
+# ---------------------------------------------------------------------------
+# Lobby auto-close task
+# ---------------------------------------------------------------------------
+
+LOBBY_CLOSE_AFTER_MINUTES = 10
+
+
+@shared_task(name='apps.tournaments.tasks.auto_close_expired_lobbies', bind=True, max_retries=1)
+def auto_close_expired_lobbies(self):
+    """
+    Celery beat task — auto-forfeit/cancel matches whose lobby window has
+    expired (scheduled_time + LOBBY_CLOSE_AFTER_MINUTES) and match never
+    went LIVE.
+
+    Handles SCHEDULED and CHECK_IN state matches that sat idle past the
+    lobby close deadline.  READY matches are handled by check_no_show_matches.
+    """
+    from apps.tournaments.models import Match, Tournament
+
+    now = timezone.now()
+    cutoff = now - timedelta(minutes=LOBBY_CLOSE_AFTER_MINUTES)
+    forfeit_count = 0
+    cancel_count = 0
+    error_count = 0
+
+    # Only active tournaments
+    active_tournament_ids = list(
+        Tournament.objects.filter(
+            status__in=['registration_open', 'registration_closed', 'check_in', 'live'],
+        ).values_list('id', flat=True)
+    )
+    if not active_tournament_ids:
+        return {'checked': 0, 'forfeited': 0, 'cancelled': 0}
+
+    candidates = Match.objects.filter(
+        tournament_id__in=active_tournament_ids,
+        state__in=[Match.SCHEDULED, Match.CHECK_IN],
+        scheduled_time__isnull=False,
+        scheduled_time__lte=cutoff,
+    ).select_related('tournament').order_by('scheduled_time')
+
+    processed_ids = set()
+    for match in candidates:
+        if match.id in processed_ids:
+            continue
+        processed_ids.add(match.id)
+
+        try:
+            with transaction.atomic():
+                _auto_close_lobby(match, now)
+
+            if match.state == Match.CANCELLED:
+                cancel_count += 1
+            else:
+                forfeit_count += 1
+        except Exception as exc:
+            error_count += 1
+            logger.warning(
+                'lobby_auto_close: failed match %s (%s): %s',
+                match.id, match.state, exc,
+            )
+
+    if processed_ids:
+        logger.info(
+            'lobby_auto_close: checked=%d forfeited=%d cancelled=%d errors=%d',
+            len(processed_ids), forfeit_count, cancel_count, error_count,
+        )
+    return {
+        'checked': len(processed_ids),
+        'forfeited': forfeit_count,
+        'cancelled': cancel_count,
+        'errors': error_count,
+    }
+
+
+def _auto_close_lobby(match, now):
+    """
+    Auto-close an expired lobby.  If one participant checked in and the
+    other didn't, forfeit the absent one.  If neither checked in, cancel.
+    """
+    from apps.tournaments.models import Match
+    from apps.tournaments.services.match_service import MatchService
+
+    match.refresh_from_db()
+    if match.state not in [Match.SCHEDULED, Match.CHECK_IN]:
+        return  # Already transitioned
+
+    p1_ok = bool(match.participant1_checked_in)
+    p2_ok = bool(match.participant2_checked_in)
+
+    if not isinstance(match.lobby_info, dict):
+        match.lobby_info = {}
+
+    if not p1_ok and not p2_ok:
+        match.state = Match.CANCELLED
+        match.lobby_info['lobby_auto_closed'] = True
+        match.lobby_info['lobby_closed_reason'] = 'both_no_show'
+        match.lobby_info['lobby_closed_at'] = now.isoformat()
+        match.completed_at = now
+        match.save(update_fields=['state', 'lobby_info', 'completed_at'])
+        _fire_notification(match, 'match_cancelled', 'lobby_expired_both_no_show')
+        return
+
+    # One checked in, one didn't → forfeit the absent player
+    forfeiting_id = None
+    if not p1_ok and p2_ok:
+        forfeiting_id = match.participant1_id
+    elif p1_ok and not p2_ok:
+        forfeiting_id = match.participant2_id
+
+    updated = MatchService.forfeit_match(
+        match=match,
+        reason='lobby_auto_closed',
+        forfeiting_participant_id=forfeiting_id,
+    )
+    if not isinstance(updated.lobby_info, dict):
+        updated.lobby_info = {}
+    updated.lobby_info['lobby_auto_closed'] = True
+    updated.lobby_info['lobby_closed_at'] = now.isoformat()
+    updated.save(update_fields=['lobby_info'])
+    _fire_notification(updated, 'match_forfeit', 'lobby_expired')
