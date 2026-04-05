@@ -13,6 +13,7 @@ Phase 5 adds 5 archetype pipelines with new phases:
   platform_match, matrix_results.
 """
 
+from django.conf import settings
 from django.db import models
 
 from apps.games.constants import get_archetype_for_game, get_archetype_phases
@@ -115,3 +116,62 @@ class GameMatchPipeline(models.Model):
                 getattr(self.game, 'game_type', ''),
             ) if p in valid
         ]
+
+
+# ───────────────────────────────────────────────────────────────────────
+# MatchChatMessage — Persistent chat log for match lobby (Phase 8)
+# ───────────────────────────────────────────────────────────────────────
+
+class MatchChatMessage(models.Model):
+    """A single chat message in a match lobby. Persists across page refreshes."""
+
+    MSG_TYPE_CHOICES = [
+        ("chat", "Chat"),
+        ("system", "System"),
+        ("voice_link", "Voice Link"),
+    ]
+
+    match_id = models.PositiveIntegerField(db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    display_name = models.CharField(max_length=100)
+    avatar_url = models.URLField(max_length=500, blank=True, default="")
+    side = models.SmallIntegerField(default=0, help_text="1=P1, 2=P2, 0=staff/system")
+    text = models.TextField(max_length=500)
+    msg_type = models.CharField(max_length=12, choices=MSG_TYPE_CHOICES, default="chat")
+    is_official = models.BooleanField(default=False)
+    extra = models.JSONField(default=dict, blank=True, help_text="voice_url etc.")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        app_label = "match_engine"
+        db_table = "match_engine_chat_message"
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["match_id", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"[Match {self.match_id}] {self.display_name}: {self.text[:40]}"
+
+    def to_ws_dict(self) -> dict:
+        """Serialise for WebSocket broadcast."""
+        return {
+            "message_id": str(self.pk),
+            "match_id": self.match_id,
+            "user_id": self.user_id or 0,
+            "username": self.display_name,
+            "display_name": self.display_name,
+            "side": self.side,
+            "is_official": self.is_official,
+            "avatar_url": self.avatar_url,
+            "text": self.text,
+            "msg_type": self.msg_type,
+            "extra": self.extra or {},
+            "timestamp": self.created_at.isoformat() if self.created_at else "",
+        }

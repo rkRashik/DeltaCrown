@@ -333,6 +333,91 @@
     }
   }
 
+  /* ── Discord-style Chat System ────────────────────────────────── */
+  .chat-messages-container { padding: 8px 0; }
+  .chat-msg {
+    display: flex; gap: 10px; padding: 2px 14px 2px 14px;
+    transition: background 0.1s;
+  }
+  .chat-msg:hover { background: rgba(255,255,255,0.02); }
+  .chat-grouped { padding-left: 46px; }   /* aligned with content column of full msg */
+  .chat-avatar-col { flex-shrink: 0; width: 28px; padding-top: 2px; }
+  .chat-avatar {
+    width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  }
+  .chat-avatar-mine  { background: rgba(var(--ac-rgb,99,102,241),0.15); border-color: rgba(var(--ac-rgb,99,102,241),0.25); color: var(--ac, #6366f1); }
+  .chat-avatar-opponent { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.10); color: #9ca3af; }
+  .chat-avatar-official { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: #fbbf24; }
+  .chat-content-col { flex: 1; min-width: 0; }
+  .chat-meta { display: flex; align-items: baseline; gap: 6px; margin-bottom: 1px; }
+  .chat-name-mine     { font-size: 11px; font-weight: 700; color: var(--ac, #6366f1); }
+  .chat-name-opponent  { font-size: 11px; font-weight: 700; color: #9ca3af; }
+  .chat-name-official  { font-size: 11px; font-weight: 700; color: #fbbf24; }
+  .chat-badge-official {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px;
+    background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25);
+  }
+  .chat-badge-host {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px;
+    background: rgba(var(--ac-rgb,99,102,241),0.12); color: var(--ac, #6366f1); border: 1px solid rgba(var(--ac-rgb,99,102,241),0.25);
+  }
+  .chat-badge-guest {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px;
+    background: rgba(156,163,175,0.10); color: #9ca3af; border: 1px solid rgba(156,163,175,0.20);
+  }
+  .chat-timestamp { font-size: 9px; color: rgba(255,255,255,0.18); font-variant-numeric: tabular-nums; }
+  .chat-msg:hover .chat-timestamp { color: rgba(255,255,255,0.35); }
+  .chat-msg-body { font-size: 13px; line-height: 1.35; color: #d1d5db; word-break: break-word; }
+  .chat-text { white-space: pre-wrap; }
+  .chat-system {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; margin: 4px 0;
+  }
+  .chat-system-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+  .chat-system-text { font-size: 9px; color: rgba(255,255,255,0.25); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+
+  /* Typing dots */
+  .chat-typing-dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+  .chat-typing-dots span {
+    width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.25);
+    animation: typingBounce 1.4s infinite ease-in-out both;
+  }
+  .chat-typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+  .chat-typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes typingBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Chat input area */
+  .chat-input-area {
+    padding: 8px 10px; border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.25);
+  }
+  .chat-input-row { display: flex; align-items: center; gap: 6px; }
+  .chat-input {
+    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #fff;
+    outline: none; transition: border-color 0.15s;
+  }
+  .chat-input::placeholder { color: rgba(255,255,255,0.25); }
+  .chat-input:focus { border-color: rgba(var(--ac-rgb,99,102,241),0.5); }
+  .chat-send-btn {
+    width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; border: 1px solid rgba(var(--ac-rgb,99,102,241),0.25);
+    background: rgba(var(--ac-rgb,99,102,241),0.12); color: var(--ac, #6366f1);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .chat-send-btn:hover { background: rgba(var(--ac-rgb,99,102,241),0.22); }
+  .chat-send-btn:active { transform: scale(0.92); }
+  .chat-send-btn:disabled { opacity: 0.35; cursor: default; }
+  .chat-char-counter { font-size: 9px; color: rgba(255,255,255,0.2); font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; }
+
   .chat-empty-state {
     margin: 0.35rem;
     padding: 1rem 0.9rem;
@@ -341,6 +426,103 @@
     background: rgba(255, 255, 255, 0.02);
     text-align: center;
   }
+
+  @keyframes chatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-chat-in { animation: chatIn 0.15s ease-out; }
+
+  /* Voice-link Action Card */
+  .chat-action-card { padding: 4px 14px; margin: 4px 0; }
+
+  /* Engine phase transition */
+  @keyframes engineFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .engine-fade-in > section { animation: engineFadeIn 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+  .engine-fade-in > section:nth-child(2) { animation-delay: 0.06s; }
+  .engine-fade-in > section:nth-child(3) { animation-delay: 0.12s; }
+
+  /* Busy state overlay for actions */
+  .engine-busy { opacity: 0.62; pointer-events: none; transition: opacity 0.15s ease; }
+  .engine-busy::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(2,2,3,0.28);
+    border-radius: inherit;
+  }
+  /* Animated progress bar at top of engine while busy */
+  .engine-busy::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    z-index: 51;
+    background: linear-gradient(90deg, transparent 0%, rgba(var(--ar),var(--ag),var(--ab),0.9) 50%, transparent 100%);
+    background-size: 60% 100%;
+    animation: engineBusyBar 1s linear infinite;
+  }
+  @keyframes engineBusyBar {
+    0%   { background-position: -60% 0; }
+    100% { background-position: 160% 0; }
+  }
+
+  /* Presence pulse for online dots */
+  @keyframes presencePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+    50% { box-shadow: 0 0 0 5px rgba(52,211,153,0.25); }
+  }
+  .presence-pulse { animation: presencePulse 2s ease-in-out infinite; }
+
+  /* Host badge */
+  .host-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.08rem 0.38rem;
+    border-radius: 0.28rem;
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    background: rgba(var(--ar),var(--ag),var(--ab),0.18);
+    color: var(--ac);
+    border: 1px solid rgba(var(--ar),var(--ag),var(--ab),0.3);
+    margin-right: 0.2rem;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* Button loading spinner */
+  @keyframes btnSpin { to { transform: rotate(360deg); } }
+  .btn-loading { position: relative; color: transparent !important; pointer-events: none; }
+  .btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 1rem; height: 1rem;
+    top: 50%; left: 50%;
+    margin: -0.5rem 0 0 -0.5rem;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btnSpin 0.6s linear infinite;
+  }
+
+  /* Skeleton shimmer for loading states */
+  @keyframes skeletonShimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+  .skeleton-line {
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+    border-radius: 0.5rem;
+    min-height: 0.9rem;
+  }
+
+  /* Smooth waiting overlay transitions */
+  #waiting-overlay { transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1), visibility 0.5s; }
+
+  /* Connection restored flash */
+  @keyframes connectionFlash {
+    0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+    100% { box-shadow: 0 0 0 12px rgba(52,211,153,0); }
+  }
+  .connection-flash { animation: connectionFlash 0.8s ease-out; }
 
   .lobby-input {
     width: 100%;
@@ -449,33 +631,50 @@
   <div class="bg-overlay"></div>
   <div class="tactical-grid"></div>
 
-  <div id="waiting-overlay" class="p-4">
-    <div class="relative w-24 h-24 mb-6">
-      <div class="absolute inset-0 rounded-full border-4 border-white/10"></div>
-      <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin border-ac"></div>
+  <div id="waiting-overlay" class="p-4 md:p-8">
+    <!-- Radar pulse ring -->
+    <div class="relative w-20 h-20 md:w-24 md:h-24 mb-5 md:mb-7 shrink-0">
+      <div class="absolute inset-0 rounded-full border-2 border-white/8"></div>
+      <div class="absolute inset-[-6px] rounded-full border border-ac/20 animate-[ping_2.4s_ease-out_infinite]"></div>
+      <div class="absolute inset-[-12px] rounded-full border border-ac/10 animate-[ping_2.4s_ease-out_0.8s_infinite]"></div>
+      <div class="absolute inset-0 rounded-full border-[3px] border-t-transparent border-ac animate-spin" style="animation-duration:1.1s"></div>
       <div class="absolute inset-0 flex items-center justify-center">
-        <i data-lucide="radar" class="w-8 h-8 text-ac animate-pulse"></i>
-      </div>
-    </div>
-    <h2 class="font-display font-black text-3xl md:text-4xl text-white mb-2 text-center px-4">Waiting Room</h2>
-    <p id="waiting-copy" class="text-sm text-gray-400 max-w-sm px-4 text-center leading-relaxed">
-      Lobby unlocks automatically when both players are connected.
-    </p>
-    <div class="mt-8 flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-3 rounded-2xl">
-      <div class="flex items-center gap-2">
-        <span id="waiting-you-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600"></span>
-        <span class="text-xs font-bold text-white">You</span>
-      </div>
-      <span class="text-gray-600 font-black italic">VS</span>
-      <div class="flex items-center gap-2">
-        <span id="waiting-opponent-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600"></span>
-        <span id="waiting-opponent-name" class="text-xs font-bold text-gray-300">Opponent</span>
+        <i data-lucide="radar" class="w-7 h-7 md:w-9 md:h-9 text-ac" style="filter:drop-shadow(0 0 8px rgba(var(--ar),var(--ag),var(--ab),0.7))"></i>
       </div>
     </div>
 
-    <div class="mt-4 px-5 py-3 rounded-2xl border border-amber-400/25 bg-amber-500/10 text-center">
-      <p class="text-[10px] font-black uppercase tracking-widest text-amber-200">No-Show Auto-Forfeit In</p>
-      <p id="waiting-noshow-timer" class="mt-1 font-mono font-black text-2xl text-amber-100 tracking-widest">15:00</p>
+    <!-- Title + copy -->
+    <div class="text-center mb-6 md:mb-8 px-4">
+      <p class="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500 mb-1.5">Pre-Match</p>
+      <h2 class="font-display font-black text-2xl md:text-4xl text-white leading-tight">Syncing Players</h2>
+      <p id="waiting-copy" class="text-xs md:text-sm text-gray-400 max-w-xs md:max-w-sm mt-2 leading-relaxed mx-auto">
+        Lobby unlocks automatically when both players are connected.
+      </p>
+    </div>
+
+    <!-- Presence card -->
+    <div class="flex items-center gap-3 md:gap-5 bg-white/4 border border-white/10 backdrop-blur-sm px-4 md:px-7 py-3 md:py-4 rounded-2xl mb-4 w-full max-w-xs md:max-w-sm">
+      <!-- You -->
+      <div class="flex flex-col items-center gap-1.5 flex-1">
+        <span id="waiting-you-dot" class="w-3 h-3 rounded-full bg-gray-600 transition-all duration-500"></span>
+        <span class="text-[10px] font-black uppercase tracking-wider text-white">You</span>
+      </div>
+      <!-- Divider -->
+      <div class="flex flex-col items-center gap-0.5 shrink-0">
+        <span class="text-[10px] font-black text-gray-600 italic">VS</span>
+        <div class="h-px w-10 bg-white/10"></div>
+      </div>
+      <!-- Opponent -->
+      <div class="flex flex-col items-center gap-1.5 flex-1">
+        <span id="waiting-opponent-dot" class="w-3 h-3 rounded-full bg-gray-600 transition-all duration-500"></span>
+        <span id="waiting-opponent-name" class="text-[10px] font-black uppercase tracking-wider text-gray-300 truncate max-w-[72px]">Opponent</span>
+      </div>
+    </div>
+
+    <!-- No-show countdown -->
+    <div class="w-full max-w-xs md:max-w-sm px-4 py-3 rounded-2xl border border-amber-400/20 bg-amber-500/8 text-center">
+      <p class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">Auto-Forfeit Countdown</p>
+      <p id="waiting-noshow-timer" class="mt-1 font-mono font-black text-xl md:text-2xl text-amber-100 tracking-widest tabular-nums">15:00</p>
     </div>
   </div>
 
@@ -490,7 +689,7 @@
           <div class="h-5 w-px bg-white/10"></div>
           <div class="min-w-0">
             <p id="nav-match-id" class="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">Match</p>
-            <h1 id="nav-tourney-name" class="text-sm md:text-base font-bold text-white uppercase tracking-wide truncate" style="font-family:Outfit,sans-serif;">Tournament</h1>
+            <h1 id="nav-tournament-name" class="text-sm md:text-base font-bold text-white uppercase tracking-wide truncate" style="font-family:Outfit,sans-serif;">Tournament</h1>
           </div>
         </div>
 
@@ -519,7 +718,10 @@
             <div class="absolute inset-0 bg-gradient-to-r from-[rgba(var(--ar),var(--ag),var(--ab),0.1)] via-transparent to-[rgba(255,42,85,0.05)] pointer-events-none"></div>
 
             <div class="flex items-center gap-2.5 md:gap-4 relative z-10 flex-1">
-              <div id="hero-team-a-logo" class="w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-ac-subtle border border-ac-subtle flex items-center justify-center font-display font-black text-base md:text-2xl text-ac shadow-ac shrink-0 overflow-hidden">A</div>
+              <div class="relative shrink-0">
+                <div id="hero-team-a-logo" class="w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-ac-subtle border border-ac-subtle flex items-center justify-center font-display font-black text-base md:text-2xl text-ac shadow-ac overflow-hidden">A</div>
+                <span id="hero-presence-dot-1" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#020203] bg-gray-600 transition-colors duration-300" title="Side 1 offline"></span>
+              </div>
               <div class="min-w-0">
                 <h2 id="hero-team-a-name" class="font-display font-black text-sm md:text-2xl text-white truncate">Participant A</h2>
                 <p id="hero-team-a-meta" class="text-[9px] md:text-[10px] text-gray-400 font-mono uppercase tracking-widest mt-0.5 truncate">Side 1</p>
@@ -536,38 +738,51 @@
                 <h2 id="hero-team-b-name" class="font-display font-black text-sm md:text-2xl text-white truncate">Participant B</h2>
                 <p id="hero-team-b-meta" class="text-[9px] md:text-[10px] text-gray-400 font-mono uppercase tracking-widest mt-0.5 truncate">Side 2</p>
               </div>
-              <div id="hero-team-b-logo" class="w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center font-display font-black text-base md:text-2xl text-red-400 shrink-0 overflow-hidden">B</div>
+              <div class="relative shrink-0">
+                <div id="hero-team-b-logo" class="w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center font-display font-black text-base md:text-2xl text-red-400 overflow-hidden">B</div>
+                <span id="hero-presence-dot-2" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#020203] bg-gray-600 transition-colors duration-300" title="Side 2 offline"></span>
+              </div>
             </div>
           </div>
 
           <div id="phase-tracker" class="flex items-center justify-start md:justify-center gap-2 md:gap-4 max-w-[640px] mx-auto overflow-x-auto hide-scroll px-1"></div>
 
-          <div id="engine-container" class="space-y-6"></div>
+          <div id="engine-container" class="space-y-6 relative"></div>
         </div>
       </main>
 
       <aside class="hidden lg:flex w-[340px] xl:w-[380px] shrink-0 min-h-0 h-full overflow-hidden glass-panel border-l border-white/5 flex-col z-20">
         <div class="flex border-b border-white/5">
-          <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-ac border-b-2 border-ac transition-colors" id="dt-tab-chat" type="button">Lobby Chat</button>
+          <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-ac border-b-2 border-ac transition-colors" id="dt-tab-chat" type="button">
+            <i data-lucide="message-circle" class="w-3 h-3 inline mr-0.5 pb-0.5"></i> Chat
+            <span id="chat-unread-badge" class="ml-1 hidden text-[8px] bg-ac/20 text-ac px-1.5 py-0.5 rounded-full font-black tabular-nums">0</span>
+          </button>
           <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 border-b-2 border-transparent hover:text-white transition-colors" id="dt-tab-intel" type="button">Match Rules</button>
           <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-yellow-300 border-b-2 border-transparent hover:text-white transition-colors hidden-state" id="dt-tab-admin" type="button"><i data-lucide="shield-alert" class="w-3 h-3 inline pb-0.5"></i> Admin</button>
         </div>
 
         <div id="side-chat" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <div class="flex-1 overflow-y-auto p-5 space-y-4 hide-scroll" id="chat-window">
-            <div id="chat-empty-state" class="chat-empty-state">
-              <div class="flex items-center justify-center gap-2 mb-2">
-                <span class="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-200 text-[10px] font-black inline-flex items-center justify-center">G</span>
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">GLHF Channel Live</span>
-                <span class="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-200 text-[10px] font-black inline-flex items-center justify-center">F</span>
+          <div class="chat-messages-container flex-1 overflow-y-auto hide-scroll" id="chat-window">
+            <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full px-6 py-10 text-center">
+              <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+                <i data-lucide="messages-square" class="w-7 h-7 text-gray-600"></i>
               </div>
-              <p class="text-xs text-gray-400 leading-relaxed">First clean comm wins tempo. Share lobby confirms, score snaps, and issue tags here.</p>
+              <p class="text-[11px] font-black uppercase tracking-widest text-gray-500 mb-1">Match Chat</p>
+              <p class="text-[10px] text-gray-600 leading-relaxed max-w-[200px]">Communicate with your opponent. Be respectful.</p>
             </div>
           </div>
-          <div class="p-4 bg-black/40 border-t border-white/5">
-            <form id="chat-form" class="relative">
-              <input type="text" id="chat-input" placeholder="Message opponent..." class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-ac transition-colors">
-              <button type="submit" class="absolute right-2 top-2 p-1.5 bg-ac-subtle text-ac rounded-lg hover:bg-ac/20 transition-colors"><i data-lucide="send" class="w-4 h-4"></i></button>
+          <div id="chat-typing-indicator" class="px-4 py-1 hidden">
+            <span class="chat-typing-dots"><span></span><span></span><span></span></span>
+            <span class="text-[9px] text-gray-600 italic ml-1">typing…</span>
+          </div>
+          <div class="chat-input-area">
+            <form id="chat-form" class="chat-input-row">
+              <input type="text" id="chat-input" maxlength="400" placeholder="Message…"
+                     class="chat-input" autocomplete="off" />
+              <button type="submit" id="chat-send-btn" class="chat-send-btn" disabled>
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+              <span id="chat-char-count" class="chat-char-counter">0</span>
             </form>
           </div>
         </div>
@@ -584,6 +799,9 @@
               <button id="admin-force-next" class="w-full py-2.5 rounded-lg border border-yellow-400/50 text-yellow-300 text-xs font-black uppercase tracking-wider hover:bg-yellow-500/20 transition-colors" type="button">Force Next Phase</button>
               <button id="admin-open-override" class="w-full py-2.5 rounded-lg border border-red-400/50 text-red-300 text-xs font-black uppercase tracking-wider hover:bg-red-500/20 transition-colors" type="button">Override Score</button>
               <button id="admin-broadcast" class="w-full py-2.5 rounded-lg border border-ac/50 text-ac text-xs font-black uppercase tracking-wider hover:bg-ac/20 transition-colors" type="button">Broadcast</button>
+              <button id="admin-voice-link" class="w-full py-2.5 rounded-lg border border-[#5865F2]/50 text-[#5865F2] text-xs font-black uppercase tracking-wider hover:bg-[#5865F2]/20 transition-colors flex items-center justify-center gap-1.5" type="button">
+                <i data-lucide="headphones" class="w-3.5 h-3.5"></i> Link Voice Channel
+              </button>
             </div>
           </div>
         </div>
@@ -597,9 +815,10 @@
         <i data-lucide="swords" class="w-5 h-5"></i>
         <span class="text-[9px] font-black uppercase tracking-widest">Action</span>
       </button>
-      <button class="flex flex-col items-center gap-1 w-16 p-2 text-gray-500 hover:text-white transition-transform active:scale-95" id="mob-tab-chat" type="button">
+      <button class="flex flex-col items-center gap-1 w-16 p-2 text-gray-500 hover:text-white transition-transform active:scale-95 relative" id="mob-tab-chat" type="button">
         <i data-lucide="message-square" class="w-5 h-5"></i>
         <span class="text-[9px] font-black uppercase tracking-widest">Chat</span>
+        <span id="mobile-chat-unread-badge" class="absolute top-0.5 right-1.5 hidden text-[7px] bg-ac/20 text-ac px-1 py-0.5 rounded-full font-black tabular-nums min-w-[16px] text-center">0</span>
       </button>
       <button class="flex flex-col items-center gap-1 w-16 p-2 text-gray-500 hover:text-white transition-transform active:scale-95" id="mob-tab-intel" type="button">
         <i data-lucide="book-open" class="w-5 h-5"></i>
@@ -636,7 +855,30 @@
     </div>
   </div>
 
-  <div id="room-toast"></div>
+  <!-- SOS / Referee Signal Modal -->
+  <div id="sos-modal" class="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm hidden-state items-center justify-center p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-5 border border-red-500/30">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-black uppercase tracking-widest text-red-300 flex items-center gap-2">
+          <i data-lucide="siren" class="w-4 h-4"></i>SOS — Signal Referee
+        </h3>
+        <button id="sos-close" type="button" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <p class="text-[11px] text-gray-400 mb-4">Describe the issue so the tournament operator can assist immediately.</p>
+      <label class="block text-xs text-gray-400">Issue Headline <span class="text-red-400">*</span>
+        <input id="sos-headline" type="text" maxlength="120" class="lobby-input mt-1" placeholder="e.g. Opponent disconnected / score dispute" />
+      </label>
+      <label class="block text-xs text-gray-400 mt-3">Full Description <span class="text-red-400">*</span>
+        <textarea id="sos-description" maxlength="600" class="lobby-input mt-1 min-h-[90px]" placeholder="Provide as much detail as possible (min 10 characters)"></textarea>
+      </label>
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button id="sos-cancel" type="button" class="px-4 py-2 rounded-lg border border-white/20 text-xs font-bold uppercase tracking-wider text-gray-200">Cancel</button>
+        <button id="sos-send" type="button" class="px-5 py-2.5 rounded-lg bg-red-500 text-white text-xs font-black uppercase tracking-wider hover:bg-red-400 active:scale-95 transition-all">Send SOS</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="room-toast" aria-live="polite" role="status"></div>
 </div>
 
 <input type="hidden" id="match-room-csrf-token" value="{{ csrf_token }}">
@@ -648,12 +890,12 @@
 {# <script defer src="{% static 'tournaments/js/match-room.js' %}"></script> #}
 
 {# Modular match-room pipeline: core orchestrator + phase modules #}
-<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260402j"></script>
+<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260406e"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-coin-toss.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-direct-ready.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-map-veto.js' %}"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260406e"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260406e"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260406e"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-completed.js' %}"></script>
 {% endblock %}
