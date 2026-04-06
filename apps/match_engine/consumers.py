@@ -318,12 +318,12 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             self.is_participant = False
             self.participant_side = None
 
-        # Display name: use participant name for participants, real username for staff
+        # Display name: use participant name for participants, fixed label for staff
         if self.is_participant and self.participant_side:
             side_name = match.participant1_name if self.participant_side == 1 else match.participant2_name
             self.chat_display_name = side_name or self.user.username
         elif self.is_official_staff:
-            self.chat_display_name = self.user.username
+            self.chat_display_name = "Tournament Admin"
 
         allowed_origins = self.get_allowed_origins()
         if allowed_origins:

@@ -1459,20 +1459,20 @@
 
     var myParticipant = participantForSide(mySide());
     var me = asObject(state.room.me);
+    var isAdmin = bool(me.admin_mode, false) || bool(me.is_staff, false);
 
     // Optimistic local append — shows instantly
     appendChatBubble({
-      side: mySide(),
+      side: mySide() || 0,
       user_id: toInt(me.user_id, 0),
-      username: String(myParticipant.name || me.username || 'You'),
-      sender_name: String(myParticipant.name || me.username || 'You'),
-      display_name: String(myParticipant.name || me.username || 'You'),
+      sender_name: isAdmin ? 'Tournament Admin' : String(myParticipant.name || me.username || 'You'),
+      username: isAdmin ? 'Tournament Admin' : String(myParticipant.name || me.username || 'You'),
+      role: isAdmin ? 'admin' : (mySide() === 1 ? 'host' : 'guest'),
       avatar_url: String(myParticipant.logo_url || ''),
       text: text,
       message: text,
-      role: mySide() === 1 ? 'host' : (mySide() === 2 ? 'guest' : 'user'),
       timestamp: new Date().toISOString(),
-      is_official: false,
+      is_official: isAdmin,
     });
 
     // Send to server
