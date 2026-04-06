@@ -193,17 +193,28 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         return None
 
     async def direct_broadcast(self, method_name: str, event_data: dict) -> None:
-        """Bypasses Redis completely. Broadcasts directly to connected sockets in this process."""
+        """Bypasses Redis completely. Broadcasts directly to connected sockets in this process.
+
+        Uses asyncio.gather so every coroutine is actually awaited — create_task
+        fires-and-forgets which silently drops messages when the task is GC'd before
+        the event loop schedules it.
+        """
         if not hasattr(self, "match_id"):
             return
         clients = list(_global_match_clients.get(self.match_id, []))
+        coros = []
         for client in clients:
             try:
                 method = getattr(client, method_name, None)
                 if method:
-                    asyncio.create_task(method(event_data))
+                    coros.append(method(event_data))
             except Exception as e:
-                logger.error(f"Direct broadcast failed for client: {e}")
+                logger.error(f"direct_broadcast: failed building coroutine for {method_name}: {e}")
+        if coros:
+            results = await asyncio.gather(*coros, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"direct_broadcast: delivery error in {method_name}: {result}")
 
     async def connect(self) -> None:
         self.match_id = self.scope.get("url_route", {}).get("kwargs", {}).get("match_id")
