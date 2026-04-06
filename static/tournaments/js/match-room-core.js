@@ -1258,19 +1258,30 @@
 
   function renderMobileChat() {
     if (!elements.mobilePanelContent) return;
-    // Build a persistent mobile chat shell — messages inserted via appendChatBubble
-    elements.mobilePanelContent.innerHTML =
-      '<div class="flex flex-col h-full">' +
-      '<div id="mobile-chat-window" class="chat-messages-container flex-1 overflow-y-auto hide-scroll"></div>' +
-      '<div id="mobile-chat-typing" class="px-3 py-1 hidden"><span class="chat-typing-dots"><span></span><span></span><span></span></span><span class="text-[9px] text-gray-600 italic ml-1">typing…</span></div>' +
-      '<div class="chat-input-wrapper">' +
-      '<form id="mobile-chat-form" class="chat-input-box">' +
-      '<input id="mobile-chat-input" type="text" maxlength="400" placeholder="Message…" autocomplete="off" />' +
-      '<button type="submit" id="mobile-chat-send" class="chat-send-btn"><i data-lucide="send" class="w-4 h-4"></i></button>' +
-      '</form></div></div>';
-    // Copy existing messages from desktop
+    elements.mobilePanelContent.innerHTML = `
+      <div class="flex flex-col h-full bg-[#050508]">
+        <div id="voice-widget-mobile" class="hidden-state p-3 border-b border-white/5 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-[#5865F2]/10 relative">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#5865F2]"></div>
+          <div class="flex items-center justify-between relative z-10">
+            <div class="flex items-center gap-2">
+              <i data-lucide="headphones" class="w-4 h-4 text-[#5865F2]"></i>
+              <span class="text-[10px] font-black uppercase text-white tracking-widest">Official Comms</span>
+            </div>
+            <a id="voice-widget-link-mobile" href="#" target="_blank" class="px-4 py-1.5 bg-[#5865F2] text-white text-[9px] font-black uppercase rounded-lg">Join</a>
+          </div>
+        </div>
+        <div id="mobile-chat-window" class="chat-messages-container flex-1 overflow-y-auto hide-scroll p-4 space-y-4"></div>
+        <div id="mobile-chat-typing" class="px-3 py-1 hidden"><span class="chat-typing-dots"><span></span><span></span><span></span></span><span class="text-[9px] text-gray-600 italic ml-1">typing…</span></div>
+        <div class="p-3 border-t border-white/5 bg-[#0A0A0F] shrink-0">
+          <form id="mobile-chat-form" class="relative flex items-center bg-[#1A1F29] border border-white/10 rounded-xl focus-within:border-[#00F0FF]">
+            <input id="mobile-chat-input" type="text" maxlength="400" placeholder="Message..." autocomplete="off" class="w-full bg-transparent border-none text-[13px] text-white px-4 py-3 focus:outline-none">
+            <button type="submit" id="mobile-chat-send" class="absolute right-1.5 p-2 text-[#00F0FF] hover:bg-[#00F0FF]/15 rounded-lg"><i data-lucide="send" class="w-4 h-4"></i></button>
+          </form>
+        </div>
+      </div>`;
+
     if (elements.chatWindow) {
-      var mcw = byId('mobile-chat-window');
+      var mcw = document.getElementById('mobile-chat-window');
       if (mcw) {
         Array.from(elements.chatWindow.children).forEach(function (child) {
           if (child.id === 'chat-empty-state') return;
@@ -1279,11 +1290,11 @@
         mcw.scrollTop = mcw.scrollHeight;
       }
     }
-    var form = byId('mobile-chat-form');
-    if (form) form.addEventListener('submit', function (e) { e.preventDefault(); submitChat(byId('mobile-chat-input')); });
-    var mobInput = byId('mobile-chat-input');
+    var form = document.getElementById('mobile-chat-form');
+    if (form) form.addEventListener('submit', function (e) { e.preventDefault(); submitChat(document.getElementById('mobile-chat-input')); });
+    var mobInput = document.getElementById('mobile-chat-input');
     if (mobInput) mobInput.addEventListener('input', function () { handleChatTyping(); });
-    maybeRunIcons();
+    if (typeof maybeRunIcons === 'function') maybeRunIcons();
   }
 
   function renderMobileIntel() {
@@ -1406,13 +1417,14 @@
   }
 
   function appendSystemChat(text) {
-    clearChatEmptyState();
-    var html = '<div class="chat-system animate-chat-in"><div class="chat-system-line"></div><span class="chat-system-text">' + esc(text) + '</span><div class="chat-system-line"></div></div>';
-    [elements.chatWindow, byId('mobile-chat-window')].forEach(function (win) {
-      if (!win) return;
-      win.insertAdjacentHTML('beforeend', html);
-    });
-    _lastChatAuthor = null; // Reset grouping after system message
+    document.querySelectorAll('#chat-empty-state').forEach(el => el.style.display = 'none');
+    const html = `<div class="flex items-center gap-3 my-4 animate-fade-in"><div class="flex-1 h-px bg-white/10"></div><span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">${esc(text)}</span><div class="flex-1 h-px bg-white/10"></div></div>`;
+    const chatWindow = document.getElementById('chat-window');
+    const mobileChatWindow = document.getElementById('mobile-chat-window');
+
+    if (chatWindow) { chatWindow.insertAdjacentHTML('beforeend', html); chatWindow.scrollTop = chatWindow.scrollHeight; }
+    if (mobileChatWindow) { mobileChatWindow.insertAdjacentHTML('beforeend', html); mobileChatWindow.scrollTop = mobileChatWindow.scrollHeight; }
+    _lastChatAuthor = null;
   }
 
   function clearChatEmptyState() {
@@ -1565,26 +1577,41 @@
 
   // --- Persistent Voice Widget ---
   function updateVoiceWidget(data) {
-    var widget = byId('voice-widget');
-    if (!widget) return;
-    var voiceUrl = String(data.voice_url || '').trim();
-    var label = String(data.voice_label || data.label || 'Voice Channel');
-    var setBy = String(data.set_by || '—');
-    if (!voiceUrl) { widget.classList.add('hidden-state'); return; }
-    var linkEl = byId('voice-widget-link');
-    var labelEl = byId('voice-widget-label');
-    var authorEl = byId('voice-widget-author');
-    var editBtn = byId('voice-widget-edit');
-    if (linkEl) linkEl.href = voiceUrl;
-    if (labelEl) labelEl.textContent = label;
-    if (authorEl) authorEl.textContent = setBy;
-    // Show edit button only for admins
-    if (editBtn) {
-      if (bool(asObject(state.room.me).admin_mode, false)) editBtn.classList.remove('hidden-state');
-      else editBtn.classList.add('hidden-state');
+    const voiceUrl = String(data.voice_url || '').trim();
+    const label = String(data.voice_label || data.label || 'Voice Channel');
+    const setBy = String(data.set_by || '—');
+
+    const widget = document.getElementById('voice-widget');
+    if (widget) {
+        if (!voiceUrl) { widget.classList.add('hidden-state'); }
+        else {
+            const linkEl = document.getElementById('voice-widget-link');
+            const labelEl = document.getElementById('voice-widget-label');
+            const authorEl = document.getElementById('voice-widget-author');
+            const editBtn = document.getElementById('voice-widget-edit');
+
+            if (linkEl) linkEl.href = voiceUrl;
+            if (labelEl) labelEl.textContent = label;
+            if (authorEl) authorEl.textContent = `Linked by ${setBy}`;
+
+            if (editBtn) {
+                if (bool(asObject(state.room.me).admin_mode, false)) editBtn.classList.remove('hidden-state');
+                else editBtn.classList.add('hidden-state');
+            }
+            widget.classList.remove('hidden-state');
+        }
     }
-    widget.classList.remove('hidden-state');
-    maybeRunIcons();
+
+    const mobWidget = document.getElementById('voice-widget-mobile');
+    if (mobWidget) {
+        if (!voiceUrl) { mobWidget.classList.add('hidden-state'); }
+        else {
+            const mobLink = document.getElementById('voice-widget-link-mobile');
+            if (mobLink) mobLink.href = voiceUrl;
+            mobWidget.classList.remove('hidden-state');
+        }
+    }
+    if (typeof maybeRunIcons === 'function') maybeRunIcons();
   }
 
   function processAnnouncements() {
