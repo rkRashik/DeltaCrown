@@ -1319,7 +1319,7 @@
       var foundLocal = null;
       Object.keys(_pendingLocalIds).forEach(function (lid) {
         var el = _pendingLocalIds[lid];
-        if (!foundLocal && el && el._chatText === data.text) foundLocal = lid;
+        if (!foundLocal && el && el._chatText === (data.text || data.message)) foundLocal = lid;
       });
       if (foundLocal) {
         var el = _pendingLocalIds[foundLocal];
@@ -1345,16 +1345,14 @@
     clearChatEmptyState();
 
     // --- Voice Link Action Card ---
-    // Legacy voice_link chat cards — voice links now use the persistent widget.
-    // Treat any stale voice_link messages from history as system announcements.
     if (msgType === 'voice_link') {
-      appendSystemChat(String(data.text || 'Voice channel linked'));
+      appendSystemChat(String(data.text || data.message || 'Voice channel linked'));
       return;
     }
 
     // --- System messages ---
     if (msgType === 'system') {
-      appendSystemChat(String(data.text || ''));
+      appendSystemChat(String(data.text || data.message || ''));
       return;
     }
 
@@ -1362,15 +1360,20 @@
     var myUid = toInt(asObject(state.room.me).user_id, -1);
     var msgUid = toInt(data.user_id, -2);
     var mine = (side > 0 && side === mySide()) || (myUid >= 0 && myUid === msgUid);
-    var isOfficial = bool(data.is_official, false);
 
-    // --- Role badge ---
+    // --- Role badge (use data.role string, fallback to is_official/side) ---
+    var role = String(data.role || '');
+    if (!role) {
+      if (bool(data.is_official, false)) role = 'admin';
+      else if (side === 1) role = 'host';
+      else if (side === 2) role = 'guest';
+    }
     var roleBadge = '';
-    if (isOfficial) {
+    if (role === 'admin') {
       roleBadge = '<span class="chat-role-badge role-admin">STAFF</span>';
-    } else if (side === 1) {
+    } else if (role === 'host') {
       roleBadge = '<span class="chat-role-badge role-host">HOST</span>';
-    } else if (side === 2) {
+    } else if (role === 'guest') {
       roleBadge = '<span class="chat-role-badge role-guest">GUEST</span>';
     }
 
@@ -1381,9 +1384,9 @@
     _lastChatAuthor = authorId;
     _lastChatTs = msgTs;
 
-    var displayName = String(data.display_name || data.username || 'Unknown');
+    var displayName = String(data.sender_name || data.display_name || data.username || 'Unknown');
     var timeStr = data.timestamp ? shortClock(data.timestamp) : 'now';
-    var textContent = String(data.text || data.message || '');
+    var textContent = String(data.message || data.text || '');
     var isLocal = String(data.id || '').indexOf('local:') === 0;
     var localId = isLocal ? String(data.id) : null;
 
@@ -1395,8 +1398,8 @@
         (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') +
         '</div>';
     } else {
-      var avatarHtml = renderChatAvatar(data, mine, isOfficial);
-      var senderClass = isOfficial ? 'chat-sender admin' : 'chat-sender';
+      var avatarHtml = renderChatAvatar(data, mine, role);
+      var senderClass = role === 'admin' ? 'chat-sender admin' : 'chat-sender';
       html = '<div class="chat-msg animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
         avatarHtml +
         '<div class="chat-content">' +
@@ -1413,15 +1416,15 @@
     if (!mine && !isChatTabActive()) incrementUnreadBadge();
   }
 
-  function renderChatAvatar(data, mine, isOfficial) {
+  function renderChatAvatar(data, mine, role) {
     var avatarUrl = String(data.avatar_url || '').trim();
-    if (isOfficial) {
+    if (role === 'admin') {
       return '<div class="chat-avatar-wrapper" style="background:rgba(255,184,0,0.15);border-color:rgba(255,184,0,0.3);color:#FFB800"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i></div>';
     }
     if (avatarUrl) {
       return '<div class="chat-avatar-wrapper"><img src="' + esc(avatarUrl) + '" alt="" loading="lazy" /></div>';
     }
-    return '<div class="chat-avatar-wrapper" style="font-size:11px;font-weight:700;color:#9ca3af">' + esc(initials(data.username)) + '</div>';
+    return '<div class="chat-avatar-wrapper" style="font-size:11px;font-weight:700;color:#9ca3af">' + esc(initials(data.sender_name || data.username)) + '</div>';
   }
 
   function insertChatHtml(html, localId, textContent) {
@@ -1477,9 +1480,12 @@
       side: mySide(),
       user_id: toInt(me.user_id, 0),
       username: String(myParticipant.name || me.username || 'You'),
+      sender_name: String(myParticipant.name || me.username || 'You'),
       display_name: String(myParticipant.name || me.username || 'You'),
       avatar_url: String(myParticipant.logo_url || ''),
       text: text,
+      message: text,
+      role: mySide() === 1 ? 'host' : (mySide() === 2 ? 'guest' : 'user'),
       timestamp: new Date().toISOString(),
       is_official: false,
     });

@@ -624,10 +624,13 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 "user_id": self.user.id,
                 "username": self.user.username,
                 "display_name": self.chat_display_name,
+                "sender_name": self.chat_display_name,
                 "side": self.participant_side or 0,
                 "is_official": is_official_in_chat,
+                "role": "admin" if is_official_in_chat else ("host" if self.participant_side == 1 else ("guest" if self.participant_side == 2 else "user")),
                 "avatar_url": self.chat_avatar_url or "",
                 "text": text,
+                "message": text,
                 "msg_type": "chat",
                 "timestamp": timezone.now().isoformat(),
             }

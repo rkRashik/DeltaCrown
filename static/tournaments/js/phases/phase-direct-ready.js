@@ -28,7 +28,7 @@
       var ready2 = c.bool(ready['2'], false);
       var side = c.mySide();
       var meReady = side === 1 ? ready1 : (side === 2 ? ready2 : false);
-      var canReady = (side === 1 || side === 2) && !meReady && !c.state.requestBusy;
+      var canReady = (side === 1 || side === 2) && !meReady && !c.state.requestBusy && !c.waitingLocked();
       var statusText = ready1 && ready2
         ? 'Both sides ready. Advancing to lobby setup.'
         : 'Waiting for both sides to confirm.';

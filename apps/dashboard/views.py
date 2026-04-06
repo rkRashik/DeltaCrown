@@ -924,6 +924,17 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
             q_participant = Q(participant1_id=user.id) | Q(participant2_id=user.id)
             if user_team_ids:
                 q_participant |= Q(participant1_id__in=user_team_ids) | Q(participant2_id__in=user_team_ids)
+            # Participant IDs may store Registration.id — include those too
+            try:
+                user_reg_ids = list(
+                    Registration.objects.filter(
+                        user=user, is_deleted=False,
+                    ).values_list("id", flat=True)
+                )
+                if user_reg_ids:
+                    q_participant |= Q(participant1_id__in=user_reg_ids) | Q(participant2_id__in=user_reg_ids)
+            except Exception:
+                user_reg_ids = []
             nm = (
                 Match.objects.filter(q_participant, state__in=upcoming_states, is_deleted=False)
                 .select_related("tournament")
@@ -935,11 +946,12 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 nm_lobby_code = (nm_lobby_info.get('lobby_code') or nm_lobby_info.get('code') or '').strip()
                 nm_lobby_status = str(nm_lobby_info.get('status') or '').strip().lower()
                 nm_lobby_open = bool(nm_lobby_code) and nm_lobby_status not in {'closed', 'completed', 'cancelled'}
+                all_participant_ids = set([user.id] + user_team_ids + user_reg_ids)
                 next_match_info = {
                     "match_id": nm.id,
                     "tournament_name": nm.tournament.name if nm.tournament else "",
                     "tournament_slug": nm.tournament.slug if nm.tournament else "",
-                    "opponent_name": nm.participant2_name if nm.participant1_id == user.id or nm.participant1_id in user_team_ids else nm.participant1_name,
+                    "opponent_name": nm.participant2_name if nm.participant1_id in all_participant_ids else nm.participant1_name,
                     "scheduled_time": nm.scheduled_time,
                     "state": nm.state,
                     "is_live": nm.state == "live",
@@ -950,12 +962,12 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     "game_icon": _img_url(nm.tournament.game, "icon") if nm.tournament and nm.tournament.game else None,
                 }
 
-            window_start = now + timedelta(minutes=15)
+            window_start = now - timedelta(minutes=5)
             window_end = now + timedelta(minutes=60)
             window_matches = (
                 Match.objects.filter(
                     q_participant,
-                    state__in=["scheduled", "check_in", "ready"],
+                    state__in=["scheduled", "check_in", "ready", "live"],
                     is_deleted=False,
                     scheduled_time__gte=window_start,
                     scheduled_time__lte=window_end,
@@ -968,24 +980,23 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 lobby_code = (lobby_info.get('lobby_code') or lobby_info.get('code') or '').strip()
                 lobby_status = str(lobby_info.get('status') or '').strip().lower()
                 lobby_open = bool(lobby_code) and lobby_status not in {'closed', 'completed', 'cancelled'}
-                if not lobby_open:
-                    continue
 
                 starts_in_minutes = max(int((wm.scheduled_time - now).total_seconds() // 60), 0)
-                if starts_in_minutes < 15 or starts_in_minutes > 60:
-                    continue
 
+                all_participant_ids = set([user.id] + user_team_ids + user_reg_ids)
                 imminent_lobby_alert = {
                     "match_id": wm.id,
                     "tournament_name": wm.tournament.name if wm.tournament else "",
                     "tournament_slug": wm.tournament.slug if wm.tournament else "",
-                    "opponent_name": wm.participant2_name if wm.participant1_id == user.id or wm.participant1_id in user_team_ids else wm.participant1_name,
+                    "opponent_name": wm.participant2_name if wm.participant1_id in all_participant_ids else wm.participant1_name,
                     "scheduled_time": wm.scheduled_time,
                     "starts_in_minutes": starts_in_minutes,
                     "lobby_code": lobby_code,
                     "lobby_status": lobby_status,
+                    "lobby_open": lobby_open,
                     "match_room_url": '/tournaments/%s/matches/%s/room/' % (wm.tournament.slug, wm.id) if wm.tournament else '',
                     "game_icon": _img_url(wm.tournament.game, "icon") if wm.tournament and wm.tournament.game else None,
+                    "match_state": wm.state,
                 }
                 break
     except Exception:

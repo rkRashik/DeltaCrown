@@ -82,24 +82,24 @@
                     <div>
                         <p class="text-sm font-bold text-white">Your Position</p>
                         <p class="text-[11px] text-gray-400">
-                            {{ user_standing.wins }}W · {{ user_standing.losses }}L · {{ user_standing.points }} pts · {{ user_standing.win_rate }}% WR
+                            {{ user_standing.wins }}W · {{ user_standing.draws }}D · {{ user_standing.losses }}L · {{ user_standing.points }} pts
                         </p>
                     </div>
                 </div>
                 <div class="hidden sm:flex items-center gap-4 text-xs">
                     <div class="text-center">
-                        <p class="text-emerald-400 font-bold">{{ user_standing.maps_won }}</p>
-                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">Maps W</p>
+                        <p class="text-emerald-400 font-bold">{{ user_standing.goals_for }}</p>
+                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">GF</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-red-400 font-bold">{{ user_standing.maps_lost }}</p>
-                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">Maps L</p>
+                        <p class="text-red-400 font-bold">{{ user_standing.goals_against }}</p>
+                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">GA</p>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold {% if user_standing.map_diff > 0 %}text-emerald-400{% elif user_standing.map_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
-                            {% if user_standing.map_diff > 0 %}+{% endif %}{{ user_standing.map_diff }}
+                        <p class="font-bold {% if user_standing.goal_diff > 0 %}text-emerald-400{% elif user_standing.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
+                            {% if user_standing.goal_diff > 0 %}+{% endif %}{{ user_standing.goal_diff }}
                         </p>
-                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">Diff</p>
+                        <p class="text-[9px] text-gray-600 uppercase tracking-wider">GD</p>
                     </div>
                 </div>
             </div>
@@ -110,20 +110,22 @@
     {% if standings %}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-10">
         <div class="rounded-xl border border-white/[0.06] bg-[#0e0e18] overflow-hidden">
-            <div class="hidden sm:grid grid-cols-[3rem_1fr_4.5rem_3.5rem_3.5rem_3.5rem_5rem_4rem] gap-0 px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.015]">
+            <div class="hidden sm:grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_3rem_3.5rem] gap-0 px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.015]">
                 <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em]">#</span>
                 <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em]">{% if standings.0.is_team %}Team{% else %}Player{% endif %}</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">Played</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">Wins</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">Loss</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">+/−</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">Win Rate</span>
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-right">Points</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">MP</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">W</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">D</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">L</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GF</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GA</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GD</span>
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-right">Pts</span>
             </div>
 
             {% for entry in standings %}
             <div class="lb-row {% if entry.is_current_user %}is-you{% endif %} border-b border-white/[0.03] last:border-b-0">
-                <div class="sm:grid grid-cols-[3rem_1fr_4.5rem_3.5rem_3.5rem_3.5rem_5rem_4rem] gap-0 px-4 py-3 items-center">
+                <div class="sm:grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_3rem_3.5rem] gap-0 px-4 py-3 items-center">
                     <div class="flex items-center gap-3 sm:contents">
                         <div class="rank-badge {% if entry.rank == 1 %}rank-1{% elif entry.rank == 2 %}rank-2{% elif entry.rank == 3 %}rank-3{% else %}rank-default{% endif %} flex-shrink-0">
                             {% if entry.rank == 1 %}
@@ -154,31 +156,45 @@
                         </div>
 
                         <div class="lb-mobile-stats flex-wrap gap-3 mt-2 ml-[2.75rem]">
-                            <span class="text-[10px] text-gray-500">{{ entry.wins }}W-{{ entry.losses }}L</span>
-                            <span class="text-[10px] {% if entry.map_diff > 0 %}text-emerald-400{% elif entry.map_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
-                                {% if entry.map_diff > 0 %}+{% endif %}{{ entry.map_diff }}
+                            <span class="text-[10px] text-gray-400">{{ entry.games_played }}MP</span>
+                            <span class="text-[10px] text-emerald-400">{{ entry.wins }}W</span>
+                            <span class="text-[10px] text-gray-400">{{ entry.draws }}D</span>
+                            <span class="text-[10px] text-red-400">{{ entry.losses }}L</span>
+                            <span class="text-[10px] {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
+                                {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
                             </span>
-                            <span class="text-[10px] text-amber-400 font-bold">{{ entry.points }} pts</span>
+                            <span class="text-[10px] text-amber-400 font-bold">{{ entry.points }}pts</span>
                         </div>
                     </div>
 
                     <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.games_played }}</span>
                     <span class="lb-desktop text-xs text-emerald-400 font-bold text-center tabular-nums">{{ entry.wins }}</span>
+                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.draws }}</span>
                     <span class="lb-desktop text-xs text-red-400 font-bold text-center tabular-nums">{{ entry.losses }}</span>
-                    <span class="lb-desktop text-xs text-center tabular-nums font-bold {% if entry.map_diff > 0 %}text-emerald-400{% elif entry.map_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
-                        {% if entry.map_diff > 0 %}+{% endif %}{{ entry.map_diff }}
+                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_for }}</span>
+                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_against }}</span>
+                    <span class="lb-desktop text-xs text-center tabular-nums font-bold {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
+                        {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
                     </span>
-                    <div class="lb-desktop text-center">
-                        <span class="text-[10px] text-gray-400 tabular-nums">{{ entry.win_rate }}%</span>
-                        <div class="win-bar mt-1 w-full">
-                            <div class="win-bar-fill {% if entry.win_rate >= 60 %}bg-emerald-500{% elif entry.win_rate >= 40 %}bg-amber-500{% else %}bg-red-500{% endif %}"
-                                 style="width: {{ entry.win_rate }}%"></div>
-                        </div>
-                    </div>
                     <span class="lb-desktop text-sm font-display font-black text-amber-400 text-right tabular-nums">{{ entry.points }}</span>
                 </div>
             </div>
             {% endfor %}
+        </div>
+
+        <div class="mt-4 flex items-center gap-4 px-1">
+            <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-[9px] text-gray-600 uppercase tracking-wider">Win = 3 pts</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                <span class="text-[9px] text-gray-600 uppercase tracking-wider">Draw = 1 pt</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span class="text-[9px] text-gray-600 uppercase tracking-wider">Loss = 0 pts</span>
+            </div>
         </div>
     </div>
     {% else %}

@@ -214,12 +214,8 @@ def _draws_allowed_for_match(match: Match) -> bool:
         return False
 
     format_token = str(getattr(tournament, "format", "") or "").strip().lower()
-    if format_token in {
-        str(Tournament.ROUND_ROBIN).lower(),
-        str(Tournament.GROUP_PLAYOFF).lower(),
-        "group_stage",
-        "league",
-    }:
+    DRAW_FORMATS = {"round_robin", "group_playoff", "group_stage", "league"}
+    if format_token in DRAW_FORMATS:
         return True
 
     return False
@@ -1176,7 +1172,28 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
         user_side = 1
     elif match.participant2_id == user.id:
         user_side = 2
-    else:
+
+    # Fallback: participant IDs may store Registration.id instead of User.id
+    if user_side is None:
+        try:
+            from apps.tournaments.models.registration import Registration
+
+            user_reg_ids = set(
+                Registration.objects.filter(
+                    user=user,
+                    tournament_id=match.tournament_id,
+                    is_deleted=False,
+                ).values_list("id", flat=True)
+            )
+            if match.participant1_id in user_reg_ids:
+                user_side = 1
+            elif match.participant2_id in user_reg_ids:
+                user_side = 2
+        except Exception:
+            pass
+
+    # Fallback: team-based tournaments — check TeamMembership
+    if user_side is None:
         try:
             from apps.organizations.models import TeamMembership
 
@@ -1910,7 +1927,12 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 raise ValueError("Check-in window has not opened yet.")
             if check_in_window.get("is_closed"):
                 raise ValueError("Check-in window is closed and both teams are not checked in.")
-            raise ValueError("Both teams must check in before continuing lobby actions.")
+            missing = []
+            if not match.participant1_checked_in:
+                missing.append(match.participant1_name or "Side 1")
+            if not match.participant2_checked_in:
+                missing.append(match.participant2_name or "Side 2")
+            raise ValueError("Waiting for check-in: " + ", ".join(missing) + ".")
 
         def _latest_submission_for_side(side: int) -> Optional[MatchResultSubmission]:
             team_id = _submission_team_id_for_side(match, side)
@@ -2160,6 +2182,12 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             if phase in ("coin_toss", "phase1"):
                 workflow["phase"] = "lobby_setup"
+            elif phase == "lobby_setup":
+                pass  # Already in correct phase
+            elif is_staff:
+                workflow["phase"] = "lobby_setup"  # Staff can save from any phase
+            else:
+                raise ValueError("Credentials can only be saved during lobby setup phases.")
 
             changed = True
             message = "Host broadcasted lobby credentials."
@@ -2169,6 +2197,11 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             if actor_side not in (1, 2) and not is_staff:
                 raise ValueError("Only participants or staff can start the live phase.")
 
+            # Ensure lobby credentials exist before going live (unless admin override)
+            credentials = _safe_dict(workflow.get("credentials"))
+            if not credentials.get("lobby_code") and not is_admin_mode:
+                raise ValueError("Lobby credentials must be shared before starting the match.")
+
             workflow["phase"] = "live"
             if match.state in (Match.SCHEDULED, Match.CHECK_IN, Match.READY, Match.PENDING_RESULT):
                 match.state = Match.LIVE
@@ -2177,6 +2210,20 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
             changed = True
             message = "Match marked live."
+
+        elif action == "start_results":
+            if actor_side not in (1, 2) and not is_staff:
+                raise ValueError("Only participants or staff can advance to the results phase.")
+            current_phase = str(workflow.get("phase") or "").lower()
+            if current_phase not in ("live",) and not is_staff:
+                raise ValueError("Results phase can only be entered from the live phase.")
+
+            workflow["phase"] = "results"
+            if match.state == Match.LIVE:
+                match.state = Match.PENDING_RESULT
+
+            changed = True
+            message = "Match advancing to result submission."
 
         elif action == "submit_result":
             if actor_side not in (1, 2):

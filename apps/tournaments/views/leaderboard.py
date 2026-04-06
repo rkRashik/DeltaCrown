@@ -112,29 +112,48 @@ class TournamentLeaderboardView(DetailView):
             
             games_played = 0
             wins = 0
+            draws = 0
             losses = 0
+            goals_for = 0
+            goals_against = 0
             maps_won = 0
             maps_lost = 0
             
             for match in completed_matches:
                 if match['participant1_id'] == participant_id or match['participant2_id'] == participant_id:
                     games_played += 1
+                    is_p1 = match['participant1_id'] == participant_id
+
+                    # Goals for/against from match scores
+                    p1s = match.get('participant1_score') or 0
+                    p2s = match.get('participant2_score') or 0
+                    if is_p1:
+                        goals_for += p1s
+                        goals_against += p2s
+                    else:
+                        goals_for += p2s
+                        goals_against += p1s
+
                     if match['winner_id'] == participant_id:
                         wins += 1
                     elif match['loser_id'] == participant_id:
                         losses += 1
+                    else:
+                        # Draw: winner_id is None and scores equal
+                        draws += 1
+
                     # Map differential
                     gs = match.get('game_scores') or {}
                     gs_maps = gs.get('maps', []) if isinstance(gs, dict) else gs if isinstance(gs, list) else []
                     for gm in gs_maps:
                         ws = gm.get('winner_side', gm.get('winner_slot', 0))
-                        is_p1 = match['participant1_id'] == participant_id
                         if (ws == 1 and is_p1) or (ws == 2 and not is_p1):
                             maps_won += 1
                         else:
                             maps_lost += 1
             
-            points = wins * 3
+            points = wins * 3 + draws * 1
+            goal_diff = goals_for - goals_against
             win_rate = round(wins / games_played * 100) if games_played > 0 else 0
             
             is_current_user = False
@@ -152,7 +171,11 @@ class TournamentLeaderboardView(DetailView):
                 'registration': registration,
                 'games_played': games_played,
                 'wins': wins,
+                'draws': draws,
                 'losses': losses,
+                'goals_for': goals_for,
+                'goals_against': goals_against,
+                'goal_diff': goal_diff,
                 'points': points,
                 'maps_won': maps_won,
                 'maps_lost': maps_lost,
@@ -164,7 +187,7 @@ class TournamentLeaderboardView(DetailView):
             })
         
         standings.sort(
-            key=lambda x: (-x['points'], -x['wins'], x['games_played'], x['registration_id'])
+            key=lambda x: (-x['points'], -x['goal_diff'], -x['goals_for'], -x['wins'], x['games_played'], x['registration_id'])
         )
         
         for idx, standing in enumerate(standings, start=1):
