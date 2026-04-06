@@ -119,7 +119,7 @@
     phaseTracker: byId('phase-tracker'),
     engineContainer: byId('engine-container'),
     mainScroll: byId('main-scroll'),
-    sideChat: byId('side-chat'),
+    sideChat: byId('view-chat'),
     sideIntel: byId('side-intel'),
     sideAdmin: byId('side-admin'),
     dtTabChat: byId('dt-tab-chat'),
@@ -1350,15 +1350,13 @@
       var voiceUrl = String(extra.voice_url || '').trim();
       var voiceLabel = String(data.text || 'Voice Channel');
       var vcHtml =
-        '<div class="chat-action-card animate-chat-in" data-msg-id="' + esc(msgId) + '">' +
-        '<div class="flex items-center gap-3 p-3 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/25">' +
-        '<div class="w-9 h-9 rounded-lg bg-[#5865F2]/20 flex items-center justify-center flex-shrink-0"><i data-lucide="headphones" class="w-4 h-4 text-[#5865F2]"></i></div>' +
+        '<div class="chat-system-voice animate-chat-in" data-msg-id="' + esc(msgId) + '">' +
         '<div class="flex-1 min-w-0">' +
         '<p class="text-[10px] font-black uppercase tracking-widest text-[#5865F2]/70 mb-0.5">Voice Channel</p>' +
         '<p class="text-xs font-semibold text-white truncate">' + esc(voiceLabel) + '</p>' +
         '</div>' +
-        (voiceUrl ? '<a href="' + esc(voiceUrl) + '" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-[#5865F2] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#4752C4] transition-colors flex-shrink-0">Join</a>' : '') +
-        '</div></div>';
+        (voiceUrl ? '<a href="' + esc(voiceUrl) + '" target="_blank" rel="noopener noreferrer" class="voice-join-btn">Join</a>' : '') +
+        '</div>';
       [elements.chatWindow, byId('mobile-chat-window')].forEach(function (win) {
         if (!win) return;
         var wasAtBottom = (win.scrollHeight - win.scrollTop - win.clientHeight) < 60;
@@ -1385,11 +1383,11 @@
     // --- Role badge ---
     var roleBadge = '';
     if (isOfficial) {
-      roleBadge = '<span class="chat-badge-official">STAFF</span>';
+      roleBadge = '<span class="chat-role-badge role-admin">STAFF</span>';
     } else if (side === 1) {
-      roleBadge = '<span class="chat-badge-host">HOST</span>';
+      roleBadge = '<span class="chat-role-badge role-host">HOST</span>';
     } else if (side === 2) {
-      roleBadge = '<span class="chat-badge-guest">GUEST</span>';
+      roleBadge = '<span class="chat-role-badge role-guest">GUEST</span>';
     }
 
     // --- Message grouping (Discord-style: same author within 2 min = compact) ---
@@ -1408,24 +1406,21 @@
     // --- Build HTML ---
     var html;
     if (isGrouped) {
-      html = '<div class="chat-msg chat-grouped ' + (mine ? 'chat-mine' : 'chat-theirs') + ' animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
-        '<div class="chat-msg-body">' +
-        '<span class="chat-text">' + esc(textContent) + '</span>' +
+      html = '<div class="chat-msg chat-grouped animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
+        '<p class="chat-text">' + esc(textContent) + '</p>' +
         (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') +
-        '</div></div>';
+        '</div>';
     } else {
       var avatarHtml = renderChatAvatar(data, mine, isOfficial);
-      var nameClass = mine ? 'chat-name-mine' : (isOfficial ? 'chat-name-official' : 'chat-name-opponent');
-      html = '<div class="chat-msg ' + (mine ? 'chat-mine' : 'chat-theirs') + ' animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
-        '<div class="chat-avatar-col">' + avatarHtml + '</div>' +
-        '<div class="chat-content-col">' +
-        '<div class="chat-meta"><span class="' + nameClass + '">' + esc(displayName) + '</span>' +
+      var senderClass = isOfficial ? 'chat-sender admin' : 'chat-sender';
+      html = '<div class="chat-msg animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
+        avatarHtml +
+        '<div class="chat-content">' +
+        '<div class="chat-header"><span class="' + senderClass + '">' + esc(displayName) + '</span>' +
         roleBadge +
-        '<span class="chat-timestamp">' + timeStr + '</span></div>' +
-        '<div class="chat-msg-body">' +
-        '<span class="chat-text">' + esc(textContent) + '</span>' +
-        (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') +
-        '</div></div></div>';
+        '<span class="chat-time">' + timeStr + '</span></div>' +
+        '<p class="chat-text">' + esc(textContent) + (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') + '</p>' +
+        '</div></div>';
     }
 
     insertChatHtml(html, localId, textContent);
@@ -1436,10 +1431,13 @@
 
   function renderChatAvatar(data, mine, isOfficial) {
     var avatarUrl = String(data.avatar_url || '').trim();
-    if (isOfficial) return '<div class="chat-avatar chat-avatar-official"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i></div>';
-    if (avatarUrl) return '<div class="chat-avatar"><img src="' + esc(avatarUrl) + '" alt="" class="w-full h-full object-cover rounded-full" loading="lazy" /></div>';
-    var tone = mine ? 'chat-avatar-mine' : 'chat-avatar-opponent';
-    return '<div class="chat-avatar ' + tone + '"><span class="text-[9px] font-bold">' + esc(initials(data.username)) + '</span></div>';
+    if (isOfficial) {
+      return '<div class="chat-avatar-wrapper" style="background:rgba(255,184,0,0.15);border-color:rgba(255,184,0,0.3);color:#FFB800"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i></div>';
+    }
+    if (avatarUrl) {
+      return '<div class="chat-avatar-wrapper"><img src="' + esc(avatarUrl) + '" alt="" loading="lazy" /></div>';
+    }
+    return '<div class="chat-avatar-wrapper" style="font-size:11px;font-weight:700;color:#9ca3af">' + esc(initials(data.username)) + '</div>';
   }
 
   function insertChatHtml(html, localId, textContent) {
@@ -1583,20 +1581,33 @@
     });
   }
 
-  function sendVoiceLink() {
+  function openVoiceLinkModal() {
     if (!bool(asObject(state.room.me).admin_mode, false)) { showToast('Admin mode required.', 'error'); return; }
-    var url = window.prompt('Discord voice channel invite URL:');
-    if (!url || !String(url).trim()) return;
-    url = String(url).trim();
+    var urlInput = byId('voice-link-url');
+    var labelInput = byId('voice-link-label');
+    if (urlInput) urlInput.value = '';
+    if (labelInput) labelInput.value = 'Match Voice Channel';
+    var modal = byId('voice-link-modal');
+    if (modal) { modal.classList.remove('hidden-state'); modal.classList.add('flex'); }
+    if (urlInput) window.setTimeout(function () { urlInput.focus(); }, 80);
+  }
+
+  function closeVoiceLinkModal() {
+    var modal = byId('voice-link-modal');
+    if (modal) { modal.classList.add('hidden-state'); modal.classList.remove('flex'); }
+  }
+
+  function submitVoiceLink() {
+    var url = String((byId('voice-link-url') || {}).value || '').trim();
+    var label = String((byId('voice-link-label') || {}).value || 'Match Voice Channel').trim();
+    if (!url) { showToast('Voice Channel URL is required.', 'error'); return; }
     if (url.length > 500) { showToast('URL too long (max 500 chars).', 'error'); return; }
-    var label = window.prompt('Label (optional):', 'Voice Channel');
-    if (label === null) return;
-    label = String(label || 'Voice Channel').trim();
     if (!state.wsConnected || !state.ws || state.ws.readyState !== window.WebSocket.OPEN) {
       showToast('Not connected — try again.', 'error');
       return;
     }
-    sendSocket({ type: 'voice_link', url: url, label: label });
+    sendSocket({ type: 'voice_link', url: url, label: label || 'Match Voice Channel' });
+    closeVoiceLinkModal();
   }
 
   function processAnnouncements() {
@@ -2052,7 +2063,19 @@
     if (elements.adminOpenOverride) elements.adminOpenOverride.addEventListener('click', openOverrideModal);
     if (elements.adminBroadcast) elements.adminBroadcast.addEventListener('click', handleAdminBroadcast);
     var adminVoiceLink = byId('admin-voice-link');
-    if (adminVoiceLink) adminVoiceLink.addEventListener('click', sendVoiceLink);
+    if (adminVoiceLink) adminVoiceLink.addEventListener('click', openVoiceLinkModal);
+
+    // Voice link modal
+    var voiceLinkClose = byId('voice-link-close');
+    var voiceLinkCancel = byId('voice-link-cancel');
+    var voiceLinkSubmit = byId('voice-link-submit');
+    if (voiceLinkClose) voiceLinkClose.addEventListener('click', closeVoiceLinkModal);
+    if (voiceLinkCancel) voiceLinkCancel.addEventListener('click', closeVoiceLinkModal);
+    if (voiceLinkSubmit) voiceLinkSubmit.addEventListener('click', submitVoiceLink);
+    var voiceLinkUrlInput = byId('voice-link-url');
+    if (voiceLinkUrlInput) {
+      voiceLinkUrlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submitVoiceLink(); } });
+    }
     if (elements.overrideClose) elements.overrideClose.addEventListener('click', closeOverrideModal);
     if (elements.overrideCancel) elements.overrideCancel.addEventListener('click', closeOverrideModal);
     if (elements.overrideApply) elements.overrideApply.addEventListener('click', applyOverrideResult);

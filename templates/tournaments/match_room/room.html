@@ -72,7 +72,7 @@
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
   }
 
-  #side-chat,
+  #view-chat,
   #side-intel,
   #side-admin {
     height: 100%;
@@ -333,47 +333,29 @@
     }
   }
 
-  /* ── Discord-style Chat System ────────────────────────────────── */
-  .chat-messages-container { padding: 8px 0; }
+  /* --- PREMIUM DISCORD-LITE CHAT --- */
+  #view-chat { background: #0B0E14; }
+  .chat-messages-container { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
   .chat-msg {
-    display: flex; gap: 10px; padding: 2px 14px 2px 14px;
-    transition: background 0.1s;
+    display: flex; gap: 12px; padding: 6px 10px; border-radius: 8px; transition: background 0.15s ease;
   }
-  .chat-msg:hover { background: rgba(255,255,255,0.02); }
-  .chat-grouped { padding-left: 46px; }   /* aligned with content column of full msg */
-  .chat-avatar-col { flex-shrink: 0; width: 28px; padding-top: 2px; }
-  .chat-avatar {
-    width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  .chat-msg:hover { background: rgba(255, 255, 255, 0.03); }
+  .chat-grouped { padding-left: 60px; }
+  .chat-avatar-wrapper { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: #1A1F29; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; }
+  .chat-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+  .chat-content { flex: 1; min-width: 0; }
+  .chat-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .chat-sender { font-weight: 700; font-size: 13px; color: #E2E8F0; }
+  .chat-sender.admin { color: #FFB800; text-shadow: 0 0 10px rgba(255,184,0,0.3); }
+  .chat-role-badge {
+    font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 4px;
   }
-  .chat-avatar-mine  { background: rgba(var(--ac-rgb,99,102,241),0.15); border-color: rgba(var(--ac-rgb,99,102,241),0.25); color: var(--ac, #6366f1); }
-  .chat-avatar-opponent { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.10); color: #9ca3af; }
-  .chat-avatar-official { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: #fbbf24; }
-  .chat-content-col { flex: 1; min-width: 0; }
-  .chat-meta { display: flex; align-items: baseline; gap: 6px; margin-bottom: 1px; }
-  .chat-name-mine     { font-size: 11px; font-weight: 700; color: var(--ac, #6366f1); }
-  .chat-name-opponent  { font-size: 11px; font-weight: 700; color: #9ca3af; }
-  .chat-name-official  { font-size: 11px; font-weight: 700; color: #fbbf24; }
-  .chat-badge-official {
-    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
-    padding: 1px 5px; border-radius: 3px;
-    background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25);
-  }
-  .chat-badge-host {
-    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
-    padding: 1px 5px; border-radius: 3px;
-    background: rgba(var(--ac-rgb,99,102,241),0.12); color: var(--ac, #6366f1); border: 1px solid rgba(var(--ac-rgb,99,102,241),0.25);
-  }
-  .chat-badge-guest {
-    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
-    padding: 1px 5px; border-radius: 3px;
-    background: rgba(156,163,175,0.10); color: #9ca3af; border: 1px solid rgba(156,163,175,0.20);
-  }
-  .chat-timestamp { font-size: 9px; color: rgba(255,255,255,0.18); font-variant-numeric: tabular-nums; }
-  .chat-msg:hover .chat-timestamp { color: rgba(255,255,255,0.35); }
-  .chat-msg-body { font-size: 13px; line-height: 1.35; color: #d1d5db; word-break: break-word; }
-  .chat-text { white-space: pre-wrap; }
+  .role-host { background: rgba(0, 240, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.3); }
+  .role-guest { background: rgba(0, 255, 102, 0.15); color: #00FF66; border: 1px solid rgba(0, 255, 102, 0.3); }
+  .role-admin { background: rgba(255, 184, 0, 0.15); color: #FFB800; border: 1px solid rgba(255, 184, 0, 0.3); }
+  .chat-time { font-size: 10px; color: #64748B; }
+  .chat-text { font-size: 13px; color: #CBD5E1; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
   .chat-system {
     display: flex; align-items: center; gap: 8px;
     padding: 6px 14px; margin: 4px 0;
@@ -394,44 +376,38 @@
     40% { transform: scale(1); opacity: 1; }
   }
 
-  /* Chat input area */
-  .chat-input-area {
-    padding: 8px 10px; border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.25);
+  /* Discord Voice Action Card */
+  .chat-system-voice {
+    background: linear-gradient(135deg, rgba(88, 101, 242, 0.1) 0%, rgba(88, 101, 242, 0.02) 100%);
+    border: 1px solid rgba(88, 101, 242, 0.3); border-radius: 8px; padding: 12px; margin: 4px 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .chat-input-row { display: flex; align-items: center; gap: 6px; }
-  .chat-input {
-    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #fff;
-    outline: none; transition: border-color 0.15s;
+  .voice-join-btn {
+    background: #5865F2; color: #fff; padding: 6px 12px; border-radius: 6px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    transition: all 0.2s; display: inline-block; text-decoration: none; white-space: nowrap;
   }
-  .chat-input::placeholder { color: rgba(255,255,255,0.25); }
-  .chat-input:focus { border-color: rgba(var(--ac-rgb,99,102,241),0.5); }
-  .chat-send-btn {
-    width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    border-radius: 8px; border: 1px solid rgba(var(--ac-rgb,99,102,241),0.25);
-    background: rgba(var(--ac-rgb,99,102,241),0.12); color: var(--ac, #6366f1);
-    cursor: pointer; transition: all 0.15s;
-  }
-  .chat-send-btn:hover { background: rgba(var(--ac-rgb,99,102,241),0.22); }
-  .chat-send-btn:active { transform: scale(0.92); }
-  .chat-send-btn:disabled { opacity: 0.35; cursor: default; }
-  .chat-char-counter { font-size: 9px; color: rgba(255,255,255,0.2); font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; }
+  .voice-join-btn:hover { background: #4752C4; box-shadow: 0 0 15px rgba(88,101,242,0.4); }
 
-  .chat-empty-state {
-    margin: 0.35rem;
-    padding: 1rem 0.9rem;
-    border-radius: 0.9rem;
-    border: 1px dashed rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.02);
-    text-align: center;
+  /* Chat Input Area */
+  .chat-input-wrapper { background: #0F131A; padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+  .chat-input-box {
+    display: flex; align-items: center; background: #1A1F29; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 4px 4px 4px 12px; transition: border-color 0.2s;
   }
+  .chat-input-box:focus-within { border-color: #00F0FF; }
+  .chat-input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 13px; outline: none; }
+  .chat-input-box input::placeholder { color: #64748B; }
+  .chat-send-btn {
+    width: 32px; height: 32px; border-radius: 6px; background: rgba(0, 240, 255, 0.1); color: #00F0FF;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; flex-shrink: 0;
+  }
+  .chat-send-btn:hover:not(:disabled) { background: rgba(0, 240, 255, 0.2); transform: scale(1.05); }
+  .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .chat-empty-state { text-align: center; padding: 2rem 1.5rem; }
 
   @keyframes chatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .animate-chat-in { animation: chatIn 0.15s ease-out; }
-
-  /* Voice-link Action Card */
-  .chat-action-card { padding: 4px 14px; margin: 4px 0; }
 
   /* Engine phase transition */
   @keyframes engineFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -761,28 +737,20 @@
           <button class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-yellow-300 border-b-2 border-transparent hover:text-white transition-colors hidden-state" id="dt-tab-admin" type="button"><i data-lucide="shield-alert" class="w-3 h-3 inline pb-0.5"></i> Admin</button>
         </div>
 
-        <div id="side-chat" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <div class="chat-messages-container flex-1 overflow-y-auto hide-scroll" id="chat-window">
-            <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full px-6 py-10 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
-                <i data-lucide="messages-square" class="w-7 h-7 text-gray-600"></i>
-              </div>
-              <p class="text-[11px] font-black uppercase tracking-widest text-gray-500 mb-1">Match Chat</p>
-              <p class="text-[10px] text-gray-600 leading-relaxed max-w-[200px]">Communicate with your opponent. Be respectful.</p>
+        <div id="view-chat" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div id="chat-window" class="chat-messages-container flex-1 overflow-y-auto hide-scroll">
+            <div id="chat-empty-state" class="chat-empty-state flex flex-col items-center justify-center h-full opacity-50">
+              <i data-lucide="messages-square" class="w-10 h-10 text-gray-500 mb-3"></i>
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Match Chat</p>
+              <p class="text-[10px] text-gray-500 mt-1">Lobby communications are recorded.</p>
             </div>
           </div>
-          <div id="chat-typing-indicator" class="px-4 py-1 hidden">
-            <span class="chat-typing-dots"><span></span><span></span><span></span></span>
-            <span class="text-[9px] text-gray-600 italic ml-1">typing…</span>
-          </div>
-          <div class="chat-input-area">
-            <form id="chat-form" class="chat-input-row">
-              <input type="text" id="chat-input" maxlength="400" placeholder="Message…"
-                     class="chat-input" autocomplete="off" />
+          <div class="chat-input-wrapper">
+            <form id="chat-form" class="chat-input-box">
+              <input type="text" id="chat-input" placeholder="Message match lobby…" autocomplete="off" maxlength="400">
               <button type="submit" id="chat-send-btn" class="chat-send-btn" disabled>
                 <i data-lucide="send" class="w-4 h-4"></i>
               </button>
-              <span id="chat-char-count" class="chat-char-counter">0</span>
             </form>
           </div>
         </div>
@@ -879,6 +847,30 @@
   </div>
 
   <div id="room-toast" aria-live="polite" role="status"></div>
+
+  <!-- Voice Link Modal -->
+  <div id="voice-link-modal" class="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm hidden-state items-center justify-center p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-5 border border-[#5865F2]/30">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-black uppercase tracking-widest text-[#5865F2] flex items-center gap-2">
+          <i data-lucide="headphones" class="w-4 h-4"></i> Link Discord Voice
+        </h3>
+        <button id="voice-link-close" type="button" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <label class="block text-xs text-gray-400">Voice Channel URL <span class="text-red-400">*</span>
+        <input id="voice-link-url" type="url" maxlength="500" class="lobby-input mt-1" placeholder="https://discord.gg/..." />
+      </label>
+      <label class="block text-xs text-gray-400 mt-3">Label (optional)
+        <input id="voice-link-label" type="text" maxlength="80" class="lobby-input mt-1" placeholder="Match Voice Channel" value="Match Voice Channel" />
+      </label>
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button id="voice-link-cancel" type="button" class="px-4 py-2 rounded-lg border border-white/20 text-xs font-bold uppercase tracking-wider text-gray-200">Cancel</button>
+        <button id="voice-link-submit" type="button" class="px-4 py-2 rounded-lg bg-[#5865F2] text-white text-xs font-black uppercase tracking-wider hover:bg-[#4752C4] transition-colors flex items-center gap-1.5">
+          <i data-lucide="headphones" class="w-3 h-3"></i> Link Voice
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <input type="hidden" id="match-room-csrf-token" value="{{ csrf_token }}">
@@ -890,12 +882,12 @@
 {# <script defer src="{% static 'tournaments/js/match-room.js' %}"></script> #}
 
 {# Modular match-room pipeline: core orchestrator + phase modules #}
-<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260406e"></script>
+<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260406f"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-coin-toss.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-direct-ready.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-map-veto.js' %}"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260406e"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260406e"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260406e"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260406f"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260406f"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260406f"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-completed.js' %}"></script>
 {% endblock %}

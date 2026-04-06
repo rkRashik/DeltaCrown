@@ -408,15 +408,17 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"type": "match_room_event", "data": event.get("data", {})})
 
     async def match_chat_event(self, event: Dict[str, Any]) -> None:
-        # Skip echo to the original sender (they already got a direct reply)
-        if event.get("sender_channel") == self.channel_name:
-            return
+        data = dict(event.get("data", {}))
+        # Mark as echo for the original sender so the frontend dedup skips re-render
+        user_id = getattr(getattr(self, "user", None), "id", None)
+        if user_id is not None and event.get("sender_user_id") == user_id:
+            data["echo"] = True
         try:
-            await self.send_json({"type": "match_chat", "data": event.get("data", {})})
+            await self.send_json({"type": "match_chat", "data": data})
         except Exception:
             logger.exception(
                 "match_chat_event relay failed",
-                extra={"match_id": getattr(self, "match_id", None), "user_id": getattr(getattr(self, "user", None), "id", None)},
+                extra={"match_id": getattr(self, "match_id", None), "user_id": user_id},
             )
 
     async def match_typing_event(self, event: Dict[str, Any]) -> None:
@@ -580,52 +582,46 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 except Exception:
                     self.chat_avatar_url = ""
 
-            # Staff who are also participants chat as participants, not officials
             is_official_in_chat = self.is_official_staff and not self.is_participant
 
-            # Persist to DB (MatchChatMessage) — returns serialised dict
-            try:
-                msg_data = await self._persist_chat_message(
-                    text=text,
-                    msg_type="chat",
-                    is_official=is_official_in_chat,
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to persist chat message",
-                    extra={"match_id": self.match_id, "user_id": self.user.id},
-                )
-                await self.send_json({"type": "error", "code": "chat_persist_error", "message": "Message could not be saved."})
-                return
+            # Build msg_data immediately — never block broadcast on a DB round-trip
+            msg_data = {
+                "message_id": f"msg:{self.match_id}:{self.user.id}:{int(timezone.now().timestamp() * 1000)}",
+                "match_id": self.match_id,
+                "user_id": self.user.id,
+                "username": self.user.username,
+                "display_name": self.chat_display_name,
+                "side": self.participant_side or 0,
+                "is_official": is_official_in_chat,
+                "avatar_url": self.chat_avatar_url or "",
+                "text": text,
+                "msg_type": "chat",
+                "timestamp": timezone.now().isoformat(),
+            }
 
             logger.info(
                 "Chat message received",
                 extra={
                     "match_id": self.match_id,
                     "user_id": self.user.id,
-                    "username": self.user.username,
                     "side": self.participant_side,
                     "text_len": len(text),
-                    "channel": self.channel_name,
-                    "group": self.room_group_name,
                 },
             )
 
-            # 1) Immediately confirm to sender (no group_send hop)
-            await self.send_json({
-                "type": "match_chat",
-                "data": {**msg_data, "echo": True},
-            })
-
-            # 2) Broadcast to everyone else via group
+            # Broadcast to ALL group members (including sender).
+            # match_chat_event adds echo:True for the sender so the frontend dedup
+            # finds the optimistic bubble and swaps it — no duplicate render.
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "match_chat_event",
                     "data": msg_data,
-                    "sender_channel": self.channel_name,
+                    "sender_user_id": self.user.id,
                 },
             )
+            # Persist to DB asynchronously — never block the broadcast path
+            asyncio.ensure_future(self._store_chat_message_bg(msg_data))
             self._last_chat_ts = now_mono
             return
 
@@ -646,23 +642,25 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 except Exception:
                     self.chat_avatar_url = ""
 
-            try:
-                msg_data = await self._persist_chat_message(
-                    text=label,
-                    msg_type="voice_link",
-                    is_official=True,
-                    extra={"voice_url": voice_url},
-                )
-            except Exception:
-                logger.exception("Failed to persist voice link", extra={"match_id": self.match_id})
-                await self.send_json({"type": "error", "code": "chat_persist_error", "message": "Voice link could not be saved."})
-                return
+            msg_data = {
+                "message_id": f"vc:{self.match_id}:{self.user.id}:{int(timezone.now().timestamp() * 1000)}",
+                "match_id": self.match_id,
+                "user_id": self.user.id,
+                "display_name": self.chat_display_name,
+                "side": self.participant_side or 0,
+                "is_official": True,
+                "avatar_url": self.chat_avatar_url or "",
+                "text": label,
+                "msg_type": "voice_link",
+                "extra": {"voice_url": voice_url},
+                "timestamp": timezone.now().isoformat(),
+            }
 
-            await self.send_json({"type": "match_chat", "data": {**msg_data, "echo": True}})
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {"type": "match_chat_event", "data": msg_data, "sender_channel": self.channel_name},
+                {"type": "match_chat_event", "data": msg_data, "sender_user_id": self.user.id},
             )
+            asyncio.ensure_future(self._store_chat_message_bg(msg_data))
             return
 
         await self.send_json(
@@ -904,35 +902,38 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         return await get_match_sync()
 
     # ------------------------------------------------------------------
-    # Chat persistence (DB-backed — Phase 8)
+    # Chat persistence (DB-backed — Phase 8, non-blocking)
     # ------------------------------------------------------------------
 
-    async def _persist_chat_message(
-        self,
-        text: str,
-        msg_type: str = "chat",
-        is_official: bool = False,
-        extra: dict | None = None,
-    ) -> dict:
-        """Write a MatchChatMessage to the database and return its ws_dict."""
+    async def _store_chat_message_bg(self, msg_data: dict) -> None:
+        """Persist a chat message to MatchChatMessage in the background.
+
+        Fire-and-forget via asyncio.ensure_future — never blocks the
+        broadcast hot-path.
+        """
         from apps.match_engine.models import MatchChatMessage
 
         @database_sync_to_async
-        def _create():
-            return MatchChatMessage.objects.create(
-                match_id=self.match_id,
-                user=self.user if self.user.is_authenticated else None,
-                display_name=self.chat_display_name,
-                avatar_url=self.chat_avatar_url or "",
-                side=self.participant_side or 0,
-                text=text,
-                msg_type=msg_type,
-                is_official=is_official,
-                extra=extra or {},
+        def _create() -> None:
+            MatchChatMessage.objects.create(
+                match_id=msg_data.get("match_id"),
+                user_id=msg_data.get("user_id") or None,
+                display_name=msg_data.get("display_name", ""),
+                avatar_url=msg_data.get("avatar_url", ""),
+                side=msg_data.get("side", 0),
+                text=msg_data.get("text", ""),
+                msg_type=msg_data.get("msg_type", "chat"),
+                is_official=bool(msg_data.get("is_official", False)),
+                extra=msg_data.get("extra") or {},
             )
 
-        obj = await _create()
-        return obj.to_ws_dict()
+        try:
+            await _create()
+        except Exception:
+            logger.warning(
+                "Background chat persist failed",
+                extra={"match_id": msg_data.get("match_id"), "user_id": msg_data.get("user_id")},
+            )
 
     async def _get_chat_history(self, limit: int = 50) -> list:
         """Retrieve the last N chat messages for this match from the DB."""
@@ -946,7 +947,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 .order_by("-created_at")[:limit]
             )
             # Reverse so oldest first (natural chat order)
-            return [m.to_ws_dict() for m in reversed(qs)]
+            return [m.to_ws_dict() for m in reversed(list(qs))]
 
         return await _fetch()
 
