@@ -69,6 +69,9 @@ def _get_redis_presence():
 # Module-level connection pool (lazily initialised by _get_redis_presence).
 _redis_presence_pool = None
 
+# GLOBAL REGISTRY FOR BULLETPROOF FREE-TIER BROADCASTING
+_global_match_clients = {}
+
 # In-memory presence fallback when Redis is unavailable (local dev).
 # Structure: { "presence:match:{id}:user:{uid}": {"payload": str, "expires": float} }
 _memory_presence: dict = {}
@@ -188,6 +191,19 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         if origins:
             return [o.strip() for o in origins.split(",") if o.strip()]
         return None
+
+    async def direct_broadcast(self, method_name: str, event_data: dict) -> None:
+        """Bypasses Redis completely. Broadcasts directly to connected sockets in this process."""
+        if not hasattr(self, "match_id"):
+            return
+        clients = list(_global_match_clients.get(self.match_id, []))
+        for client in clients:
+            try:
+                method = getattr(client, method_name, None)
+                if method:
+                    asyncio.create_task(method(event_data))
+            except Exception as e:
+                logger.error(f"Direct broadcast failed for client: {e}")
 
     async def connect(self) -> None:
         self.match_id = self.scope.get("url_route", {}).get("kwargs", {}).get("match_id")
@@ -318,6 +334,11 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             return
         await self.accept()
 
+        # Register in global client registry for direct in-process broadcast
+        if self.match_id not in _global_match_clients:
+            _global_match_clients[self.match_id] = set()
+        _global_match_clients[self.match_id].add(self)
+
         self.last_pong_time = asyncio.get_event_loop().time()
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
@@ -372,6 +393,12 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code) -> None:
         if hasattr(self, "heartbeat_task"):
             self.heartbeat_task.cancel()
+
+        match_id = getattr(self, "match_id", None)
+        if match_id and match_id in _global_match_clients:
+            _global_match_clients[match_id].discard(self)
+            if not _global_match_clients[match_id]:
+                del _global_match_clients[match_id]
 
         try:
             await asyncio.wait_for(self._unregister_presence(), timeout=2.0)
@@ -548,20 +575,14 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             if not self.is_participant:
                 return
             typing = bool(content.get("typing", False))
-            try:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "match_typing_event",
-                        "data": {
-                            "user_id": self.user.id,
-                            "side": self.participant_side,
-                            "typing": typing,
-                        },
-                    },
-                )
-            except Exception:
-                pass
+            await self.direct_broadcast("match_typing_event", {
+                "type": "match_typing_event",
+                "data": {
+                    "user_id": self.user.id,
+                    "side": self.participant_side,
+                    "typing": typing,
+                },
+            })
             return
 
         if message_type == "chat_message":
@@ -648,25 +669,15 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             # match_chat_event adds echo:True for the sender so the frontend dedup
             # finds the optimistic bubble and swaps it — no duplicate render.
             logger.info(
-                "group_send → group=%s user=%s text_len=%s",
-                self.room_group_name, self.user.id, len(text),
+                "direct_broadcast → match=%s user=%s text_len=%s",
+                self.match_id, self.user.id, len(text),
                 extra={"match_id": self.match_id},
             )
-            try:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "match_chat_event",
-                        "data": msg_data,
-                        "sender_user_id": self.user.id,
-                    },
-                )
-            except Exception as e:
-                logger.error(
-                    "group_send (chat_message) failed: %s",
-                    e,
-                    extra={"match_id": self.match_id, "user_id": self.user.id},
-                )
+            await self.direct_broadcast("match_chat_event", {
+                "type": "match_chat_event",
+                "data": msg_data,
+                "sender_user_id": self.user.id,
+            })
             # Persist to DB asynchronously — never block the broadcast path
             asyncio.ensure_future(self._store_chat_message_bg(msg_data))
             self._last_chat_ts = now_mono
@@ -693,17 +704,10 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             asyncio.ensure_future(self._save_voice_link(widget_data))
 
             # Broadcast widget update to ALL clients (NOT a chat message)
-            try:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {"type": "voice_widget_update", "data": widget_data},
-                )
-            except Exception as e:
-                logger.error(
-                    "group_send (voice_widget_update) failed: %s",
-                    e,
-                    extra={"match_id": self.match_id, "user_id": self.user.id},
-                )
+            await self.direct_broadcast("voice_widget_update", {
+                "type": "voice_widget_update",
+                "data": widget_data,
+            })
 
             # Also post a one-line system chat announcement
             sys_data = {
@@ -718,13 +722,11 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": "system",
                 "timestamp": timezone.now().isoformat(),
             }
-            try:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {"type": "match_chat_event", "data": sys_data, "sender_user_id": self.user.id},
-                )
-            except Exception:
-                pass
+            await self.direct_broadcast("match_chat_event", {
+                "type": "match_chat_event",
+                "data": sys_data,
+                "sender_user_id": self.user.id,
+            })
 
             # Fire Discord webhook asynchronously (if configured)
             asyncio.ensure_future(self._fire_discord_webhook(voice_url, label))
@@ -894,20 +896,10 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         if not hasattr(self, "room_group_name"):
             return
         snapshot = await self._build_presence_snapshot()
-        try:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "match_presence_event",
-                    "data": snapshot,
-                },
-            )
-        except Exception as e:
-            logger.error(
-                "group_send (presence) failed: %s",
-                e,
-                extra={"match_id": self.match_id},
-            )
+        await self.direct_broadcast("match_presence_event", {
+            "type": "match_presence_event",
+            "data": snapshot,
+        })
 
     # ---------------------------------------------------------------------
     # Misc helpers

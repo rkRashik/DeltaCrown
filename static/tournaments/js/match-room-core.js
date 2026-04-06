@@ -1310,15 +1310,14 @@
 
   function appendChatBubble(payload) {
     const data = asObject(payload);
-    console.log('🔥 RENDERING CHAT:', data);
     const chatWindow = document.getElementById('chat-window');
-    const mobileChatWindow = document.getElementById('mobile-chat-window');
+    if (!chatWindow) return;
 
     const msgId = String(data.id || data.message_id || '');
     if (msgId && state.chatIds.has(msgId)) {
         if (data.echo) {
-            const existingTicks = document.querySelectorAll(`[data-delivery-id="${msgId}"]`);
-            existingTicks.forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
+            const ticks = document.querySelectorAll(`[data-delivery-id="${msgId}"]`);
+            ticks.forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
         }
         return;
     }
@@ -1349,37 +1348,32 @@
     const msgText = data.message || data.text || '';
     const isLocal = data.echo || !msgId;
 
-    let avatarHtml = data.is_official ? '<i data-lucide="shield-check" class="w-4 h-4 text-[#FFB800]"></i>' : `<img src="${esc(avatarUrl)}" class="w-full h-full object-cover">`;
+    const avatarHtml = data.is_official ? '<i data-lucide="shield-check" class="w-5 h-5 text-[#FFB800]"></i>' : `<img src="${esc(avatarUrl)}" class="w-full h-full object-cover">`;
 
     const html = `
-        <div class="flex gap-3 mb-3 animate-fade-in group">
-            <div class="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-white/10 bg-[#1A1F29] shadow-lg flex items-center justify-center">
+        <div class="flex gap-4 mb-3 animate-fade-in group">
+            <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-white/10 bg-[#1A1F29] shadow-lg flex items-center justify-center">
                 ${avatarHtml}
             </div>
             <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-2 mb-1">
-                    <span class="font-display font-black text-[14px] ${nameClass}">${esc(senderName)}</span>
-                    <span class="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${roleClass}">${roleText}</span>
-                    <span class="text-[9px] text-gray-600 ml-1 font-mono opacity-0 group-hover:opacity-100 transition-opacity">${timeStr}</span>
+                <div class="flex items-baseline gap-2 mb-1.5">
+                    <span class="font-display font-black text-[15px] ${nameClass}">${esc(senderName)}</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${roleClass}">${roleText}</span>
+                    <span class="text-[10px] text-gray-600 ml-2 font-mono opacity-0 group-hover:opacity-100 transition-opacity">${timeStr}</span>
                 </div>
-                <div class="text-[13px] text-gray-200 leading-relaxed break-words bg-white/[0.04] p-3 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
+                <div class="text-[13px] text-gray-200 leading-relaxed break-words bg-white/[0.04] p-3.5 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
                     ${esc(msgText)}
-                    ${isLocal ? `<span data-delivery-id="${msgId}" class="text-[8px] text-gray-500 ml-2">●</span>` : ''}
+                    ${isLocal ? `<span data-delivery-id="${msgId}" class="text-[10px] text-gray-500 ml-2">●</span>` : ''}
                 </div>
             </div>
         </div>
     `;
 
-    if (chatWindow) {
-        const wasAtBottom = (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight) < 60;
-        chatWindow.insertAdjacentHTML('beforeend', html);
-        if (wasAtBottom) chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-    if (mobileChatWindow) {
-        mobileChatWindow.insertAdjacentHTML('beforeend', html);
-        mobileChatWindow.scrollTop = mobileChatWindow.scrollHeight;
-    }
-    maybeRunIcons();
+    const wasAtBottom = (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight) < 60;
+    chatWindow.insertAdjacentHTML('beforeend', html);
+    if (wasAtBottom) chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   function renderChatAvatar(data, mine, role) {
