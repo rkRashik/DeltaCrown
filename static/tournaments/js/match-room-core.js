@@ -1321,18 +1321,32 @@
 
   function appendChatBubble(payload) {
     const data = asObject(payload);
-    const chatWindow = document.getElementById('chat-window');
-    if (!chatWindow) return;
 
     const msgId = String(data.id || data.message_id || '');
-    if (msgId && state.chatIds.has(msgId)) {
-        if (data.echo) {
-            const ticks = document.querySelectorAll(`[data-delivery-id="${msgId}"]`);
-            ticks.forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
+
+    // Echo from server for a message WE sent — the local optimistic bubble is
+    // already visible. Just update the delivery tick and bail out to avoid a
+    // duplicate bubble.
+    if (data.echo) {
+        if (msgId && state.chatIds.has(msgId)) {
+            // Exact-ID match: update delivery dot on already-rendered server bubble
+            document.querySelectorAll(`[data-delivery-id="${msgId}"]`)
+                .forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
+        } else {
+            // Local optimistic bubble used a 'local:...' id — find the pending dot
+            // by scanning for the oldest unconfirmed dot and confirm it.
+            var dots = document.querySelectorAll('[data-delivery-id]');
+            if (dots.length) { var d = dots[dots.length - 1]; d.textContent = '✓'; d.classList.add('text-[#00F0FF]'); }
         }
-        return;
+        return; // Never render a second bubble for our own echo
     }
+
+    if (msgId && state.chatIds.has(msgId)) return; // already rendered (e.g. history replay)
     if (msgId) state.chatIds.add(msgId);
+
+    const chatWindow = document.getElementById('chat-window');
+    const mobileChatWindow = document.getElementById('mobile-chat-window');
+    if (!chatWindow && !mobileChatWindow) return;
 
     const emptyState = document.getElementById('chat-empty-state');
     if (emptyState) emptyState.style.display = 'none';
@@ -1357,7 +1371,6 @@
     const timeStr = data.timestamp ? shortClock(data.timestamp) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     const senderName = data.sender_name || data.display_name || data.username || 'Unknown';
     const msgText = data.message || data.text || '';
-    const isLocal = data.echo || !msgId;
 
     const avatarHtml = data.is_official ? '<i data-lucide="shield-check" class="w-5 h-5 text-[#FFB800]"></i>' : `<img src="${esc(avatarUrl)}" class="w-full h-full object-cover">`;
 
@@ -1374,15 +1387,17 @@
                 </div>
                 <div class="text-[13px] text-gray-200 leading-relaxed break-words bg-white/[0.04] p-3.5 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
                     ${esc(msgText)}
-                    ${isLocal ? `<span data-delivery-id="${msgId}" class="text-[10px] text-gray-500 ml-2">●</span>` : ''}
                 </div>
             </div>
         </div>
     `;
 
-    const wasAtBottom = (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight) < 60;
-    chatWindow.insertAdjacentHTML('beforeend', html);
-    if (wasAtBottom) chatWindow.scrollTop = chatWindow.scrollHeight;
+    [chatWindow, mobileChatWindow].forEach(function(win) {
+        if (!win) return;
+        var wasAtBottom = (win.scrollHeight - win.scrollTop - win.clientHeight) < 60;
+        win.insertAdjacentHTML('beforeend', html);
+        if (wasAtBottom) win.scrollTop = win.scrollHeight;
+    });
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
@@ -1442,13 +1457,11 @@
       return;
     }
 
-    var localId = 'local:' + nowMs() + ':' + Math.random().toString(36).slice(2, 8);
     var myParticipant = participantForSide(mySide());
     var me = asObject(state.room.me);
 
     // Optimistic local append — shows instantly
     appendChatBubble({
-      id: localId,
       side: mySide(),
       user_id: toInt(me.user_id, 0),
       username: String(myParticipant.name || me.username || 'You'),
@@ -1467,18 +1480,6 @@
     sendSocket({ type: 'chat_message', text: text });
     inputNode.value = '';
     updateChatInputState();
-
-    // Delivery timeout — mark as failed if no echo within 5 seconds
-    (function (lid) {
-      window.setTimeout(function () {
-        var el = _pendingLocalIds[lid];
-        if (el) {
-          var tick = el.querySelector('[data-delivery]');
-          if (tick) { tick.textContent = '✗'; tick.className = 'text-[8px] text-red-400 ml-1'; tick.title = 'Not delivered'; }
-          delete _pendingLocalIds[lid];
-        }
-      }, 5000);
-    })(localId);
   }
 
   // --- Chat Input UX ---

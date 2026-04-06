@@ -195,9 +195,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
     async def direct_broadcast(self, method_name: str, event_data: dict) -> None:
         """Bypasses Redis completely. Broadcasts directly to connected sockets in this process.
 
-        Uses asyncio.gather so every coroutine is actually awaited — create_task
-        fires-and-forgets which silently drops messages when the task is GC'd before
-        the event loop schedules it.
+        Each delivery is wrapped in asyncio.wait_for(timeout=5) so a single
+        slow WebSocket write cannot block the entire broadcast and delay all
+        other recipients.
         """
         if not hasattr(self, "match_id"):
             return
@@ -207,14 +207,14 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             try:
                 method = getattr(client, method_name, None)
                 if method:
-                    coros.append(method(event_data))
+                    coros.append(asyncio.wait_for(method(event_data), timeout=5.0))
             except Exception as e:
                 logger.error(f"direct_broadcast: failed building coroutine for {method_name}: {e}")
         if coros:
             results = await asyncio.gather(*coros, return_exceptions=True)
             for result in results:
                 if isinstance(result, Exception):
-                    logger.error(f"direct_broadcast: delivery error in {method_name}: {result}")
+                    logger.warning(f"direct_broadcast: delivery error in {method_name}: {result}")
 
     async def connect(self) -> None:
         self.match_id = self.scope.get("url_route", {}).get("kwargs", {}).get("match_id")
@@ -308,6 +308,15 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "Failed resolving team participant side",
                     extra={"match_id": self.match_id, "user_id": self.user.id},
                 )
+
+        # If the URL has ?admin=1 and the user is official staff, strip participant
+        # status so their role is fully staff-mode (no GUEST/HOST badge in chat).
+        query_string = self.scope.get("query_string", b"")
+        if isinstance(query_string, bytes):
+            query_string = query_string.decode("utf-8", errors="ignore")
+        if self.is_official_staff and "admin=1" in query_string:
+            self.is_participant = False
+            self.participant_side = None
 
         # Display name: use participant name for participants, real username for staff
         if self.is_participant and self.participant_side:

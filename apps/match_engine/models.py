@@ -161,16 +161,20 @@ class MatchChatMessage(models.Model):
 
     def to_ws_dict(self) -> dict:
         """Serialise for WebSocket broadcast."""
+        role = "admin" if self.is_official else ("host" if self.side == 1 else "guest")
         return {
             "message_id": str(self.pk),
             "match_id": self.match_id,
             "user_id": self.user_id or 0,
             "username": self.display_name,
             "display_name": self.display_name,
+            "sender_name": self.display_name,
+            "role": role,
             "side": self.side,
             "is_official": self.is_official,
             "avatar_url": self.avatar_url,
             "text": self.text,
+            "message": self.text,
             "msg_type": self.msg_type,
             "extra": self.extra or {},
             "timestamp": self.created_at.isoformat() if self.created_at else "",
