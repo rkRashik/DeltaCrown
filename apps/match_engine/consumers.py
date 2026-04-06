@@ -617,20 +617,19 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
             is_official_in_chat = self.is_official_staff and not self.is_participant
 
-            # Build msg_data immediately — never block broadcast on a DB round-trip
+            # Build msg_data immediately
             msg_data = {
                 "message_id": f"msg:{self.match_id}:{self.user.id}:{int(timezone.now().timestamp() * 1000)}",
                 "match_id": self.match_id,
                 "user_id": self.user.id,
                 "username": self.user.username,
-                "display_name": self.chat_display_name,
-                "sender_name": self.chat_display_name,
+                "sender_name": self.chat_display_name, # Critical for UI
+                "role": "admin" if is_official_in_chat else ("host" if self.participant_side == 1 else "guest"), # Critical for UI
                 "side": self.participant_side or 0,
                 "is_official": is_official_in_chat,
-                "role": "admin" if is_official_in_chat else ("host" if self.participant_side == 1 else ("guest" if self.participant_side == 2 else "user")),
                 "avatar_url": self.chat_avatar_url or "",
+                "message": text, # Critical for UI
                 "text": text,
-                "message": text,
                 "msg_type": "chat",
                 "timestamp": timezone.now().isoformat(),
             }

@@ -738,37 +738,36 @@
         </div>
 
         <div id="view-chat" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <!-- Voice Channel Widget (persistent, editable by admin) -->
-          <div id="voice-widget" class="hidden-state" style="flex-shrink:0; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.05); background:linear-gradient(135deg, rgba(88,101,242,0.08) 0%, rgba(88,101,242,0.02) 100%);">
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#5865F2]/20 border border-[#5865F2]/30 flex items-center justify-center">
-                  <i data-lucide="headphones" class="w-4 h-4 text-[#5865F2]"></i>
+          <div id="voice-widget" class="hidden-state p-4 border-b border-white/5 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-[#5865F2]/10 relative overflow-hidden shrink-0">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#5865F2] shadow-[0_0_15px_#5865F2]"></div>
+            <div class="flex items-center justify-between relative z-10">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-[#5865F2]/20 flex items-center justify-center border border-[#5865F2]/40">
+                  <i data-lucide="headphones" class="w-5 h-5 text-[#5865F2]"></i>
                 </div>
-                <div class="min-w-0">
-                  <p id="voice-widget-label" class="text-xs font-bold text-white truncate">Voice Channel</p>
-                  <p class="text-[9px] text-gray-500">Set by <span id="voice-widget-author" class="text-gray-400">—</span></p>
+                <div>
+                  <p id="voice-widget-label" class="text-[11px] font-black uppercase tracking-widest text-white">Match Voice</p>
+                  <p class="text-[9px] text-gray-400 mt-0.5">Linked by <span id="voice-widget-author" class="text-white">Admin</span></p>
                 </div>
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <a id="voice-widget-link" href="#" target="_blank" rel="noopener noreferrer" class="voice-join-btn text-[10px] px-3 py-1.5">Join</a>
-                <button id="voice-widget-edit" type="button" class="hidden-state text-[9px] text-gray-500 hover:text-white transition-colors" title="Edit voice link">
-                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                </button>
+              <div class="flex gap-2">
+                  <button id="voice-widget-edit" class="hidden-state p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                  <a id="voice-widget-link" href="#" target="_blank" class="px-4 py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition shadow-[0_0_15px_rgba(88,101,242,0.4)]">Join</a>
               </div>
             </div>
           </div>
-          <div id="chat-window" class="chat-messages-container flex-1 overflow-y-auto hide-scroll">
-            <div id="chat-empty-state" class="chat-empty-state flex flex-col items-center justify-center h-full opacity-50">
-              <i data-lucide="messages-square" class="w-10 h-10 text-gray-500 mb-3"></i>
-              <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Match Chat</p>
-              <p class="text-[10px] text-gray-500 mt-1">Lobby communications are recorded.</p>
-            </div>
+
+          <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#050508] hide-scroll">
+             <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full opacity-30">
+                <i data-lucide="messages-square" class="w-12 h-12 text-gray-500 mb-3"></i>
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Secure Chat Open</p>
+             </div>
           </div>
-          <div class="chat-input-wrapper">
-            <form id="chat-form" class="chat-input-box">
-              <input type="text" id="chat-input" placeholder="Message match lobby…" autocomplete="off" maxlength="400">
-              <button type="submit" id="chat-send-btn" class="chat-send-btn" disabled>
+
+          <div class="p-3 border-t border-white/5 bg-[#0A0A0F] shrink-0">
+            <form id="chat-form" class="relative flex items-center bg-[#1A1F29] border border-white/10 rounded-xl focus-within:border-[#00F0FF] transition-all duration-300">
+              <input type="text" id="chat-input" placeholder="Message match lobby..." autocomplete="off" class="w-full bg-transparent border-none text-[13px] text-white px-4 py-3 focus:outline-none placeholder-gray-600">
+              <button type="submit" id="chat-send-btn" class="absolute right-1.5 p-2 text-[#00F0FF] hover:bg-[#00F0FF]/15 rounded-lg transition flex items-center justify-center disabled:opacity-50">
                 <i data-lucide="send" class="w-4 h-4"></i>
               </button>
             </form>

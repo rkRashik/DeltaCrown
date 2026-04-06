@@ -1309,111 +1309,77 @@
   var _pendingLocalIds = {};    // localId → DOM element (for delivery ticks)
 
   function appendChatBubble(payload) {
-    var data = asObject(payload);
-    var msgId = String(data.id || data.message_id || '');
-    var isEcho = bool(data.echo, false);
-    var msgType = String(data.msg_type || 'chat');
+    const data = asObject(payload);
+    console.log('🔥 RENDERING CHAT:', data);
+    const chatWindow = document.getElementById('chat-window');
+    const mobileChatWindow = document.getElementById('mobile-chat-window');
 
-    // --- DEDUP ---
-    if (isEcho && msgId) {
-      var foundLocal = null;
-      Object.keys(_pendingLocalIds).forEach(function (lid) {
-        var el = _pendingLocalIds[lid];
-        if (!foundLocal && el && el._chatText === (data.text || data.message)) foundLocal = lid;
-      });
-      if (foundLocal) {
-        var el = _pendingLocalIds[foundLocal];
-        if (el) {
-          var tick = el.querySelector('[data-delivery]');
-          if (tick) { tick.textContent = '✓'; tick.className = 'text-[8px] text-ac/70 ml-1'; }
+    const msgId = String(data.id || data.message_id || '');
+    if (msgId && state.chatIds.has(msgId)) {
+        if (data.echo) {
+            const existingTicks = document.querySelectorAll(`[data-delivery-id="${msgId}"]`);
+            existingTicks.forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
         }
-        delete _pendingLocalIds[foundLocal];
-        state.chatIds.add(msgId);
         return;
-      }
-      if (state.chatIds.has(msgId)) return;
-      state.chatIds.add(msgId);
     }
-
-    if (msgId && state.chatIds.has(msgId)) return;
     if (msgId) state.chatIds.add(msgId);
-    if (state.chatIds.size > 300) {
-      var arr = Array.from(state.chatIds);
-      state.chatIds = new Set(arr.slice(arr.length - 200));
+
+    const emptyState = document.getElementById('chat-empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+
+    let roleClass = 'border-white/10 text-gray-400 bg-white/5';
+    let nameClass = 'text-gray-300';
+    let roleText = String(data.role || 'user').toUpperCase();
+
+    if (data.role === 'admin' || data.is_official) {
+        roleClass = 'border-[#FFB800]/40 text-[#FFB800] bg-[#FFB800]/15';
+        nameClass = 'text-[#FFB800] drop-shadow-[0_0_8px_rgba(255,184,0,0.6)]';
+        roleText = 'STAFF';
+    } else if (data.side === 1 || data.role === 'host') {
+        roleClass = 'border-[#00F0FF]/40 text-[#00F0FF] bg-[#00F0FF]/15';
+        roleText = 'HOST';
+    } else if (data.side === 2 || data.role === 'guest') {
+        roleClass = 'border-[#00FF66]/40 text-[#00FF66] bg-[#00FF66]/15';
+        roleText = 'GUEST';
     }
 
-    clearChatEmptyState();
+    const avatarUrl = data.avatar_url || 'https://i.pravatar.cc/150';
+    const timeStr = data.timestamp ? shortClock(data.timestamp) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const senderName = data.sender_name || data.display_name || data.username || 'Unknown';
+    const msgText = data.message || data.text || '';
+    const isLocal = data.echo || !msgId;
 
-    // --- Voice Link Action Card ---
-    if (msgType === 'voice_link') {
-      appendSystemChat(String(data.text || data.message || 'Voice channel linked'));
-      return;
+    let avatarHtml = data.is_official ? '<i data-lucide="shield-check" class="w-4 h-4 text-[#FFB800]"></i>' : `<img src="${esc(avatarUrl)}" class="w-full h-full object-cover">`;
+
+    const html = `
+        <div class="flex gap-3 mb-3 animate-fade-in group">
+            <div class="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-white/10 bg-[#1A1F29] shadow-lg flex items-center justify-center">
+                ${avatarHtml}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2 mb-1">
+                    <span class="font-display font-black text-[14px] ${nameClass}">${esc(senderName)}</span>
+                    <span class="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${roleClass}">${roleText}</span>
+                    <span class="text-[9px] text-gray-600 ml-1 font-mono opacity-0 group-hover:opacity-100 transition-opacity">${timeStr}</span>
+                </div>
+                <div class="text-[13px] text-gray-200 leading-relaxed break-words bg-white/[0.04] p-3 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
+                    ${esc(msgText)}
+                    ${isLocal ? `<span data-delivery-id="${msgId}" class="text-[8px] text-gray-500 ml-2">●</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (chatWindow) {
+        const wasAtBottom = (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight) < 60;
+        chatWindow.insertAdjacentHTML('beforeend', html);
+        if (wasAtBottom) chatWindow.scrollTop = chatWindow.scrollHeight;
     }
-
-    // --- System messages ---
-    if (msgType === 'system') {
-      appendSystemChat(String(data.text || data.message || ''));
-      return;
+    if (mobileChatWindow) {
+        mobileChatWindow.insertAdjacentHTML('beforeend', html);
+        mobileChatWindow.scrollTop = mobileChatWindow.scrollHeight;
     }
-
-    var side = toInt(data.side, 0);
-    var myUid = toInt(asObject(state.room.me).user_id, -1);
-    var msgUid = toInt(data.user_id, -2);
-    var mine = (side > 0 && side === mySide()) || (myUid >= 0 && myUid === msgUid);
-
-    // --- Role badge (use data.role string, fallback to is_official/side) ---
-    var role = String(data.role || '');
-    if (!role) {
-      if (bool(data.is_official, false)) role = 'admin';
-      else if (side === 1) role = 'host';
-      else if (side === 2) role = 'guest';
-    }
-    var roleBadge = '';
-    if (role === 'admin') {
-      roleBadge = '<span class="chat-role-badge role-admin">STAFF</span>';
-    } else if (role === 'host') {
-      roleBadge = '<span class="chat-role-badge role-host">HOST</span>';
-    } else if (role === 'guest') {
-      roleBadge = '<span class="chat-role-badge role-guest">GUEST</span>';
-    }
-
-    // --- Message grouping (Discord-style: same author within 2 min = compact) ---
-    var authorId = msgUid;
-    var msgTs = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();
-    var isGrouped = (authorId === _lastChatAuthor && (msgTs - _lastChatTs) < 120000);
-    _lastChatAuthor = authorId;
-    _lastChatTs = msgTs;
-
-    var displayName = String(data.sender_name || data.display_name || data.username || 'Unknown');
-    var timeStr = data.timestamp ? shortClock(data.timestamp) : 'now';
-    var textContent = String(data.message || data.text || '');
-    var isLocal = String(data.id || '').indexOf('local:') === 0;
-    var localId = isLocal ? String(data.id) : null;
-
-    // --- Build HTML ---
-    var html;
-    if (isGrouped) {
-      html = '<div class="chat-msg chat-grouped animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
-        '<p class="chat-text">' + esc(textContent) + '</p>' +
-        (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') +
-        '</div>';
-    } else {
-      var avatarHtml = renderChatAvatar(data, mine, role);
-      var senderClass = role === 'admin' ? 'chat-sender admin' : 'chat-sender';
-      html = '<div class="chat-msg animate-chat-in" data-msg-id="' + esc(msgId || localId || '') + '">' +
-        avatarHtml +
-        '<div class="chat-content">' +
-        '<div class="chat-header"><span class="' + senderClass + '">' + esc(displayName) + '</span>' +
-        roleBadge +
-        '<span class="chat-time">' + timeStr + '</span></div>' +
-        '<p class="chat-text">' + esc(textContent) + (isLocal ? '<span data-delivery class="text-[8px] text-gray-600 ml-1">●</span>' : '') + '</p>' +
-        '</div></div>';
-    }
-
-    insertChatHtml(html, localId, textContent);
-
-    if (!mine) hideTypingIndicator();
-    if (!mine && !isChatTabActive()) incrementUnreadBadge();
+    maybeRunIcons();
   }
 
   function renderChatAvatar(data, mine, role) {
