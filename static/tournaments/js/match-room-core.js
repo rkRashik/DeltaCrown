@@ -1325,18 +1325,14 @@
     const msgId = String(data.id || data.message_id || '');
 
     // Echo from server for a message WE sent — the local optimistic bubble is
-    // already visible. Just update the delivery tick and bail out to avoid a
-    // duplicate bubble.
+    // already visible. Register the real server ID and bail out.
     if (data.echo) {
-        if (msgId && state.chatIds.has(msgId)) {
-            // Exact-ID match: update delivery dot on already-rendered server bubble
-            document.querySelectorAll(`[data-delivery-id="${msgId}"]`)
-                .forEach(t => { t.textContent = '✓'; t.classList.add('text-[#00F0FF]'); });
-        } else {
-            // Local optimistic bubble used a 'local:...' id — find the pending dot
-            // by scanning for the oldest unconfirmed dot and confirm it.
-            var dots = document.querySelectorAll('[data-delivery-id]');
-            if (dots.length) { var d = dots[dots.length - 1]; d.textContent = '✓'; d.classList.add('text-[#00F0FF]'); }
+        if (msgId) {
+            state.chatIds.add(msgId);
+            // Remove any temp_ IDs that this echo confirms
+            state.chatIds.forEach(function(id) {
+                if (typeof id === 'string' && id.indexOf('temp_') === 0) state.chatIds.delete(id);
+            });
         }
         return; // Never render a second bubble for our own echo
     }
@@ -1460,9 +1456,11 @@
     var myParticipant = participantForSide(mySide());
     var me = asObject(state.room.me);
     var isAdmin = bool(me.admin_mode, false) || bool(me.is_staff, false);
+    var localMsgId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
     // Optimistic local append — shows instantly
     appendChatBubble({
+      id: localMsgId,
       side: mySide() || 0,
       user_id: toInt(me.user_id, 0),
       sender_name: isAdmin ? 'Tournament Admin' : String(myParticipant.name || me.username || 'You'),
@@ -1474,6 +1472,7 @@
       timestamp: new Date().toISOString(),
       is_official: isAdmin,
     });
+    state.chatIds.add(localMsgId);
 
     // Send to server
     if (window.__DC_DEBUG) console.log('[CHAT_SEND] wsConnected=' + state.wsConnected + ' readyState=' + state.ws.readyState + ' text=' + text);

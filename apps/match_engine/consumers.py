@@ -342,22 +342,27 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = f"match_{self.match_id}"
         self._last_chat_ts = 0.0  # monotonic timestamp of last chat message
 
-        try:
-            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        except Exception as e:
-            logger.error(
-                "group_add failed — channel layer unreachable: %s",
-                e,
-                extra={"match_id": self.match_id},
-            )
-            await self.close(code=1011)
-            return
+        # Accept FIRST so the WebSocket is live even if Redis is unreachable.
         await self.accept()
 
-        # Register in global client registry for direct in-process broadcast
+        # Register in global client registry for direct in-process broadcast.
+        # This is the canonical broadcast path — group_add is best-effort only.
         if self.match_id not in _global_match_clients:
             _global_match_clients[self.match_id] = set()
         _global_match_clients[self.match_id].add(self)
+
+        # Best-effort Redis group join — NOT required for chat/presence.
+        try:
+            await asyncio.wait_for(
+                self.channel_layer.group_add(self.room_group_name, self.channel_name),
+                timeout=3.0,
+            )
+        except Exception as e:
+            logger.warning(
+                "group_add failed (non-fatal, direct_broadcast active): %s",
+                e,
+                extra={"match_id": self.match_id},
+            )
 
         self.last_pong_time = asyncio.get_event_loop().time()
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
@@ -389,9 +394,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             )
 
         # Direct presence delivery — guarantees the connecting client receives
-        # the current snapshot even if group_send fails to deliver.
+        # the current snapshot even if direct_broadcast hasn't fired yet.
         try:
-            snapshot = await self._build_presence_snapshot()
+            snapshot = self._build_presence_snapshot()
             await self.send_json({"type": "match_presence", "data": snapshot})
         except Exception:
             logger.debug(
@@ -548,9 +553,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "Presence broadcast suppressed during subscribe",
                     extra={"match_id": self.match_id, "user_id": self.user.id},
                 )
-            # Direct presence delivery — guaranteed even if group_send fails
+            # Direct presence delivery to the subscribing client
             try:
-                snapshot = await self._build_presence_snapshot()
+                snapshot = self._build_presence_snapshot()
                 await self.send_json({"type": "match_presence", "data": snapshot})
             except Exception:
                 pass
@@ -582,9 +587,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "Presence broadcast suppressed during presence_ping",
                     extra={"match_id": self.match_id, "user_id": self.user.id},
                 )
-            # Always send direct snapshot — guaranteed delivery if group_send fails
+            # Direct snapshot — zero Redis calls
             try:
-                snapshot = await self._build_presence_snapshot()
+                snapshot = self._build_presence_snapshot()
                 await self.send_json({"type": "match_presence", "data": snapshot})
             except Exception:
                 pass
@@ -796,7 +801,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             )
 
     # ---------------------------------------------------------------------
-    # Presence helpers  (Redis-backed — Phase 1)
+    # Presence helpers  (In-Memory via _global_match_clients — zero Redis)
     # ---------------------------------------------------------------------
 
     @staticmethod
@@ -808,27 +813,22 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         return f"presence:match:{match_id}:user:*"
 
     async def _register_presence(self, status: str = "online") -> None:
+        """Write presence to the in-memory store so get_live_presence_sync (used
+        by Django views) can read it.  Zero Redis — uses _memory_presence only."""
         if not getattr(self, "is_participant", False):
             return
         if getattr(self, "participant_side", None) not in (1, 2):
             return
+        self._presence_status = status if status in {"online", "away"} else "online"
         key = self._presence_key(self.match_id, self.user.id)
         payload = json.dumps({
             "user_id": self.user.id,
             "username": self.user.username,
             "side": int(self.participant_side),
-            "status": status if status in {"online", "away"} else "online",
+            "status": self._presence_status,
             "last_seen": timezone.now().isoformat(),
         })
-        rds = _get_redis_presence()
-        if rds is None:
-            _memory_presence_set(key, payload, self.HEARTBEAT_TIMEOUT)
-            return
-        try:
-            await rds.setex(key, self.HEARTBEAT_TIMEOUT, payload)
-        except Exception:
-            _memory_presence_set(key, payload, self.HEARTBEAT_TIMEOUT)
-            logger.debug("Redis presence SET failed, using memory fallback", extra={"match_id": self.match_id, "user_id": self.user.id})
+        _memory_presence_set(key, payload, self.HEARTBEAT_TIMEOUT)
 
     async def _unregister_presence(self) -> None:
         match_id = getattr(self, "match_id", None)
@@ -836,17 +836,10 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         if not match_id or not user or not getattr(user, "id", None):
             return
         key = self._presence_key(match_id, user.id)
-        rds = _get_redis_presence()
-        if rds is None:
-            _memory_presence_del(key)
-            return
-        try:
-            await rds.delete(key)
-        except Exception:
-            _memory_presence_del(key)
-            logger.debug("Redis presence DEL failed, using memory fallback", extra={"match_id": match_id, "user_id": user.id})
+        _memory_presence_del(key)
 
-    async def _build_presence_snapshot(self) -> Dict[str, Any]:
+    def _build_presence_snapshot(self) -> Dict[str, Any]:
+        """Build presence from live _global_match_clients — zero Redis calls."""
         match_id = getattr(self, "match_id", None)
         sides: Dict[str, Dict[str, Any]] = {
             "1": {"online": False, "status": "offline", "user_id": None, "username": None},
@@ -855,55 +848,18 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         if not match_id:
             return {"match_id": None, "sides": sides, "both_online": False, "updated_at": timezone.now().isoformat()}
 
-        rds = _get_redis_presence()
-        if rds is None:
-            # In-memory fallback (local dev without Redis)
-            pattern = self._presence_pattern(match_id)
-            for _key, raw in _memory_presence_scan(pattern):
-                try:
-                    row = json.loads(raw)
-                except (json.JSONDecodeError, TypeError):
-                    continue
-                side = row.get("side")
-                if side not in (1, 2):
-                    continue
-                side_key = str(side)
-                status = str(row.get("status") or "online")
-                sides[side_key]["online"] = True
-                sides[side_key]["status"] = "away" if status == "away" else "online"
-                sides[side_key]["user_id"] = row.get("user_id")
-                sides[side_key]["username"] = row.get("username")
-            return {
-                "match_id": match_id,
-                "sides": sides,
-                "both_online": bool(sides["1"]["online"] and sides["2"]["online"]),
-                "updated_at": timezone.now().isoformat(),
-            }
-
-        try:
-            pattern = self._presence_pattern(match_id)
-            cursor = 0
-            while True:
-                cursor, keys = await rds.scan(cursor=cursor, match=pattern, count=20)
-                if keys:
-                    values = await rds.mget(*keys)
-                    for raw in values:
-                        if not raw:
-                            continue
-                        row = json.loads(raw)
-                        side = row.get("side")
-                        if side not in (1, 2):
-                            continue
-                        side_key = str(side)
-                        status = str(row.get("status") or "online")
-                        sides[side_key]["online"] = True
-                        sides[side_key]["status"] = "away" if status == "away" else "online"
-                        sides[side_key]["user_id"] = row.get("user_id")
-                        sides[side_key]["username"] = row.get("username")
-                if cursor == 0:
-                    break
-        except Exception:
-            logger.debug("Redis presence SCAN failed", extra={"match_id": match_id})
+        clients = list(_global_match_clients.get(match_id, []))
+        for client in clients:
+            side = getattr(client, "participant_side", None)
+            if side not in (1, 2):
+                continue
+            side_key = str(side)
+            user = getattr(client, "user", None)
+            status = getattr(client, "_presence_status", "online")
+            sides[side_key]["online"] = True
+            sides[side_key]["status"] = status
+            sides[side_key]["user_id"] = getattr(user, "id", None) if user else None
+            sides[side_key]["username"] = getattr(user, "username", None) if user else None
 
         return {
             "match_id": match_id,
@@ -913,9 +869,9 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         }
 
     async def _broadcast_presence(self) -> None:
-        if not hasattr(self, "room_group_name"):
+        if not hasattr(self, "match_id"):
             return
-        snapshot = await self._build_presence_snapshot()
+        snapshot = self._build_presence_snapshot()
         await self.direct_broadcast("match_presence_event", {
             "type": "match_presence_event",
             "data": snapshot,
@@ -1004,7 +960,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             MatchChatMessage.objects.create(
                 match_id=msg_data.get("match_id"),
                 user_id=msg_data.get("user_id") or None,
-                display_name=msg_data.get("display_name", ""),
+                display_name=msg_data.get("sender_name", ""),
                 avatar_url=msg_data.get("avatar_url", ""),
                 side=msg_data.get("side", 0),
                 text=msg_data.get("text", ""),

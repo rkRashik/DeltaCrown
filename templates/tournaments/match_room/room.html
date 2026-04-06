@@ -746,7 +746,7 @@
                   <i data-lucide="headphones" class="w-5 h-5 text-[#5865F2]"></i>
                 </div>
                 <div>
-                  <p class="text-[11px] font-black uppercase tracking-widest text-white">Match Voice</p>
+                  <p id="voice-widget-label" class="text-[11px] font-black uppercase tracking-widest text-white">Match Voice</p>
                   <p id="voice-widget-author" class="text-[9px] text-gray-400 mt-0.5">Linked by Admin</p>
                 </div>
               </div>
@@ -901,12 +901,12 @@
 {# <script defer src="{% static 'tournaments/js/match-room.js' %}"></script> #}
 
 {# Modular match-room pipeline: core orchestrator + phase modules #}
-<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260407_INSTANT_CHAT"></script>
+<script defer src="{% static 'tournaments/js/match-room-core.js' %}?v=20260407_FINAL_FIX_2"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-coin-toss.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-direct-ready.js' %}"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-map-veto.js' %}"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260407_INSTANT_CHAT"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260407_INSTANT_CHAT"></script>
-<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260407_INSTANT_CHAT"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-lobby-setup.js' %}?v=20260407_FINAL_FIX_2"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-live.js' %}?v=20260407_FINAL_FIX_2"></script>
+<script defer src="{% static 'tournaments/js/phases/phase-results.js' %}?v=20260407_FINAL_FIX_2"></script>
 <script defer src="{% static 'tournaments/js/phases/phase-completed.js' %}"></script>
 {% endblock %}
