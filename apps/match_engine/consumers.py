@@ -282,12 +282,12 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     extra={"match_id": self.match_id, "user_id": self.user.id},
                 )
 
-        # Display name: use participant name for participants, "Organizer" for staff-only
+        # Display name: use participant name for participants, real username for staff
         if self.is_participant and self.participant_side:
             side_name = match.participant1_name if self.participant_side == 1 else match.participant2_name
             self.chat_display_name = side_name or self.user.username
         elif self.is_official_staff:
-            self.chat_display_name = "Organizer"
+            self.chat_display_name = self.user.username
 
         allowed_origins = self.get_allowed_origins()
         if allowed_origins:
@@ -427,8 +427,14 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         data = dict(event.get("data", {}))
         # Mark as echo for the original sender so the frontend dedup skips re-render
         user_id = getattr(getattr(self, "user", None), "id", None)
-        if user_id is not None and event.get("sender_user_id") == user_id:
+        is_echo = user_id is not None and event.get("sender_user_id") == user_id
+        if is_echo:
             data["echo"] = True
+        logger.info(
+            "match_chat_event relay → user=%s echo=%s sender=%s text_len=%s",
+            user_id, is_echo, event.get("sender_user_id"), len(str(data.get("text", ""))),
+            extra={"match_id": getattr(self, "match_id", None)},
+        )
         try:
             await self.send_json({"type": "match_chat", "data": data})
         except Exception:
@@ -442,6 +448,10 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
     async def match_presence_event(self, event: Dict[str, Any]) -> None:
         await self.send_json({"type": "match_presence", "data": event.get("data", {})})
+
+    async def voice_widget_update(self, event: Dict[str, Any]) -> None:
+        """Relay voice widget state to the connected client."""
+        await self.send_json({"type": "voice_widget_update", "data": event.get("data", {})})
 
     # ---------------------------------------------------------------------
     # Client message handling
@@ -502,6 +512,13 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 history = await self._get_chat_history()
                 if history:
                     await self.send_json({"type": "chat_history", "data": {"messages": history}})
+            except Exception:
+                pass
+            # Send current voice widget state (if a link was previously set)
+            try:
+                vc = await self._get_voice_link()
+                if vc:
+                    await self.send_json({"type": "voice_widget_update", "data": vc})
             except Exception:
                 pass
             return
@@ -628,6 +645,11 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             # Broadcast to ALL group members (including sender).
             # match_chat_event adds echo:True for the sender so the frontend dedup
             # finds the optimistic bubble and swaps it — no duplicate render.
+            logger.info(
+                "group_send → group=%s user=%s text_len=%s",
+                self.room_group_name, self.user.id, len(text),
+                extra={"match_id": self.match_id},
+            )
             try:
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -649,7 +671,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             return
 
         if message_type == "voice_link":
-            # Admin-only: inject a Discord voice channel link into chat
+            # Admin-only: set/update the persistent voice channel widget
             if not self.is_official_staff:
                 await self.send_json({"type": "error", "code": "forbidden", "message": "Only staff can post voice links."})
                 return
@@ -659,38 +681,51 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_json({"type": "error", "code": "invalid_url", "message": "Invalid voice link URL."})
                 return
 
-            if self.chat_avatar_url is None:
-                try:
-                    self.chat_avatar_url = await self._get_user_avatar_url(self.user.id) or ""
-                except Exception:
-                    self.chat_avatar_url = ""
+            # Persist to Match.lobby_info for durability across reconnects
+            widget_data = {
+                "voice_url": voice_url,
+                "voice_label": label,
+                "set_by": self.user.username,
+                "set_at": timezone.now().isoformat(),
+            }
+            asyncio.ensure_future(self._save_voice_link(widget_data))
 
-            msg_data = {
+            # Broadcast widget update to ALL clients (NOT a chat message)
+            try:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "voice_widget_update", "data": widget_data},
+                )
+            except Exception as e:
+                logger.error(
+                    "group_send (voice_widget_update) failed: %s",
+                    e,
+                    extra={"match_id": self.match_id, "user_id": self.user.id},
+                )
+
+            # Also post a one-line system chat announcement
+            sys_data = {
                 "message_id": f"vc:{self.match_id}:{self.user.id}:{int(timezone.now().timestamp() * 1000)}",
                 "match_id": self.match_id,
                 "user_id": self.user.id,
                 "display_name": self.chat_display_name,
-                "side": self.participant_side or 0,
+                "side": 0,
                 "is_official": True,
-                "avatar_url": self.chat_avatar_url or "",
-                "text": label,
-                "msg_type": "voice_link",
-                "extra": {"voice_url": voice_url},
+                "avatar_url": "",
+                "text": f"\U0001f50a {self.user.username} linked a voice channel: {label}",
+                "msg_type": "system",
                 "timestamp": timezone.now().isoformat(),
             }
-
             try:
                 await self.channel_layer.group_send(
                     self.room_group_name,
-                    {"type": "match_chat_event", "data": msg_data, "sender_user_id": self.user.id},
+                    {"type": "match_chat_event", "data": sys_data, "sender_user_id": self.user.id},
                 )
-            except Exception as e:
-                logger.error(
-                    "group_send (voice_link) failed: %s",
-                    e,
-                    extra={"match_id": self.match_id, "user_id": self.user.id},
-                )
-            asyncio.ensure_future(self._store_chat_message_bg(msg_data))
+            except Exception:
+                pass
+
+            # Fire Discord webhook asynchronously (if configured)
+            asyncio.ensure_future(self._fire_discord_webhook(voice_url, label))
             return
 
         await self.send_json(
@@ -987,6 +1022,89 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             return [m.to_ws_dict() for m in reversed(list(qs))]
 
         return await _fetch()
+
+    # ------------------------------------------------------------------
+    # Voice Channel Widget (persistent in lobby_info)
+    # ------------------------------------------------------------------
+
+    async def _save_voice_link(self, widget_data: dict) -> None:
+        """Save voice channel URL into Match.lobby_info['voice_channel']."""
+        from apps.tournaments.models import Match
+
+        @database_sync_to_async
+        def _update():
+            try:
+                match = Match.objects.filter(id=self.match_id).first()
+                if match:
+                    info = match.lobby_info or {}
+                    info["voice_channel"] = widget_data
+                    match.lobby_info = info
+                    match.save(update_fields=["lobby_info"])
+            except Exception:
+                logger.warning("Failed saving voice link to lobby_info", extra={"match_id": self.match_id})
+
+        await _update()
+
+    async def _get_voice_link(self) -> Optional[dict]:
+        """Read current voice channel from Match.lobby_info."""
+        from apps.tournaments.models import Match
+
+        @database_sync_to_async
+        def _read():
+            match = Match.objects.filter(id=self.match_id).only("lobby_info").first()
+            if match and match.lobby_info:
+                return match.lobby_info.get("voice_channel")
+            return None
+
+        return await _read()
+
+    async def _fire_discord_webhook(self, voice_url: str, label: str) -> None:
+        """Fire a lightweight Discord webhook embed (non-blocking, 3s timeout).
+
+        Only fires if DISCORD_WEBHOOK_URL is configured in settings/env.
+        """
+        import os
+        webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "")
+        if not webhook_url:
+            return
+
+        try:
+            import aiohttp
+            payload = {
+                "embeds": [{
+                    "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
+                    "description": f"**{label}**\n[Join Voice]({voice_url})",
+                    "color": 5793266,  # #5865F2 in decimal
+                    "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                }]
+            }
+            timeout = aiohttp.ClientTimeout(total=3)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(webhook_url, json=payload) as resp:
+                    if resp.status >= 400:
+                        logger.warning("Discord webhook failed: HTTP %s", resp.status)
+        except ImportError:
+            # aiohttp not installed — try synchronous fallback
+            try:
+                import requests
+                payload = {
+                    "embeds": [{
+                        "title": f"\U0001f3ae Match #{self.match_id} — Voice Channel Linked",
+                        "description": f"**{label}**\n[Join Voice]({voice_url})",
+                        "color": 5793266,
+                        "footer": {"text": f"Set by {self.user.username} via DeltaCrown"},
+                    }]
+                }
+
+                @database_sync_to_async
+                def _post():
+                    requests.post(webhook_url, json=payload, timeout=3)
+
+                await _post()
+            except Exception:
+                logger.debug("Discord webhook (requests fallback) failed")
+        except Exception:
+            logger.debug("Discord webhook fire-and-forget failed")
 
 
 def parse_datetime(value: str):

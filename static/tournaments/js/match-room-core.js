@@ -1345,28 +1345,10 @@
     clearChatEmptyState();
 
     // --- Voice Link Action Card ---
+    // Legacy voice_link chat cards — voice links now use the persistent widget.
+    // Treat any stale voice_link messages from history as system announcements.
     if (msgType === 'voice_link') {
-      var extra = asObject(data.extra);
-      var voiceUrl = String(extra.voice_url || '').trim();
-      var voiceLabel = String(data.text || 'Voice Channel');
-      var vcHtml =
-        '<div class="chat-system-voice animate-chat-in" data-msg-id="' + esc(msgId) + '">' +
-        '<div class="flex items-center gap-3">' +
-        '<i data-lucide="headphones" class="w-5 h-5 text-[#5865F2] flex-shrink-0"></i>' +
-        '<div class="min-w-0">' +
-        '<p class="text-xs font-bold text-white truncate">' + esc(voiceLabel) + '</p>' +
-        '<p class="text-[10px] text-gray-400">Admin requested you to join comms.</p>' +
-        '</div></div>' +
-        (voiceUrl ? '<a href="' + esc(voiceUrl) + '" target="_blank" rel="noopener noreferrer" class="voice-join-btn">Join Discord</a>' : '') +
-        '</div>';
-      [elements.chatWindow, byId('mobile-chat-window')].forEach(function (win) {
-        if (!win) return;
-        var wasAtBottom = (win.scrollHeight - win.scrollTop - win.clientHeight) < 60;
-        win.insertAdjacentHTML('beforeend', vcHtml);
-        if (wasAtBottom) win.scrollTop = win.scrollHeight;
-      });
-      _lastChatAuthor = null;
-      maybeRunIcons();
+      appendSystemChat(String(data.text || 'Voice channel linked'));
       return;
     }
 
@@ -1587,8 +1569,11 @@
     if (!bool(asObject(state.room.me).admin_mode, false)) { showToast('Admin mode required.', 'error'); return; }
     var urlInput = byId('voice-link-url');
     var labelInput = byId('voice-link-label');
-    if (urlInput) urlInput.value = '';
-    if (labelInput) labelInput.value = 'Match Voice Channel';
+    // Pre-fill with current widget values for editing
+    var currentLink = byId('voice-widget-link');
+    var currentLabel = byId('voice-widget-label');
+    if (urlInput) urlInput.value = (currentLink && currentLink.href && currentLink.href !== '#' && currentLink.href !== window.location.href + '#') ? currentLink.href : '';
+    if (labelInput) labelInput.value = (currentLabel && currentLabel.textContent) ? currentLabel.textContent : 'Match Voice Channel';
     var modal = byId('voice-link-modal');
     if (modal) { modal.classList.remove('hidden-state'); modal.classList.add('flex'); }
     if (urlInput) window.setTimeout(function () { urlInput.focus(); }, 80);
@@ -1610,6 +1595,30 @@
     }
     sendSocket({ type: 'voice_link', url: url, label: label || 'Match Voice Channel' });
     closeVoiceLinkModal();
+  }
+
+  // --- Persistent Voice Widget ---
+  function updateVoiceWidget(data) {
+    var widget = byId('voice-widget');
+    if (!widget) return;
+    var voiceUrl = String(data.voice_url || '').trim();
+    var label = String(data.voice_label || data.label || 'Voice Channel');
+    var setBy = String(data.set_by || '—');
+    if (!voiceUrl) { widget.classList.add('hidden-state'); return; }
+    var linkEl = byId('voice-widget-link');
+    var labelEl = byId('voice-widget-label');
+    var authorEl = byId('voice-widget-author');
+    var editBtn = byId('voice-widget-edit');
+    if (linkEl) linkEl.href = voiceUrl;
+    if (labelEl) labelEl.textContent = label;
+    if (authorEl) authorEl.textContent = setBy;
+    // Show edit button only for admins
+    if (editBtn) {
+      if (bool(asObject(state.room.me).admin_mode, false)) editBtn.classList.remove('hidden-state');
+      else editBtn.classList.add('hidden-state');
+    }
+    widget.classList.remove('hidden-state');
+    maybeRunIcons();
   }
 
   function processAnnouncements() {
@@ -1726,8 +1735,13 @@
 
     if (type === 'match_chat') {
       // Direct echo (echo:true) or broadcast — appendChatBubble handles dedup
-      if (window.__DC_DEBUG) console.log('[CHAT]', JSON.stringify(message.data));
+      console.log('[CHAT_RECV] echo=' + bool(asObject(message.data).echo, false) + ' from_user=' + asObject(message.data).user_id + ' text=' + String(asObject(message.data).text || '').slice(0, 40));
       appendChatBubble(asObject(message.data));
+      return;
+    }
+
+    if (type === 'voice_widget_update') {
+      updateVoiceWidget(asObject(message.data));
       return;
     }
 
@@ -2079,6 +2093,9 @@
     if (voiceLinkUrlInput) {
       voiceLinkUrlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submitVoiceLink(); } });
     }
+    // Voice widget edit button (admin only)
+    var voiceWidgetEdit = byId('voice-widget-edit');
+    if (voiceWidgetEdit) voiceWidgetEdit.addEventListener('click', openVoiceLinkModal);
     if (elements.overrideClose) elements.overrideClose.addEventListener('click', closeOverrideModal);
     if (elements.overrideCancel) elements.overrideCancel.addEventListener('click', closeOverrideModal);
     if (elements.overrideApply) elements.overrideApply.addEventListener('click', applyOverrideResult);
