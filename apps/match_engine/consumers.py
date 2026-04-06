@@ -52,6 +52,9 @@ def _get_redis_presence():
             url = _redis_url_with_db(base_url, 2)
             _redis_presence_pool = aioredis.ConnectionPool.from_url(
                 url, decode_responses=True, max_connections=8,
+                health_check_interval=10,
+                socket_connect_timeout=3,
+                socket_timeout=3,
             )
         except Exception:
             logger.debug("Redis presence pool creation failed — presence disabled")
@@ -142,7 +145,11 @@ def get_live_presence_sync(match_id: int) -> dict:
             import redis as _sync_redis
             from deltacrown.settings import _redis_url_with_db
             url = _redis_url_with_db(redis_url, 2)
-            client = _sync_redis.Redis.from_url(url, decode_responses=True)
+            client = _sync_redis.Redis.from_url(
+                url, decode_responses=True,
+                socket_connect_timeout=3,
+                socket_timeout=3,
+            )
             cursor = 0
             while True:
                 cursor, keys = client.scan(cursor=cursor, match=pattern, count=20)
@@ -299,7 +306,16 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = f"match_{self.match_id}"
         self._last_chat_ts = 0.0  # monotonic timestamp of last chat message
 
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        except Exception as e:
+            logger.error(
+                "group_add failed — channel layer unreachable: %s",
+                e,
+                extra={"match_id": self.match_id},
+            )
+            await self.close(code=1011)
+            return
         await self.accept()
 
         self.last_pong_time = asyncio.get_event_loop().time()
@@ -612,14 +628,21 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
             # Broadcast to ALL group members (including sender).
             # match_chat_event adds echo:True for the sender so the frontend dedup
             # finds the optimistic bubble and swaps it — no duplicate render.
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "match_chat_event",
-                    "data": msg_data,
-                    "sender_user_id": self.user.id,
-                },
-            )
+            try:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "match_chat_event",
+                        "data": msg_data,
+                        "sender_user_id": self.user.id,
+                    },
+                )
+            except Exception as e:
+                logger.error(
+                    "group_send (chat_message) failed: %s",
+                    e,
+                    extra={"match_id": self.match_id, "user_id": self.user.id},
+                )
             # Persist to DB asynchronously — never block the broadcast path
             asyncio.ensure_future(self._store_chat_message_bg(msg_data))
             self._last_chat_ts = now_mono
@@ -656,10 +679,17 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 "timestamp": timezone.now().isoformat(),
             }
 
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "match_chat_event", "data": msg_data, "sender_user_id": self.user.id},
-            )
+            try:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "match_chat_event", "data": msg_data, "sender_user_id": self.user.id},
+                )
+            except Exception as e:
+                logger.error(
+                    "group_send (voice_link) failed: %s",
+                    e,
+                    extra={"match_id": self.match_id, "user_id": self.user.id},
+                )
             asyncio.ensure_future(self._store_chat_message_bg(msg_data))
             return
 
@@ -827,13 +857,20 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         if not hasattr(self, "room_group_name"):
             return
         snapshot = await self._build_presence_snapshot()
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "match_presence_event",
-                "data": snapshot,
-            },
-        )
+        try:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "match_presence_event",
+                    "data": snapshot,
+                },
+            )
+        except Exception as e:
+            logger.error(
+                "group_send (presence) failed: %s",
+                e,
+                extra={"match_id": self.match_id},
+            )
 
     # ---------------------------------------------------------------------
     # Misc helpers

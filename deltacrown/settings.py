@@ -1075,11 +1075,19 @@ _USE_REDIS_CHANNELS = (not DEBUG) or os.getenv('USE_REDIS_CHANNELS', '0') == '1'
 _REDIS_CHANNEL_URL = _redis_url_with_db(_BASE_REDIS_URL, 3) if _BASE_REDIS_URL else 'redis://localhost:6379/3'
 
 if _USE_REDIS_CHANNELS:
+    # For Upstash (and any other rediss:// provider), SSL certificate
+    # verification must be disabled or the TLS handshake silently fails.
+    # Pass ssl_cert_reqs=None via the host dict; plain redis:// uses URL string.
+    _CHANNEL_HOST = (
+        {'address': _REDIS_CHANNEL_URL, 'ssl_cert_reqs': None}
+        if _REDIS_CHANNEL_URL.startswith('rediss://')
+        else _REDIS_CHANNEL_URL
+    )
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                'hosts': [_REDIS_CHANNEL_URL],
+                'hosts': [_CHANNEL_HOST],
                 'prefix': 'dc-ws',
                 'capacity': 500,   # lowered from 1500 — saves RAM on 512 MB tier
                 'expiry': 10,
