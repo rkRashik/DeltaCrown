@@ -1263,9 +1263,9 @@
       '<div class="flex flex-col h-full">' +
       '<div id="mobile-chat-window" class="chat-messages-container flex-1 overflow-y-auto hide-scroll"></div>' +
       '<div id="mobile-chat-typing" class="px-3 py-1 hidden"><span class="chat-typing-dots"><span></span><span></span><span></span></span><span class="text-[9px] text-gray-600 italic ml-1">typing…</span></div>' +
-      '<div class="chat-input-area">' +
-      '<form id="mobile-chat-form" class="chat-input-row">' +
-      '<input id="mobile-chat-input" type="text" maxlength="400" placeholder="Message…" autocomplete="off" class="chat-input" />' +
+      '<div class="chat-input-wrapper">' +
+      '<form id="mobile-chat-form" class="chat-input-box">' +
+      '<input id="mobile-chat-input" type="text" maxlength="400" placeholder="Message…" autocomplete="off" />' +
       '<button type="submit" id="mobile-chat-send" class="chat-send-btn"><i data-lucide="send" class="w-4 h-4"></i></button>' +
       '</form></div></div>';
     // Copy existing messages from desktop
@@ -1351,11 +1351,13 @@
       var voiceLabel = String(data.text || 'Voice Channel');
       var vcHtml =
         '<div class="chat-system-voice animate-chat-in" data-msg-id="' + esc(msgId) + '">' +
-        '<div class="flex-1 min-w-0">' +
-        '<p class="text-[10px] font-black uppercase tracking-widest text-[#5865F2]/70 mb-0.5">Voice Channel</p>' +
-        '<p class="text-xs font-semibold text-white truncate">' + esc(voiceLabel) + '</p>' +
-        '</div>' +
-        (voiceUrl ? '<a href="' + esc(voiceUrl) + '" target="_blank" rel="noopener noreferrer" class="voice-join-btn">Join</a>' : '') +
+        '<div class="flex items-center gap-3">' +
+        '<i data-lucide="headphones" class="w-5 h-5 text-[#5865F2] flex-shrink-0"></i>' +
+        '<div class="min-w-0">' +
+        '<p class="text-xs font-bold text-white truncate">' + esc(voiceLabel) + '</p>' +
+        '<p class="text-[10px] text-gray-400">Admin requested you to join comms.</p>' +
+        '</div></div>' +
+        (voiceUrl ? '<a href="' + esc(voiceUrl) + '" target="_blank" rel="noopener noreferrer" class="voice-join-btn">Join Discord</a>' : '') +
         '</div>';
       [elements.chatWindow, byId('mobile-chat-window')].forEach(function (win) {
         if (!win) return;
@@ -1655,6 +1657,7 @@
     state.ws.addEventListener('message', function (event) {
       var data;
       try { data = JSON.parse(event.data || '{}'); } catch (_) { data = {}; }
+      console.log('\uD83D\uDD25 WS PAYLOAD RECEIVED:', data);
       var t = data.type || '';
       if (t !== 'ping' && t !== 'pong' && t !== 'presence_synced') {
         console.log('[WS←]', t, data.data ? JSON.stringify(data.data).slice(0, 120) : '');
