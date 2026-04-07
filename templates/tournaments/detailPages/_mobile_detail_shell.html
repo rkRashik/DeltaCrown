@@ -133,6 +133,39 @@
       </article>
 
       <article class="dc-mobile-card">
+        <h3 class="dc-mobile-card-title">Tournament Info</h3>
+        <div class="dc-mobile-inline-grid">
+          <div>
+            <p class="dc-mobile-micro">Format</p>
+            <p class="dc-mobile-value">{{ tournament_format_label|default:tournament.get_format_display }}</p>
+          </div>
+          <div>
+            <p class="dc-mobile-micro">Platform</p>
+            <p class="dc-mobile-value">{{ tournament_platform_label|default:tournament.get_platform_display }}</p>
+          </div>
+          <div>
+            <p class="dc-mobile-micro">Mode</p>
+            <p class="dc-mobile-value">{{ tournament_mode_label|default:tournament.get_mode_display }}</p>
+          </div>
+          <div>
+            <p class="dc-mobile-micro">Participation</p>
+            <p class="dc-mobile-value">{{ tournament_participation_label|default:tournament.get_participation_type_display }}</p>
+          </div>
+        </div>
+        {% if match_settings_display %}
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+          <p class="dc-mobile-micro" style="margin-bottom: 6px;">Match Settings</p>
+          {% for item in match_settings_display %}
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span class="dc-mobile-micro">{{ item.label }}</span>
+            <span class="dc-mobile-value">{{ item.value }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+
+      <article class="dc-mobile-card">
         <h3 class="dc-mobile-card-title">Announcements</h3>
         {% if announcements %}
         <div class="dc-mobile-list">
@@ -184,7 +217,24 @@
 
       {% if standings_primary %}
       <article class="dc-mobile-card">
-        <h3 class="dc-mobile-card-title">Standings Snapshot</h3>
+        <h3 class="dc-mobile-card-title">Standings</h3>
+        {% if standings_source == 'group_stage' and group_standings_summary %}
+        {% regroup standings_primary by group_name as mobile_groups %}
+        {% for grp in mobile_groups %}
+        <div class="{% if not forloop.first %}mt-3 pt-3{% endif %}" {% if not forloop.first %}style="border-top: 1px solid rgba(255,255,255,0.06);"{% endif %}>
+          <p class="dc-mobile-micro" style="color: var(--game-color, #06b6d4); font-weight: 800; margin-bottom: 6px;">{{ grp.grouper }}</p>
+          <div class="dc-mobile-list">
+            {% for row in grp.list %}
+            <div class="dc-mobile-standings-row">
+              <span class="dc-mobile-rank" {% if row.is_advancing %}style="color: #34d399;"{% endif %}>#{{ row.rank }}</span>
+              <span class="dc-mobile-name">{{ row.name }}</span>
+              <span class="dc-mobile-points">{{ row.wins }}W {{ row.draws }}D {{ row.losses }}L · {{ row.points }}pts</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
         <div class="dc-mobile-list">
           {% for row in standings_primary|slice:":8" %}
           <div class="dc-mobile-standings-row">
@@ -194,6 +244,7 @@
           </div>
           {% endfor %}
         </div>
+        {% endif %}
       </article>
       {% endif %}
     </div>

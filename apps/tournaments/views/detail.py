@@ -233,6 +233,23 @@ class TournamentDetailView(DetailView):
         # Lightweight mobile polling endpoint for real-time header/slots/match updates.
         context['mobile_state_url'] = reverse('tournaments:detail_mobile_state', kwargs={'slug': tournament.slug})
 
+        # Match settings and tournament info for format/rules display
+        raw_ms = tournament.match_settings or {}
+        formatted_settings = []
+        for k, v in raw_ms.items():
+            if k == 'available_maps':
+                continue
+            label = k.replace('_', ' ').title()
+            formatted_settings.append({'label': label, 'value': v})
+        context['match_settings'] = raw_ms
+        context['match_settings_display'] = formatted_settings
+        context['tournament_config'] = tournament.config or {}
+        context['tournament_format_label'] = tournament.get_format_display()
+        context['tournament_platform_label'] = tournament.get_platform_display()
+        context['tournament_mode_label'] = tournament.get_mode_display()
+        context['tournament_participation_label'] = tournament.get_participation_type_display()
+        context['is_group_playoff'] = tournament.format == Tournament.GROUP_PLAYOFF
+
         return context
 
     def _get_phase_context(self, tournament, user):
@@ -675,6 +692,12 @@ class TournamentDetailView(DetailView):
             teams_map = {team.id: team.name for team in teams}
             teams_logo_map = {team.id: team.logo.url if team.logo else None for team in teams}
 
+        # Pre-fetch group names for group_playoff format
+        groups_map = {}
+        if tournament.format == 'group_playoff':
+            for g in Group.objects.filter(tournament=tournament, is_deleted=False):
+                groups_map[g.id] = g.name
+
         matches_list = []
         now = timezone.now()
 
@@ -703,7 +726,17 @@ class TournamentDetailView(DetailView):
                     winner = 2
 
             group_name = ''
+            group_id = None
             round_label = ''
+
+            # Resolve group name from lobby_info for group stage matches
+            if phase == 'group_stage':
+                lobby = match.lobby_info or {}
+                gid = lobby.get('group_id')
+                if gid:
+                    group_id = gid
+                    group_name = groups_map.get(gid, '')
+
             if phase == 'knockout_stage' and match.round_number:
                 # For double-elimination, round_number maps sequentially:
                 # UB-R1=1, UB-QF=2, UB-SF=3, UB-F=4, LB-R1=5..LB-F=10, GF=11
@@ -825,6 +858,7 @@ class TournamentDetailView(DetailView):
                 'stage_label': stage_label,
                 'match_label': match_label,
                 'group_name': group_name,
+                'group_id': group_id,
                 'start_time_display': start_time_display,
                 'starts_at': starts_at,
                 'starts_at_display': start_time_display,
