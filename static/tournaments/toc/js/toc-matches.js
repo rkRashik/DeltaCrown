@@ -259,6 +259,8 @@
   let selectedMatchId = null;
   let selectedMatchDetail = null;
   let activeGroupFilter = '';
+  let activeStageFilter = '';
+  let _currentStage = null;
   let _debounceTimer = null;
   let _matchesInflight = null;
   let _matchesInflightQueryKey = '';
@@ -298,6 +300,7 @@
       matchesPagination.page,
       matchesPagination.page_size,
       activeGroupFilter,
+      activeStageFilter,
     ].join('::');
   }
 
@@ -424,11 +427,13 @@
           '&round=' + round +
           '&search=' + encodeURIComponent(search) +
           '&page=' + encodeURIComponent(matchesPagination.page) +
-          '&page_size=' + encodeURIComponent(matchesPagination.page_size || DEFAULT_PAGE_SIZE)
+          '&page_size=' + encodeURIComponent(matchesPagination.page_size || DEFAULT_PAGE_SIZE) +
+          (activeStageFilter ? '&stage=' + encodeURIComponent(activeStageFilter) : '')
         );
         if (requestId !== _matchesRequestId) return { matches: allMatches };
 
         allMatches = data.matches || [];
+        _currentStage = data.current_stage || null;
         _matchesStateCounts = (data && typeof data.state_counts === 'object' && data.state_counts) ? data.state_counts : {};
 
         const meta = (data && data.pagination && typeof data.pagination === 'object') ? data.pagination : {};
@@ -449,6 +454,7 @@
         renderStats(allMatches, _matchesStateCounts, matchesPagination.total_count);
         populateRoundFilter(allMatches);
         populateGroupPills(allMatches);
+        renderStageTabs();
         renderPaginationControls();
         setMatchesLoading(false);
         setMatchesErrorBanner('');
@@ -517,10 +523,45 @@
     _debounceTimer = setTimeout(refresh, 300);
   }
 
+  /* --- Stage phase tabs (Group / Knockout) ---------------- */
+  function renderStageTabs() {
+    var container = $('#match-stage-tabs');
+    if (!container) return;
+    var cfg = window.TOC_CONFIG || {};
+    var fmt = (cfg.tournamentFormat || '').toLowerCase();
+    // Only show stage tabs for group_playoff format
+    if (fmt !== 'group_playoff') { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+
+    var tabs = [
+      { key: '', label: 'All Matches' },
+      { key: 'group_stage', label: 'Group Stage' },
+      { key: 'knockout', label: 'Knockout' },
+    ];
+    container.innerHTML = tabs.map(function(t) {
+      var active = activeStageFilter === t.key;
+      return '<button data-stage="' + t.key + '" class="' +
+        (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
+        ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
+        'onclick="TOC.matches.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        t.label + '</button>';
+    }).join('');
+  }
+
+  function filterStage(stage) {
+    activeStageFilter = stage || '';
+    activeGroupFilter = '';
+    matchesPagination.page = 1;
+    renderStageTabs();
+    refresh({ force: true });
+  }
+
   /* --- Group filter pills ---------------------------------- */
   function populateGroupPills(matches) {
     var container = $('#match-group-pills');
     if (!container) return;
+    // Hide group pills during knockout filter
+    if (activeStageFilter === 'knockout') { container.innerHTML = ''; return; }
     var groups = [];
     var seen = {};
     matches.forEach(function (m) {
@@ -616,6 +657,8 @@
       var canOpenRoom = isRoomOpenState(m.state);
       var liveDot = m.state === 'live' ? '<span class="w-2 h-2 rounded-full bg-dc-success animate-pulse inline-block"></span>' : '';
       var groupTag = m.group_label ? ' <span class="text-theme/70">&middot;</span> <span class="text-theme font-bold">' + esc(m.group_label) + '</span>' : '';
+      var bracketTag = m.bracket_round_label ? ' <span class="text-amber-400/70">&middot;</span> <span class="text-amber-300 font-bold">' + esc(m.bracket_round_label) + '</span>' : '';
+      var phaseTag = m.stage === 'knockout' ? bracketTag : groupTag;
       var disputedBorder = m.state === 'disputed' ? ' ring-1 ring-dc-danger/30' : '';
       var liveCard = isLive ? ' border border-emerald-400/35 shadow-[0_0_22px_rgba(16,185,129,0.24)] bg-emerald-500/[0.03]' : '';
 
@@ -663,7 +706,7 @@
 
         // Row 1: Round/match info + state badge
         '<div class="flex items-center justify-between mb-2">' +
-        '<span class="text-xs font-mono text-dc-text">' + roundPrefix + m.round_number + ' &middot; #' + m.match_number + groupTag + '</span>' +
+        '<span class="text-xs font-mono text-dc-text">' + roundPrefix + m.round_number + ' &middot; #' + m.match_number + phaseTag + '</span>' +
         '<div class="flex items-center gap-2">' + checkinHtml + liveDot +
         '<span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
         (m.is_paused ? '<span class="text-xs font-bold text-dc-warning" title="Paused">&#x23F8;</span>' : '') +
@@ -2118,7 +2161,7 @@
   window.TOC.matches = {
     init: init, refresh: refresh, debouncedRefresh: debouncedRefresh,
     nextPage: nextPage, prevPage: prevPage,
-    selectMatch: selectMatch, clearDetail: clearDetail, filterGroup: filterGroup,
+    selectMatch: selectMatch, clearDetail: clearDetail, filterGroup: filterGroup, filterStage: filterStage,
     generateMatchesFromEmptyState: generateMatchesFromEmptyState,
     switchDetailTab: switchDetailTab,
     markLive: markLive, pause: pause, resume: resume, forceComplete: forceComplete,

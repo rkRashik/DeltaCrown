@@ -42,6 +42,7 @@
 
   let state = {
     data: null,
+    currentStage: null,
     viewMode: 'timeline',   // timeline | list | calendar
     filters: {
       group: '',
@@ -50,6 +51,7 @@
       search: '',
       dateFrom: '',
       dateTo: '',
+      stage: '',             // '' | 'group_stage' | 'knockout'
     },
     conflicts: [],
     conflictMatchIds: new Set(),
@@ -169,6 +171,7 @@
         const data = await API.get('schedule/');
         if (requestId !== activeRequestId) return state.data || data;
         state.data = data;
+        state.currentStage = data.current_stage || null;
         lastFetchedAt = Date.now();
 
         // Build conflict lookup set
@@ -215,6 +218,7 @@
     renderStats(state.data);
     renderViewModeButtons();
     renderFilters();
+    renderScheduleStageTabs();
 
     const matches = getFilteredMatches();
     const container = getScheduleContainer();
@@ -246,6 +250,8 @@
     let matches = getAllMatches();
     const f = state.filters;
 
+    if (f.stage === 'group_stage') matches = matches.filter(m => m.stage !== 'knockout');
+    if (f.stage === 'knockout') matches = matches.filter(m => m.stage === 'knockout');
     if (f.group) matches = matches.filter(m => (m.group_name || '').toLowerCase().includes(f.group.toLowerCase()));
     if (f.round) matches = matches.filter(m => String(m.round_number) === f.round);
     if (f.state) matches = matches.filter(m => m.state === f.state);
@@ -380,13 +386,43 @@
     }
   }
 
+  /* --- Stage phase tabs (Schedule) ----------------------- */
+  function renderScheduleStageTabs() {
+    var container = $('#sched-stage-tabs');
+    if (!container) return;
+    var cfg = window.TOC_CONFIG || {};
+    var fmt = (cfg.tournamentFormat || '').toLowerCase();
+    if (fmt !== 'group_playoff') { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+
+    var tabs = [
+      { key: '', label: 'All' },
+      { key: 'group_stage', label: 'Group Stage' },
+      { key: 'knockout', label: 'Knockout' },
+    ];
+    container.innerHTML = tabs.map(function(t) {
+      var active = state.filters.stage === t.key;
+      return '<button data-stage="' + t.key + '" class="' +
+        (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
+        ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
+        'onclick="TOC.schedule.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        t.label + '</button>';
+    }).join('');
+  }
+
+  function filterScheduleStage(stg) {
+    state.filters.stage = stg || '';
+    if (stg === 'knockout') state.filters.group = '';
+    renderAll();
+  }
+
   function updateFilter(key, value) {
     state.filters[key] = value;
     renderAll();
   }
 
   function clearFilters() {
-    state.filters = { group: '', round: '', state: '', search: '', dateFrom: '', dateTo: '' };
+    state.filters = { group: '', round: '', state: '', search: '', dateFrom: '', dateTo: '', stage: '' };
     ['#sched-filter-group', '#sched-filter-round', '#sched-filter-state', '#sched-search', '#sched-date-from', '#sched-date-to'].forEach(sel => {
       const el = $(sel);
       if (el) el.value = '';
@@ -467,7 +503,7 @@
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="text-[10px] font-mono font-bold text-dc-text">M${m.match_number || '—'}</span>
-            ${m.group_name ? '<span class="text-[8px] font-bold text-theme bg-theme/10 px-1.5 py-0.5 rounded border border-theme/20">' + _esc(m.group_name) + '</span>' : ''}
+            ${m.stage === 'knockout' && m.bracket_round_label ? '<span class="text-[8px] font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">' + _esc(m.bracket_round_label) + '</span>' : m.group_name ? '<span class="text-[8px] font-bold text-theme bg-theme/10 px-1.5 py-0.5 rounded border border-theme/20">' + _esc(m.group_name) + '</span>' : ''}
           </div>
           <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${si.color}">${si.label}</span>
         </div>
@@ -566,7 +602,7 @@
           </div>
         </td>
         <td class="px-3 py-3"><span class="bg-theme/10 text-theme font-mono font-bold px-2 py-0.5 rounded text-[10px]">R${m.round_number || '—'}</span></td>
-        <td class="px-3 py-3 text-dc-text text-[10px]">${_esc(m.group_name || '—')}</td>
+        <td class="px-3 py-3 text-dc-text text-[10px]">${m.stage === 'knockout' && m.bracket_round_label ? '<span class="text-amber-300">' + _esc(m.bracket_round_label) + '</span>' : _esc(m.group_name || '—')}</td>
         <td class="px-3 py-3"><span class="${p1Win ? 'text-dc-success font-bold' : 'text-dc-textBright'}">${_esc(m.participant1_name || 'TBD')}</span></td>
         <td class="px-2 py-3 text-center">
           <span class="font-mono font-black ${p1Win ? 'text-dc-success' : 'text-dc-textBright'}">${m.participant1_score ?? '—'}</span>
@@ -923,7 +959,7 @@
         </div>
         <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3">
           <p class="text-[10px] text-white font-bold">${label}</p>
-          ${match?.group_name ? '<p class="text-[9px] text-dc-text mt-0.5">Group: ' + _esc(match.group_name) + ' · Round ' + (match.round_number || '?') + '</p>' : ''}
+          ${match?.stage === 'knockout' && match?.bracket_round_label ? '<p class="text-[9px] text-amber-300 mt-0.5">' + _esc(match.bracket_round_label) + ' · Round ' + (match.round_number || '?') + '</p>' : match?.group_name ? '<p class="text-[9px] text-dc-text mt-0.5">Group: ' + _esc(match.group_name) + ' · Round ' + (match.round_number || '?') + '</p>' : ''}
         </div>
         <div>
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Date & Time</label>
@@ -1670,6 +1706,7 @@
     setViewMode,
     updateFilter,
     clearFilters,
+    filterStage: filterScheduleStage,
     debouncedSearch,
     toggleSort,
     openAutoSchedule,

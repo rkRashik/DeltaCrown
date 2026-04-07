@@ -400,7 +400,7 @@ def test_finalize_bracket_creates_audit(bracket, admin_user):
     assert log.user == admin_user
     assert log.metadata['bracket_id'] == bracket.id
     assert log.metadata['tournament_id'] == bracket.tournament.id
-    assert log.metadata['bracket_type'] == bracket.bracket_type
+    assert log.metadata['bracket_type'] == bracket.format
 
 
 @pytest.mark.django_db

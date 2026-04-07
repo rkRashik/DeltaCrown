@@ -66,6 +66,7 @@ class MatchListView(TOCBaseView):
             state=request.query_params.get('state'),
             search=request.query_params.get('search'),
             group=request.query_params.get('group'),
+            stage=request.query_params.get('stage'),
             page=page,
             page_size=page_size,
         )

@@ -20,6 +20,9 @@
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
 
   let dashboardData = null;
+  let bracketStandingsData = null;
+  let standingsStageFilter = '';  // '' | 'group' | 'knockout'
+  let currentStage = null;
   let inflightPromise = null;
   let inflightGroupId = '';
   let activeRequestId = 0;
@@ -112,7 +115,18 @@
     const safeQual = qual && typeof qual === 'object' ? qual : { groups: [] };
 
     renderStats(safe);
-    renderStandings(safe);
+    renderStandingsStageTabs();
+
+    if (standingsStageFilter === 'knockout') {
+      renderBracketStandings(bracketStandingsData);
+    } else if (standingsStageFilter === 'group') {
+      renderStandings(safe);
+    } else {
+      // Show both if available
+      renderStandings(safe);
+      if (bracketStandingsData) renderBracketStandings(bracketStandingsData);
+    }
+
     renderGroupFilter(Array.isArray(safe.groups) ? safe.groups : []);
     renderQualification(safeQual);
 
@@ -173,6 +187,8 @@
 
         dashboardData = data || {};
         dashboardData._qualification = qual || { groups: [] };
+        bracketStandingsData = data.bracket_standings || null;
+        currentStage = data.current_stage || null;
         lastFetchedAt = Date.now();
         lastGroupId = groupId;
 
@@ -332,6 +348,96 @@
     refreshIcons();
   }
 
+  /* --- Stage tabs for standings ----------------------------- */
+  function renderStandingsStageTabs() {
+    var container = document.querySelector('#standings-stage-tabs');
+    if (!container) return;
+    var cfg = window.TOC_CONFIG || {};
+    var fmt = (cfg.tournamentFormat || '').toLowerCase();
+    if (fmt !== 'group_playoff') { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+
+    var tabs = [
+      { key: '', label: 'All' },
+      { key: 'group', label: 'Group Stage' },
+      { key: 'knockout', label: 'Knockout Bracket' },
+    ];
+    container.innerHTML = tabs.map(function(t) {
+      var active = standingsStageFilter === t.key;
+      return '<button data-stage="' + t.key + '" class="' +
+        (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
+        ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
+        'onclick="TOC.standings.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        t.label + '</button>';
+    }).join('');
+  }
+
+  function filterStandingsStage(stg) {
+    standingsStageFilter = stg || '';
+    if (dashboardData) renderDashboard(dashboardData, dashboardData._qualification || { groups: [] });
+  }
+
+  /* --- Bracket standings (knockout) ------------------------ */
+  function renderBracketStandings(bs) {
+    var container = document.querySelector('#standings-bracket');
+    if (!container) { /* If container doesn't exist, append to main content */
+      container = document.querySelector('#standings-content');
+      if (!container) return;
+    }
+    if (!bs || !bs.rounds || !bs.rounds.length) {
+      if (document.querySelector('#standings-bracket')) {
+        document.querySelector('#standings-bracket').innerHTML = '';
+      }
+      return;
+    }
+
+    var html = '<div class="glass-box rounded-xl overflow-hidden mt-4">' +
+      '<div class="p-4 border-b border-dc-border bg-dc-panel/50 flex items-center justify-between">' +
+      '<div><h3 class="font-display font-bold text-white text-sm">Knockout Bracket</h3>' +
+      '<p class="text-[10px] text-dc-text mt-0.5">' + esc(bs.format || 'Single Elimination') +
+      ' &middot; ' + (bs.total_rounds || 0) + ' rounds &middot; ' +
+      (bs.completion_pct || 0) + '% complete</p></div>' +
+      (bs.is_finalized ? '<span class="text-[9px] font-bold text-dc-success bg-dc-success/15 px-2 py-0.5 rounded-full border border-dc-success/30">FINALIZED</span>' : '') +
+      '</div>';
+
+    bs.rounds.forEach(function(round) {
+      html += '<div class="p-4 border-b border-dc-border/30">' +
+        '<h4 class="text-xs font-bold text-amber-300 uppercase tracking-widest mb-3">' +
+        esc(round.round_label || 'Round ' + round.round) + '</h4>' +
+        '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">';
+
+      (round.matches || []).forEach(function(m) {
+        var p1Class = m.winner === 'p1' ? 'text-dc-success font-bold' : 'text-dc-textBright';
+        var p2Class = m.winner === 'p2' ? 'text-dc-success font-bold' : 'text-dc-textBright';
+        var stateLabel = m.match_state === 'completed' ? 'Done' : m.match_state === 'live' ? 'LIVE' : m.match_state || 'Pending';
+        var stateCls = m.match_state === 'completed' ? 'text-dc-text' : m.match_state === 'live' ? 'text-dc-success animate-pulse' : 'text-dc-warning';
+
+        html += '<div class="bg-dc-bg border border-dc-border rounded-lg p-3">' +
+          '<div class="flex items-center justify-between mb-2">' +
+          '<span class="text-[9px] font-mono text-dc-text">' + esc(m.round_label || '') + '</span>' +
+          '<span class="text-[8px] font-bold uppercase ' + stateCls + '">' + stateLabel + '</span>' +
+          '</div>' +
+          '<div class="space-y-1">' +
+          '<div class="flex items-center justify-between"><span class="text-xs ' + p1Class + ' truncate">' + esc(m.participant1_name || 'TBD') + '</span>' +
+          (m.winner === 'p1' ? '<i data-lucide="trophy" class="w-3 h-3 text-dc-success ml-1"></i>' : '') + '</div>' +
+          '<div class="flex items-center justify-between"><span class="text-xs ' + p2Class + ' truncate">' + esc(m.participant2_name || 'TBD') + '</span>' +
+          (m.winner === 'p2' ? '<i data-lucide="trophy" class="w-3 h-3 text-dc-success ml-1"></i>' : '') + '</div>' +
+          '</div></div>';
+      });
+
+      html += '</div></div>';
+    });
+
+    html += '</div>';
+
+    if (standingsStageFilter === 'knockout') {
+      container.innerHTML = html;
+    } else {
+      container.insertAdjacentHTML('beforeend', html);
+    }
+    refreshIcons();
+  }
+
   function renderQualification(data) {
     const container = $('#standings-qualification');
     if (!container) return;
@@ -380,7 +486,7 @@
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
   window.TOC = window.TOC || {};
-  window.TOC.standings = { refresh, exportStandings, invalidate };
+  window.TOC.standings = { refresh, exportStandings, invalidate, filterStage: filterStandingsStage };
 
   document.addEventListener('toc:tab-changed', onTabChange);
   document.addEventListener('visibilitychange', onVisibilityChange);

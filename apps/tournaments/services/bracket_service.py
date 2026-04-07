@@ -1864,7 +1864,7 @@ class BracketService:
                 meta={
                     'bracket_id': bracket_id,
                     'tournament_id': bracket.tournament_id,
-                    'bracket_type': bracket.bracket_type,
+                    'bracket_type': bracket.format,
                     'total_nodes': bracket.nodes.count(),
                 }
             )

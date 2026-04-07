@@ -1370,6 +1370,8 @@
 
                         {# Filter bar #}
                         <div class="p-3 border-b border-dc-borderLight bg-dc-panel/50 space-y-2 shrink-0">
+                            {# Stage phase tabs (group vs knockout) #}
+                            <div id="match-stage-tabs" class="hidden flex gap-1" role="tablist" aria-label="Stage filter"></div>
                             {# Group filter pills #}
                             <div id="match-group-pills" class="flex flex-wrap gap-1.5" role="toolbar" aria-label="Group filter"></div>
                             {# State + Round + Search #}
@@ -1910,6 +1912,9 @@
                             <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Calendar
                         </button>
                     </div>
+
+                    {# Stage phase tabs #}
+                    <div id="sched-stage-tabs" class="hidden flex gap-1 mb-2"></div>
 
                     {# Filter controls #}
                     <div class="flex flex-wrap items-center gap-2 flex-1">
@@ -3159,6 +3164,9 @@
                         <div class="text-[10px] text-dc-text uppercase tracking-widest">Current Leader</div>
                     </div>
                 </div>
+
+                {# Stage tabs #}
+                <div id="standings-stage-tabs" class="hidden flex gap-1 mb-2"></div>
 
                 {# Standings Tables #}
                 <div id="standings-content" class="space-y-4">

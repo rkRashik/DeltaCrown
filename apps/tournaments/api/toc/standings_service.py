@@ -7,6 +7,7 @@ multi-stage views, historical snapshots, and qualification tracking.
 
 import logging
 from datetime import datetime
+from typing import Optional
 from django.db.models import Q, F, Sum, Count, Case, When, IntegerField, Value
 from django.utils import timezone
 
@@ -152,9 +153,19 @@ class TOCStandingsService:
                     best_pts = row["points"]
                     leader = row["name"]
 
+        # Current tournament stage
+        current_stage = None
+        if hasattr(tournament, 'get_current_stage'):
+            current_stage = tournament.get_current_stage()
+
+        # Knockout bracket standings (if bracket exists)
+        bracket_standings = TOCStandingsService._get_bracket_standings(tournament)
+
         return {
             "groups": group_standings,
             "stages": stage_list,
+            "current_stage": current_stage,
+            "bracket_standings": bracket_standings,
             "summary": {
                 "total_teams": total_teams,
                 "total_groups": len(group_standings),
@@ -164,6 +175,91 @@ class TOCStandingsService:
                 "completion_pct": completion_pct,
                 "leader": leader,
             },
+        }
+
+    @staticmethod
+    def _get_bracket_standings(tournament: Tournament) -> Optional[dict]:
+        """Build knockout bracket standings from BracketNodes and their matches."""
+        try:
+            from apps.brackets.models import Bracket, BracketNode
+        except ImportError:
+            return None
+
+        bracket = Bracket.objects.filter(tournament=tournament).first()
+        if not bracket:
+            return None
+
+        nodes = (
+            BracketNode.objects.filter(bracket=bracket)
+            .select_related("match")
+            .order_by("round_number", "match_number_in_round")
+        )
+        if not nodes.exists():
+            return None
+
+        is_team = tournament.participation_type != "solo"
+
+        # Collect all participant IDs for name resolution
+        pid_set = set()
+        for n in nodes:
+            if n.participant1_id:
+                pid_set.add(n.participant1_id)
+            if n.participant2_id:
+                pid_set.add(n.participant2_id)
+
+        name_map = {}
+        if is_team and pid_set:
+            try:
+                from apps.organizations.models.team import Team as OrgTeam
+                for t in OrgTeam.objects.filter(id__in=pid_set).only("id", "name"):
+                    name_map[t.id] = t.name
+            except Exception:
+                pass
+        elif pid_set:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            for u in User.objects.filter(id__in=pid_set).only("id", "username"):
+                name_map[u.id] = u.username
+
+        rounds = {}
+        for n in nodes:
+            rn = n.round_number or 0
+            if rn not in rounds:
+                rounds[rn] = []
+            match_obj = getattr(n, "match", None)
+            rounds[rn].append({
+                "node_id": n.id,
+                "round_number": rn,
+                "match_number": n.match_number_in_round,
+                "participant1_id": n.participant1_id,
+                "participant1_name": name_map.get(n.participant1_id, "TBD") if n.participant1_id else "TBD",
+                "participant2_id": n.participant2_id,
+                "participant2_name": name_map.get(n.participant2_id, "TBD") if n.participant2_id else "TBD",
+                "winner_id": n.winner_id,
+                "winner_name": name_map.get(n.winner_id, "") if n.winner_id else "",
+                "is_bye": n.is_bye,
+                "match_id": match_obj.id if match_obj else None,
+                "match_state": match_obj.state if match_obj else None,
+                "round_label": bracket.get_round_name(rn),
+            })
+
+        total_nodes = sum(len(ms) for ms in rounds.values())
+        completed_nodes = sum(
+            1 for ms in rounds.values() for m in ms if m["winner_id"]
+        )
+
+        return {
+            "bracket_id": bracket.id,
+            "format": bracket.format,
+            "total_rounds": bracket.total_rounds,
+            "is_finalized": bracket.is_finalized,
+            "rounds": [
+                {"round": rn, "round_label": bracket.get_round_name(rn), "matches": ms}
+                for rn, ms in sorted(rounds.items())
+            ],
+            "total_matches": total_nodes,
+            "completed_matches": completed_nodes,
+            "completion_pct": round(completed_nodes / total_nodes * 100) if total_nodes > 0 else 0,
         }
 
     @staticmethod

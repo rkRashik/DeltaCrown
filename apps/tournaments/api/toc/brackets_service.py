@@ -881,6 +881,7 @@ class TOCBracketsService:
             'stream_url',
             'best_of',
             'game_scores',
+            'bracket_id',
         ).order_by("scheduled_time", "round_number", "match_number")
         matches = list(matches_qs)
 
@@ -936,6 +937,15 @@ class TOCBracketsService:
                     pass
 
         # ── Serialize matches by round ──
+        # Pre-load bracket for round name resolution
+        bracket_obj = None
+        bracket_ids = {m.bracket_id for m in matches if m.bracket_id}
+        if bracket_ids:
+            try:
+                bracket_obj = Bracket.objects.filter(id__in=bracket_ids).first()
+            except Exception:
+                pass
+
         rounds = {}
         all_serialized = []
         for m in matches:
@@ -948,6 +958,16 @@ class TOCBracketsService:
             # Attach group name from participant lookup
             gname = group_lookup.get(m.participant1_id) or group_lookup.get(m.participant2_id) or ""
             serialized["group_name"] = gname
+            # Stage awareness: group_stage matches have no bracket, knockout matches do
+            serialized["stage"] = "knockout" if m.bracket_id else "group_stage"
+            # Bracket round label for knockout matches
+            if m.bracket_id and bracket_obj and hasattr(bracket_obj, 'get_round_name'):
+                try:
+                    serialized["bracket_round_label"] = bracket_obj.get_round_name(rn)
+                except Exception:
+                    serialized["bracket_round_label"] = ""
+            else:
+                serialized["bracket_round_label"] = ""
             rounds[rn].append(serialized)
             all_serialized.append(serialized)
 
@@ -979,6 +999,9 @@ class TOCBracketsService:
         # Context flags so the frontend can show smarter empty states
         has_bracket = Bracket.objects.filter(tournament=tournament).exists()
         has_groups = Group.objects.filter(tournament=tournament, is_deleted=False).exists()
+        current_stage = None
+        if hasattr(tournament, 'get_current_stage'):
+            current_stage = tournament.get_current_stage()
 
         return {
             "total_matches": total,
@@ -1003,6 +1026,7 @@ class TOCBracketsService:
                 ],
             },
             "conflicts": conflicts,
+            "current_stage": current_stage,
             "context": {
                 "has_bracket": has_bracket,
                 "has_groups": has_groups,

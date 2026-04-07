@@ -57,6 +57,7 @@ class TOCMatchesService:
         state: Optional[str] = None,
         search: Optional[str] = None,
         group: Optional[str] = None,
+        stage: Optional[str] = None,
         page: int = 1,
         page_size: int = 60,
     ) -> Dict[str, Any]:
@@ -79,6 +80,11 @@ class TOCMatchesService:
             )
         if group:
             qs = qs.filter(lobby_info__group_label=group)
+        # Stage filter: group_stage = bracket is NULL, knockout = bracket is NOT NULL
+        if stage == 'group_stage':
+            qs = qs.filter(bracket__isnull=True)
+        elif stage in ('knockout', 'knockout_stage'):
+            qs = qs.filter(bracket__isnull=False)
 
         state_counts = {
             str(row.get('state') or ''): int(row.get('count') or 0)
@@ -125,15 +131,32 @@ class TOCMatchesService:
 
         group_cache = cls._build_group_cache(tournament, participant_ids=participant_ids)
         participant_media_map = cls._build_participant_media_map(tournament, participant_ids=participant_ids)
+
+        # Pre-load bracket round names for knockout matches
+        bracket_round_names = {}
+        if any(m.bracket_id for m in page_matches):
+            from apps.brackets.models import Bracket as _Bracket
+            bracket = _Bracket.objects.filter(tournament=tournament).first()
+            if bracket:
+                for m in page_matches:
+                    if m.bracket_id:
+                        bracket_round_names[m.id] = bracket.get_round_name(m.round_number)
+
         matches = [
             cls._serialize_match(
                 m,
                 tournament=tournament,
                 group_cache=group_cache,
                 participant_media_map=participant_media_map,
+                bracket_round_label=bracket_round_names.get(m.id, ''),
             )
             for m in page_matches
         ]
+
+        # Determine current tournament stage
+        current_stage = None
+        if hasattr(tournament, 'get_current_stage'):
+            current_stage = tournament.get_current_stage()
 
         total_pages = max(1, int(ceil(total / float(page_size)))) if page_size else 1
         has_next = page < total_pages
@@ -143,6 +166,7 @@ class TOCMatchesService:
             'matches': matches,
             'total_count': total,
             'state_counts': state_counts,
+            'current_stage': current_stage,
             'pagination': {
                 'page': page,
                 'page_size': page_size,
@@ -1072,6 +1096,7 @@ class TOCMatchesService:
         tournament: Optional[Tournament] = None,
         group_cache: Optional[Dict[int, str]] = None,
         participant_media_map: Optional[Dict[int, str]] = None,
+        bracket_round_label: str = '',
     ) -> Dict[str, Any]:
         lobby = m.lobby_info or {}
         if tournament is None:
@@ -1129,6 +1154,8 @@ class TOCMatchesService:
             # Sprint 26 additions
             'bracket_id': m.bracket_id,
             'group_label': cls._resolve_group_label(m, group_cache),
+            'stage': 'knockout' if m.bracket_id else 'group_stage',
+            'bracket_round_label': bracket_round_label or '',
             'lobby_info': {
                 'lobby_code': lobby.get('lobby_code', ''),
                 'password': lobby.get('password', ''),

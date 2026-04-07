@@ -537,12 +537,28 @@ class TOCService:
 
         groups_drawn = False
         group_matches_generated = False
+        group_stage_complete = False
+        knockout_bracket_generated = False
         if group_progress:
             gp_state = str(group_progress.get('state') or '').lower()
             groups_drawn = gp_state in ('active', 'completed') or any(
                 int(g.get('teams') or 0) > 0 for g in (group_progress.get('groups') or [])
             )
             group_matches_generated = int(group_progress.get('total_matches') or 0) > 0
+            group_stage_complete = (
+                gp_state == 'completed'
+                or (
+                    group_matches_generated
+                    and int(group_progress.get('completion_pct') or 0) == 100
+                )
+            )
+
+        # Check if knockout bracket exists (for GROUP_PLAYOFF tournaments)
+        if is_group_flow and fmt == 'group_playoff':
+            from apps.brackets.models import Bracket as _StepperBracket
+            knockout_bracket_generated = _StepperBracket.objects.filter(
+                tournament=tournament
+            ).exists()
 
         scheduled_matches = Match.objects.filter(
             tournament=tournament,
@@ -563,6 +579,11 @@ class TOCService:
                 {'key': 'draw_groups', 'label': 'Draw Groups', 'icon': 'shuffle'},
                 {'key': 'generate_matches', 'label': 'Generate Matches', 'icon': 'swords'},
                 {'key': 'scheduling', 'label': 'Scheduling', 'icon': 'calendar-days'},
+            ]
+            # For GROUP_PLAYOFF format, add the knockout bracket step
+            if fmt == 'group_playoff':
+                steps.append({'key': 'generate_playoffs', 'label': 'Playoffs', 'icon': 'trophy'})
+            steps += [
                 {'key': 'live', 'label': 'Live', 'icon': 'radio'},
                 {'key': 'completed', 'label': 'Completed', 'icon': 'flag'},
             ]
@@ -572,6 +593,7 @@ class TOCService:
                 'draw_groups': groups_drawn,
                 'generate_matches': group_matches_generated,
                 'scheduling': scheduling_done,
+                'generate_playoffs': knockout_bracket_generated,
                 'live': live_done,
                 'completed': completed_done,
             }
@@ -631,6 +653,10 @@ class TOCService:
             'generate_matches': {
                 'label': 'Generate round-robin matches from the completed group draw.',
                 'tab': 'matches',
+            },
+            'generate_playoffs': {
+                'label': 'Group stage complete! Generate the playoff bracket from advancers.',
+                'tab': 'brackets',
             },
             'generate_bracket': {
                 'label': 'Generate the tournament bracket from confirmed participants.',
