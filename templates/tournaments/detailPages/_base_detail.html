@@ -241,29 +241,6 @@
                     </div>
                     {% endif %}
 
-                    <div class="grid grid-cols-2 gap-2.5 text-center">
-                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Format</p>
-                            <p class="text-sm font-bold text-white">{{ tournament.get_format_display }}</p>
-                        </div>
-                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Platform</p>
-                            <p class="text-sm font-bold text-white">{{ tournament.get_platform_display }}</p>
-                        </div>
-                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Mode</p>
-                            <p class="text-sm font-bold text-white">{{ tournament.get_mode_display }}</p>
-                        </div>
-                        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Entry Fee</p>
-                            {% if tournament.has_entry_fee and tournament.entry_fee_amount %}
-                            <p class="text-sm font-bold text-amber-400">৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}</p>
-                            {% else %}
-                            <p class="text-sm font-bold text-emerald-400">Free</p>
-                            {% endif %}
-                        </div>
-                    </div>
-
                     {% block sidebar_cta %}
                     <!-- CTA Button -->
                     {% if can_register %}

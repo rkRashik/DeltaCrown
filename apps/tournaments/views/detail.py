@@ -164,6 +164,9 @@ class TournamentDetailView(DetailView):
             context['is_multi_stage'] = True
             current_stage = tournament.get_current_stage()
             context['current_stage'] = current_stage
+            context['current_stage_label'] = (
+                current_stage.replace('_', ' ').title() if current_stage else ''
+            )
             config = tournament.config or {}
             context['stages'] = config.get('stages', [])
 
@@ -186,6 +189,7 @@ class TournamentDetailView(DetailView):
         else:
             context['is_multi_stage'] = False
             context['current_stage'] = None
+            context['current_stage_label'] = ''
 
         # Matches tab
         context.update(self._get_matches_context(tournament))
@@ -234,13 +238,26 @@ class TournamentDetailView(DetailView):
         context['mobile_state_url'] = reverse('tournaments:detail_mobile_state', kwargs={'slug': tournament.slug})
 
         # Match settings and tournament info for format/rules display
+        # Match settings — flatten nested 'values' dict into display-friendly pairs
         raw_ms = tournament.match_settings or {}
         formatted_settings = []
-        for k, v in raw_ms.items():
-            if k == 'available_maps':
+        skip_keys = {'available_maps', 'game_key', 'schema_version', 'version'}
+        # If match_settings has a 'values' sub-dict, flatten it
+        values_dict = raw_ms.get('values', {}) if isinstance(raw_ms.get('values'), dict) else {}
+        source = values_dict or raw_ms
+        for k, v in source.items():
+            if k in skip_keys:
+                continue
+            # Skip nested dicts/lists
+            if isinstance(v, (dict, list)):
                 continue
             label = k.replace('_', ' ').title()
-            formatted_settings.append({'label': label, 'value': v})
+            # Format boolean values
+            if isinstance(v, bool):
+                display_val = 'On' if v else 'Off'
+            else:
+                display_val = str(v)
+            formatted_settings.append({'label': label, 'value': display_val})
         context['match_settings'] = raw_ms
         context['match_settings_display'] = formatted_settings
         context['tournament_config'] = tournament.config or {}
@@ -1086,8 +1103,11 @@ class TournamentDetailView(DetailView):
                     'others': others
                 })
 
+            # Sort by group display order, then rank within group
+            # This keeps groups contiguous for template regroup
+            group_order = {g.name: g.display_order for g in groups}
             all_standings.sort(key=lambda x: (
-                not x['is_advancing'],
+                group_order.get(x['group_name'], 999),
                 x['rank']
             ))
 
