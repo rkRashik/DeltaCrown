@@ -373,6 +373,18 @@ class TOCBracketsService:
         Match.objects.filter(
             tournament=tournament, bracket__isnull=False
         ).delete()
+
+        # For GROUP_PLAYOFF tournaments, also reset stage back to group_stage
+        # so the admin can re-run "Generate Playoffs" without hitting the
+        # "already in knockout stage" guard.
+        if tournament.format == Tournament.GROUP_PLAYOFF:
+            current_stage = tournament.get_current_stage()
+            if current_stage == Tournament.STAGE_KNOCKOUT:
+                tournament.set_current_stage(Tournament.STAGE_GROUP, save=True)
+                logger.info(
+                    f"Reset tournament '{tournament.name}' stage from knockout back to group."
+                )
+
         return {"status": "reset", "message": "Bracket reset. Generate a new one."}
 
     @staticmethod

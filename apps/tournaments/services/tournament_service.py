@@ -617,12 +617,49 @@ class TournamentService:
                 f"Tournament '{tournament.name}' has format: {tournament.format}"
             )
         
-        # Validate current stage
+        # Validate current stage — allow re-entry when bracket exists
+        # but no Match objects were created (stuck/repair scenario).
         current_stage = tournament.get_current_stage()
         if current_stage == Tournament.STAGE_KNOCKOUT:
-            raise ValidationError(
-                f"Tournament '{tournament.name}' is already in knockout stage"
+            from apps.brackets.models import Bracket as _Bracket
+            existing_bracket = _Bracket.objects.filter(tournament=tournament).first()
+            if existing_bracket:
+                knockout_match_count = Match.objects.filter(
+                    tournament=tournament,
+                    bracket=existing_bracket,
+                    is_deleted=False,
+                ).count()
+                if knockout_match_count > 0:
+                    raise ValidationError(
+                        f"Tournament '{tournament.name}' is already in knockout stage "
+                        f"with {knockout_match_count} match(es). "
+                        f"Reset bracket first if re-generation is needed."
+                    )
+                # Bracket exists but zero matches — repair by creating matches
+                # from existing nodes instead of regenerating everything.
+                logger.info(
+                    f"Repairing stuck knockout state for '{tournament.name}': "
+                    f"bracket {existing_bracket.id} exists but has 0 matches."
+                )
+                created_matches = BracketService.create_matches_from_bracket(existing_bracket)
+                logger.info(
+                    f"Repair complete: created {len(created_matches)} knockout match(es) "
+                    f"for tournament '{tournament.name}' from bracket {existing_bracket.id}"
+                )
+                if not created_matches:
+                    logger.warning(
+                        f"Repair for '{tournament.name}' created 0 matches. "
+                        f"Bracket nodes may lack participant assignments. "
+                        f"Consider resetting the bracket and re-generating."
+                    )
+                return existing_bracket
+            # No bracket at all — stage was set prematurely. Reset to group
+            # and allow the full generation flow to proceed.
+            logger.warning(
+                f"Tournament '{tournament.name}' marked as knockout stage but has no bracket. "
+                f"Resetting to group stage for fresh generation."
             )
+            tournament.set_current_stage(Tournament.STAGE_GROUP, save=True)
         
         # Ensure group-stage matches have been generated and all are finished.
         # Group-stage matches have bracket=NULL.

@@ -1451,6 +1451,12 @@ class BracketService:
             participant2_id__isnull=False,
             match__isnull=True  # No match created yet
         ).exclude(is_bye=True)
+
+        total_nodes = BracketNode.objects.filter(bracket=bracket).count()
+        logger.info(
+            f"create_matches_from_bracket: bracket {bracket.id} has {total_nodes} total nodes, "
+            f"{ready_nodes.count()} ready for match creation (both participants assigned, no existing match)"
+        )
         
         created_matches = []
         
