@@ -149,7 +149,7 @@ class Bracket(TimestampedModel):
     def get_round_name(self, round_number: int) -> str:
         """Get human-readable round name from bracket_structure."""
         if not self.bracket_structure or 'rounds' not in self.bracket_structure:
-            return f"Round {round_number}"
+            return self._compute_round_name(round_number, self.total_rounds or 0)
 
         rounds_data = self.bracket_structure.get('rounds', [])
 
@@ -159,7 +159,8 @@ class Bracket(TimestampedModel):
                     rn = round_info.get('round_number') or round_info.get('round')
                     if rn == round_number:
                         return round_info.get('round_name') or round_info.get('name') or f"Round {round_number}"
-            return f"Round {round_number}"
+            # Fallback: compute from total_rounds
+            return self._compute_round_name(round_number, self.total_rounds or 0)
 
         if isinstance(rounds_data, dict):
             upper = rounds_data.get('upper', [])
@@ -183,7 +184,26 @@ class Bracket(TimestampedModel):
                     if offset == round_number:
                         return rd.get('name') or rd.get('round_name') or f"Round {round_number}"
 
-        return f"Round {round_number}"
+        return self._compute_round_name(round_number, self.total_rounds or 0)
+
+    @staticmethod
+    def _compute_round_name(round_number: int, total_rounds: int = 0) -> str:
+        """Compute round name from position relative to finals."""
+        if total_rounds <= 0:
+            return f"Round {round_number}"
+        rounds_from_end = total_rounds - round_number
+        if rounds_from_end == 0:
+            return "Finals"
+        elif rounds_from_end == 1:
+            return "Semi Finals"
+        elif rounds_from_end == 2:
+            return "Quarter Finals"
+        elif rounds_from_end == 3:
+            return "Round of 16"
+        elif rounds_from_end == 4:
+            return "Round of 32"
+        else:
+            return f"Round {round_number}"
 
     @property
     def has_third_place_match(self) -> bool:

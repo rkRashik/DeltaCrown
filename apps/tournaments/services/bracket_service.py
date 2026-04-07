@@ -297,7 +297,18 @@ class BracketService:
         )
 
         total_rounds = max((m.round_number for m in match_dtos), default=0)
-        
+
+        # Build proper round names for bracket_structure
+        rounds_meta = []
+        for rn in range(1, total_rounds + 1):
+            matches_in_round = sum(1 for m in match_dtos if m.round_number == rn)
+            round_name = BracketService._get_round_name(rn, total_rounds)
+            rounds_meta.append({
+                'round_number': rn,
+                'round_name': round_name,
+                'matches': matches_in_round,
+            })
+
         # Create Bracket model
         bracket = Bracket.objects.create(
             tournament=tournament,
@@ -307,6 +318,7 @@ class BracketService:
             bracket_structure={
                 "generated_by": "universal_engine",
                 "participant_count": len(seeded_participants),
+                "rounds": rounds_meta,
             },
             seeding_method=seeding_method,
             is_finalized=False,
