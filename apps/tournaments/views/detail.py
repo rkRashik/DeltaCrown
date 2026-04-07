@@ -708,6 +708,14 @@ class TournamentDetailView(DetailView):
             teams = Team.objects.filter(id__in=all_participant_ids)
             teams_map = {team.id: team.name for team in teams}
             teams_logo_map = {team.id: team.logo.url if team.logo else None for team in teams}
+        elif tournament.participation_type == 'solo' and all_participant_ids:
+            # Fetch user avatars for solo tournaments
+            from apps.user_profile.models_main import UserProfile
+            for up in UserProfile.objects.filter(user_id__in=all_participant_ids).select_related('user').only('user_id', 'avatar'):
+                try:
+                    teams_logo_map[up.user_id] = up.avatar.url if up.avatar else None
+                except Exception:
+                    teams_logo_map[up.user_id] = None
 
         # Pre-fetch group names for group_playoff format
         groups_map = {}
@@ -778,7 +786,7 @@ class TournamentDetailView(DetailView):
 
             stage_label = ''
             if phase == 'group_stage' and group_name:
-                stage_label = f"Group {group_name}"
+                stage_label = group_name
                 if match.round_number:
                     stage_label += f" — Round {match.round_number}"
             elif phase == 'knockout_stage' and round_label:
@@ -992,7 +1000,7 @@ class TournamentDetailView(DetailView):
                 m['team2_stats'] = []
                 m['map_player_stats'] = []
 
-        result = {'matches': matches_list}
+        result = {'matches': matches_list, 'matches_reversed': list(reversed(matches_list))}
 
         if tournament.status in ('completed', 'archived'):
             cache.set(f'detail_matches_{tournament.id}', result, 3600)
@@ -1067,11 +1075,23 @@ class TournamentDetailView(DetailView):
 
                     is_advancing = idx <= group.advancement_count
 
+                    # Resolve logo/avatar for standings row
+                    if standing.team_id:
+                        row_logo = team_logo_map.get(standing.team_id, '')
+                    elif standing.user:
+                        try:
+                            profile = standing.user.profile if hasattr(standing.user, 'profile') else None
+                            row_logo = profile.avatar.url if profile and profile.avatar else ''
+                        except Exception:
+                            row_logo = ''
+                    else:
+                        row_logo = ''
+
                     row = {
                         'rank': standing.rank or idx,
                         'name': participant_name,
                         'participant_id': participant_id,
-                        'logo_url': team_logo_map.get(standing.team_id, '') if standing.team_id else '',
+                        'logo_url': row_logo,
                         'group_name': group.name,
                         'matches_played': standing.matches_played,
                         'wins': standing.matches_won,
@@ -1087,9 +1107,21 @@ class TournamentDetailView(DetailView):
 
                     all_standings.append(row)
 
+                    # Get logo for summary
+                    summary_logo = ''
+                    if standing.team_id:
+                        summary_logo = team_logo_map.get(standing.team_id, '')
+                    elif standing.user:
+                        try:
+                            profile = standing.user.profile if hasattr(standing.user, 'profile') else None
+                            summary_logo = profile.avatar.url if profile and profile.avatar else ''
+                        except Exception:
+                            summary_logo = ''
+
                     summary_entry = {
                         'rank': idx,
-                        'name': participant_name
+                        'name': participant_name,
+                        'logo_url': summary_logo
                     }
 
                     if is_advancing:

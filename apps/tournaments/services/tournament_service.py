@@ -709,6 +709,22 @@ class TournamentService:
         except ValidationError as e:
             raise ValidationError(f"Failed to generate knockout bracket: {str(e)}")
         
+        # Create Match records from BracketNodes that have both participants assigned.
+        # Without this step the knockout round exists only as nodes — no
+        # schedulable Match objects are created and the TOC matches/schedule
+        # tabs stay empty.
+        try:
+            created_matches = BracketService.create_matches_from_bracket(bracket)
+            logger.info(
+                f"Created {len(created_matches)} knockout match(es) for "
+                f"tournament '{tournament.name}' from bracket {bracket.id}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to create matches from knockout bracket: {e}")
+            raise ValidationError(
+                f"Knockout bracket was generated but match creation failed: {str(e)}"
+            )
+        
         # Update tournament stage tracking
         tournament.set_current_stage(Tournament.STAGE_KNOCKOUT, save=True)
         

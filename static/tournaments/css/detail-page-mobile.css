@@ -492,10 +492,9 @@
   }
 
   .dc-mobile-match-body {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 8px;
+    display: flex;
     align-items: center;
+    gap: 8px;
     margin: 9px 0;
   }
 
@@ -522,6 +521,29 @@
     font-size: 13px;
     font-weight: 900;
     color: #f7fbff;
+  }
+
+  /* Upcoming match highlight — distinct blue-tinted border */
+  .dc-mobile-match-upcoming-highlight {
+    border-color: rgba(59, 130, 246, 0.35) !important;
+    background: rgba(37, 99, 235, 0.06) !important;
+  }
+
+  /* Live match highlight — pulsing red border */
+  .dc-mobile-match-live-highlight {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    background: rgba(239, 68, 68, 0.06) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
+  }
+
+  /* Winner name — brighter */
+  .dc-mobile-match-winner {
+    color: #f2f7ff !important;
+  }
+
+  /* Loser name — dimmed */
+  .dc-mobile-match-loser {
+    color: rgba(179, 194, 215, 0.45) !important;
   }
 
   .dc-mobile-player-row {
@@ -638,14 +660,14 @@
   }
 
   .dc-mobile-bottom-space {
-    height: 96px;
+    height: 160px;
   }
 
   .dc-mobile-sticky-cta {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 60px;
     z-index: 70;
     padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
     background: rgba(7, 9, 14, 0.94);

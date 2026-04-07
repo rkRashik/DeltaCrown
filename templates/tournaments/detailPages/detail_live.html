@@ -118,14 +118,14 @@ Inspired by FotMob live matches + VCT brackets:
                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
                     Live
                 </div>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="matches" onclick="scrollToSection('matches')">Matches</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="matches" onclick="switchTab('matches')">Matches</button>
                 {% if show_standings %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="standings" onclick="scrollToSection('standings')">Standings</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="standings" onclick="switchTab('standings')">Standings</button>
                 {% endif %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="bracket" onclick="scrollToSection('bracket')">Bracket</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="info" onclick="scrollToSection('info')">Info</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="bracket" onclick="switchTab('bracket')">Bracket</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="info" onclick="switchTab('info')">Info</button>
                 {% if has_streams %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('stream')">
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="stream" onclick="switchTab('stream')">
                     Stream <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse ml-1"></span>
                 </button>
                 {% endif %}
@@ -146,7 +146,7 @@ Inspired by FotMob live matches + VCT brackets:
 
 {% block phase_content %}
 
-<!-- YOUR NEXT MATCH (Participants Only) -->
+<!-- YOUR NEXT MATCH (Participants Only) — Always visible -->
 {% if user_next_match %}
 <div class="glass-panel p-5 rounded-2xl border-l-4 slide-in" style="border-left-color: var(--game-color);">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -188,7 +188,7 @@ Inspired by FotMob live matches + VCT brackets:
 </div>
 {% endif %}
 
-<!-- TOURNAMENT PROGRESS -->
+<!-- TOURNAMENT PROGRESS — Always visible -->
 <div class="glass-panel p-5 rounded-2xl slide-in slide-in-1">
     <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
@@ -215,8 +215,11 @@ Inspired by FotMob live matches + VCT brackets:
     </div>
 </div>
 
+<!-- ═══════════ TAB PANEL: MATCHES ═══════════ -->
+<div id="tab-panel-matches" class="tab-panel" style="display: none;">
+
 <!-- ACTIVE MATCHES (FotMob-style live cards) -->
-<div id="section-matches" class="space-y-3 slide-in slide-in-2">
+<div class="space-y-3">
     <div class="flex items-center gap-2 mb-2">
         <i data-lucide="zap" class="w-5 h-5 text-red-400"></i>
         <h3 class="text-base font-display font-bold text-white">Live Matches</h3>
@@ -227,7 +230,6 @@ Inspired by FotMob live matches + VCT brackets:
 
     {% for m in matches %}
     {% if m.is_live %}
-    <!-- Live Match Card -->
     <div class="section-card match-live p-4 rounded-xl live-glow" id="match-{{ m.id }}">
         <div class="flex items-center justify-between mb-3">
             <span class="live-badge">
@@ -239,9 +241,7 @@ Inspired by FotMob live matches + VCT brackets:
                 <span class="text-[10px] text-gray-500 font-mono">{{ m.stage_label }}</span>
             </div>
         </div>
-
         <div class="flex items-center justify-between gap-4">
-            <!-- Team 1 -->
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 {% if m.team1_logo_url %}
                 <img src="{{ m.team1_logo_url }}" alt="" class="w-10 h-10 rounded-lg object-cover border border-white/10">
@@ -250,15 +250,11 @@ Inspired by FotMob live matches + VCT brackets:
                 {% endif %}
                 <span class="text-sm font-bold text-white truncate {% if m.team1_is_winner %}game-accent{% endif %}">{{ m.team1_name }}</span>
             </div>
-
-            <!-- Score -->
             <div class="flex items-center gap-3 flex-shrink-0">
                 <span class="text-3xl font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ m.score1|default:"0" }}</span>
                 <span class="text-lg text-gray-600 font-bold">-</span>
                 <span class="text-3xl font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ m.score2|default:"0" }}</span>
             </div>
-
-            <!-- Team 2 -->
             <div class="flex items-center gap-3 flex-1 min-w-0 justify-end">
                 <span class="text-sm font-bold text-white truncate text-right {% if m.team2_is_winner %}game-accent{% endif %}">{{ m.team2_name }}</span>
                 {% if m.team2_logo_url %}
@@ -268,7 +264,6 @@ Inspired by FotMob live matches + VCT brackets:
                 {% endif %}
             </div>
         </div>
-
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
             <span class="text-[10px] text-gray-500">{{ m.match_label }}</span>
             {% if m.stream_url %}
@@ -291,7 +286,7 @@ Inspired by FotMob live matches + VCT brackets:
 
 <!-- GROUP STAGE MATCHES (categorized by group) -->
 {% if is_group_playoff %}
-<div class="space-y-4 slide-in slide-in-3">
+<div class="space-y-4 mt-4">
     <div class="flex items-center gap-2 mb-2">
         <i data-lucide="layers" class="w-4 h-4 game-accent"></i>
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Group Stage Matches</h3>
@@ -311,9 +306,9 @@ Inspired by FotMob live matches + VCT brackets:
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
                             {% if m.team1_logo_url %}
-                            <img src="{{ m.team1_logo_url }}" alt="" class="w-6 h-6 rounded object-cover border border-white/10">
+                            <img src="{{ m.team1_logo_url }}" alt="" class="w-6 h-6 rounded-full object-cover border border-white/10">
                             {% else %}
-                            <div class="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center text-[8px] font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
+                            <div class="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[8px] font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
                             {% endif %}
                             <span class="text-xs font-bold {% if m.team1_is_winner %}text-white{% elif m.is_completed %}text-gray-500{% else %}text-white{% endif %} truncate">{{ m.team1_name }}</span>
                         </div>
@@ -332,9 +327,9 @@ Inspired by FotMob live matches + VCT brackets:
                         <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
                             <span class="text-xs font-bold {% if m.team2_is_winner %}text-white{% elif m.is_completed %}text-gray-500{% else %}text-white{% endif %} truncate text-right">{{ m.team2_name }}</span>
                             {% if m.team2_logo_url %}
-                            <img src="{{ m.team2_logo_url }}" alt="" class="w-6 h-6 rounded object-cover border border-white/10">
+                            <img src="{{ m.team2_logo_url }}" alt="" class="w-6 h-6 rounded-full object-cover border border-white/10">
                             {% else %}
-                            <div class="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center text-[8px] font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
+                            <div class="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[8px] font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -369,15 +364,17 @@ Inspired by FotMob live matches + VCT brackets:
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
                             {% if m.team1_logo_url %}
-                            <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                            <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                            {% else %}
+                            <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
                             {% endif %}
                             <span class="text-xs font-bold {% if m.team1_is_winner %}text-white{% elif m.is_completed %}text-gray-500{% else %}text-white{% endif %} truncate">{{ m.team1_name }}</span>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             {% if m.show_scores %}
-                            <span class="text-base font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
+                            <span class="text-base font-display font-black {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
                             <span class="text-xs text-gray-700">-</span>
-                            <span class="text-base font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
+                            <span class="text-base font-display font-black {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
                             {% else %}
                             <span class="text-[10px] text-gray-600 font-bold">vs</span>
                             {% endif %}
@@ -385,7 +382,9 @@ Inspired by FotMob live matches + VCT brackets:
                         <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
                             <span class="text-xs font-bold {% if m.team2_is_winner %}text-white{% elif m.is_completed %}text-gray-500{% else %}text-white{% endif %} truncate text-right">{{ m.team2_name }}</span>
                             {% if m.team2_logo_url %}
-                            <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                            <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                            {% else %}
+                            <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -405,12 +404,11 @@ Inspired by FotMob live matches + VCT brackets:
 
 {% else %}
 <!-- NON-GROUP FORMAT: Upcoming + Completed lists -->
-<div class="space-y-2 slide-in slide-in-3">
+<div class="space-y-2">
     <div class="flex items-center gap-2 mb-2">
         <i data-lucide="clock" class="w-4 h-4 text-gray-500"></i>
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Upcoming</h3>
     </div>
-
     {% for m in matches %}
     {% if m.status == 'upcoming' %}
     <div class="section-card match-upcoming p-3 rounded-xl">
@@ -418,7 +416,9 @@ Inspired by FotMob live matches + VCT brackets:
             <div class="flex items-center gap-4 flex-1 min-w-0">
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                     {% if m.team1_logo_url %}
-                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
                     {% endif %}
                     <span class="text-xs font-bold text-white truncate">{{ m.team1_name }}</span>
                 </div>
@@ -426,7 +426,9 @@ Inspired by FotMob live matches + VCT brackets:
                 <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
                     <span class="text-xs font-bold text-white truncate text-right">{{ m.team2_name }}</span>
                     {% if m.team2_logo_url %}
-                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -442,13 +444,12 @@ Inspired by FotMob live matches + VCT brackets:
     {% endfor %}
 </div>
 
-<!-- COMPLETED MATCHES (Scoreboard) -->
-<div id="section-scoreboard" class="space-y-2 slide-in slide-in-4">
+<!-- COMPLETED MATCHES -->
+<div class="space-y-2 mt-4">
     <div class="flex items-center gap-2 mb-2">
         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Results</h3>
     </div>
-
     {% for m in matches %}
     {% if m.is_completed %}
     <div class="section-card match-completed p-3 rounded-xl">
@@ -456,19 +457,23 @@ Inspired by FotMob live matches + VCT brackets:
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                     {% if m.team1_logo_url %}
-                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
                     {% endif %}
                     <span class="text-xs font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name }}</span>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-base font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
+                    <span class="text-base font-display font-black {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
                     <span class="text-xs text-gray-700">-</span>
-                    <span class="text-base font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
+                    <span class="text-base font-display font-black {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
                 </div>
                 <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
                     <span class="text-xs font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate text-right">{{ m.team2_name }}</span>
                     {% if m.team2_logo_url %}
-                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -480,300 +485,309 @@ Inspired by FotMob live matches + VCT brackets:
 </div>
 {% endif %}
 
-<!-- GROUP STANDINGS (Football-style tables) -->
+</div><!-- /tab-panel-matches -->
+
+<!-- ═══════════ TAB PANEL: STANDINGS ═══════════ -->
 {% if show_standings and standings_primary %}
-<div id="section-standings" class="space-y-4 slide-in">
-    <div class="flex items-center gap-2 mb-2">
-        <i data-lucide="list-ordered" class="w-5 h-5 game-accent"></i>
-        <h3 class="text-base font-display font-bold text-white">Standings</h3>
-    </div>
-
-    {% if standings_source == 'group_stage' and group_standings_summary %}
-    <!-- Group-wise standings tables -->
-    {% regroup standings_primary by group_name as group_tables %}
-    {% for group in group_tables %}
-    <div class="section-card rounded-xl overflow-hidden">
-        <div class="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-            <i data-lucide="shield" class="w-4 h-4" style="color: var(--game-color);"></i>
-            <h4 class="text-sm font-black uppercase tracking-widest text-white">{{ group.grouper }}</h4>
+<div id="tab-panel-standings" class="tab-panel" style="display: none;">
+    <div class="space-y-4">
+        <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="list-ordered" class="w-5 h-5 game-accent"></i>
+            <h3 class="text-base font-display font-bold text-white">Standings</h3>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs">
-                <thead>
-                    <tr class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/[0.04]">
-                        <th class="text-left py-2 px-3 w-8">#</th>
-                        <th class="text-left py-2 px-2">Team</th>
-                        <th class="text-center py-2 px-2 w-9">MP</th>
-                        <th class="text-center py-2 px-2 w-9">W</th>
-                        <th class="text-center py-2 px-2 w-9">D</th>
-                        <th class="text-center py-2 px-2 w-9">L</th>
-                        {% if group.list.0.goal_difference != None %}
-                        <th class="text-center py-2 px-2 w-9">GD</th>
-                        {% elif group.list.0.round_difference != None %}
-                        <th class="text-center py-2 px-2 w-9">RD</th>
-                        {% endif %}
-                        <th class="text-center py-2 px-2 w-10 font-black">Pts</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in group.list %}
-                    <tr class="border-b border-white/[0.03] {% if row.is_advancing %}bg-emerald-500/[0.04]{% endif %} hover:bg-white/[0.02] transition-colors">
-                        <td class="py-2.5 px-3 text-gray-400 font-mono">
-                            {% if row.is_advancing %}
-                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">{{ row.rank }}</span>
-                            {% else %}
-                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black bg-white/5 text-gray-500">{{ row.rank }}</span>
+
+        {% if standings_source == 'group_stage' and group_standings_summary %}
+        {% regroup standings_primary by group_name as group_tables %}
+        {% for group in group_tables %}
+        <div class="section-card rounded-xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                <i data-lucide="shield" class="w-4 h-4" style="color: var(--game-color);"></i>
+                <h4 class="text-sm font-black uppercase tracking-widest text-white">{{ group.grouper }}</h4>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/[0.04]">
+                            <th class="text-left py-2 px-3 w-8">#</th>
+                            <th class="text-left py-2 px-2">Team</th>
+                            <th class="text-center py-2 px-2 w-9">MP</th>
+                            <th class="text-center py-2 px-2 w-9">W</th>
+                            <th class="text-center py-2 px-2 w-9">D</th>
+                            <th class="text-center py-2 px-2 w-9">L</th>
+                            {% if group.list.0.goal_difference != None %}
+                            <th class="text-center py-2 px-2 w-9">GD</th>
+                            {% elif group.list.0.round_difference != None %}
+                            <th class="text-center py-2 px-2 w-9">RD</th>
                             {% endif %}
-                        </td>
-                        <td class="py-2.5 px-2">
-                            <div class="flex items-center gap-2">
-                                {% if row.logo_url %}
-                                <img src="{{ row.logo_url }}" alt="" class="w-5 h-5 rounded object-cover">
+                            <th class="text-center py-2 px-2 w-10 font-black">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in group.list %}
+                        <tr class="border-b border-white/[0.03] {% if row.is_advancing %}border-l-2 border-l-emerald-500/50{% endif %} hover:bg-white/[0.02] transition-colors">
+                            <td class="py-2.5 px-3 text-gray-400 font-mono">
+                                {% if row.is_advancing %}
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">{{ row.rank }}</span>
+                                {% else %}
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black bg-white/5 text-gray-500">{{ row.rank }}</span>
                                 {% endif %}
-                                <span class="font-bold {% if row.is_advancing %}text-white{% else %}text-gray-400{% endif %} truncate max-w-[150px]">{{ row.name }}</span>
-                            </div>
-                        </td>
-                        <td class="text-center py-2.5 px-2 text-gray-400">{{ row.matches_played }}</td>
-                        <td class="text-center py-2.5 px-2 text-emerald-400 font-bold">{{ row.wins }}</td>
-                        <td class="text-center py-2.5 px-2 text-gray-500">{{ row.draws }}</td>
-                        <td class="text-center py-2.5 px-2 text-red-400">{{ row.losses }}</td>
-                        {% if row.goal_difference != None %}
-                        <td class="text-center py-2.5 px-2 {% if row.goal_difference > 0 %}text-emerald-400{% elif row.goal_difference < 0 %}text-red-400{% else %}text-gray-500{% endif %}">{% if row.goal_difference > 0 %}+{% endif %}{{ row.goal_difference }}</td>
-                        {% elif row.round_difference != None %}
-                        <td class="text-center py-2.5 px-2 {% if row.round_difference > 0 %}text-emerald-400{% elif row.round_difference < 0 %}text-red-400{% else %}text-gray-500{% endif %}">{% if row.round_difference > 0 %}+{% endif %}{{ row.round_difference }}</td>
-                        {% endif %}
-                        <td class="text-center py-2.5 px-2 text-white font-black text-sm">{{ row.points }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                            <td class="py-2.5 px-2">
+                                <div class="flex items-center gap-2">
+                                    {% if row.logo_url %}
+                                    <img src="{{ row.logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10">
+                                    {% else %}
+                                    <div class="w-5 h-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[7px] font-black" style="color: var(--game-color);">{{ row.name|truncatechars:2|upper }}</div>
+                                    {% endif %}
+                                    <span class="font-bold {% if row.is_advancing %}text-white{% else %}text-gray-400{% endif %} truncate max-w-[150px]">{{ row.name }}</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-2.5 px-2 text-gray-400">{{ row.matches_played }}</td>
+                            <td class="text-center py-2.5 px-2 text-emerald-400 font-bold">{{ row.wins }}</td>
+                            <td class="text-center py-2.5 px-2 text-gray-500">{{ row.draws }}</td>
+                            <td class="text-center py-2.5 px-2 text-red-400">{{ row.losses }}</td>
+                            {% if row.goal_difference != None %}
+                            <td class="text-center py-2.5 px-2 {% if row.goal_difference > 0 %}text-emerald-400{% elif row.goal_difference < 0 %}text-red-400{% else %}text-gray-500{% endif %}">{% if row.goal_difference > 0 %}+{% endif %}{{ row.goal_difference }}</td>
+                            {% elif row.round_difference != None %}
+                            <td class="text-center py-2.5 px-2 {% if row.round_difference > 0 %}text-emerald-400{% elif row.round_difference < 0 %}text-red-400{% else %}text-gray-500{% endif %}">{% if row.round_difference > 0 %}+{% endif %}{{ row.round_difference }}</td>
+                            {% endif %}
+                            <td class="text-center py-2.5 px-2 text-white font-black text-sm">{{ row.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-4 py-2 border-t border-white/[0.04] flex items-center gap-2 text-[9px] text-gray-600">
+                <span class="w-2 h-2 rounded-full bg-emerald-500/40"></span>
+                Advances to Knockout Stage
+            </div>
         </div>
-        <div class="px-4 py-2 border-t border-white/[0.04] flex items-center gap-2 text-[9px] text-gray-600">
-            <span class="w-2 h-2 rounded-full bg-emerald-500/40"></span>
-            Advances to Knockout Stage
-        </div>
-    </div>
-    {% endfor %}
+        {% endfor %}
 
-    {% else %}
-    <!-- Flat standings (single-elim, double-elim, round-robin) -->
-    <div class="section-card rounded-xl overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs">
-                <thead>
-                    <tr class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/[0.06]">
-                        <th class="text-left py-2.5 px-3 w-8">#</th>
-                        <th class="text-left py-2.5 px-2">Team</th>
-                        <th class="text-center py-2.5 px-2 w-9">MP</th>
-                        <th class="text-center py-2.5 px-2 w-9">W</th>
-                        <th class="text-center py-2.5 px-2 w-9">L</th>
-                        <th class="text-center py-2.5 px-2 w-10 font-black">Pts</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in standings_primary|slice:":16" %}
-                    <tr class="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                        <td class="py-2.5 px-3 font-mono text-gray-400">{{ row.rank }}</td>
-                        <td class="py-2.5 px-2">
-                            <div class="flex items-center gap-2">
-                                {% if row.logo_url %}
-                                <img src="{{ row.logo_url }}" alt="" class="w-5 h-5 rounded object-cover">
-                                {% endif %}
-                                <span class="font-bold text-white truncate max-w-[180px]">{{ row.name }}</span>
-                            </div>
-                        </td>
-                        <td class="text-center py-2.5 px-2 text-gray-400">{{ row.matches_played }}</td>
-                        <td class="text-center py-2.5 px-2 text-emerald-400 font-bold">{{ row.wins }}</td>
-                        <td class="text-center py-2.5 px-2 text-red-400">{{ row.losses }}</td>
-                        <td class="text-center py-2.5 px-2 text-white font-black text-sm">{{ row.points }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% else %}
+        <!-- Flat standings -->
+        <div class="section-card rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/[0.06]">
+                            <th class="text-left py-2.5 px-3 w-8">#</th>
+                            <th class="text-left py-2.5 px-2">Team</th>
+                            <th class="text-center py-2.5 px-2 w-9">MP</th>
+                            <th class="text-center py-2.5 px-2 w-9">W</th>
+                            <th class="text-center py-2.5 px-2 w-9">L</th>
+                            <th class="text-center py-2.5 px-2 w-10 font-black">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in standings_primary|slice:":16" %}
+                        <tr class="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                            <td class="py-2.5 px-3 font-mono text-gray-400">{{ row.rank }}</td>
+                            <td class="py-2.5 px-2">
+                                <div class="flex items-center gap-2">
+                                    {% if row.logo_url %}
+                                    <img src="{{ row.logo_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-white/10">
+                                    {% else %}
+                                    <div class="w-5 h-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[7px] font-black" style="color: var(--game-color);">{{ row.name|truncatechars:2|upper }}</div>
+                                    {% endif %}
+                                    <span class="font-bold text-white truncate max-w-[180px]">{{ row.name }}</span>
+                                </div>
+                            </td>
+                            <td class="text-center py-2.5 px-2 text-gray-400">{{ row.matches_played }}</td>
+                            <td class="text-center py-2.5 px-2 text-emerald-400 font-bold">{{ row.wins }}</td>
+                            <td class="text-center py-2.5 px-2 text-red-400">{{ row.losses }}</td>
+                            <td class="text-center py-2.5 px-2 text-white font-black text-sm">{{ row.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
+</div><!-- /tab-panel-standings -->
 {% endif %}
 
-<!-- BRACKET SECTION -->
-<div id="section-bracket" class="section-card p-6 sm:p-8 rounded-2xl slide-in">
-    <div class="flex items-center gap-2 mb-4">
-        <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
-        <h3 class="text-lg font-display font-bold text-white">Bracket</h3>
-        <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ml-auto text-[10px] font-bold game-accent uppercase tracking-wider hover:text-white transition">
-            Full View →
-        </a>
-    </div>
+<!-- ═══════════ TAB PANEL: BRACKET ═══════════ -->
+<div id="tab-panel-bracket" class="tab-panel" style="display: none;">
+    <div class="section-card p-6 sm:p-8 rounded-2xl">
+        <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
+            <h3 class="text-lg font-display font-bold text-white">Bracket</h3>
+            <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ml-auto text-[10px] font-bold game-accent uppercase tracking-wider hover:text-white transition">
+                Full View →
+            </a>
+        </div>
 
-    {% if bracket %}
-    <div class="overflow-x-auto no-scrollbar">
-        <div class="min-w-[600px] flex gap-8">
-            {% regroup matches|dictsort:"round_number" by round_number as rounds %}
-            {% for round in rounds %}
-            {% if round.list.0.phase == 'knockout_stage' or not is_group_playoff %}
-            <div class="flex-1 space-y-3">
-                <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
-                    {% with round.grouper as rn %}
-                    {% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
-                    {% endwith %}
-                </h4>
-                {% for m in round.list %}
-                {% if m.phase == 'knockout_stage' or not is_group_playoff %}
-                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center space-y-1.5 {% if m.is_live %}border-red-500/20{% endif %}">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team1_name|truncatechars:12 }}</span>
-                        <span class="font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score1|default:"0" }}{% endif %}</span>
+        {% if bracket %}
+        <div class="overflow-x-auto no-scrollbar">
+            <div class="min-w-[600px] flex gap-8">
+                {% regroup matches|dictsort:"round_number" by round_number as rounds %}
+                {% for round in rounds %}
+                {% if round.list.0.phase == 'knockout_stage' or not is_group_playoff %}
+                <div class="flex-1 space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
+                        {% with round.grouper as rn %}
+                        {% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
+                        {% endwith %}
+                    </h4>
+                    {% for m in round.list %}
+                    {% if m.phase == 'knockout_stage' or not is_group_playoff %}
+                    <div class="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center space-y-1.5 {% if m.is_live %}border-red-500/20{% endif %}">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team1_name|truncatechars:12 }}</span>
+                            <span class="font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score1|default:"0" }}{% endif %}</span>
+                        </div>
+                        <div class="w-full h-px bg-white/5"></div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team2_name|truncatechars:12 }}</span>
+                            <span class="font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score2|default:"0" }}{% endif %}</span>
+                        </div>
+                        {% if m.is_live %}
+                        <span class="text-[8px] text-red-400 uppercase font-bold tracking-widest">● Live</span>
+                        {% endif %}
                     </div>
-                    <div class="w-full h-px bg-white/5"></div>
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team2_name|truncatechars:12 }}</span>
-                        <span class="font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score2|default:"0" }}{% endif %}</span>
-                    </div>
-                    {% if m.is_live %}
-                    <span class="text-[8px] text-red-400 uppercase font-bold tracking-widest">● Live</span>
                     {% endif %}
+                    {% endfor %}
                 </div>
                 {% endif %}
                 {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
         </div>
-    </div>
-    {% else %}
-    <div class="text-center py-8">
-        <i data-lucide="git-branch" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
-        <p class="text-sm text-gray-500">
-            {% if is_group_playoff %}
-            Knockout bracket will appear after group stage is complete.
-            {% else %}
-            Bracket visualization will appear here.
-            {% endif %}
-        </p>
-    </div>
-    {% endif %}
-</div>
-
-<!-- TOURNAMENT INFO SECTION -->
-<div id="section-info" class="section-card p-6 rounded-2xl slide-in">
-    <div class="flex items-center gap-2 mb-5">
-        <i data-lucide="info" class="w-5 h-5 game-accent"></i>
-        <h3 class="text-lg font-display font-bold text-white">Tournament Information</h3>
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Format</p>
-            <p class="text-sm font-bold text-white">{{ tournament_format_label }}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Platform</p>
-            <p class="text-sm font-bold text-white">{{ tournament_platform_label }}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Mode</p>
-            <p class="text-sm font-bold text-white">{{ tournament_mode_label }}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Type</p>
-            <p class="text-sm font-bold text-white">{{ tournament_participation_label }}</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Game</p>
-            <p class="text-sm font-bold text-white">{{ game_spec.display_name }}</p>
-        </div>
-        {% if tournament.prize_pool %}
-        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Prize Pool</p>
-            <p class="text-sm font-bold text-amber-400">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</p>
+        {% else %}
+        <div class="text-center py-8">
+            <i data-lucide="git-branch" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
+            <p class="text-sm text-gray-500">
+                {% if is_group_playoff %}
+                Knockout bracket will appear after group stage is complete.
+                {% else %}
+                Bracket visualization will appear here.
+                {% endif %}
+            </p>
         </div>
         {% endif %}
     </div>
+</div><!-- /tab-panel-bracket -->
 
-    <!-- Match Settings (game-specific configuration) -->
-    {% if match_settings_display %}
-    <div class="border-t border-white/[0.06] pt-4 mt-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 game-accent"></i>
-            Match Settings
-        </h4>
-        <div class="grid grid-cols-2 gap-2 text-xs">
-            {% for item in match_settings_display %}
-            <div class="flex justify-between p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-                <span class="text-gray-500">{{ item.label }}</span>
-                <span class="text-white font-bold">{{ item.value }}</span>
-            </div>
-            {% endfor %}
+<!-- ═══════════ TAB PANEL: INFO ═══════════ -->
+<div id="tab-panel-info" class="tab-panel" style="display: none;">
+    <div class="section-card p-6 rounded-2xl">
+        <div class="flex items-center gap-2 mb-5">
+            <i data-lucide="info" class="w-5 h-5 game-accent"></i>
+            <h3 class="text-lg font-display font-bold text-white">Tournament Information</h3>
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Schedule -->
-    <div class="border-t border-white/[0.06] pt-4 mt-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 game-accent"></i>
-            Schedule
-        </h4>
-        <div class="space-y-2 text-xs">
-            {% if tournament.registration_start %}
-            <div class="flex justify-between">
-                <span class="text-gray-500">Registration Opened</span>
-                <span class="text-white">{{ tournament.registration_start|date:"M j, Y · g:i A" }}</span>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Format</p>
+                <p class="text-sm font-bold text-white">{{ tournament_format_label }}</p>
             </div>
-            {% endif %}
-            {% if tournament.tournament_start %}
-            <div class="flex justify-between">
-                <span class="text-gray-500">Tournament Started</span>
-                <span class="text-white">{{ tournament.tournament_start|date:"M j, Y · g:i A" }}</span>
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Platform</p>
+                <p class="text-sm font-bold text-white">{{ tournament_platform_label }}</p>
             </div>
-            {% endif %}
-            {% if tournament.tournament_end %}
-            <div class="flex justify-between">
-                <span class="text-gray-500">Expected End</span>
-                <span class="text-white">{{ tournament.tournament_end|date:"M j, Y · g:i A" }}</span>
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Mode</p>
+                <p class="text-sm font-bold text-white">{{ tournament_mode_label }}</p>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Type</p>
+                <p class="text-sm font-bold text-white">{{ tournament_participation_label }}</p>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Game</p>
+                <p class="text-sm font-bold text-white">{{ game_spec.display_name }}</p>
+            </div>
+            {% if tournament.prize_pool %}
+            <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Prize Pool</p>
+                <p class="text-sm font-bold text-amber-400">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</p>
             </div>
             {% endif %}
         </div>
-    </div>
 
-    <!-- Description -->
-    {% if tournament.description %}
-    <div class="border-t border-white/[0.06] pt-4 mt-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <i data-lucide="file-text" class="w-3.5 h-3.5 game-accent"></i>
-            About
-        </h4>
-        <div class="text-sm text-gray-400 leading-relaxed desc-content">{{ tournament.description|safe }}</div>
-    </div>
-    {% endif %}
+        {% if match_settings_display %}
+        <div class="border-t border-white/[0.06] pt-4 mt-4">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 game-accent"></i>
+                Match Settings
+            </h4>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                {% for item in match_settings_display %}
+                <div class="flex justify-between p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                    <span class="text-gray-500">{{ item.label }}</span>
+                    <span class="text-white font-bold">{{ item.value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
-    <!-- Rules -->
-    {% if tournament.rules_text %}
-    <div class="border-t border-white/[0.06] pt-4 mt-4">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <i data-lucide="scale" class="w-3.5 h-3.5 game-accent"></i>
-            Rules
-        </h4>
-        <div class="text-sm text-gray-400 leading-relaxed desc-content">{{ tournament.rules_text|safe|truncatewords_html:100 }}</div>
-    </div>
-    {% endif %}
-</div>
+        <div class="border-t border-white/[0.06] pt-4 mt-4">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 game-accent"></i>
+                Schedule
+            </h4>
+            <div class="space-y-2 text-xs">
+                {% if tournament.registration_start %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Registration Opened</span>
+                    <span class="text-white">{{ tournament.registration_start|date:"M j, Y · g:i A" }}</span>
+                </div>
+                {% endif %}
+                {% if tournament.tournament_start %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Tournament Started</span>
+                    <span class="text-white">{{ tournament.tournament_start|date:"M j, Y · g:i A" }}</span>
+                </div>
+                {% endif %}
+                {% if tournament.tournament_end %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Expected End</span>
+                    <span class="text-white">{{ tournament.tournament_end|date:"M j, Y · g:i A" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
-<!-- STREAM EMBED -->
+        {% if tournament.description %}
+        <div class="border-t border-white/[0.06] pt-4 mt-4">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 game-accent"></i>
+                About
+            </h4>
+            <div class="text-sm text-gray-400 leading-relaxed desc-content">{{ tournament.description|safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if tournament.rules_text %}
+        <div class="border-t border-white/[0.06] pt-4 mt-4">
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="scale" class="w-3.5 h-3.5 game-accent"></i>
+                Rules
+            </h4>
+            <div class="text-sm text-gray-400 leading-relaxed desc-content">{{ tournament.rules_text|safe|truncatewords_html:100 }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div><!-- /tab-panel-info -->
+
+<!-- TAB PANEL: STREAM -->
 {% if has_streams and featured_stream %}
-<div id="section-stream" class="section-card rounded-2xl overflow-hidden slide-in">
-    <div class="aspect-video">
-        <iframe src="{{ featured_stream.embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-    </div>
-    <div class="p-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <i data-lucide="tv" class="w-4 h-4 text-red-400"></i>
-            <span class="text-xs font-bold text-white">{{ featured_stream.title }}</span>
+<div id="tab-panel-stream" class="tab-panel" style="display: none;">
+    <div class="section-card rounded-2xl overflow-hidden">
+        <div class="aspect-video">
+            <iframe src="{{ featured_stream.embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
         </div>
-        <a href="{{ featured_stream.url }}" target="_blank" class="text-[10px] font-bold text-gray-400 hover:text-white transition uppercase tracking-wider">
-            Open in {{ featured_stream.platform|title }} →
-        </a>
+        <div class="p-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="tv" class="w-4 h-4 text-red-400"></i>
+                <span class="text-xs font-bold text-white">{{ featured_stream.title }}</span>
+            </div>
+            <a href="{{ featured_stream.url }}" target="_blank" class="text-[10px] font-bold text-gray-400 hover:text-white transition uppercase tracking-wider">
+                Open in {{ featured_stream.platform|title }} →
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -836,13 +850,10 @@ Inspired by FotMob live matches + VCT brackets:
                 {% for a in gs.advancers %}
                 <div class="flex items-center gap-2 text-xs">
                     <span class="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center text-[8px] font-black text-emerald-400">{{ a.rank }}</span>
+                    {% if a.logo_url %}
+                    <img src="{{ a.logo_url }}" alt="" class="w-4 h-4 rounded-full object-cover border border-white/10">
+                    {% endif %}
                     <span class="text-white font-bold truncate">{{ a.name }}</span>
-                </div>
-                {% endfor %}
-                {% for o in gs.others %}
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="w-4 h-4 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-gray-600">{{ o.rank }}</span>
-                    <span class="text-gray-600 truncate">{{ o.name }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -857,27 +868,36 @@ Inspired by FotMob live matches + VCT brackets:
 <script>
     /* Auto-refresh live match scores every 15 seconds */
     function refreshLiveScores() {
-        // TODO: Implement AJAX polling for live scores
-        // For now, just reload the page every 60s if there are live matches
         {% if live_match_count > 0 %}
         setTimeout(function() { location.reload(); }, 60000);
         {% endif %}
     }
 
-    /* Smooth scroll to section */
-    function scrollToSection(id) {
-        const el = document.getElementById('section-' + id);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            document.querySelectorAll('.phase-tab').forEach(t => {
-                t.classList.remove('active', 'text-white');
-                t.classList.add('text-gray-500');
-                t.style.borderColor = 'transparent';
-            });
-            event.target.classList.add('active', 'text-white');
-            event.target.classList.remove('text-gray-500');
-            event.target.style.borderColor = '#ef4444';
+    /* Tab switching — show/hide tab panels */
+    function switchTab(tabName) {
+        // Hide all tab panels
+        document.querySelectorAll('.tab-panel').forEach(function(panel) {
+            panel.style.display = 'none';
+        });
+        // Show selected panel
+        var target = document.getElementById('tab-panel-' + tabName);
+        if (target) {
+            target.style.display = 'block';
         }
+        // Update tab button states
+        document.querySelectorAll('.phase-tab').forEach(function(btn) {
+            btn.classList.remove('active', 'text-white');
+            btn.classList.add('text-gray-500');
+            btn.style.borderColor = 'transparent';
+        });
+        var activeBtn = document.querySelector('.phase-tab[data-tab="' + tabName + '"]');
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'text-white');
+            activeBtn.classList.remove('text-gray-500');
+            activeBtn.style.borderColor = '#ef4444';
+        }
+        // Scroll to top of content area
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -890,12 +910,7 @@ Inspired by FotMob live matches + VCT brackets:
         {% elif current_stage == 'group_stage' and show_standings %}
         defaultTab = 'standings';
         {% endif %}
-        var tabBtn = document.querySelector('.phase-tab[data-tab="' + defaultTab + '"]');
-        if (tabBtn) {
-            tabBtn.classList.add('active', 'text-white');
-            tabBtn.classList.remove('text-gray-500');
-            tabBtn.style.borderColor = '#ef4444';
-        }
+        switchTab(defaultTab);
     });
 </script>
 {% endblock %}

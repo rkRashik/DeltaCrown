@@ -93,6 +93,12 @@
   <nav class="dc-mobile-tab-nav" id="dc-mobile-tab-nav" role="tablist" aria-label="Tournament detail tabs">
     <button type="button" class="dc-mobile-tab-btn active" role="tab" aria-selected="true" data-mobile-tab="overview">Overview</button>
     <button type="button" class="dc-mobile-tab-btn" role="tab" aria-selected="false" data-mobile-tab="matches">Matches</button>
+    {% if show_standings %}
+    <button type="button" class="dc-mobile-tab-btn" role="tab" aria-selected="false" data-mobile-tab="standings">Standings</button>
+    {% endif %}
+    {% if show_bracket %}
+    <button type="button" class="dc-mobile-tab-btn" role="tab" aria-selected="false" data-mobile-tab="bracket">Bracket</button>
+    {% endif %}
     <button type="button" class="dc-mobile-tab-btn" role="tab" aria-selected="false" data-mobile-tab="players">Players</button>
     <button type="button" class="dc-mobile-tab-btn" role="tab" aria-selected="false" data-mobile-tab="rules">Rules</button>
   </nav>
@@ -100,6 +106,12 @@
   <main class="dc-mobile-panels" id="dc-mobile-panels">
     <section id="dc-mobile-panel-overview" class="dc-mobile-panel active" data-mobile-panel="overview" role="tabpanel" aria-hidden="false"></section>
     <section id="dc-mobile-panel-matches" class="dc-mobile-panel" data-mobile-panel="matches" role="tabpanel" aria-hidden="true"></section>
+    {% if show_standings %}
+    <section id="dc-mobile-panel-standings" class="dc-mobile-panel" data-mobile-panel="standings" role="tabpanel" aria-hidden="true"></section>
+    {% endif %}
+    {% if show_bracket %}
+    <section id="dc-mobile-panel-bracket" class="dc-mobile-panel" data-mobile-panel="bracket" role="tabpanel" aria-hidden="true"></section>
+    {% endif %}
     <section id="dc-mobile-panel-players" class="dc-mobile-panel" data-mobile-panel="players" role="tabpanel" aria-hidden="true"></section>
     <section id="dc-mobile-panel-rules" class="dc-mobile-panel" data-mobile-panel="rules" role="tabpanel" aria-hidden="true"></section>
   </main>
@@ -217,7 +229,12 @@
 
       {% if standings_primary %}
       <article class="dc-mobile-card">
-        <h3 class="dc-mobile-card-title">Standings</h3>
+        <div class="dc-mobile-card-head">
+          <h3 class="dc-mobile-card-title">Standings</h3>
+          {% if show_standings %}
+          <button type="button" class="dc-mobile-text-link" onclick="document.querySelector('[data-mobile-tab=standings]').click()">Full Table</button>
+          {% endif %}
+        </div>
         {% if standings_source == 'group_stage' and group_standings_summary %}
         {% regroup standings_primary by group_name as mobile_groups %}
         {% for grp in mobile_groups %}
@@ -227,8 +244,18 @@
             {% for row in grp.list %}
             <div class="dc-mobile-standings-row">
               <span class="dc-mobile-rank" {% if row.is_advancing %}style="color: #34d399;"{% endif %}>#{{ row.rank }}</span>
-              <span class="dc-mobile-name">{{ row.name }}</span>
-              <span class="dc-mobile-points">{{ row.wins }}W {{ row.draws }}D {{ row.losses }}L · {{ row.points }}pts</span>
+              {% if row.logo_url %}
+              <img src="{{ row.logo_url }}" alt="" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+              {% endif %}
+              <span class="dc-mobile-name" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.name }}</span>
+              <span style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 10px;">
+                <span style="color: rgba(179,194,215,0.6);">{{ row.wins }}W</span>
+                <span style="color: rgba(255,255,255,0.15);">·</span>
+                <span style="color: rgba(179,194,215,0.6);">{{ row.draws }}D</span>
+                <span style="color: rgba(255,255,255,0.15);">·</span>
+                <span style="color: rgba(179,194,215,0.6);">{{ row.losses }}L</span>
+                <span style="color: #f2f7ff; font-weight: 900; margin-left: 4px;">{{ row.points }}pts</span>
+              </span>
             </div>
             {% endfor %}
           </div>
@@ -252,18 +279,19 @@
 
   <template id="dc-mobile-template-matches">
     <div class="dc-mobile-stack">
+      {% if is_group_playoff %}
+      <!-- Group-wise matches (newest first within each group) -->
+      {% for group in groups %}
       <article class="dc-mobile-card">
         <div class="dc-mobile-card-head">
-          <h3 class="dc-mobile-card-title">Matches</h3>
-          <span class="dc-mobile-count-pill">{{ matches|length }}</span>
+          <h3 class="dc-mobile-card-title" style="color: var(--game-color, #06b6d4);">{{ group.name }}</h3>
         </div>
-
-        {% if matches %}
         <div class="dc-mobile-list">
-          {% for m in matches %}
+          {% for m in matches_reversed %}
+          {% if m.phase == 'group_stage' and m.group_name == group.name %}
           <button
             type="button"
-            class="dc-mobile-match-card"
+            class="dc-mobile-match-card {% if m.ui_status == 'upcoming' or m.ui_status == 'scheduled' %}dc-mobile-match-upcoming-highlight{% elif m.ui_status == 'live' %}dc-mobile-match-live-highlight{% endif %}"
             data-mobile-match-open
             data-mobile-match-id="{{ m.id }}"
             data-mobile-match-title="{{ m.team1_name|default:'TBD'|escape }} vs {{ m.team2_name|default:'TBD'|escape }}"
@@ -274,21 +302,148 @@
             data-mobile-match-link="{% url 'tournaments:match_detail' tournament.slug m.id %}"
           >
             <div class="dc-mobile-match-top">
-              <span id="dc-mobile-match-status-{{ m.id }}" class="dc-mobile-match-status dc-mobile-match-status-{{ m.ui_status|default:m.status|default:'upcoming' }}">
+              <span class="dc-mobile-match-status dc-mobile-match-status-{{ m.ui_status|default:m.status|default:'upcoming' }}">
                 {% if m.ui_status == 'live' %}Live{% elif m.ui_status == 'completed' %}Completed{% else %}Upcoming{% endif %}
               </span>
               <span class="dc-mobile-match-stage">{{ m.stage_label|default:m.match_label|default:"Match" }}</span>
             </div>
-
             <div class="dc-mobile-match-body">
-              <p class="dc-mobile-match-team">{{ m.team1_name|default:"TBD" }}</p>
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                {% if m.team1_logo_url %}
+                <img src="{{ m.team1_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+                <p class="dc-mobile-match-team {% if m.team1_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}">{{ m.team1_name|default:"TBD" }}</p>
+              </div>
+              {% if m.show_scores %}
+              <p class="dc-mobile-match-score-inline" style="flex-shrink: 0; font-weight: 900; font-size: 16px; letter-spacing: 2px; color: #f2f7ff; min-width: 50px; text-align: center;">{{ m.score1|default:"0" }} - {{ m.score2|default:"0" }}</p>
+              {% else %}
               <p class="dc-mobile-match-vs">vs</p>
-              <p class="dc-mobile-match-team">{{ m.team2_name|default:"TBD" }}</p>
+              {% endif %}
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; justify-content: flex-end;">
+                <p class="dc-mobile-match-team {% if m.team2_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}" style="text-align: right;">{{ m.team2_name|default:"TBD" }}</p>
+                {% if m.team2_logo_url %}
+                <img src="{{ m.team2_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+              </div>
             </div>
-
             <div class="dc-mobile-match-footer">
-              <span id="dc-mobile-match-time-{{ m.id }}" class="dc-mobile-match-time">{{ m.starts_at_relative|default:m.start_time_display|default:"TBD" }}</span>
-              <span id="dc-mobile-match-score-{{ m.id }}" class="dc-mobile-match-score">{% if m.show_scores %}{{ m.score1|default:0 }} - {{ m.score2|default:0 }}{% else %}TBD{% endif %}</span>
+              <span class="dc-mobile-match-time">{{ m.starts_at_relative|default:m.start_time_display|default:"TBD" }}</span>
+            </div>
+          </button>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </article>
+      {% endfor %}
+
+      <!-- Knockout Stage Matches -->
+      {% with has_knockout=False %}
+      {% for m in matches_reversed %}
+      {% if m.phase == 'knockout_stage' %}
+      {% if not has_knockout %}
+      <article class="dc-mobile-card">
+        <div class="dc-mobile-card-head">
+          <h3 class="dc-mobile-card-title" style="color: #fbbf24;">Knockout Stage</h3>
+        </div>
+        <div class="dc-mobile-list">
+      {% endif %}
+          <button
+            type="button"
+            class="dc-mobile-match-card {% if m.ui_status == 'upcoming' or m.ui_status == 'scheduled' %}dc-mobile-match-upcoming-highlight{% elif m.ui_status == 'live' %}dc-mobile-match-live-highlight{% endif %}"
+            data-mobile-match-open
+            data-mobile-match-id="{{ m.id }}"
+            data-mobile-match-title="{{ m.team1_name|default:'TBD'|escape }} vs {{ m.team2_name|default:'TBD'|escape }}"
+            data-mobile-match-stage="{{ m.stage_label|default:m.match_label|default:'Match'|escape }}"
+            data-mobile-match-time="{{ m.starts_at_display|default:m.start_time_display|default:'TBD'|escape }}"
+            data-mobile-match-status="{{ m.ui_status|default:m.status|default:'upcoming'|escape }}"
+            data-mobile-match-score="{% if m.show_scores %}{{ m.score1|default:0 }} - {{ m.score2|default:0 }}{% else %}TBD{% endif %}"
+            data-mobile-match-link="{% url 'tournaments:match_detail' tournament.slug m.id %}"
+          >
+            <div class="dc-mobile-match-top">
+              <span class="dc-mobile-match-status dc-mobile-match-status-{{ m.ui_status|default:m.status|default:'upcoming' }}">
+                {% if m.ui_status == 'live' %}Live{% elif m.ui_status == 'completed' %}Completed{% else %}Upcoming{% endif %}
+              </span>
+              <span class="dc-mobile-match-stage">{{ m.stage_label|default:m.match_label|default:"Match" }}</span>
+            </div>
+            <div class="dc-mobile-match-body">
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                {% if m.team1_logo_url %}
+                <img src="{{ m.team1_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+                <p class="dc-mobile-match-team {% if m.team1_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}">{{ m.team1_name|default:"TBD" }}</p>
+              </div>
+              {% if m.show_scores %}
+              <p style="flex-shrink: 0; font-weight: 900; font-size: 16px; letter-spacing: 2px; color: #f2f7ff; min-width: 50px; text-align: center;">{{ m.score1|default:"0" }} - {{ m.score2|default:"0" }}</p>
+              {% else %}
+              <p class="dc-mobile-match-vs">vs</p>
+              {% endif %}
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; justify-content: flex-end;">
+                <p class="dc-mobile-match-team {% if m.team2_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}" style="text-align: right;">{{ m.team2_name|default:"TBD" }}</p>
+                {% if m.team2_logo_url %}
+                <img src="{{ m.team2_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+              </div>
+            </div>
+            <div class="dc-mobile-match-footer">
+              <span class="dc-mobile-match-time">{{ m.starts_at_relative|default:m.start_time_display|default:"TBD" }}</span>
+            </div>
+          </button>
+      {% endif %}
+      {% endfor %}
+        </div>
+      </article>
+      {% endwith %}
+
+      {% else %}
+      <!-- Non-group format: flat list newest first -->
+      <article class="dc-mobile-card">
+        <div class="dc-mobile-card-head">
+          <h3 class="dc-mobile-card-title">Matches</h3>
+          <span class="dc-mobile-count-pill">{{ matches|length }}</span>
+        </div>
+
+        {% if matches %}
+        <div class="dc-mobile-list">
+          {% for m in matches_reversed %}
+          <button
+            type="button"
+            class="dc-mobile-match-card {% if m.ui_status == 'upcoming' or m.ui_status == 'scheduled' %}dc-mobile-match-upcoming-highlight{% elif m.ui_status == 'live' %}dc-mobile-match-live-highlight{% endif %}"
+            data-mobile-match-open
+            data-mobile-match-id="{{ m.id }}"
+            data-mobile-match-title="{{ m.team1_name|default:'TBD'|escape }} vs {{ m.team2_name|default:'TBD'|escape }}"
+            data-mobile-match-stage="{{ m.stage_label|default:m.match_label|default:'Match'|escape }}"
+            data-mobile-match-time="{{ m.starts_at_display|default:m.start_time_display|default:'TBD'|escape }}"
+            data-mobile-match-status="{{ m.ui_status|default:m.status|default:'upcoming'|escape }}"
+            data-mobile-match-score="{% if m.show_scores %}{{ m.score1|default:0 }} - {{ m.score2|default:0 }}{% else %}TBD{% endif %}"
+            data-mobile-match-link="{% url 'tournaments:match_detail' tournament.slug m.id %}"
+          >
+            <div class="dc-mobile-match-top">
+              <span class="dc-mobile-match-status dc-mobile-match-status-{{ m.ui_status|default:m.status|default:'upcoming' }}">
+                {% if m.ui_status == 'live' %}Live{% elif m.ui_status == 'completed' %}Completed{% else %}Upcoming{% endif %}
+              </span>
+              <span class="dc-mobile-match-stage">{{ m.stage_label|default:m.match_label|default:"Match" }}</span>
+            </div>
+            <div class="dc-mobile-match-body">
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                {% if m.team1_logo_url %}
+                <img src="{{ m.team1_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+                <p class="dc-mobile-match-team {% if m.team1_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}">{{ m.team1_name|default:"TBD" }}</p>
+              </div>
+              {% if m.show_scores %}
+              <p style="flex-shrink: 0; font-weight: 900; font-size: 16px; letter-spacing: 2px; color: #f2f7ff; min-width: 50px; text-align: center;">{{ m.score1|default:"0" }} - {{ m.score2|default:"0" }}</p>
+              {% else %}
+              <p class="dc-mobile-match-vs">vs</p>
+              {% endif %}
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; justify-content: flex-end;">
+                <p class="dc-mobile-match-team {% if m.team2_is_winner %}dc-mobile-match-winner{% elif m.is_completed %}dc-mobile-match-loser{% endif %}" style="text-align: right;">{{ m.team2_name|default:"TBD" }}</p>
+                {% if m.team2_logo_url %}
+                <img src="{{ m.team2_logo_url }}" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                {% endif %}
+              </div>
+            </div>
+            <div class="dc-mobile-match-footer">
+              <span class="dc-mobile-match-time">{{ m.starts_at_relative|default:m.start_time_display|default:"TBD" }}</span>
             </div>
           </button>
           {% endfor %}
@@ -297,8 +452,149 @@
         <p class="dc-mobile-muted">No matches have been scheduled yet.</p>
         {% endif %}
       </article>
+      {% endif %}
     </div>
   </template>
+
+  <!-- STANDINGS TAB (mobile) -->
+  {% if show_standings and standings_primary %}
+  <template id="dc-mobile-template-standings">
+    <div class="dc-mobile-stack">
+      {% if standings_source == 'group_stage' and group_standings_summary %}
+      {% regroup standings_primary by group_name as mobile_std_groups %}
+      {% for grp in mobile_std_groups %}
+      <article class="dc-mobile-card">
+        <h3 class="dc-mobile-card-title" style="color: var(--game-color, #06b6d4);">{{ grp.grouper }}</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+            <thead>
+              <tr style="color: rgba(255,255,255,0.35); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <th style="text-align: left; padding: 6px 4px; width: 24px;">#</th>
+                <th style="text-align: left; padding: 6px 4px;">Player</th>
+                <th style="text-align: center; padding: 6px 3px; width: 28px;">MP</th>
+                <th style="text-align: center; padding: 6px 3px; width: 28px;">W</th>
+                <th style="text-align: center; padding: 6px 3px; width: 28px;">D</th>
+                <th style="text-align: center; padding: 6px 3px; width: 28px;">L</th>
+                <th style="text-align: center; padding: 6px 3px; width: 32px; font-weight: 900;">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in grp.list %}
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); {% if row.is_advancing %}background: rgba(52,211,153,0.06);{% endif %}">
+                <td style="padding: 8px 4px;">
+                  {% if row.is_advancing %}
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 900; background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.2);">{{ row.rank }}</span>
+                  {% else %}
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 900; background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4);">{{ row.rank }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 8px 4px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    {% if row.logo_url %}
+                    <img src="{{ row.logo_url }}" alt="" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                    {% else %}
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); font-size: 7px; font-weight: 900; color: var(--game-color, #06b6d4); flex-shrink: 0;">{{ row.name|truncatechars:2|upper }}</span>
+                    {% endif %}
+                    <span style="font-weight: 700; {% if row.is_advancing %}color: #f2f7ff;{% else %}color: rgba(179,194,215,0.7);{% endif %} overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.name }}</span>
+                  </div>
+                </td>
+                <td style="text-align: center; padding: 8px 3px; color: rgba(255,255,255,0.5);">{{ row.matches_played }}</td>
+                <td style="text-align: center; padding: 8px 3px; color: #34d399; font-weight: 700;">{{ row.wins }}</td>
+                <td style="text-align: center; padding: 8px 3px; color: rgba(255,255,255,0.35);">{{ row.draws }}</td>
+                <td style="text-align: center; padding: 8px 3px; color: #f87171;">{{ row.losses }}</td>
+                <td style="text-align: center; padding: 8px 3px; color: #f2f7ff; font-weight: 900; font-size: 13px;">{{ row.points }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding: 6px 8px; border-top: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 6px; font-size: 9px; color: rgba(255,255,255,0.3);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: rgba(52,211,153,0.5);"></span>
+          Advances to Knockout
+        </div>
+      </article>
+      {% endfor %}
+      {% else %}
+      <article class="dc-mobile-card">
+        <h3 class="dc-mobile-card-title">Standings</h3>
+        <div class="dc-mobile-list">
+          {% for row in standings_primary|slice:":16" %}
+          <div class="dc-mobile-standings-row">
+            <span class="dc-mobile-rank">#{{ row.rank }}</span>
+            {% if row.logo_url %}
+            <img src="{{ row.logo_url }}" alt="" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+            {% endif %}
+            <span class="dc-mobile-name" style="flex: 1;">{{ row.name }}</span>
+            <span class="dc-mobile-points">{{ row.points }} pts</span>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+      {% endif %}
+    </div>
+  </template>
+  {% endif %}
+
+  <!-- BRACKET TAB (mobile) -->
+  {% if show_bracket %}
+  <template id="dc-mobile-template-bracket">
+    <div class="dc-mobile-stack">
+      <article class="dc-mobile-card">
+        <div class="dc-mobile-card-head">
+          <h3 class="dc-mobile-card-title">Bracket</h3>
+          <a href="/tournaments/{{ tournament.slug }}/bracket/" class="dc-mobile-text-link" style="font-size: 10px; color: var(--game-color, #06b6d4);">Full View →</a>
+        </div>
+
+        {% if bracket %}
+        <div style="overflow-x: auto; padding-bottom: 8px;">
+          <div style="display: flex; gap: 16px; min-width: 500px;">
+            {% regroup matches|dictsort:"round_number" by round_number as mob_rounds %}
+            {% for round in mob_rounds %}
+            {% if round.list.0.phase == 'knockout_stage' or not is_group_playoff %}
+            <div style="flex: 1;">
+              <p style="text-align: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.35); margin-bottom: 8px;">
+                {% with round.grouper as rn %}
+                {% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semis{% elif rn == 3 %}Quarters{% else %}R{{ rn }}{% endif %}
+                {% endwith %}
+              </p>
+              {% for m in round.list %}
+              {% if m.phase == 'knockout_stage' or not is_group_playoff %}
+              <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); margin-bottom: 6px; {% if m.is_live %}border-color: rgba(239,68,68,0.3);{% endif %}">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 4px;">
+                  <span style="font-weight: 700; {% if m.team1_is_winner %}color: #f2f7ff;{% else %}color: rgba(255,255,255,0.4);{% endif %} overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">{{ m.team1_name|truncatechars:10 }}</span>
+                  <span style="font-weight: 900; {% if m.team1_is_winner %}color: #f2f7ff;{% else %}color: rgba(255,255,255,0.3);{% endif %} width: 20px; text-align: right;">{% if m.show_scores %}{{ m.score1|default:"0" }}{% endif %}</span>
+                </div>
+                <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-top: 4px;">
+                  <span style="font-weight: 700; {% if m.team2_is_winner %}color: #f2f7ff;{% else %}color: rgba(255,255,255,0.4);{% endif %} overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">{{ m.team2_name|truncatechars:10 }}</span>
+                  <span style="font-weight: 900; {% if m.team2_is_winner %}color: #f2f7ff;{% else %}color: rgba(255,255,255,0.3);{% endif %} width: 20px; text-align: right;">{% if m.show_scores %}{{ m.score2|default:"0" }}{% endif %}</span>
+                </div>
+                {% if m.is_live %}
+                <p style="text-align: center; font-size: 8px; color: #f87171; font-weight: 900; text-transform: uppercase; margin-top: 4px;">● Live</p>
+                {% endif %}
+              </div>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 24px 0;">
+          <p style="font-size: 12px; color: rgba(255,255,255,0.35);">
+            {% if is_group_playoff %}
+            Bracket appears after group stage completes.
+            {% else %}
+            Bracket will appear here.
+            {% endif %}
+          </p>
+        </div>
+        {% endif %}
+      </article>
+    </div>
+  </template>
+  {% endif %}
 
   <template id="dc-mobile-template-players">
     <div class="dc-mobile-stack">

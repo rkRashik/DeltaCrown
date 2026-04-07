@@ -148,8 +148,11 @@
     var loadingTabs = new Set();
     var tabLoadCallbacks = {};
     var tabScrollPositions = {};
-    var tabOrder = ['overview', 'matches', 'players', 'rules'];
-    var activeTab = 'overview';
+    var tabOrder = [];
+    tabButtons.forEach(function (btn) {
+      tabOrder.push(btn.getAttribute('data-mobile-tab'));
+    });
+    var activeTab = tabOrder[0] || 'overview';
     var sheetOpenCount = 0;
     var pollInFlight = false;
     var stickyOffsetRafId = null;
