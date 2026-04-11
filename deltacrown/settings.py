@@ -1321,6 +1321,16 @@ if SENTRY_DSN:
 # -----------------------------------------------------------------------------
 # Structured Logging (Phase 2: JSON Logging)
 # -----------------------------------------------------------------------------
+# Render has an ephemeral filesystem — file logging crashes startup if /logs/
+# doesn't exist.  Use console-only on Render; keep file handler for local dev.
+_ON_RENDER = bool(os.getenv('RENDER'))
+_PROD_HANDLERS = ['console']  # Render / any cloud without persistent disk
+if not _ON_RENDER and not DEBUG:
+    # Local non-debug: console + rotating file
+    _log_dir = BASE_DIR / 'logs'
+    _log_dir.mkdir(exist_ok=True)
+    _PROD_HANDLERS = ['console', 'file']
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -1359,22 +1369,24 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'deltacrown.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'json' if os.getenv('USE_JSON_LOGGING') else 'verbose',
-        },
+        **({
+            'file': {
+                'level': 'INFO',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'deltacrown.log',
+                'maxBytes': 10 * 1024 * 1024,  # 10MB
+                'backupCount': 5,
+                'formatter': 'json' if os.getenv('USE_JSON_LOGGING') else 'verbose',
+            },
+        } if not _ON_RENDER else {}),
     },
     'root': {
-        'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+        'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
@@ -1384,95 +1396,95 @@ LOGGING = {
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('DJANGO_REQUEST_LOG_LEVEL', 'ERROR'),
             'propagate': False,
         },
         'deltacrown.requests': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('REQUEST_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         # Startup/bootstrap loggers (free-tier noise reduction)
         'apps.core.events': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.core.registry': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.core.plugins': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.core.apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.accounts.apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.accounts.events': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.notifications.apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.notifications.events': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.siteui.apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.siteui.events': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.user_profile.apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         'apps.user_profile.events': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('STARTUP_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         # Tournament app logging (Phase 2)
         'apps.tournaments': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('TOURNAMENTS_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
         'apps.tournaments.realtime': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('TOURNAMENTS_REALTIME_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
         'apps.tournaments.services.certificate_service': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': os.getenv('CERTIFICATE_SERVICE_LOG_LEVEL', 'WARNING'),
             'propagate': False,
         },
         # Celery logging
         'celery': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'handlers': _PROD_HANDLERS if not DEBUG else ['console_debug'],
             'level': 'INFO',
             'propagate': False,
         },
