@@ -114,6 +114,14 @@ class ResultViewSet(viewsets.GenericViewSet):
         - 404: Match not found
         """
         match = self.get_object()
+        
+        # State guard: reject if match is not in a submittable state
+        if match.state not in [Match.LIVE, Match.PENDING_RESULT]:
+            return Response(
+                {'error': f'Cannot submit result in state: {match.state}. Match must be LIVE or PENDING_RESULT.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         serializer = ResultSubmissionSerializer(
             data=request.data,
             context={'best_of': match.best_of}
@@ -250,6 +258,13 @@ class ResultViewSet(viewsets.GenericViewSet):
             return Response(
                 {'error': 'Only match participants, tournament organizers, or admins can confirm results.'},
                 status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # State guard: reject if match is already completed/cancelled/forfeited
+        if match.state not in [Match.PENDING_RESULT]:
+            return Response(
+                {'error': f'Cannot confirm result in state: {match.state}. Match must be in PENDING_RESULT state.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         serializer = ResultConfirmationSerializer(data=request.data)

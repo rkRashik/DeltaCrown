@@ -353,6 +353,11 @@ class GroupStanding(TimestampedModel):
             models.Index(fields=['group', '-points', '-goal_difference']),
             models.Index(fields=['user', 'is_deleted']),
             models.Index(fields=['team_id', 'is_deleted']),
+            # Covering index for standings lookup by group + participant
+            models.Index(
+                fields=['group', 'user', 'team_id'],
+                name='idx_standing_group_participant',
+            ),
         ]
         constraints = [
             CheckConstraint(

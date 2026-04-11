@@ -135,17 +135,17 @@ Features:
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between py-0 sm:py-1">
             <div class="flex items-center gap-1 sm:gap-4 overflow-x-auto no-scrollbar -webkit-overflow-scrolling-touch flex-1 py-2.5 sm:py-3" role="tablist" aria-label="Tournament sections" style="-webkit-overflow-scrolling: touch;">
-                <button role="tab" aria-selected="true" aria-controls="section-champion" class="phase-tab active text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-emerald-500 transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('champion')">Champion</button>
-                <button role="tab" aria-selected="false" aria-controls="section-results" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('results')">Results</button>
-                <button role="tab" aria-selected="false" aria-controls="section-bracket" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('bracket')">Bracket</button>
-                <button role="tab" aria-selected="false" aria-controls="section-standings" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('standings')">Standings</button>
-                <button role="tab" aria-selected="false" aria-controls="section-participants" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('participants')">Participants</button>
-                <button role="tab" aria-selected="false" aria-controls="section-info" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('info')">Info</button>
+                <button role="tab" aria-selected="true" aria-controls="section-champion" class="phase-tab active text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-emerald-500 transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["champion"]'>Champion</button>
+                <button role="tab" aria-selected="false" aria-controls="section-results" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["results"]'>Results</button>
+                <button role="tab" aria-selected="false" aria-controls="section-bracket" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["bracket"]'>Bracket</button>
+                <button role="tab" aria-selected="false" aria-controls="section-standings" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["standings"]'>Standings</button>
+                <button role="tab" aria-selected="false" aria-controls="section-participants" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["participants"]'>Participants</button>
+                <button role="tab" aria-selected="false" aria-controls="section-info" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["info"]'>Info</button>
                 {% if tournament.rules_text or tournament.rules_pdf %}
-                <button role="tab" aria-selected="false" aria-controls="section-rules" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" onclick="scrollToSection('rules')">Rules</button>
+                <button role="tab" aria-selected="false" aria-controls="section-rules" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["rules"]'>Rules</button>
                 {% endif %}
             </div>
-            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied to clipboard!'))" class="hidden sm:flex text-xs text-gray-500 hover:text-white transition items-center gap-1.5 flex-shrink-0 ml-3">
+            <button data-click-copy="window.location.href" class="hidden sm:flex text-xs text-gray-500 hover:text-white transition items-center gap-1.5 flex-shrink-0 ml-3">
                 <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
             </button>
         </div>
@@ -323,7 +323,7 @@ Features:
                         {# Team 1 scoreboard #}
                         <div class="mb-3">
                             <div class="flex items-center gap-2 mb-2">
-                                {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" class="w-4 h-4 rounded">{% endif %}
+                                {% if m.team1_logo_url %}<img src="{{ m.team1_logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
                                 <span class="text-[10px] font-bold text-white uppercase tracking-wider">{{ m.team1_name }}</span>
                             </div>
                             <div class="overflow-x-auto">
@@ -366,7 +366,7 @@ Features:
                         {# Team 2 scoreboard #}
                         <div>
                             <div class="flex items-center gap-2 mb-2">
-                                {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" class="w-4 h-4 rounded">{% endif %}
+                                {% if m.team2_logo_url %}<img src="{{ m.team2_logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
                                 <span class="text-[10px] font-bold text-white uppercase tracking-wider">{{ m.team2_name }}</span>
                             </div>
                             <div class="overflow-x-auto">
@@ -905,7 +905,7 @@ Features:
 {% endblock %}
 
 {% block phase_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
     function scrollToSection(id) {
         const el = document.getElementById('section-' + id);
         if (el) {

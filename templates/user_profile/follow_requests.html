@@ -235,13 +235,13 @@
                         
                         <div class="follow-request-actions">
                             <button class="btn-approve" 
-                                    onclick="approveRequest({{ request.id }}, this)"
+                                    data-click="approveRequest" data-click-args='[{{ request.id }}, this]'
                                     data-username="{{ request.requester.user.username }}">
                                 <i class="fa-solid fa-check"></i>
                                 Approve
                             </button>
                             <button class="btn-reject" 
-                                    onclick="rejectRequest({{ request.id }}, this)"
+                                    data-click="rejectRequest" data-click-args='[{{ request.id }}, this]'
                                     data-username="{{ request.requester.user.username }}">
                                 <i class="fa-solid fa-times"></i>
                                 Reject
@@ -262,7 +262,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function getCookie(name) {
     if (name === 'csrftoken') {
         const meta = document.querySelector('meta[name="csrf-token"]');

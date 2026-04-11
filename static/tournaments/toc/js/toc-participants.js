@@ -79,7 +79,7 @@
         tbody.innerHTML = `
           <tr><td colspan="9" class="px-6 py-12 text-center">
             <p class="text-red-400 text-sm">Failed to load participants.</p>
-            <button onclick="TOC.participants.load()" class="mt-3 text-theme text-xs underline">Retry</button>
+            <button data-click="TOC.participants.load" class="mt-3 text-theme text-xs underline">Retry</button>
           </td></tr>`;
       }
     }
@@ -170,15 +170,15 @@
       let html = `
         <tr class="border-b border-dc-border/30 hover:bg-white/[0.02] transition-colors cursor-pointer group"
             data-reg-id="${row.id}">
-          <td class="px-3 py-2.5" onclick="event.stopPropagation()">
+          <td class="px-3 py-2.5" data-click="event.stopPropagation">
             <input type="checkbox" class="toc-checkbox row-select" value="${row.id}" ${checked}
-                   onchange="TOC.participants.toggleSelect(${row.id}, this.checked)">
+                   data-change="TOC.participants.toggleSelect" data-change-args="[${row.id}, this.checked]">
           </td>
-          <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
+          <td class="px-3 py-2.5" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             <div class="flex items-center gap-2.5">
               ${(row.team_logo_url || row.profile_avatar_url)
                 ? `<img src="${esc(row.team_logo_url || row.profile_avatar_url)}" alt="" class="w-7 h-7 rounded-lg object-cover flex-shrink-0"
-                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                       data-fallback="hide-show-next">
                    <div class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
                      <span class="text-[10px] font-bold text-theme">${(row.participant_name || '?')[0].toUpperCase()}</span>
                    </div>`
@@ -195,13 +195,13 @@
               ${row.is_guest_team ? '<span class="px-1.5 py-0.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase tracking-widest rounded">Guest</span>' : ''}
             </div>
           </td>
-          <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
+          <td class="px-3 py-2.5" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             <span class="inline-flex items-center gap-1 px-2 py-0.5 ${sc.bg} border ${sc.border} ${sc.text} text-[9px] font-bold uppercase tracking-widest rounded-md">
               <i data-lucide="${sc.icon}" class="w-2.5 h-2.5"></i>
               ${esc(sc.label)}
             </span>
           </td>
-          <td class="px-3 py-2.5" onclick="TOC.participants.openDetail(${row.id})">
+          <td class="px-3 py-2.5" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             <span class="inline-flex px-2 py-0.5 ${pc.bg} border ${pc.border} ${pc.text} text-[9px] font-bold uppercase tracking-widest rounded-md">
               ${esc(row.payment_status)}
             </span>
@@ -209,8 +209,8 @@
           <td class="px-3 py-2.5 text-center" data-checks-id="${row.id}">
             ${renderCheckIcon(row.id)}
           </td>
-          <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
-            <button onclick="TOC.participants.toggleCheckin(${row.id})"
+          <td class="px-3 py-2.5 text-center" data-click="event.stopPropagation">
+            <button data-click="TOC.participants.toggleCheckin" data-click-args="[${row.id}]"
                     class="w-8 h-5 rounded-full border transition-all relative ${
                       row.checked_in
                         ? 'bg-emerald-500/20 border-emerald-500/40'
@@ -223,20 +223,20 @@
               }"></span>
             </button>
           </td>
-          <td class="px-3 py-2.5 text-center font-mono text-white text-xs" onclick="TOC.participants.openDetail(${row.id})">
+          <td class="px-3 py-2.5 text-center font-mono text-white text-xs" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             ${row.seed != null ? row.seed : '<span class="text-zinc-600">—</span>'}
           </td>
-          <td class="px-3 py-2.5 font-mono text-zinc-400 text-[10px]" onclick="TOC.participants.openDetail(${row.id})">
+          <td class="px-3 py-2.5 font-mono text-zinc-400 text-[10px]" data-click="TOC.participants.openDetail" data-click-args="[${row.id}]">
             ${row.team_id
               ? (row.coordinator
                   ? `<div class="flex flex-col"><span class="text-theme text-[10px] not-italic">${esc(row.coordinator)}</span>${row.coordinator_game_id ? `<span class="text-zinc-500 text-[9px] font-mono">${esc(row.coordinator_game_id)}</span>` : ''}</div>`
                   : '<span class="text-zinc-600">—</span>')
               : esc(row.game_id || '—')}
           </td>
-          <td class="px-3 py-2.5 text-right" onclick="event.stopPropagation()">
+          <td class="px-3 py-2.5 text-right" data-click="event.stopPropagation">
             <div class="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
               ${isAwaitingVerification ? `
-                <button onclick="TOC.participants.toggleQuickReview(${row.id})"
+                <button data-click="TOC.participants.toggleQuickReview" data-click-args="[${row.id}]"
                   title="Quick Review" class="w-7 h-7 rounded-lg border border-theme/20 bg-theme/5 hover:bg-theme/15 flex items-center justify-center transition-colors">
                   <i data-lucide="scan-eye" class="w-3 h-3 text-theme"></i>
                 </button>` : ''}
@@ -316,18 +316,18 @@
           <div class="flex-shrink-0">
             ${qp.proof_url
               ? `<img src="${qp.proof_url}" alt="Payment proof"
-                      onclick="window.open('${qp.proof_url}', '_blank')"
+                      data-click="window.open" data-click-args="['${qp.proof_url}', &quot;_blank&quot;]"
                       class="w-20 h-20 object-cover rounded-lg border border-dc-border cursor-zoom-in hover:opacity-80 hover:border-theme/40 transition-all" />`
               : `<div class="w-20 h-20 rounded-lg border border-dc-border bg-dc-panel flex items-center justify-center">
                    <i data-lucide="image-off" class="w-5 h-5 text-zinc-600"></i>
                  </div>`}
           </div>
           <div class="flex flex-col gap-2 flex-shrink-0 pt-2">
-            <button onclick="TOC.participants.rowAction('verify', ${row.id})" data-cap-require="approve_payments"
+            <button data-click="TOC.participants.rowAction" data-click-args="[&quot;verify&quot;, ${row.id}]" data-cap-require="approve_payments"
                     class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5">
               <i data-lucide="check-circle" class="w-3 h-3"></i> Verify
             </button>
-            <button onclick="TOC.participants.rowAction('reject', ${row.id})" data-cap-require="manage_registrations"
+            <button data-click="TOC.participants.rowAction" data-click-args="[&quot;reject&quot;, ${row.id}]" data-cap-require="manage_registrations"
                     class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-1.5">
               <i data-lucide="x-circle" class="w-3 h-3"></i> Reject
             </button>
@@ -369,7 +369,7 @@
     };
     var capAttr = capMap[action] ? ' data-cap-require="' + capMap[action] + '"' : '';
 
-    return `<button onclick="TOC.participants.rowAction('${action}', ${row.id})"
+    return `<button data-click="TOC.participants.rowAction" data-click-args="['${action}', ${row.id}]"
               title="${title}"${capAttr}
               class="w-7 h-7 rounded-lg border border-${color}/20 bg-${color}/5 hover:bg-${color}/15 flex items-center justify-center transition-colors">
               <i data-lucide="${icon}" class="w-3 h-3 text-${color}"></i>
@@ -396,7 +396,7 @@
 
     let html = '';
     // Prev
-    html += `<button ${data.page <= 1 ? 'disabled' : ''} onclick="TOC.participants.goPage(${data.page - 1})"
+    html += `<button ${data.page <= 1 ? 'disabled' : ''} data-click="TOC.participants.goPage" data-click-args="[${data.page - 1}]"
               class="w-7 h-7 rounded border border-dc-border text-zinc-400 hover:text-white hover:border-dc-borderLight disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors text-xs">
               <i data-lucide="chevron-left" class="w-3 h-3"></i></button>`;
 
@@ -407,7 +407,7 @@
         html += `<span class="px-1 text-zinc-600 text-[10px]">…</span>`;
       } else {
         const active = p === data.page;
-        html += `<button onclick="TOC.participants.goPage(${p})"
+        html += `<button data-click="TOC.participants.goPage" data-click-args="[${p}]"
                   class="w-7 h-7 rounded border text-[10px] font-bold flex items-center justify-center transition-colors
                     ${active
                       ? 'border-theme bg-theme/10 text-theme'
@@ -417,7 +417,7 @@
     }
 
     // Next
-    html += `<button ${data.page >= data.pages ? 'disabled' : ''} onclick="TOC.participants.goPage(${data.page + 1})"
+    html += `<button ${data.page >= data.pages ? 'disabled' : ''} data-click="TOC.participants.goPage" data-click-args="[${data.page + 1}]"
               class="w-7 h-7 rounded border border-dc-border text-zinc-400 hover:text-white hover:border-dc-borderLight disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors text-xs">
               <i data-lucide="chevron-right" class="w-3 h-3"></i></button>`;
 
@@ -723,7 +723,7 @@
       const avatarSrc = ti.logo_url || d.profile_avatar_url || '';
       const avatarHtml = avatarSrc
         ? `<img src="${esc(avatarSrc)}" alt="" class="w-10 h-10 rounded-xl object-cover border border-dc-border/50"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+               data-fallback="hide-show-next">
            <div class="w-10 h-10 rounded-xl bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">
             <span class="text-base font-bold text-theme">${initials}</span>
            </div>`
@@ -859,7 +859,7 @@
                 <div class="mt-2 pt-2 border-t border-dc-border/30">
                   <p class="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Payment Proof</p>
                   <img src="${d.payment.proof_image}" alt="Payment proof"
-                       onclick="window.open('${d.payment.proof_image}', '_blank')"
+                       data-click="window.open" data-click-args="['${d.payment.proof_image}', &quot;_blank&quot;]"
                        class="w-full max-h-48 object-contain rounded-lg border border-dc-border cursor-zoom-in hover:opacity-80 transition-opacity" />
                 </div>` : ''}
             </div>
@@ -950,51 +950,51 @@
       let footerActions = [];
       if (['pending', 'needs_review', 'submitted', 'payment_submitted'].includes(d.status)) {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('approve', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;approve&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Approve
           </button>`);
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('reject', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;reject&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Reject
           </button>`);
       }
       if (d.status === 'confirmed' || d.status === 'auto_approved') {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('dq', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;dq&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="shield-off" class="w-3.5 h-3.5"></i> Disqualify
           </button>`);
       }
       if (d.status === 'waitlisted') {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('promote_waitlist', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;promote_waitlist&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-violet-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Promote Waitlist
           </button>`);
       }
       footerActions.push(`
-        <button onclick="TOC.participants.rowAction('notify', ${d.id}); TOC.drawer.close();"
+        <button data-click="TOC.participants.rowAction" data-click-args="[&quot;notify&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                 class="flex-1 py-2.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-sky-500/20 transition-colors flex items-center justify-center gap-1.5">
           <i data-lucide="megaphone" class="w-3.5 h-3.5"></i> Send Alert
         </button>`);
       if (d.is_hard_blocked) {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('unblock', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;unblock&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Remove Block
           </button>`);
       } else {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('hard_block', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;hard_block&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="ban" class="w-3.5 h-3.5"></i> Hard Block
           </button>`);
       }
       if (d.payment && d.payment.status_display === 'Pending') {
         footerActions.push(`
-          <button onclick="TOC.participants.rowAction('verify', ${d.id}); TOC.drawer.close();"
+          <button data-click="TOC.participants.rowAction" data-click-args="[&quot;verify&quot;, ${d.id}]" data-click-also="TOC.drawer.close"
                   class="flex-1 py-2.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-sky-500/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="badge-check" class="w-3.5 h-3.5"></i> Verify Payment
           </button>`);
@@ -1003,7 +1003,7 @@
       // Send message to team IGL
       if (d.team_id && coord && coord.display_name) {
         footerActions.push(`
-          <button onclick="TOC.notifications && TOC.notifications.teamMessage && TOC.notifications.teamMessage(${d.team_id})"
+          <button data-click="TOC.notifications.teamMessage" data-click-args="[${d.team_id}]"
                   class="flex-1 py-2.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center justify-center gap-1.5">
             <i data-lucide="send" class="w-3.5 h-3.5"></i> Message Team
           </button>`);

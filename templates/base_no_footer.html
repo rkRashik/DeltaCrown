@@ -19,7 +19,7 @@
 
     <!-- Tailwind CSS: CDN Play + custom DeltaCrown config (works everywhere, no build step) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       tailwind.config = {
         darkMode: 'class',
         theme: {

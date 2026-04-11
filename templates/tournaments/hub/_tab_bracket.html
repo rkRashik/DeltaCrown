@@ -16,10 +16,10 @@
       </p>
     </div>
     <div id="bracket-zoom-controls" class="flex gap-2">
-      <button onclick="HubEngine.bracketZoom(-1)" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition" title="Zoom Out">
+      <button data-click="HubEngine.bracketZoom" data-click-args='[-1]' class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition" title="Zoom Out">
         <i data-lucide="zoom-out" class="w-5 h-5 text-gray-400"></i>
       </button>
-      <button onclick="HubEngine.bracketZoom(1)" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition" title="Zoom In">
+      <button data-click="HubEngine.bracketZoom" data-click-args='[1]' class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition" title="Zoom In">
         <i data-lucide="zoom-in" class="w-5 h-5 text-gray-400"></i>
       </button>
     </div>
@@ -54,6 +54,14 @@
           The tournament bracket will appear here once the organizer generates matchups.
           This typically happens after check-in closes.
         </p>
+        {% if tournament.format == 'group_playoff' %}
+        <div id="bracket-group-stage-notice" class="mt-5 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300 max-w-md mx-auto">
+          <i data-lucide="info" class="w-4 h-4 inline mr-1 -mt-0.5"></i>
+          This tournament uses a Group + Playoff format. The knockout bracket will be
+          generated automatically once all group stage matches are completed. If all
+          group matches are done but you don't see a bracket, please contact the organizer.
+        </div>
+        {% endif %}
         <div id="bracket-empty-projected" class="mt-5 hidden"></div>
       </div>
     </div>

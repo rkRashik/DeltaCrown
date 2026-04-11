@@ -320,7 +320,7 @@
           <span class="ws-label">live</span>
         </span>
         {% comment %}Status Chip — clickable, opens status detail modal{% endcomment %}
-        <button onclick="HubEngine.showStatusModal()" class="hub-status-chip hidden sm:flex" id="hub-status-chip" title="View registration status details">
+        <button data-click="HubEngine.showStatusModal" class="hub-status-chip hidden sm:flex" id="hub-status-chip" title="View registration status details">
           <span class="hub-status-dot
             {% if is_checked_in %}bg-[#00FF66] shadow-[0_0_6px_#00FF66]
             {% elif user_status == 'Pending Approval' %}bg-[#FFB800] shadow-[0_0_6px_#FFB800]
@@ -366,7 +366,7 @@
 
         {% comment %}Mobile Sidebar Toggle (disabled in mobile-first IA){% endcomment %}
         <button class="hub-mobile-toggle hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5"
-          onclick="HubEngine.openMobileSidebar()"
+          data-click="HubEngine.openMobileSidebar"
           aria-hidden="true"
           tabindex="-1">
           <i data-lucide="panel-left" class="w-4 h-4 text-gray-400"></i>
@@ -412,7 +412,7 @@
         Limited Access Mode
       </span>
       <span class="text-[#F8F4DC] font-medium">{{ hub_lock_reason }}</span>
-      <button type="button" onclick="HubEngine.switchTab('support')" class="hub-lock-cta ml-auto">Contact support</button>
+      <button type="button" data-click="HubEngine.switchTab" data-click-args='["support"]' class="hub-lock-cta ml-auto">Contact support</button>
     </div>
   </div>
   {% endif %}
@@ -426,7 +426,7 @@
     </aside>
 
     {% comment %}Mobile Sidebar Overlay{% endcomment %}
-    <div class="hub-mobile-overlay" id="hub-mobile-overlay" onclick="HubEngine.closeMobileSidebar()"></div>
+    <div class="hub-mobile-overlay" id="hub-mobile-overlay" data-click="HubEngine.closeMobileSidebar"></div>
     <aside class="hub-sidebar-mobile fixed top-0 left-0 bottom-0 w-[280px] flex flex-col hub-glass-heavy border-r border-white/5" id="hub-mobile-sidebar" aria-hidden="true" style="z-index:70;">
       {% include "tournaments/hub/_sidebar.html" %}
     </aside>
@@ -443,11 +443,11 @@
           <h3 id="hub-lock-overlay-title" class="hub-tab-lock-title">This area unlocks after verification</h3>
           <p id="hub-lock-overlay-message" class="hub-tab-lock-copy">{{ hub_lock_reason }}</p>
           <div class="hub-tab-lock-actions">
-            <button type="button" class="hub-tab-lock-btn primary" onclick="HubEngine.switchTab('support')">
+            <button type="button" class="hub-tab-lock-btn primary" data-click="HubEngine.switchTab" data-click-args='["support"]'>
               <i data-lucide="life-buoy" class="w-4 h-4"></i>
               Contact Support
             </button>
-            <button type="button" class="hub-tab-lock-btn" onclick="HubEngine.showStatusModal()">
+            <button type="button" class="hub-tab-lock-btn" data-click="HubEngine.showStatusModal">
               <i data-lucide="shield-check" class="w-4 h-4"></i>
               View Status
             </button>
@@ -520,13 +520,13 @@
             </div>
 
             <div class="mt-3 grid grid-cols-1 gap-2.5 hub-mobile-lobby-action-wrap">
-              <button id="hub-mobile-lobby-join" type="button" class="w-full py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 font-black text-xs uppercase tracking-[0.12em] hub-mobile-lobby-primary" onclick="HubEngine.switchTab('matches')">
+              <button id="hub-mobile-lobby-join" type="button" class="w-full py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/35 text-cyan-200 font-black text-xs uppercase tracking-[0.12em] hub-mobile-lobby-primary" data-click="HubEngine.switchTab" data-click-args='["matches"]'>
                 Open Match Queue
               </button>
               <div class="grid grid-cols-3 gap-2">
-                <button type="button" class="py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('rulebook')">Rules</button>
-                <button type="button" class="py-2.5 rounded-xl bg-cyan-400/10 border border-cyan-300/30 text-cyan-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('schedule')">Schedule</button>
-                <button type="button" class="py-2.5 rounded-xl bg-amber-400/10 border border-amber-300/30 text-amber-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" onclick="HubEngine.switchTab('support')">Dispute</button>
+                <button type="button" class="py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" data-click="HubEngine.switchTab" data-click-args='["rulebook"]'>Rules</button>
+                <button type="button" class="py-2.5 rounded-xl bg-cyan-400/10 border border-cyan-300/30 text-cyan-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" data-click="HubEngine.switchTab" data-click-args='["schedule"]'>Schedule</button>
+                <button type="button" class="py-2.5 rounded-xl bg-amber-400/10 border border-amber-300/30 text-amber-200 text-[11px] font-bold uppercase tracking-wider hub-mobile-lobby-secondary" data-click="HubEngine.switchTab" data-click-args='["support"]'>Dispute</button>
               </div>
             </div>
 
@@ -587,26 +587,26 @@
   </div>
 
   <nav class="hub-mobile-bottom-nav hub-app-dock lg:hidden" aria-label="Mobile Primary Navigation">
-    <button class="hub-nav-btn hub-mobile-bottom-item active" data-hub-tab="overview" onclick="HubEngine.switchTab('overview')">
+    <button class="hub-nav-btn hub-mobile-bottom-item active" data-hub-tab="overview" data-click="HubEngine.switchTab" data-click-args='["overview"]'>
       <div class="flex flex-col items-center gap-1">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
         <span class="hub-nav-label">Overview</span>
       </div>
     </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item relative" data-hub-tab="lobby" onclick="HubEngine.switchTab('lobby')">
+    <button class="hub-nav-btn hub-mobile-bottom-item relative" data-hub-tab="lobby" data-click="HubEngine.switchTab" data-click-args='["lobby"]'>
       <div class="flex flex-col items-center gap-1">
         <span class="absolute top-1.5 right-4 w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse border border-[#08080A]"></span>
         <i data-lucide="radio-tower" class="w-4 h-4"></i>
         <span class="hub-nav-label">Lobby</span>
       </div>
     </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="bracket" onclick="HubEngine.switchTab('bracket')">
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="bracket" data-click="HubEngine.switchTab" data-click-args='["bracket"]'>
       <div class="flex flex-col items-center gap-1">
         <i data-lucide="git-merge" class="w-4 h-4 rotate-90"></i>
         <span class="hub-nav-label">Bracket</span>
       </div>
     </button>
-    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="{% if is_team %}squad{% else %}participants{% endif %}" onclick="HubEngine.switchTab('{% if is_team %}squad{% else %}participants{% endif %}')">
+    <button class="hub-nav-btn hub-mobile-bottom-item" data-hub-tab="{% if is_team %}squad{% else %}participants{% endif %}" data-click="HubEngine.switchTab" data-click-args='["{% if is_team %}squad{% else %}participants{% endif %}"]'>
       <div class="flex flex-col items-center gap-1">
         <i data-lucide="{% if is_team %}shield{% else %}users{% endif %}" class="w-4 h-4"></i>
         <span class="hub-nav-label">{% if is_team %}Squad{% else %}Players{% endif %}</span>
@@ -615,7 +615,7 @@
   </nav>
 
   {% comment %}Registration Status Detail Modal{% endcomment %}
-  <div id="hub-status-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeStatusModal()">
+  <div id="hub-status-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" data-click-self="HubEngine.closeStatusModal">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-white/10 overflow-hidden">
       {% comment %}Modal Header with gradient{% endcomment %}
@@ -631,7 +631,7 @@
               <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5" style="font-family:'Space Grotesk',monospace;">{{ status_detail.registered_at_display }}</p>
             </div>
           </div>
-          <button onclick="HubEngine.closeStatusModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button data-click="HubEngine.closeStatusModal" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
@@ -694,7 +694,7 @@
           <i data-lucide="mail" class="w-4 h-4 text-[#00F0FF]"></i> Contact Organizer
         </a>
         {% endif %}
-        <button onclick="HubEngine.closeStatusModal()"
+        <button data-click="HubEngine.closeStatusModal"
            class="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] text-xs font-medium text-gray-400 hover:text-white transition-all">
           Close
         </button>
@@ -703,7 +703,7 @@
   </div>
 
   {% comment %}Match Reschedule Modal{% endcomment %}
-  <div id="hub-reschedule-modal" class="fixed inset-0 z-[115] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeRescheduleModal()">
+  <div id="hub-reschedule-modal" class="fixed inset-0 z-[115] flex items-center justify-center hidden" data-click-self="HubEngine.closeRescheduleModal">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-lg mx-4 hub-glass rounded-2xl border border-amber-300/25 overflow-hidden bg-[linear-gradient(150deg,rgba(20,14,8,0.92)_0%,rgba(9,13,24,0.96)_100%)]">
       <div class="p-5 sm:p-6 border-b border-white/10">
@@ -713,7 +713,7 @@
             <h3 id="hub-reschedule-modal-title" class="text-lg font-black text-white mt-2" style="font-family:Outfit,sans-serif;">Reschedule Match</h3>
             <p id="hub-reschedule-modal-subtitle" class="text-xs text-gray-400 mt-1">Adjust the upcoming match time with your opponent.</p>
           </div>
-          <button id="hub-reschedule-modal-close" type="button" onclick="HubEngine.closeRescheduleModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button id="hub-reschedule-modal-close" type="button" data-click="HubEngine.closeRescheduleModal" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
@@ -753,7 +753,7 @@
       </div>
 
       <div class="p-5 sm:p-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:justify-end gap-2">
-        <button id="hub-reschedule-modal-cancel" type="button" onclick="HubEngine.closeRescheduleModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
+        <button id="hub-reschedule-modal-cancel" type="button" data-click="HubEngine.closeRescheduleModal" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
           Cancel
         </button>
         <button id="hub-reschedule-modal-secondary" type="button" class="hidden px-4 py-2 rounded-lg bg-[#FF2A55]/18 hover:bg-[#FF2A55]/28 border border-[#FF2A55]/35 text-[#FF97AA] text-xs font-black uppercase tracking-wider transition-colors">
@@ -770,7 +770,7 @@
   </div>
 
   {% comment %}Alert Detail Modal{% endcomment %}
-  <div id="hub-alert-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeAlertModal()">
+  <div id="hub-alert-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" data-click-self="HubEngine.closeAlertModal">
     <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>
     <div id="hub-alert-modal-shell" class="relative w-full max-w-lg mx-4 hub-glass rounded-2xl border border-cyan-400/20 overflow-hidden bg-[linear-gradient(150deg,rgba(12,22,40,0.95)_0%,rgba(8,16,32,0.96)_100%)]">
       <div class="relative p-5 sm:p-6 pb-4 border-b border-white/10">
@@ -787,7 +787,7 @@
             <h3 id="hub-alert-modal-title" class="text-lg font-black text-white mt-2.5 truncate" style="font-family:Outfit,sans-serif;">Alert</h3>
             <p id="hub-alert-modal-time" class="text-[10px] text-gray-500 uppercase tracking-widest mt-1" style="font-family:'Space Grotesk',monospace;"></p>
           </div>
-          <button type="button" onclick="HubEngine.closeAlertModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button type="button" data-click="HubEngine.closeAlertModal" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
@@ -797,7 +797,7 @@
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
           <button id="hub-alert-modal-clear"
              type="button"
-             onclick="HubEngine.requestAlertClear()"
+             data-click="HubEngine.requestAlertClear"
              class="px-4 py-2 rounded-lg bg-[#ff2a55]/15 hover:bg-[#ff2a55]/25 border border-[#ff2a55]/35 text-[#ff98ad] text-xs font-black uppercase tracking-wider transition-colors text-center">
             Clear Alert
           </button>
@@ -806,7 +806,7 @@
              class="px-4 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 text-xs font-black uppercase tracking-wider transition-colors text-center">
             Open
           </a>
-          <button type="button" onclick="HubEngine.closeAlertModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
+          <button type="button" data-click="HubEngine.closeAlertModal" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">
             Close
           </button>
         </div>
@@ -815,7 +815,7 @@
   </div>
 
   {% comment %}Action Center Confirm Modal{% endcomment %}
-  <div id="hub-alert-confirm-modal" class="fixed inset-0 z-[110] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeAlertConfirmModal()">
+  <div id="hub-alert-confirm-modal" class="fixed inset-0 z-[110] flex items-center justify-center hidden" data-click-self="HubEngine.closeAlertConfirmModal">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-[#ff2a55]/25 overflow-hidden bg-[linear-gradient(150deg,rgba(28,10,16,0.94)_0%,rgba(15,10,18,0.97)_100%)]">
       <div class="p-5 border-b border-white/10">
@@ -823,19 +823,19 @@
         <p id="hub-alert-confirm-copy" class="text-sm text-gray-300 mt-2 leading-relaxed">This will remove this alert from your Action Center.</p>
       </div>
       <div class="p-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
-        <button type="button" onclick="HubEngine.closeAlertConfirmModal()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">Cancel</button>
-        <button type="button" onclick="HubEngine.confirmAlertClear()" class="px-4 py-2 rounded-lg bg-[#ff2a55]/20 hover:bg-[#ff2a55]/30 border border-[#ff2a55]/35 text-[#ff98ad] text-xs font-black uppercase tracking-wider transition-colors">Yes, Clear</button>
+        <button type="button" data-click="HubEngine.closeAlertConfirmModal" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider transition-colors">Cancel</button>
+        <button type="button" data-click="HubEngine.confirmAlertClear" class="px-4 py-2 rounded-lg bg-[#ff2a55]/20 hover:bg-[#ff2a55]/30 border border-[#ff2a55]/35 text-[#ff98ad] text-xs font-black uppercase tracking-wider transition-colors">Yes, Clear</button>
       </div>
     </div>
   </div>
 
   {% comment %}Contact Admin Modal{% endcomment %}
-  <div id="hub-contact-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.closeContactModal()">
+  <div id="hub-contact-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden" data-click-self="HubEngine.closeContactModal">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-md mx-4 hub-glass rounded-2xl border border-white/10 p-6 space-y-4">
       <div class="flex items-center justify-between">
         <h3 id="hub-contact-modal-title" class="text-lg font-bold text-white" style="font-family:Outfit,sans-serif;">Contact Organizer</h3>
-        <button onclick="HubEngine.closeContactModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+        <button data-click="HubEngine.closeContactModal" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -867,7 +867,7 @@
   </div>
 
   {% comment %}Welcome Guide Overlay (shown once){% endcomment %}
-  <div id="hub-welcome-guide" class="fixed inset-0 z-[100] flex items-center justify-center hidden" onclick="if(event.target===this)HubEngine.dismissGuide()">
+  <div id="hub-welcome-guide" class="fixed inset-0 z-[100] flex items-center justify-center hidden" data-click-self="HubEngine.dismissGuide">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-lg mx-4 hub-glass rounded-2xl border border-white/10 p-8 space-y-6">
       <div class="text-center">
@@ -909,20 +909,20 @@
           </div>
         </div>
       </div>
-      <button onclick="HubEngine.dismissGuide()"
+      <button data-click="HubEngine.dismissGuide"
               class="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white font-bold text-sm hover:opacity-90 transition-opacity">
         Got it, let's go!
       </button>
     </div>
   </div>
 
-  <div id="ticketModal" class="fixed inset-0 z-[110] flex hidden items-center justify-center p-4" onclick="if(event.target===this)HubEngine.closeTicketModal()">
+  <div id="ticketModal" class="fixed inset-0 z-[110] flex hidden items-center justify-center p-4" data-click-self="HubEngine.closeTicketModal">
     <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>
     <div class="relative w-full max-w-[656px] mx-auto max-h-[92vh] overflow-y-auto">
       <div class="hub-glass rounded-2xl border border-white/10 p-4 md:p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 id="hub-ticket-modal-title" class="text-base md:text-lg font-black text-white uppercase tracking-wider" style="font-family:Outfit,sans-serif;">VIP Pass</h3>
-          <button type="button" onclick="HubEngine.closeTicketModal()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button type="button" data-click="HubEngine.closeTicketModal" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
@@ -1096,11 +1096,11 @@
         </div>
 
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button type="button" onclick="HubEngine.downloadTicketPass()" class="w-full py-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold text-xs uppercase tracking-wider hover:bg-cyan-500/20 transition flex items-center justify-center gap-2">
+          <button type="button" data-click="HubEngine.downloadTicketPass" class="w-full py-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold text-xs uppercase tracking-wider hover:bg-cyan-500/20 transition flex items-center justify-center gap-2">
             <i data-lucide="download" class="w-4 h-4"></i>
             Download Pass
           </button>
-          <button type="button" onclick="HubEngine.closeTicketModal()" class="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 font-bold text-xs uppercase tracking-wider hover:bg-white/10 transition">
+          <button type="button" data-click="HubEngine.closeTicketModal" class="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 font-bold text-xs uppercase tracking-wider hover:bg-white/10 transition">
             Close
           </button>
         </div>
@@ -1115,7 +1115,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260402f"></script>
-<script>
+<script nonce="{{ request.csp_nonce }}">
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
     HubEngine.init();

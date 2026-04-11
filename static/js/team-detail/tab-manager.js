@@ -153,7 +153,7 @@ class TabManager {
           <div class="empty-state-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
           <h3 class="empty-state-title">Failed to Load</h3>
           <p class="empty-state-message">${error.message}</p>
-          <button class="btn btn-primary empty-state-cta" onclick="location.reload()">
+          <button class="btn btn-primary empty-state-cta" data-click="location.reload">
             <i class="fa-solid fa-rotate-right"></i> Retry
           </button>
         </div>

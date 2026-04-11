@@ -136,6 +136,15 @@ _heavy_schedule = {
         },
     },
 
+    # Reconcile stuck GROUP_PLAYOFF tournaments every 10 minutes
+    'reconcile-group-playoff-transitions': {
+        'task': 'apps.tournaments.tasks.reconcile_group_playoff_transitions',
+        'schedule': crontab(minute='*/10'),
+        'options': {
+            'expires': 600,
+        },
+    },
+
     # Phase 10: Sync Riot-backed Valorant passport stats
     'sync-all-active-riot-passports': {
         'task': 'user_profile.sync_all_active_riot_passports',

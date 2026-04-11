@@ -299,6 +299,16 @@ class Match(SoftDeleteModel, TimestampedModel):
                 name='idx_match_live',
                 condition=models.Q(state='live')
             ),
+            # Full composite: tournament + state (dashboard upcoming queries)
+            models.Index(
+                fields=['tournament', 'state', 'scheduled_time'],
+                name='idx_match_tourn_state_sched',
+            ),
+            # Participant lookup with state filter (used in dashboard_index)
+            models.Index(
+                fields=['state', 'is_deleted', 'scheduled_time'],
+                name='idx_match_state_del_sched',
+            ),
             # GIN index for lobby_info JSONB
             models.Index(fields=['lobby_info'], name='idx_match_lobby_gin'),
         ]

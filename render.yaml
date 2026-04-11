@@ -50,6 +50,10 @@ services:
       # Leave unset or "0" on Free/Starter tier to save memory
       - key: ENABLE_CELERY_BEAT
         value: "0"
+      # Lifecycle cron secret — used by external cron service (cron-job.org)
+      # to authenticate POST /api/lifecycle/cron/ requests
+      - key: CRON_SECRET
+        generateValue: true
       # Startup process controls (safe defaults for Starter/free-tier)
       - key: ENABLE_CELERY_WORKER
         value: "1"
@@ -59,6 +63,8 @@ services:
         value: "1"
       - key: DAPHNE_ACCESS_LOG
         value: "0"
+      - key: WS_RATE_ENABLED
+        value: "1"
       - key: DAPHNE_HTTP_TIMEOUT
         value: "86400"
       # Keep embedded server/access logs quieter by default

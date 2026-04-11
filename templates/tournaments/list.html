@@ -232,7 +232,7 @@
       <div class="flex items-center justify-between pb-4 border-b border-dc-border">
         <h2 class="font-display font-bold text-2xl text-white">Explore Tournaments</h2>
         <div class="flex items-center gap-3">
-          <select onchange="window.location.search='?sort='+this.value"
+          <select  data-change-search="?sort={value}"
                   class="bg-dc-card border border-dc-border text-xs text-gray-300 rounded-lg px-3 py-2 outline-none focus:border-dc-cyan/50">
             <option value="trending">Sort: Trending</option>
             <option value="soonest">Sort: Soonest</option>
@@ -542,7 +542,7 @@
 </div>
 
 {# Hero Carousel Script — with touch/swipe + keyboard support #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   (function() {
     const slides = document.querySelectorAll('.hero-slide');
     if (slides.length <= 1) return;

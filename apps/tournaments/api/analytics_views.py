@@ -26,8 +26,9 @@ Performance:
 import logging
 from django.http import StreamingHttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework import status
 
 from apps.tournaments.models.tournament import Tournament
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
 def organizer_analytics(request, tournament_id):
     """
     Get analytics metrics for tournament organizers.
@@ -83,12 +85,13 @@ def organizer_analytics(request, tournament_id):
     """
     from django.http import Http404
     
+    request.throttle_scope = 'analytics_read'
+    
     try:
         # Get tournament and check permissions
         tournament = get_object_or_404(Tournament, id=tournament_id)
         
-        # IsOrganizerOrAdmin permission class handles the check
-        # Manual check for clarity (redundant with decorator but explicit)
+        # Ownership check: organizer, co-organizer, or admin
         if not (request.user.is_staff or request.user.is_superuser or 
                 tournament.organizer_id == request.user.id):
             return JsonResponse(
@@ -126,6 +129,7 @@ def organizer_analytics(request, tournament_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
 def participant_analytics(request, user_id):
     """
     Get analytics metrics for tournament participants.
@@ -163,6 +167,8 @@ def participant_analytics(request, user_id):
     Module: 5.4 - Analytics & Reports
     """
     from django.http import Http404
+    
+    request.throttle_scope = 'analytics_read'
     
     try:
         # Permission check: self or admin only
@@ -206,6 +212,7 @@ def participant_analytics(request, user_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
 def export_tournament_csv(request, tournament_id):
     """
     Export tournament data as CSV with streaming (memory-bounded).

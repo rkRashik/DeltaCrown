@@ -499,7 +499,7 @@ class FollowSystemV2 {
         
         card.innerHTML = `
             <a href="${user.profile_url}" class="user-info">
-                <img src="${avatarUrl}" alt="${displayName}" class="user-avatar" onerror="this.onerror=null;this.src='${fallbackAvatar}'">
+                <img src="${avatarUrl}" alt="${displayName}" class="user-avatar" data-fallback-src="${fallbackAvatar}">
                 <div class="user-details">
                     <div class="user-name">
                         ${displayName}

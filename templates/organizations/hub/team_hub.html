@@ -15,8 +15,11 @@
 
 {% block extra_css %}
 <style>
-/* Mobile overflow guard: prevent full-page sideways scroll from decorative bleed. */
-html, body, #main {
+/* Mobile overflow guard: prevent full-page sideways scroll from decorative bleed.
+   NOTE: Do NOT set overflow-x on <html> — when both html+body have overflow-x:hidden,
+   CSS spec forces overflow-y to 'auto' on both, creating a double scroll-trap that
+   can break vertical scrolling entirely. Keep the guard on body + #main only. */
+body, #main {
     max-width: 100%;
     overflow-x: hidden;
     overflow-x: clip;
@@ -791,12 +794,12 @@ body::after {
 {% block content %}
 
 <!-- ========== SEARCH MODAL ========== -->
-<div id="search-modal" class="search-modal items-start justify-center pt-[15vh]" onclick="if(event.target===this)closeSearch()">
+<div id="search-modal" class="search-modal items-start justify-center pt-[15vh]">
     <div class="w-full max-w-2xl mx-4 bg-dc-surface border border-white/10 rounded-2xl shadow-2xl overflow-hidden fade-in">
         <div class="p-4 border-b border-white/10 flex items-center gap-3">
             <i data-lucide="search" class="w-5 h-5 text-dc-cyan flex-shrink-0"></i>
             <input id="search-input" type="text" placeholder="Search teams, players, tournaments..." class="flex-1 bg-transparent text-white text-lg outline-none placeholder-gray-500">
-            <button onclick="closeSearch()" class="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0" aria-label="Close search">
+            <button class="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0" aria-label="Close search">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
         </div>
@@ -860,7 +863,7 @@ body::after {
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>JOIN & CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </a>
                     {% endif %}
-                    <button onclick="openSearch()" class="btn-cta-search btn-arrow">
+                    <button class="btn-cta-search btn-arrow">
                         <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a Squad
                     </button>
                 </div>
@@ -1006,11 +1009,11 @@ body::after {
 
     <!-- MOBILE: Compact horizontal chip strip (< 640px) -->
     <div class="game-strip-mobile" id="game-strip-mobile">
-        <button class="game-chip {% if selected_game_slug == 'all' %}active{% endif %}" data-game="all" onclick="selectGame('all', this); syncChipActive(this);">
+        <button class="game-chip {% if selected_game_slug == 'all' %}active{% endif %}" data-game="all">
             <i data-lucide="layout-grid" class="w-4 h-4 text-dc-cyan"></i> All
         </button>
         {% for game in available_games %}
-        <button class="game-chip {% if selected_game_slug == game.slug %}active{% endif %}" data-game="{{ game.slug }}" onclick="selectGame('{{ game.slug }}', this); syncChipActive(this);">
+        <button class="game-chip {% if selected_game_slug == game.slug %}active{% endif %}" data-game="{{ game.slug }}">
             {% if game.icon %}
             <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" loading="lazy">
             {% elif game.logo %}
@@ -1027,7 +1030,7 @@ body::after {
     <div class="game-grid-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-3 stagger-grid" id="game-grid">
         <!-- "All Games" button -->
         <button class="game-grid-item card-shine {% if selected_game_slug == 'all' %}active{% endif %}"
-                data-game="all" onclick="selectGame('all', this)">
+                data-game="all">
             <div class="absolute inset-0 bg-gradient-to-b from-dc-cyan/20 to-transparent"></div>
             <div class="relative h-full flex flex-col items-center justify-center gap-2 p-3">
                 <div class="w-12 h-12 rounded-xl bg-dc-cyan/15 border border-dc-cyan/25 flex items-center justify-center">
@@ -1038,7 +1041,7 @@ body::after {
         </button>
         {% for game in available_games %}
         <button class="game-grid-item card-shine {% if selected_game_slug == game.slug %}active{% endif %}"
-                data-game="{{ game.slug }}" onclick="selectGame('{{ game.slug }}', this)" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
+                data-game="{{ game.slug }}" style="{% if game.primary_color %}--gc: {{ game.primary_color }}{% endif %}">
             <!-- Blurred cover background -->
             {% if game.card_image %}
             <img src="{{ game.card_image.url }}" class="game-card-bg absolute inset-0 w-full h-full object-cover transition-all" alt="" loading="lazy">
@@ -1947,7 +1950,7 @@ body::after {
 </footer>
 
 <!-- ========== BACK TO TOP ========== -->
-<button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+<button class="back-to-top" id="back-to-top">
     <i data-lucide="chevron-up" class="w-4 h-4 text-gray-400"></i>
 </button>
 {% endblock %}
@@ -1955,7 +1958,7 @@ body::after {
 {% block footer %}{% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // === INIT (Lucide may be deferred) ===
 if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 else { document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
@@ -2455,6 +2458,48 @@ window.addEventListener('popstate', (e) => {
         if (card) selectGame(slug, card);
     }
 });
+
+// === CSP-SAFE EVENT DELEGATION ===
+
+// Game filter chips (mobile strip)
+document.querySelectorAll('.game-chip[data-game]').forEach(chip => {
+    chip.addEventListener('click', function() {
+        selectGame(this.dataset.game, this);
+        syncChipActive(this);
+    });
+});
+
+// Game grid items (desktop)
+document.querySelectorAll('.game-grid-item[data-game]').forEach(item => {
+    item.addEventListener('click', function() {
+        selectGame(this.dataset.game, this);
+    });
+});
+
+// Search modal — open
+document.querySelectorAll('.btn-cta-search').forEach(btn => {
+    btn.addEventListener('click', openSearch);
+});
+
+// Search modal — close on backdrop click
+const searchModal = document.getElementById('search-modal');
+if (searchModal) {
+    searchModal.addEventListener('click', function(e) {
+        if (e.target === searchModal) closeSearch();
+    });
+    // Close button inside search modal
+    searchModal.querySelectorAll('button[aria-label="Close search"]').forEach(btn => {
+        btn.addEventListener('click', closeSearch);
+    });
+}
+
+// Back-to-top button
+const bttBtn = document.getElementById('back-to-top');
+if (bttBtn) {
+    bttBtn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
 
 // === SEARCH MODAL ===
 function openSearch() {

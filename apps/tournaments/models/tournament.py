@@ -33,6 +33,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from apps.common.models import SoftDeleteModel, TimestampedModel
 from apps.common.managers import SoftDeleteManager
+from apps.common.validators import validate_document_upload, validate_image_upload
 
 
 class Tournament(SoftDeleteModel, TimestampedModel):
@@ -368,19 +369,22 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         upload_to='tournaments/banners/',
         null=True,
         blank=True,
-        help_text='Tournament banner image'
+        help_text='Tournament banner image',
+        validators=[validate_image_upload],
     )
     thumbnail_image = models.ImageField(
         upload_to='tournaments/thumbnails/',
         null=True,
         blank=True,
-        help_text='Tournament thumbnail for listings'
+        help_text='Tournament thumbnail for listings',
+        validators=[validate_image_upload],
     )
     rules_pdf = models.FileField(
         upload_to='tournaments/rules/',
         null=True,
         blank=True,
-        help_text='Tournament rules PDF file'
+        help_text='Tournament rules PDF file',
+        validators=[validate_document_upload],
     )
     promo_video_url = models.URLField(
         blank=True,
@@ -536,7 +540,8 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         upload_to='tournaments/terms/',
         null=True,
         blank=True,
-        help_text='Terms & Conditions PDF document (optional)'
+        help_text='Terms & Conditions PDF document (optional)',
+        validators=[validate_document_upload],
     )
     require_terms_acceptance = models.BooleanField(
         default=True,

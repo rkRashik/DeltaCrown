@@ -68,7 +68,7 @@ class OverviewTab {
                 <p class="about-subtitle">Discover our story, mission, and what makes us unique</p>
               </div>
               ${data.permissions.can_edit ? `
-                <button class="btn-edit-modern" onclick="editDescription()">
+                <button class="btn-edit-modern" data-click="editDescription">
                   <i class="fa-solid fa-pen"></i>
                   <span>Edit</span>
                 </button>
@@ -105,7 +105,7 @@ class OverviewTab {
                   </div>
                   <h3 class="empty-title">No Story Yet</h3>
                   <p class="empty-message">${data.permissions.can_edit ? 'Share your team\'s journey, goals, and what makes you stand out from the competition!' : 'This team hasn\'t added their story yet.'}</p>
-                  ${data.permissions.can_edit ? '<button class="btn-primary-modern" onclick="editDescription()"><i class="fa-solid fa-sparkles"></i>Write Your Story</button>' : ''}
+                  ${data.permissions.can_edit ? '<button class="btn-primary-modern" data-click="editDescription"><i class="fa-solid fa-sparkles"></i>Write Your Story</button>' : ''}
                 </div>
               `}
             </div>
@@ -241,7 +241,7 @@ class OverviewTab {
                 <i class="fa-solid fa-gamepad"></i>
                 Recent Matches
               </h2>
-              <a href="#" class="btn btn-sm btn-secondary" onclick="switchTab('tournaments')">View All</a>
+              <a href="#" class="btn btn-sm btn-secondary" data-click="switchTab" data-click-args='["tournaments"]'>View All</a>
             </div>
             <div class="matches-grid">
               ${data.recent_matches.map(match => this.renderMatchCard(match)).join('')}
@@ -271,7 +271,7 @@ class OverviewTab {
                 <i class="fa-solid fa-newspaper"></i>
                 Latest Updates
               </h2>
-              <a href="#" class="btn btn-sm btn-secondary" onclick="switchTab('posts')">View All Posts</a>
+              <a href="#" class="btn btn-sm btn-secondary" data-click="switchTab" data-click-args='["posts"]'>View All Posts</a>
             </div>
             <div class="posts-grid">
               ${data.posts.slice(0, 3).map(post => this.renderPostCard(post)).join('')}
@@ -285,7 +285,7 @@ class OverviewTab {
                 <h3>No Posts Yet</h3>
                 <p>Share updates, announcements, and news with your followers</p>
                 ${data.permissions.can_post ? `
-                  <button class="btn btn-primary" onclick="createPost()">
+                  <button class="btn btn-primary" data-click="createPost">
                     <i class="fa-solid fa-plus"></i>
                     Create Post
                   </button>

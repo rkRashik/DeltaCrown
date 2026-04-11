@@ -5,6 +5,7 @@ Part of the Community & Media section in Team Manage HQ.
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from apps.common.validators import validate_document_upload
 
 
 class TeamMedia(models.Model):
@@ -34,7 +35,7 @@ class TeamMedia(models.Model):
     category = models.CharField(
         max_length=20, choices=CATEGORY_CHOICES, default='general',
     )
-    file = models.FileField(upload_to='teams/gallery/')
+    file = models.FileField(upload_to='teams/gallery/', validators=[validate_document_upload])
     file_url = models.URLField(max_length=500, blank=True, default='')
     file_type = models.CharField(
         max_length=20, blank=True, default='image',

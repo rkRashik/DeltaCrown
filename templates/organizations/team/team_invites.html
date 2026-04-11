@@ -175,7 +175,7 @@
             <button 
                 class="tab-button active" 
                 data-tab="membership"
-                onclick="switchTab('membership')"
+                data-click="switchTab" data-click-args='["membership"]'
             >
                 Team Invites
                 <span id="membershipCount" class="badge badge-pending ml-2">0</span>
@@ -183,7 +183,7 @@
             <button 
                 class="tab-button" 
                 data-tab="email"
-                onclick="switchTab('email')"
+                data-click="switchTab" data-click-args='["email"]'
             >
                 Email Invites
                 <span id="emailCount" class="badge badge-pending ml-2">0</span>
@@ -227,7 +227,7 @@
 <div id="inviteToastHost" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
 
 <!-- Bootstrap config for JS -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
 window.VNEXT_INVITES_CONFIG = {
     listUrl: "{% url 'organizations_api:list_invites' %}",
     acceptMembershipUrlTemplate: "/api/vnext/teams/invites/membership/{id}/accept/",

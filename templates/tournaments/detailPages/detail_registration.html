@@ -72,11 +72,11 @@ Inspired by Battlefy/FACEIT tournament listings with:
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between py-3">
             <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
-                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 transition-all" style="border-color: var(--game-color);" onclick="scrollToSection('info')">Info</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('prizes')">Prizes</button>
-                {% if show_participants %}<button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('participants')">Participants <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">{{ slots_filled }}</span></button>{% endif %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('rules')">Rules</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('schedule')">Schedule</button>
+                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 transition-all" style="border-color: var(--game-color);" data-click="scrollToSection" data-click-args='["info"]'>Info</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["prizes"]'>Prizes</button>
+                {% if show_participants %}<button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["participants"]'>Participants <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">{{ slots_filled }}</span></button>{% endif %}
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["rules"]'>Rules</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["schedule"]'>Schedule</button>
             </div>
 
             <div class="hidden lg:flex items-center gap-3">
@@ -301,13 +301,13 @@ Inspired by Battlefy/FACEIT tournament listings with:
 
     {% if participants|length > 12 %}
     <div class="text-center mt-4">
-        <button id="btn-show-all-participants" onclick="toggleAllParticipants()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all hover:scale-[1.02] active:scale-[0.98]" style="color: var(--game-color); border-color: rgba(var(--game-color-rgb), 0.25); background: rgba(var(--game-color-rgb), 0.06);">
+        <button id="btn-show-all-participants" data-click="toggleAllParticipants" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all hover:scale-[1.02] active:scale-[0.98]" style="color: var(--game-color); border-color: rgba(var(--game-color-rgb), 0.25); background: rgba(var(--game-color-rgb), 0.06);">
             <i data-lucide="users" class="w-3.5 h-3.5"></i>
             <span id="toggle-participants-label">View All {{ participants|length }} Participants</span>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform" id="toggle-participants-icon"></i>
         </button>
     </div>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     function toggleAllParticipants() {
         const extras = document.querySelectorAll('[data-extra-participant]');
         const label = document.getElementById('toggle-participants-label');
@@ -716,7 +716,7 @@ Inspired by Battlefy/FACEIT tournament listings with:
 {% endblock %}
 
 {% block phase_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
     /* Initialize countdown */
     {% if countdown_target %}
     document.addEventListener('DOMContentLoaded', function() {

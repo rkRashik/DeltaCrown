@@ -15,6 +15,8 @@ if os.environ.get("DELTA_MINIMAL_TEST_APPS") != "1":
     from .player_identity import GamePlayerIdentityConfig
     from .tournament_config import GameTournamentConfig
     from .role import GameRole
+    from .map_pool import GameMapPool
+    from .pipeline_template import GamePipelineTemplate
     from .rules import (
         GameMatchResultSchema,
         GameScoringRule,
@@ -26,6 +28,8 @@ if os.environ.get("DELTA_MINIMAL_TEST_APPS") != "1":
         'GamePlayerIdentityConfig',
         'GameTournamentConfig',
         'GameRole',
+        'GameMapPool',
+        'GamePipelineTemplate',
         'GameMatchResultSchema',
         'GameScoringRule',
         'VetoConfiguration',

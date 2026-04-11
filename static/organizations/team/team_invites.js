@@ -244,13 +244,13 @@ function createMembershipCard(invite) {
                 </div>
                 <div class="flex items-center gap-2 md:pt-1">
                     <button 
-                        onclick="acceptMembershipInvite(${invite.id})"
+                        data-click="acceptMembershipInvite" data-click-args='[${invite.id}]'
                         class="action-btn action-btn-primary px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-check mr-2"></i>Accept Invite
                     </button>
                     <button 
-                        onclick="declineMembershipInvite(${invite.id})"
+                        data-click="declineMembershipInvite" data-click-args='[${invite.id}]'
                         class="action-btn action-btn-ghost px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-times mr-2"></i>Decline
@@ -298,13 +298,13 @@ function createEmailCard(invite) {
                 </div>
                 <div class="flex items-center gap-2 md:pt-1">
                     <button 
-                        onclick="acceptEmailInvite('${invite.token}')"
+                        data-click="acceptEmailInvite" data-click-args='['${invite.token}']'
                         class="action-btn action-btn-primary px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-check mr-2"></i>Accept Invite
                     </button>
                     <button 
-                        onclick="declineEmailInvite('${invite.token}')"
+                        data-click="declineEmailInvite" data-click-args='['${invite.token}']'
                         class="action-btn action-btn-ghost px-4 py-2 rounded-lg"
                     >
                         <i class="fas fa-times mr-2"></i>Decline

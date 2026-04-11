@@ -632,7 +632,7 @@ class SponsorsTab {
         <i class="fas fa-exclamation-circle"></i>
         <h3>Failed to load sponsors</h3>
         <p>Please try again later.</p>
-        <button class="btn btn-primary" onclick="location.reload()">
+        <button class="btn btn-primary" data-click="location.reload">
           <i class="fas fa-refresh"></i>
           Retry
         </button>

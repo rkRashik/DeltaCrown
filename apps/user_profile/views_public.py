@@ -11,6 +11,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Specific exceptions for defensive data loading in public views
+_DATA_LOAD_ERRORS = (ImportError, LookupError, AttributeError, TypeError, ValueError)
+
 
 def _should_debug(request=None):
     """Return True if we should show debug logs for this request.
@@ -23,7 +26,7 @@ def _should_debug(request=None):
         return False
     try:
         return getattr(request, "user", None) and getattr(request.user, "is_superuser", False)
-    except Exception:
+    except (AttributeError, TypeError):
         return False
 
 
@@ -44,7 +47,7 @@ def _get_profile(user) -> Optional[object]:
         from apps.user_profile.models import UserProfile
         from apps.user_profile.services.game_passport_service import GamePassportService
         return UserProfile.objects.filter(user=user).first()
-    except Exception:
+    except (ImportError, LookupError):
         return None
 
 
@@ -111,7 +114,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 efootball_id = gp_efootball.in_game_name
             else:
                 efootball_id = getattr(profile, 'efootball_id', None)
-        except Exception:
+        except _DATA_LOAD_ERRORS:
             ign = None
             riot_id = None
             efootball_id = None
@@ -157,7 +160,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             if getattr(profile, "discord_id", ""):
                 discord_handle = profile.discord_id
                 social.append({"platform": "Discord", "handle": discord_handle, "url": f"https://discord.com/users/{discord_handle}"})
-        except Exception:
+        except (AttributeError, TypeError):
             # Be resilient to any unexpected data
             social = []
 
@@ -168,13 +171,13 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 # Profile may store socials as a list or QuerySet-like object
                 try:
                     social_links = list(socials)
-                except Exception:
+                except (TypeError, AttributeError):
                     social_links = socials
             else:
                 social_links = social or []
         else:
             social_links = []
-    except Exception:
+    except (AttributeError, TypeError):
         social_links = social or []
 
     # Get team memberships for the user
@@ -215,7 +218,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                         game = Game.objects.filter(id=team_obj.game_id).first()
                         if game:
                             team_data['game'] = game.name
-                    except Exception:
+                    except _DATA_LOAD_ERRORS:
                         pass
                 current_teams.append(team_data)
                 teams.append(team_data)
@@ -245,7 +248,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                         game = Game.objects.filter(id=team_obj.game_id).first()
                         if game:
                             team_data['game'] = game.name
-                    except Exception:
+                    except _DATA_LOAD_ERRORS:
                         pass
                 team_history.append(team_data)
             
@@ -295,10 +298,10 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                         'source': 'legacy',
                     }
                     team_history.append(team_data)
-            except Exception:
+            except _DATA_LOAD_ERRORS:
                 pass  # Legacy teams app may not be fully configured
                 
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         # Fail gracefully if team models aren't available
         logger.warning(f"Error loading team data: {e}")
         teams = []
@@ -313,7 +316,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         # Tournament system moved to legacy - no longer displaying registration data
         pass
                     
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         # Fail gracefully if tournament models aren't available
         logger.warning(f"Error loading tournament data: {e}")
         tournament_history = []
@@ -333,7 +336,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             # Compute USD equivalent for display purposes (simple conversion rate: 1 DC = 0.01 USD)
             try:
                 usd_equivalent = float(wallet_balance) * 0.01
-            except Exception:
+            except (TypeError, ValueError):
                 usd_equivalent = 0.0
             
             # Get recent transactions
@@ -342,7 +345,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 wallet=wallet
             ).order_by('-created_at')[:10]
             
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         logger.warning(f"Error loading economy data: {e}")
         wallet_balance = 0
         recent_transactions = []
@@ -362,7 +365,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             
             total_orders = Order.objects.filter(user=profile).count()
             
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         logger.warning(f"Error loading ecommerce data: {e}")
         recent_orders = []
         total_orders = 0
@@ -403,7 +406,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             # Sort activity by date
             activity.sort(key=lambda x: x['date'], reverse=True)
                 
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         logger.warning(f"Error loading activity data: {e}")
         activity = []
 
@@ -432,7 +435,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 user=user,
                 is_pinned=True
             ).select_related('badge').order_by('-earned_at')[:5]
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         logger.warning(f"Error loading badge data: {e}")
         pinned_badges = []
     
@@ -492,7 +495,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
             context['wallet'] = wallet
             context['recent_transactions'] = list(DeltaCrownTransaction.objects.filter(wallet=wallet).order_by('-created_at')[:3])
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         logger.warning(f"Error loading owner-specific data: {e}")
         # gracefully ignore missing apps/models
         context['unread_notification_count'] = context.get('unread_notification_count', 0)
@@ -536,10 +539,8 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
                         status='ACTIVE'
                     ).exists()
                     show_game_ids = shared_teams or request.user.is_staff
-            except Exception as e:
+            except _DATA_LOAD_ERRORS as e:
                 # Log but don't fail
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.warning(f'Error checking authorization for profile {profile_id}: {str(e)}')
         
         # Tournament system moved to legacy - use fallback data
@@ -569,7 +570,7 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
                         if membership.team.game == 'mlbb' and game_passport.metadata.get('server_id'):
                             team_data['mlbb_server_id'] = game_passport.metadata['server_id']
                 team_info.append(team_data)
-        except Exception:
+        except _DATA_LOAD_ERRORS:
             team_info = []
         
         data = {
@@ -618,10 +619,8 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
             'teams': [],
             'joined_date': 'Jan 2024',
         })
-    except Exception as e:
+    except _DATA_LOAD_ERRORS as e:
         import traceback
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f'Error in profile_api for profile_id {profile_id}: {str(e)}')
         logger.error(traceback.format_exc())
         return JsonResponse({

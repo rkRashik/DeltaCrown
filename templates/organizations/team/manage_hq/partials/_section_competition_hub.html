@@ -214,7 +214,7 @@
                             {% if m.roster_slot == 'STARTER' or m.role == 'PLAYER' and not m.roster_slot or m.role == 'OWNER' and not m.roster_slot %}
                             <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/8 text-white/60">
                                 <span class="h-4 w-4 rounded-full bg-white/10 grid place-items-center text-[8px] font-bold overflow-hidden shrink-0">
-                                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':1'|upper|escapejs }}')">
+                                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':1'|upper }}">
                                     {% else %}{{ m.user.username|slice:":1"|upper }}{% endif %}
                                 </span>
                                 {{ m.display_name|default:m.user.username }}
@@ -548,7 +548,7 @@
                 <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Find Tournaments</div>
                 <div class="text-[10px] text-white/25 mt-0.5">Browse open tournaments</div>
             </a>
-            <a href="#roster" onclick="if(window.setActiveRoute) setActiveRoute('roster')"
+            <a href="#roster"data-click="setActiveRoute" data-click-args='["roster"]'
                 class="rounded-xl bg-white/[0.03] border border-white/8 hover:border-emerald-500/20 hover:bg-emerald-500/5 p-4 transition-all text-center group">
                 <div class="h-10 w-10 rounded-xl bg-white/5 group-hover:bg-emerald-500/15 grid place-items-center mx-auto mb-2 transition">
                     <i data-lucide="users" class="w-5 h-5 text-white/30 group-hover:text-emerald-400 transition"></i>
@@ -556,7 +556,7 @@
                 <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Manage Roster</div>
                 <div class="text-[10px] text-white/25 mt-0.5">Lineup &amp; substitutes</div>
             </a>
-            <a href="#training" onclick="if(window.setActiveRoute) setActiveRoute('training')"
+            <a href="#training"data-click="setActiveRoute" data-click-args='["training"]'
                 class="rounded-xl bg-white/[0.03] border border-white/8 hover:border-purple-500/20 hover:bg-purple-500/5 p-4 transition-all text-center group">
                 <div class="h-10 w-10 rounded-xl bg-white/5 group-hover:bg-purple-500/15 grid place-items-center mx-auto mb-2 transition">
                     <i data-lucide="target" class="w-5 h-5 text-white/30 group-hover:text-purple-400 transition"></i>
@@ -568,7 +568,7 @@
     </div>
     {% endif %}
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function() {
         /* Update starter count from roster section data */
         function updateCompStarters() {

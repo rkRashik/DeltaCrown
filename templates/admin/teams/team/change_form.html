@@ -2,7 +2,7 @@
 
 {% block extrahead %}
     {{ block.super }}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script nonce="{{ request.csp_nonce }}" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         .ranking-controls {
             background: #f8f9fa;
@@ -123,13 +123,13 @@
                 <div class="quick-adjust-section">
                     <h4>Quick Adjustments</h4>
                     <div class="quick-adjust-buttons">
-                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(10, 'Quick +10 points')">+10</button>
-                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(25, 'Quick +25 points')">+25</button>
-                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(50, 'Tournament participation bonus')">+50</button>
-                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(100, 'Achievement bonus')">+100</button>
-                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-10, 'Quick -10 points')">-10</button>
-                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-25, 'Quick -25 points')">-25</button>
-                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-50, 'Penalty deduction')">-50</button>
+                        <button type="button" class="quick-adjust-btn positive">+10</button>
+                        <button type="button" class="quick-adjust-btn positive">+25</button>
+                        <button type="button" class="quick-adjust-btn positive">+50</button>
+                        <button type="button" class="quick-adjust-btn positive">+100</button>
+                        <button type="button" class="quick-adjust-btn negative">-10</button>
+                        <button type="button" class="quick-adjust-btn negative">-25</button>
+                        <button type="button" class="quick-adjust-btn negative">-50</button>
                     </div>
                 </div>
                 
@@ -139,7 +139,7 @@
                     <div class="custom-adjust">
                         <input type="number" id="custom-points" placeholder="±Points" min="-9999" max="9999">
                         <input type="text" id="custom-reason" placeholder="Reason for adjustment" style="flex: 1;">
-                        <button type="button" onclick="adjustCustomPoints()">Apply</button>
+                        <button type="button">Apply</button>
                     </div>
                 </div>
                 
@@ -154,7 +154,7 @@
                 <!-- Export and Actions -->
                 <div style="margin-top: 20px; text-align: center; border-top: 1px solid #dee2e6; padding-top: 15px;">
                     <!-- Export Point History button removed: URL not implemented -->
-                    <button type="button" onclick="recalculatePoints()" class="button" style="margin-right: 10px;">
+                    <button type="button" class="button" style="margin-right: 10px;">
                         🔄 Recalculate Points
                     </button>
                     {% url 'admin:teams_teamrankinghistory_changelist' as team_ranking_history_url %}
@@ -171,7 +171,7 @@
 
 {% block extrajs %}
     {{ block.super }}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // Get CSRF token
         function getCsrfToken() {
             return document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -332,5 +332,28 @@
                 console.log('Auto-refresh error:', error);
             });
         }, 30000);
+
+        // === CSP-SAFE EVENT DELEGATION ===
+        // Quick adjust buttons
+        document.querySelectorAll('.quick-adjust-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const val = parseInt(this.textContent);
+                if (!isNaN(val)) adjustPoints(val, 'Quick adjustment (' + (val >= 0 ? '+' : '') + val + ')');
+            });
+        });
+
+        // Custom adjustment button
+        const customSection = document.querySelector('.custom-adjust');
+        if (customSection) {
+            const applyBtn = customSection.querySelector('button');
+            if (applyBtn) applyBtn.addEventListener('click', adjustCustomPoints);
+        }
+
+        // Recalculate button
+        document.querySelectorAll('.button').forEach(btn => {
+            if (btn.textContent.includes('Recalculate Points')) {
+                btn.addEventListener('click', recalculatePoints);
+            }
+        });
     </script>
 {% endblock %}

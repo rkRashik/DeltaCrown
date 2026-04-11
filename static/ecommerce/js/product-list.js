@@ -528,7 +528,7 @@ class ProductListManager {
                     ${activeFilters.map(filter => `
                         <span class="filter-tag" data-filter="${filter.key}" data-value="${filter.value}">
                             ${filter.displayValue}
-                            <button class="remove-filter" onclick="productListManager.removeFilter('${filter.key}')">
+                            <button class="remove-filter" data-click="productListManager.removeFilter" data-click-args='['${filter.key}']'>
                                 <i class="fas fa-times"></i>
                             </button>
                         </span>
@@ -607,7 +607,7 @@ class ProductComparison {
         const compareButton = document.createElement('div');
         compareButton.className = 'floating-compare-btn';
         compareButton.innerHTML = `
-            <button class="btn btn-primary" onclick="productComparison.showCompareModal()">
+            <button class="btn btn-primary" data-click="productComparison.showCompareModal">
                 <i class="fas fa-balance-scale"></i>
                 Compare (${this.compareList.length})
             </button>

@@ -117,7 +117,7 @@
     </div>
 
     <div class="err-sep">system</div>
-    <p class="err-meta">REF: DC-403 &middot; TIMESTAMP: <script>document.write(new Date().toISOString().slice(0,19))</script></p>
+    <p class="err-meta">REF: DC-403 &middot; TIMESTAMP: <script nonce="{{ request.csp_nonce }}">document.write(new Date().toISOString().slice(0,19))</script></p>
   </div>
 </div>
 {% endblock %}

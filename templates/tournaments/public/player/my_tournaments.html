@@ -168,7 +168,7 @@
               {# Game badge at bottom of banner #}
               <div class="flex items-center gap-2">
                 {% if reg.tournament.game.icon %}
-                  <img src="{{ reg.tournament.game.icon.url }}" class="w-5 h-5 rounded object-cover border border-white/20">
+                  <img src="{{ reg.tournament.game.icon.url }}" class="w-5 h-5 rounded object-cover border border-white/20" alt="">
                 {% endif %}
                 <span class="text-[11px] font-bold text-white/80">{{ reg.tournament.game.display_name|default:"—" }}</span>
               </div>

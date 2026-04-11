@@ -75,7 +75,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Streams request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.streams.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.streams.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -234,8 +234,8 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[10px] px-2 py-0.5 rounded-full ${statusCls}">${s.status || 'offline'}</span>
-            <button onclick="TOC.streams.editStation('${s.id}')" class="text-[10px] text-theme hover:underline">Edit</button>
-            <button onclick="TOC.streams.deleteStation('${s.id}')" class="text-[10px] text-dc-danger hover:underline">Delete</button>
+            <button data-click="TOC.streams.editStation" data-click-args="['${s.id}']" class="text-[10px] text-theme hover:underline">Edit</button>
+            <button data-click="TOC.streams.deleteStation" data-click-args="['${s.id}']" class="text-[10px] text-dc-danger hover:underline">Delete</button>
           </div>
         </div>`;
     });
@@ -267,7 +267,7 @@
           </div>
           <div class="flex items-center gap-2">
             ${badge}
-            <button onclick="TOC.streams.assignStream(${m.match_id})" class="text-[10px] text-theme hover:underline">Assign</button>
+            <button data-click="TOC.streams.assignStream" data-click-args="[${m.match_id}]" class="text-[10px] text-theme hover:underline">Assign</button>
           </div>
         </div>`;
     });
@@ -294,7 +294,7 @@
           </div>
           <div class="flex items-center gap-2">
             <a href="${esc(v.url)}" target="_blank" class="text-[10px] text-theme hover:underline">Watch</a>
-            <button onclick="TOC.streams.deleteVod('${v.id}')" class="text-[10px] text-dc-danger hover:underline">Delete</button>
+            <button data-click="TOC.streams.deleteVod" data-click-args="['${v.id}']" class="text-[10px] text-dc-danger hover:underline">Delete</button>
           </div>
         </div>`;
     });
@@ -317,8 +317,8 @@
         <input id="streams-st-url" type="url" class="${FIELD}" placeholder="https://twitch.tv/..."></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.streams._submitAddStation()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Station</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.streams._submitAddStation" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Station</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Add Broadcast Station', body, footer);
     setTimeout(() => document.getElementById('streams-st-name')?.focus(), 50);
@@ -348,8 +348,8 @@
         <input id="streams-est-url" type="url" value="${esc(s?.url || '')}" class="${FIELD}"></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.streams._submitEditStation('${stationId}')" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Save Changes</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.streams._submitEditStation" data-click-args="['${stationId}']" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Save Changes</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Edit Station', body, footer);
   }
@@ -378,8 +378,8 @@
         <input id="streams-assign-url" type="url" class="${FIELD}" placeholder="https://twitch.tv/..."></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.streams._submitAssign(${matchId})" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Assign Stream</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.streams._submitAssign" data-click-args="[${matchId}]" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Assign Stream</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Assign Stream', body, footer);
     setTimeout(() => document.getElementById('streams-assign-url')?.focus(), 50);
@@ -404,8 +404,8 @@
         <select id="streams-vod-platform" class="${FIELD}">${platOpts}</select></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.streams._submitAddVod()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add VOD</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.streams._submitAddVod" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add VOD</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Add VOD', body, footer);
     setTimeout(() => document.getElementById('streams-vod-title')?.focus(), 50);
@@ -438,7 +438,7 @@
           <label class="${LABEL}">Overlay API Key</label>
           <div class="flex gap-2">
             <input id="streams-overlay-key" type="text" readonly value="${esc(key)}" class="${FIELD} font-mono text-xs text-theme cursor-text select-all">
-            <button onclick="navigator.clipboard.writeText('${esc(key)}').then(()=>TOC.toast('Copied!','success'))" class="shrink-0 px-3 bg-theme/20 hover:bg-theme/40 text-theme text-xs rounded-lg transition">Copy</button>
+            <button data-click-copy="${esc(key)}" class="shrink-0 px-3 bg-theme/20 hover:bg-theme/40 text-theme text-xs rounded-lg transition">Copy</button>
           </div>
         </div>
       </div>`;

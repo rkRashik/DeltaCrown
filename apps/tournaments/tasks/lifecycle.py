@@ -80,7 +80,7 @@ def check_tournament_wrapup(self):
         incomplete = Match.objects.filter(
             tournament=t, is_deleted=False,
         ).exclude(
-            state__in=['completed', 'cancelled', 'no_show', 'bye'],
+            state__in=['completed', 'cancelled', 'forfeit'],
         ).count()
 
         if incomplete == 0:
@@ -146,3 +146,80 @@ def auto_archive_tournaments(self):
     if archived_count:
         logger.info("[archive] Archived %d tournament(s)", archived_count)
     return {'archived': archived_count}
+
+
+@shared_task(
+    name='apps.tournaments.tasks.reconcile_group_playoff_transitions',
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+    ignore_result=True,
+)
+def reconcile_group_playoff_transitions(self):
+    """
+    Safety-net for GROUP_PLAYOFF tournaments stuck in LIVE status with all
+    group matches completed but no knockout bracket (or a bracket with no
+    playable matches).
+
+    If the ``post_save`` signal fails to trigger
+    ``transition_to_knockout_stage()``, this periodic task ensures the
+    transition eventually happens.
+
+    Runs every 10 minutes via Celery Beat.
+    """
+    from apps.tournaments.models.tournament import Tournament
+    from apps.tournaments.models.match import Match
+    from apps.brackets.models import Bracket
+    from apps.tournaments.services.tournament_service import TournamentService
+
+    stuck = Tournament.objects.filter(
+        status=Tournament.LIVE,
+        format=Tournament.GROUP_PLAYOFF,
+        is_deleted=False,
+    )
+
+    fixed_count = 0
+    for t in stuck.iterator():
+        # Already has bracket with playable matches — nothing to do.
+        bracket = Bracket.objects.filter(tournament=t).first()
+        if bracket:
+            has_ko_matches = Match.objects.filter(
+                tournament=t,
+                bracket=bracket,
+                is_deleted=False,
+            ).exists()
+            if has_ko_matches:
+                continue
+
+        # Check group-stage matches exist and are all in terminal state.
+        group_matches = Match.objects.filter(
+            tournament=t,
+            bracket__isnull=True,
+            is_deleted=False,
+        )
+        if not group_matches.exists():
+            continue
+
+        incomplete = group_matches.exclude(
+            state__in=['completed', 'forfeit', 'cancelled'],
+        ).count()
+        if incomplete > 0:
+            continue
+
+        # This tournament is stuck — attempt the transition.
+        try:
+            TournamentService.transition_to_knockout_stage(t.id)
+            fixed_count += 1
+            logger.info(
+                "[reconcile] Fixed stuck GROUP_PLAYOFF tournament %s (%s)",
+                t.id, t.name,
+            )
+        except Exception as exc:
+            logger.error(
+                "[reconcile] Failed to fix stuck tournament %s: %s",
+                t.id, exc, exc_info=True,
+            )
+
+    if fixed_count:
+        logger.info("[reconcile] Fixed %d stuck tournament(s)", fixed_count)
+    return {'fixed': fixed_count}

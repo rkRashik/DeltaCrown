@@ -12,6 +12,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.text import slugify
 
+from apps.common.validators import validate_image_upload
+
 User = get_user_model()
 
 
@@ -94,19 +96,22 @@ class Organization(models.Model):
         upload_to='organizations/logos/',
         null=True,
         blank=True,
-        help_text="Organization logo (inherited by teams if enforce_brand=True)"
+        help_text="Organization logo (inherited by teams if enforce_brand=True)",
+        validators=[validate_image_upload],
     )
     badge = models.ImageField(
         upload_to='organizations/badges/',
         null=True,
         blank=True,
-        help_text="Verified badge overlay"
+        help_text="Verified badge overlay",
+        validators=[validate_image_upload],
     )
     banner = models.ImageField(
         upload_to='organizations/banners/',
         null=True,
         blank=True,
-        help_text="Profile page header banner"
+        help_text="Profile page header banner",
+        validators=[validate_image_upload],
     )
     
     # Description and social links

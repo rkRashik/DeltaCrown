@@ -116,7 +116,7 @@ class PlayerStatsManager {
               <p class="modal-subtitle">${this.escapeHtml(player.role)}</p>
             </div>
           </div>
-          <button class="modal-close" onclick="document.getElementById('playerStatsModal').remove()">
+          <button class="modal-close" data-click="__removeById" data-click-args='["playerStatsModal"]'>
             <i class="fa-solid fa-times"></i>
           </button>
         </div>
@@ -213,10 +213,10 @@ class PlayerStatsManager {
         </div>
         
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="document.getElementById('playerStatsModal').remove()">
+          <button class="btn btn-secondary" data-click="__removeById" data-click-args='["playerStatsModal"]'>
             <i class="fa-solid fa-times"></i> Close
           </button>
-          <button class="btn btn-primary" onclick="window.playerStatsManager?.comparePlayer(${player.player_id})">
+          <button class="btn btn-primary" data-click="playerStatsManager.comparePlayer" data-click-args='["${player.player_id}"]'>
             <i class="fa-solid fa-balance-scale"></i> Compare
           </button>
         </div>

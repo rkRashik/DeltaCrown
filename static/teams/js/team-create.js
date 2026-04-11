@@ -789,7 +789,7 @@
             }
             
             card.innerHTML = `
-                <img src="${game.card_image}" alt="${game.name}" class="game-card-image" onerror="this.src='/static/img/game_cards/default.jpg'">
+                <img src="${game.card_image}" alt="${game.name}" class="game-card-image" data-fallback-src="/static/img/game_cards/default.jpg">
                 <div class="game-card-name">${game.name}</div>
                 <div class="game-card-platform">${game.platform}</div>
                 <div class="game-card-meta">${game.team_size} Team Size</div>
@@ -1155,7 +1155,7 @@
                 loadingState.innerHTML = `
                     <i class="fas fa-exclamation-triangle"></i>
                     <p>Failed to load regions. Please try again.</p>
-                    <button class="btn btn-sm btn-primary" onclick="location.reload()">Retry</button>
+                    <button class="btn btn-sm btn-primary" data-click="location.reload">Retry</button>
                 `;
             }
         }

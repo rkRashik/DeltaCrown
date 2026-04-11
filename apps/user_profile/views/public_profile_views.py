@@ -814,12 +814,12 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 if primary_resolver and callable(primary_resolver):
                     try:
                         slot_a_value = primary_resolver(passport) or 'N/A'
-                    except:
+                    except Exception:
                         slot_a_value = passport.in_game_name or 'N/A'
                 if context_resolver and callable(context_resolver):
                     try:
                         slot_b_value = context_resolver(passport) or 'Not Set'
-                    except:
+                    except Exception:
                         slot_b_value = getattr(passport, 'region', None) or 'Not Set'
             
             # Build identity_slots
@@ -832,7 +832,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 if standing_resolver and callable(standing_resolver):
                     try:
                         slot_d_value = standing_resolver(passport) or 'Unranked'
-                    except:
+                    except Exception:
                         slot_d_value = passport.rank_name or 'Unranked'
                 if hasattr(passport, 'rank_image') and passport.rank_image:
                     slot_d_icon_url = passport.rank_image.url
@@ -856,7 +856,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                     if resolver and callable(resolver):
                         try:
                             value = resolver(passport)
-                        except:
+                        except Exception:
                             value = None
                     if hide_if_empty and (value is None or value == '' or value == '--'):
                         continue
@@ -2683,7 +2683,7 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
             if primary_resolver and callable(primary_resolver):
                 try:
                     slot_a_value = primary_resolver(passport) or 'N/A'
-                except:
+                except Exception:
                     slot_a_value = passport.in_game_name or passport.ign or 'N/A'
             else:
                 slot_a_value = passport.in_game_name or passport.ign or 'N/A'
@@ -2696,7 +2696,7 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
             if context_resolver and callable(context_resolver):
                 try:
                     slot_b_value = context_resolver(passport) or 'Not Set'
-                except:
+                except Exception:
                     slot_b_value = getattr(passport, 'region', None) or 'Not Set'
             else:
                 slot_b_value = getattr(passport, 'region', None) or 'Not Set'
@@ -2716,7 +2716,7 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
             if standing_resolver and callable(standing_resolver):
                 try:
                     slot_d_value = standing_resolver(passport) or 'Unranked'
-                except:
+                except Exception:
                     slot_d_value = passport.rank_name or 'Unranked'
             else:
                 slot_d_value = passport.rank_name or 'Unranked'
@@ -2748,7 +2748,7 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
                 if resolver and callable(resolver):
                     try:
                         value = resolver(passport)
-                    except:
+                    except Exception:
                         value = None
                 
                 # Skip if empty and hide_if_empty=True

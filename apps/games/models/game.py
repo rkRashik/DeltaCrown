@@ -5,6 +5,7 @@ Core Game model - single source of truth for game configuration.
 from django.db import models
 from django.core.validators import RegexValidator
 from django.utils.text import slugify
+from apps.common.validators import validate_image_upload
 
 
 class Game(models.Model):
@@ -88,22 +89,26 @@ class Game(models.Model):
     icon = models.ImageField(
         upload_to='games/icons/',
         null=True,
-        blank=True
+        blank=True,
+        validators=[validate_image_upload],
     )
     logo = models.ImageField(
         upload_to='games/logos/',
         null=True,
-        blank=True
+        blank=True,
+        validators=[validate_image_upload],
     )
     banner = models.ImageField(
         upload_to='games/banners/',
         null=True,
-        blank=True
+        blank=True,
+        validators=[validate_image_upload],
     )
     card_image = models.ImageField(
         upload_to='games/cards/',
         null=True,
-        blank=True
+        blank=True,
+        validators=[validate_image_upload],
     )
     
     # === BRANDING ===

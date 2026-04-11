@@ -10,7 +10,7 @@
     <button type="button"
             class="hub-sidebar-collapse-btn hidden lg:inline-flex items-center justify-center w-8 h-8 rounded-lg"
             data-hub-sidebar-toggle="1"
-            onclick="HubEngine.toggleDesktopSidebar()"
+            data-click="HubEngine.toggleDesktopSidebar"
             title="Collapse Sidebar">
       <i data-lucide="panel-left-close" class="w-4 h-4"></i>
     </button>
@@ -22,21 +22,21 @@
 
   <p class="hub-nav-section-title px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-2">Tournament Hub</p>
 
-  <button class="hub-nav-btn" data-hub-tab="overview" onclick="HubEngine.switchTab('overview')">
+  <button class="hub-nav-btn" data-hub-tab="overview" data-click="HubEngine.switchTab" data-click-args='["overview"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
       <span class="hub-nav-label">Overview</span>
     </div>
   </button>
 
-  <button class="hub-nav-btn" data-hub-tab="announcements" onclick="HubEngine.switchTab('announcements')">
+  <button class="hub-nav-btn" data-hub-tab="announcements" data-click="HubEngine.switchTab" data-click-args='["announcements"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="megaphone" class="w-4 h-4"></i>
       <span class="hub-nav-label">Announcements</span>
     </div>
   </button>
 
-  <button class="hub-nav-btn" data-hub-tab="matches" onclick="HubEngine.switchTab('matches')">
+  <button class="hub-nav-btn" data-hub-tab="matches" data-click="HubEngine.switchTab" data-click-args='["matches"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="swords" class="w-4 h-4"></i>
       <span class="hub-nav-label">Match Lobby</span>
@@ -44,7 +44,7 @@
   </button>
 
   {% if is_team %}
-  <button class="hub-nav-btn" data-hub-tab="squad" onclick="HubEngine.switchTab('squad')">
+  <button class="hub-nav-btn" data-hub-tab="squad" data-click="HubEngine.switchTab" data-click-args='["squad"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="shield" class="w-4 h-4"></i>
       <span class="hub-nav-label">Squad</span>
@@ -55,7 +55,7 @@
   </button>
   {% endif %}
 
-  <button class="hub-nav-btn" data-hub-tab="schedule" onclick="HubEngine.switchTab('schedule')">
+  <button class="hub-nav-btn" data-hub-tab="schedule" data-click="HubEngine.switchTab" data-click-args='["schedule"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="calendar" class="w-4 h-4"></i>
       <span class="hub-nav-label">Schedule</span>
@@ -64,14 +64,14 @@
 
   <p class="hub-nav-section-title px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-6">Competition</p>
 
-  <button class="hub-nav-btn" data-hub-tab="bracket" onclick="HubEngine.switchTab('bracket')">
+  <button class="hub-nav-btn" data-hub-tab="bracket" data-click="HubEngine.switchTab" data-click-args='["bracket"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="git-merge" class="w-4 h-4 transform rotate-90"></i>
       <span class="hub-nav-label">Bracket</span>
     </div>
   </button>
 
-  <button class="hub-nav-btn" data-hub-tab="standings" onclick="HubEngine.switchTab('standings')">
+  <button class="hub-nav-btn" data-hub-tab="standings" data-click="HubEngine.switchTab" data-click-args='["standings"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
       <span class="hub-nav-label">Standings</span>
@@ -80,21 +80,21 @@
 
   <p class="hub-nav-section-title px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-6">Resources</p>
 
-  <button class="hub-nav-btn" data-hub-tab="prizes" onclick="HubEngine.switchTab('prizes')">
+  <button class="hub-nav-btn" data-hub-tab="prizes" data-click="HubEngine.switchTab" data-click-args='["prizes"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="trophy" class="w-4 h-4"></i>
       <span class="hub-nav-label">Prizes</span>
     </div>
   </button>
 
-  <button class="hub-nav-btn" data-hub-tab="resources" onclick="HubEngine.switchTab('resources')">
+  <button class="hub-nav-btn" data-hub-tab="resources" data-click="HubEngine.switchTab" data-click-args='["resources"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="library" class="w-4 h-4"></i>
       <span class="hub-nav-label">Resources</span>
     </div>
   </button>
 
-  <button class="hub-nav-btn" data-hub-tab="participants" onclick="HubEngine.switchTab('participants')">
+  <button class="hub-nav-btn" data-hub-tab="participants" data-click="HubEngine.switchTab" data-click-args='["participants"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="users" class="w-4 h-4"></i>
       <span class="hub-nav-label">Participants</span>
@@ -102,14 +102,14 @@
   </button>
 
   {% if tournament.rules_pdf %}
-  <button class="hub-nav-btn" data-hub-tab="rulebook" onclick="HubEngine.switchTab('rulebook')">
+  <button class="hub-nav-btn" data-hub-tab="rulebook" data-click="HubEngine.switchTab" data-click-args='["rulebook"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="book-open" class="w-4 h-4"></i>
       <span class="hub-nav-label">Rulebook</span>
     </div>
   </button>
   {% elif tournament.rules_text %}
-  <button class="hub-nav-btn" data-hub-tab="rulebook" onclick="HubEngine.switchTab('rulebook')">
+  <button class="hub-nav-btn" data-hub-tab="rulebook" data-click="HubEngine.switchTab" data-click-args='["rulebook"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="book-open" class="w-4 h-4"></i>
       <span class="hub-nav-label">Rulebook</span>
@@ -130,7 +130,7 @@
 
   <p class="hub-nav-section-title px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-6">Help</p>
 
-  <button class="hub-nav-btn" data-hub-tab="support" onclick="HubEngine.switchTab('support')">
+  <button class="hub-nav-btn" data-hub-tab="support" data-click="HubEngine.switchTab" data-click-args='["support"]'>
     <div class="flex items-center gap-3">
       <i data-lucide="life-buoy" class="w-4 h-4"></i>
       <span class="hub-nav-label">Support & Disputes</span>

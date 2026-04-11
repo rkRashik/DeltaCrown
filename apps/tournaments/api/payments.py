@@ -1,6 +1,7 @@
 # apps/tournaments/api/payments.py
 from rest_framework import status, permissions, viewsets, decorators
 from rest_framework.response import Response
+from django.db.models import Q
 from django.utils import timezone
 from django.db import transaction
 from .serializers_payments import (
@@ -30,6 +31,32 @@ class IsStaff(permissions.BasePermission):
     
     def has_permission(self, request, view):
         return request.user and request.user.is_staff
+
+
+class IsStaffOrTournamentOrganizer(permissions.BasePermission):
+    """
+    Allow access to staff, superusers, or the organizer / co-organizer of
+    the tournament linked to the payment.
+
+    has_permission gates on authentication only; the real ownership check
+    lives in has_object_permission (called by DRF's get_object()).
+    """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        # Superusers bypass organizer check
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+        tournament = getattr(obj.registration, 'tournament', None)
+        if tournament is None:
+            return False
+        if tournament.organizer_id == request.user.id:
+            return True
+        if hasattr(tournament, 'co_organizers') and tournament.co_organizers.filter(id=request.user.id).exists():
+            return True
+        return False
 
 
 class PaymentVerificationViewSet(viewsets.GenericViewSet):
@@ -113,7 +140,7 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         detail=True,
         methods=["post"],
         url_path="verify",
-        permission_classes=[IsStaff]
+        permission_classes=[IsStaffOrTournamentOrganizer]
     )
     @transaction.atomic
     def verify(self, request, id=None):
@@ -122,8 +149,10 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         
         Staff verifies payment. Transitions PENDING → VERIFIED.
         Idempotent: replaying same key returns original response.
+        Only the tournament organizer/co-organizer (or superuser) can verify.
         """
         pv = self.get_object()
+        self.check_object_permissions(request, pv)
         
         # Idempotency check
         prev, replay = self._apply_idempotency(request, pv, "verify")
@@ -170,7 +199,7 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         detail=True,
         methods=["post"],
         url_path="reject",
-        permission_classes=[IsStaff]
+        permission_classes=[IsStaffOrTournamentOrganizer]
     )
     @transaction.atomic
     def reject(self, request, id=None):
@@ -179,8 +208,10 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         
         Staff rejects payment. Transitions PENDING → REJECTED.
         Allows REJECTED → REJECTED for idempotent replays.
+        Only the tournament organizer/co-organizer (or superuser) can reject.
         """
         pv = self.get_object()
+        self.check_object_permissions(request, pv)
         
         # Idempotency check
         prev, replay = self._apply_idempotency(request, pv, "reject")
@@ -221,7 +252,7 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         detail=True,
         methods=["post"],
         url_path="refund",
-        permission_classes=[IsStaff]
+        permission_classes=[IsStaffOrTournamentOrganizer]
     )
     @transaction.atomic
     def refund(self, request, id=None):
@@ -230,8 +261,10 @@ class PaymentVerificationViewSet(viewsets.GenericViewSet):
         
         Staff issues refund. Transitions VERIFIED → REFUNDED.
         Business rule: can only refund verified payments.
+        Only the tournament organizer/co-organizer (or superuser) can refund.
         """
         pv = self.get_object()
+        self.check_object_permissions(request, pv)
         
         # Idempotency check
         prev, replay = self._apply_idempotency(request, pv, "refund")

@@ -5,7 +5,7 @@
   <a class="btn-ghost" href="https://twitter.com/intent/tweet?text={{ title|urlencode }}&url={{ url|urlencode }}" target="_blank" rel="noopener">X</a>
   <button class="btn-secondary" type="button" data-copy-link="{{ url }}">Copy Link</button>
 </div>
-<script>(function(){
+<script nonce="{{ request.csp_nonce }}">(function(){
   document.addEventListener('click', function(e){
     const b = e.target.closest('[data-copy-link]'); if(!b) return;
     const u = b.getAttribute('data-copy-link')||''; if(!u) return;

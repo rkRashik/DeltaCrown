@@ -13,7 +13,7 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
         darkMode: 'class',
         theme: {
@@ -511,7 +511,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div id="regionDetectCard" class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-delta-electric" data-region-code="BD" data-region-name="Bangladesh">
                                     <div class="w-12 h-8 rounded overflow-hidden border border-white/10 shadow-lg">
-                                        <img id="regionDetectFlag" src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover">
+                                        <img id="regionDetectFlag" src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover" alt="">
                                     </div>
                                     <div>
                                         <span class="text-[10px] font-bold text-delta-electric uppercase tracking-wider block">Detected Location</span>
@@ -673,7 +673,7 @@
                             </div>
                             <div class="flex gap-6 items-center">
                                 <div class="w-24 h-24 rounded-full bg-black border-2 border-dashed border-white/20 flex items-center justify-center overflow-hidden shrink-0 relative group">
-                                    <img id="previewLogoImg" class="absolute inset-0 w-full h-full object-cover hidden">
+                                    <img id="previewLogoImg" class="absolute inset-0 w-full h-full object-cover hidden" alt="">
                                     <i class="fas fa-image text-2xl text-slate-600 group-hover:text-white transition-colors z-0"></i>
                                 </div>
                                 <div class="flex-1">
@@ -702,7 +702,7 @@
                                     <span class="text-xs opacity-60 mt-1">Drag & Drop or Click</span>
                                 </div>
 
-                                <img id="previewBannerImg" class="absolute inset-0 w-full h-full object-cover opacity-60 hidden">
+                                <img id="previewBannerImg" class="absolute inset-0 w-full h-full object-cover opacity-60 hidden" alt="">
                                 <div class="absolute inset-0 bg-black/40 hidden transition-opacity hover:opacity-30" id="bannerOverlay"></div>
                             </div>
                         </div>
@@ -833,7 +833,7 @@
                     </div>
 
                     <div class="h-40 bg-delta-panel relative overflow-hidden" id="previewBannerBg">
-                        <img id="realBannerPreview" class="absolute inset-0 w-full h-full object-cover hidden transition-transform duration-700 group-hover:scale-110 z-[1]">
+                        <img id="realBannerPreview" class="absolute inset-0 w-full h-full object-cover hidden transition-transform duration-700 group-hover:scale-110 z-[1]" alt="">
                         <div class="absolute inset-0 bg-cyber-grid opacity-30"></div>
                         <div class="absolute inset-0 bg-gradient-to-t from-delta-panel via-delta-panel/50 to-transparent"></div>
                         <div class="absolute top-8 right-3 bg-black/80 backdrop-blur-md border border-white/10 px-2 py-1 rounded flex items-center gap-2">
@@ -845,7 +845,7 @@
                         <div class="flex items-end justify-between mb-4">
                             <div class="w-24 h-24 rounded-2xl border-4 border-delta-panel bg-delta-panel shadow-2xl flex items-center justify-center overflow-hidden relative group-hover:border-delta-electric transition-colors duration-300">
                                 <div class="absolute inset-0 bg-crown-gradient opacity-20"></div>
-                                <img id="realLogoPreview" class="absolute inset-0 w-full h-full object-cover hidden z-20">
+                                <img id="realLogoPreview" class="absolute inset-0 w-full h-full object-cover hidden z-20" alt="">
                                 <span class="font-cyber font-bold text-xl text-white z-10" id="previewTagPlaceholder">TAG</span>
                             </div>
                             <div class="mb-1 text-right">
@@ -964,7 +964,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 /**
  * Team Creation App - Clean Module Implementation
  * 
@@ -2180,7 +2180,7 @@
                             ${hint}
                             ${errorCode ? `<span class="inline-block mt-2 text-[9px] text-slate-600 font-mono bg-white/5 px-2 py-0.5 rounded">${errorCode}</span>` : ''}
                         </div>
-                        <button onclick="this.closest('#formErrorOverlay').classList.add('error-overlay-exit'); setTimeout(() => this.closest('#formErrorOverlay')?.remove(), 250)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition shrink-0">
+                        <button data-click-hide="formErrorOverlay" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition shrink-0">
                             <i class="fas fa-times text-xs"></i>
                         </button>
                     </div>
@@ -2559,7 +2559,7 @@
                     <div class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 last:border-0 ${already ? 'opacity-40 pointer-events-none' : ''}"
                          data-username="${p.username}" data-display="${p.username}" data-avatar="${p.avatar || ''}">
                         <div class="w-8 h-8 rounded-full bg-delta-panel border border-white/10 overflow-hidden shrink-0">
-                            ${p.avatar ? `<img src="${p.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">${(p.username || '?')[0].toUpperCase()}</div>`}
+                            ${p.avatar ? `<img src="${p.avatar}" class="w-full h-full object-cover" alt="">` : `<div class="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">${(p.username || '?')[0].toUpperCase()}</div>`}
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold text-white truncate">${p.username}</div>
@@ -2628,7 +2628,7 @@
             <div class="flex items-center gap-3 bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 group hover:border-delta-electric/20 transition-all">
                 <span class="text-[10px] text-slate-600 font-mono w-4">${i + 1}.</span>
                 <div class="w-7 h-7 rounded-full bg-delta-panel border border-white/10 overflow-hidden shrink-0">
-                    ${m.avatar ? `<img src="${m.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px] font-bold text-delta-electric">${m.display[0].toUpperCase()}</div>`}
+                    ${m.avatar ? `<img src="${m.avatar}" class="w-full h-full object-cover" alt="">` : `<div class="w-full h-full flex items-center justify-center text-[10px] font-bold text-delta-electric">${m.display[0].toUpperCase()}</div>`}
                 </div>
                 <span class="text-xs font-bold text-white flex-1 truncate">${m.display}</span>
                 <span class="text-[9px] px-1.5 py-0.5 rounded ${m.type === 'username' ? 'bg-delta-electric/10 text-delta-electric border border-delta-electric/20' : 'bg-white/5 text-slate-400 border border-white/5'}">${m.type === 'username' ? 'Player' : 'Manual'}</span>

@@ -95,11 +95,29 @@ class GameTournamentConfig(models.Model):
         help_text="How long before match start can teams check in?"
     )
     
+    # === SCORE RANGE ===
+    max_score = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum valid score per match side (e.g., 13 for Valorant, 999 for BR kill totals). Null = no limit."
+    )
+
     # === ADVANCED CONFIG ===
     extra_config = models.JSONField(
         default=dict,
         blank=True,
         help_text="Game-specific tournament configuration (JSON)"
+    )
+
+    # === CREDENTIAL SCHEMA (match lobby fields) ===
+    credential_schema = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'JSON array of lobby credential fields. Example: '
+            '[{"key": "lobby_code", "label": "Lobby Code", "kind": "text", "required": true}]. '
+            'Empty list = use default schema from GamePipelineTemplate.'
+        ),
     )
     
     # === REGISTRATION REQUIREMENTS (Phase 2) ===
@@ -164,3 +182,19 @@ class GameTournamentConfig(models.Model):
             'GROUP_STAGE': self.supports_group_stage,
         }
         return format_support.get(format_type, False)
+
+    def validate_score(self, score):
+        """Check whether a submitted score is within the valid range.
+
+        Args:
+            score: Numeric score value to validate.
+
+        Returns:
+            True if valid, False if exceeds max_score.
+        """
+        if self.max_score is None:
+            return True
+        try:
+            return int(score) <= self.max_score
+        except (TypeError, ValueError):
+            return False

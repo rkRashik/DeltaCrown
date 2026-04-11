@@ -19,11 +19,11 @@
     {# Status indicator #}
     <div id="status-bar" class="flex items-center justify-center gap-2 mb-8">
       <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600 animate-pulse"></span>
-      <span id="status-text" class="text-sm text-gray-400">Connecting…</span>
+      <span id="status-text" class="text-sm text-gray-400" aria-live="polite">Connecting…</span>
     </div>
 
     {# Seed reveal cards #}
-    <div id="reveal-container" class="space-y-3">
+    <div id="reveal-container" class="space-y-3" aria-live="polite" aria-atomic="true">
       {# Cards inserted by JS #}
     </div>
 
@@ -58,7 +58,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   const tournamentId = {{ tournament.id }};
   const container = document.getElementById('reveal-container');

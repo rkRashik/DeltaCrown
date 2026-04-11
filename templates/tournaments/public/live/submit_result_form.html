@@ -96,7 +96,7 @@
       </div>
 
       {# Feedback area #}
-      <div id="form-feedback" class="hidden rounded-xl p-4 text-sm"></div>
+      <div id="form-feedback" class="hidden rounded-xl p-4 text-sm" aria-live="polite"></div>
     </form>
   </div>
 
@@ -105,7 +105,7 @@
 {% endblock %}
 
 {% block tournament_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   document.getElementById('result-form')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');

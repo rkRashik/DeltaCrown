@@ -230,7 +230,7 @@ class PlayerProfileModal {
       
       <!-- Modal Footer -->
       <div class="eclipse-modal-footer">
-        <button class="eclipse-modal-cta-btn" onclick="window.location.href='/u/${player.username}/'">
+        <button class="eclipse-modal-cta-btn" data-click-href="/u/${player.username}/">
           View Full Profile
           <i class="fas fa-arrow-right"></i>
         </button>
@@ -393,7 +393,7 @@ class PlayerProfileModal {
     modal.className = 'player-profile-modal active';
     modal.innerHTML = `
       <div class="player-profile-content">
-        <button class="modal-close-btn" onclick="this.closest('.player-profile-modal').remove()">
+        <button class="modal-close-btn" data-click-dismiss-parent>
           <i class="fas fa-times"></i>
         </button>
         <div class="player-modal-body" style="text-align: center; padding: 4rem 2rem;">

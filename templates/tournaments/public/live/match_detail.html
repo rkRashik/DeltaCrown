@@ -192,7 +192,7 @@
     {% if team1_stats %}
     <div class="border-b border-white/[0.04]">
       <div class="px-6 py-2.5 bg-white/[0.01] flex items-center gap-2 border-b border-white/[0.03]">
-        {% if team1.logo_url %}<img src="{{ team1.logo_url }}" class="w-4 h-4 rounded">{% endif %}
+        {% if team1.logo_url %}<img src="{{ team1.logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
         <span class="text-[10px] font-black text-white uppercase tracking-wider">{{ team1.name|default:match.participant1_name }}</span>
         {% if match.winner_id == match.participant1_id %}<span class="text-[8px] text-dc-gold font-bold ml-1">W</span>{% endif %}
       </div>
@@ -241,7 +241,7 @@
     {% if team2_stats %}
     <div>
       <div class="px-6 py-2.5 bg-white/[0.01] flex items-center gap-2 border-b border-white/[0.03]">
-        {% if team2.logo_url %}<img src="{{ team2.logo_url }}" class="w-4 h-4 rounded">{% endif %}
+        {% if team2.logo_url %}<img src="{{ team2.logo_url }}" class="w-4 h-4 rounded" alt="">{% endif %}
         <span class="text-[10px] font-black text-white uppercase tracking-wider">{{ team2.name|default:match.participant2_name }}</span>
         {% if match.winner_id == match.participant2_id %}<span class="text-[8px] text-dc-gold font-bold ml-1">W</span>{% endif %}
       </div>

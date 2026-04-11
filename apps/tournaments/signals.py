@@ -351,12 +351,10 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
                 exc,
             )
 
-    # 2) Recalculate group standings and auto-transition to knockout when ready.
+    # 2) Recalculate group standings (non-critical — warn only on failure).
     try:
-        from apps.tournaments.models import Bracket as TournamentBracket
         from apps.tournaments.models.group import Group, GroupStage
         from apps.tournaments.services.group_stage_service import GroupStageService
-        from apps.tournaments.services.tournament_service import TournamentService
 
         tournament = instance.tournament
         groups = Group.objects.filter(
@@ -380,11 +378,27 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
                 GroupStageService.calculate_standings(group_id=match_group_id, game_slug=game_slug)
         # When match_group_id is None the match is not part of the group
         # stage (e.g. knockout round); skip the expensive full-stage recalc.
+    except Exception as exc:
+        logger.warning(
+            "Group standings recalculation failed (non-critical). match_id=%s err=%s",
+            instance.id,
+            exc,
+        )
 
+    # 3) Auto-transition to knockout when all group matches are complete (CRITICAL).
+    try:
+        from apps.tournaments.models import Bracket as TournamentBracket
+        from apps.tournaments.services.tournament_service import TournamentService
+
+        tournament = instance.tournament
+
+        # Use bracket__isnull=True to identify group-stage matches (aligned
+        # with tournament_service.py).  This is more reliable than checking
+        # lobby_info__group_id because bracket is an indexed FK field.
         group_stage_matches = Match.objects.filter(
             tournament=tournament,
+            bracket__isnull=True,
             is_deleted=False,
-            lobby_info__group_id__isnull=False,
         )
 
         if not group_stage_matches.exists():
@@ -397,20 +411,41 @@ def sync_match_completion_progression(sender, instance, created, **kwargs):
         if not all_group_matches_finished:
             return
 
-        has_knockout_bracket = TournamentBracket.objects.filter(tournament=tournament).exists()
-        if has_knockout_bracket:
-            return
+        # Check if knockout bracket already exists **with** playable matches.
+        # A bracket record with 0 matches means a previous attempt partially
+        # failed — allow re-trigger so the transition can repair itself.
+        knockout_bracket = TournamentBracket.objects.filter(tournament=tournament).first()
+        if knockout_bracket:
+            has_knockout_matches = Match.objects.filter(
+                tournament=tournament,
+                bracket=knockout_bracket,
+                is_deleted=False,
+            ).exists()
+            if has_knockout_matches:
+                return
+            logger.warning(
+                "Tournament %s has bracket %s but no knockout matches — allowing re-generation.",
+                tournament.id,
+                knockout_bracket.id,
+            )
 
+        logger.info(
+            "All group matches complete — triggering knockout generation. tournament_id=%s",
+            tournament.id,
+        )
         TournamentService.transition_to_knockout_stage(tournament.id)
         logger.info(
-            "Auto-transitioned tournament to knockout stage after group completion. tournament_id=%s",
+            "Auto-transitioned tournament to knockout stage. tournament_id=%s",
             tournament.id,
         )
     except Exception as exc:
-        logger.warning(
-            "Group standings/bracket auto-sync failed after match completion. match_id=%s err=%s",
+        logger.error(
+            "Knockout generation FAILED for tournament after match completion. "
+            "match_id=%s tournament_id=%s err=%s",
             instance.id,
+            getattr(instance, 'tournament_id', '?'),
             exc,
+            exc_info=True,
         )
 
 

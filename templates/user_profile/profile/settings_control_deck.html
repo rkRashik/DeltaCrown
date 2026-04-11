@@ -266,7 +266,7 @@
             <span class="hidden md:flex items-center gap-1.5 text-xs text-amber-400 font-semibold animate-pulse" id="unsaved-changes" style="display:none;">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> Unsaved
             </span>
-            <button id="save-all-btn" onclick="saveAll()" class="bg-z-cyan text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-1.5">
+            <button id="save-all-btn" class="bg-z-cyan text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-1.5">
                 <i class="fa-solid fa-floppy-disk"></i>
                 <span class="hidden sm:inline">Save</span>
             </button>
@@ -281,13 +281,13 @@
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
                     <div class="space-y-1">
-                        <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
-                        <button onclick="switchTab('about')" class="nav-btn" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</button>
-                        <button onclick="switchTab('connections')" class="nav-btn" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
-                        <button onclick="switchTab('security')" class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</button>
-                        <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
-                        <button onclick="switchTab('platform')" class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
-                        <button onclick="switchTab('notifications')" class="nav-btn relative" data-target="notifications" data-nav="notifications">
+                        <button class="nav-btn active" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
+                        <button class="nav-btn" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</button>
+                        <button class="nav-btn" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
+                        <button class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</button>
+                        <button class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
+                        <button class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
+                        <button class="nav-btn relative" data-target="notifications" data-nav="notifications">
                             <i class="fa-regular fa-bell w-5 text-center"></i> Notifications
                             <!-- UP PHASE 8: Follow Requests Badge -->
                             <span id="follow-requests-badge" class="hidden absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">0</span>
@@ -298,42 +298,42 @@
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Esports</div>
                     <div class="space-y-1">
-                        <button onclick="switchTab('recruitment')" class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
-                        <button onclick="switchTab('passports')" class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
-                        <button onclick="switchTab('matchmaking')" class="nav-btn" data-target="matchmaking"><i class="fa-solid fa-crosshairs w-5 text-center"></i> Bounties & Match</button>
-                        <button onclick="switchTab('loadout')" class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
+                        <button class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
+                        <button class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
+                        <button class="nav-btn" data-target="matchmaking"><i class="fa-solid fa-crosshairs w-5 text-center"></i> Bounties & Match</button>
+                        <button class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
                     </div>
                 </div>
 
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Assets</div>
                     <div class="space-y-1">
-                        <button onclick="switchTab('inventory')" class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
-                        <button onclick="switchTab('stream')" class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
-                        <button onclick="switchTab('billing')" class="nav-btn" data-target="billing"><i class="fa-solid fa-wallet w-5 text-center"></i> Wallet</button>
+                        <button class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
+                        <button class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
+                        <button class="nav-btn" data-target="billing"><i class="fa-solid fa-wallet w-5 text-center"></i> Wallet</button>
                     </div>
                 </div>
 
                 <div class="pt-4 border-t border-white/5">
-                    <button onclick="switchTab('danger')" class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10" data-target="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</button>
+                    <button class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10" data-target="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</button>
                 </div>
             </div>
         </aside>
 
         <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
-            <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity" data-nav="identity">Identity</button>
-            <button onclick="switchTab('about')" class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
-            <button onclick="switchTab('connections')" class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
-            <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
-            <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking" data-nav="matchmaking">Bounties</button>
-            <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
-            <button onclick="switchTab('platform')" class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
-            <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
-            <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout" data-nav="loadout">Loadout</button>
-            <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream" data-nav="stream">Stream</button>
-            <button onclick="switchTab('inventory')" class="mobile-nav-btn" data-target="inventory" data-nav="inventory">Inv.</button>
-            <button onclick="switchTab('billing')" class="mobile-nav-btn" data-target="billing" data-nav="billing">Wallet</button>
-            <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security" data-nav="security">Security</button>
+            <button class="mobile-nav-btn active" data-target="identity" data-nav="identity">Identity</button>
+            <button class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
+            <button class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
+            <button class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
+            <button class="mobile-nav-btn" data-target="matchmaking" data-nav="matchmaking">Bounties</button>
+            <button class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
+            <button class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
+            <button class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
+            <button class="mobile-nav-btn" data-target="loadout" data-nav="loadout">Loadout</button>
+            <button class="mobile-nav-btn" data-target="stream" data-nav="stream">Stream</button>
+            <button class="mobile-nav-btn" data-target="inventory" data-nav="inventory">Inv.</button>
+            <button class="mobile-nav-btn" data-target="billing" data-nav="billing">Wallet</button>
+            <button class="mobile-nav-btn" data-target="security" data-nav="security">Security</button>
         </div>
 
         <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-8 pb-32 scroll-smooth">
@@ -348,40 +348,40 @@
                     <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-8 flex gap-3">
                         <i class="fa-solid fa-circle-info text-blue-400 text-xl flex-shrink-0 mt-1"></i>
                         <div class="text-sm text-gray-300">
-                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" onclick="switchTab('privacy'); return false;" class="text-blue-400 hover:text-blue-300 underline">Privacy tab</a> to control which information is visible on your public profile. All fields are optional except Display Name.
+                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" class="text-blue-400 hover:text-blue-300 underline">Privacy tab</a> to control which information is visible on your public profile. All fields are optional except Display Name.
                         </div>
                     </div>
 
                     <div class="glass-panel p-1 mb-8 group overflow-hidden">
                         <div class="relative aspect-[4/1] bg-gray-800 rounded-t-[18px] overflow-hidden">
-                            <img id="banner-preview-img" src="{% if user_profile.banner %}{{ user_profile.banner.url }}{% else %}data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='480'%3E%3Crect fill='%231f2937' width='1920' height='480'/%3E%3C/svg%3E{% endif %}" class="w-full h-full object-cover {% if user_profile.banner %}opacity-60{% else %}opacity-20{% endif %}" data-preview="banner">
-                            <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
+                            <img id="banner-preview-img" src="{% if user_profile.banner %}{{ user_profile.banner.url }}{% else %}data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='480'%3E%3Crect fill='%231f2937' width='1920' height='480'/%3E%3C/svg%3E{% endif %}" class="w-full h-full object-cover {% if user_profile.banner %}opacity-60{% else %}opacity-20{% endif %}" data-preview="banner" alt="">
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer">
                                 <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
                                     <i class="fa-solid fa-image"></i> Change Cover
                                 </span>
                             </div>
-                            <input type="file" id="banner-upload" class="hidden" accept="image/*" onchange="openImageCropper(this, 'banner')">
+                            <input type="file" id="banner-upload" class="hidden" accept="image/*">
                         </div>
                         <div class="px-8 pb-8 relative">
                             <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
                                 <div class="holo-ring"></div>
                                 {% user_avatar_url request.user as avatar_url %}
-                                <img src="{{ avatar_url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
-                                <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
+                                <img src="{{ avatar_url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar" alt="">
+                                <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer">
                                     <i class="fa-solid fa-camera text-white text-xl"></i>
                                 </div>
-                                <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="openImageCropper(this, 'avatar')">
+                                <input type="file" id="avatar-upload" class="hidden" accept="image/*">
                             </div>
                         </div>
                     </div>
 
-                    <form id="identity-form" class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onsubmit="saveIdentity(event)">
+                    <form id="identity-form" class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="identity">
                         
                         <div class="md:col-span-2">
                             <label class="z-label">Display Name</label>
-                            <input type="text" name="display_name" class="z-input" value="{{ user_profile.display_name|default:'' }}" oninput="markUnsaved()" required>
+                            <input type="text" name="display_name" class="z-input" value="{{ user_profile.display_name|default:'' }}" required>
                         </div>
                         <div>
                             <label class="z-label">Gamertag (Unique ID)</label>
@@ -389,7 +389,7 @@
                         </div>
                         <div>
                             <label class="z-label">Gender <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
-                            <select name="gender" id="gender-select" class="z-input" oninput="markUnsaved(); autofillPronouns()">
+                            <select name="gender" id="gender-select" class="z-input">
                                 <option value="">Prefer not to say</option>
                                 <option value="male" {% if user_profile.gender == 'male' %}selected{% endif %}>Male</option>
                                 <option value="female" {% if user_profile.gender == 'female' %}selected{% endif %}>Female</option>
@@ -399,7 +399,7 @@
                         </div>
                         <div>
                             <label class="z-label">Pronouns <span class="text-gray-500 text-xs normal-case">(Auto-suggested)</span></label>
-                            <select name="pronouns" id="pronouns-select" class="z-input" oninput="markUnsaved()">
+                            <select name="pronouns" id="pronouns-select" class="z-input">
                                 <option value="">Prefer not to say</option>
                                 <option value="he_him" {% if user_profile.pronouns == 'he_him' %}selected{% endif %}>He/Him</option>
                                 <option value="she_her" {% if user_profile.pronouns == 'she_her' %}selected{% endif %}>She/Her</option>
@@ -411,12 +411,12 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="z-label">Date of Birth <span class="text-gray-500 text-xs normal-case">(Required for age verification)</span></label>
-                            <input type="date" name="date_of_birth" id="date-of-birth" class="z-input" value="{{ user_profile.date_of_birth|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" oninput="markUnsaved()">
+                            <input type="date" name="date_of_birth" id="date-of-birth" class="z-input" value="{{ user_profile.date_of_birth|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}">
                             <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-shield-halved text-z-cyan"></i> Your exact date is hidden. We only display your Age.</p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="z-label">Bio <span id="bio-counter" class="text-xs text-gray-400 font-normal">(0 / 160)</span></label>
-                            <textarea id="bio-input" name="bio" class="z-input h-24 resize-none" maxlength="160" oninput="updateBioCounter(); markUnsaved()">{{ user_profile.bio|default:'' }}</textarea>
+                            <textarea id="bio-input" name="bio" class="z-input h-24 resize-none" maxlength="160">{{ user_profile.bio|default:'' }}</textarea>
                             <p class="text-xs text-gray-500 mt-1">Short headline for your hero section (160 characters max)</p>
                         </div>
 
@@ -462,7 +462,7 @@
                         </div>
                     </div>
 
-                    <form id="connections-form" class="space-y-8" onsubmit="saveConnections(event)">
+                    <form id="connections-form" class="space-y-8">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="connections">
                         
@@ -507,11 +507,11 @@
                                         <!-- Email Source Toggle -->
                                         <div class="mb-4">
                                             <div class="grid grid-cols-2 gap-3 p-1 bg-black/30 rounded-xl">
-                                                <button type="button" id="use-primary-btn" onclick="toggleEmailSource('primary')" 
+                                                <button type="button" id="use-primary-btn" 
                                                     class="email-source-btn py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 {% if user_profile.secondary_email == request.user.email %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
                                                     <i class="fa-solid fa-shield-halved mr-2"></i>Use Primary Email
                                                 </button>
-                                                <button type="button" id="use-custom-btn" onclick="toggleEmailSource('secondary')" 
+                                                <button type="button" id="use-custom-btn" 
                                                     class="email-source-btn py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 {% if user_profile.secondary_email != request.user.email or not user_profile.secondary_email %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
                                                     <i class="fa-solid fa-at mr-2"></i>Secondary Email
                                                 </button>
@@ -542,7 +542,7 @@
                                                     class="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition" 
                                                     value="{% if user_profile.secondary_email != request.user.email %}{{ user_profile.secondary_email|default:'' }}{% endif %}" 
                                                     placeholder="your.public@email.com"
-                                                    oninput="onEmailInputChange()"
+
                                                     {% if user_profile.secondary_email_verified and user_profile.secondary_email != request.user.email %}readonly{% endif %}>
                                             </div>
                                         </div>
@@ -566,12 +566,12 @@
                                             </div>
                                             <!-- Action Buttons -->
                                             <div class="flex gap-3">
-                                                <button type="button" onclick="changeVerifiedEmail()" 
+                                                <button type="button" 
                                                     class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
                                                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                                                     <span>Change Email</span>
                                                 </button>
-                                                <button type="button" onclick="removeSecondaryEmail()" 
+                                                <button type="button" 
                                                     class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
                                                     <i class="fa-solid fa-trash-can text-sm"></i>
                                                     <span>Remove Email</span>
@@ -584,7 +584,7 @@
                                                     <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
                                                     <p class="text-sm text-amber-400 flex-1">Email not verified yet</p>
                                                 </div>
-                                                <button type="button" onclick="startEmailVerification()" 
+                                                <button type="button" 
                                                     class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
                                                     <i class="fa-solid fa-shield-check"></i>
                                                     <span>Verify Email Now</span>
@@ -616,15 +616,15 @@
                                                 </div>
 
                                                 <div class="flex gap-2">
-                                                    <button type="button" onclick="cancelOtpVerification()" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition">
+                                                    <button type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition">
                                                         Cancel
                                                     </button>
-                                                    <button type="button" id="verify-otp-btn" onclick="verifyOtpCode()" class="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition">
+                                                    <button type="button" id="verify-otp-btn" class="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition">
                                                         Verify Code
                                                     </button>
                                                 </div>
 
-                                                <button type="button" onclick="resendOtpCode()" class="w-full mt-3 py-2 text-xs text-gray-400 hover:text-white transition">
+                                                <button type="button" class="w-full mt-3 py-2 text-xs text-gray-400 hover:text-white transition">
                                                     Didn't receive code? <span class="text-blue-400 font-semibold">Resend</span>
                                                 </button>
                                             </div>
@@ -644,7 +644,7 @@
                                     
                                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                                         <!-- Email -->
-                                        <label class="cursor-pointer group" onclick="selectPreferredContact('email')">
+                                        <label class="cursor-pointer group">
                                             <input type="radio" name="preferred_contact_radio" value="email" class="peer sr-only" {% if user_profile.preferred_contact_method == 'email' %}checked{% endif %}>
                                             <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 transition hover:border-white/20 h-full flex flex-col items-center justify-center text-center gap-2">
                                                 <i class="fa-solid fa-envelope text-3xl text-blue-400"></i>
@@ -653,7 +653,7 @@
                                         </label>
                                         
                                         <!-- WhatsApp -->
-                                        <label class="cursor-pointer group" onclick="selectPreferredContact('whatsapp')">
+                                        <label class="cursor-pointer group">
                                             <input type="radio" name="preferred_contact_radio" value="whatsapp" class="peer sr-only" {% if user_profile.preferred_contact_method == 'whatsapp' %}checked{% endif %}>
                                             <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5 peer-checked:border-green-500 peer-checked:bg-green-500/10 transition hover:border-white/20 h-full flex flex-col items-center justify-center text-center gap-2">
                                                 <i class="fa-brands fa-whatsapp text-3xl text-green-500"></i>
@@ -662,7 +662,7 @@
                                         </label>
                                         
                                         <!-- Phone -->
-                                        <label class="cursor-pointer group" onclick="selectPreferredContact('phone')">
+                                        <label class="cursor-pointer group">
                                             <input type="radio" name="preferred_contact_radio" value="phone" class="peer sr-only" {% if user_profile.preferred_contact_method == 'phone' %}checked{% endif %}>
                                             <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5 peer-checked:border-green-500 peer-checked:bg-green-500/10 transition hover:border-white/20 h-full flex flex-col items-center justify-center text-center gap-2">
                                                 <i class="fa-solid fa-phone text-3xl text-green-400"></i>
@@ -671,7 +671,7 @@
                                         </label>
                                         
                                         <!-- Discord -->
-                                        <label class="cursor-pointer group" onclick="selectPreferredContact('discord')">
+                                        <label class="cursor-pointer group">
                                             <input type="radio" name="preferred_contact_radio" value="discord" class="peer sr-only" {% if user_profile.preferred_contact_method == 'discord' %}checked{% endif %}>
                                             <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/10 transition hover:border-white/20 h-full flex flex-col items-center justify-center text-center gap-2">
                                                 <i class="fa-brands fa-discord text-3xl text-indigo-400"></i>
@@ -680,7 +680,7 @@
                                         </label>
                                         
                                         <!-- Facebook -->
-                                        <label class="cursor-pointer group" onclick="selectPreferredContact('facebook')">
+                                        <label class="cursor-pointer group">
                                             <input type="radio" name="preferred_contact_radio" value="facebook" class="peer sr-only" {% if user_profile.preferred_contact_method == 'facebook' %}checked{% endif %}>
                                             <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 transition hover:border-white/20 h-full flex flex-col items-center justify-center text-center gap-2">
                                                 <i class="fa-brands fa-facebook text-3xl text-blue-500"></i>
@@ -695,7 +695,7 @@
                                     <label class="z-label">
                                         <i class="fa-solid fa-phone text-green-400"></i> Phone Number
                                     </label>
-                                    <input type="tel" name="phone" class="z-input" value="{{ user_profile.phone|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                    <input type="tel" name="phone" class="z-input" value="{{ user_profile.phone|default:'' }}" placeholder="+880 1XXX-XXXXXX">
                                     <p class="text-xs text-gray-500 mt-1">For tournament verification</p>
                                 </div>
                                 
@@ -703,7 +703,7 @@
                                     <label class="z-label">
                                         <i class="fa-brands fa-whatsapp text-green-500"></i> WhatsApp Number
                                     </label>
-                                    <input type="tel" name="whatsapp" class="z-input" value="{{ user_profile.whatsapp|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                    <input type="tel" name="whatsapp" class="z-input" value="{{ user_profile.whatsapp|default:'' }}" placeholder="+880 1XXX-XXXXXX">
                                     <p class="text-xs text-gray-500 mt-1">For instant messaging (can be different from phone)</p>
                                 </div>
                             </div>
@@ -724,7 +724,7 @@
                                     <label class="z-label">
                                         <i class="fa-solid fa-city text-cyan-400"></i> City
                                     </label>
-                                    <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" placeholder="Dhaka, Mumbai, Seoul..." oninput="markUnsaved()">
+                                    <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" placeholder="Dhaka, Mumbai, Seoul...">
                                     <p class="text-xs text-gray-500 mt-1">Your current city of residence</p>
                                 </div>
                                 
@@ -732,7 +732,7 @@
                                     <label class="z-label">
                                         <i class="fa-solid fa-flag text-yellow-400"></i> Country
                                     </label>
-                                    <select name="country" id="country-select" class="z-input" oninput="markUnsaved()">
+                                    <select name="country" id="country-select" class="z-input">
                                         <option value="">Select country</option>
                                         <optgroup label="🌏 South Asia">
                                             <option value="BD" {% if user_profile.country.code == 'BD' %}selected{% endif %}>Bangladesh</option>
@@ -847,15 +847,15 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="md:col-span-2">
                                     <label class="z-label">Emergency Contact Full Name</label>
-                                    <input type="text" name="emergency_contact_name" class="z-input" value="{{ user_profile.emergency_contact_name|default:'' }}" placeholder="Full legal name" oninput="markUnsaved()">
+                                    <input type="text" name="emergency_contact_name" class="z-input" value="{{ user_profile.emergency_contact_name|default:'' }}" placeholder="Full legal name">
                                 </div>
                                 <div>
                                     <label class="z-label">Emergency Contact Phone</label>
-                                    <input type="tel" name="emergency_contact_phone" class="z-input" value="{{ user_profile.emergency_contact_phone|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                    <input type="tel" name="emergency_contact_phone" class="z-input" value="{{ user_profile.emergency_contact_phone|default:'' }}" placeholder="+880 1XXX-XXXXXX">
                                 </div>
                                 <div>
                                     <label class="z-label">Relationship</label>
-                                    <select name="emergency_contact_relation" class="z-input" oninput="markUnsaved()">
+                                    <select name="emergency_contact_relation" class="z-input">
                                         <option value="">Select relationship</option>
                                         <option value="Parent" {% if user_profile.emergency_contact_relation == 'Parent' %}selected{% endif %}>Parent</option>
                                         <option value="Guardian" {% if user_profile.emergency_contact_relation == 'Guardian' %}selected{% endif %}>Guardian</option>
@@ -881,13 +881,13 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button type="button" onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">
+                                    <button type="button" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">
                                         <i class="fa-solid fa-clock mr-1"></i>Pending
                                     </button>
-                                    <button type="button" onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">
+                                    <button type="button" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">
                                         <i class="fa-solid fa-check mr-1"></i>Approved
                                     </button>
-                                    <button type="button" onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">
+                                    <button type="button" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">
                                         <i class="fa-solid fa-times mr-1"></i>Rejected
                                     </button>
                                 </div>
@@ -912,37 +912,37 @@
                                     <label class="z-label">
                                         <i class="fa-brands fa-youtube text-red-500"></i> YouTube Channel
                                     </label>
-                                    <input type="url" name="youtube_link" class="z-input" value="{{ youtube_link.url|default:'' }}" placeholder="https://youtube.com/@username" oninput="markUnsaved()">
+                                    <input type="url" name="youtube_link" class="z-input" value="{{ youtube_link.url|default:'' }}" placeholder="https://youtube.com/@username">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-twitch text-purple-500"></i> Twitch Channel
                                     </label>
-                                    <input type="url" name="twitch_link" class="z-input" value="{{ twitch_link.url|default:'' }}" placeholder="https://twitch.tv/username" oninput="markUnsaved()">
+                                    <input type="url" name="twitch_link" class="z-input" value="{{ twitch_link.url|default:'' }}" placeholder="https://twitch.tv/username">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-x-twitter text-sky-400"></i> Twitter/X Profile
                                     </label>
-                                    <input type="url" name="twitter" class="z-input" value="{{ twitter_link.url|default:'' }}" placeholder="https://twitter.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="twitter" class="z-input" value="{{ twitter_link.url|default:'' }}" placeholder="https://twitter.com/username">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-facebook text-blue-500"></i> Facebook Profile
                                     </label>
-                                    <input type="url" name="facebook" class="z-input" value="{{ facebook_link.url|default:'' }}" placeholder="https://facebook.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="facebook" class="z-input" value="{{ facebook_link.url|default:'' }}" placeholder="https://facebook.com/username">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-instagram text-pink-500"></i> Instagram Profile
                                     </label>
-                                    <input type="url" name="instagram" class="z-input" value="{{ instagram_link.url|default:'' }}" placeholder="https://instagram.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="instagram" class="z-input" value="{{ instagram_link.url|default:'' }}" placeholder="https://instagram.com/username">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-tiktok text-cyan-400"></i> TikTok Profile
                                     </label>
-                                    <input type="url" name="tiktok" class="z-input" value="{{ tiktok_link.url|default:'' }}" placeholder="https://tiktok.com/@username" oninput="markUnsaved()">
+                                    <input type="url" name="tiktok" class="z-input" value="{{ tiktok_link.url|default:'' }}" placeholder="https://tiktok.com/@username">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="z-label">
@@ -967,7 +967,7 @@
                                     <input type="url" name="discord_link" class="z-input opacity-60 cursor-not-allowed" value="{{ discord_link.url|default:'' }}" readonly>
                                     <p class="text-xs text-gray-500 mt-1 flex items-center justify-between">
                                         <span>Your verified Discord profile link</span>
-                                        <button type="button" onclick="unlinkDiscord()" class="text-red-400 hover:text-red-300 transition-colors text-xs font-semibold flex items-center gap-1">
+                                        <button type="button" id="unlink-discord-btn" class="text-red-400 hover:text-red-300 transition-colors text-xs font-semibold flex items-center gap-1">
                                             <i class="fa-solid fa-link-slash text-[10px]"></i> Unlink Discord
                                         </button>
                                     </p>
@@ -1010,11 +1010,11 @@
                     <div class="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-8 flex gap-3">
                         <i class="fa-solid fa-circle-info text-cyan-400 text-xl flex-shrink-0 mt-1"></i>
                         <div class="text-sm text-gray-300">
-                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" onclick="switchTab('privacy'); return false;" class="text-cyan-400 hover:text-cyan-300 underline">Privacy tab</a> to control which About fields are visible on your public profile. Unchecked fields stay completely private.
+                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" class="text-cyan-400 hover:text-cyan-300 underline">Privacy tab</a> to control which About fields are visible on your public profile. Unchecked fields stay completely private.
                         </div>
                     </div>
 
-                    <form id="about-form" onsubmit="saveAboutSettings(event)">
+                    <form id="about-form">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="about">
                         
@@ -1032,7 +1032,7 @@
                                         <span id="summary-current">{{ user_profile.profile_story|length|default:0 }}</span> / 320
                                     </span>
                                 </div>
-                                <textarea name="profile_story" id="profile-story-input" class="z-input h-24 resize-none" maxlength="320" placeholder="Share your competitive journey, achievements, or what makes you unique as a player..." oninput="updateCharCount(this, 320, 'summary'); markUnsaved()">{{ user_profile.profile_story|default:'' }}</textarea>
+                                <textarea name="profile_story" id="profile-story-input" class="z-input h-24 resize-none" maxlength="320" placeholder="Share your competitive journey, achievements, or what makes you unique as a player...">{{ user_profile.profile_story|default:'' }}</textarea>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fa-solid fa-info-circle text-cyan-400"></i> 
                                     <strong>Keep it short</strong> — this shows on your public profile.
@@ -1054,7 +1054,7 @@
                                         <span id="goal-current">{{ user_profile.competitive_goal|length|default:0 }}</span> / 160
                                     </span>
                                 </div>
-                                <textarea name="competitive_goal" id="competitive-goal-input" class="z-input h-16 resize-none" maxlength="160" placeholder="e.g., \"Reach Diamond rank this season\" or \"Win a regional tournament\"" oninput="updateCharCount(this, 160, 'goal'); markUnsaved()">{{ user_profile.competitive_goal|default:'' }}</textarea>
+                                <textarea name="competitive_goal" id="competitive-goal-input" class="z-input h-16 resize-none" maxlength="160" placeholder="e.g., \"Reach Diamond rank this season\" or \"Win a regional tournament\"">{{ user_profile.competitive_goal|default:'' }}</textarea>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fa-solid fa-target text-orange-400"></i> 
                                     <strong>Be specific</strong> — what's your next milestone?
@@ -1072,7 +1072,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="z-label">Primary Team</label>
-                                    <select name="primary_team" id="primary-team-select" class="z-input" oninput="handlePrimaryTeamChange(); markUnsaved()">
+                                    <select name="primary_team" id="primary-team-select" class="z-input">
                                         <option value="">No primary team</option>
                                         {% comment %} UP.3 HOTFIX #5: Use teams_dropdown (safe dict) instead of user_teams {% endcomment %}
                                         {% if teams_dropdown %}
@@ -1091,7 +1091,7 @@
                                 
                                 <div>
                                     <label class="z-label">Primary Game</label>
-                                    <select name="primary_game" id="primary-game-select" class="z-input" oninput="markUnsaved()">
+                                    <select name="primary_game" id="primary-game-select" class="z-input">
                                         <option value="">No primary game</option>
                                         {% comment %} Games will be loaded via view context {% endcomment %}
                                         {% if user_game_profiles %}
@@ -1126,7 +1126,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="z-label">Device / Platform</label>
-                                    <select name="device_platform" class="z-input" oninput="markUnsaved()">
+                                    <select name="device_platform" class="z-input">
                                         <option value="">Not specified</option>
                                         <option value="PC" {% if user_profile.device_platform == 'PC' %}selected{% endif %}>PC</option>
                                         <option value="CONSOLE_PS" {% if user_profile.device_platform == 'CONSOLE_PS' %}selected{% endif %}>PlayStation</option>
@@ -1138,7 +1138,7 @@
                                 
                                 <div>
                                     <label class="z-label">Play Style</label>
-                                    <select name="play_style" class="z-input" oninput="markUnsaved()">
+                                    <select name="play_style" class="z-input">
                                         <option value="">Not specified</option>
                                         <option value="CASUAL" {% if user_profile.play_style == 'CASUAL' %}selected{% endif %}>Casual Player</option>
                                         <option value="COMPETITIVE" {% if user_profile.play_style == 'COMPETITIVE' %}selected{% endif %}>Competitive</option>
@@ -1149,7 +1149,7 @@
                                 
                                 <div>
                                     <label class="z-label">Main Role</label>
-                                    <select name="main_role" id="main_role_select" class="z-input" oninput="markUnsaved(); toggleCustomRole('main')">
+                                    <select name="main_role" id="main_role_select" class="z-input">
                                         <option value="">Not specified</option>
                                         <option value="IGL" {% if user_profile.main_role == 'IGL' %}selected{% endif %}>IGL (In-Game Leader)</option>
                                         <option value="Entry Fragger" {% if user_profile.main_role == 'Entry Fragger' %}selected{% endif %}>Entry Fragger</option>
@@ -1168,13 +1168,13 @@
                                         <option value="Content Creator" {% if user_profile.main_role == 'Content Creator' %}selected{% endif %}>Content Creator</option>
                                         <option value="OTHER">Other (specify below)</option>
                                     </select>
-                                    <input type="text" name="main_role_custom" id="main_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;" oninput="markUnsaved()">
+                                    <input type="text" name="main_role_custom" id="main_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;">
                                     <p class="text-xs text-gray-500 mt-1">Your primary competitive role</p>
                                 </div>
                                 
                                 <div>
                                     <label class="z-label">Secondary Role</label>
-                                    <select name="secondary_role" id="secondary_role_select" class="z-input" oninput="markUnsaved(); toggleCustomRole('secondary')">
+                                    <select name="secondary_role" id="secondary_role_select" class="z-input">
                                         <option value="">Not specified</option>
                                         <option value="IGL" {% if user_profile.secondary_role == 'IGL' %}selected{% endif %}>IGL (In-Game Leader)</option>
                                         <option value="Entry Fragger" {% if user_profile.secondary_role == 'Entry Fragger' %}selected{% endif %}>Entry Fragger</option>
@@ -1193,13 +1193,13 @@
                                         <option value="Content Creator" {% if user_profile.secondary_role == 'Content Creator' %}selected{% endif %}>Content Creator</option>
                                         <option value="OTHER">Other (specify below)</option>
                                     </select>
-                                    <input type="text" name="secondary_role_custom" id="secondary_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;" oninput="markUnsaved()">
+                                    <input type="text" name="secondary_role_custom" id="secondary_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;">
                                     <p class="text-xs text-gray-500 mt-1">Backup role for flexibility</p>
                                 </div>
                                 
                                 <div>
                                     <label class="z-label">LFT Status</label>
-                                    <select name="lft_status" class="z-input" oninput="markUnsaved()">
+                                    <select name="lft_status" class="z-input">
                                         <option value="NOT_LOOKING" {% if user_profile.lft_status == 'NOT_LOOKING' %}selected{% endif %}>Not Looking</option>
                                         <option value="LFT_TEAM" {% if user_profile.lft_status == 'LFT_TEAM' %}selected{% endif %}>LFT Team</option>
                                         <option value="LFT_SCRIMS" {% if user_profile.lft_status == 'LFT_SCRIMS' %}selected{% endif %}>LFT Scrims</option>
@@ -1208,7 +1208,7 @@
                                 </div>
                             </div>
                             
-                            <script>
+                            <script nonce="{{ request.csp_nonce }}">
                             // Phase 4C.1.1: Toggle custom role input when "Other" is selected
                             function toggleCustomRole(type) {
                                 const select = document.getElementById(type + '_role_select');
@@ -1237,11 +1237,11 @@
                                     <div class="grid grid-cols-2 gap-3">
                                         <div>
                                             <label class="text-xs text-gray-500 mb-1 block">Start Time</label>
-                                            <input type="time" name="active_hours_start" id="active_hours_start" class="z-input" oninput="markUnsaved()">
+                                            <input type="time" name="active_hours_start" id="active_hours_start" class="z-input">
                                         </div>
                                         <div>
                                             <label class="text-xs text-gray-500 mb-1 block">End Time</label>
-                                            <input type="time" name="active_hours_end" id="active_hours_end" class="z-input" oninput="markUnsaved()">
+                                            <input type="time" name="active_hours_end" id="active_hours_end" class="z-input">
                                         </div>
                                     </div>
                                     <p class="text-xs text-gray-500 mt-1">When you're typically online (Bangladesh Time)</p>
@@ -1257,7 +1257,7 @@
                                                    value="{{ value }}"
                                                    {% if value in user_profile.communication_languages %}checked{% endif %}
                                                    class="language-checkbox w-4 h-4 rounded border-gray-600 text-z-cyan focus:ring-z-cyan focus:ring-offset-0 bg-z-panel"
-                                                   oninput="markUnsaved()">
+>
                                             <span class="text-sm text-gray-300">{{ label }}</span>
                                         </label>
                                         {% endfor %}
@@ -1265,7 +1265,7 @@
                                     <p class="text-xs text-gray-500 mt-1">Select all languages you can communicate in</p>
                                 </div>
                                 
-                                <script>
+                                <script nonce="{{ request.csp_nonce }}">
                                 // Phase 4C.1.1: Parse existing active_hours into start/end time inputs
                                 (function() {
                                     const existingHours = "{{ user_profile.active_hours|default:'' }}";
@@ -1291,7 +1291,7 @@
                                             <p class="text-xs text-gray-400">Available for offline/LAN tournaments</p>
                                         </div>
                                         <label class="z-toggle-wrapper">
-                                            <input type="checkbox" name="lan_availability" class="z-toggle-input" {% if user_profile.lan_availability %}checked{% endif %} oninput="markUnsaved()">
+                                            <input type="checkbox" name="lan_availability" class="z-toggle-input" {% if user_profile.lan_availability %}checked{% endif %}>
                                             <span class="z-toggle-slider"></span>
                                         </label>
                                     </div>
@@ -1304,7 +1304,7 @@
                         <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex gap-3">
                             <i class="fa-solid fa-info-circle text-blue-400 text-xl flex-shrink-0 mt-1"></i>
                             <div class="text-sm text-gray-300">
-                                <strong class="text-white">Contact Preferences:</strong> Your preferred contact method and details (Discord, WhatsApp, Email, etc.) are managed in the <a href="#" onclick="switchTab('connections'); return false;" class="text-blue-400 hover:text-blue-300 underline font-bold">Connections Hub tab</a>. Recruiters will see your preferred method if you enable "Show Preferred Contact" in Privacy settings.
+                                <strong class="text-white">Contact Preferences:</strong> Your preferred contact method and details (Discord, WhatsApp, Email, etc.) are managed in the <a href="#" class="text-blue-400 hover:text-blue-300 underline font-bold">Connections Hub tab</a>. Recruiters will see your preferred method if you enable "Show Preferred Contact" in Privacy settings.
                             </div>
                         </div>
                         
@@ -1324,7 +1324,7 @@
                     </div>
                     <p class="text-gray-400">Signal your availability to team managers and scouts.</p>
 
-                    <form id="career-form" class="glass-panel p-8 space-y-8" onsubmit="saveCareerSettings(event)">
+                    <form id="career-form" class="glass-panel p-8 space-y-8">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="recruitment">
                         
@@ -1513,7 +1513,7 @@
                         </div>
                     </div>
 
-                    <form id="matchmaking-form" class="space-y-6" onsubmit="saveMatchmakingSettings(event)">
+                    <form id="matchmaking-form" class="space-y-6">
                         {% csrf_token %}
 
                         <!-- ═══════════════════════════════════════════════════════
@@ -1726,7 +1726,7 @@
                 <div id="tab-privacy" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-white">Privacy & Visibility</h2>
                     
-                    <form id="privacy-form" onsubmit="savePrivacyFull(event)">
+                    <form id="privacy-form">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="privacy">
                         
@@ -1739,7 +1739,7 @@
                                     <!-- REMOVED 2026-01-22: Follower approval setting removed -->
                                 </div>
                                 <label class="z-toggle-wrapper">
-                                    <input type="checkbox" name="is_private_account" class="z-toggle-input" {% if privacy_settings.is_private_account %}checked{% endif %} onchange="autoSavePrivacy()">
+                                    <input type="checkbox" name="is_private_account" class="z-toggle-input" {% if privacy_settings.is_private_account %}checked{% endif %}>
                                     <span class="z-toggle-slider"></span>
                                 </label>
                             </div>
@@ -1752,42 +1752,42 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Real Name</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_real_name" class="z-toggle-input" {% if privacy_settings.show_real_name %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_real_name" class="z-toggle-input" {% if privacy_settings.show_real_name %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Email</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_email" class="z-toggle-input" {% if privacy_settings.show_email %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_email" class="z-toggle-input" {% if privacy_settings.show_email %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Phone</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_phone" class="z-toggle-input" {% if privacy_settings.show_phone %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_phone" class="z-toggle-input" {% if privacy_settings.show_phone %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Age</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_age" class="z-toggle-input" {% if privacy_settings.show_age %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_age" class="z-toggle-input" {% if privacy_settings.show_age %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Gender</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_gender" class="z-toggle-input" {% if privacy_settings.show_gender %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_gender" class="z-toggle-input" {% if privacy_settings.show_gender %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Country</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_country" class="z-toggle-input" {% if privacy_settings.show_country %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_country" class="z-toggle-input" {% if privacy_settings.show_country %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1799,49 +1799,49 @@
                             <h3 class="font-bold text-white text-lg mb-4">About Section (Competitive DNA)</h3>
                             <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mb-3">
                                 <p class="text-xs text-gray-300">
-                                    <i class="fa-solid fa-info-circle text-cyan-400"></i> These toggles control visibility of fields in your About section. Edit values in the <a href="#" onclick="switchTab('about'); return false;" class="text-cyan-400 hover:text-cyan-300 underline">About tab</a>.
+                                    <i class="fa-solid fa-info-circle text-cyan-400"></i> These toggles control visibility of fields in your About section. Edit values in the <a href="#" class="text-cyan-400 hover:text-cyan-300 underline">About tab</a>.
                                 </p>
                             </div>
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Nationality</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_nationality" class="z-toggle-input" {% if privacy_settings.show_nationality %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_nationality" class="z-toggle-input" {% if privacy_settings.show_nationality %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Device/Platform</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_device_platform" class="z-toggle-input" {% if privacy_settings.show_device_platform %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_device_platform" class="z-toggle-input" {% if privacy_settings.show_device_platform %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Play Style</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_play_style" class="z-toggle-input" {% if privacy_settings.show_play_style %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_play_style" class="z-toggle-input" {% if privacy_settings.show_play_style %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Roles (Main/Secondary)</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_roles" class="z-toggle-input" {% if privacy_settings.show_roles %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_roles" class="z-toggle-input" {% if privacy_settings.show_roles %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Active Hours & LAN Availability</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_active_hours" class="z-toggle-input" {% if privacy_settings.show_active_hours %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_active_hours" class="z-toggle-input" {% if privacy_settings.show_active_hours %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Preferred Contact Method</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_preferred_contact" class="z-toggle-input" {% if privacy_settings.show_preferred_contact %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_preferred_contact" class="z-toggle-input" {% if privacy_settings.show_preferred_contact %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1855,28 +1855,28 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Game IDs</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_game_ids" class="z-toggle-input" {% if privacy_settings.show_game_ids %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_game_ids" class="z-toggle-input" {% if privacy_settings.show_game_ids %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Match History</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_match_history" class="z-toggle-input" {% if privacy_settings.show_match_history %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_match_history" class="z-toggle-input" {% if privacy_settings.show_match_history %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Teams</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_teams" class="z-toggle-input" {% if privacy_settings.show_teams %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_teams" class="z-toggle-input" {% if privacy_settings.show_teams %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Achievements</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_achievements" class="z-toggle-input" {% if privacy_settings.show_achievements %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_achievements" class="z-toggle-input" {% if privacy_settings.show_achievements %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1889,7 +1889,7 @@
                             <div class="space-y-3">
                                 <div>
                                     <label class="text-sm text-gray-300 block mb-2">Inventory Visibility</label>
-                                    <select name="inventory_visibility" class="z-input w-full" onchange="autoSavePrivacy()">
+                                    <select name="inventory_visibility" class="z-input w-full">
                                         <option value="PUBLIC" {% if privacy_settings.inventory_visibility == 'PUBLIC' %}selected{% endif %}>Everyone</option>
                                         <option value="FRIENDS" {% if privacy_settings.inventory_visibility == 'FRIENDS' %}selected{% endif %}>Friends Only</option>
                                         <option value="PRIVATE" {% if privacy_settings.inventory_visibility == 'PRIVATE' %}selected{% endif %}>Only Me</option>
@@ -1898,14 +1898,14 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Inventory Value</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_inventory_value" class="z-toggle-input" {% if privacy_settings.show_inventory_value %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_inventory_value" class="z-toggle-input" {% if privacy_settings.show_inventory_value %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Level & XP</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_level_xp" class="z-toggle-input" {% if privacy_settings.show_level_xp %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_level_xp" class="z-toggle-input" {% if privacy_settings.show_level_xp %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1919,7 +1919,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Social Links</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_social_links" class="z-toggle-input" {% if privacy_settings.show_social_links %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="show_social_links" class="z-toggle-input" {% if privacy_settings.show_social_links %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1934,21 +1934,21 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Allow Team Invites</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="allow_team_invites" class="z-toggle-input" {% if privacy_settings.allow_team_invites %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="allow_team_invites" class="z-toggle-input" {% if privacy_settings.allow_team_invites %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Allow Friend Requests</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="allow_friend_requests" class="z-toggle-input" {% if privacy_settings.allow_friend_requests %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="allow_friend_requests" class="z-toggle-input" {% if privacy_settings.allow_friend_requests %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Allow Direct Messages</span>
                                     <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="allow_direct_messages" class="z-toggle-input" {% if privacy_settings.allow_direct_messages %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <input type="checkbox" name="allow_direct_messages" class="z-toggle-input" {% if privacy_settings.allow_direct_messages %}checked{% endif %}>
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1962,7 +1962,7 @@
                     <h2 class="text-3xl font-display font-bold text-white mb-2">Platform Preferences</h2>
                     <p class="text-gray-400 mb-8">Global settings for timezone, language, time format, and currency display.</p>
 
-                    <form id="platform-form" onsubmit="savePlatformSettings(event)">
+                    <form id="platform-form">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="platform">
                         
@@ -1971,7 +1971,7 @@
                             <label class="z-label flex items-center gap-2">
                                 <i class="fa-solid fa-language"></i> Preferred Language
                             </label>
-                            <select id="preferred_language" name="preferred_language" class="z-input" onchange="markUnsaved()">
+                            <select id="preferred_language" name="preferred_language" class="z-input">
                                 <option value="">Loading...</option>
                             </select>
                             <p class="text-xs text-gray-500">Bengali translation coming soon. UI language will update after page reload.</p>
@@ -1982,7 +1982,7 @@
                             <label class="z-label flex items-center gap-2">
                                 <i class="fa-solid fa-clock"></i> Timezone
                             </label>
-                            <select id="timezone_pref" name="timezone" class="z-input" onchange="markUnsaved()">
+                            <select id="timezone_pref" name="timezone" class="z-input">
                                 <option value="">Loading...</option>
                             </select>
                             <p class="text-xs text-gray-500">All timestamps across the platform will display in your selected timezone.</p>
@@ -1993,7 +1993,7 @@
                             <label class="z-label flex items-center gap-2">
                                 <i class="fa-solid fa-clock"></i> Time Format
                             </label>
-                            <select id="time_format" name="time_format" class="z-input" onchange="markUnsaved()">
+                            <select id="time_format" name="time_format" class="z-input">
                                 <option value="12h">12-hour (3:00 PM)</option>
                                 <option value="24h">24-hour (15:00)</option>
                             </select>
@@ -2045,15 +2045,15 @@
                         <div class="flex flex-wrap gap-3 mb-4">
                             <input type="text" id="inventory-search" placeholder="Search items..." 
                                    class="z-input flex-1 min-w-[200px]" 
-                                   oninput="applyInventoryFilters()">
-                            <select id="inventory-rarity-filter" class="z-input" onchange="applyInventoryFilters()">
+>
+                            <select id="inventory-rarity-filter" class="z-input">
                                 <option value="">All Rarities</option>
                                 <option value="COMMON">Common</option>
                                 <option value="RARE">Rare</option>
                                 <option value="EPIC">Epic</option>
                                 <option value="LEGENDARY">Legendary</option>
                             </select>
-                            <select id="inventory-sort" class="z-input" onchange="applyInventoryFilters()">
+                            <select id="inventory-sort" class="z-input">
                                 <option value="name-asc">Name (A–Z)</option>
                                 <option value="quantity-desc">Quantity (High to Low)</option>
                                 <option value="acquired-desc">Recently Acquired</option>
@@ -2067,7 +2067,7 @@
                     
                     <!-- PHASE 4A/4B: Incoming Requests (ENHANCED) -->
                     <div class="glass-panel p-6">
-                        <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('incoming-requests')">
+                        <div class="flex items-center justify-between mb-4 cursor-pointer" id="toggle-incoming-requests">
                             <h3 class="text-xl font-bold text-white flex items-center gap-2">
                                 <i class="fa-solid fa-inbox"></i> Incoming Requests
                                 <i id="incoming-requests-toggle" class="fa-solid fa-chevron-down text-sm text-gray-400"></i>
@@ -2077,23 +2077,23 @@
                         <!-- PHASE 4B: Request Filters -->
                         <div id="incoming-requests-content" class="space-y-3">
                             <div class="flex gap-2 mb-3">
-                                <button onclick="setIncomingFilter('all')" id="incoming-filter-all" 
+                                <button id="incoming-filter-all" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/20">
                                     All
                                 </button>
-                                <button onclick="setIncomingFilter('pending')" id="incoming-filter-pending" 
+                                <button id="incoming-filter-pending" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Pending
                                 </button>
-                                <button onclick="setIncomingFilter('history')" id="incoming-filter-history" 
+                                <button id="incoming-filter-history" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     History
                                 </button>
-                                <button onclick="setIncomingFilter('gifts')" id="incoming-filter-gifts" 
+                                <button id="incoming-filter-gifts" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Gifts Only
                                 </button>
-                                <button onclick="setIncomingFilter('trades')" id="incoming-filter-trades" 
+                                <button id="incoming-filter-trades" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Trades Only
                                 </button>
@@ -2106,7 +2106,7 @@
                     
                     <!-- PHASE 4A/4B: Outgoing Requests (ENHANCED) -->
                     <div class="glass-panel p-6">
-                        <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('outgoing-requests')">
+                        <div class="flex items-center justify-between mb-4 cursor-pointer" id="toggle-outgoing-requests">
                             <h3 class="text-xl font-bold text-white flex items-center gap-2">
                                 <i class="fa-solid fa-paper-plane"></i> Sent Requests
                                 <i id="outgoing-requests-toggle" class="fa-solid fa-chevron-down text-sm text-gray-400"></i>
@@ -2116,23 +2116,23 @@
                         <!-- PHASE 4B: Request Filters -->
                         <div id="outgoing-requests-content" class="space-y-3">
                             <div class="flex gap-2 mb-3">
-                                <button onclick="setOutgoingFilter('all')" id="outgoing-filter-all" 
+                                <button id="outgoing-filter-all" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/20">
                                     All
                                 </button>
-                                <button onclick="setOutgoingFilter('pending')" id="outgoing-filter-pending" 
+                                <button id="outgoing-filter-pending" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Pending
                                 </button>
-                                <button onclick="setOutgoingFilter('history')" id="outgoing-filter-history" 
+                                <button id="outgoing-filter-history" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     History
                                 </button>
-                                <button onclick="setOutgoingFilter('gifts')" id="outgoing-filter-gifts" 
+                                <button id="outgoing-filter-gifts" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Gifts Only
                                 </button>
-                                <button onclick="setOutgoingFilter('trades')" id="outgoing-filter-trades" 
+                                <button id="outgoing-filter-trades" 
                                         class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
                                     Trades Only
                                 </button>
@@ -2146,7 +2146,7 @@
                     <!-- Gift Item -->
                     <div class="glass-panel p-6">
                         <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-gift"></i> Gift Item</h3>
-                        <form id="gift-form" onsubmit="sendGift(event)" class="space-y-4">
+                        <form id="gift-form" class="space-y-4">
                             {% csrf_token %}
                             <div><label class="z-label">Recipient Username</label><input type="text" name="recipient_username" class="z-input" required></div>
                             <div><label class="z-label">Item Slug</label><input type="text" name="item_slug" class="z-input" placeholder="e.g., awp-dragon-lore" required></div>
@@ -2161,7 +2161,7 @@
                     <!-- Trade Request -->
                     <div class="glass-panel p-6">
                         <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-arrows-rotate"></i> Trade Request</h3>
-                        <form id="trade-form" onsubmit="proposeTrade(event)" class="space-y-4">
+                        <form id="trade-form" class="space-y-4">
                             {% csrf_token %}
                             <div><label class="z-label">Target Username</label><input type="text" name="target_username" class="z-input" required></div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2196,7 +2196,7 @@
                         </div>
                     </div>
 
-                    <form id="loadout-form" class="space-y-6" onsubmit="saveLoadout(event)">
+                    <form id="loadout-form" class="space-y-6">
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="loadout">
 
@@ -2220,7 +2220,7 @@
                                         </div>
                                         <label class="font-bold text-white text-sm">Mouse</label>
                                     </div>
-                                    <input type="text" name="mouse_brand" class="z-input w-full text-sm" placeholder="e.g., Logitech G Pro X Superlight 2" value="{{ hardware_loadout.mouse_brand|default:'' }}" oninput="markUnsaved()">
+                                    <input type="text" name="mouse_brand" class="z-input w-full text-sm" placeholder="e.g., Logitech G Pro X Superlight 2" value="{{ hardware_loadout.mouse_brand|default:'' }}">
                                 </div>
 
                                 <!-- Keyboard -->
@@ -2231,7 +2231,7 @@
                                         </div>
                                         <label class="font-bold text-white text-sm">Keyboard</label>
                                     </div>
-                                    <input type="text" name="keyboard_brand" class="z-input w-full text-sm" placeholder="e.g., Wooting 60HE" value="{{ hardware_loadout.keyboard_brand|default:'' }}" oninput="markUnsaved()">
+                                    <input type="text" name="keyboard_brand" class="z-input w-full text-sm" placeholder="e.g., Wooting 60HE" value="{{ hardware_loadout.keyboard_brand|default:'' }}">
                                 </div>
 
                                 <!-- Headset -->
@@ -2242,7 +2242,7 @@
                                         </div>
                                         <label class="font-bold text-white text-sm">Headset</label>
                                     </div>
-                                    <input type="text" name="headset_brand" class="z-input w-full text-sm" placeholder="e.g., HyperX Cloud III Wireless" value="{{ hardware_loadout.headset_brand|default:'' }}" oninput="markUnsaved()">
+                                    <input type="text" name="headset_brand" class="z-input w-full text-sm" placeholder="e.g., HyperX Cloud III Wireless" value="{{ hardware_loadout.headset_brand|default:'' }}">
                                 </div>
 
                                 <!-- Monitor -->
@@ -2253,7 +2253,7 @@
                                         </div>
                                         <label class="font-bold text-white text-sm">Monitor</label>
                                     </div>
-                                    <input type="text" name="monitor_brand" class="z-input w-full text-sm" placeholder="e.g., BenQ Zowie XL2546K 240Hz" value="{{ hardware_loadout.monitor_brand|default:'' }}" oninput="markUnsaved()">
+                                    <input type="text" name="monitor_brand" class="z-input w-full text-sm" placeholder="e.g., BenQ Zowie XL2546K 240Hz" value="{{ hardware_loadout.monitor_brand|default:'' }}">
                                 </div>
                             </div>
                         </div>
@@ -2276,11 +2276,11 @@
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div class="p-4 rounded-xl bg-gradient-to-br from-white/[.03] to-transparent border border-white/[.06]">
                                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Mouse DPI</label>
-                                        <input type="number" name="mouse_dpi" class="z-input w-full text-lg font-display font-bold" placeholder="800" value="{{ hardware_loadout.mouse_dpi|default:'' }}" min="100" max="25600" oninput="markUnsaved(); calcEdpi();">
+                                        <input type="number" name="mouse_dpi" class="z-input w-full text-lg font-display font-bold" placeholder="800" value="{{ hardware_loadout.mouse_dpi|default:'' }}" min="100" max="25600">
                                     </div>
                                     <div class="p-4 rounded-xl bg-gradient-to-br from-white/[.03] to-transparent border border-white/[.06]">
                                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">In-Game Sensitivity</label>
-                                        <input type="text" name="sensitivity" class="z-input w-full text-lg font-display font-bold" placeholder="0.45" value="{{ hardware_loadout.sensitivity|default:'' }}" oninput="markUnsaved(); calcEdpi();">
+                                        <input type="text" name="sensitivity" class="z-input w-full text-lg font-display font-bold" placeholder="0.45" value="{{ hardware_loadout.sensitivity|default:'' }}">
                                     </div>
                                     <div class="p-4 rounded-xl bg-gradient-to-br from-z-cyan/[.04] to-transparent border border-z-cyan/15">
                                         <label class="text-[10px] font-bold text-z-cyan/70 uppercase tracking-wider mb-2 block">eDPI <span class="text-gray-600 normal-case">(auto)</span></label>
@@ -2304,7 +2304,7 @@
                                     </div>
                                 </div>
                                 <label class="z-toggle-wrapper">
-                                    <input type="checkbox" name="loadout_public" class="z-toggle-input" {% if hardware_loadout.loadout_public %}checked{% endif %} oninput="markUnsaved()">
+                                    <input type="checkbox" name="loadout_public" class="z-toggle-input" {% if hardware_loadout.loadout_public %}checked{% endif %}>
                                     <span class="z-toggle-slider"></span>
                                 </label>
                             </div>
@@ -2321,23 +2321,23 @@
                     <h2 class="text-3xl font-display font-bold text-white">Stream Settings</h2>
                     <p class="text-gray-400">Link your streaming channel so fans can watch you live.</p>
                     
-                    <form id="stream-form" class="glass-panel p-6 md:p-8" onsubmit="saveStreamUrl(event)">
+                    <form id="stream-form" class="glass-panel p-6 md:p-8">
                         {% csrf_token %}
                         <label class="z-label">Platform</label>
                         <div class="flex gap-4 mt-2 mb-6">
                             <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-z-purple p-4 rounded-xl w-full hover:bg-white/10 transition">
-                                <input type="radio" name="stream_platform" value="twitch" checked class="accent-z-cyan w-4 h-4" onchange="markUnsaved()">
+                                <input type="radio" name="stream_platform" value="twitch" checked class="accent-z-cyan w-4 h-4">
                                 <i class="fa-brands fa-twitch text-[#9146FF] text-xl"></i> 
                                 <span class="font-bold">Twitch</span>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-white/10 p-4 rounded-xl w-full opacity-60 hover:opacity-100 transition">
-                                <input type="radio" name="stream_platform" value="youtube" class="accent-z-cyan w-4 h-4" onchange="markUnsaved()">
+                                <input type="radio" name="stream_platform" value="youtube" class="accent-z-cyan w-4 h-4">
                                 <i class="fa-brands fa-youtube text-[#FF0000] text-xl"></i> 
                                 <span class="font-bold">YouTube</span>
                             </label>
                         </div>
                         <label class="z-label">Channel URL</label>
-                        <input type="url" name="stream_url" class="z-input" placeholder="https://twitch.tv/yourchannel" oninput="markUnsaved()">
+                        <input type="url" name="stream_url" class="z-input" placeholder="https://twitch.tv/yourchannel">
                         <div class="mt-6">
                             <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
                                 <i class="fa-solid fa-floppy-disk"></i> Save Stream URL
@@ -2356,24 +2356,24 @@
                         <h3 class="font-bold text-white mb-6 flex items-center gap-2">
                             <i class="fa-solid fa-key text-z-gold"></i> Change Password
                         </h3>
-                        <form id="change-password-form" class="space-y-4" onsubmit="changePassword(event)">
+                        <form id="change-password-form" class="space-y-4">
                             {% csrf_token %}
                             
                             <div>
                                 <label class="z-label">Current Password</label>
-                                <input type="password" name="current_password" class="z-input" required autocomplete="current-password" oninput="markUnsaved()">
+                                <input type="password" name="current_password" class="z-input" required autocomplete="current-password">
                                 <p class="text-xs text-gray-500 mt-1">Enter your current password for verification</p>
                             </div>
                             
                             <div>
                                 <label class="z-label">New Password</label>
-                                <input type="password" name="new_password" id="new-password" class="z-input" required autocomplete="new-password" oninput="markUnsaved()">
+                                <input type="password" name="new_password" id="new-password" class="z-input" required autocomplete="new-password">
                                 <p class="text-xs text-gray-500 mt-1">Minimum 8 characters, include letters and numbers</p>
                             </div>
                             
                             <div>
                                 <label class="z-label">Confirm New Password</label>
-                                <input type="password" name="confirm_password" class="z-input" required autocomplete="new-password" oninput="markUnsaved()">
+                                <input type="password" name="confirm_password" class="z-input" required autocomplete="new-password">
                                 <p class="text-xs text-gray-500 mt-1">Re-enter your new password</p>
                             </div>
                             
@@ -2408,7 +2408,7 @@
                         </div>
                         {% else %}
                         <!-- Not Verified: DOB can be edited -->
-                        <form id="dob-form" class="space-y-4" onsubmit="saveDateOfBirth(event)">
+                        <form id="dob-form" class="space-y-4">
                             {% csrf_token %}
                             
                             <div>
@@ -2417,7 +2417,7 @@
                                        value="{{ user_profile.date_of_birth|date:'Y-m-d' }}" 
                                        required 
                                        max="{{ today|date:'Y-m-d' }}"
-                                       oninput="markUnsaved()">
+>
                                 <p class="text-xs text-gray-500 mt-1">
                                     <i class="fa-solid fa-lock-open"></i>
                                     You can update this now. It will be locked after KYC verification.
@@ -2481,7 +2481,7 @@
                             </div>
                         </div>
                         
-                        <button onclick="logoutOtherSessions()" class="bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2">
+                        <button id="logout-other-sessions-btn" class="bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2">
                             <i class="fa-solid fa-right-from-bracket"></i> Logout Other Sessions
                         </button>
                     </div>
@@ -2520,7 +2520,7 @@
                     <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
                     <p class="text-gray-400 mb-4">Control how and when you receive notifications</p>
                     
-                    <form id="notifications-form" class="space-y-6" onsubmit="saveNotificationsSettings(event)">
+                    <form id="notifications-form" class="space-y-6">
                         {% csrf_token %}
                         
                         <!-- Delivery Channels -->
@@ -2702,7 +2702,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-lock"></i> Current PIN
                                 </label>
-                                <input type="password" id="current-pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                                <input type="password" id="current-pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="Current PIN" aria-required="true">
                                 <p class="text-gray-500 text-xs mt-1">Enter your current PIN to authorize changes</p>
                             </div>
                             {% endif %}
@@ -2711,7 +2711,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-key"></i> {% if wallet and wallet.pin_enabled %}New PIN{% else %}PIN{% endif %}
                                 </label>
-                                <input type="password" id="pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                                <input type="password" id="pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="New PIN" aria-required="true">
                                 <p class="text-gray-500 text-xs mt-1">Must be exactly 6 digits</p>
                             </div>
 
@@ -2719,7 +2719,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-check-double"></i> Confirm PIN
                                 </label>
-                                <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                                <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" class="z-input" required aria-label="Confirm PIN" aria-required="true">
                             </div>
 
                             <!-- UP-PHASE7.7: OTP Field (appears after Send OTP clicked) -->
@@ -2727,7 +2727,7 @@
                                 <label class="z-label">
                                     <i class="fa-solid fa-envelope"></i> Email Verification Code
                                 </label>
-                                <input type="text" id="otp-code" maxlength="6" placeholder="000000" class="z-input">
+                                <input type="text" id="otp-code" maxlength="6" placeholder="000000" class="z-input" aria-label="Email verification code">
                                 <p class="text-gray-500 text-xs mt-1">
                                     Enter the 6-digit code sent to your email
                                     <button type="button" id="resend-otp-btn" class="text-z-cyan hover:underline ml-2" disabled>
@@ -2783,7 +2783,7 @@
                             </p>
                             <p class="text-xs text-gray-400">You can cancel this deletion request at any time before the deadline.</p>
                         </div>
-                        <button onclick="cancelDeletion(event)" class="w-full px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold uppercase transition">
+                        <button id="cancel-deletion-btn" class="w-full px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold uppercase transition">
                             <i class="fa-solid fa-times-circle"></i> Cancel Deletion
                         </button>
                     </div>
@@ -2803,7 +2803,7 @@
                             </div>
                         </div>
 
-                        <form id="deletion-form" onsubmit="scheduleDeletion(event)">
+                        <form id="deletion-form">
                             <!-- Confirmation Phrase -->
                             <div class="mb-4">
                                 <label class="z-label">
@@ -2848,7 +2848,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // Get CSRF token — multiple fallbacks for CSRF_COOKIE_HTTPONLY=True
     function getCookie(name) {
         if (name === 'csrftoken') {
@@ -3361,12 +3361,12 @@
                     <p class="text-sm text-blue-400 flex-1">Enter new email and verify to update</p>
                 </div>
                 <div class="flex gap-3">
-                    <button type="button" onclick="startEmailVerification()" 
+                    <button type="button" data-email-action="verify" 
                         class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
                         <i class="fa-solid fa-shield-check"></i>
                         <span>Verify New Email</span>
                     </button>
-                    <button type="button" onclick="cancelEmailChange()" 
+                    <button type="button" data-email-action="cancel" 
                         class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-xmark"></i>
                         <span>Cancel</span>
@@ -3374,7 +3374,12 @@
                 </div>
             </div>
         `;
-        
+        // CSP-safe: bind email action buttons
+        const verifyBtn = verificationSection.querySelector('[data-email-action="verify"]');
+        const cancelBtn = verificationSection.querySelector('[data-email-action="cancel"]');
+        if (verifyBtn) verifyBtn.addEventListener('click', startEmailVerification);
+        if (cancelBtn) cancelBtn.addEventListener('click', cancelEmailChange);
+
         // Enable and focus the email input
         emailInput.readOnly = false;
         emailInput.classList.remove('cursor-not-allowed', 'bg-black/20');
@@ -3419,7 +3424,7 @@
                         <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
                         <p class="text-sm text-amber-400 flex-1">Email not verified yet</p>
                     </div>
-                    <button type="button" onclick="startEmailVerification()" 
+                    <button type="button" data-email-action="verify" 
                         class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
                         <i class="fa-solid fa-shield-check"></i>
                         <span>Verify Email Now</span>
@@ -3427,7 +3432,10 @@
                     </button>
                 </div>
             `;
-            
+            // CSP-safe: bind verify button
+            const verifyBtn = verificationSection.querySelector('[data-email-action="verify"]');
+            if (verifyBtn) verifyBtn.addEventListener('click', startEmailVerification);
+
             showToast('Secondary email removed', 'success');
             markUnsaved();
             
@@ -3663,19 +3671,25 @@
                 </div>
             </div>
             <div class="flex gap-3">
-                <button type="button" onclick="changeVerifiedEmail()" 
+                <button type="button" data-email-action="change" 
                     class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                     <span>Change Email</span>
                 </button>
-                <button type="button" onclick="removeSecondaryEmail()" 
+                <button type="button" data-email-action="remove" 
                     class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-trash-can text-sm"></i>
                     <span>Remove Email</span>
                 </button>
             </div>
         `;
-        
+        // CSP-safe: bind email action buttons
+        const section = document.getElementById('verification-section');
+        const changeBtn = section.querySelector('[data-email-action="change"]');
+        const removeBtn = section.querySelector('[data-email-action="remove"]');
+        if (changeBtn) changeBtn.addEventListener('click', changeVerifiedEmail);
+        if (removeBtn) removeBtn.addEventListener('click', removeSecondaryEmail);
+
         // Add verified badge to header if not present
         const headerSection = document.querySelector('.bg-gradient-to-br.from-blue-500\\/10 .flex.items-start.justify-between');
         if (headerSection && !headerSection.querySelector('.bg-green-500\\/20')) {
@@ -3761,7 +3775,7 @@
                         <i class="fa-solid fa-crop-simple text-cyan-400"></i>
                         ${type === 'banner' ? 'Crop Cover Photo' : 'Crop Avatar'}
                     </h3>
-                    <button onclick="closeCropModal()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-700/50 hover:bg-gray-600 text-gray-400 hover:text-white transition">
+                    <button data-crop-action="close" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-700/50 hover:bg-gray-600 text-gray-400 hover:text-white transition">
                         <i class="fa-solid fa-times"></i>
                     </button>
                 </div>
@@ -3769,7 +3783,7 @@
                 <!-- Cropper Area -->
                 <div class="p-4 bg-gray-950">
                     <div class="bg-black rounded-lg overflow-hidden ${type === 'banner' ? 'max-h-[400px]' : 'max-h-[450px]'}">
-                        <img id="crop-image" src="" class="max-w-full block" style="max-height: ${type === 'banner' ? '400px' : '450px'};" />
+                        <img id="crop-image" src="" class="max-w-full block" style="max-height: ${type === 'banner' ? '400px' : '450px'};"  alt=""/>
                     </div>
                 </div>
                 
@@ -3781,16 +3795,16 @@
                             <span>${type === 'banner' ? '4:1 ratio • 1920×480' : 'Square • 400×400'}</span>
                         </div>
                         <div class="flex gap-1.5">
-                            <button onclick="rotateCropper(-90)" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Left">
+                            <button data-crop-action="rotate-left" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Left">
                                 <i class="fa-solid fa-rotate-left"></i>
                             </button>
-                            <button onclick="rotateCropper(90)" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Right">
+                            <button data-crop-action="rotate-right" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Right">
                                 <i class="fa-solid fa-rotate-right"></i>
                             </button>
-                            <button onclick="flipCropper('horizontal')" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Flip Horizontal">
+                            <button data-crop-action="flip" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Flip Horizontal">
                                 <i class="fa-solid fa-arrows-left-right"></i>
                             </button>
-                            <button onclick="resetCropper()" class="px-3 h-9 flex items-center justify-center gap-1.5 bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-xs font-medium" title="Reset">
+                            <button data-crop-action="reset" class="px-3 h-9 flex items-center justify-center gap-1.5 bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-xs font-medium" title="Reset">
                                 <i class="fa-solid fa-arrow-rotate-left"></i>
                                 <span class="hidden sm:inline">Reset</span>
                             </button>
@@ -3800,10 +3814,10 @@
                 
                 <!-- Footer -->
                 <div class="bg-gray-800 px-4 py-3 border-t border-gray-700 flex gap-2.5 justify-end">
-                    <button onclick="closeCropModal()" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm">
+                    <button data-crop-action="close" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm">
                         Cancel
                     </button>
-                    <button onclick="applyCropAndUpload()" class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white rounded-lg transition font-medium text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                    <button data-crop-action="upload" class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white rounded-lg transition font-medium text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20">
                         <i class="fa-solid fa-check"></i> 
                         <span>Crop & Upload</span>
                     </button>
@@ -3811,7 +3825,20 @@
             </div>
         `;
         document.body.appendChild(modal);
-        
+
+        // CSP-safe: delegate crop modal button clicks
+        modal.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-crop-action]');
+            if (!btn) return;
+            const action = btn.dataset.cropAction;
+            if (action === 'close') closeCropModal();
+            else if (action === 'rotate-left') rotateCropper(-90);
+            else if (action === 'rotate-right') rotateCropper(90);
+            else if (action === 'flip') flipCropper('horizontal');
+            else if (action === 'reset') resetCropper();
+            else if (action === 'upload') applyCropAndUpload();
+        });
+
         // Load image into cropper
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -3923,7 +3950,7 @@
         }
         
         // Show loading state
-        const uploadBtn = document.querySelector('#crop-modal button[onclick="applyCropAndUpload()"]');
+        const uploadBtn = document.querySelector('#crop-modal [data-crop-action="upload"]');
         if (uploadBtn) {
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
@@ -4839,10 +4866,10 @@
                 </div>
                 <div class="flex gap-2">
                     ${status === 'PENDING' ? `
-                        <button onclick="respondToFollowRequest(${req.id}, 'approve')" class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition">
+                        <button data-follow-action="approve" data-request-id="${req.id}" class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition">
                             <i class="fa-solid fa-check"></i> Approve
                         </button>
-                        <button onclick="respondToFollowRequest(${req.id}, 'reject')" class="px-3 py-1 bg-red-600 text-white rounded-lg text-xs hover:bg-red-700 transition">
+                        <button data-follow-action="reject" data-request-id="${req.id}" class="px-3 py-1 bg-red-600 text-white rounded-lg text-xs hover:bg-red-700 transition">
                             <i class="fa-solid fa-times"></i> Reject
                         </button>
                     ` : `
@@ -5163,8 +5190,10 @@
         }
         
         if (filtered.length > 0) {
-            container.innerHTML = filtered.map(item => `
-                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="openItemModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+            // Store filtered items for delegation
+            container._filteredItems = filtered;
+            container.innerHTML = filtered.map((item, idx) => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" data-item-index="${idx}">
                     <div>
                         <div class="font-bold text-white">${item.item_name}</div>
                         <div class="text-xs text-gray-400">Qty: ${item.quantity} | Rarity: ${item.rarity}</div>
@@ -5534,7 +5563,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${gift.sender_avatar || ''}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
+                        <img src="${gift.sender_avatar || ''}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${gift.sender_username}</span>
@@ -5556,11 +5585,11 @@
                             </div>
                             ${isPending && !isExpired ? `
                                 <div class="flex gap-2 mt-3">
-                                    <button onclick="respondToRequest('gift', ${gift.id}, 'ACCEPT')" 
+                                    <button data-req-type="gift" data-req-id="${gift.id}" data-req-action="ACCEPT" 
                                             class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                         <i class="fa-solid fa-check"></i> Accept
                                     </button>
-                                    <button onclick="respondToRequest('gift', ${gift.id}, 'REJECT')" 
+                                    <button data-req-type="gift" data-req-id="${gift.id}" data-req-action="REJECT" 
                                             class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                         <i class="fa-solid fa-times"></i> Reject
                                     </button>
@@ -5581,7 +5610,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${trade.initiator_avatar || ''}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
+                        <img src="${trade.initiator_avatar || ''}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${trade.initiator_username}</span>
@@ -5612,16 +5641,16 @@
                             </div>
                             ${isPending && !isExpired ? `
                                 <div class="flex gap-2 mt-3">
-                                    <button onclick='respondToRequest("trade", ${trade.id}, "ACCEPT", ${JSON.stringify({
+                                    <button data-req-type="trade" data-req-id="${trade.id}" data-req-action="ACCEPT" data-trade-meta='${JSON.stringify({
                                         offered_item_name: trade.requested_item_name,
                                         offered_quantity: trade.requested_quantity,
                                         requested_item_name: trade.offered_item_name,
                                         requested_quantity: trade.offered_quantity
-                                    })})' 
+                                    })}' 
                                             class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                         <i class="fa-solid fa-check"></i> Accept
                                     </button>
-                                    <button onclick="respondToRequest('trade', ${trade.id}, 'REJECT')" 
+                                    <button data-req-type="trade" data-req-id="${trade.id}" data-req-action="REJECT" 
                                             class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                         <i class="fa-solid fa-times"></i> Reject
                                     </button>
@@ -5656,7 +5685,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${gift.receiver_avatar || ''}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
+                        <img src="${gift.receiver_avatar || ''}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${gift.receiver_username}</span>
@@ -5674,7 +5703,7 @@
                             ${gift.message ? `<p class="text-xs text-gray-300 italic mb-2">"${gift.message}"</p>` : ''}
                             <div class="text-xs text-gray-500">Sent ${new Date(gift.created_at).toLocaleDateString()}</div>
                             ${isPending ? `
-                                <button onclick="respondToRequest('gift', ${gift.id}, 'CANCEL')" 
+                                <button data-req-type="gift" data-req-id="${gift.id}" data-req-action="CANCEL" 
                                         class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold mt-3 transition flex items-center gap-1">
                                     <i class="fa-solid fa-ban"></i> Cancel
                                 </button>
@@ -5693,7 +5722,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${trade.target_avatar || ''}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
+                        <img src="${trade.target_avatar || ''}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg" data-fallback="hide">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${trade.target_username}</span>
@@ -5720,7 +5749,7 @@
                             ${trade.message ? `<p class="text-xs text-gray-300 italic mb-2">"${trade.message}"</p>` : ''}
                             <div class="text-xs text-gray-500">Proposed ${new Date(trade.created_at).toLocaleDateString()}</div>
                             ${isPending ? `
-                                <button onclick="respondToRequest('trade', ${trade.id}, 'CANCEL')" 
+                                <button data-req-type="trade" data-req-id="${trade.id}" data-req-action="CANCEL" 
                                         class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold mt-3 transition flex items-center gap-1">
                                     <i class="fa-solid fa-ban"></i> Cancel
                                 </button>
@@ -6363,14 +6392,323 @@
             }
         });
     }
+
+    // ============================================================
+    // CSP-SAFE EVENT DELEGATION — replaces inline handlers
+    // ============================================================
+
+    // --- Missing function stubs (referenced in original HTML but never defined) ---
+    function toggleSection(sectionId) {
+        const content = document.getElementById(sectionId.replace('toggle-', '') + '-content') ||
+                        document.getElementById(sectionId + '-content');
+        const icon = document.getElementById(sectionId.replace('toggle-', '') + '-toggle') ||
+                     document.getElementById(sectionId + '-toggle');
+        if (content) content.classList.toggle('hidden');
+        if (icon) icon.classList.toggle('fa-chevron-down');
+        if (icon) icon.classList.toggle('fa-chevron-up');
+    }
+
+    function setIncomingFilter(filter) {
+        document.querySelectorAll('[id^="incoming-filter-"]').forEach(btn => {
+            btn.classList.remove('bg-white/10', 'text-white', 'border-white/20');
+            btn.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
+        });
+        const active = document.getElementById('incoming-filter-' + filter);
+        if (active) {
+            active.classList.add('bg-white/10', 'text-white', 'border-white/20');
+            active.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
+        }
+        // Filter visible items in incoming-requests-list based on filter type
+        const list = document.getElementById('incoming-requests-list');
+        if (!list) return;
+        list.querySelectorAll('[data-req-type]').forEach(el => {
+            const card = el.closest('.bg-black\\/30');
+            if (!card) return;
+            if (filter === 'all') { card.style.display = ''; return; }
+            if (filter === 'pending') { card.style.display = el.closest('[data-status="PENDING"]') ? '' : 'none'; return; }
+            if (filter === 'gifts') { card.style.display = el.dataset.reqType === 'gift' ? '' : 'none'; return; }
+            if (filter === 'trades') { card.style.display = el.dataset.reqType === 'trade' ? '' : 'none'; return; }
+            card.style.display = '';
+        });
+    }
+
+    function setOutgoingFilter(filter) {
+        document.querySelectorAll('[id^="outgoing-filter-"]').forEach(btn => {
+            btn.classList.remove('bg-white/10', 'text-white', 'border-white/20');
+            btn.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
+        });
+        const active = document.getElementById('outgoing-filter-' + filter);
+        if (active) {
+            active.classList.add('bg-white/10', 'text-white', 'border-white/20');
+            active.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
+        }
+        const list = document.getElementById('outgoing-requests-list');
+        if (!list) return;
+        list.querySelectorAll('[data-req-type]').forEach(el => {
+            const card = el.closest('.bg-black\\/30');
+            if (!card) return;
+            if (filter === 'all') { card.style.display = ''; return; }
+            if (filter === 'pending') { card.style.display = el.closest('[data-status="PENDING"]') ? '' : 'none'; return; }
+            if (filter === 'gifts') { card.style.display = el.dataset.reqType === 'gift' ? '' : 'none'; return; }
+            if (filter === 'trades') { card.style.display = el.dataset.reqType === 'trade' ? '' : 'none'; return; }
+            card.style.display = '';
+        });
+    }
+
+    // --- Core event delegation (runs on DOMContentLoaded) ---
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // 1. Tab navigation — delegate on any [data-target] click
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-target]');
+            if (btn && (btn.classList.contains('nav-btn') || btn.classList.contains('mobile-nav-btn'))) {
+                switchTab(btn.dataset.target);
+            }
+        });
+
+        // 2. Tab cross-links (privacy, connections, about anchors)
+        document.querySelectorAll('a[href="#"]').forEach(link => {
+            const text = link.textContent.trim().toLowerCase();
+            const tabMap = {
+                'privacy tab': 'privacy', 'privacy settings': 'privacy',
+                'connections hub tab': 'connections', 'connections hub': 'connections',
+                'about tab': 'about'
+            };
+            for (const [key, tab] of Object.entries(tabMap)) {
+                if (text.includes(key.split(' ')[0]) && link.closest('.text-sm, .text-xs, p, strong')) {
+                    link.addEventListener('click', function(ev) { ev.preventDefault(); switchTab(tab); });
+                    break;
+                }
+            }
+        });
+
+        // 3. Save All button
+        const saveAllBtn = document.getElementById('save-all-btn');
+        if (saveAllBtn) saveAllBtn.addEventListener('click', saveAll);
+
+        // 4. Form submissions
+        const formHandlers = {
+            'identity-form': saveIdentity,
+            'connections-form': saveConnections,
+            'about-form': saveAboutSettings,
+            'career-form': saveCareerSettings,
+            'matchmaking-form': saveMatchmakingSettings,
+            'privacy-form': savePrivacyFull,
+            'platform-form': savePlatformSettings,
+            'gift-form': sendGift,
+            'trade-form': proposeTrade,
+            'loadout-form': saveLoadout,
+            'stream-form': saveStreamUrl,
+            'change-password-form': changePassword,
+            'dob-form': saveDateOfBirth,
+            'notifications-form': saveNotificationsSettings,
+            'deletion-form': scheduleDeletion
+        };
+        for (const [formId, handler] of Object.entries(formHandlers)) {
+            const form = document.getElementById(formId);
+            if (form) form.addEventListener('submit', handler);
+        }
+
+        // 5. markUnsaved — delegate on all form inputs/selects/textareas
+        document.querySelectorAll('form input, form select, form textarea').forEach(el => {
+            if (el.type === 'hidden' || el.type === 'file' || el.closest('#otp-verification-panel')) return;
+            el.addEventListener('input', markUnsaved);
+            el.addEventListener('change', markUnsaved);
+        });
+
+        // 6. Compound input handlers (specific fields that do more than markUnsaved)
+        const genderSelect = document.getElementById('gender-select');
+        if (genderSelect) genderSelect.addEventListener('input', autofillPronouns);
+
+        const bioInput = document.getElementById('bio-input');
+        if (bioInput) bioInput.addEventListener('input', updateBioCounter);
+
+        const mainRoleSelect = document.getElementById('main_role_select');
+        if (mainRoleSelect) mainRoleSelect.addEventListener('input', function() { toggleCustomRole('main'); });
+
+        const secRoleSelect = document.getElementById('secondary_role_select');
+        if (secRoleSelect) secRoleSelect.addEventListener('input', function() { toggleCustomRole('secondary'); });
+
+        const primaryTeamSelect = document.getElementById('primary-team-select');
+        if (primaryTeamSelect) primaryTeamSelect.addEventListener('input', handlePrimaryTeamChange);
+
+        const storyInput = document.getElementById('profile-story-input');
+        if (storyInput) storyInput.addEventListener('input', function() { updateCharCount(this, 320, 'summary'); });
+
+        const goalInput = document.getElementById('competitive-goal-input');
+        if (goalInput) goalInput.addEventListener('input', function() { updateCharCount(this, 160, 'goal'); });
+
+        const mouseDpi = document.querySelector('input[name="mouse_dpi"]');
+        const sensitivity = document.querySelector('input[name="sensitivity"]');
+        if (mouseDpi) mouseDpi.addEventListener('input', calcEdpi);
+        if (sensitivity) sensitivity.addEventListener('input', calcEdpi);
+
+        // 7. Privacy auto-save — all checkboxes+selects in privacy form
+        const privacyForm = document.getElementById('privacy-form');
+        if (privacyForm) {
+            privacyForm.querySelectorAll('input[type="checkbox"], select').forEach(el => {
+                el.addEventListener('change', autoSavePrivacy);
+            });
+        }
+
+        // 8. Image upload triggers
+        const bannerOverlay = document.querySelector('[data-preview="banner"]');
+        if (bannerOverlay) {
+            const bannerTrigger = bannerOverlay.closest('.relative')?.querySelector('.cursor-pointer');
+            if (bannerTrigger) bannerTrigger.addEventListener('click', function() {
+                document.getElementById('banner-upload').click();
+            });
+        }
+        const avatarTrigger = document.querySelector('.group\\/avatar .cursor-pointer');
+        if (avatarTrigger) avatarTrigger.addEventListener('click', function() {
+            document.getElementById('avatar-upload').click();
+        });
+
+        const bannerUpload = document.getElementById('banner-upload');
+        if (bannerUpload) bannerUpload.addEventListener('change', function() { openImageCropper(this, 'banner'); });
+
+        const avatarUpload = document.getElementById('avatar-upload');
+        if (avatarUpload) avatarUpload.addEventListener('change', function() { openImageCropper(this, 'avatar'); });
+
+        // 9. Email source toggle
+        const usePrimaryBtn = document.getElementById('use-primary-btn');
+        const useCustomBtn = document.getElementById('use-custom-btn');
+        if (usePrimaryBtn) usePrimaryBtn.addEventListener('click', function() { toggleEmailSource('primary'); });
+        if (useCustomBtn) useCustomBtn.addEventListener('click', function() { toggleEmailSource('secondary'); });
+
+        // 10. Email input change
+        const emailInput = document.getElementById('secondary_email_input');
+        if (emailInput) emailInput.addEventListener('input', onEmailInputChange);
+
+        // 11. Email verification buttons (static ones in original HTML)
+        document.querySelectorAll('#verification-section button, #otp-verification-panel button').forEach(btn => {
+            const text = btn.textContent.trim().toLowerCase();
+            if (text.includes('verify email now') || text.includes('verify new email')) {
+                btn.addEventListener('click', startEmailVerification);
+            } else if (text.includes('cancel')) {
+                if (btn.closest('#otp-verification-panel')) {
+                    btn.addEventListener('click', cancelOtpVerification);
+                }
+            } else if (text.includes('verify code')) {
+                btn.addEventListener('click', verifyOtpCode);
+            } else if (text.includes('resend')) {
+                btn.addEventListener('click', resendOtpCode);
+            } else if (text.includes('change email')) {
+                btn.addEventListener('click', changeVerifiedEmail);
+            } else if (text.includes('remove email')) {
+                btn.addEventListener('click', removeSecondaryEmail);
+            }
+        });
+
+        // 12. Preferred contact — listen on radio change
+        document.querySelectorAll('input[name="preferred_contact_radio"]').forEach(radio => {
+            radio.addEventListener('change', function() { selectPreferredContact(this.value); });
+        });
+
+        // 13. Follow request filters
+        const filterMap = { 'filter-pending': 'PENDING', 'filter-approved': 'APPROVED', 'filter-rejected': 'REJECTED' };
+        for (const [id, status] of Object.entries(filterMap)) {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', function() { loadFollowRequests(status); });
+        }
+
+        // 14. Unlink Discord
+        const unlinkBtn = document.getElementById('unlink-discord-btn');
+        if (unlinkBtn) unlinkBtn.addEventListener('click', unlinkDiscord);
+
+        // 15. Inventory filters
+        const invSearch = document.getElementById('inventory-search');
+        const invRarity = document.getElementById('inventory-rarity-filter');
+        const invSort = document.getElementById('inventory-sort');
+        if (invSearch) invSearch.addEventListener('input', applyInventoryFilters);
+        if (invRarity) invRarity.addEventListener('change', applyInventoryFilters);
+        if (invSort) invSort.addEventListener('change', applyInventoryFilters);
+
+        // 16. Toggle sections (incoming/outgoing requests)
+        const toggleIncoming = document.getElementById('toggle-incoming-requests');
+        if (toggleIncoming) toggleIncoming.addEventListener('click', function() { toggleSection('incoming-requests'); });
+        const toggleOutgoing = document.getElementById('toggle-outgoing-requests');
+        if (toggleOutgoing) toggleOutgoing.addEventListener('click', function() { toggleSection('outgoing-requests'); });
+
+        // 17. Incoming/outgoing filter buttons
+        ['incoming', 'outgoing'].forEach(direction => {
+            const filterFn = direction === 'incoming' ? setIncomingFilter : setOutgoingFilter;
+            ['all', 'pending', 'history', 'gifts', 'trades'].forEach(filter => {
+                const btn = document.getElementById(direction + '-filter-' + filter);
+                if (btn) btn.addEventListener('click', function() { filterFn(filter); });
+            });
+        });
+
+        // 18. Delegated: follow request response buttons
+        const followList = document.getElementById('follow-requests-list');
+        if (followList) {
+            followList.addEventListener('click', function(e) {
+                const btn = e.target.closest('[data-follow-action]');
+                if (btn) {
+                    respondToFollowRequest(parseInt(btn.dataset.requestId), btn.dataset.followAction);
+                }
+            });
+        }
+
+        // 19. Delegated: inventory item clicks
+        const invList = document.getElementById('inventory-list');
+        if (invList) {
+            invList.addEventListener('click', function(e) {
+                const el = e.target.closest('[data-item-index]');
+                if (el && invList._filteredItems) {
+                    openItemModal(invList._filteredItems[parseInt(el.dataset.itemIndex)]);
+                }
+            });
+        }
+
+        // 20. Delegated: gift/trade request response buttons
+        ['incoming-requests-list', 'outgoing-requests-list'].forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-req-action]');
+                    if (!btn) return;
+                    const type = btn.dataset.reqType;
+                    const id = parseInt(btn.dataset.reqId);
+                    const action = btn.dataset.reqAction;
+                    let meta = null;
+                    if (btn.dataset.tradeMeta) {
+                        try { meta = JSON.parse(btn.dataset.tradeMeta); } catch(err) {}
+                    }
+                    respondToRequest(type, id, action, meta);
+                });
+            }
+        });
+
+        // 21. Logout other sessions
+        const logoutBtn = document.getElementById('logout-other-sessions-btn');
+        if (logoutBtn) logoutBtn.addEventListener('click', logoutOtherSessions);
+
+        // 22. Cancel deletion
+        const cancelDelBtn = document.getElementById('cancel-deletion-btn');
+        if (cancelDelBtn) cancelDelBtn.addEventListener('click', cancelDeletion);
+
+        // 23. Item detail modal — close on backdrop / close button
+        const itemModal = document.getElementById('item-detail-modal');
+        if (itemModal) {
+            itemModal.addEventListener('click', function(e) {
+                if (e.target === itemModal) closeItemModal(e);
+                if (e.target.closest('button')) closeItemModal(e);
+            });
+            const innerPanel = itemModal.querySelector('.glass-panel');
+            if (innerPanel) innerPanel.addEventListener('click', function(e) { e.stopPropagation(); });
+        }
+
+    }); // end DOMContentLoaded
+
 </script>
 
 <!-- PHASE 4B: Item Detail Modal -->
-<div id="item-detail-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center" onclick="closeItemModal(event)">
-    <div class="glass-panel p-6 max-w-md w-full mx-4" onclick="event.stopPropagation()">
+<div id="item-detail-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="glass-panel p-6 max-w-md w-full mx-4">
         <div class="flex items-start justify-between mb-4">
             <h3 class="text-2xl font-bold text-white" id="modal-item-name">Item Name</h3>
-            <button onclick="closeItemModal()" class="text-gray-400 hover:text-white transition">
+            <button class="text-gray-400 hover:text-white transition">
                 <i class="fa-solid fa-times text-xl"></i>
             </button>
         </div>

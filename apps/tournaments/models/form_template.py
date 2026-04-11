@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MinValueValidator, MaxValueValidator
+from apps.common.validators import validate_image_upload, validate_payment_proof_upload
 
 User = get_user_model()
 
@@ -83,7 +84,8 @@ class RegistrationFormTemplate(models.Model):
         upload_to='form_templates/thumbnails/',
         null=True,
         blank=True,
-        help_text="Preview image for template selection"
+        help_text="Preview image for template selection",
+        validators=[validate_image_upload],
     )
     
     # Template Status
@@ -465,7 +467,8 @@ class FormResponse(models.Model):
         upload_to='registration_payments/',
         null=True,
         blank=True,
-        help_text="Screenshot of payment"
+        help_text="Screenshot of payment",
+        validators=[validate_payment_proof_upload],
     )
     payment_verified_by = models.ForeignKey(
         User,

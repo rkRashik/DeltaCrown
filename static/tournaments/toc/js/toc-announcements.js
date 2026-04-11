@@ -69,13 +69,13 @@
                             ${importantBadge}
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <button onclick="TOC.announcements.togglePin(${a.id}, ${!a.is_pinned})" title="${a.is_pinned ? 'Unpin' : 'Pin'}" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-warning">
+                            <button data-click="TOC.announcements.togglePin" data-click-args="[${a.id}, ${!a.is_pinned}]" title="${a.is_pinned ? 'Unpin' : 'Pin'}" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-warning">
                                 <i data-lucide="${a.is_pinned ? 'pin-off' : 'pin'}" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="TOC.announcements.editAnnouncement(${a.id})" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-textBright">
+                            <button data-click="TOC.announcements.editAnnouncement" data-click-args="[${a.id}]" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-textBright">
                                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="TOC.announcements.deleteAnnouncement(${a.id})" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-danger">
+                            <button data-click="TOC.announcements.deleteAnnouncement" data-click-args="[${a.id}]" data-cap-require="make_announcements" class="text-dc-text hover:text-dc-danger">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
@@ -116,7 +116,7 @@
                         <input id="compose-important" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Important
                     </label>
                 </div>
-                <button onclick="TOC.announcements.confirmCompose()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Publish</button>
+                <button data-click="TOC.announcements.confirmCompose" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Publish</button>
             </div>
         `;
         showOverlay(html);
@@ -156,7 +156,7 @@
                     <label class="block text-xs text-dc-text mb-1">Message</label>
                     <textarea id="edit-ann-message" rows="5" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">${a.message}</textarea>
                 </div>
-                <button onclick="TOC.announcements.confirmEdit(${id})" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save</button>
+                <button data-click="TOC.announcements.confirmEdit" data-click-args="[${id}]" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save</button>
             </div>
         `;
         showOverlay(html);
@@ -207,7 +207,7 @@
                 <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
                     <input id="broadcast-important" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Mark as important
                 </label>
-                <button onclick="TOC.announcements.confirmBroadcast('${target}')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Send Broadcast</button>
+                <button data-click="TOC.announcements.confirmBroadcast" data-click-args="['${target}']" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Send Broadcast</button>
             </div>
         `;
         showOverlay(html);
@@ -252,7 +252,7 @@
                 <p class="text-xs text-dc-text">One-click + smart parameter templates for faster organizer communication.</p>
                 <div class="space-y-2">
                     ${templates.map(t => `
-                        <button onclick="TOC.announcements.openSmartCard('${t.key}')" class="w-full p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left flex items-center gap-3">
+                        <button data-click="TOC.announcements.openSmartCard" data-click-args="['${t.key}']" class="w-full p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left flex items-center gap-3">
                             <span class="text-base leading-none">${t.symbol || '📣'}</span>
                             <i data-lucide="${t.icon}" class="w-5 h-5 text-theme shrink-0"></i>
                             <span class="text-sm font-bold text-white">${t.label}</span>
@@ -316,7 +316,7 @@
                 '<h3 class="font-display font-bold text-white text-lg">Smart Announcement Card</h3>' +
                 '<p class="text-xs text-dc-text">Auto-generate a polished announcement with your input.</p>' +
                 fieldsHtml +
-                '<button onclick="TOC.announcements.sendSmartCard(\'' + templateKey + '\')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Publish Smart Card</button>' +
+                '<button data-click="TOC.announcements.sendSmartCard" data-click-args="[&quot;' + templateKey + '&quot;]" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Publish Smart Card</button>' +
             '</div>'
         );
     }

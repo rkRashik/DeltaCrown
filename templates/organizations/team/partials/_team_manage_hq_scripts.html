@@ -1,5 +1,5 @@
 <!-- Journey 3 — Team Manage HQ API Wiring -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // ========================================
     // JOURNEY 3 — Team Manage HQ API Wiring
     // ========================================
@@ -508,7 +508,7 @@
         const avatarSrc = member.avatar_url || '';
         const avatarLetter = escapeHtml((member.username || 'U')[0]?.toUpperCase() || 'U');
         const avatarPreview = avatarSrc
-            ? `<img src="${escapeHtml(avatarSrc)}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15" />`
+            ? `<img src="${escapeHtml(avatarSrc)}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15"  alt=""/>`
             : `<div class="h-16 w-16 rounded-xl border-2 border-white/15 grid place-items-center text-xl font-bold bg-white/5">${avatarLetter}</div>`;
 
         openModalWithAsyncConfirm({
@@ -668,7 +668,7 @@
                     if (avatarPreviewEl) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                            avatarPreviewEl.innerHTML = `<img src="${e.target.result}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15" />`;
+                            avatarPreviewEl.innerHTML = `<img src="${e.target.result}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15"  alt=""/>`;
                         };
                         reader.readAsDataURL(file);
                     }

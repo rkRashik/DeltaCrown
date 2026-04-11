@@ -13,7 +13,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                 Announcements &amp; Feed
             </h3>
             {% if is_admin %}
-            <button onclick="ManageHQ.Community.openPostModal()"
+            <button data-click="ManageHQ.Community.openPostModal"
                     class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-pink-500/15 text-pink-400 border border-pink-500/25 hover:bg-pink-500/25 transition">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 New Post
@@ -28,7 +28,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                 <div class="h-9 w-9 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/20 border border-pink-500/20 grid place-items-center shrink-0 mt-0.5">
                     <i data-lucide="user" class="w-4 h-4 text-pink-400/60"></i>
                 </div>
-                <div class="flex-1 min-w-0 cursor-pointer group" onclick="ManageHQ.Community.openPostModal()">
+                <div class="flex-1 min-w-0 cursor-pointer group" data-click="ManageHQ.Community.openPostModal">
                     <p class="text-sm text-white/30 group-hover:text-white/50 transition py-1.5">
                         Share an update, announcement, or match-day callout&hellip;
                     </p>
@@ -72,7 +72,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 font-semibold" id="gallery-count">0</span>
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Community.openMediaUpload()"
+                <button data-click="ManageHQ.Community.openMediaUpload"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/20 hover:bg-violet-500/25 transition">
                     <i data-lucide="upload" class="w-3 h-3"></i>
                     Upload
@@ -83,16 +83,16 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
             {# Filter tabs #}
             <div class="px-5 pt-3 pb-1">
                 <div class="flex items-center gap-1 bg-white/[0.03] rounded-xl p-0.5">
-                    <button onclick="ManageHQ.Community.filterGallery('all')"
+                    <button data-click="ManageHQ.Community.filterGallery" data-click-args='["all"]'
                             class="gallery-tab flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition bg-white/10 text-white"
                             data-gallery-tab="all">All</button>
-                    <button onclick="ManageHQ.Community.filterGallery('photo')"
+                    <button data-click="ManageHQ.Community.filterGallery" data-click-args='["photo"]'
                             class="gallery-tab flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition text-white/40 hover:text-white/60"
                             data-gallery-tab="photo">Photos</button>
-                    <button onclick="ManageHQ.Community.filterGallery('brand')"
+                    <button data-click="ManageHQ.Community.filterGallery" data-click-args='["brand"]'
                             class="gallery-tab flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition text-white/40 hover:text-white/60"
                             data-gallery-tab="brand">Brand</button>
-                    <button onclick="ManageHQ.Community.filterGallery('event')"
+                    <button data-click="ManageHQ.Community.filterGallery" data-click-args='["event"]'
                             class="gallery-tab flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition text-white/40 hover:text-white/60"
                             data-gallery-tab="event">Events</button>
                 </div>
@@ -120,7 +120,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     Highlights
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Community.openHighlightModal()"
+                <button data-click="ManageHQ.Community.openHighlightModal"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition">
                     <i data-lucide="plus" class="w-3 h-3"></i>
                     Add
@@ -179,7 +179,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     </div>
                 </div>
                 <p class="text-[11px] text-white/25 mt-3">
-                    <button onclick="setActiveRoute('profile')" class="text-white/40 hover:text-white/60 hover:underline transition">Edit social links in Team Profile &rarr;</button>
+                    <button data-click="setActiveRoute" data-click-args='["profile"]' class="text-white/40 hover:text-white/60 hover:underline transition">Edit social links in Team Profile &rarr;</button>
                 </p>
             </div>
         </div>
@@ -195,7 +195,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     Team Comms
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Community.openCommsModal()"
+                <button data-click="ManageHQ.Community.openCommsModal"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/25 transition">
                     <i data-lucide="settings" class="w-3 h-3"></i>
                     Manage
@@ -225,7 +225,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     <a href="{{ team.discord_url }}" target="_blank" rel="noopener" class="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 text-[11px] font-medium hover:bg-indigo-500/25 transition">Join</a>
                     {% endif %}
                     {% if team.discord_webhook_url and is_admin %}
-                    <button onclick="ManageHQ.Community.testDiscordWebhook()" id="btn-test-discord"
+                    <button data-click="ManageHQ.Community.testDiscordWebhook" id="btn-test-discord"
                         class="shrink-0 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/40 text-[10px] font-medium hover:bg-white/10 transition" title="Test webhook">
                         <i data-lucide="zap" class="w-3 h-3 inline -mt-0.5"></i>
                     </button>
@@ -273,7 +273,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
                     <i data-lucide="shield" class="w-3.5 h-3.5 text-white/20 shrink-0"></i>
                     <p class="text-[10px] text-white/25 leading-relaxed">
                         Comms links visible to active team members only.
-                        <button onclick="setActiveRoute('profile')" class="text-cyan-400/70 hover:underline">Edit in Profile</button>
+                        <button data-click="setActiveRoute" data-click-args='["profile"]' class="text-cyan-400/70 hover:underline">Edit in Profile</button>
                     </p>
                 </div>
             </div>
@@ -286,14 +286,14 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
 <!-- New Post Modal -->
 <div id="modal-new-post" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-post-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-new-post')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-new-post"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-post-title" class="font-bold text-base flex items-center gap-2">
                 <i data-lucide="megaphone" class="w-4 h-4 text-pink-400"></i>
                 Create Post
             </h3>
-            <button onclick="ManageHQ.closeModal('modal-new-post')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-new-post"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -333,7 +333,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
             </div>
             <div id="post-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-new-post')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-new-post"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="post-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-pink-600 hover:bg-pink-500 transition">Publish</button>
@@ -345,14 +345,14 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
 {# ── Upload Media Modal ── #}
 <div id="modal-upload-media" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-media-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-upload-media')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-upload-media"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-media-title" class="font-bold text-base flex items-center gap-2">
                 <i data-lucide="image" class="w-4 h-4 text-violet-400"></i>
                 Upload Media
             </h3>
-            <button onclick="ManageHQ.closeModal('modal-upload-media')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-upload-media"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -376,7 +376,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
             <div>
                 <label class="block text-xs text-white/60 mb-1.5 font-medium">File</label>
                 <div class="rounded-xl border-2 border-dashed border-white/15 bg-white/[0.02] p-6 text-center hover:border-violet-500/30 transition cursor-pointer"
-                     onclick="document.getElementById('media-file-input').click()">
+                      data-click-trigger="media-file-input">
                     <i data-lucide="cloud-upload" class="w-8 h-8 text-white/15 mx-auto mb-2"></i>
                     <p class="text-xs text-white/35">Click to select or drag &amp; drop</p>
                     <p class="text-[10px] text-white/20 mt-1">PNG, JPG, GIF, WebP &mdash; Max 10MB</p>
@@ -388,7 +388,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
             </div>
             <div id="media-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-upload-media')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-upload-media"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="media-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition">Upload</button>
@@ -400,14 +400,14 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
 {# ── Add Highlight Modal ── #}
 <div id="modal-add-highlight" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-highlight-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-add-highlight')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-add-highlight"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-highlight-title" class="font-bold text-base flex items-center gap-2">
                 <i data-lucide="play" class="w-4 h-4 text-rose-400"></i>
                 Add Highlight
             </h3>
-            <button onclick="ManageHQ.closeModal('modal-add-highlight')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-add-highlight"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -429,7 +429,7 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
             </div>
             <div id="highlight-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-add-highlight')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-add-highlight"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="highlight-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-500 transition">Add</button>
@@ -441,14 +441,14 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
 {# ── Manage Communications Modal ── #}
 <div id="modal-comms" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-comms-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-comms')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-comms"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-comms-title" class="font-bold text-base flex items-center gap-2">
                 <i data-lucide="headphones" class="w-4 h-4 text-indigo-400"></i>
                 Manage Communication Channels
             </h3>
-            <button onclick="ManageHQ.closeModal('modal-comms')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-comms"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -491,9 +491,9 @@ Redesigned: clear visual hierarchy, 2-column grid layout, unified feed + announc
 
             <div id="comms-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-comms')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-comms"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
-                <button type="button" onclick="ManageHQ.Community.saveComms()" id="comms-submit"
+                <button type="button" data-click="ManageHQ.Community.saveComms" id="comms-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 transition">Save Links</button>
             </div>
         </div>

@@ -19,8 +19,11 @@ from django.db import models
 from django.utils import timezone
 import uuid
 
+from apps.common.models import SoftDeleteModel
+from apps.common.managers import SoftDeleteManager
 
-class Challenge(models.Model):
+
+class Challenge(SoftDeleteModel):
     """
     A competitive challenge between two teams for a specific game.
     
@@ -266,6 +269,10 @@ class Challenge(models.Model):
         default=False,
         help_text="Staff-promoted highlight challenge"
     )
+
+    # Managers — default excludes soft-deleted rows
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = 'competition_challenge'

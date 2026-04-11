@@ -158,7 +158,7 @@
             + '<div class="min-w-0 flex-1">'
             + '<p class="text-xs font-bold text-white">Settings refresh failed</p>'
             + '<p class="text-[11px] text-dc-text mt-1">' + esc(message) + '</p>'
-            + '<button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.settings.init({ force: true })">Retry now</button>'
+            + '<button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.settings.init" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>'
             + '</div></div>';
         if (typeof lucide !== 'undefined') {
             try { lucide.createIcons(); } catch (e) { /* ok */ }
@@ -1216,11 +1216,11 @@
             var badge = s.action === 'ban' ? 'bg-dc-danger/20 text-dc-danger' : s.action === 'pick' ? 'bg-dc-success/20 text-dc-success' : 'bg-dc-warning/20 text-dc-warning';
             return '<div class="flex items-center gap-2 py-1.5 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
                 + '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ' + badge + '">' + esc(s.action) + '</span>'
-                + '<select onchange="TOC.settings.changeVetoTeam(' + i + ', this.value)" class="flex-1 bg-dc-surface border border-dc-border rounded px-2 py-1 text-xs text-dc-textBright">'
+                + '<select data-change="TOC.settings.changeVetoTeam" data-change-args="[' + i + ']" data-change-pass="value" class="flex-1 bg-dc-surface border border-dc-border rounded px-2 py-1 text-xs text-dc-textBright">'
                 + '<option value="higher_seed"' + (s.team === 'higher_seed' ? ' selected' : '') + '>Higher Seed</option>'
                 + '<option value="lower_seed"' + (s.team === 'lower_seed' ? ' selected' : '') + '>Lower Seed</option>'
                 + '</select>'
-                + '<button onclick="TOC.settings.removeVetoStep(' + i + ')" class="p-1 text-dc-danger hover:bg-dc-danger/10 rounded" title="Remove">&times;</button>'
+                + '<button data-click="TOC.settings.removeVetoStep" data-click-args="[' + i + ']" class="p-1 text-dc-danger hover:bg-dc-danger/10 rounded" title="Remove">&times;</button>'
                 + '</div>';
         }).join('');
     }
@@ -1245,8 +1245,8 @@
                 + (m.map_code ? '<span class="text-[10px] text-dc-text font-mono">' + esc(m.map_code) + '</span>' : '')
                 + '</div>'
                 + '<div class="flex items-center gap-1">'
-                + '<button onclick="TOC.settings.toggleMap(\'' + m.id + '\', ' + !m.is_active + ')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">' + (m.is_active ? 'Disable' : 'Enable') + '</button>'
-                + '<button onclick="TOC.settings.deleteMap(\'' + m.id + '\')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                + '<button data-click="TOC.settings.toggleMap" data-click-args="[&quot;' + m.id + '&quot;, &quot; + !m.is_active + &quot;]" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">' + (m.is_active ? 'Disable' : 'Enable') + '</button>'
+                + '<button data-click="TOC.settings.deleteMap" data-click-args="[&quot;' + m.id + '&quot;]" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
                 + '</div></div>'
             ).join('');
         } catch (e) { console.warn('[TOC.settings] loadMapPool failed', e); }
@@ -1258,7 +1258,7 @@
             + '<input id="new-map-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
             + '<div><label class="block text-xs text-dc-text mb-1">Map Code</label>'
             + '<input id="new-map-code" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-            + '<button onclick="TOC.settings.confirmAddMap()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Map</button>'
+            + '<button data-click="TOC.settings.confirmAddMap" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Map</button>'
             + '</div>');
     }
 
@@ -1296,7 +1296,7 @@
                 '<div class="flex items-center justify-between py-2 px-3 bg-dc-surface/50 rounded-lg border border-dc-border">'
                 + '<div><span class="text-sm text-white font-medium">' + esc(r.name) + '</span>'
                 + ' <span class="text-[10px] text-dc-text font-mono">' + esc(r.code) + '</span></div>'
-                + '<button onclick="TOC.settings.deleteRegion(\'' + r.id + '\')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                + '<button data-click="TOC.settings.deleteRegion" data-click-args="[&quot;' + r.id + '&quot;]" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
                 + '</div>'
             ).join('');
         } catch (e) { console.warn('[TOC.settings] loadRegions failed', e); }
@@ -1308,7 +1308,7 @@
             + '<input id="new-region-name" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
             + '<div><label class="block text-xs text-dc-text mb-1">Region Code</label>'
             + '<input id="new-region-code" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-            + '<button onclick="TOC.settings.confirmAddRegion()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Region</button>'
+            + '<button data-click="TOC.settings.confirmAddRegion" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Region</button>'
             + '</div>');
     }
 
@@ -1347,8 +1347,8 @@
                 + (v.changelog ? '<span class="text-xs text-dc-text truncate max-w-[200px]">' + esc(v.changelog) + '</span>' : '')
                 + '</div>'
                 + '<div class="flex items-center gap-1">'
-                + '<button onclick="TOC.settings.editRulebook(\'' + v.id + '\')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
-                + (!v.is_active ? '<button onclick="TOC.settings.publishRulebook(\'' + v.id + '\')" class="px-2 py-1 text-[10px] border border-dc-success/30 text-dc-success rounded hover:bg-dc-success/10 transition-colors">Publish</button>' : '')
+                + '<button data-click="TOC.settings.editRulebook" data-click-args="[&quot;' + v.id + '&quot;]" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
+                + (!v.is_active ? '<button data-click="TOC.settings.publishRulebook" data-click-args="[&quot;' + v.id + '&quot;]" class="px-2 py-1 text-[10px] border border-dc-success/30 text-dc-success rounded hover:bg-dc-success/10 transition-colors">Publish</button>' : '')
                 + '</div></div>'
             ).join('');
         } catch (e) { console.warn('[TOC.settings] loadRulebook failed', e); }
@@ -1367,7 +1367,7 @@
             + '<div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="new-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent</label></div></div>'
             + '<div><label class="block text-xs text-dc-text mb-1">Changelog</label>'
             + '<input id="new-rb-changelog" type="text" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-            + '<button onclick="TOC.settings.confirmCreateRulebook()" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Create Version</button>'
+            + '<button data-click="TOC.settings.confirmCreateRulebook" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Create Version</button>'
             + '</div>');
     }
 
@@ -1397,7 +1397,7 @@
             + '<div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="edit-rb-reconsent" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Re-Consent</label></div></div>'
             + '<div><label class="block text-xs text-dc-text mb-1">Changelog</label>'
             + '<input id="edit-rb-changelog" type="text" value="' + esc(v.changelog || '') + '" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50"></div>'
-            + '<button onclick="TOC.settings.confirmEditRulebook(\'' + versionId + '\')" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
+            + '<button data-click="TOC.settings.confirmEditRulebook" data-click-args="[&quot;' + versionId + '&quot;]" class="w-full py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
             + '</div>');
     }
 
@@ -1502,8 +1502,8 @@
                     + '<span class="text-[10px] ' + (m.is_enabled ? 'text-dc-success' : 'text-dc-text') + '">' + (m.is_enabled ? 'Enabled' : 'Disabled') + '</span>'
                     + '</div>'
                     + '<div class="flex items-center gap-1">'
-                    + '<button onclick="TOC.settings.editPaymentMethod(' + m.id + ')" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
-                    + '<button onclick="TOC.settings.deletePaymentMethod(' + m.id + ')" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
+                    + '<button data-click="TOC.settings.editPaymentMethod" data-click-args="[' + m.id + ']" class="px-2 py-1 text-[10px] border border-dc-border rounded hover:bg-dc-surface transition-colors text-dc-text">Edit</button>'
+                    + '<button data-click="TOC.settings.deletePaymentMethod" data-click-args="[' + m.id + ']" class="px-2 py-1 text-[10px] border border-dc-danger/30 text-dc-danger rounded hover:bg-dc-danger/10 transition-colors">Delete</button>'
                     + '</div></div>';
             }).join('');
         } catch (e) { console.warn('[TOC.settings] loadPaymentMethods failed', e); }
@@ -1512,13 +1512,13 @@
     function openAddPaymentMethod () {
         showOverlay('Add Payment Method', '<div class="space-y-4">'
             + '<div><label class="block text-xs text-dc-text mb-1">Provider</label>'
-            + '<select id="pm-method" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" onchange="TOC.settings.syncPaymentMethodFields()">'
+            + '<select id="pm-method" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" data-change="TOC.settings.syncPaymentMethodFields">'
             + '<option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>'
             + '<option value="bank_transfer">Bank Transfer</option><option value="deltacoin">DeltaCoin</option></select></div>'
             + '<div id="pm-fields"></div>'
             + '<div class="flex items-center gap-2">'
-            + '<button id="pm-submit-add" onclick="TOC.settings.confirmAddPaymentMethod()" class="flex-1 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
-            + '<button onclick="TOC.settings.dismissPaymentOverlay()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
+            + '<button id="pm-submit-add" data-click="TOC.settings.confirmAddPaymentMethod" class="flex-1 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Add Method</button>'
+            + '<button data-click="TOC.settings.dismissPaymentOverlay" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
             + '</div>'
             + '</div>');
         syncPaymentMethodFields();
@@ -1688,8 +1688,8 @@
             + '<div class="flex items-center justify-between gap-3">'
             + '<label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="pm-is-enabled" type="checkbox" ' + (m.is_enabled ? 'checked' : '') + ' class="rounded border-dc-border bg-dc-surface text-theme"> Enabled</label>'
             + '<div class="flex items-center gap-2">'
-            + '<button onclick="TOC.settings.dismissPaymentOverlay()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
-            + '<button id="pm-submit-edit" onclick="TOC.settings.confirmEditPaymentMethod(' + Number(id) + ')" class="px-4 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
+            + '<button data-click="TOC.settings.dismissPaymentOverlay" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Cancel</button>'
+            + '<button id="pm-submit-edit" data-click="TOC.settings.confirmEditPaymentMethod" data-click-args="[' + Number(id) + ']" class="px-4 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90">Save Changes</button>'
             + '</div>'
             + '</div>'
             + '</div>');
@@ -1921,16 +1921,16 @@
             return '<div class="flex items-center gap-2 p-2 bg-dc-surface border border-dc-border rounded-lg group">' +
                 '<span class="text-[10px] font-mono text-dc-text w-5 text-center">' + (idx + 1) + '</span>' +
                 '<span class="text-xs text-dc-textBright flex-1">' + esc(label) + '</span>' +
-                '<button onclick="TOC.settings.moveTiebreaker(' + idx + ', -1)" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === 0 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-up" class="w-3 h-3"></i></button>' +
-                '<button onclick="TOC.settings.moveTiebreaker(' + idx + ', 1)" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === _currentTiebreakers.length - 1 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-down" class="w-3 h-3"></i></button>' +
-                '<button onclick="TOC.settings.removeTiebreaker(' + idx + ')" class="text-dc-text hover:text-dc-danger transition-colors p-0.5 opacity-0 group-hover:opacity-100"><i data-lucide="x" class="w-3 h-3"></i></button>' +
+                '<button data-click="TOC.settings.moveTiebreaker" data-click-args="[' + idx + ',-1]" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === 0 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-up" class="w-3 h-3"></i></button>' +
+                '<button data-click="TOC.settings.moveTiebreaker" data-click-args="[' + idx + ',1]" class="text-dc-text hover:text-white transition-colors p-0.5' + (idx === _currentTiebreakers.length - 1 ? ' opacity-20 pointer-events-none' : '') + '"><i data-lucide="chevron-down" class="w-3 h-3"></i></button>' +
+                '<button data-click="TOC.settings.removeTiebreaker" data-click-args="[' + idx + ']" class="text-dc-text hover:text-dc-danger transition-colors p-0.5 opacity-0 group-hover:opacity-100"><i data-lucide="x" class="w-3 h-3"></i></button>' +
                 '</div>';
         }).join('');
 
         // Add button for unused tiebreakers
         var unused = ALL_TIEBREAKERS.filter(function (t) { return _currentTiebreakers.indexOf(t.key) === -1; });
         if (unused.length > 0) {
-            container.innerHTML += '<div class="mt-2"><select onchange="TOC.settings.addTiebreaker(this.value); this.value=\'\';" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-1.5 text-[10px] text-dc-textBright focus:border-theme/50 outline-none">' +
+            container.innerHTML += '<div class="mt-2"><select data-change="TOC.settings.addTiebreaker" data-change-pass="value" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-1.5 text-[10px] text-dc-textBright focus:border-theme/50 outline-none">' +
                 '<option value="">+ Add tiebreaker…</option>' +
                 unused.map(function (t) { return '<option value="' + t.key + '">' + esc(t.label) + '</option>'; }).join('') +
                 '</select></div>';
@@ -1973,8 +1973,8 @@
           </div>
         </div>`;
         const footer = `<div class="flex gap-3 p-4 pt-0">
-          <button onclick="TOC.settings._confirmClone()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Clone Tournament</button>
-          <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+          <button data-click="TOC.settings._confirmClone" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Clone Tournament</button>
+          <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
         </div>`;
         TOC.drawer.open('Clone Tournament', body, footer);
         setTimeout(() => {

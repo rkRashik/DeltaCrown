@@ -14,8 +14,9 @@ Implements: phase_5:module_5_2:milestone_3
 
 import logging
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsOrganizerOrAdmin])
+@throttle_classes([ScopedRateThrottle])
 def process_payouts(request, tournament_id):
     """
     Process prize payouts for a completed tournament.
@@ -187,8 +189,14 @@ def process_payouts(request, tournament_id):
         )
 
 
+# DRF ScopedRateThrottle reads throttle_scope from the view instance;
+# for @api_view FBVs the scope must be set on .cls after definition.
+process_payouts.cls.throttle_scope = 'payout_write'
+
+
 @api_view(['POST'])
 @permission_classes([IsOrganizerOrAdmin])
+@throttle_classes([ScopedRateThrottle])
 def process_refunds(request, tournament_id):
     """
     Process refunds for a cancelled tournament.
@@ -319,6 +327,9 @@ def process_refunds(request, tournament_id):
             {"detail": "An unexpected error occurred.", "error_code": "internal_error"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+process_refunds.cls.throttle_scope = 'payout_write'
 
 
 @api_view(['GET'])

@@ -635,7 +635,7 @@ class RosterManager {
       <div class="roster-table">
         <div class="roster-header">
           <h3><i class="fas fa-users"></i> Team Roster</h3>
-          <button type="button" class="btn-add-player" onclick="rosterManager.addPlayer()">
+          <button type="button" class="btn-add-player" data-click="rosterManager.addPlayer">
             <i class="fas fa-plus"></i> Add Player
           </button>
         </div>
@@ -703,7 +703,7 @@ class RosterManager {
         <button 
           type="button" 
           class="btn-remove-player" 
-          onclick="rosterManager.removePlayer(${playerIndex})"
+          data-click="rosterManager.removePlayer" data-click-args='[${playerIndex}]'
         >
           <i class="fas fa-trash"></i>
         </button>

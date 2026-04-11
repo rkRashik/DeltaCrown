@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
-<script>
+<script nonce="{{ request.csp_nonce }}">
 /* Override base colors with demo-exact nested structure */
 tailwind.config.theme.extend.colors.dc = {
   bg:'#05050A', surface:'#0f0f16', surfaceHover:'#161622', cyan:'#06b6d4',
@@ -197,7 +197,7 @@ body {
 
       {# ── Game Selector Dropdown ── #}
       <div class="relative shrink-0" id="gameSelectorWrap">
-        <button id="gameSelectorBtn" type="button" onclick="toggleGameDropdown()" aria-expanded="false" aria-haspopup="listbox"
+        <button id="gameSelectorBtn" type="button" data-click="toggleGameDropdown" aria-expanded="false" aria-haspopup="listbox"
                 class="flex items-center gap-2.5 bg-dc-cyan/10 hover:bg-dc-cyan/20 border border-dc-cyan/30 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-dc-cyan/40 whitespace-nowrap">
           {# Current selection label #}
           {% if is_global %}
@@ -219,7 +219,7 @@ body {
           {# Header #}
           <div class="flex items-center justify-between mb-3 px-1">
             <span class="text-[10px] text-dc-muted font-bold uppercase tracking-widest">Select Title</span>
-            <button onclick="closeGameDropdown()" class="text-dc-muted hover:text-white text-xs w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">✕</button>
+            <button data-click="closeGameDropdown" class="text-dc-muted hover:text-white text-xs w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">✕</button>
           </div>
           {# Game grid #}
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1" style="scrollbar-width:thin;scrollbar-color:#1f1f2e transparent;">
@@ -505,7 +505,7 @@ body {
            data-tag="{{ entry.team_tag|lower }}"
            data-org="{{ entry.organization_name|lower }}"
            style="transition-delay: {{ forloop.counter|add:"-3" }}0ms"
-           onclick="window.location='{{ entry.team_url }}'">
+            data-click-href="{{ entry.team_url }}">
         {# ── Banner bg-reveal on hover ── #}
         {% if entry.team_banner_url %}
         <img src="{{ entry.team_banner_url }}" class="bg-reveal absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" alt="">
@@ -719,7 +719,7 @@ body {
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   'use strict';
 

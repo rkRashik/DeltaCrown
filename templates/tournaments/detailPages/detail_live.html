@@ -118,14 +118,14 @@ Inspired by FotMob live matches + VCT brackets:
                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
                     Live
                 </div>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="matches" onclick="switchTab('matches')">Matches</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="matches" data-click="switchTab" data-click-args='["matches"]'>Matches</button>
                 {% if show_standings %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="standings" onclick="switchTab('standings')">Standings</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="standings" data-click="switchTab" data-click-args='["standings"]'>Standings</button>
                 {% endif %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="bracket" onclick="switchTab('bracket')">Bracket</button>
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="info" onclick="switchTab('info')">Info</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="bracket" data-click="switchTab" data-click-args='["bracket"]'>Bracket</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="info" data-click="switchTab" data-click-args='["info"]'>Info</button>
                 {% if has_streams %}
-                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="stream" onclick="switchTab('stream')">
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="stream" data-click="switchTab" data-click-args='["stream"]'>
                     Stream <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse ml-1"></span>
                 </button>
                 {% endif %}
@@ -865,7 +865,7 @@ Inspired by FotMob live matches + VCT brackets:
 {% endblock %}
 
 {% block phase_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
     /* Auto-refresh live match scores every 15 seconds */
     function refreshLiveScores() {
         {% if live_match_count > 0 %}

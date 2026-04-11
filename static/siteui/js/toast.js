@@ -146,7 +146,7 @@
           font-weight: bold;
           transition: all 0.2s;
           margin-left: auto;
-        " onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.color='#fff';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='rgba(255,255,255,0.6)';">
+        "  >
           ✕
         </button>
       `;

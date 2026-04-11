@@ -11,7 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -407,7 +407,7 @@
 
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // CONFIG: Game Data & Layout Types
         const gameConfig = {
             'valorant': { name: 'VALORANT', type: 'shooter', icon: 'fa-v', color: 'text-[#ff4655]', ign: 'Viper#NA1', rank: 'Radiant' },

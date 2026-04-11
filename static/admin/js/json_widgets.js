@@ -29,7 +29,7 @@ function prizeAddRow(textareaId) {
     tr.innerHTML = `
         <td><input type="text" value="${nextPlace}" class="jw-input jw-prize-placement" placeholder="e.g. ${nextPlace}"></td>
         <td><input type="number" value="" class="jw-input jw-prize-amount" placeholder="e.g. 500"></td>
-        <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();prizeSync('${textareaId}')">✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["prizeSync", "${textareaId}"]'>✕</button></td>
     `;
     tbody.appendChild(tr);
     // Attach change listeners
@@ -49,7 +49,7 @@ function prizePreset(textareaId, count) {
         tr.innerHTML = `
             <td><input type="text" value="${place}" class="jw-input jw-prize-placement"></td>
             <td><input type="number" value="${amount}" class="jw-input jw-prize-amount"></td>
-            <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();prizeSync('${textareaId}')">✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["prizeSync", "${textareaId}"]'>✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => prizeSync(textareaId)));
@@ -83,7 +83,7 @@ function rolesAddRow(textareaId) {
         <td><input type="text" value="" class="jw-input jw-role-key" placeholder="role_key"></td>
         <td><input type="text" value="" class="jw-input jw-role-label" placeholder="Role Label"></td>
         <td><input type="text" value="" class="jw-input jw-role-desc" placeholder="Description"></td>
-        <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();rolesSync('${textareaId}')">✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["rolesSync", "${textareaId}"]'>✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => rolesSync(textareaId)));
@@ -106,7 +106,7 @@ function rolesPresetDefaults(textareaId) {
             <td><input type="text" value="${role.key}" class="jw-input jw-role-key"></td>
             <td><input type="text" value="${role.label}" class="jw-input jw-role-label"></td>
             <td><input type="text" value="${role.description}" class="jw-input jw-role-desc"></td>
-            <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();rolesSync('${textareaId}')">✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["rolesSync", "${textareaId}"]'>✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => rolesSync(textareaId)));
@@ -144,7 +144,7 @@ function channelsAddRow(textareaId) {
         <td><input type="text" value="" class="jw-input jw-ch-placeholder" placeholder="placeholder"></td>
         <td><select class="jw-input jw-ch-type"><option value="text">Text</option><option value="url">URL</option><option value="tel">Phone</option></select></td>
         <td class="jw-center"><input type="checkbox" class="jw-ch-required"></td>
-        <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();channelsSync('${textareaId}')">✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["channelsSync", "${textareaId}"]'>✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => channelsSync(textareaId)));
@@ -172,7 +172,7 @@ function channelsPresetDefaults(textareaId) {
                 <option value="tel" ${ch.type === 'tel' ? 'selected' : ''}>Phone</option>
             </select></td>
             <td class="jw-center"><input type="checkbox" class="jw-ch-required" ${ch.required ? 'checked' : ''}></td>
-            <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();channelsSync('${textareaId}')">✕</button></td>
+            <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["channelsSync", "${textareaId}"]'>✕</button></td>
         `;
         tbody.appendChild(tr);
         tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => channelsSync(textareaId)));
@@ -212,7 +212,7 @@ function mcfAddRow(textareaId) {
             <option value="email">Email</option><option value="url">URL</option><option value="date">Date</option>
         </select></td>
         <td class="jw-center"><input type="checkbox" class="jw-mcf-required"></td>
-        <td><button type="button" class="jw-btn-remove" onclick="this.closest('tr').remove();mcfSync('${textareaId}')">✕</button></td>
+        <td><button type="button" class="jw-btn-remove" data-click="__removeRowAndSync" data-click-pass-el data-click-args='["mcfSync", "${textareaId}"]'>✕</button></td>
     `;
     table.querySelector('tbody').appendChild(tr);
     tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', () => mcfSync(textareaId)));

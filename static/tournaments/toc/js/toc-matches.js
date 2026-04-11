@@ -353,7 +353,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Matches request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.matches.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.matches.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -543,7 +543,7 @@
       return '<button data-stage="' + t.key + '" class="' +
         (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
         ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
-        'onclick="TOC.matches.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        'data-click="TOC.matches.filterStage" data-click-args="[&quot;' + t.key + '&quot;]" role="tab" aria-selected="' + active + '">' +
         t.label + '</button>';
     }).join('');
   }
@@ -575,12 +575,12 @@
 
     var html = '<button data-group="" class="match-pill ' +
       (activeGroupFilter === '' ? 'active bg-theme/15 text-theme border-theme/20' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
-      ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'\')" role="radio" aria-checked="' + (activeGroupFilter === '' ? 'true' : 'false') + '">All</button>';
+      ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" data-click="TOC.matches.filterGroup" data-click-args="[&quot;&quot;]" role="radio" aria-checked="' + (activeGroupFilter === '' ? 'true' : 'false') + '">All</button>';
     groups.forEach(function (g) {
       var eg = esc(g);
       html += '<button data-group="' + eg + '" class="match-pill ' +
         (activeGroupFilter === g ? 'active bg-theme/15 text-theme border-theme/20' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
-        ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" onclick="TOC.matches.filterGroup(\'' + eg.replace(/'/g, "\\'") + '\')" role="radio" aria-checked="' + (activeGroupFilter === g ? 'true' : 'false') + '">' + eg + '</button>';
+        ' px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all border" data-click="TOC.matches.filterGroup" data-click-args="[&quot;' + eg.replace(/"/g, '\\&quot;') + '&quot;]"  role="radio" aria-checked="' + (activeGroupFilter === g ? 'true' : 'false') + '">' + eg + '</button>';
     });
     container.innerHTML = html;
   }
@@ -694,13 +694,13 @@
         ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300/45 bg-gradient-to-r from-emerald-500/30 via-emerald-400/20 to-teal-300/25 text-emerald-100 text-[10px] font-black uppercase tracking-widest shadow-[0_0_18px_rgba(16,185,129,0.26)] animate-pulse hover:brightness-110 transition-all'
         : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-theme/35 bg-gradient-to-r from-theme/25 via-theme/12 to-cyan-300/20 text-cyan-100 text-[10px] font-black uppercase tracking-widest shadow-[0_0_14px_rgba(34,211,238,0.18)] hover:brightness-110 transition-all';
       var liveCta = canOpenRoom
-        ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" onclick="event.stopPropagation()" class="' + roomCtaClass + '">' + (isLive ? 'LIVE - Enter Lobby' : 'Enter Lobby') + '</a>'
+        ? '<a href="/tournaments/' + slug + '/matches/' + m.id + '/room/?admin=1" data-click="event.stopPropagation" class="' + roomCtaClass + '">' + (isLive ? 'LIVE - Enter Lobby' : 'Enter Lobby') + '</a>'
         : '';
 
       return '<div class="match-card px-4 py-3 cursor-pointer transition-all hover:bg-white/[0.03]' +
         (isSelected ? ' bg-theme/5 border-l-[3px] border-l-theme' : ' border-l-[3px] border-l-transparent') +
         disputedBorder + liveCard +
-        '" onclick="TOC.matches.selectMatch(' + m.id + ')" data-match-id="' + m.id + '"' +
+        '" data-click="TOC.matches.selectMatch" data-click-args="[' + m.id + ']" data-match-id="' + m.id + '"' +
         ' tabindex="0" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '"' +
         ' aria-label="Match ' + m.match_number + ': ' + esc(m.participant1_name || 'TBD') + ' vs ' + esc(m.participant2_name || 'TBD') + '">' +
 
@@ -786,9 +786,9 @@
         '<h3 class="text-sm font-bold text-dc-text/60 mb-2">No Matches Yet</h3>' +
         '<p class="text-xs text-dc-text/40 mb-5">Matches have not been generated for this tournament yet. Generate them here, then continue with scheduling.</p>' +
         '<div class="flex flex-col sm:flex-row items-center justify-center gap-2">' +
-        '<button onclick="TOC.matches.generateMatchesFromEmptyState()" class="px-4 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">' +
+        '<button data-click="TOC.matches.generateMatchesFromEmptyState" class="px-4 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">' +
         '<i data-lucide="swords" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Generate Matches</button>' +
-        '<button onclick="TOC.navigate && TOC.navigate(\'schedule\')" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
+        '<button data-click="TOC.navigate" data-click-args="[&quot;schedule&quot;]" class="px-4 py-2 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors">' +
         '<i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Go to Schedule</button>' +
         '</div>' +
         '</div></div>';
@@ -1200,8 +1200,8 @@
       '<input id="add-game-p2" type="number" min="0" value="0" class="w-full bg-dc-bg border border-dc-border text-white text-2xl font-mono text-center rounded-lg px-3 py-3 focus:border-theme outline-none"></div>' +
       '</div>' +
       '<div class="flex gap-2 pt-2">' +
-      '<button onclick="TOC.matches.confirmAddGameScore(' + nextGame + ')" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold rounded-lg hover:bg-dc-success/20 transition-colors">Save Game ' + nextGame + '</button>' +
-      '<button onclick="TOC.matches.closeGameScoreModal()" class="px-4 py-2.5 bg-dc-panel border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:bg-white/5 transition-colors">Cancel</button>' +
+      '<button data-click="TOC.matches.confirmAddGameScore" data-click-args="[' + nextGame + ']" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold rounded-lg hover:bg-dc-success/20 transition-colors">Save Game ' + nextGame + '</button>' +
+      '<button data-click="TOC.matches.closeGameScoreModal" class="px-4 py-2.5 bg-dc-panel border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:bg-white/5 transition-colors">Cancel</button>' +
       '</div></div>';
 
     var backdrop = document.createElement('div');
@@ -1576,7 +1576,7 @@
       '<input id="rs-time" type="datetime-local" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none"></div>' +
       '<div><label class="text-xs font-bold text-dc-text uppercase tracking-widest block mb-1.5">Reason</label>' +
       '<textarea id="rs-reason" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none resize-none" placeholder="Optional reason..."></textarea></div>' +
-      '<button onclick="TOC.matches.confirmReschedule(' + mid + ')" class="w-full py-3 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Request Reschedule</button></div>';
+      '<button data-click="TOC.matches.confirmReschedule" data-click-args="[' + mid + ']" class="w-full py-3 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Request Reschedule</button></div>';
     showOverlay('reschedule-overlay', html);
   }
 
@@ -1602,8 +1602,8 @@
       '<h3 class="font-display font-black text-lg text-white">Declare Forfeit</h3>' +
       '<p class="text-sm text-dc-text">Select which participant is forfeiting:</p>' +
       '<div class="grid grid-cols-2 gap-3">' +
-      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant1_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant1_name || 'Team A') + '</button>' +
-      '<button onclick="TOC.matches.confirmForfeit(' + mid + ', ' + m.participant2_id + ')" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant2_name || 'Team B') + '</button>' +
+      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + &quot;, &quot; + m.participant1_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant1_name || 'Team A') + '</button>' +
+      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + &quot;, &quot; + m.participant2_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant2_name || 'Team B') + '</button>' +
       '</div></div>';
     showOverlay('forfeit-overlay', html);
   }
@@ -1675,7 +1675,7 @@
     if (evidenceSources.length > 1) {
       evTabsHtml = '<div class="flex items-center gap-1 ml-3">';
       evidenceSources.forEach(function (ev, i) {
-        evTabsHtml += '<button onclick="TOC.matches.switchEvidence(' + i + ')" class="px-2.5 py-1 rounded text-xs font-bold transition-colors ' +
+        evTabsHtml += '<button data-click="TOC.matches.switchEvidence" data-click-args="[' + i + ']" class="px-2.5 py-1 rounded text-xs font-bold transition-colors ' +
           (i === 0 ? 'bg-theme text-dc-bg' : 'bg-dc-bg border border-dc-border text-dc-text hover:text-white') +
           '" id="ev-tab-' + i + '">' + esc(ev.label) + '</button>';
       });
@@ -1703,7 +1703,7 @@
 
     var evidenceHtml;
     if (evidenceSources.length > 0) {
-      evidenceHtml = '<img id="evidence-img" src="' + esc(evidenceSources[0].url) + '" alt="Evidence" class="max-w-none select-none" draggable="false" style="transform: scale(1) translate(0px, 0px); transition: transform 0.15s ease;" onerror="this.style.display=\'none\'; document.getElementById(\'evidence-fallback\').style.display=\'flex\';">' +
+      evidenceHtml = '<img id="evidence-img" src="' + esc(evidenceSources[0].url) + '" alt="Evidence" class="max-w-none select-none" draggable="false" style="transform: scale(1) translate(0px, 0px); transition: transform 0.15s ease;" data-fallback="hide-show-next">' +
         '<div id="evidence-fallback" class="hidden absolute inset-0 flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-sm">Failed to load</span></div>';
     } else {
       evidenceHtml = '<div class="flex flex-col items-center justify-center text-dc-text gap-2"><i data-lucide="image-off" class="w-8 h-8 opacity-30"></i><span class="text-sm">No evidence submitted</span></div>';
@@ -1715,7 +1715,7 @@
       '<div><h3 class="font-display font-black text-white text-sm">R' + m.round_number + ' Match #' + m.match_number + ' &mdash; Verification</h3>' +
       '<p class="text-xs text-dc-text">' + esc(m.participant1_name || 'TBD') + ' vs ' + esc(m.participant2_name || 'TBD') + '</p></div></div>' +
       '<div class="flex items-center gap-2"><span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
-      '<button onclick="TOC.matches.closeOverlay(\'verify-overlay\')" class="w-8 h-8 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="x" class="w-4 h-4 text-dc-text"></i></button></div></div>' +
+      '<button data-click="TOC.matches.closeOverlay" data-click-args="[&quot;verify-overlay&quot;]" class="w-8 h-8 rounded-lg bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="x" class="w-4 h-4 text-dc-text"></i></button></div></div>' +
       '<div class="mx-4 mt-4 p-3 rounded-lg border ' + b.cls + ' flex items-center gap-2"><span class="text-base">' + b.icon + '</span><div>' +
       '<span class="text-xs font-black uppercase tracking-widest">' + esc(vs.label || 'Pending') + '</span>' +
       '<span class="text-xs ml-2 opacity-80">' + esc(vs.detail || '') + '</span></div></div>' +
@@ -1724,10 +1724,10 @@
       '<div class="flex items-center justify-between p-3 border-b border-dc-border bg-dc-panel/50"><div class="flex items-center gap-2">' +
       '<i data-lucide="image" class="w-3.5 h-3.5 text-theme"></i><span class="text-xs font-bold text-white uppercase tracking-widest">Evidence Viewer</span>' + evTabsHtml + '</div>' +
       '<div class="flex items-center gap-1">' +
-      '<button onclick="TOC.matches.zoomEvidence(-1)" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-out" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
+      '<button data-click="TOC.matches.zoomEvidence" data-click-args="[-1]" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-out" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
       '<span id="verify-zoom-level" class="text-xs font-mono text-dc-text w-12 text-center">100%</span>' +
-      '<button onclick="TOC.matches.zoomEvidence(1)" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-in" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
-      '<button onclick="TOC.matches.resetZoom()" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="maximize-2" class="w-3.5 h-3.5 text-dc-text"></i></button></div></div>' +
+      '<button data-click="TOC.matches.zoomEvidence" data-click-args="[1]" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="zoom-in" class="w-3.5 h-3.5 text-dc-text"></i></button>' +
+      '<button data-click="TOC.matches.resetZoom" class="w-7 h-7 rounded bg-dc-bg border border-dc-border flex items-center justify-center hover:bg-white/5"><i data-lucide="maximize-2" class="w-3.5 h-3.5 text-dc-text"></i></button></div></div>' +
       '<div id="evidence-canvas" class="flex-1 overflow-hidden relative cursor-grab active:cursor-grabbing flex items-center justify-center bg-black/40" onmousedown="TOC.matches.startPan(event)" onmousemove="TOC.matches.doPan(event)" onmouseup="TOC.matches.endPan()" onmouseleave="TOC.matches.endPan()" onwheel="TOC.matches.wheelZoom(event)" ontouchstart="TOC.matches.startTouch(event)" ontouchmove="TOC.matches.doTouch(event)" ontouchend="TOC.matches.endPan()">' +
       evidenceHtml + '</div></div>' +
       '<div class="w-[380px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">' +
@@ -1740,11 +1740,11 @@
       '<input id="verify-p2" type="number" value="' + (sub0.score_p2 != null ? sub0.score_p2 : m.participant2_score) + '" min="0" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-base font-mono text-center font-bold focus:border-theme outline-none"></div></div></div></div>' +
       '<textarea id="verify-notes" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-sm focus:border-theme outline-none resize-none" placeholder="Optional admin note ..."></textarea>' +
       '<div class="space-y-2">' +
-      '<button onclick="TOC.matches.verifyAction(' + id + ', \'confirm\')" class="w-full py-3 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 ' +
+      '<button data-click="TOC.matches.verifyAction" data-click-args="[' + id + ',&quot;confirm&quot;]" class="w-full py-3 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 ' +
       (m.state === 'completed' ? 'opacity-40 pointer-events-none' : '') + '">\u2705 Confirm & Finalize</button>' +
-      '<button onclick="TOC.matches.verifyAction(' + id + ', \'dispute\')" class="w-full py-3 bg-dc-danger/20 border border-dc-danger/30 text-dc-danger text-xs font-black uppercase tracking-widest rounded-xl hover:bg-dc-danger/30 transition-colors flex items-center justify-center gap-2 ' +
+      '<button data-click="TOC.matches.verifyAction" data-click-args="[' + id + ',&quot;dispute&quot;]" class="w-full py-3 bg-dc-danger/20 border border-dc-danger/30 text-dc-danger text-xs font-black uppercase tracking-widest rounded-xl hover:bg-dc-danger/30 transition-colors flex items-center justify-center gap-2 ' +
       (m.state === 'disputed' ? 'opacity-40 pointer-events-none' : '') + '">\u274C Open Dispute</button>' +
-      '<button onclick="TOC.matches.verifyAction(' + id + ', \'note\')" class="w-full py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2">\u{1F4DD} Add Admin Note</button>' +
+      '<button data-click="TOC.matches.verifyAction" data-click-args="[' + id + ',&quot;note&quot;]" class="w-full py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2">\u{1F4DD} Add Admin Note</button>' +
       '</div></div></div></div>';
 
     showFullOverlay('verify-overlay', html);
@@ -1848,7 +1848,7 @@
     var modal = document.createElement('div');
     modal.id = id;
     modal.className = 'fixed inset-0 z-[110] flex items-center justify-center p-4';
-    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeOverlay(\'' + id + '\')"></div>' +
+    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.matches.closeOverlay" data-click-args="[&quot;' + id + '&quot;]"></div>' +
       '<div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-2xl w-full max-w-7xl relative z-10 overflow-hidden" style="height:90vh">' +
       '<div class="h-1 w-full bg-theme"></div>' + innerHtml + '</div>';
     document.body.appendChild(modal);
@@ -1861,7 +1861,7 @@
     var modal = document.createElement('div');
     modal.id = id;
     modal.className = 'fixed inset-0 z-[110] flex items-center justify-center';
-    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeOverlay(\'' + id + '\')"></div>' +
+    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.matches.closeOverlay" data-click-args="[&quot;' + id + '&quot;]"></div>' +
       '<div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">' +
       '<div class="h-1 w-full bg-theme"></div>' + innerHtml + '</div>';
     document.body.appendChild(modal);
@@ -1985,7 +1985,7 @@
         if (!available.length) available = _vetoMapPool;
         if (mapGrid) {
           mapGrid.innerHTML = available.map(function (mp) {
-            return '<button onclick="TOC.matches.doVetoAction(this.dataset.map)" data-map="' + _vetoEsc(mp.map_name) + '" '
+            return '<button data-click="TOC.matches.doVetoAction" data-click-pass="dataset.map" data-map="' + _vetoEsc(mp.map_name) + '" '
               + 'class="px-3 py-2 rounded-lg border border-dc-border bg-dc-surface text-xs font-bold text-dc-textBright hover:border-theme/60 hover:bg-theme/10 hover:text-white transition-colors truncate text-left">'
               + _vetoEsc(mp.map_name) + '</button>';
           }).join('');

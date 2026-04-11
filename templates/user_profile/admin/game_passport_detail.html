@@ -250,7 +250,7 @@
 
                         <!-- Flag -->
                         {% if passport.verification_status != 'FLAGGED' %}
-                        <button onclick="showFlagModal()" class="w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition flex items-center justify-center gap-2">
+                        <button data-click="showFlagModal" class="w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-flag"></i>
                             Flag as Suspicious
                         </button>
@@ -388,7 +388,7 @@
                 <button type="submit" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg transition">
                     Flag Passport
                 </button>
-                <button type="button" onclick="closeFlagModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-lg transition">
+                <button type="button" data-click="closeFlagModal" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-lg transition">
                     Cancel
                 </button>
             </div>
@@ -396,7 +396,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function showFlagModal() {
     document.getElementById('flagModal').classList.remove('hidden');
 }

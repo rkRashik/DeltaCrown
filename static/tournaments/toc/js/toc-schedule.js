@@ -118,7 +118,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Schedule request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${_esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.schedule.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.schedule.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     _reinitIcons();
@@ -405,7 +405,7 @@
       return '<button data-stage="' + t.key + '" class="' +
         (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
         ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
-        'onclick="TOC.schedule.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        'data-click="TOC.schedule.filterStage" data-click-args="[&quot;' + t.key + '&quot;]" role="tab" aria-selected="' + active + '">' +
         t.label + '</button>';
     }).join('');
   }
@@ -532,8 +532,8 @@
           <div class="flex items-center gap-2">
             ${canReschedule(m)
               ? (m.scheduled_time
-                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded-md border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
-                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded-md border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+                ? '<button data-click="TOC.schedule.openReschedule" data-click-args="[' + m.id + ',&quot;' + (m.scheduled_time || '') + '&quot;]" class="px-2 py-1 rounded-md border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button data-click="TOC.schedule.openManualSchedule" data-click-args="[' + m.id + ']" class="px-2 py-1 rounded-md border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
               : ''}
             ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded-md border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
             ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded-md border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
@@ -580,7 +580,7 @@
   function listHeader(sortKey, label, widthClass) {
     const isActive = state.sortKey === sortKey;
     const arrow = isActive ? (state.sortAsc ? '↑' : '↓') : '';
-    return '<th class="text-left text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-3 cursor-pointer hover:text-white transition-colors ' + widthClass + '" onclick="TOC.schedule.toggleSort(\'' + sortKey + '\')">' +
+    return '<th class="text-left text-[9px] font-bold text-dc-text uppercase tracking-widest px-3 py-3 cursor-pointer hover:text-white transition-colors ' + widthClass + '" data-click="TOC.schedule.toggleSort" data-click-args="[&quot;' + sortKey + '&quot;]">' +
       label + ' <span class="text-theme">' + arrow + '</span></th>';
   }
 
@@ -616,13 +616,13 @@
           <div class="flex items-center justify-center gap-1.5 flex-wrap">
             ${canReschedule(m)
               ? (m.scheduled_time
-                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
-                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+                ? '<button data-click="TOC.schedule.openReschedule" data-click-args="[' + m.id + ',&quot;' + (m.scheduled_time || '') + '&quot;]" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button data-click="TOC.schedule.openManualSchedule" data-click-args="[' + m.id + ']" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
               : ''}
             ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
             ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
             ${m.stream_url ? '<a href="' + _esc(m.stream_url) + '" target="_blank" class="p-1 text-dc-text hover:text-dc-danger transition-colors" title="Stream"><i data-lucide="tv" class="w-3.5 h-3.5"></i></a>' : ''}
-            <button onclick="TOC.navigate('matches')" class="p-1 text-dc-text hover:text-white transition-colors rounded" title="View Match Detail"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></button>
+            <button data-click="TOC.navigate" data-click-args="[&quot;matches&quot;]" class="p-1 text-dc-text hover:text-white transition-colors rounded" title="View Match Detail"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></button>
           </div>
         </td>
       </tr>`;
@@ -754,8 +754,8 @@
           <div class="flex items-center gap-1.5 flex-wrap justify-end">
             ${canReschedule(m)
               ? (m.scheduled_time
-                ? '<button onclick="TOC.schedule.openReschedule(' + m.id + ', \'' + (m.scheduled_time || '') + '\')" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
-                : '<button onclick="TOC.schedule.openManualSchedule(' + m.id + ')" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
+                ? '<button data-click="TOC.schedule.openReschedule" data-click-args="[' + m.id + ',&quot;' + (m.scheduled_time || '') + '&quot;]" class="px-2 py-1 rounded border border-theme/30 bg-theme/10 text-theme text-[9px] font-bold uppercase tracking-wider hover:bg-theme/20 transition-colors">Edit Time</button>'
+                : '<button data-click="TOC.schedule.openManualSchedule" data-click-args="[' + m.id + ']" class="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-green-300 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors">Schedule</button>')
               : ''}
             ${roomUrl ? '<a href="' + roomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-info/30 bg-dc-info/10 text-dc-info text-[9px] font-bold uppercase tracking-wider hover:bg-dc-info/20 transition-colors">Go to Lobby</a>' : ''}
             ${adminRoomUrl ? '<a href="' + adminRoomUrl + '" target="_blank" rel="noopener" class="px-2 py-1 rounded border border-dc-warning/30 bg-dc-warning/10 text-dc-warning text-[9px] font-bold uppercase tracking-wider hover:bg-dc-warning/20 transition-colors">Enter Admin Lobby</a>' : ''}
@@ -788,10 +788,10 @@
           <h3 class="text-lg font-display font-black text-white mb-2">Structure Ready — No Matches Yet</h3>
           <p class="text-sm text-dc-text mb-6">Your ${what}. ${action}</p>
           <div class="flex gap-3">
-            <button onclick="TOC.navigate('brackets')" class="px-5 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+            <button data-click="TOC.navigate" data-click-args="[&quot;brackets&quot;]" class="px-5 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
               <i data-lucide="git-branch" class="w-4 h-4"></i> Go to Brackets
             </button>
-            <button onclick="TOC.schedule.openUserGuide()" class="px-5 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-2">
+            <button data-click="TOC.schedule.openUserGuide" class="px-5 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-2">
               <i data-lucide="book-open" class="w-4 h-4"></i> Guide
             </button>
           </div>
@@ -834,10 +834,10 @@
           </div>
 
           <div class="flex gap-3">
-            <button onclick="TOC.navigate('brackets')" class="px-5 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+            <button data-click="TOC.navigate" data-click-args="[&quot;brackets&quot;]" class="px-5 py-2.5 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
               <i data-lucide="git-branch" class="w-4 h-4"></i> Go to Brackets
             </button>
-            <button onclick="TOC.schedule.openUserGuide()" class="px-5 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-2">
+            <button data-click="TOC.schedule.openUserGuide" class="px-5 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-2">
               <i data-lucide="book-open" class="w-4 h-4"></i> Guide
             </button>
           </div>
@@ -853,10 +853,10 @@
         <h3 class="text-lg font-bold text-white mb-2">No Matches Found</h3>
         <p class="text-sm text-dc-text mb-6">${total} match${total !== 1 ? 'es' : ''} exist but none match your current filters.</p>
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.clearFilters()" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
+          <button data-click="TOC.schedule.clearFilters" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
             <i data-lucide="filter-x" class="w-3.5 h-3.5"></i> Clear Filters
           </button>
-          <button onclick="TOC.schedule.openAutoSchedule()" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
+          <button data-click="TOC.schedule.openAutoSchedule" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
           </button>
         </div>
@@ -904,8 +904,8 @@
           <input id="rs-time" type="datetime-local" value="${defaultVal}" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none">
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.closeOverlay('reschedule-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-          <button onclick="TOC.schedule.confirmReschedule(${matchId})" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Reschedule</button>
+          <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;reschedule-overlay&quot;]" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button data-click="TOC.schedule.confirmReschedule" data-click-args="[${matchId}]" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Reschedule</button>
         </div>
       </div>`;
     showOverlay('reschedule-overlay', html);
@@ -974,8 +974,8 @@
           <p class="text-[9px] text-dc-text/60 mt-1">Set to 0 to skip check-in deadline</p>
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.closeOverlay('manual-schedule-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-          <button onclick="TOC.schedule.confirmManualSchedule(${matchId})" class="flex-1 py-2.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center gap-2">
+          <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;manual-schedule-overlay&quot;]" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button data-click="TOC.schedule.confirmManualSchedule" data-click-args="[${matchId}]" class="flex-1 py-2.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center gap-2">
             <i data-lucide="calendar-check" class="w-4 h-4"></i> Schedule
           </button>
         </div>
@@ -1092,8 +1092,8 @@
         </div>
 
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.closeOverlay('participant-reschedule-settings-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-          <button onclick="TOC.schedule.saveParticipantRescheduleSettings()" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Settings</button>
+          <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;participant-reschedule-settings-overlay&quot;]" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button data-click="TOC.schedule.saveParticipantRescheduleSettings" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Settings</button>
         </div>
       </div>`;
 
@@ -1191,7 +1191,7 @@
           </div>
         </div>
 
-        <button onclick="TOC.schedule.closeOverlay('user-guide-overlay')" class="w-full py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Got it</button>
+        <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;user-guide-overlay&quot;]" class="w-full py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Got it</button>
       </div>`;
 
     showOverlay('user-guide-overlay', html);
@@ -1326,7 +1326,7 @@
             </div>
           </div>
         </div>
-        <button onclick="TOC.schedule.confirmAutoSchedule()" ${total === 0 ? 'disabled' : ''} class="w-full py-3 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+        <button data-click="TOC.schedule.confirmAutoSchedule" ${total === 0 ? 'disabled' : ''} class="w-full py-3 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
           <i data-lucide="sparkles" class="w-4 h-4"></i> Generate Schedule
         </button>
       </div>`;
@@ -1486,8 +1486,8 @@
           </div>
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.closeOverlay('bulk-shift-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-          <button onclick="TOC.schedule.confirmBulkShift()" class="flex-1 py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+          <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;bulk-shift-overlay&quot;]" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button data-click="TOC.schedule.confirmBulkShift" class="flex-1 py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
             <i data-lucide="clock" class="w-4 h-4"></i> Apply Shift
           </button>
         </div>
@@ -1550,8 +1550,8 @@
           <input id="ab-label" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2.5 text-white text-xs focus:border-theme outline-none" value="Break" placeholder="e.g. Lunch Break, Halftime">
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.schedule.closeOverlay('add-break-overlay')" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-          <button onclick="TOC.schedule.confirmAddBreak()" class="flex-1 py-2.5 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-purple-500 transition-colors flex items-center justify-center gap-2">
+          <button data-click="TOC.schedule.closeOverlay" data-click-args="[&quot;add-break-overlay&quot;]" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+          <button data-click="TOC.schedule.confirmAddBreak" class="flex-1 py-2.5 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-purple-500 transition-colors flex items-center justify-center gap-2">
             <i data-lucide="coffee" class="w-4 h-4"></i> Insert Break
           </button>
         </div>
@@ -1586,7 +1586,7 @@
     modal.id = id;
     modal.className = 'fixed inset-0 z-[110] flex items-start sm:items-center justify-center p-3 sm:p-5';
     modal.innerHTML = `
-      <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.schedule.closeOverlay('${id}')"></div>
+      <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.schedule.closeOverlay" data-click-args="['${id}']"></div>
       <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-3xl max-h-[90vh] relative z-10 overflow-hidden flex flex-col">
         <div class="h-1 w-full bg-theme"></div>
         <div class="min-h-0 overflow-y-auto">${innerHtml}</div>

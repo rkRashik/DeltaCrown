@@ -297,7 +297,7 @@ class TeamCreateModern {
         
         return `
             <div class="game-card" data-game="${gameCode}">
-                <img src="${cardImagePath}" alt="${game.display_name}" class="game-card-image" onerror="this.src='${this.config.staticUrl}img/game_cards/default_game_card.jpg'">
+                <img src="${cardImagePath}" alt="${game.display_name}" class="game-card-image" data-fallback-src="${this.config.staticUrl}img/game_cards/default_game_card.jpg">
                 <div class="game-card-content">
                     <div class="game-card-name">${game.display_name}</div>
                     <div class="game-card-meta">

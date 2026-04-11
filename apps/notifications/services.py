@@ -1112,7 +1112,7 @@ class NotificationService:
         if hasattr(team, 'vnext_memberships'):
             team_members = [m.user for m in team.vnext_memberships.filter(status='ACTIVE').select_related('user') if m.user]
         else:
-            team_members = [member.user for member in team.members.all() if member.user]
+            team_members = [member.user for member in team.members.select_related('user').all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -1138,7 +1138,7 @@ class NotificationService:
         url = reverse('tournaments:detail', kwargs={'slug': tournament.slug})
         
         # Get all team members
-        team_members = [member.user for member in team.members.all() if member.user]
+        team_members = [member.user for member in team.members.select_related('user').all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -1169,8 +1169,8 @@ class NotificationService:
         url = reverse('tournaments:match_detail', kwargs={'slug': match.tournament.slug, 'match_id': match.id})
         
         # Get all members from both teams
-        team1_members = [member.user for member in match.team1.members.all() if member.user]
-        team2_members = [member.user for member in match.team2.members.all() if member.user]
+        team1_members = [member.user for member in match.team1.members.select_related('user').all() if member.user]
+        team2_members = [member.user for member in match.team2.members.select_related('user').all() if member.user]
         all_members = team1_members + team2_members
         
         return NotificationService._send_notification_multi_channel(
@@ -1202,8 +1202,8 @@ class NotificationService:
         url = reverse('tournaments:match_detail', kwargs={'slug': match.tournament.slug, 'match_id': match.id})
         
         # Get all members from both teams
-        team1_members = [member.user for member in match.team1.members.all() if member.user]
-        team2_members = [member.user for member in match.team2.members.all() if member.user]
+        team1_members = [member.user for member in match.team1.members.select_related('user').all() if member.user]
+        team2_members = [member.user for member in match.team2.members.select_related('user').all() if member.user]
         all_members = team1_members + team2_members
         
         return NotificationService._send_notification_multi_channel(
@@ -1249,7 +1249,7 @@ class NotificationService:
             url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
-        team_members = [member.user for member in team.members.all() if member.user]
+        team_members = [member.user for member in team.members.select_related('user').all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -1336,7 +1336,7 @@ class NotificationService:
         url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
-        team_members = [member.user for member in team.members.all() if member.user]
+        team_members = [member.user for member in team.members.select_related('user').all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -1362,7 +1362,7 @@ class NotificationService:
         url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
-        team_members = [member.user for member in team.members.all() if member.user]
+        team_members = [member.user for member in team.members.select_related('user').all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -1398,7 +1398,7 @@ class NotificationService:
         
         all_members = []
         for reg in registrations:
-            team_members = [member.user for member in reg.team.members.all() if member.user]
+            team_members = [member.user for member in reg.team.members.select_related('user').all() if member.user]
             all_members.extend(team_members)
         
         # Remove duplicates

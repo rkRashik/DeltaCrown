@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="{% static 'siteui/css/follow-system-v2.css' %}">
 
 <!-- Tailwind config for profile page -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -328,12 +328,12 @@
                     {% endif %}
 
                     <div class="flex flex-wrap items-center gap-6 md:gap-8 mt-4">
-                        <div onclick="openFollowersModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
+                        <div data-click="openFollowersModal" data-click-args='["{{ profile_user.username }}"]' class="text-center group cursor-pointer">
                             <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #00F0FF;">{{ user_stats.followers_count|default:0 }}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Followers</div>
                         </div>
                         
-                        <div onclick="openFollowingModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
+                        <div data-click="openFollowingModal" data-click-args='["{{ profile_user.username }}"]' class="text-center group cursor-pointer">
                             <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #A78BFA;">{{ user_stats.following_count|default:0 }}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Following</div>
                         </div>
@@ -588,7 +588,7 @@
         <section id="center-column" class="space-y-6 order-1 lg:order-2 lg:col-span-1 min-w-0 transition-all duration-500">
 
             <!-- Tab Switching JavaScript - Must be defined BEFORE buttons with onclick handlers -->
-            <script>
+            <script nonce="{{ request.csp_nonce }}">
             // Define switchTab function globally for inline onclick handlers
             window.switchTab = function(tabName) {
                 console.log('[SWITCH_TAB] Switching to:', tabName);
@@ -628,15 +628,15 @@
 
             <!-- Tab Navigation -->
             <nav class="flex overflow-x-auto pb-2 scrollbar-hide gap-2 border-b border-white/10 mb-4">
-                <button onclick="switchTab('overview')" data-tab="overview" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
-                <button onclick="switchTab('posts')" data-tab="posts" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
-                <button onclick="switchTab('career')" data-tab="career" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
-                <button onclick="switchTab('highlights')" data-tab="highlights" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
-                <button onclick="switchTab('bounty')" data-tab="bounty" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Bounty</button>
-                <button onclick="switchTab('gear')" data-tab="gear" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Gear</button>
-                <button onclick="switchTab('inventory')" data-tab="inventory" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
+                <button data-click="switchTab" data-click-args='["overview"]' data-tab="overview" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
+                <button data-click="switchTab" data-click-args='["posts"]' data-tab="posts" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
+                <button data-click="switchTab" data-click-args='["career"]' data-tab="career" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
+                <button data-click="switchTab" data-click-args='["highlights"]' data-tab="highlights" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
+                <button data-click="switchTab" data-click-args='["bounty"]' data-tab="bounty" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Bounty</button>
+                <button data-click="switchTab" data-click-args='["gear"]' data-tab="gear" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Gear</button>
+                <button data-click="switchTab" data-click-args='["inventory"]' data-tab="inventory" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
                 {% if relationship_ctx.is_owner %}
-                <button onclick="switchTab('economy')" data-tab="economy" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
+                <button data-click="switchTab" data-click-args='["economy"]' data-tab="economy" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
                 {% endif %}
             </nav>
 
@@ -823,7 +823,7 @@
 <!-- REMOVED 2026-01-22: Followers/Following modals removed due to persistent 410 Gone caching issues -->
 
 {# UP.2 FIX PASS #5 PART A: Clipboard copy JS for Discord button #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Attach clipboard copy to all [data-copy-text] buttons
     const copyButtons = document.querySelectorAll('[data-copy-text]');
@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {# UP PHASE 8: Follow/Unfollow AJAX Handler #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const followBtn = document.querySelector('[data-follow-btn]');
     if (!followBtn) return;
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {# UP-PHASE8: Followers/Following Modal Functions #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 const currentUsername = '{{ profile_user.username }}';
 const csrfToken = '{{ csrf_token }}';
 
@@ -1069,7 +1069,7 @@ window.closeBountyModal = function() {
     <div class="follow-modal-container">
         <div class="follow-modal-header">
             <h3 class="follow-modal-title">Followers</h3>
-            <button class="follow-modal-close" onclick="window.closeFollowModal()">
+            <button class="follow-modal-close" data-click="window.closeFollowModal">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
@@ -1087,7 +1087,7 @@ window.closeBountyModal = function() {
     <div class="follow-modal-container">
         <div class="follow-modal-header">
             <h3 class="follow-modal-title">Following</h3>
-            <button class="follow-modal-close" onclick="window.closeFollowModal()">
+            <button class="follow-modal-close" data-click="window.closeFollowModal">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>

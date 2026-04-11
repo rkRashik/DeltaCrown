@@ -18,6 +18,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from apps.common.models import TimestampedModel
+from apps.common.validators import validate_document_upload, validate_image_upload
 
 
 class Certificate(TimestampedModel):
@@ -82,14 +83,16 @@ class Certificate(TimestampedModel):
         upload_to='certificates/pdf/%Y/%m/',
         null=True,
         blank=True,
-        help_text="Generated PDF certificate file"
+        help_text="Generated PDF certificate file",
+        validators=[validate_document_upload],
     )
     
     file_image = models.ImageField(
         upload_to='certificates/images/%Y/%m/',
         null=True,
         blank=True,
-        help_text="Generated PNG/JPEG certificate image"
+        help_text="Generated PNG/JPEG certificate image",
+        validators=[validate_image_upload],
     )
     
     # Verification and tamper detection

@@ -20,7 +20,7 @@
             <span id="jr-count-badge" class="hidden text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
                 <span id="jr-count-num">0</span> active
             </span>
-            <button onclick="ScoutingGrounds.refresh()" class="h-9 px-4 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-white/60 hover:bg-white/10 transition flex items-center gap-2">
+            <button data-click="ScoutingGrounds.refresh" class="h-9 px-4 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-white/60 hover:bg-white/10 transition flex items-center gap-2">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 Refresh
             </button>
@@ -29,17 +29,17 @@
 
     {# ── Tab Navigation ──────────────────────────────── #}
     <div class="flex border-b border-white/10 gap-0">
-        <button onclick="ScoutingGrounds.switchTab('pipeline')" id="sg-tab-pipeline"
+        <button data-click="ScoutingGrounds.switchTab" data-click-args='["pipeline"]' id="sg-tab-pipeline"
             class="sg-tab sg-tab--active px-5 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition">
             <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             Pipeline
         </button>
-        <button onclick="ScoutingGrounds.switchTab('jobpost')" id="sg-tab-jobpost"
+        <button data-click="ScoutingGrounds.switchTab" data-click-args='["jobpost"]' id="sg-tab-jobpost"
             class="sg-tab px-5 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-white/40 hover:text-white/60 transition">
             <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Recruitment Post
         </button>
-        <button onclick="ScoutingGrounds.switchTab('profile')" id="sg-tab-profile"
+        <button data-click="ScoutingGrounds.switchTab" data-click-args='["profile"]' id="sg-tab-profile"
             class="sg-tab px-5 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-white/40 hover:text-white/60 transition">
             <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             Profile
@@ -138,7 +138,7 @@
                         <input type="checkbox" id="sg-pos-crosspost" class="w-3.5 h-3.5 rounded accent-emerald-500" />
                         <span class="text-[10px] text-white/50">Publish to Community App</span>
                     </label>
-                    <button onclick="ScoutingGrounds.addPosition()" class="h-8 px-5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition">Add Position</button>
+                    <button data-click="ScoutingGrounds.addPosition" class="h-8 px-5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition">Add Position</button>
                 </div>
             </div>
         </div>
@@ -166,7 +166,7 @@
                 <input type="text" id="sg-req-value" placeholder='Value (e.g. "Diamond+")'
                     maxlength="100"
                     class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-blue-500/40" />
-                <button onclick="ScoutingGrounds.addRequirement()" class="h-8 px-4 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 text-xs font-bold hover:bg-blue-500/25 transition">Add</button>
+                <button data-click="ScoutingGrounds.addRequirement" class="h-8 px-4 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 text-xs font-bold hover:bg-blue-500/25 transition">Add</button>
             </div>
         </div>
     </div>
@@ -262,7 +262,7 @@
     .tryout-badge--offer { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
 </style>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
     const SLUG = "{{ team.slug }}";
     const API_BASE = `/api/vnext/teams/${SLUG}`;
@@ -374,23 +374,23 @@
             let actions = '';
             if (r.status === 'PENDING') {
                 actions = `
-                    <button onclick="ScoutingGrounds.openTryout(${r.id})" class="h-8 px-3 rounded-lg bg-blue-500/15 border border-blue-500/25 text-blue-400 text-[10px] font-bold uppercase hover:bg-blue-500/25 transition" title="Schedule tryout">
+                    <button data-click="ScoutingGrounds.openTryout" data-click-args='[${r.id}]' class="h-8 px-3 rounded-lg bg-blue-500/15 border border-blue-500/25 text-blue-400 text-[10px] font-bold uppercase hover:bg-blue-500/25 transition" title="Schedule tryout">
                         <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         Tryout
                     </button>
-                    <button onclick="ScoutingGrounds.quickAction(${r.id},'accept')" class="h-8 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase hover:bg-emerald-500/25 transition">
+                    <button data-click="ScoutingGrounds.quickAction" data-click-args='[${r.id},"accept"]' class="h-8 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase hover:bg-emerald-500/25 transition">
                         <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                         Accept
                     </button>
-                    <button onclick="ScoutingGrounds.quickAction(${r.id},'decline')" class="h-8 px-3 rounded-lg bg-white/5 border border-white/10 text-white/30 text-[10px] font-bold uppercase hover:bg-red-500/10 hover:text-red-400 transition">
+                    <button data-click="ScoutingGrounds.quickAction" data-click-args='[${r.id},"decline"]' class="h-8 px-3 rounded-lg bg-white/5 border border-white/10 text-white/30 text-[10px] font-bold uppercase hover:bg-red-500/10 hover:text-red-400 transition">
                         <svg class="w-3 h-3 inline -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>`;
             } else if (NEXT_LABELS[r.status]) {
                 actions = `
-                    <button onclick="ScoutingGrounds.advanceTryout(${r.id})" class="h-8 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase hover:bg-emerald-500/25 transition">
+                    <button data-click="ScoutingGrounds.advanceTryout" data-click-args='[${r.id}]' class="h-8 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase hover:bg-emerald-500/25 transition">
                         ${esc(NEXT_LABELS[r.status])} \u2192
                     </button>
-                    <button onclick="ScoutingGrounds.quickAction(${r.id},'decline')" class="h-8 px-3 rounded-lg bg-white/5 border border-white/10 text-white/30 text-[10px] font-bold uppercase hover:bg-red-500/10 hover:text-red-400 transition" title="Decline">
+                    <button data-click="ScoutingGrounds.quickAction" data-click-args='[${r.id},"decline"]' class="h-8 px-3 rounded-lg bg-white/5 border border-white/10 text-white/30 text-[10px] font-bold uppercase hover:bg-red-500/10 hover:text-red-400 transition" title="Decline">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>`;
             }
@@ -428,7 +428,7 @@
                         <input type="text" id="jr-tryout-pos-${r.id}" placeholder="Position (optional)"
                             maxlength="60"
                             class="text-xs px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-blue-500/40"/>
-                        <button onclick="ScoutingGrounds.confirmTryout(${r.id})" class="h-8 px-4 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-bold hover:bg-blue-500/30 transition">
+                        <button data-click="ScoutingGrounds.confirmTryout" data-click-args='[${r.id}]' class="h-8 px-4 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-bold hover:bg-blue-500/30 transition">
                             Confirm
                         </button>
                     </div>
@@ -533,7 +533,7 @@
                         </div>
                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
                             ${p.cross_post_community ? '<span class="text-[9px] text-emerald-400" title="Cross-posted to Community">\ud83d\udce2</span>' : ''}
-                            <button onclick="ScoutingGrounds.deletePosition(${p.id})" class="text-white/20 hover:text-red-400 transition p-0.5" title="Remove">
+                            <button data-click="ScoutingGrounds.deletePosition" data-click-args='[${p.id}]' class="text-white/20 hover:text-red-400 transition p-0.5" title="Remove">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
@@ -569,7 +569,7 @@
                             <span class="text-[10px] font-mono text-blue-300 uppercase bg-blue-500/10 px-1.5 py-0.5 rounded">${esc(r.label)}</span>
                             <span class="text-xs text-white/70">${esc(r.value)}</span>
                         </div>
-                        <button onclick="ScoutingGrounds.deleteRequirement(${r.id})" class="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition" title="Remove">
+                        <button data-click="ScoutingGrounds.deleteRequirement" data-click-args='[${r.id}]' class="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition" title="Remove">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>

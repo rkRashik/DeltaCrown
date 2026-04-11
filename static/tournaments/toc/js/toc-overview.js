@@ -165,7 +165,7 @@
           <div>
             <p class="text-sm font-bold text-white">Connection Error</p>
             <p class="text-xs text-dc-text mt-1">${detail}</p>
-            <button class="mt-2 px-2.5 py-1.5 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.overview.load()">Retry Now</button>
+            <button class="mt-2 px-2.5 py-1.5 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.overview.load">Retry Now</button>
           </div>
         </div>`;
       _reinitIcons();
@@ -266,7 +266,7 @@
                   <p class="text-[9px] uppercase tracking-[0.2em] text-theme font-black">Next Action</p>
                   <p class="text-xs text-white mt-1 leading-relaxed">${_esc(nextAction.label)}</p>
                 </div>
-                ${tab ? `<button class="shrink-0 px-3 py-1.5 rounded-lg bg-theme-surface border border-theme/40 text-[10px] font-black uppercase tracking-widest text-theme hover:bg-theme hover:text-dc-bg transition-colors" onclick="TOC.navigate('${_attr(tab)}')">Open ${_esc(tabLabel)}</button>` : ''}
+                ${tab ? `<button class="shrink-0 px-3 py-1.5 rounded-lg bg-theme-surface border border-theme/40 text-[10px] font-black uppercase tracking-widest text-theme hover:bg-theme hover:text-dc-bg transition-colors" data-click="TOC.navigate" data-click-args="[&quot;${_attr(tab)}&quot;]">Open ${_esc(tabLabel)}</button>` : ''}
               </div>
             </div>`;
         } else {
@@ -389,12 +389,12 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <p class="text-sm font-bold text-white">${_esc(a.title)}</p>
-              <button class="shrink-0 p-1 text-dc-text hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity" onclick="TOC.overview.dismissAlert('${_attr(a.title)}', ${a.id})" title="Dismiss">
+              <button class="shrink-0 p-1 text-dc-text hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity" data-click="TOC.overview.dismissAlert" data-click-args="[&quot;${_attr(a.title)}&quot;,&quot;${a.id}&quot;]" title="Dismiss">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
             <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">${_esc(a.description)}</p>
-            ${a.link_tab ? `<button class="mt-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[9px] font-bold uppercase tracking-widest ${sev.text} hover:bg-white/10 transition-colors" onclick="TOC.navigate('${a.link_tab}')">${_esc(a.link_label || 'Go')} →</button>` : ''}
+            ${a.link_tab ? `<button class="mt-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[9px] font-bold uppercase tracking-widest ${sev.text} hover:bg-white/10 transition-colors" data-click="TOC.navigate" data-click-args="['${a.link_tab}']">${_esc(a.link_label || 'Go')} →</button>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -473,7 +473,7 @@
       var sev = SEVERITY[a.severity] || SEVERITY.info;
       return `
         <button class="w-full flex items-center gap-3 p-3 rounded-lg ${sev.bg} border ${sev.border} hover:brightness-110 transition-all text-left group"
-                onclick="TOC.navigate('${a.link_tab}')">
+                data-click="TOC.navigate" data-click-args="['${a.link_tab}']">
           <div class="w-7 h-7 rounded-full ${sev.bg} border ${sev.border} flex items-center justify-center shrink-0">
             <i data-lucide="${sev.icon}" class="w-3.5 h-3.5 ${sev.text}"></i>
           </div>
@@ -820,7 +820,7 @@
         relative = _relativeTime(d);
       }
       return `
-        <div class="next-match-command-row ${isLive ? 'live' : ''} flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.05] transition-colors group cursor-pointer" onclick="TOC.navigate('schedule')">
+        <div class="next-match-command-row ${isLive ? 'live' : ''} flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.05] transition-colors group cursor-pointer" data-click="TOC.navigate" data-click-args="[&quot;schedule&quot;]">
           <div class="w-7 h-7 rounded-lg bg-dc-info/10 border border-dc-info/20 flex items-center justify-center shrink-0">
             <span class="text-[9px] font-mono font-black text-dc-info">M${m.match_number || '?'}</span>
           </div>
@@ -836,7 +836,7 @@
             </div>
           </div>
           ${isLive
-            ? '<a href="/tournaments/' + _attr(CFG.tournamentSlug || '') + '/matches/' + _attr(m.id || '') + '/room/?admin=1" onclick="event.stopPropagation()" class="text-[9px] font-black uppercase tracking-widest text-emerald-200 bg-emerald-500/15 border border-emerald-400/35 px-2.5 py-1 rounded animate-pulse shrink-0">LIVE - Enter Lobby</a>'
+            ? '<a href="/tournaments/' + _attr(CFG.tournamentSlug || '') + '/matches/' + _attr(m.id || '') + '/room/?admin=1" data-click="event.stopPropagation" class="text-[9px] font-black uppercase tracking-widest text-emerald-200 bg-emerald-500/15 border border-emerald-400/35 px-2.5 py-1 rounded animate-pulse shrink-0">LIVE - Enter Lobby</a>'
             : (relative ? '<span class="text-[9px] font-mono text-dc-info bg-dc-info/10 px-2 py-0.5 rounded border border-dc-info/20 shrink-0">' + relative + '</span>' : '')}
         </div>`;
     }).join('');
@@ -903,7 +903,7 @@
         }).join('')}
       </div>
       <div class="mt-2 text-center">
-        <button onclick="TOC.navigate('brackets')" class="text-[9px] text-dc-text hover:text-theme transition-colors font-mono uppercase tracking-widest">
+        <button data-click="TOC.navigate" data-click-args="[&quot;brackets&quot;]" class="text-[9px] text-dc-text hover:text-theme transition-colors font-mono uppercase tracking-widest">
           View Groups → 
         </button>
       </div>`;
@@ -1054,11 +1054,11 @@
       if (data.is_frozen) {
         actionBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Resume';
         actionBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-xl bg-dc-success/20 text-dc-success border border-dc-success/30 text-sm font-bold hover:bg-dc-success/30 transition-colors';
-        actionBtn.setAttribute('onclick', "TOC.overview.executeUnfreeze()");
+        actionBtn.setAttribute('data-click', 'TOC.overview.executeUnfreeze');
       } else {
         actionBtn.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4"></i> Freeze';
         actionBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-xl bg-dc-danger/20 text-dc-danger border border-dc-danger/30 text-sm font-bold hover:bg-dc-danger/30 transition-colors';
-        actionBtn.setAttribute('onclick', "document.getElementById('modal-freeze').classList.remove('hidden')");
+        actionBtn.setAttribute('data-click-show', 'modal-freeze');
       }
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }

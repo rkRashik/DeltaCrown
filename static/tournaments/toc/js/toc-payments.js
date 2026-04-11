@@ -33,6 +33,20 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
+  /** Disable a button, add a spinner, and restore on done. Returns a restore function. */
+  function withSpinner(btn) {
+    if (!btn) return function() {};
+    var orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'pointer-events-none');
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>' + orig;
+    return function() {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'pointer-events-none');
+      btn.innerHTML = orig;
+    };
+  }
+
   const statusColors = {
     pending:   'bg-dc-warning/10 text-dc-warning border-dc-warning/20',
     submitted: 'bg-dc-info/10 text-dc-info border-dc-info/20',
@@ -73,12 +87,12 @@
     if (!url) return `<span class="text-[10px] text-dc-text/40">—</span>`;
     const isPdf = url.toLowerCase().endsWith('.pdf');
     if (isPdf) {
-      return `<button onclick="TOC.payments.viewProof('${url}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-dc-info/10 border border-dc-info/20 text-dc-info hover:bg-dc-info/20 transition-colors" title="View PDF proof">
+      return `<button data-click="TOC.payments.viewProof" data-click-args="['${url}']" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-dc-info/10 border border-dc-info/20 text-dc-info hover:bg-dc-info/20 transition-colors" title="View PDF proof">
         <i data-lucide="file-text" class="w-3 h-3"></i><span class="text-[9px] font-bold">PDF</span>
       </button>`;
     }
-    return `<button onclick="TOC.payments.viewProof('${url}')" class="group/proof relative" title="Click to enlarge">
-      <img src="${url}" alt="Proof" class="w-10 h-10 object-cover rounded border border-dc-border group-hover/proof:border-theme transition-colors" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'text-[10px] text-dc-text/40\\'>err</span>'">
+    return `<button data-click="TOC.payments.viewProof" data-click-args="['${url}']" class="group/proof relative" title="Click to enlarge">
+      <img src="${url}" alt="Proof" class="w-10 h-10 object-cover rounded border border-dc-border group-hover/proof:border-theme transition-colors" loading="lazy" data-fallback-text="err">
     </button>`;
   }
 
@@ -221,7 +235,7 @@
       return `
         <tr class="border-b border-dc-border/50 hover:bg-white/[0.015] transition-all group" data-id="${p.id}" data-status="${p.status}">
           <td class="px-3 py-3">
-            ${isCheckable ? `<input type="checkbox" class="toc-checkbox pay-row-cb" data-id="${p.id}" ${checked} onclick="TOC.payments.toggleRow('${p.id}', this)">` : ''}
+            ${isCheckable ? `<input type="checkbox" class="toc-checkbox pay-row-cb" data-id="${p.id}" ${checked} data-click="TOC.payments.toggleRow" data-click-args="['${p.id}', this]">` : ''}
           </td>
           <td class="px-3 py-3">
             <p class="text-dc-textBright font-semibold text-xs leading-tight">${esc(p.participant_name || 'Unknown')}</p>
@@ -240,11 +254,11 @@
           <td class="px-3 py-3 text-right">
             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               ${p.status === 'submitted' || p.status === 'pending' ? `
-                <button onclick="TOC.payments.verify('${p.id}')" title="Verify" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="check" class="w-3 h-3"></i></button>
-                <button onclick="TOC.payments.reject('${p.id}')" title="Reject" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
+                <button data-click="TOC.payments.verify" data-click-args="['${p.id}']" title="Verify" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="check" class="w-3 h-3"></i></button>
+                <button data-click="TOC.payments.reject" data-click-args="['${p.id}']" title="Reject" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="x" class="w-3 h-3"></i></button>
               ` : ''}
               ${p.status === 'verified' ? `
-                <button onclick="TOC.payments.openRefund('${p.id}', '${esc((p.participant_name||'').replace(/'/g,'&#39;'))}', '${p.amount}')" title="Refund" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
+                <button data-click="TOC.payments.openRefund" data-click-args="[&quot;${p.id}&quot;,&quot;${esc((p.participant_name||'').replace(/"/g,'&quot;'))}&quot;,&quot;${p.amount}&quot;]" title="Refund" data-cap-require="approve_payments" class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center hover:bg-purple-500/20 transition-colors"><i data-lucide="undo-2" class="w-3 h-3"></i></button>
               ` : ''}
             </div>
           </td>
@@ -270,14 +284,14 @@
 
     let html = '';
     if (currentPage > 1) {
-      html += `<button onclick="TOC.payments.goPage(${currentPage - 1})" class="w-7 h-7 rounded bg-dc-panel border border-dc-border text-dc-text hover:text-white flex items-center justify-center"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>`;
+      html += `<button data-click="TOC.payments.goPage" data-click-args="[${currentPage - 1}]" class="w-7 h-7 rounded bg-dc-panel border border-dc-border text-dc-text hover:text-white flex items-center justify-center"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>`;
     }
     for (let i = 1; i <= pages && i <= 5; i++) {
       const active = i === currentPage ? 'bg-theme/10 text-theme border-theme/20' : 'bg-dc-panel text-dc-text border-dc-border hover:text-white';
-      html += `<button onclick="TOC.payments.goPage(${i})" class="w-7 h-7 rounded border text-[10px] font-bold flex items-center justify-center ${active}">${i}</button>`;
+      html += `<button data-click="TOC.payments.goPage" data-click-args="[${i}]" class="w-7 h-7 rounded border text-[10px] font-bold flex items-center justify-center ${active}">${i}</button>`;
     }
     if (currentPage < pages) {
-      html += `<button onclick="TOC.payments.goPage(${currentPage + 1})" class="w-7 h-7 rounded bg-dc-panel border border-dc-border text-dc-text hover:text-white flex items-center justify-center"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>`;
+      html += `<button data-click="TOC.payments.goPage" data-click-args="[${currentPage + 1}]" class="w-7 h-7 rounded bg-dc-panel border border-dc-border text-dc-text hover:text-white flex items-center justify-center"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>`;
     }
     controls.innerHTML = html;
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -396,6 +410,8 @@
   async function bulkVerify() {
     if (!selectedIds.size) return;
     const ids = Array.from(selectedIds);
+    var btn = $('[onclick*="bulkVerify"]');
+    var restore = withSpinner(btn);
     try {
       await API.post('payments/bulk-verify/', { ids: ids });
       toast(`${ids.length} payments verified`, 'success');
@@ -414,6 +430,8 @@
       refreshRevenue();
     } catch (e) {
       toast(e.message || 'Bulk verify failed', 'error');
+    } finally {
+      restore();
     }
   }
 
@@ -573,8 +591,8 @@
           </div>
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             ${!b.is_assigned ? `
-              <button onclick="TOC.payments.openAssignBounty('${b.id}')" title="Assign winner" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="user-check" class="w-3 h-3"></i></button>
-              <button onclick="TOC.payments.deleteBounty('${b.id}')" title="Delete" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+              <button data-click="TOC.payments.openAssignBounty" data-click-args="['${b.id}']" title="Assign winner" class="w-7 h-7 rounded-lg bg-dc-success/10 text-dc-success border border-dc-success/20 flex items-center justify-center hover:bg-dc-success/20 transition-colors"><i data-lucide="user-check" class="w-3 h-3"></i></button>
+              <button data-click="TOC.payments.deleteBounty" data-click-args="['${b.id}']" title="Delete" class="w-7 h-7 rounded-lg bg-dc-danger/10 text-dc-danger border border-dc-danger/20 flex items-center justify-center hover:bg-dc-danger/20 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
             ` : `
               <span class="text-[9px] font-bold text-dc-success uppercase">Assigned</span>
             `}
@@ -634,7 +652,7 @@
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Sponsor Name <span class="text-dc-text/40">(if applicable)</span></label>
           <input id="bounty-sponsor" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none" placeholder="Sponsor name">
         </div>
-        <button onclick="TOC.payments.confirmCreateBounty()" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity mt-2">Create Bounty</button>
+        <button data-click="TOC.payments.confirmCreateBounty" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity mt-2">Create Bounty</button>
       </div>`;
 
     if (window.TOC?.openDrawer) {
@@ -645,7 +663,7 @@
       modal.id = 'bounty-create-overlay';
       modal.className = 'fixed inset-0 z-[110] flex items-center justify-center';
       modal.innerHTML = `
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('bounty-create-overlay').remove()"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="__removeById" data-click-args="[&quot;bounty-create-overlay&quot;]"></div>
         <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
           <div class="h-1 w-full bg-theme"></div>
           ${html}
@@ -690,8 +708,8 @@
         <input id="assign-reg-reason" type="text" class="${FIELD}" placeholder="e.g. Tournament MVP"></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.payments._submitAssignBounty('${bountyId}')" class="flex-1 bg-theme hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Assign Bounty</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.payments._submitAssignBounty" data-click-args="['${bountyId}']" class="flex-1 bg-theme hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Assign Bounty</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Assign Bounty', body, footer);
     setTimeout(() => document.getElementById('assign-reg-id')?.focus(), 50);
@@ -797,7 +815,7 @@
             </div>
             <div class="divide-y divide-dc-border/30 max-h-[200px] overflow-y-auto">
               ${matches.map(p => `
-                <button onclick="TOC.payments._qvSelect(${p.id})" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left">
+                <button data-click="TOC.payments._qvSelect" data-click-args="[${p.id}]" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left">
                   <div class="flex-1 min-w-0">
                     <p class="text-xs font-bold text-dc-textBright truncate">${p.participant_name || 'Unknown'}</p>
                     <p class="text-[10px] text-dc-text font-mono">${p.transaction_id || '—'} · ${(p.method || '—').replace('_', ' ')}</p>
@@ -849,10 +867,10 @@
              </div>`
           : `<div class="relative group/qvproof">
                <img src="${p.proof_url}" alt="Payment proof" class="w-full max-h-[280px] object-contain rounded-xl border border-dc-border bg-dc-bg cursor-pointer"
-                    onclick="TOC.payments.viewProof('${p.proof_url}')" loading="lazy"
-                    onerror="this.parentElement.innerHTML='<p class=\\'text-[10px] text-dc-text/40 text-center py-4\\'>Failed to load proof image</p>'">
+                    data-click="TOC.payments.viewProof" data-click-args="['${p.proof_url}']" loading="lazy"
+                    data-fallback-text="Failed to load proof image">
                <div class="absolute top-2 right-2 opacity-0 group-hover/qvproof:opacity-100 transition-opacity">
-                 <button onclick="TOC.payments.viewProof('${p.proof_url}')" class="w-7 h-7 rounded-lg bg-black/60 backdrop-blur text-white flex items-center justify-center hover:bg-black/80 transition-colors" title="Enlarge">
+                 <button data-click="TOC.payments.viewProof" data-click-args="['${p.proof_url}']" class="w-7 h-7 rounded-lg bg-black/60 backdrop-blur text-white flex items-center justify-center hover:bg-black/80 transition-colors" title="Enlarge">
                    <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
                  </button>
                </div>
@@ -906,10 +924,10 @@
             </div>
 
             <div class="flex items-center gap-2 pt-2">
-              <button onclick="TOC.payments.qvVerify()" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center justify-center gap-2">
+              <button data-click="TOC.payments.qvVerify" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="check-circle" class="w-4 h-4"></i> Verify
               </button>
-              <button onclick="TOC.payments.qvReject()" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center justify-center gap-2">
+              <button data-click="TOC.payments.qvReject" data-cap-require="approve_payments" class="flex-1 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-black uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="x-circle" class="w-4 h-4"></i> Reject
               </button>
             </div>

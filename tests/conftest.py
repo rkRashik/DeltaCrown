@@ -38,6 +38,12 @@ def enforce_test_database():
     Prevents tests from running on Neon or any remote database.
     Requires local PostgreSQL (SQLite not supported).
     """
+    # Skip enforcement when using smoke settings (SQLite in-memory)
+    settings_module = os.getenv('DJANGO_SETTINGS_MODULE', '')
+    if 'smoke' in settings_module or 'sqlite' in settings_module:
+        yield
+        return
+
     db_url = os.getenv('DATABASE_URL_TEST')
     
     # Default to docker test DB if not set
@@ -79,6 +85,11 @@ def setup_test_schema(django_db_setup, django_db_blocker):
     Schema isolation allows tests to run in production DB without conflicts.
     Skips for SQLite (doesn't support schemas).
     """
+    settings_module = os.getenv('DJANGO_SETTINGS_MODULE', '')
+    if 'smoke' in settings_module or 'sqlite' in settings_module:
+        yield
+        return
+
     if connection.vendor != 'postgresql':
         # SQLite doesn't support schemas
         yield
@@ -121,13 +132,21 @@ def setup_test_schema(django_db_setup, django_db_blocker):
 
 
 @pytest.fixture(scope='function', autouse=True)
-def cleanup_test_data(db):
+def cleanup_test_data(request):
     """
     Clean up test data between test functions to avoid unique constraint violations.
     Deletes in correct order to respect PROTECT foreign keys.
+    Only runs for tests that use the database (have django_db mark or db fixture).
     Wrapped in try/except so teardown errors don't mask real test results.
     """
     yield  # Run test first
+
+    # Skip cleanup for tests without database access
+    marker = request.node.get_closest_marker('django_db')
+    has_db = 'db' in request.fixturenames or 'transactional_db' in request.fixturenames
+    if not marker and not has_db:
+        return
+
     try:
         from apps.tournaments.models.registration import Registration, Payment
         from apps.tournaments.models.tournament import Tournament

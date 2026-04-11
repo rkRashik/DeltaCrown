@@ -175,7 +175,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Lobby telemetry unavailable</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.lobby.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.lobby.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -282,10 +282,10 @@
       }
 
       const createBtn = !lobby.code
-        ? `<button onclick="TOC.lobby.createLobby(${m.match_id})" class="px-2.5 py-1.5 rounded-md bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Create Lobby</button>`
+        ? `<button data-click="TOC.lobby.createLobby" data-click-args="[${m.match_id}]" class="px-2.5 py-1.5 rounded-md bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Create Lobby</button>`
         : '';
       const closeBtn = lobby.open
-        ? `<button onclick="TOC.lobby.closeLobby(${m.match_id})" class="px-2.5 py-1.5 rounded-md bg-dc-danger/15 border border-dc-danger/35 text-dc-danger text-[10px] font-black uppercase tracking-wider hover:bg-dc-danger/25 transition-colors">Close</button>`
+        ? `<button data-click="TOC.lobby.closeLobby" data-click-args="[${m.match_id}]" class="px-2.5 py-1.5 rounded-md bg-dc-danger/15 border border-dc-danger/35 text-dc-danger text-[10px] font-black uppercase tracking-wider hover:bg-dc-danger/25 transition-colors">Close</button>`
         : '';
 
       html += `
@@ -338,7 +338,7 @@
                 <span class="text-[10px] text-dc-text">Capacity ${cap || 0}</span>
               </div>
             </div>
-            <button onclick="TOC.lobby.deleteServer('${esc(server.id)}')" class="text-[10px] text-dc-danger hover:text-rose-300 font-bold uppercase tracking-wider transition-colors">Remove</button>
+            <button data-click="TOC.lobby.deleteServer" data-click-args="[&quot;${esc(server.id)}&quot;]" class="text-[10px] text-dc-danger hover:text-rose-300 font-bold uppercase tracking-wider transition-colors">Remove</button>
           </div>
         </div>`;
     });
@@ -377,13 +377,13 @@
       const lobbyPillText = lobby.code ? (lobby.open ? 'Lobby Open' : 'Lobby Closed') : 'No Lobby';
 
       const createBtn = !lobby.code
-        ? `<button onclick="TOC.lobby.createLobby(${m.match_id})" class="px-3 py-1.5 rounded-md bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Create</button>`
+        ? `<button data-click="TOC.lobby.createLobby" data-click-args="[${m.match_id}]" class="px-3 py-1.5 rounded-md bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Create</button>`
         : '';
       const closeBtn = lobby.open
-        ? `<button onclick="TOC.lobby.closeLobby(${m.match_id})" class="px-3 py-1.5 rounded-md border border-dc-danger/35 bg-dc-danger/15 text-dc-danger text-[10px] font-black uppercase tracking-wider hover:bg-dc-danger/25 transition-colors">Close</button>`
+        ? `<button data-click="TOC.lobby.closeLobby" data-click-args="[${m.match_id}]" class="px-3 py-1.5 rounded-md border border-dc-danger/35 bg-dc-danger/15 text-dc-danger text-[10px] font-black uppercase tracking-wider hover:bg-dc-danger/25 transition-colors">Close</button>`
         : '';
       const copyBtn = lobby.code
-        ? `<button onclick="TOC.lobby.copyLobbyCode('${esc(lobby.code)}')" class="px-3 py-1.5 rounded-md border border-dc-borderLight bg-dc-panel/60 text-dc-textBright text-[10px] font-black uppercase tracking-wider hover:border-theme/45 transition-colors">Copy Code</button>`
+        ? `<button data-click="TOC.lobby.copyLobbyCode" data-click-args="[&quot;${esc(lobby.code)}&quot;]" class="px-3 py-1.5 rounded-md border border-dc-borderLight bg-dc-panel/60 text-dc-textBright text-[10px] font-black uppercase tracking-wider hover:border-theme/45 transition-colors">Copy Code</button>`
         : '';
 
       html += `
@@ -405,7 +405,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
-              <button onclick="TOC.lobby.openMatchOps(${m.match_id})" class="px-3 py-1.5 rounded-md border border-theme/40 bg-theme/12 text-theme text-[10px] font-black uppercase tracking-wider hover:bg-theme/20 transition-colors">Score Ops</button>
+              <button data-click="TOC.lobby.openMatchOps" data-click-args="[${m.match_id}]" class="px-3 py-1.5 rounded-md border border-theme/40 bg-theme/12 text-theme text-[10px] font-black uppercase tracking-wider hover:bg-theme/20 transition-colors">Score Ops</button>
               ${createBtn}
               ${copyBtn}
               ${closeBtn}
@@ -572,8 +572,8 @@
     </div>`;
 
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.lobby._submitAddServer()" class="flex-1 bg-theme hover:opacity-90 text-black text-sm font-bold py-2 rounded-lg transition">Add Server</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.lobby._submitAddServer" class="flex-1 bg-theme hover:opacity-90 text-black text-sm font-bold py-2 rounded-lg transition">Add Server</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
 
     TOC.drawer.open('Add Server Node', body, footer);

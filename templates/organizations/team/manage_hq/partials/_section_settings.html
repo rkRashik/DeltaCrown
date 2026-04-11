@@ -91,7 +91,7 @@ Settings auto-save via AJAX.
         <div id="leave-initial">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] text-white/25">This action cannot be undone</span>
-                <button onclick="document.getElementById('leave-initial').classList.add('hidden');document.getElementById('leave-confirm').classList.remove('hidden')"
+                <button data-click-hide="leave-initial" data-click-also-show="leave-confirm"
                     class="px-5 py-2.5 text-sm rounded-xl border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition font-medium">
                     <i data-lucide="log-out" class="w-3.5 h-3.5 inline mr-1.5"></i>I want to leave
                 </button>
@@ -111,11 +111,11 @@ Settings auto-save via AJAX.
                     placeholder="{{ team.name }}">
                 <p id="leave-confirm-error" class="text-[10px] text-red-400 mb-3 hidden"></p>
                 <div class="flex items-center gap-3 mt-3">
-                    <button onclick="document.getElementById('leave-confirm').classList.add('hidden');document.getElementById('leave-initial').classList.remove('hidden');document.getElementById('leave-confirm-input').value=''"
+                    <button data-click-hide="leave-confirm" data-click-also-show="leave-initial"
                         class="flex-1 px-4 py-2.5 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition font-medium">
                         Cancel
                     </button>
-                    <button id="leave-submit-btn" onclick="ManageHQ.leaveTeam()"
+                    <button id="leave-submit-btn" data-click="ManageHQ.leaveTeam"
                         class="flex-1 px-4 py-2.5 text-sm rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-lg disabled:opacity-40 disabled:cursor-not-allowed" disabled>
                         <i data-lucide="log-out" class="w-3.5 h-3.5 inline mr-1.5"></i>Leave Team
                     </button>
@@ -123,7 +123,7 @@ Settings auto-save via AJAX.
             </div>
         </div>
     </div>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function() {
         const input = document.getElementById('leave-confirm-input');
         const btn = document.getElementById('leave-submit-btn');
@@ -152,7 +152,7 @@ Settings auto-save via AJAX.
                 <input type="radio" name="visibility" value="{{ vis_val }}"
                     {% if team.visibility == vis_val %}checked{% endif %}
                     class="peer sr-only"
-                    onchange="ManageHQ.toggleSetting('visibility', '{{ vis_val }}')">
+                    data-change="ManageHQ.toggleSetting" data-change-args='["visibility", "{{ vis_val }}"]'>
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center transition
                             peer-checked:border-blue-500/50 peer-checked:bg-blue-500/10 hover:bg-white/8">
                     <div class="text-xl mb-1">
@@ -272,7 +272,7 @@ Settings auto-save via AJAX.
             {# Save Button #}
             <div class="flex items-center justify-between pt-2">
                 <span id="identity-save-status" class="text-[10px] text-white/30"></span>
-                <button onclick="ManageHQ.saveIdentity()" id="identity-save-btn"
+                <button data-click="ManageHQ.saveIdentity" id="identity-save-btn"
                     class="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold uppercase tracking-widest transition shadow-[0_0_20px_rgba(14,165,233,0.15)]">
                     <i data-lucide="save" class="w-3.5 h-3.5 inline -mt-0.5 mr-1"></i>
                     Save Changes
@@ -282,7 +282,7 @@ Settings auto-save via AJAX.
     </div>
 
     {# ── Play Identity Dropdown Config (game-based) ── #}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function() {
         // Game-specific play identity options for all 11 DeltaCrown games
         const PLAY_IDENTITY = {
@@ -412,7 +412,7 @@ Settings auto-save via AJAX.
             <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
                 <input id="hide-ownership-toggle" type="checkbox"
                     {% if user_membership and user_membership.hide_ownership %}checked{% endif %}
-                    onchange="ManageHQ.toggleOwnerPrivacy(this.checked)"
+                    data-change="ManageHQ.toggleOwnerPrivacy"
                     class="sr-only peer">
                 <div class="w-11 h-6 bg-white/15 peer-focus:outline-none rounded-full peer
                     peer-checked:after:translate-x-full peer-checked:after:border-white
@@ -440,12 +440,12 @@ Settings auto-save via AJAX.
                     class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm text-white/60 focus:outline-none cursor-text">
             </div>
             {% if team.invite_code %}
-            <button onclick="ManageHQ.copyInviteLink()"
+            <button data-click="ManageHQ.copyInviteLink"
                 class="shrink-0 px-3 py-2.5 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/25 transition text-xs font-medium">
                 <i data-lucide="copy" class="w-3.5 h-3.5 inline mr-1"></i>Copy
             </button>
             {% endif %}
-            <button onclick="ManageHQ.generateInviteLink({% if team.invite_code %}true{% else %}false{% endif %})"
+            <button data-click="ManageHQ.generateInviteLink" data-click-args='["{% if team.invite_code %}true{% else %}false{% endif %}"]'
                 class="shrink-0 px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 hover:bg-white/10 transition text-xs font-medium">
                 {% if team.invite_code %}<i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline mr-1"></i>Regenerate{% else %}<i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1"></i>Generate{% endif %}
             </button>
@@ -609,7 +609,7 @@ Settings auto-save via AJAX.
                     <p class="text-sm font-medium">Transfer Ownership</p>
                     <p class="text-xs text-white/40">Make another member the team owner</p>
                 </div>
-                <button onclick="ManageHQ.openTransferModal()"
+                <button data-click="ManageHQ.openTransferModal"
                    class="px-3 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/15 transition font-medium">
                     Transfer
                 </button>
@@ -621,7 +621,7 @@ Settings auto-save via AJAX.
                     <p class="text-sm font-medium">Disband Team</p>
                     <p class="text-xs text-white/40">Permanently disband this team and deactivate all members</p>
                 </div>
-                <button onclick="ManageHQ.openDisbandModal()"
+                <button data-click="ManageHQ.openDisbandModal"
                    class="px-3 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/15 transition font-medium">
                     Disband
                 </button>
@@ -634,7 +634,7 @@ Settings auto-save via AJAX.
                     <p class="text-sm font-medium">Release from Organization</p>
                     <p class="text-xs text-white/40">Make this team independent — remove from {{ team.organization.name }}</p>
                 </div>
-                <button onclick="alert('Release from organization feature coming soon.')"
+                <button data-click="alert" data-click-args='["Release from organization feature coming soon."]'
                    class="px-3 py-1.5 text-xs rounded-lg border border-amber-500/40 text-amber-400 hover:bg-amber-500/15 transition font-medium">
                     Release
                 </button>
@@ -648,8 +648,8 @@ Settings auto-save via AJAX.
 
 {# Transfer Ownership Modal #}
 {% if is_owner %}
-<div id="modal-transfer" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4" onclick="if(event.target===this)ManageHQ.closeModal('modal-transfer')">
-    <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
+<div id="modal-transfer" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4"data-click-self="ManageHQ.closeModal" data-click-args='["modal-transfer"]'>
+    <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" data-stop-propagation>
         <h3 class="text-lg font-bold text-red-400 flex items-center gap-2 mb-4">
             <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
             Transfer Ownership
@@ -658,7 +658,7 @@ Settings auto-save via AJAX.
             This will make the selected member the new owner. You will be demoted to Manager. This action cannot be easily undone.
         </p>
 
-        <form id="transfer-form" onsubmit="event.preventDefault();ManageHQ.transferOwnership()">
+        <form id="transfer-form" data-submit-action="ManageHQ.transferOwnership">
             <label class="block text-xs text-white/60 mb-1 font-medium">New Owner</label>
             <select id="transfer-member-select" required
                 class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white focus:border-white/30 focus:outline-none mb-3">
@@ -679,7 +679,7 @@ Settings auto-save via AJAX.
             <p id="transfer-error" class="hidden text-xs text-red-400 mb-3"></p>
 
             <div class="flex justify-end gap-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-transfer')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-transfer"]'
                     class="px-4 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition">
                     Cancel
                 </button>
@@ -693,8 +693,8 @@ Settings auto-save via AJAX.
 </div>
 
 {# Disband Team Modal #}
-<div id="modal-disband" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4" onclick="if(event.target===this)ManageHQ.closeModal('modal-disband')">
-    <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
+<div id="modal-disband" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4"data-click-self="ManageHQ.closeModal" data-click-args='["modal-disband"]'>
+    <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" data-stop-propagation>
         <h3 class="text-lg font-bold text-red-400 flex items-center gap-2 mb-4">
             <i data-lucide="trash-2" class="w-5 h-5"></i>
             Disband Team
@@ -704,7 +704,7 @@ Settings auto-save via AJAX.
         </p>
         <p class="text-xs text-red-400/80 mb-4">This action is irreversible.</p>
 
-        <form id="disband-form" onsubmit="event.preventDefault();ManageHQ.disbandTeam()">
+        <form id="disband-form" data-submit-action="ManageHQ.disbandTeam">
             <label class="block text-xs text-white/60 mb-1 font-medium">
                 Type <strong class="text-white">"{{ team.name }}"</strong> to confirm
             </label>
@@ -715,7 +715,7 @@ Settings auto-save via AJAX.
             <p id="disband-error" class="hidden text-xs text-red-400 mb-3"></p>
 
             <div class="flex justify-end gap-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-disband')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-disband"]'
                     class="px-4 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition">
                     Cancel
                 </button>

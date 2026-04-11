@@ -960,10 +960,10 @@
                             <i class="fas fa-gamepad me-1"></i>Games
                         </a>
                         <ul class="dropdown-menu shadow border-0">
-                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/efootball.svg' %}" width="20" class="me-2">eFootball</a></li>
-                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/valorant.svg' %}" width="20" class="me-2">Valorant</a></li>
-                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/cs2.svg' %}" width="20" class="me-2">Counter-Strike 2</a></li>
-                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/codm.svg' %}" width="20" class="me-2">Call of Duty Mobile</a></li>
+                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/efootball.svg' %}" width="20" class="me-2" alt="">eFootball</a></li>
+                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/valorant.svg' %}" width="20" class="me-2" alt="">Valorant</a></li>
+                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/cs2.svg' %}" width="20" class="me-2" alt="">Counter-Strike 2</a></li>
+                            <li><a class="dropdown-item" href="#"><img src="{% static 'logos/codm.svg' %}" width="20" class="me-2" alt="">Call of Duty Mobile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-gem me-2 text-warning"></i>Limited Edition</a></li>
                         </ul>
@@ -981,7 +981,7 @@
                 </ul>
                 
                 <!-- Search Form -->
-                <form class="d-flex me-3 flex-grow-1" style="max-width: 400px;" id="search-form" onsubmit="return performSearch(event)">
+                <form class="d-flex me-3 flex-grow-1" style="max-width: 400px;" id="search-form" data-submit-action="performSearch">
                     <div class="input-group">
                         <input class="form-control border-end-0" type="search" placeholder="Search games, items..." id="search-input" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">
                         <button class="btn btn-outline-light border-start-0" type="submit" style="border: 1px solid rgba(255,255,255,0.3);">
@@ -1128,7 +1128,7 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     
     <!-- Custom JavaScript -->
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // Initialize AOS
         AOS.init({
             duration: 800,

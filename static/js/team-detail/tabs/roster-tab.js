@@ -101,7 +101,7 @@ class RosterTab {
           <i class="fa-solid fa-exclamation-triangle"></i>
           <h3>Failed to Load Roster</h3>
           <p>${error.message}</p>
-          <button class="btn btn-primary" onclick="window.location.reload()">
+          <button class="btn btn-primary" data-click="window.location.reload">
             <i class="fa-solid fa-refresh"></i>
             Retry
           </button>

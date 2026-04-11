@@ -496,7 +496,7 @@
 {% endblock %}
 
 {% block tournament_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function bracketApp() {
     var matchData = {};
     {% for m in all_matches %}

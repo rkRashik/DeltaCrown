@@ -200,7 +200,7 @@
 {% block extra_js %}
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="{% static 'ecommerce/js/store.js' %}"></script>
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // Initialize AOS
     AOS.init({
         duration: 800,

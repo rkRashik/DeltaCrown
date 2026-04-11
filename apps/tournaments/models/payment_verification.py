@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.common.models import SoftDeleteModel
 from apps.common.managers import SoftDeleteManager
+from apps.common.validators import validate_payment_proof_upload
 
 
 class PaymentVerification(SoftDeleteModel):
@@ -65,7 +66,10 @@ class PaymentVerification(SoftDeleteModel):
     note = models.CharField(max_length=255, blank=True)
 
     # Optional proof image (screenshot / receipt)
-    proof_image = models.ImageField(upload_to="payments/proofs/", null=True, blank=True)
+    proof_image = models.ImageField(
+        upload_to="payments/proofs/", null=True, blank=True,
+        validators=[validate_payment_proof_upload],
+    )
     
     # Structured notes for staff actions (reason codes, metadata)
     notes = models.JSONField(default=dict, blank=True)

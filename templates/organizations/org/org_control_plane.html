@@ -130,55 +130,55 @@
       <!-- Sidebar -->
       <aside class="w-full lg:w-72 shrink-0">
         <nav class="flex flex-col gap-1 sticky top-8">
-          <button onclick="switchTab('general')" class="settings-sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all">
+          <button data-click="switchTab" data-click-args='["general"]' class="settings-sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all">
             <i class="fas fa-id-card w-5 text-center"></i> General Identity
           </button>
 
-          <button onclick="switchTab('branding')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["branding"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-palette w-5 text-center"></i> Brand Assets
           </button>
 
-          <button onclick="switchTab('squads')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["squads"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-users w-5 text-center"></i> Squad Control
           </button>
 
-          <button onclick="switchTab('recruitment')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["recruitment"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-user-plus w-5 text-center"></i> Recruitment & Growth
           </button>
 
-          <button onclick="switchTab('staff')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["staff"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-user-tie w-5 text-center"></i> Command Staff
           </button>
 
-          <button onclick="switchTab('finance')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["finance"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-wallet w-5 text-center"></i> Empire Treasury
           </button>
 
-          <button onclick="switchTab('sponsors')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["sponsors"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-handshake w-5 text-center"></i> Partners & Sponsors
           </button>
 
-          <button onclick="switchTab('media')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["media"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-video w-5 text-center"></i> Media & Streaming
           </button>
 
-          <button onclick="switchTab('notifications')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["notifications"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-bell w-5 text-center"></i> Notification Matrix
           </button>
 
-          <button onclick="switchTab('governance')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white border-t border-white/5 mt-2 pt-4">
+          <button data-click="switchTab" data-click-args='["governance"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white border-t border-white/5 mt-2 pt-4">
             <i class="fas fa-lock w-5 text-center"></i> Governance & Security
           </button>
 
-          <button onclick="switchTab('verification')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["verification"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-check-double w-5 text-center"></i> Verification
           </button>
 
-          <button onclick="switchTab('audit')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+          <button data-click="switchTab" data-click-args='["audit"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
             <i class="fas fa-scroll w-5 text-center"></i> Audit & Logs
           </button>
 
-          <button onclick="switchTab('danger')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-delta-danger opacity-70 hover:opacity-100">
+          <button data-click="switchTab" data-click-args='["danger"]' class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-delta-danger opacity-70 hover:opacity-100">
             <i class="fas fa-skull w-5 text-center"></i> Terminal Actions
           </button>
         </nav>
@@ -318,7 +318,7 @@
               <div class="space-y-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Corporate Emblem</label>
                 <div class="relative group aspect-square rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
-                  <img id="logo-prev" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover">
+                  <img id="logo-prev" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover" alt="">
                   <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <i class="fas fa-camera text-white"></i>
                   </div>
@@ -330,7 +330,7 @@
               <div class="md:col-span-2 space-y-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empire Banner</label>
                 <div class="relative group h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
-                  <img id="banner-prev" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover">
+                  <img id="banner-prev" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover" alt="">
                   <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <i class="fas fa-image text-white text-2xl"></i>
                   </div>
@@ -352,7 +352,7 @@
                   <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Org Card</div>
                   <div class="flex items-center gap-4">
                     <div class="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
-                      <img id="hubLogo" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover">
+                      <img id="hubLogo" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover" alt="">
                     </div>
                     <div>
                       <div class="text-white font-bold uppercase tracking-wide">{{ organization.name }} {% if organization.is_verified %}<span class="text-delta-gold">✓</span>{% endif %}</div>
@@ -364,7 +364,7 @@
                 <div class="p-5 rounded-2xl bg-black/40 border border-white/5 overflow-hidden">
                   <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Banner Strip</div>
                   <div class="h-20 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
-                    <img id="hubBanner" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover">
+                    <img id="hubBanner" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover" alt="">
                   </div>
                 </div>
               </div>
@@ -429,7 +429,7 @@
                 <span class="w-1 h-5 bg-delta-electric"></span> Active Roster Registry
               </h2>
               <button class="px-4 py-2 bg-delta-electric/10 text-delta-electric border border-delta-electric/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-electric hover:text-black transition"
-                onclick="window.location.href='/orgs/{{ org.slug }}/teams/create/'">
+                 data-click-href="/orgs/{{ org.slug }}/teams/create/">
                 <i class="fas fa-plus mr-2"></i> Register New Team
               </button>
             </div>
@@ -2022,7 +2022,7 @@
 
 {% block extra_js %}
 
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     // ---- Config injected from Django ----
     const ORG_SLUG = "{{ org_slug|escapejs }}";
 

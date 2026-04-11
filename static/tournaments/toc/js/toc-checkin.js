@@ -21,6 +21,20 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
   function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
 
+  /** Disable a button, add a spinner, and restore on done. Returns a restore function. */
+  function withSpinner(btn) {
+    if (!btn) return function() {};
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'pointer-events-none');
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>' + orig;
+    return function() {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'pointer-events-none');
+      btn.innerHTML = orig;
+    };
+  }
+
   let dashData = null;
   let allParticipants = [];
   let searchQuery = '';
@@ -188,7 +202,7 @@
       { key: 'pending', label: 'Pending' },
     ];
     wrap.innerHTML = chips.map(c => `
-      <button onclick="TOC.checkin._setFilter('${c.key}')"
+      <button data-click="TOC.checkin._setFilter" data-click-args="['${c.key}']"
         class="text-[11px] px-3 py-1 rounded-full border transition-colors ${filterMode === c.key
           ? 'bg-theme text-black border-theme font-semibold'
           : 'bg-transparent text-dc-text border-dc-border/50 hover:border-theme/50'}">${esc(c.label)}</button>
@@ -266,7 +280,7 @@
 
     // Force button
     const forceBtn = !checked
-      ? `<button onclick="TOC.checkin.forceCheckin(${p.id})" class="text-[10px] px-2 py-1 rounded bg-theme/10 text-theme border border-theme/20 hover:bg-theme/20 transition-colors">Force Check-in</button>`
+      ? `<button data-click="TOC.checkin.forceCheckin" data-click-args="[${p.id}]" class="text-[10px] px-2 py-1 rounded bg-theme/10 text-theme border border-theme/20 hover:bg-theme/20 transition-colors">Force Check-in</button>`
       : '';
 
     return `
@@ -307,11 +321,11 @@
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full ${p1Ok ? 'bg-dc-success' : 'bg-dc-warning'}"></span>
               <span class="text-xs text-white">${esc(m.p1_name)}</span>
-              ${!p1Ok ? `<button onclick="TOC.checkin.forceMatchCheckin(${m.match_id},'p1')" class="text-[9px] text-theme hover:underline ml-1">Force</button>` : ''}
+              ${!p1Ok ? `<button data-click="TOC.checkin.forceMatchCheckin" data-click-args="[${m.match_id}, &quot;p1&quot;]" class="text-[9px] text-theme hover:underline ml-1">Force</button>` : ''}
             </div>
             <span class="text-[10px] text-dc-text">vs</span>
             <div class="flex items-center gap-1.5">
-              ${!p2Ok ? `<button onclick="TOC.checkin.forceMatchCheckin(${m.match_id},'p2')" class="text-[9px] text-theme hover:underline mr-1">Force</button>` : ''}
+              ${!p2Ok ? `<button data-click="TOC.checkin.forceMatchCheckin" data-click-args="[${m.match_id}, &quot;p2&quot;]" class="text-[9px] text-theme hover:underline mr-1">Force</button>` : ''}
               <span class="text-xs text-white">${esc(m.p2_name)}</span>
               <span class="w-2 h-2 rounded-full ${p2Ok ? 'bg-dc-success' : 'bg-dc-warning'}"></span>
             </div>
@@ -357,43 +371,51 @@
       return;
     }
     const mins = parseInt($('#checkin-window-minutes')?.value || '15');
+    const btn = document.querySelector('[onclick*="openCheckin"]');
+    const restore = withSpinner(btn);
     try {
       await API.post('checkin/open/', { window_minutes: mins });
       toast('Check-in opened', 'success');
       refresh();
     } catch (e) {
       toast('Failed to open check-in', 'error');
-    }
+    } finally { restore(); }
   }
 
   async function closeCheckin() {
+    const btn = document.querySelector('[onclick*="closeCheckin"]');
+    const restore = withSpinner(btn);
     try {
       await API.post('checkin/close/', {});
       toast('Check-in closed', 'success');
       refresh();
     } catch (e) {
       toast('Failed to close check-in', 'error');
-    }
+    } finally { restore(); }
   }
 
   async function forceCheckin(participantId) {
+    const btn = document.querySelector('[onclick*="forceCheckin(' + participantId + ')"]');
+    const restore = withSpinner(btn);
     try {
       await API.post('checkin/force/', { participant_id: participantId });
       toast('Participant checked in', 'success');
       refresh();
     } catch (e) {
       toast('Force check-in failed', 'error');
-    }
+    } finally { restore(); }
   }
 
   async function forceMatchCheckin(matchId, side) {
+    const btn = document.querySelector('[onclick*="forceMatchCheckin(' + matchId + ')"]');
+    const restore = withSpinner(btn);
     try {
       await API.post('checkin/force-match/', { match_id: matchId, side });
       toast(`${side.toUpperCase()} checked in`, 'success');
       refresh();
     } catch (e) {
       toast('Force check-in failed', 'error');
-    }
+    } finally { restore(); }
   }
 
   function autoDQ() {
@@ -438,6 +460,8 @@
       auto_dq: $('#checkin-auto-dq')?.checked || false,
       per_round: $('#checkin-per-round')?.checked || false,
     };
+    const btn = document.querySelector('[onclick*="saveConfig"]');
+    const restore = withSpinner(btn);
     try {
       const res = await API.post('checkin/config/', data);
       document.dispatchEvent(new CustomEvent('toc:checkin-config-updated', { detail: res?.config || data }));
@@ -445,7 +469,7 @@
       refresh();
     } catch (e) {
       toast('Save failed', 'error');
-    }
+    } finally { restore(); }
   }
 
   function _setFilter(key) {

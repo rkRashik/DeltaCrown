@@ -176,19 +176,19 @@
           <div>
             <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Category</label>
             <div class="grid grid-cols-2 gap-2" id="support-categories">
-              <button type="button" class="support-category-btn active" data-category="general" aria-pressed="true" onclick="HubEngine.selectSupportCategory('general')">
+              <button type="button" class="support-category-btn active" data-category="general" aria-pressed="true" data-click="HubEngine.selectSupportCategory" data-click-args='["general"]'>
                 <i data-lucide="help-circle" class="w-4 h-4"></i>
                 <span>General Inquiry</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="dispute" aria-pressed="false" onclick="HubEngine.selectSupportCategory('dispute')">
+              <button type="button" class="support-category-btn" data-category="dispute" aria-pressed="false" data-click="HubEngine.selectSupportCategory" data-click-args='["dispute"]'>
                 <i data-lucide="alert-triangle" class="w-4 h-4"></i>
                 <span>Match Dispute</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="technical" aria-pressed="false" onclick="HubEngine.selectSupportCategory('technical')">
+              <button type="button" class="support-category-btn" data-category="technical" aria-pressed="false" data-click="HubEngine.selectSupportCategory" data-click-args='["technical"]'>
                 <i data-lucide="bug" class="w-4 h-4"></i>
                 <span>Technical Issue</span>
               </button>
-              <button type="button" class="support-category-btn" data-category="payment" aria-pressed="false" onclick="HubEngine.selectSupportCategory('payment')">
+              <button type="button" class="support-category-btn" data-category="payment" aria-pressed="false" data-click="HubEngine.selectSupportCategory" data-click-args='["payment"]'>
                 <i data-lucide="credit-card" class="w-4 h-4"></i>
                 <span>Payment / Prize</span>
               </button>
@@ -226,7 +226,7 @@
           <div id="support-success" class="hidden p-3 rounded-lg bg-[#00FF66]/10 border border-[#00FF66]/20 text-xs text-[#00FF66] font-medium"></div>
 
           {% comment %}Submit{% endcomment %}
-          <button id="support-submit-btn" onclick="HubEngine.submitSupportRequest()"
+          <button id="support-submit-btn" data-click="HubEngine.submitSupportRequest"
                   class="w-full px-4 py-3 rounded-xl bg-[var(--game-primary)]/15 hover:bg-[var(--game-primary)]/25 border border-[var(--game-primary)]/20 hover:border-[var(--game-primary)]/40 text-[var(--game-primary)] font-bold text-sm transition-all flex items-center justify-center gap-2">
             <i data-lucide="send" class="w-4 h-4"></i>
             Send Message
@@ -248,7 +248,7 @@
           </div>
         </div>
         <div class="mt-3 hidden justify-center" id="support-load-more-wrap">
-          <button type="button" id="support-load-more-btn" onclick="HubEngine.loadMoreSupportTickets()"
+          <button type="button" id="support-load-more-btn" data-click="HubEngine.loadMoreSupportTickets"
                   class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all">
             Load More Tickets
           </button>

@@ -15,7 +15,7 @@
     rel="stylesheet"
   />
 
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
       darkMode: "class",
       theme: {
@@ -526,7 +526,7 @@
 
   </style>
 
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     /**
      * DeltaCrown — Team Detail Page (Part 1: Hero only)
      * - Role polymorphism: PUBLIC / MEMBER / STAFF / OWNER
@@ -1088,7 +1088,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
   window.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById("dc-team-motto");
     if (!el) return;
@@ -2332,7 +2332,7 @@
       </div>
     </section>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       document.addEventListener("DOMContentLoaded", () => {
 
         // 1. STICKY NAV GLASSPHILLIC EFFECT
@@ -2529,7 +2529,7 @@
       </div>
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     // ============================================================================
     // GAME PROFILES - 2026 Real Data from seed_identity_configs_2026.py
     // ============================================================================

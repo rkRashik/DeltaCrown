@@ -131,7 +131,7 @@
                     <div class="text-3xl font-display font-black text-z-cyan leading-none" id="gear-edpi">—</div>
                     <div class="text-[10px] text-z-cyan/60 uppercase font-bold mt-2 tracking-wider">eDPI</div>
                 </div>
-                <script>
+                <script nonce="{{ request.csp_nonce }}">
                     (function(){
                         const dpi = {{ hardware_loadout.mouse_dpi|default:"0" }};
                         const sens = parseFloat("{{ hardware_loadout.sensitivity|default:'0' }}");

@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -620,7 +620,7 @@
         </footer>
     </main>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         lucide.createIcons();
 
         // Sticky Nav Logic

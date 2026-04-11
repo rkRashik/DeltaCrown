@@ -1354,7 +1354,7 @@
 
 {% block extra_js %}
 <!-- Optional: Add smooth scroll behavior or animations if needed -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {

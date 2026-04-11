@@ -6,9 +6,9 @@
         {% with hero_clip=pinned_highlight|default:highlight_clips.0 %}
         <div class="relative rounded-2xl overflow-hidden group border border-z-purple/30 shadow-[0_0_50px_-10px_rgba(123,44,191,0.3)]">
             <div class="absolute -inset-1 bg-gradient-to-r from-z-purple to-z-cyan opacity-20 blur-xl group-hover:opacity-40 transition duration-1000"></div>
-            <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden cursor-pointer" onclick="openHighlightModal('{{ hero_clip.embed_url|escapejs }}', '{{ hero_clip.title|escapejs }}', '{{ hero_clip.clip_url|escapejs }}')">
+            <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden cursor-pointer" data-click="openHighlightModal" data-click-args='["{{ hero_clip.embed_url|escapejs }}", "{{ hero_clip.title|escapejs }}", "{{ hero_clip.clip_url|escapejs }}"]'>
                 {% if hero_clip.thumbnail_url %}
-                <img src="{{ hero_clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700" alt="{{ hero_clip.title }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+                <img src="{{ hero_clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700" alt="{{ hero_clip.title }}"  data-fallback="hide-show-next">
                 <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
                     <div class="text-center">
                         <i class="fa-brands fa-{{ hero_clip.platform }} text-8xl text-white/20 mb-4"></i>
@@ -24,11 +24,11 @@
                 </div>
                 {% endif %}
                 {% if relationship_ctx.is_owner %}
-                <div class="absolute top-4 right-4 flex gap-2 z-50" onclick="event.stopPropagation()">
-                    <button onclick="pinClip({{ hero_clip.id }}); event.stopPropagation();" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="{% if hero_clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
+                <div class="absolute top-4 right-4 flex gap-2 z-50" data-stop-propagation>
+                    <button data-click="pinClip" data-click-args='[{{ hero_clip.id }}]' data-stop-propagation class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="{% if hero_clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
                         <i class="fa-solid fa-thumbtack text-white {% if hero_clip.is_pinned %}text-z-red{% endif %}"></i>
                     </button>
-                    <button onclick="deleteClip({{ hero_clip.id }}); event.stopPropagation();" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                    <button data-click="deleteClip" data-click-args='[{{ hero_clip.id }}]' data-stop-propagation class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
                         <i class="fa-solid fa-trash text-white"></i>
                     </button>
                 </div>
@@ -86,7 +86,7 @@
             {% endfor %}
         </div>
         {% if relationship_ctx.is_owner %}
-        <button onclick="showUploadPlaceholder()" class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
+        <button data-click="showUploadPlaceholder" class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
             <i class="fa-solid fa-cloud-arrow-up"></i> Upload Clip
         </button>
         {% endif %}
@@ -96,10 +96,10 @@
     {% if highlight_clips %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="highlights-grid">
         {% for clip in highlight_clips %}
-        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="{% if clip.game_slug %}{{ clip.game_slug }}{% else %}unknown{% endif %}" data-clip-id="{{ clip.id }}" onclick="openHighlightModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.clip_url|escapejs }}')">
+        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="{% if clip.game_slug %}{{ clip.game_slug }}{% else %}unknown{% endif %}" data-clip-id="{{ clip.id }}" data-click="openHighlightModal" data-click-args='["{{ clip.embed_url|escapejs }}", "{{ clip.title|escapejs }}", "{{ clip.clip_url|escapejs }}"]'>
             <div class="relative aspect-video bg-black">
                 {% if clip.thumbnail_url %}
-                <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="{{ clip.title }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+                <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="{{ clip.title }}"  data-fallback="hide-show-next">
                 <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
                     <i class="fa-brands fa-{{ clip.platform }} text-4xl text-white/20"></i>
                 </div>
@@ -115,11 +115,11 @@
                     {% endif %}
                 </div>
                 {% if relationship_ctx.is_owner %}
-                <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" onclick="event.stopPropagation()">
-                    <button onclick="pinClip({{ clip.id }}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="{% if clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
+                <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" data-stop-propagation>
+                    <button data-click="pinClip" data-click-args='[{{ clip.id }}]' data-stop-propagation class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="{% if clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
                         <i class="fa-solid fa-thumbtack text-xs text-white"></i>
                     </button>
-                    <button onclick="deleteClip({{ clip.id }}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                    <button data-click="deleteClip" data-click-args='[{{ clip.id }}]' data-stop-propagation class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
                         <i class="fa-solid fa-trash text-xs text-white"></i>
                     </button>
                 </div>
@@ -150,15 +150,15 @@
 </div>
 
 <!-- Highlight Modal Player -->
-<div id="highlight-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeHighlightModal(event)">
+<div id="highlight-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" data-click="closeHighlightModal">
     <div class="relative w-full max-w-6xl">
-        <button onclick="closeHighlightModal(event)" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
+        <button data-click="closeHighlightModal" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
             <i class="fa-solid fa-xmark"></i>
         </button>
-        <div class="relative w-full bg-black rounded-xl overflow-hidden border border-white/20 shadow-2xl" style="padding-bottom: 56.25%;" onclick="event.stopPropagation()">
+        <div class="relative w-full bg-black rounded-xl overflow-hidden border border-white/20 shadow-2xl" style="padding-bottom: 56.25%;" data-stop-propagation>
             <iframe id="highlight-iframe" class="absolute inset-0 w-full h-full" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
         </div>
-        <div id="highlight-fallback" class="hidden relative w-full bg-gradient-to-br from-gray-900 to-black rounded-xl overflow-hidden border border-white/20 shadow-2xl p-12 text-center" style="padding-bottom: 56.25%;" onclick="event.stopPropagation()">
+        <div id="highlight-fallback" class="hidden relative w-full bg-gradient-to-br from-gray-900 to-black rounded-xl overflow-hidden border border-white/20 shadow-2xl p-12 text-center" style="padding-bottom: 56.25%;" data-stop-propagation>
             <div class="absolute inset-0 flex flex-col items-center justify-center p-8">
                 <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
                     <i class="fa-solid fa-external-link-alt text-3xl text-gray-400"></i>
@@ -177,9 +177,9 @@
 </div>
 
 <!-- Upload Modal -->
-<div id="upload-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center px-4" onclick="closeUploadModal()">
-    <div class="relative w-full max-w-2xl" onclick="event.stopPropagation()">
-        <button onclick="closeUploadModal()" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
+<div id="upload-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center px-4" data-click="closeUploadModal">
+    <div class="relative w-full max-w-2xl" data-stop-propagation>
+        <button data-click="closeUploadModal" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
             <i class="fa-solid fa-xmark"></i>
         </button>
         <div class="glass-panel p-8 rounded-2xl border border-z-cyan/30 shadow-[0_0_50px_-10px_rgba(0,204,255,0.5)]">
@@ -205,14 +205,14 @@
                 <!-- URL -->
                 <div>
                     <label class="block text-white font-bold text-sm mb-2">Clip URL <span class="text-z-red">*</span></label>
-                    <input type="url" name="clip_url" id="upload-url" required placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                    <input type="url" name="clip_url" id="upload-url" required placeholder="https://www.youtube.com/watch?v=..." aria-label="Clip URL" aria-required="true" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
                     <p class="text-gray-400 text-xs mt-1">Paste your video URL (YouTube watch/shorts, Twitch clip, Facebook video)</p>
                 </div>
                 
                 <!-- Title -->
                 <div>
                     <label class="block text-white font-bold text-sm mb-2">Title <span class="text-z-red">*</span></label>
-                    <input type="text" name="title" id="upload-title" required placeholder="Epic Victory Royale" maxlength="200" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                    <input type="text" name="title" id="upload-title" required placeholder="Epic Victory Royale" maxlength="200" aria-label="Highlight title" aria-required="true" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
                 </div>
                 
                 <!-- Game -->
@@ -228,7 +228,7 @@
                 
                 <!-- Pin Checkbox -->
                 <div class="flex items-center gap-3">
-                    <input type="checkbox" name="pin" id="upload-pin" value="true" class="w-5 h-5 bg-white/5 border border-white/10 rounded text-z-cyan focus:ring-z-cyan focus:ring-offset-0">
+                    <input type="checkbox" name="pin" id="upload-pin" value="true" aria-label="Pin as featured clip" class="w-5 h-5 bg-white/5 border border-white/10 rounded text-z-cyan focus:ring-z-cyan focus:ring-offset-0">
                     <label for="upload-pin" class="text-white text-sm">
                         <i class="fa-solid fa-thumbtack text-z-red mr-1"></i>
                         Pin as featured clip (replaces existing pin)
@@ -247,7 +247,7 @@
                         <span id="upload-btn-text"><i class="fa-solid fa-upload mr-2"></i>Upload Clip</span>
                         <span id="upload-btn-loading" class="hidden"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Uploading...</span>
                     </button>
-                    <button type="button" onclick="closeUploadModal()" class="px-6 py-3 rounded-lg font-bold uppercase border border-white/10 text-white hover:bg-white/5 transition">
+                    <button type="button" data-click="closeUploadModal" class="px-6 py-3 rounded-lg font-bold uppercase border border-white/10 text-white hover:bg-white/5 transition">
                         Cancel
                     </button>
                 </div>
@@ -256,7 +256,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Pass Django context to JavaScript
 const IS_OWNER = {{ relationship_ctx.is_owner|yesno:"true,false" }};
 
@@ -403,7 +403,7 @@ function insertNewClipCard(clipData) {
     if (clipData.thumbnail_url && clipData.thumbnail_url !== 'None' && clipData.thumbnail_url !== '') {
         // Has thumbnail - show image with fallback to placeholder on error
         thumbnailHTML = `
-            <img src="${clipData.thumbnail_url}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="${clipData.title}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+            <img src="${clipData.thumbnail_url}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="${clipData.title}" data-fallback="show-next">
             <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
                 <i class="fa-brands fa-${clipData.platform} text-4xl text-white/20"></i>
             </div>
@@ -421,11 +421,11 @@ function insertNewClipCard(clipData) {
     let ownerActionsHTML = '';
     if (IS_OWNER) {
         ownerActionsHTML = `
-            <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" onclick="event.stopPropagation()">
-                <button onclick="pinClip(${clipData.id}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="${clipData.is_pinned ? 'Already pinned' : 'Pin as featured'}">
+            <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" data-stop-propagation>
+                <button data-click="pinClip" data-click-args='[${clipData.id}]' data-stop-propagation class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="${clipData.is_pinned ? 'Already pinned' : 'Pin as featured'}">
                     <i class="fa-solid fa-thumbtack text-xs text-white"></i>
                 </button>
-                <button onclick="deleteClip(${clipData.id}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                <button data-click="deleteClip" data-click-args='[${clipData.id}]' data-stop-propagation class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
                     <i class="fa-solid fa-trash text-xs text-white"></i>
                 </button>
             </div>
@@ -437,7 +437,7 @@ function insertNewClipCard(clipData) {
     
     // Build complete card HTML (matches template exactly)
     const cardHtml = `
-        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="${clipData.game_slug || 'unknown'}" data-clip-id="${clipData.id}" onclick="openHighlightModal('${escapeHtml(clipData.embed_url)}', '${escapeHtml(clipData.title)}', '${escapeHtml(clipData.clip_url)}')">
+        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="${clipData.game_slug || 'unknown'}" data-clip-id="${clipData.id}" data-click="openHighlightModal" data-click-args='["${escapeHtml(clipData.embed_url)}", "${escapeHtml(clipData.title)}", "${escapeHtml(clipData.clip_url)}"]'>
             <div class="relative aspect-video bg-black">
                 ${thumbnailHTML}
                 <div class="absolute top-2 left-2 flex items-center gap-2">

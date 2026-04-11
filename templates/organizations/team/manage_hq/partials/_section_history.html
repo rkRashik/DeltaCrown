@@ -44,9 +44,9 @@ Section 7.9 of the Master Plan.
         <input type="date" id="history-filter-to" aria-label="Filter to date"
             class="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 focus:outline-none"
             placeholder="To">
-        <button onclick="ManageHQ.History.applyFilters()"
+        <button data-click="ManageHQ.History.applyFilters"
             class="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition font-medium">Apply</button>
-        <button onclick="ManageHQ.History.clearFilters()"
+        <button data-click="ManageHQ.History.clearFilters"
             class="text-xs px-2 py-1.5 text-white/30 hover:text-white/50 transition">Clear</button>
     </div>
 
@@ -97,10 +97,10 @@ Section 7.9 of the Master Plan.
                     class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30 self-start" />
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="JourneyManager.save()" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition" id="journey-save-btn">
+                <button data-click="JourneyManager.save" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition" id="journey-save-btn">
                     Add
                 </button>
-                <button onclick="JourneyManager.cancelEdit()" class="h-8 px-3 rounded-xl text-white/30 text-xs hover:text-white/50 transition hidden" id="journey-cancel-btn">
+                <button data-click="JourneyManager.cancelEdit" class="h-8 px-3 rounded-xl text-white/30 text-xs hover:text-white/50 transition hidden" id="journey-cancel-btn">
                     Cancel
                 </button>
                 <span class="text-[10px] text-white/30 ml-auto" id="journey-save-status"></span>
@@ -135,7 +135,7 @@ Section 7.9 of the Master Plan.
             <p class="text-xs text-white/25 mt-1">Team actions will appear here as they happen</p>
         </div>
         <div id="history-load-more" class="hidden text-center mt-4">
-            <button onclick="ManageHQ.History.loadMore()" class="text-xs px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 transition">
+            <button data-click="ManageHQ.History.loadMore" class="text-xs px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 transition">
                 Load More
             </button>
         </div>
@@ -194,7 +194,7 @@ Section 7.9 of the Master Plan.
 </section>
 
 {# ── History Timeline JavaScript ── #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
     const SLUG = "{{ team.slug }}";
     const API = `/api/vnext/teams/${SLUG}/activity/`;
@@ -227,7 +227,7 @@ Section 7.9 of the Master Plan.
         const pinned = ev.is_pinned;
 
         const pinBtn = (IS_ADMIN && ev.can_pin && ev.activity_id)
-            ? `<button onclick="HistoryTimeline.togglePin(${ev.activity_id}, this)" class="ml-auto opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-white/10" title="${pinned ? 'Unpin from public journey' : 'Pin to public journey'}">
+            ? `<button data-click="HistoryTimeline.togglePin" data-click-args='[${ev.activity_id}]' data-click-pass-el class="ml-auto opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-white/10" title="${pinned ? 'Unpin from public journey' : 'Pin to public journey'}">
                 <i data-lucide="${pinned ? 'pin-off' : 'pin'}" class="w-3.5 h-3.5 ${pinned ? 'text-amber-400' : 'text-white/30'}"></i>
                </button>`
             : '';
@@ -423,13 +423,13 @@ Section 7.9 of the Master Plan.
                         </p>
                     </div>
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button onclick="JourneyManager.toggleVisibility(${m.id})" class="p-1.5 rounded-lg hover:bg-white/10 transition" title="${vis ? 'Hide from public' : 'Show on public page'}">
+                        <button data-click="JourneyManager.toggleVisibility" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="${vis ? 'Hide from public' : 'Show on public page'}">
                             <i data-lucide="${vis ? 'eye' : 'eye-off'}" class="w-3.5 h-3.5 text-white/40"></i>
                         </button>
-                        <button onclick="JourneyManager.edit(${m.id})" class="p-1.5 rounded-lg hover:bg-white/10 transition" title="Edit">
+                        <button data-click="JourneyManager.edit" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-white/10 transition" title="Edit">
                             <i data-lucide="pencil" class="w-3.5 h-3.5 text-white/40"></i>
                         </button>
-                        <button onclick="JourneyManager.remove(${m.id})" class="p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete">
+                        <button data-click="JourneyManager.remove" data-click-args='[${m.id}]' class="p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-400/50"></i>
                         </button>
                     </div>
@@ -572,7 +572,7 @@ Section 7.9 of the Master Plan.
                 return `
                 <div class="relative flex-shrink-0 w-56 rounded-xl border ${style.border} ${style.bg} p-3 group cursor-pointer hover:border-amber-500/30 transition"
                      data-sg-key="${jesc(s.key)}">
-                    <button onclick="event.stopPropagation(); JourneyManager.dismissSuggestion('${safeKey}', this)"
+                    <button data-click="JourneyManager.dismissSuggestion" data-click-args='["${safeKey}"]' data-click-pass-el data-stop-propagation
                             class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white/5 hover:bg-red-500/20 grid place-items-center opacity-0 group-hover:opacity-100 transition"
                             title="Dismiss">
                         <i data-lucide="x" class="w-3 h-3 text-white/30 hover:text-red-400"></i>
@@ -586,7 +586,7 @@ Section 7.9 of the Master Plan.
                     <p class="text-[11px] font-bold text-white/80 truncate mb-0.5">${jesc(s.title)}</p>
                     ${s.description ? `<p class="text-[10px] text-white/35 truncate mb-1">${jesc(s.description)}</p>` : ''}
                     <p class="text-[9px] text-white/25">${dateStr}</p>
-                    <button onclick="event.stopPropagation(); JourneyManager.fillFromSuggestion(${idx})"
+                    <button data-click="JourneyManager.fillFromSuggestion" data-click-args='[${idx}]' data-stop-propagation
                             class="mt-2 w-full text-[10px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg py-1.5 transition">
                         + Add to Journey
                     </button>

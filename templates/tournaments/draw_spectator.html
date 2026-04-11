@@ -960,14 +960,14 @@
 </div>
 
 {# ━━━ Chroma Key Toggle ━━━ #}
-<button id="chroma-btn" class="chroma-toggle" onclick="toggleChroma()" title="Toggle chroma key for OBS">
+<button id="chroma-btn" class="chroma-toggle" data-click="toggleChroma" title="Toggle chroma key for OBS">
   <i data-lucide="monitor" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:3px"></i>
   Chroma
 </button>
 {% endblock %}
 
 {% block draw_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   'use strict';
 

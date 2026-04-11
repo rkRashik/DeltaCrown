@@ -67,9 +67,9 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-gray-400 to-transparent">
                                     {% if org.logo %}
-                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
-                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
                                 </div>
                                 
@@ -78,7 +78,7 @@
                                 </h2>
                                 <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
                                     {% if org.profile.region_code %}
-                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm"  data-fallback="hide" alt=""> {{ org.profile.hq_city|default:org.profile.region_code }}
                                     {% else %}
                                         —
                                     {% endif %}
@@ -108,9 +108,9 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-32 h-32 rounded-full p-1 bg-gradient-to-b from-delta-gold to-transparent">
                                     {% if org.logo %}
-                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
-                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
                                 </div>
                                 
@@ -119,7 +119,7 @@
                                 </h2>
                                 <div class="flex items-center justify-center gap-2 text-xs text-delta-gold font-mono uppercase tracking-widest">
                                     {% if org.profile.region_code %}
-                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm grayscale-0" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm grayscale-0"  data-fallback="hide" alt=""> {{ org.profile.hq_city|default:org.profile.region_code }}
                                     {% else %}
                                         —
                                     {% endif %}
@@ -153,9 +153,9 @@
                                 
                                 <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-orange-700 to-transparent">
                                     {% if org.logo %}
-                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% else %}
-                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover" alt="">
                                     {% endif %}
                                 </div>
                                 
@@ -164,7 +164,7 @@
                                 </h2>
                                 <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
                                     {% if org.profile.region_code %}
-                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm"  data-fallback="hide" alt=""> {{ org.profile.hq_city|default:org.profile.region_code }}
                                     {% else %}
                                         —
                                     {% endif %}
@@ -243,9 +243,9 @@
                                     <div class="flex items-center gap-4">
                                         <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
                                             {% if org.logo %}
-                                                <img src="{{ org.logo.url }}" class="w-full h-full object-cover rounded-sm">
+                                                <img src="{{ org.logo.url }}" class="w-full h-full object-cover rounded-sm" alt="">
                                             {% else %}
-                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full object-cover rounded-sm">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full object-cover rounded-sm" alt="">
                                             {% endif %}
                                         </div>
                                         <div>
@@ -264,7 +264,7 @@
                                 <td class="p-5">
                                     <div class="flex items-center gap-2 text-slate-400 text-xs">
                                         {% if org.profile.region_code %}
-                                            <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                            <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm"  data-fallback="hide" alt=""> {{ org.profile.hq_city|default:org.profile.region_code }}
                                         {% else %}
                                             —
                                         {% endif %}

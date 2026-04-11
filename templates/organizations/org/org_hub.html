@@ -172,7 +172,7 @@
                 <div class="flex flex-wrap items-center gap-6 text-sm font-mono text-slate-300">
                     {% if organization.profile.region %}
                     <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
-                        <img src="https://flagcdn.com/w40/{{ organization.profile.region|lower }}.png" class="w-5 rounded-sm shadow-sm" onerror="this.style.display='none'">
+                        <img src="https://flagcdn.com/w40/{{ organization.profile.region|lower }}.png" class="w-5 rounded-sm shadow-sm"  data-fallback="hide" alt="">
                         <span>{{ organization.profile.get_region_display|default:organization.profile.region }}</span>
                     </div>
                     {% endif %}
@@ -513,7 +513,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Navigation Tab Filtering
     const links = document.querySelectorAll('.nav-link');

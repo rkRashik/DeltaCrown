@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
         darkMode: 'class',
         theme: {
@@ -221,7 +221,7 @@
 
     <header class="relative w-full h-[550px] group overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="{{ organization.banner|safe_file_url:'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071&auto=format&fit=crop' }}" class="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-110 transition-transform duration-[20s] ease-linear">
+            <img src="{{ organization.banner|safe_file_url:'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071&auto=format&fit=crop' }}" class="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-110 transition-transform duration-[20s] ease-linear" alt="">
         </div>
         <div class="absolute inset-0 z-10 bg-gradient-to-t from-delta-base via-delta-base/80 to-transparent"></div>
         <div class="absolute inset-0 z-10 bg-gradient-to-b from-delta-base/40 to-transparent"></div>
@@ -437,7 +437,7 @@
                         <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-1">
                             <div class="h-40 bg-slate-900 relative">
                                 {% if squad.team.logo %}
-                                <img src="{{ squad.team.logo.url }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+                                <img src="{{ squad.team.logo.url }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" alt="">
                                 {% else %}
                                 <div class="w-full h-full bg-gradient-to-br from-delta-surface to-delta-base flex items-center justify-center">
                                     <span class="text-5xl font-tech font-bold text-white/10">{{ squad.game_short_code|default:squad.game_label|slice:":3"|upper }}</span>
@@ -523,7 +523,7 @@
                     <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
                         {% for stream in streams %}
                         <div class="min-w-[280px] h-40 bg-gradient-to-br from-slate-900 to-black rounded-xl overflow-hidden relative border border-white/10 hover:border-delta-electric/50 transition-colors group cursor-pointer">
-                            <img src="{{ stream.thumbnail_url|default:'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400' }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500">
+                            <img src="{{ stream.thumbnail_url|default:'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400' }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" alt="">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
 
                             <div class="absolute top-3 left-3 bg-delta-danger text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-lg animate-pulse">LIVE</div>
@@ -534,7 +534,7 @@
                             </div>
 
                             <div class="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-                                <img src="{{ stream.streamer_avatar|default:'https://api.dicebear.com/7.x/avataaars/svg?seed=streamer' }}" class="w-8 h-8 rounded-full border-2 border-delta-electric shadow-lg">
+                                <img src="{{ stream.streamer_avatar|default:'https://api.dicebear.com/7.x/avataaars/svg?seed=streamer' }}" class="w-8 h-8 rounded-full border-2 border-delta-electric shadow-lg" alt="">
                                 <div class="flex-1 min-w-0">
                                     <div class="text-xs font-bold text-white truncate">{{ stream.streamer_name|default:"Streamer" }}</div>
                                     <div class="text-[10px] text-slate-400 truncate">{{ stream.title|default:"Live Stream" }}</div>
@@ -660,7 +660,7 @@
                         {% for staff in staff_members %}
                         <div class="flex items-center gap-3 group cursor-pointer" data-member-id="{{ staff.id }}" data-member-username="{{ staff.username }}" data-member-role="{{ staff.role }}">
                             <div class="w-10 h-10 rounded-lg bg-delta-surface p-0.5 border border-{% if staff.is_ceo %}delta-gold{% else %}white{% endif %}/30">
-                                <img src="{{ staff.avatar|safe_file_url:'https://api.dicebear.com/7.x/avataaars/svg?seed='|add:staff.username }}" class="w-full h-full rounded bg-black">
+                                <img src="{{ staff.avatar|safe_file_url:'https://api.dicebear.com/7.x/avataaars/svg?seed='|add:staff.username }}" class="w-full h-full rounded bg-black" alt="">
                             </div>
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
@@ -845,7 +845,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- BOOTSTRAP CONFIG ---

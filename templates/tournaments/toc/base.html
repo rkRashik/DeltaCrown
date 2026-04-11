@@ -16,7 +16,7 @@
     <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
 
     {# TOC-specific Tailwind overrides — exact design from demo_TOC.html #}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -273,7 +273,7 @@
             <button
                 class="toc-nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg {% if tab.id == 'overview' %}bg-theme-surface text-theme font-bold{% else %}text-dc-text hover:bg-dc-panel hover:text-white font-medium{% endif %} transition-all group"
                 data-tab="{{ tab.id }}"
-                onclick="TOC.navigate('{{ tab.id }}')"
+                data-click="TOC.navigate" data-click-args='["{{ tab.id }}"]'
             >
                 <div class="flex items-center gap-3">
                     <i data-lucide="{{ tab.icon }}" class="w-[18px] h-[18px] {% if tab.id == 'overview' %}text-theme{% endif %}"></i>
@@ -327,7 +327,7 @@
                     class="w-full bg-dc-bg border border-dc-borderLight rounded-xl pl-10 pr-20 py-2.5 text-sm text-white focus:outline-none focus:border-theme focus:ring-1 focus:ring-theme/40 transition-all placeholder-dc-text/60"
                     placeholder="Search Teams, Match #'s or Settings..."
                     readonly
-                    onclick="TOC.cmdk.open()"
+                    data-click="TOC.cmdk.open"
                 >
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <span id="toc-search-mod-key" class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[10px] font-mono border border-dc-borderLight">Ctrl</span>
@@ -360,7 +360,7 @@
                     id="toc-action-btn"
                     data-cap-require="edit_settings"
                     class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg {% if is_frozen %}bg-dc-successBg text-dc-success border border-dc-success/30 hover:bg-dc-success hover:text-white{% else %}bg-dc-dangerBg text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white{% endif %}"
-                    onclick="{% if is_frozen %}TOC.overview && TOC.overview.executeUnfreeze(){% else %}document.getElementById('modal-freeze').classList.remove('hidden'){% endif %}"
+                    {% if is_frozen %}data-click="TOC.overview.executeUnfreeze"{% else %}data-click-show="modal-freeze"{% endif %}
                 >
                     <i data-lucide="{% if is_frozen %}play{% else %}pause{% endif %}" class="w-3.5 h-3.5"></i>
                     <span>{% if is_frozen %}Resume{% else %}Freeze{% endif %}</span>
@@ -375,7 +375,7 @@
                 <span class="text-xs font-bold text-dc-danger uppercase tracking-widest">Tournament Frozen</span>
                 <span class="text-[10px] text-dc-text">All automation halted. Active matches paused.</span>
             </div>
-            <button class="text-[10px] font-bold text-white bg-dc-danger/20 border border-dc-danger/30 px-3 py-1 rounded hover:bg-dc-danger transition-colors" data-cap-require="edit_settings" onclick="TOC.overview && TOC.overview.executeUnfreeze()">
+            <button class="text-[10px] font-bold text-white bg-dc-danger/20 border border-dc-danger/30 px-3 py-1 rounded hover:bg-dc-danger transition-colors" data-cap-require="edit_settings" data-click="TOC.overview.executeUnfreeze">
                 Unfreeze
             </button>
         </div>
@@ -592,7 +592,7 @@
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Action Queue</h3>
                             <span id="action-queue-count" class="ml-2 text-[10px] font-mono text-dc-bg bg-dc-warning px-2 py-0.5 rounded-full font-bold hidden">0</span>
                             <div class="ml-auto">
-                                <button onclick="TOC.overview?.refreshActionQueue()" class="text-[10px] text-dc-text hover:text-white transition-colors font-mono uppercase tracking-widest">
+                                <button data-click="TOC.overview.refreshActionQueue" class="text-[10px] text-dc-text hover:text-white transition-colors font-mono uppercase tracking-widest">
                                     <i data-lucide="refresh-cw" class="w-3 h-3 inline-block mr-1"></i>Refresh
                                 </button>
                             </div>
@@ -628,21 +628,21 @@
                                 <i data-lucide="radio" class="w-4 h-4 text-theme"></i>
                                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Tournament Feed</h3>
                                 <span id="overview-feed-count" class="ml-2 text-[10px] font-mono text-theme bg-theme-surface px-2 py-0.5 rounded border border-theme-border hidden">0</span>
-                                <button onclick="TOC.overview?.refreshTournamentFeed()" class="ml-auto text-[10px] text-dc-text hover:text-white transition-colors font-mono uppercase tracking-widest">
+                                <button data-click="TOC.overview.refreshTournamentFeed" class="ml-auto text-[10px] text-dc-text hover:text-white transition-colors font-mono uppercase tracking-widest">
                                     <i data-lucide="refresh-cw" class="w-3 h-3 inline-block mr-1"></i>Refresh
                                 </button>
                             </div>
                             <div class="flex flex-wrap gap-2 items-center">
                                 <div class="relative flex-1 min-w-[180px]">
                                     <i data-lucide="search" class="w-3 h-3 text-dc-text absolute left-2.5 top-1/2 -translate-y-1/2"></i>
-                                    <input id="overview-feed-search" type="text" placeholder="Search feed..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-dc-bg border border-dc-border text-xs text-white placeholder:text-dc-text/40 focus:outline-none focus:border-theme/50">
+                                    <input id="overview-feed-search" type="text" aria-label="Search feed" placeholder="Search feed..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-dc-bg border border-dc-border text-xs text-white placeholder:text-dc-text/40 focus:outline-none focus:border-theme/50">
                                 </div>
                                 <div class="flex items-center gap-1" id="overview-feed-filters">
                                     <button type="button" data-feed-filter="all" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-theme/30 bg-theme/15 text-theme">All</button>
                                     <button type="button" data-feed-filter="pinned" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-dc-border text-dc-text hover:border-theme/40">Pinned</button>
                                     <button type="button" data-feed-filter="important" class="px-2.5 py-1 rounded-full text-[10px] font-bold border border-dc-border text-dc-text hover:border-theme/40">Important</button>
                                 </div>
-                                <button onclick="TOC.navigate('announcements')" class="text-[10px] text-theme hover:text-white transition-colors font-mono uppercase tracking-widest">Open full feed →</button>
+                                <button data-click="TOC.navigate" data-click-args='["announcements"]' class="text-[10px] text-theme hover:text-white transition-colors font-mono uppercase tracking-widest">Open full feed →</button>
                             </div>
                         </div>
                         <div id="overview-tournament-feed" class="divide-y divide-dc-border/30 flex-1 overflow-y-auto">
@@ -669,7 +669,7 @@
 
                 {# ── S1-F3: Transition modal (hidden by default) ── #}
                 <div id="modal-transition" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
-                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-transition').classList.add('hidden')"></div>
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md"  data-click-hide="modal-transition"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
                         <div class="h-1 w-full bg-theme"></div>
                         <div class="p-6">
@@ -681,12 +681,12 @@
                             </div>
 
                             <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 mb-5">
-                                <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (optional)</label>
+                                <label for="transition-reason" class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (optional)</label>
                                 <input id="transition-reason" type="text" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-theme outline-none" placeholder="Why are you making this transition?">
                             </div>
 
                             <div class="flex gap-3">
-                                <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors" onclick="document.getElementById('modal-transition').classList.add('hidden')">Cancel</button>
+                                <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors"  data-click-hide="modal-transition">Cancel</button>
                                 <button id="btn-confirm-transition" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all shadow-[0_0_15px_var(--color-primary-muted)] disabled:opacity-30 disabled:cursor-not-allowed" disabled>Confirm Transition</button>
                             </div>
                         </div>
@@ -704,7 +704,7 @@
                 <div class="glass-box rounded-xl p-4 flex flex-wrap items-center gap-3">
                     {# Status dropdown #}
                     <div class="relative">
-                        <select id="filter-status" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[140px]">
+                        <select id="filter-status" aria-label="Filter by status" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[140px]">
                             <option value="">All Statuses</option>
                             <option value="active">Active</option>
                             <option value="pending">Pending</option>
@@ -723,7 +723,7 @@
 
                     {# Payment dropdown #}
                     <div class="relative">
-                        <select id="filter-payment" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[140px]">
+                        <select id="filter-payment" aria-label="Filter by payment" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[140px]">
                             <option value="">All Payments</option>
                             <option value="verified">Verified</option>
                             <option value="pending">Pending</option>
@@ -734,7 +734,7 @@
 
                     {# Check-in toggle #}
                     <div class="relative">
-                        <select id="filter-checkin" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[130px]">
+                        <select id="filter-checkin" aria-label="Filter by check-in status" class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[130px]">
                             <option value="">All Check-in</option>
                             <option value="yes">Checked In</option>
                             <option value="no">Not Checked In</option>
@@ -745,7 +745,7 @@
                     {# Search #}
                     <div class="relative flex-1 min-w-[200px]">
                         <i data-lucide="search" class="w-3.5 h-3.5 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                        <input id="filter-search" type="text" placeholder="Search by name, username, reg #..."
+                        <input id="filter-search" type="text" aria-label="Search participants" placeholder="Search by name, username, reg #..."
                                class="toc-input text-xs bg-dc-panel border border-dc-border rounded-lg pl-9 pr-3 py-2 text-dc-textBright w-full placeholder:text-dc-text/40">
                     </div>
 
@@ -755,16 +755,16 @@
                     {# S2-F4: Bulk action dropdown (visible when rows selected) #}
                     <div id="bulk-action-bar" class="hidden flex items-center gap-2">
                         <span id="bulk-count" class="text-[10px] font-bold text-theme font-mono">0 selected</span>
-                        <button onclick="TOC.participants.bulkAction('approve')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">Approve</button>
-                        <button onclick="TOC.participants.bulkAction('reject')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors">Reject</button>
-                        <button onclick="TOC.participants.bulkAction('checkin')" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-info/10 border border-dc-info/20 text-dc-info text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-info/20 transition-colors">Check-In</button>
-                        <button onclick="TOC.navigate('checkin')" class="text-[10px] text-dc-text/50 hover:text-theme transition-colors flex items-center gap-1 ml-1" title="Full check-in session management">
+                        <button data-click="TOC.participants.bulkAction" data-click-args='["approve"]' data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">Approve</button>
+                        <button data-click="TOC.participants.bulkAction" data-click-args='["reject"]' data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors">Reject</button>
+                        <button data-click="TOC.participants.bulkAction" data-click-args='["checkin"]' data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-info/10 border border-dc-info/20 text-dc-info text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-info/20 transition-colors">Check-In</button>
+                        <button data-click="TOC.navigate" data-click-args='["checkin"]' class="text-[10px] text-dc-text/50 hover:text-theme transition-colors flex items-center gap-1 ml-1" title="Full check-in session management">
                             <i data-lucide="arrow-right" class="w-3 h-3"></i> Full Check-In
                         </button>
                     </div>
 
                     {# S2-F9: Export button #}
-                    <button onclick="TOC.participants.exportCSV()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                    <button data-click="TOC.participants.exportCSV" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
                         Export
                     </button>
@@ -777,7 +777,7 @@
                             <thead>
                                 <tr class="border-b border-dc-border bg-dc-panel/50">
                                     <th class="px-3 py-3 text-left w-10">
-                                        <input id="select-all" type="checkbox" class="toc-checkbox" onclick="TOC.participants.toggleSelectAll(this)">
+                                        <input id="select-all" type="checkbox" aria-label="Select all participants" class="toc-checkbox" data-click="TOC.participants.toggleSelectAll" data-click-pass-el>
                                     </th>
                                     <th class="px-3 py-3 text-left">
                                         <button class="sort-header flex items-center gap-1 text-[10px] font-bold text-dc-text uppercase tracking-widest hover:text-white transition-colors" data-sort="user__username">
@@ -835,7 +835,7 @@
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Emergency Substitutions</h3>
                             <span id="esub-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
-                        <button onclick="TOC.participantsAdv.refreshEmergencySubs()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
+                        <button data-click="TOC.participantsAdv.refreshEmergencySubs" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
                         </button>
                     </div>
@@ -857,7 +857,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="relative">
-                                <select id="fa-status-filter" class="toc-input text-[10px] bg-dc-bg border border-dc-border rounded px-2 py-1 text-dc-textBright appearance-none pr-6 min-w-[100px]" onchange="TOC.participantsAdv.refreshFreeAgents()">
+                                <select id="fa-status-filter" aria-label="Filter by free agent status" class="toc-input text-[10px] bg-dc-bg border border-dc-border rounded px-2 py-1 text-dc-textBright appearance-none pr-6 min-w-[100px]" data-change="TOC.participantsAdv.refreshFreeAgents">
                                     <option value="">All</option>
                                     <option value="available">Available</option>
                                     <option value="assigned">Assigned</option>
@@ -866,7 +866,7 @@
                                 </select>
                                 <i data-lucide="chevron-down" class="w-2.5 h-2.5 text-dc-text absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                             </div>
-                            <button onclick="TOC.participantsAdv.refreshFreeAgents()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
+                            <button data-click="TOC.participantsAdv.refreshFreeAgents" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
                                 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                             </button>
                         </div>
@@ -899,10 +899,10 @@
                             <span id="waitlist-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="TOC.participantsAdv.autoPromote()" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">
+                            <button data-click="TOC.participantsAdv.autoPromote" data-cap-require="manage_registrations" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">
                                 <i data-lucide="arrow-up-circle" class="w-3 h-3 inline-block mr-1"></i> Auto-Promote
                             </button>
-                            <button onclick="TOC.participantsAdv.refreshWaitlist()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
+                            <button data-click="TOC.participantsAdv.refreshWaitlist" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
                                 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                             </button>
                         </div>
@@ -922,7 +922,7 @@
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Disqualified and Inactive</h3>
                             <span id="disqualified-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                         </div>
-                        <button onclick="TOC.participantsAdv.refreshDisqualified()" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
+                        <button data-click="TOC.participantsAdv.refreshDisqualified" class="text-[10px] text-dc-text hover:text-white transition-colors flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -977,8 +977,8 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="TOC.rbac.processEntryFee()" data-cap-require="approve_payments" class="px-3 py-1.5 border border-dc-border text-dc-text text-[10px] font-bold uppercase rounded-lg hover:bg-dc-surface transition-all">Process Fee</button>
-                        <button onclick="TOC.rbac.distributePrize()" data-cap-require="approve_payments" class="px-3 py-1.5 border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase rounded-lg hover:bg-dc-warning/10 transition-all">Distribute Prize</button>
+                        <button data-click="TOC.rbac.processEntryFee" data-cap-require="approve_payments" class="px-3 py-1.5 border border-dc-border text-dc-text text-[10px] font-bold uppercase rounded-lg hover:bg-dc-surface transition-all">Process Fee</button>
+                        <button data-click="TOC.rbac.distributePrize" data-cap-require="approve_payments" class="px-3 py-1.5 border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase rounded-lg hover:bg-dc-warning/10 transition-all">Distribute Prize</button>
                     </div>
                 </div>
 
@@ -1000,11 +1000,11 @@
                             <div class="flex items-center gap-3">
                                 <div class="relative flex-1 max-w-md">
                                     <i data-lucide="hash" class="w-3.5 h-3.5 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                                    <input id="qv-input" type="text" placeholder="Transaction ID or sender phone number…"
+                                    <input id="qv-input" type="text" aria-label="Quick verify lookup" placeholder="Transaction ID or sender phone number…"
                                            class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg pl-9 pr-3 py-2.5 text-dc-textBright w-full placeholder:text-dc-text/40 focus:border-theme focus:ring-1 focus:ring-theme/30 outline-none"
-                                           onkeyup="TOC.payments._qvDebounce()">
+                                           data-keyup="TOC.payments._qvDebounce">
                                 </div>
-                                <button onclick="TOC.payments.qvSearch()" class="px-4 py-2.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
+                                <button data-click="TOC.payments.qvSearch" class="px-4 py-2.5 bg-theme/10 border border-theme/20 text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
                                     <i data-lucide="search" class="w-3.5 h-3.5"></i> Lookup
                                 </button>
                             </div>
@@ -1022,7 +1022,7 @@
                         </div>
 
                         <div class="relative">
-                            <select id="pay-filter-status" class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[130px]" onchange="TOC.payments.refresh()">
+                            <select id="pay-filter-status" aria-label="Filter by payment status" class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[130px]" data-change="TOC.payments.refresh">
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="submitted">Submitted</option>
@@ -1035,7 +1035,7 @@
                         </div>
 
                         <div class="relative">
-                            <select id="pay-filter-method" class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[120px]" onchange="TOC.payments.refresh()">
+                            <select id="pay-filter-method" aria-label="Filter by payment method" class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-dc-textBright appearance-none pr-8 min-w-[120px]" data-change="TOC.payments.refresh">
                                 <option value="">All Methods</option>
                                 <option value="bkash">bKash</option>
                                 <option value="nagad">Nagad</option>
@@ -1048,9 +1048,9 @@
 
                         <div class="relative flex-1 min-w-[160px]">
                             <i data-lucide="search" class="w-3.5 h-3.5 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                            <input id="pay-filter-search" type="text" placeholder="Search by txn ID, phone, name..."
+                            <input id="pay-filter-search" type="text" aria-label="Search payments" placeholder="Search by txn ID, phone, name..."
                                    class="toc-input text-xs bg-dc-bg border border-dc-border rounded-lg pl-9 pr-3 py-2 text-dc-textBright w-full placeholder:text-dc-text/40"
-                                   onkeyup="TOC.payments._searchDebounce()">
+                                   data-keyup="TOC.payments._searchDebounce">
                         </div>
 
                         <div class="flex-1"></div>
@@ -1058,11 +1058,11 @@
                         {# Bulk verify #}
                         <div id="pay-bulk-bar" class="hidden flex items-center gap-2">
                             <span id="pay-bulk-count" class="text-[10px] font-bold text-theme font-mono">0 selected</span>
-                            <button onclick="TOC.payments.bulkVerify()" data-cap-require="approve_payments" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">Bulk Verify</button>
+                            <button data-click="TOC.payments.bulkVerify" data-cap-require="approve_payments" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors">Bulk Verify</button>
                         </div>
 
                         {# Export #}
-                        <button onclick="TOC.payments.exportCSV()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                        <button data-click="TOC.payments.exportCSV" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
                         </button>
                     </div>
@@ -1073,7 +1073,7 @@
                             <thead>
                                 <tr class="border-b border-dc-border bg-dc-panel/50">
                                     <th class="px-3 py-3 text-left w-10">
-                                        <input id="pay-select-all" type="checkbox" class="toc-checkbox" onclick="TOC.payments.toggleSelectAll(this)">
+                                        <input id="pay-select-all" type="checkbox" aria-label="Select all payments" class="toc-checkbox" data-click="TOC.payments.toggleSelectAll" data-click-pass-el>
                                     </th>
                                     <th class="px-3 py-3 text-left text-[10px] font-bold text-dc-text uppercase tracking-widest">Participant</th>
                                     <th class="px-3 py-3 text-right text-[10px] font-bold text-dc-text uppercase tracking-widest">Amount</th>
@@ -1112,7 +1112,7 @@
                                 <i data-lucide="trophy" class="w-4 h-4 text-dc-warning"></i>
                                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Prize Distribution</h3>
                             </div>
-                            <button onclick="TOC.payments.refreshPrizePool()" class="text-[10px] text-dc-text hover:text-white transition-colors">
+                            <button data-click="TOC.payments.refreshPrizePool" class="text-[10px] text-dc-text hover:text-white transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                             </button>
                         </div>
@@ -1129,7 +1129,7 @@
                                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Bounties</h3>
                                 <span id="bounty-count" class="text-[10px] font-mono text-dc-text bg-dc-bg px-2 py-0.5 rounded border border-dc-border hidden">0</span>
                             </div>
-                            <button onclick="TOC.payments.openCreateBountyDrawer()" data-cap-require="approve_payments" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme hover:text-dc-bg transition-all">
+                            <button data-click="TOC.payments.openCreateBountyDrawer" data-cap-require="approve_payments" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-theme hover:text-dc-bg transition-all">
                                 <i data-lucide="plus" class="w-3 h-3 inline-block mr-1"></i> New
                             </button>
                         </div>
@@ -1141,7 +1141,7 @@
 
                 {# ── S4-F6: Refund modal ── #}
                 <div id="modal-refund" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
-                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-refund').classList.add('hidden')"></div>
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md"  data-click-hide="modal-refund"></div>
                     <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
                         <div class="h-1 w-full bg-dc-danger"></div>
                         <div class="p-6">
@@ -1153,8 +1153,8 @@
                             </div>
                             <input type="hidden" id="refund-payment-id" value="">
                             <div class="flex gap-3">
-                                <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors" onclick="document.getElementById('modal-refund').classList.add('hidden')">Cancel</button>
-                                <button class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors" data-cap-require="approve_payments" onclick="TOC.payments.confirmRefund()">Process Refund</button>
+                                <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors"  data-click-hide="modal-refund">Cancel</button>
+                                <button class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors" data-cap-require="approve_payments" data-click="TOC.payments.confirmRefund">Process Refund</button>
                             </div>
                         </div>
                     </div>
@@ -1177,27 +1177,27 @@
 
                 {# ── Sub-Navigation Pills ── #}
                 <div id="brackets-subnav" class="flex items-center gap-2 border-b border-dc-border/30 pb-4">
-                    <button data-subtab="groups" onclick="TOC.brackets.switchSubTab('groups')"
+                    <button data-subtab="groups" data-click="TOC.brackets.switchSubTab" data-click-args='["groups"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Group Stage
                     </button>
-                    <button data-subtab="swiss" onclick="TOC.brackets.switchSubTab('swiss')"
+                    <button data-subtab="swiss" data-click="TOC.brackets.switchSubTab" data-click-args='["swiss"]'
                         class="brackets-pill hidden px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="rows-3" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Swiss Standings
                     </button>
-                    <button data-subtab="bracket" onclick="TOC.brackets.switchSubTab('bracket')"
+                    <button data-subtab="bracket" data-click="TOC.brackets.switchSubTab" data-click-args='["bracket"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="git-branch" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Playoff Bracket
                     </button>
-                    <button data-subtab="schedule" onclick="TOC.brackets.switchSubTab('schedule')"
+                    <button data-subtab="schedule" data-click="TOC.brackets.switchSubTab" data-click-args='["schedule"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Schedule
                     </button>
-                    <button data-subtab="pipelines" onclick="TOC.brackets.switchSubTab('pipelines')"
+                    <button data-subtab="pipelines" data-click="TOC.brackets.switchSubTab" data-click-args='["pipelines"]'
                         class="brackets-pill px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200
                                border border-dc-border text-dc-text hover:text-white hover:border-dc-borderLight">
                         <i data-lucide="git-merge" class="w-3.5 h-3.5 inline-block mr-1.5 align-[-3px]"></i>Qualifier Pipelines
@@ -1210,13 +1210,13 @@
                     <div class="flex items-center justify-between mb-6">
                         <div id="groups-stage-meta" class="text-[10px] font-mono text-dc-text uppercase tracking-widest"></div>
                         <div class="flex items-center gap-2">
-                            <button onclick="TOC.brackets.openGroupConfig()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                            <button data-click="TOC.brackets.openGroupConfig" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i>Configure
                             </button>
-                            <button id="btn-group-draw" onclick="TOC.brackets.drawGroups()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
+                            <button id="btn-group-draw" data-click="TOC.brackets.drawGroups" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-theme border border-theme/20 rounded-lg hover:bg-theme/10 transition-colors">
                                 <i data-lucide="shuffle" class="w-3 h-3 inline mr-1"></i>Draw
                             </button>
-                            <button id="btn-group-generate-matches" onclick="TOC.brackets.generateGroupMatches()" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
+                            <button id="btn-group-generate-matches" data-click="TOC.brackets.generateGroupMatches" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors">
                                 <i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Generate Matches
                             </button>
                             <a href="{% url 'tournaments:group_draw_director' slug=tournament.slug %}" target="_blank"
@@ -1224,10 +1224,10 @@
                                class="px-3 py-1.5 text-[10px] font-bold text-emerald-400 border border-emerald-400/20 rounded-lg hover:bg-emerald-400/10 transition-colors inline-flex items-center">
                                 <i data-lucide="tv" class="w-3 h-3 inline mr-1"></i>Live Draw Ceremony
                             </a>
-                            <button id="btn-group-reset" onclick="TOC.brackets.resetGroups()" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
+                            <button id="btn-group-reset" data-click="TOC.brackets.resetGroups" data-cap-require="manage_brackets" class="hidden px-3 py-1.5 text-[10px] font-bold text-dc-danger border border-dc-danger/20 rounded-lg hover:bg-dc-danger/10 transition-colors">
                                 <i data-lucide="rotate-ccw" class="w-3 h-3 inline mr-1"></i>Reset Draw
                             </button>
-                            <button onclick="TOC.brackets.recalcStandings()" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                            <button data-click="TOC.brackets.recalcStandings" data-cap-require="manage_brackets" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Recalculate
                             </button>
                         </div>
@@ -1245,10 +1245,10 @@
                             <span id="swiss-complete-badge" class="hidden text-xs font-bold px-2 py-0.5 rounded-full bg-dc-success/20 text-dc-success border border-dc-success/20">Tournament Complete</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="TOC.brackets.refreshSwiss()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                            <button data-click="TOC.brackets.refreshSwiss" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Refresh
                             </button>
-                            <button id="btn-swiss-advance" onclick="TOC.brackets.advanceSwissRound()" data-cap-require="manage_brackets"
+                            <button id="btn-swiss-advance" data-click="TOC.brackets.advanceSwissRound" data-cap-require="manage_brackets"
                                 class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
                                 <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i> Advance Round
                             </button>
@@ -1274,19 +1274,19 @@
                             <span>Status: <strong id="bracket-status" class="font-bold">—</strong></span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="TOC.brackets.generate()" id="btn-bracket-generate" data-cap-require="manage_brackets"
+                            <button data-click="TOC.brackets.generate" id="btn-bracket-generate" data-cap-require="manage_brackets"
                                 class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                                 <i data-lucide="zap" class="w-3.5 h-3.5"></i> Generate
                             </button>
-                            <button onclick="TOC.brackets.resetBracket()" id="btn-bracket-reset" data-cap-require="manage_brackets"
+                            <button data-click="TOC.brackets.resetBracket" id="btn-bracket-reset" data-cap-require="manage_brackets"
                                 class="px-4 py-2 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-1.5">
                                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
                             </button>
-                            <button onclick="TOC.brackets.publish()" id="btn-bracket-publish" data-cap-require="manage_brackets"
+                            <button data-click="TOC.brackets.publish" id="btn-bracket-publish" data-cap-require="manage_brackets"
                                 class="px-4 py-2 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-1.5">
                                 <i data-lucide="send" class="w-3.5 h-3.5"></i> Publish
                             </button>
-                            <button onclick="TOC.brackets.shareBracket()" id="btn-bracket-share"
+                            <button data-click="TOC.brackets.shareBracket" id="btn-bracket-share"
                                 class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Share public bracket link & embed code">
                                 <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
                             </button>
@@ -1301,7 +1301,7 @@
                                 <i data-lucide="list-ordered" class="w-4 h-4 text-dc-warning"></i>
                                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Seeding Order</h3>
                             </div>
-                            <button onclick="TOC.brackets.saveSeedOrder()" data-cap-require="manage_brackets" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold rounded-lg hover:bg-theme hover:text-dc-bg transition-all">Save Order</button>
+                            <button data-click="TOC.brackets.saveSeedOrder" data-cap-require="manage_brackets" class="px-3 py-1.5 bg-theme-surface border border-theme-border text-theme text-[10px] font-bold rounded-lg hover:bg-theme hover:text-dc-bg transition-all">Save Order</button>
                         </div>
                         <div id="seed-list" class="p-4 space-y-1 max-h-[400px] overflow-y-auto"></div>
                     </div>
@@ -1313,7 +1313,7 @@
                     <div class="flex items-center justify-between mb-6">
                         <div class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Match Schedule</div>
                         <div class="flex items-center gap-2">
-                            <button onclick="TOC.brackets.refreshSchedule()" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
+                            <button data-click="TOC.brackets.refreshSchedule" class="px-3 py-1.5 text-[10px] font-bold text-dc-text border border-dc-border rounded-lg hover:text-white hover:border-dc-borderLight transition-colors">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i>Refresh
                             </button>
                         </div>
@@ -1327,7 +1327,7 @@
                     {# Action bar #}
                     <div class="flex items-center justify-between mb-6">
                         <div class="text-[10px] font-mono text-dc-text uppercase tracking-widest">Qualifier Pipelines</div>
-                        <button onclick="TOC.brackets.openCreatePipeline()" data-cap-require="manage_brackets" class="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5">
+                        <button data-click="TOC.brackets.openCreatePipeline" data-cap-require="manage_brackets" class="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Pipeline
                         </button>
                     </div>
@@ -1376,7 +1376,7 @@
                             <div id="match-group-pills" class="flex flex-wrap gap-1.5" role="toolbar" aria-label="Group filter"></div>
                             {# State + Round + Search #}
                             <div class="flex items-center gap-2">
-                                <select id="match-filter-state" onchange="TOC.matches.refresh()" aria-label="Filter by state" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
+                                <select id="match-filter-state" data-change="TOC.matches.refresh" aria-label="Filter by state" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
                                     <option value="">All States</option>
                                     <option value="scheduled">Scheduled</option>
                                     <option value="check_in">Check-in</option>
@@ -1387,11 +1387,11 @@
                                     <option value="disputed">Disputed</option>
                                     <option value="forfeit">Forfeit</option>
                                 </select>
-                                <select id="match-filter-round" onchange="TOC.matches.refresh()" aria-label="Filter by round" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
+                                <select id="match-filter-round" data-change="TOC.matches.refresh" aria-label="Filter by round" class="flex-1 bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-2.5 py-2 focus:border-theme outline-none">
                                     <option value="">All Rounds</option>
                                 </select>
                             </div>
-                            <input id="match-search" type="text" placeholder="Search team or match #..." oninput="TOC.matches.debouncedRefresh()" aria-label="Search matches" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-3 py-2 focus:border-theme outline-none">
+                            <input id="match-search" type="text" placeholder="Search team or match #..." data-input="TOC.matches.debouncedRefresh" aria-label="Search matches" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-xs rounded-lg px-3 py-2 focus:border-theme outline-none">
                         </div>
 
                         {# Scrollable match list #}
@@ -1408,14 +1408,14 @@
                                 <button
                                     id="match-page-prev"
                                     type="button"
-                                    onclick="TOC.matches.prevPage()"
+                                    data-click="TOC.matches.prevPage"
                                     class="px-2.5 py-1 rounded border border-dc-border text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white hover:border-dc-borderLight transition-colors"
                                 >Prev</button>
                                 <span id="match-page-info" class="text-[10px] font-mono text-dc-text">Page 1 / 1</span>
                                 <button
                                     id="match-page-next"
                                     type="button"
-                                    onclick="TOC.matches.nextPage()"
+                                    data-click="TOC.matches.nextPage"
                                     class="px-2.5 py-1 rounded border border-dc-border text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white hover:border-dc-borderLight transition-colors"
                                 >Next</button>
                             </div>
@@ -1442,7 +1442,7 @@
                                 <div class="flex items-center justify-between mb-3">
                                     <div class="flex items-center gap-2">
                                         <span id="detail-match-id" class="text-xs font-mono text-dc-text uppercase tracking-widest">Match #—</span>
-                                        <button id="detail-back-btn" onclick="TOC.matches.clearDetail()" class="lg:hidden px-2 py-1 text-xs text-dc-text hover:text-white transition-colors" aria-label="Back to match list">
+                                        <button id="detail-back-btn" data-click="TOC.matches.clearDetail" class="lg:hidden px-2 py-1 text-xs text-dc-text hover:text-white transition-colors" aria-label="Back to match list">
                                             <i data-lucide="arrow-left" class="w-4 h-4 inline-block"></i> Back
                                         </button>
                                     </div>
@@ -1491,7 +1491,7 @@
                                             <span id="detail-lobby-code" class="font-mono text-dc-textBright hidden">
                                                 <i data-lucide="key-round" class="w-3.5 h-3.5 inline-block text-theme mr-1"></i>
                                                 Code: <strong class="text-white"></strong>
-                                                <button onclick="TOC.matches.copyLobbyCode()" class="ml-1 text-dc-text hover:text-theme transition-colors" title="Copy code"><i data-lucide="copy" class="w-3 h-3 inline-block"></i></button>
+                                                <button data-click="TOC.matches.copyLobbyCode" class="ml-1 text-dc-text hover:text-theme transition-colors" title="Copy code"><i data-lucide="copy" class="w-3 h-3 inline-block"></i></button>
                                             </span>
                                             <span id="detail-lobby-map" class="text-dc-text hidden">
                                                 <i data-lucide="map" class="w-3.5 h-3.5 inline-block text-theme mr-1"></i>
@@ -1523,16 +1523,16 @@
                             {# Detail tabs — Score Editor / Evidence / Audit #}
                             <div class="border-b border-dc-borderLight shrink-0 overflow-x-auto" role="tablist" aria-label="Match detail tabs">
                                 <div class="flex">
-                                    <button onclick="TOC.matches.switchDetailTab('score')" class="detail-tab active flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="score" role="tab" aria-selected="true" aria-controls="detail-tab-score">
+                                    <button data-click="TOC.matches.switchDetailTab" data-click-args='["score"]' class="detail-tab active flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="score" role="tab" aria-selected="true" aria-controls="detail-tab-score">
                                         <i data-lucide="edit-3" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Score
                                     </button>
-                                    <button onclick="TOC.matches.switchDetailTab('evidence')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="evidence" role="tab" aria-selected="false" aria-controls="detail-tab-evidence">
+                                    <button data-click="TOC.matches.switchDetailTab" data-click-args='["evidence"]' class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="evidence" role="tab" aria-selected="false" aria-controls="detail-tab-evidence">
                                         <i data-lucide="image" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Evidence
                                     </button>
-                                    <button onclick="TOC.matches.switchDetailTab('audit')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="audit" role="tab" aria-selected="false" aria-controls="detail-tab-audit">
+                                    <button data-click="TOC.matches.switchDetailTab" data-click-args='["audit"]' class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="audit" role="tab" aria-selected="false" aria-controls="detail-tab-audit">
                                         <i data-lucide="scroll-text" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Audit
                                     </button>
-                                    <button onclick="TOC.matches.switchDetailTab('veto')" class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="veto" role="tab" aria-selected="false" aria-controls="detail-tab-veto">
+                                    <button data-click="TOC.matches.switchDetailTab" data-click-args='["veto"]' class="detail-tab flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest text-center transition-colors border-b-2 border-transparent text-dc-text hover:text-white" data-detail-tab="veto" role="tab" aria-selected="false" aria-controls="detail-tab-veto">
                                         <i data-lucide="shield-ban" class="w-3.5 h-3.5 inline-block mr-1.5"></i>Veto
                                     </button>
                                 </div>
@@ -1548,9 +1548,9 @@
                                     <div class="flex items-center gap-3 pb-3 border-b border-dc-border/30">
                                         <span class="text-xs font-bold text-dc-text uppercase tracking-widest">Format</span>
                                         <div class="flex items-center gap-1">
-                                            <button onclick="TOC.matches.setBestOf(1)" id="bo-btn-1" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="1">BO1</button>
-                                            <button onclick="TOC.matches.setBestOf(3)" id="bo-btn-3" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="3">BO3</button>
-                                            <button onclick="TOC.matches.setBestOf(5)" id="bo-btn-5" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="5">BO5</button>
+                                            <button data-click="TOC.matches.setBestOf" data-click-args='[1]' id="bo-btn-1" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="1">BO1</button>
+                                            <button data-click="TOC.matches.setBestOf" data-click-args='[3]' id="bo-btn-3" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="3">BO3</button>
+                                            <button data-click="TOC.matches.setBestOf" data-click-args='[5]' id="bo-btn-5" class="bo-btn px-3 py-1.5 rounded-lg text-xs font-bold border border-dc-border bg-dc-surface text-dc-text hover:border-theme/40 hover:text-theme transition-colors" data-bo="5">BO5</button>
                                         </div>
                                         <span id="series-progress-label" class="ml-auto text-xs text-dc-text/60 font-mono hidden"></span>
                                     </div>
@@ -1558,7 +1558,7 @@
                                     {# BO3/BO5: Game-by-game scorecard #}
                                     <div id="series-scorecard" class="hidden space-y-2">
                                         <div id="series-games-list" class="space-y-2"></div>
-                                        <button onclick="TOC.matches.openAddGameScore()" class="w-full py-2 rounded-lg border border-dashed border-dc-border text-xs text-dc-text/60 hover:border-theme/40 hover:text-theme transition-colors flex items-center justify-center gap-1.5">
+                                        <button data-click="TOC.matches.openAddGameScore" class="w-full py-2 rounded-lg border border-dashed border-dc-border text-xs text-dc-text/60 hover:border-theme/40 hover:text-theme transition-colors flex items-center justify-center gap-1.5">
                                             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Game Score
                                         </button>
                                     </div>
@@ -1645,10 +1645,10 @@
                                             <span id="veto-step-label" class="text-xs text-dc-text font-mono hidden"></span>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <button id="veto-create-btn" onclick="TOC.matches.createVetoSession()" class="px-3 py-1.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
+                                            <button id="veto-create-btn" data-click="TOC.matches.createVetoSession" class="px-3 py-1.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-1.5">
                                                 <i data-lucide="play" class="w-3.5 h-3.5"></i> Start Veto
                                             </button>
-                                            <button id="veto-reset-btn" onclick="TOC.matches.resetVetoSession()" class="hidden px-3 py-1.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-1.5">
+                                            <button id="veto-reset-btn" data-click="TOC.matches.resetVetoSession" class="hidden px-3 py-1.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-1.5">
                                                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
                                             </button>
                                         </div>
@@ -1691,31 +1691,31 @@
                             <div id="match-action-row" class="p-4 border-t border-dc-borderLight bg-dc-panel/50 shrink-0">
                                 <div class="flex items-center gap-2.5 flex-wrap">
                                     {# Primary actions #}
-                                    <button onclick="TOC.matches.submitScore()" class="px-5 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Confirm match result">
+                                    <button data-click="TOC.matches.submitScore" class="px-5 py-2.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-success/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Confirm match result">
                                         <i data-lucide="check" class="w-4 h-4"></i> Confirm Result
                                     </button>
-                                    <button onclick="TOC.matches.openVerifyScreen()" class="px-5 py-2.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open verification screen">
+                                    <button data-click="TOC.matches.openVerifyScreen" class="px-5 py-2.5 bg-theme/10 border border-theme/20 text-theme text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-theme/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open verification screen">
                                         <i data-lucide="shield-check" class="w-4 h-4"></i> Verify
                                     </button>
                                     {# Danger zone #}
-                                    <button onclick="TOC.matches.openDispute()" class="px-5 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open dispute">
+                                    <button data-click="TOC.matches.openDispute" class="px-5 py-2.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-danger/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Open dispute">
                                         <i data-lucide="flag" class="w-4 h-4"></i> Dispute
                                     </button>
-                                    <button onclick="TOC.matches.resetMatch()" class="px-5 py-2.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Reset match">
+                                    <button data-click="TOC.matches.resetMatch" class="px-5 py-2.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/20 transition-colors flex items-center gap-2 min-h-[36px]" aria-label="Reset match">
                                         <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
                                     </button>
                                     <div class="flex-1"></div>
                                     {# Match Medic quick actions #}
-                                    <button id="btn-medic-live" onclick="TOC.matches.markLive()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Mark Live" aria-label="Mark match as live">
+                                    <button id="btn-medic-live" data-click="TOC.matches.markLive" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Mark Live" aria-label="Mark match as live">
                                         <i data-lucide="play" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-pause" onclick="TOC.matches.pause()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-warning hover:border-dc-warning/30 transition-colors hidden min-h-[36px]" title="Pause" aria-label="Pause match">
+                                    <button id="btn-medic-pause" data-click="TOC.matches.pause" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-warning hover:border-dc-warning/30 transition-colors hidden min-h-[36px]" title="Pause" aria-label="Pause match">
                                         <i data-lucide="pause" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-resume" onclick="TOC.matches.resume()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Resume" aria-label="Resume match">
+                                    <button id="btn-medic-resume" data-click="TOC.matches.resume" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-success hover:border-dc-success/30 transition-colors hidden min-h-[36px]" title="Resume" aria-label="Resume match">
                                         <i data-lucide="play-circle" class="w-4 h-4"></i>
                                     </button>
-                                    <button id="btn-medic-force" onclick="TOC.matches.forceComplete()" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-danger hover:border-dc-danger/30 transition-colors hidden min-h-[36px]" title="Force Complete" aria-label="Force complete match">
+                                    <button id="btn-medic-force" data-click="TOC.matches.forceComplete" class="px-4 py-2.5 bg-dc-bg border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:text-dc-danger hover:border-dc-danger/30 transition-colors hidden min-h-[36px]" title="Force Complete" aria-label="Force complete match">
                                         <i data-lucide="square" class="w-4 h-4"></i>
                                     </button>
                                 </div>
@@ -1727,7 +1727,7 @@
 
                 {# Broadcast Stations (collapsed below) #}
                 <div class="glass-box rounded-xl overflow-hidden mt-5">
-                    <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('[data-lucide]').style.transform = this.nextElementSibling.classList.contains('hidden') ? '' : 'rotate(180deg)'" class="w-full p-4 flex items-center justify-between bg-dc-panel/50 hover:bg-dc-panel/80 transition-colors">
+                    <button data-click="TOC.toggleCollapsible" data-click-pass-el class="w-full p-4 flex items-center justify-between bg-dc-panel/50 hover:bg-dc-panel/80 transition-colors">
                         <div class="flex items-center gap-2">
                             <i data-lucide="radio" class="w-4 h-4 text-theme"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Broadcast Stations</h3>
@@ -1741,7 +1741,7 @@
 
                 {# Dispute Modal (replaces prompt()) #}
                 <div id="dispute-modal" class="fixed inset-0 z-[110] hidden">
-                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeDisputeModal()"></div>
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.matches.closeDisputeModal"></div>
                     <div class="absolute inset-0 flex items-center justify-center p-4">
                         <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
                             <div class="h-1 w-full bg-dc-danger"></div>
@@ -1771,8 +1771,8 @@
                                     <textarea id="dispute-description" rows="3" class="w-full bg-dc-bg border border-dc-border text-dc-textBright text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none resize-none" placeholder="Describe the issue..."></textarea>
                                 </div>
                                 <div class="flex gap-3">
-                                    <button onclick="TOC.matches.closeDisputeModal()" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-                                    <button onclick="TOC.matches.confirmDispute()" class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Open Dispute</button>
+                                    <button data-click="TOC.matches.closeDisputeModal" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+                                    <button data-click="TOC.matches.confirmDispute" class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Open Dispute</button>
                                 </div>
                             </div>
                         </div>
@@ -1781,7 +1781,7 @@
 
                 {# Lobby Editor Modal #}
                 <div id="lobby-editor-modal" class="fixed inset-0 z-[110] hidden">
-                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.matches.closeLobbyEditor()"></div>
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.matches.closeLobbyEditor"></div>
                     <div class="absolute inset-0 flex items-center justify-center p-4">
                         <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
                             <div class="h-1 w-full bg-theme"></div>
@@ -1820,8 +1820,8 @@
                                     <input id="lobby-gamemode-input" type="text" class="w-full bg-dc-bg border border-dc-border text-white text-sm rounded-lg px-3 py-2.5 focus:border-theme outline-none" placeholder="e.g. Competitive">
                                 </div>
                                 <div class="flex gap-3">
-                                    <button onclick="TOC.matches.closeLobbyEditor()" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-                                    <button onclick="TOC.matches.saveLobbyInfo()" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Lobby</button>
+                                    <button data-click="TOC.matches.closeLobbyEditor" class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+                                    <button data-click="TOC.matches.saveLobbyInfo" class="flex-1 py-2.5 bg-theme text-dc-bg text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Lobby</button>
                                 </div>
                             </div>
                         </div>
@@ -1844,25 +1844,25 @@
                         <p id="schedule-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.schedule.openUserGuide()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Schedule Guide">
+                        <button data-click="TOC.schedule.openUserGuide" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Schedule Guide">
                             <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guide
                         </button>
-                        <button onclick="TOC.schedule.exportICS()" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Download schedule as iCalendar (.ics)">
+                        <button data-click="TOC.schedule.exportICS" class="px-3 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5" title="Download schedule as iCalendar (.ics)">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i> Export .ics
                         </button>
-                        <button onclick="TOC.schedule.sendReminders()" data-cap-require="manage_brackets" class="px-3 py-2 bg-dc-panel border border-dc-warning/40 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1.5" title="Send reminders for upcoming matches">
+                        <button data-click="TOC.schedule.sendReminders" data-cap-require="manage_brackets" class="px-3 py-2 bg-dc-panel border border-dc-warning/40 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1.5" title="Send reminders for upcoming matches">
                             <i data-lucide="bell" class="w-3.5 h-3.5"></i> Notify Participants
                         </button>
-                        <button onclick="TOC.schedule.openParticipantRescheduleSettings()" data-cap-require="manage_brackets" class="px-3 py-2 bg-dc-panel border border-dc-info/40 text-dc-info text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-info/10 transition-colors flex items-center gap-1.5" title="Configure participant match reschedule negotiation settings">
+                        <button data-click="TOC.schedule.openParticipantRescheduleSettings" data-cap-require="manage_brackets" class="px-3 py-2 bg-dc-panel border border-dc-info/40 text-dc-info text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-dc-info/10 transition-colors flex items-center gap-1.5" title="Configure participant match reschedule negotiation settings">
                             <i data-lucide="handshake" class="w-3.5 h-3.5"></i> Participant Reschedule
                         </button>
-                        <button onclick="TOC.schedule.openAutoSchedule()" data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                        <button data-click="TOC.schedule.openAutoSchedule" data-cap-require="manage_brackets" class="px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Schedule
                         </button>
-                        <button onclick="TOC.schedule.openBulkShift()" data-cap-require="manage_brackets" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                        <button data-click="TOC.schedule.openBulkShift" data-cap-require="manage_brackets" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
                             <i data-lucide="clock" class="w-3.5 h-3.5"></i> Bulk Shift
                         </button>
-                        <button onclick="TOC.schedule.openAddBreak()" data-cap-require="manage_brackets" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                        <button data-click="TOC.schedule.openAddBreak" data-cap-require="manage_brackets" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5">
                             <i data-lucide="coffee" class="w-3.5 h-3.5"></i> Add Break
                         </button>
                     </div>
@@ -1902,13 +1902,13 @@
                 <div class="flex flex-col lg:flex-row items-start lg:items-center gap-3">
                     {# View mode toggles #}
                     <div class="flex items-center gap-1.5 bg-dc-panel rounded-lg p-1 border border-dc-border">
-                        <button id="btn-view-timeline" onclick="TOC.schedule.setViewMode('timeline')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-theme text-dc-bg border-theme" title="Timeline View (Ctrl+1)">
+                        <button id="btn-view-timeline" data-click="TOC.schedule.setViewMode" data-click-args='["timeline"]' class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-theme text-dc-bg border-theme" title="Timeline View (Ctrl+1)">
                             <i data-lucide="layout-list" class="w-3.5 h-3.5"></i> Timeline
                         </button>
-                        <button id="btn-view-list" onclick="TOC.schedule.setViewMode('list')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="List View (Ctrl+2)">
+                        <button id="btn-view-list" data-click="TOC.schedule.setViewMode" data-click-args='["list"]' class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="List View (Ctrl+2)">
                             <i data-lucide="table" class="w-3.5 h-3.5"></i> List
                         </button>
-                        <button id="btn-view-calendar" onclick="TOC.schedule.setViewMode('calendar')" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="Calendar View (Ctrl+3)">
+                        <button id="btn-view-calendar" data-click="TOC.schedule.setViewMode" data-click-args='["calendar"]' class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center gap-1.5 bg-dc-panel text-dc-textBright border-dc-border" title="Calendar View (Ctrl+3)">
                             <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Calendar
                         </button>
                     </div>
@@ -1918,13 +1918,13 @@
 
                     {# Filter controls #}
                     <div class="flex flex-wrap items-center gap-2 flex-1">
-                        <select id="sched-filter-group" onchange="TOC.schedule.updateFilter('group', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                        <select id="sched-filter-group" aria-label="Filter by group"  data-change="TOC.schedule.updateFilter" data-change-args='["group"]' data-change-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
                             <option value="">All Groups</option>
                         </select>
-                        <select id="sched-filter-round" onchange="TOC.schedule.updateFilter('round', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                        <select id="sched-filter-round" aria-label="Filter by round"  data-change="TOC.schedule.updateFilter" data-change-args='["round"]' data-change-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
                             <option value="">All Rounds</option>
                         </select>
-                        <select id="sched-filter-state" onchange="TOC.schedule.updateFilter('state', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
+                        <select id="sched-filter-state" aria-label="Filter by match state"  data-change="TOC.schedule.updateFilter" data-change-args='["state"]' data-change-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-1.5 focus:border-theme outline-none min-w-[100px]">
                             <option value="">All States</option>
                             <option value="scheduled">Scheduled</option>
                             <option value="check_in">Check-in</option>
@@ -1938,17 +1938,17 @@
                         </select>
                         <div class="relative">
                             <i data-lucide="search" class="w-3 h-3 text-dc-text absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                            <input id="sched-search" type="text" placeholder="Search teams…" oninput="TOC.schedule.debouncedSearch(this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg pl-7 pr-3 py-1.5 w-44 focus:border-theme outline-none">
+                            <input id="sched-search" type="text" aria-label="Search schedule" placeholder="Search teams…" data-input="TOC.schedule.debouncedSearch" data-input-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg pl-7 pr-3 py-1.5 w-44 focus:border-theme outline-none">
                         </div>
-                        <input id="sched-date-from" type="date" title="From date" onchange="TOC.schedule.updateFilter('dateFrom', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
-                        <input id="sched-date-to" type="date" title="To date" onchange="TOC.schedule.updateFilter('dateTo', this.value)" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
-                        <button onclick="TOC.schedule.clearFilters()" class="text-[9px] text-dc-text hover:text-dc-danger transition-colors" title="Clear all filters">
+                        <input id="sched-date-from" type="date" aria-label="Schedule from date" title="From date"  data-change="TOC.schedule.updateFilter" data-change-args='["dateFrom"]' data-change-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                        <input id="sched-date-to" type="date" aria-label="Schedule to date" title="To date"  data-change="TOC.schedule.updateFilter" data-change-args='["dateTo"]' data-change-pass="value" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-2 py-1.5 focus:border-theme outline-none">
+                        <button data-click="TOC.schedule.clearFilters" class="text-[9px] text-dc-text hover:text-dc-danger transition-colors" title="Clear all filters">
                             <i data-lucide="x" class="w-3.5 h-3.5"></i>
                         </button>
                     </div>
 
                     {# Refresh #}
-                    <button onclick="TOC.schedule.refresh()" class="p-2 text-dc-text hover:text-white transition-colors rounded-lg hover:bg-white/5" title="Refresh (R)">
+                    <button data-click="TOC.schedule.refresh" class="p-2 text-dc-text hover:text-white transition-colors rounded-lg hover:bg-white/5" title="Refresh (R)">
                         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -1986,12 +1986,12 @@
                         <p class="text-xs text-dc-text mt-1 font-mono">Queue · Evidence · Rulings · Escalation</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <select id="dispute-filter-source" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
+                        <select id="dispute-filter-source" aria-label="Filter by dispute source" data-change="TOC.disputes.refresh" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
                             <option value="">All Sources</option>
                             <option value="match_dispute">Match Disputes</option>
                             <option value="hub_support">Hub Support</option>
                         </select>
-                        <select id="dispute-filter-status" onchange="TOC.disputes.refresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
+                        <select id="dispute-filter-status" aria-label="Filter by dispute status" data-change="TOC.disputes.refresh" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 focus:border-theme outline-none">
                             <option value="">All Statuses</option>
                             <option value="open">Open</option>
                             <option value="under_review">Under Review</option>
@@ -2000,7 +2000,7 @@
                             <option value="resolved_for_opponent">Resolved (Opponent)</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
-                        <input id="dispute-search" type="text" placeholder="Search..." oninput="TOC.disputes.debouncedRefresh()" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 w-40 focus:border-theme outline-none">
+                        <input id="dispute-search" type="text" aria-label="Search disputes" placeholder="Search..." data-input="TOC.disputes.debouncedRefresh" class="bg-dc-panel border border-dc-border text-dc-textBright text-[10px] rounded-lg px-3 py-2 w-40 focus:border-theme outline-none">
                     </div>
                 </div>
 
@@ -2042,7 +2042,7 @@
                             <i data-lucide="scale" class="w-4 h-4 text-theme"></i>
                             <h3 class="text-sm font-bold text-white uppercase tracking-widest">Dispute Queue</h3>
                         </div>
-                        <button onclick="TOC.disputes.refresh()" class="text-[10px] text-dc-text hover:text-white transition-colors">
+                        <button data-click="TOC.disputes.refresh" class="text-[10px] text-dc-text hover:text-white transition-colors">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -2064,10 +2064,10 @@
                         <p class="text-sm text-dc-text mt-1">Broadcast messages to participants</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="TOC.announcements.openQuickComms()" data-cap-require="make_announcements" class="px-4 py-2 rounded-lg border border-dc-border text-dc-textBright text-sm hover:bg-dc-surface transition-colors flex items-center gap-2">
+                        <button data-click="TOC.announcements.openQuickComms" data-cap-require="make_announcements" class="px-4 py-2 rounded-lg border border-dc-border text-dc-textBright text-sm hover:bg-dc-surface transition-colors flex items-center gap-2">
                             <i data-lucide="zap" class="w-4 h-4 text-dc-warning"></i> Quick Comms
                         </button>
-                        <button onclick="TOC.announcements.openCompose()" data-cap-require="make_announcements" class="px-4 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
+                        <button data-click="TOC.announcements.openCompose" data-cap-require="make_announcements" class="px-4 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
                             <i data-lucide="plus" class="w-4 h-4"></i> Compose
                         </button>
                     </div>
@@ -2091,9 +2091,9 @@
 
                 {# Search #}
                 <div class="flex gap-3">
-                    <input id="ann-search" type="text" placeholder="Search announcements..." oninput="TOC.announcements.debouncedRefresh()" class="flex-1 bg-dc-surface border border-dc-border rounded-lg px-4 py-2 text-sm text-dc-textBright placeholder-dc-text focus:outline-none focus:border-theme/50">
+                    <input id="ann-search" type="text" aria-label="Search announcements" placeholder="Search announcements..." data-input="TOC.announcements.debouncedRefresh" class="flex-1 bg-dc-surface border border-dc-border rounded-lg px-4 py-2 text-sm text-dc-textBright placeholder-dc-text focus:outline-none focus:border-theme/50">
                     <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                        <input id="ann-pinned-filter" type="checkbox" onchange="TOC.announcements.refresh()" class="rounded border-dc-border bg-dc-surface text-theme"> Pinned only
+                        <input id="ann-pinned-filter" type="checkbox" data-change="TOC.announcements.refresh" class="rounded border-dc-border bg-dc-surface text-theme"> Pinned only
                     </label>
                 </div>
 
@@ -2108,19 +2108,19 @@
                         <i data-lucide="radio" class="w-4 h-4 text-theme"></i> Broadcast Panel
                     </h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="TOC.announcements.broadcast('all')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                        <button data-click="TOC.announcements.broadcast" data-click-args='["all"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                             <div class="text-sm font-bold text-white">All Participants</div>
                             <div class="text-xs text-dc-text mt-1">Send to everyone registered</div>
                         </button>
-                        <button onclick="TOC.announcements.broadcast('checked_in')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                        <button data-click="TOC.announcements.broadcast" data-click-args='["checked_in"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                             <div class="text-sm font-bold text-white">Checked-In Only</div>
                             <div class="text-xs text-dc-text mt-1">Target active participants</div>
                         </button>
-                        <button onclick="TOC.announcements.broadcast('registered')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                        <button data-click="TOC.announcements.broadcast" data-click-args='["registered"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                             <div class="text-sm font-bold text-white">Approved Only</div>
                             <div class="text-xs text-dc-text mt-1">Approved registrations</div>
                         </button>
-                        <button onclick="TOC.announcements.broadcast('staff')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                        <button data-click="TOC.announcements.broadcast" data-click-args='["staff"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                             <div class="text-sm font-bold text-white">Staff Only</div>
                             <div class="text-xs text-dc-text mt-1">Internal staff message</div>
                         </button>
@@ -2131,15 +2131,15 @@
                             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-dc-warning"></i> Smart Cards
                         </h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <button onclick="TOC.announcements.openSmartCard('live_group_draw')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                            <button data-click="TOC.announcements.openSmartCard" data-click-args='["live_group_draw"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                                 <div class="text-sm font-bold text-white">📡 Live Group Draw</div>
                                 <div class="text-xs text-dc-text mt-1">Time + link auto template</div>
                             </button>
-                            <button onclick="TOC.announcements.openSmartCard('stream_live')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                            <button data-click="TOC.announcements.openSmartCard" data-click-args='["stream_live"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                                 <div class="text-sm font-bold text-white">🎥 Stream Live</div>
                                 <div class="text-xs text-dc-text mt-1">Instant watch link broadcast</div>
                             </button>
-                            <button onclick="TOC.announcements.openSmartCard('round_ready')" data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
+                            <button data-click="TOC.announcements.openSmartCard" data-click-args='["round_ready"]' data-cap-require="make_announcements" class="p-3 rounded-lg border border-dc-border hover:border-theme/40 transition-colors text-left">
                                 <div class="text-sm font-bold text-white">🔥 Round Ready</div>
                                 <div class="text-xs text-dc-text mt-1">Round-ready callout card</div>
                             </button>
@@ -2161,7 +2161,7 @@
                         <p id="settings-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                         <p id="settings-dirty-indicator" class="hidden text-[10px] font-mono text-dc-warning mt-1">Unsaved changes</p>
                     </div>
-                    <button id="btn-settings-save-all" onclick="TOC.settings.saveAll()" data-cap-require="edit_settings" class="px-5 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
+                    <button id="btn-settings-save-all" data-click="TOC.settings.saveAll" data-cap-require="edit_settings" class="px-5 py-2 rounded-lg bg-theme text-black text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
                         <i data-lucide="save" class="w-4 h-4"></i> Save All Changes
                     </button>
                 </div>
@@ -2302,8 +2302,8 @@
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Banner Image</label>
                                 <div class="flex items-center gap-3">
-                                    <input id="upload-banner" type="file" accept="image/*" class="hidden" onchange="TOC.settings.uploadFile('banner_image', this)">
-                                    <button onclick="document.getElementById('upload-banner').click()" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
+                                    <input id="upload-banner" type="file" accept="image/*" class="hidden"  data-change="TOC.settings.uploadFile" data-change-args='["banner_image"]' data-change-pass="el">
+                                    <button  data-click-trigger="upload-banner" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
                                         <i data-lucide="upload" class="w-3.5 h-3.5"></i> Choose Banner
                                     </button>
                                     <span id="banner-status" class="text-xs text-dc-text truncate max-w-[200px]">No file chosen</span>
@@ -2312,8 +2312,8 @@
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Thumbnail Image</label>
                                 <div class="flex items-center gap-3">
-                                    <input id="upload-thumbnail" type="file" accept="image/*" class="hidden" onchange="TOC.settings.uploadFile('thumbnail_image', this)">
-                                    <button onclick="document.getElementById('upload-thumbnail').click()" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
+                                    <input id="upload-thumbnail" type="file" accept="image/*" class="hidden"  data-change="TOC.settings.uploadFile" data-change-args='["thumbnail_image"]' data-change-pass="el">
+                                    <button  data-click-trigger="upload-thumbnail" class="px-4 py-2 border border-dc-border rounded-lg text-xs text-dc-textBright hover:bg-dc-surface transition-colors flex items-center gap-2">
                                         <i data-lucide="upload" class="w-3.5 h-3.5"></i> Choose Thumbnail
                                     </button>
                                     <span id="thumbnail-status" class="text-xs text-dc-text truncate max-w-[200px]">No file chosen</span>
@@ -2374,7 +2374,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Mode</label>
-                                <select id="setting-mode" data-field="mode" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" onchange="TOC.settings.syncModeVisibility()">
+                                <select id="setting-mode" data-field="mode" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" data-change="TOC.settings.syncModeVisibility">
                                     <option value="online">Online</option>
                                     <option value="lan">LAN</option>
                                     <option value="hybrid">Hybrid</option>
@@ -2496,7 +2496,7 @@
                     <div class="px-5 pb-5 space-y-4" id="settings-fees">
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <div class="flex items-end pb-1">
-                                <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-entry-fee" data-field="has_entry_fee" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncFeeVisibility()"> Has Entry Fee</label>
+                                <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-entry-fee" data-field="has_entry_fee" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" data-change="TOC.settings.syncFeeVisibility"> Has Entry Fee</label>
                             </div>
                             <div>
                                 <label class="block text-xs text-dc-text mb-1">Entry Fee Amount</label>
@@ -2550,7 +2550,7 @@
                     <div class="px-5 pb-5 space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Configure accepted payment methods for this tournament</p>
-                            <button onclick="TOC.settings.openAddPaymentMethod()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <button data-click="TOC.settings.openAddPaymentMethod" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                                 <i data-lucide="plus" class="w-3 h-3"></i> Add Method
                             </button>
                         </div>
@@ -2604,7 +2604,7 @@
                             <div class="flex-1">
                                 <p class="text-sm font-bold text-white">Manage your full rulebook in the Rules tab</p>
                                 <p class="text-xs text-dc-text mt-1">The <strong class="text-dc-textBright">Rules</strong> tab provides a complete rulebook editor with sections, PDFs, versioning, and participant-facing publishing. Use it to author and publish all tournament rules and terms.</p>
-                                <button onclick="TOC.navigate('rules')" class="mt-3 px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 w-fit">
+                                <button data-click="TOC.navigate" data-click-args='["rules"]' class="mt-3 px-4 py-2 bg-theme text-dc-bg text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 w-fit">
                                     <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Open Rules Tab
                                 </button>
                             </div>
@@ -2628,7 +2628,7 @@
                     </summary>
                     <div class="px-5 pb-5" id="settings-features">
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
-                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-check-in" data-field="require_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncCheckInVisibility()"> Require Check-In</label>
+                            <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-check-in" data-field="require_check_in" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" data-change="TOC.settings.syncCheckInVisibility"> Require Check-In</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="check_in_per_round" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Re-check Every Round</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-coin-toss" data-field="require_coin_toss" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Coin Toss</label>
                             <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-map-veto" data-field="require_map_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Require Map Veto</label>
@@ -2759,7 +2759,7 @@
                                 </select>
                             </div>
                             <div class="flex items-end pb-1">
-                                <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-veto" data-field="enable_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncVetoVisibility()"> Enable Map Veto</label>
+                                <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input id="toggle-veto" data-field="enable_veto" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" data-change="TOC.settings.syncVetoVisibility"> Enable Map Veto</label>
                             </div>
                             <div id="veto-type-select">
                                 <label class="block text-xs text-dc-text mb-1">Veto Type</label>
@@ -2773,15 +2773,15 @@
                         <div id="veto-builder-section" class="hidden border-t border-dc-border pt-4 space-y-3">
                             <p class="text-xs font-bold uppercase text-dc-text tracking-widest">Veto Sequence Builder</p>
                             <div class="flex items-center gap-2">
-                                <button onclick="TOC.settings.addVetoStep('ban')" class="px-3 py-1.5 border border-dc-danger/40 text-dc-danger text-xs rounded-lg hover:bg-dc-danger/10 transition-colors">+ Ban</button>
-                                <button onclick="TOC.settings.addVetoStep('pick')" class="px-3 py-1.5 border border-dc-success/40 text-dc-success text-xs rounded-lg hover:bg-dc-success/10 transition-colors">+ Pick</button>
-                                <button onclick="TOC.settings.addVetoStep('decider')" class="px-3 py-1.5 border border-dc-warning/40 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors">+ Decider</button>
+                                <button data-click="TOC.settings.addVetoStep" data-click-args='["ban"]' class="px-3 py-1.5 border border-dc-danger/40 text-dc-danger text-xs rounded-lg hover:bg-dc-danger/10 transition-colors">+ Ban</button>
+                                <button data-click="TOC.settings.addVetoStep" data-click-args='["pick"]' class="px-3 py-1.5 border border-dc-success/40 text-dc-success text-xs rounded-lg hover:bg-dc-success/10 transition-colors">+ Pick</button>
+                                <button data-click="TOC.settings.addVetoStep" data-click-args='["decider"]' class="px-3 py-1.5 border border-dc-warning/40 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors">+ Decider</button>
                             </div>
                             <div id="veto-steps-list" class="space-y-1.5"></div>
                             <p class="text-[10px] text-dc-text italic">Steps are saved when you click &ldquo;Save Game Config&rdquo;.</p>
                         </div>
                         <div class="flex justify-end pt-2">
-                            <button onclick="TOC.settings.saveGameConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Game Config</button>
+                            <button data-click="TOC.settings.saveGameConfig" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Game Config</button>
                         </div>
                     </div>
                 </details>
@@ -2795,7 +2795,7 @@
                     <div class="px-5 pb-5 space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Manage available maps for this tournament</p>
-                            <button onclick="TOC.settings.openAddMap()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Map</button>
+                            <button data-click="TOC.settings.openAddMap" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Map</button>
                         </div>
                         <div id="map-pool-list" class="space-y-1.5"></div>
                     </div>
@@ -2810,7 +2810,7 @@
                     <div class="px-5 pb-5 space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Configure server regions for match hosting</p>
-                            <button onclick="TOC.settings.openAddRegion()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Region</button>
+                            <button data-click="TOC.settings.openAddRegion" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Region</button>
                         </div>
                         <div id="region-list" class="space-y-1.5"></div>
                     </div>
@@ -2825,7 +2825,7 @@
                     <div class="px-5 pb-5 space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Versioned tournament rulebook with change tracking</p>
-                            <button onclick="TOC.settings.openCreateRulebook()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> New Version</button>
+                            <button data-click="TOC.settings.openCreateRulebook" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> New Version</button>
                         </div>
                         <div id="rulebook-list" class="space-y-1.5"></div>
                     </div>
@@ -2849,7 +2849,7 @@
                             </div>
                         </div>
                         <div class="flex justify-end">
-                            <button onclick="TOC.settings.saveBRScoring()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save BR Scoring</button>
+                            <button data-click="TOC.settings.saveBRScoring" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save BR Scoring</button>
                         </div>
                     </div>
                 </details>
@@ -2867,7 +2867,7 @@
                         {# Scoring type selector #}
                         <div>
                             <label class="block text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1.5">Scoring Type</label>
-                            <select id="scoring-type" onchange="TOC.settings.onScoringTypeChange(this.value)" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
+                            <select id="scoring-type" data-change="TOC.settings.onScoringTypeChange" data-change-pass="value" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                                 <option value="win_loss">Win / Loss (Standard)</option>
                                 <option value="points">Point Accumulation (Round Robin)</option>
                                 <option value="rounds">Round Wins (FPS)</option>
@@ -2969,19 +2969,19 @@
                                 <i data-lucide="zap" class="w-3.5 h-3.5 text-dc-info"></i> Quick Presets
                             </h4>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="scoring-presets">
-                                <button onclick="TOC.settings.applyScoringPreset('valorant')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                <button data-click="TOC.settings.applyScoringPreset" data-click-args='["valorant"]' class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
                                     <p class="text-[10px] font-bold text-white">Valorant / CS2</p>
                                     <p class="text-[8px] text-dc-text mt-0.5">13 rounds, OT, win/loss</p>
                                 </button>
-                                <button onclick="TOC.settings.applyScoringPreset('moba')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                <button data-click="TOC.settings.applyScoringPreset" data-click-args='["moba"]' class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
                                     <p class="text-[10px] font-bold text-white">DOTA 2 / MLBB</p>
                                     <p class="text-[8px] text-dc-text mt-0.5">BO3 wins, no draws</p>
                                 </button>
-                                <button onclick="TOC.settings.applyScoringPreset('br')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                <button data-click="TOC.settings.applyScoringPreset" data-click-args='["br"]' class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
                                     <p class="text-[10px] font-bold text-white">PUBG / Free Fire</p>
                                     <p class="text-[8px] text-dc-text mt-0.5">Placement + kills</p>
                                 </button>
-                                <button onclick="TOC.settings.applyScoringPreset('sports')" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
+                                <button data-click="TOC.settings.applyScoringPreset" data-click-args='["sports"]' class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2.5 hover:border-theme/50 transition-colors text-left">
                                     <p class="text-[10px] font-bold text-white">EA FC / eFootball</p>
                                     <p class="text-[8px] text-dc-text mt-0.5">Goals, 3-1-0 pts</p>
                                 </button>
@@ -2989,7 +2989,7 @@
                         </div>
 
                         <div class="flex justify-end pt-2">
-                            <button onclick="TOC.settings.saveScoringConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                            <button data-click="TOC.settings.saveScoringConfig" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5">
                                 <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Scoring Config
                             </button>
                         </div>
@@ -3006,8 +3006,8 @@
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Design and manage certificates for participants</p>
                             <div class="flex gap-2">
-                                <button onclick="TOC.stats.openCreateTemplate()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Create</button>
-                                <button onclick="TOC.stats.openBulkGenerate()" class="px-3 py-1.5 border border-dc-warning/30 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1"><i data-lucide="printer" class="w-3 h-3"></i> Bulk Generate</button>
+                                <button data-click="TOC.stats.openCreateTemplate" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Create</button>
+                                <button data-click="TOC.stats.openBulkGenerate" class="px-3 py-1.5 border border-dc-warning/30 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1"><i data-lucide="printer" class="w-3 h-3"></i> Bulk Generate</button>
                             </div>
                         </div>
                         <div id="cert-template-list" class="space-y-1.5"></div>
@@ -3030,7 +3030,7 @@
                     <div class="px-5 pb-5 space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs text-dc-text">Manage tournament staff and role assignments</p>
-                            <button onclick="TOC.rbac.openAssignStaff()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="user-plus" class="w-3 h-3"></i> Assign Staff</button>
+                            <button data-click="TOC.rbac.openAssignStaff" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1"><i data-lucide="user-plus" class="w-3 h-3"></i> Assign Staff</button>
                         </div>
                         <div id="staff-grid" class="space-y-1.5"></div>
                     </div>
@@ -3046,7 +3046,7 @@
                         <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="auto_forfeit_no_shows" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-forfeit no-shows</label>
                         <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer"><input data-field="waitlist_auto_promote" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme"> Auto-promote from waitlist</label>
                         <label class="flex items-center gap-2 text-sm text-dc-text cursor-pointer">
-                            <input id="toggle-no-show-timer" data-field="enable_no_show_timer" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" onchange="TOC.settings.syncNoShowVisibility()">
+                            <input id="toggle-no-show-timer" data-field="enable_no_show_timer" type="checkbox" class="rounded border-dc-border bg-dc-surface text-theme" data-change="TOC.settings.syncNoShowVisibility">
                             Auto-DQ on no-show
                         </label>
                         <div id="no-show-timer-details" class="hidden sm:col-span-2 md:col-span-1">
@@ -3084,7 +3084,7 @@
                         <p class="text-[10px] uppercase tracking-widest text-theme font-bold">Ops Audit</p>
                         <p class="text-xs text-dc-text mt-1">Need full action history? Open the dedicated Logs menu.</p>
                     </div>
-                    <button onclick="TOC.navigate('logs')" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors">Open Logs</button>
+                    <button data-click="TOC.navigate" data-click-args='["logs"]' class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors">Open Logs</button>
                 </div>
                 {% endif %}
 
@@ -3106,7 +3106,7 @@
                                 Dates and participants are <strong class="text-dc-textBright">not</strong> copied. The clone starts as a draft.
                             </p>
                         </div>
-                        <button id="btn-clone-tournament" onclick="TOC.settings.cloneTournament()"
+                        <button id="btn-clone-tournament" data-click="TOC.settings.cloneTournament"
                             data-cap-require="edit_settings"
                             class="shrink-0 px-5 py-2.5 rounded-lg bg-dc-warning/10 border border-dc-warning/30 text-dc-warning text-xs font-bold uppercase tracking-widest hover:bg-dc-warning/20 transition-colors flex items-center gap-2 min-h-[38px]">
                             <i data-lucide="copy" class="w-4 h-4"></i> Clone Tournament
@@ -3131,13 +3131,13 @@
                         <p id="standings-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <select id="standings-group-filter" onchange="TOC.standings.refresh()" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
+                        <select id="standings-group-filter" data-change="TOC.standings.refresh" class="bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-xs text-dc-textBright focus:outline-none focus:border-theme/50">
                             <option value="">All Groups</option>
                         </select>
-                        <button onclick="TOC.standings.exportStandings()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.standings.exportStandings" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="download" class="w-3 h-3"></i> Export
                         </button>
-                        <button onclick="TOC.standings.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.standings.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
                         </button>
                     </div>
@@ -3200,19 +3200,19 @@
                         <p id="checkin-required-note" class="text-[10px] font-mono text-dc-text mt-1">Loading check-in requirement...</p>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button data-checkin-action="open" onclick="TOC.checkin.openCheckin()" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-checkin-action="open" data-click="TOC.checkin.openCheckin" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="play" class="w-3 h-3"></i> Open Check-in
                         </button>
-                        <button data-checkin-action="close" onclick="TOC.checkin.closeCheckin()" class="px-3 py-2 rounded-lg bg-dc-danger text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-checkin-action="close" data-click="TOC.checkin.closeCheckin" class="px-3 py-2 rounded-lg bg-dc-danger text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="square" class="w-3 h-3"></i> Close Check-in
                         </button>
-                        <button onclick="TOC.checkin.blastReminder()" title="Send check-in reminder to all pending participants" class="px-3 py-2 border border-dc-warning/40 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.checkin.blastReminder" title="Send check-in reminder to all pending participants" class="px-3 py-2 border border-dc-warning/40 text-dc-warning text-xs rounded-lg hover:bg-dc-warning/10 transition-colors flex items-center gap-1">
                             <i data-lucide="megaphone" class="w-3 h-3"></i> Blast Reminder
                         </button>
-                        <button onclick="TOC.checkin.autoDQ()" class="px-3 py-2 border border-dc-danger/30 text-dc-danger text-xs rounded-lg hover:bg-dc-danger/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.checkin.autoDQ" class="px-3 py-2 border border-dc-danger/30 text-dc-danger text-xs rounded-lg hover:bg-dc-danger/10 transition-colors flex items-center gap-1">
                             <i data-lucide="user-x" class="w-3 h-3"></i> Auto-DQ
                         </button>
-                        <button onclick="TOC.checkin.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.checkin.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3282,7 +3282,7 @@
                             </label>
                         </div>
                         <div class="md:col-span-3 flex justify-end">
-                            <button onclick="TOC.checkin.saveConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
+                            <button data-click="TOC.checkin.saveConfig" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
                         </div>
                     </div>
                 </details>
@@ -3314,13 +3314,13 @@
                         <p id="streams-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.streams.addStation()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-click="TOC.streams.addStation" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Add Station
                         </button>
-                        <button onclick="TOC.streams.generateOverlayKey()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.streams.generateOverlayKey" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="key" class="w-3 h-3"></i> Overlay Key
                         </button>
-                        <button onclick="TOC.streams.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.streams.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3372,7 +3372,7 @@
                     <div class="px-5 pb-5">
                         <div class="flex items-center justify-between mb-3">
                             <p class="text-xs text-dc-text">Recorded matches and highlights</p>
-                            <button onclick="TOC.streams.addVod()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <button data-click="TOC.streams.addVod" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                                 <i data-lucide="plus" class="w-3 h-3"></i> Add VOD
                             </button>
                         </div>
@@ -3398,10 +3398,10 @@
                         <p id="analytics-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.analytics.exportReport()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.analytics.exportReport" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="download" class="w-3 h-3"></i> Export Report
                         </button>
-                        <button onclick="TOC.analytics.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.analytics.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3516,13 +3516,13 @@
                             <p id="lobby-sync-status" class="text-[10px] font-mono text-dc-text mt-2">Not synced yet</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
-                            <button onclick="TOC.lobby.addServer()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                            <button data-click="TOC.lobby.addServer" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Server
                             </button>
-                            <button onclick="TOC.lobby.refresh({ force: true })" class="px-3 py-2 rounded-lg border border-dc-borderLight bg-dc-surface/50 text-dc-textBright text-xs font-bold hover:border-theme/40 hover:text-white transition-all flex items-center gap-1.5">
+                            <button data-click="TOC.lobby.refresh" data-click-args='["{ force: true }"]' class="px-3 py-2 rounded-lg border border-dc-borderLight bg-dc-surface/50 text-dc-textBright text-xs font-bold hover:border-theme/40 hover:text-white transition-all flex items-center gap-1.5">
                                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
                             </button>
-                            <button onclick="TOC.navigate('matches')" class="px-3 py-2 rounded-lg border border-dc-border bg-transparent text-dc-text text-xs font-bold hover:bg-dc-surface transition-colors flex items-center gap-1.5">
+                            <button data-click="TOC.navigate" data-click-args='["matches"]' class="px-3 py-2 rounded-lg border border-dc-border bg-transparent text-dc-text text-xs font-bold hover:bg-dc-surface transition-colors flex items-center gap-1.5">
                                 <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Match Ops
                             </button>
                         </div>
@@ -3603,7 +3603,7 @@
                                 <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
                                     <i data-lucide="sliders-horizontal" class="w-4 h-4 text-theme"></i> Automation Rules
                                 </h3>
-                                <button onclick="TOC.lobby.saveConfig()" class="px-3 py-1.5 rounded-lg bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Save</button>
+                                <button data-click="TOC.lobby.saveConfig" class="px-3 py-1.5 rounded-lg bg-theme text-black text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity">Save</button>
                             </div>
 
                             <div class="space-y-3">
@@ -3656,13 +3656,13 @@
                         <p id="rules-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.rules.addSection()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-click="TOC.rules.addSection" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Add Section
                         </button>
-                        <button onclick="TOC.rules.publishVersion()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.rules.publishVersion" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="upload" class="w-3 h-3"></i> Publish
                         </button>
-                        <button onclick="TOC.rules.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.rules.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3695,7 +3695,7 @@
                         <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
                             <i data-lucide="info" class="w-4 h-4 text-theme"></i> Quick Reference
                         </h3>
-                        <button onclick="TOC.rules.editQuickRef()" class="text-xs text-theme hover:underline">Edit</button>
+                        <button data-click="TOC.rules.editQuickRef" class="text-xs text-theme hover:underline">Edit</button>
                     </div>
                     <div id="rules-quick-ref" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                         <p class="text-dc-text text-xs text-center py-4 col-span-full opacity-50">Not configured</p>
@@ -3710,7 +3710,7 @@
                             </h3>
                             <p id="rules-match-config-subtitle" class="text-xs text-dc-text mt-1">Define game-specific lobby rules that will appear in the live match room.</p>
                         </div>
-                        <button id="rules-match-config-save-btn" onclick="TOC.rules.saveMatchConfig()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button id="rules-match-config-save-btn" data-click="TOC.rules.saveMatchConfig" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="save" class="w-3 h-3"></i> Save Configuration
                         </button>
                     </div>
@@ -3733,7 +3733,7 @@
                     </summary>
                     <div class="px-5 pb-5">
                         <div class="flex justify-end mb-3">
-                            <button onclick="TOC.rules.addFaq()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                            <button data-click="TOC.rules.addFaq" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                                 <i data-lucide="plus" class="w-3 h-3"></i> Add FAQ
                             </button>
                         </div>
@@ -3770,13 +3770,13 @@
                         <p id="rosters-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.rosters.lockRosters()" id="rosters-lock-btn" class="px-3 py-2 rounded-lg bg-dc-warning text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-click="TOC.rosters.lockRosters" id="rosters-lock-btn" class="px-3 py-2 rounded-lg bg-dc-warning text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="lock" class="w-3 h-3"></i> Lock Rosters
                         </button>
-                        <button onclick="TOC.rosters.unlockRosters()" id="rosters-unlock-btn" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1 hidden">
+                        <button data-click="TOC.rosters.unlockRosters" id="rosters-unlock-btn" class="px-3 py-2 rounded-lg bg-dc-success text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1 hidden">
                             <i data-lucide="unlock" class="w-3 h-3"></i> Unlock
                         </button>
-                        <button onclick="TOC.rosters.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.rosters.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3836,7 +3836,7 @@
                             <input id="rosters-max-subs" type="number" min="0" value="2" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div class="md:col-span-4 flex justify-end">
-                            <button onclick="TOC.rosters.saveConfig()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
+                            <button data-click="TOC.rosters.saveConfig" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Config</button>
                         </div>
                     </div>
                 </details>
@@ -3891,13 +3891,13 @@
                         <p id="notifications-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="TOC.notifications.sendNotification()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-click="TOC.notifications.sendNotification" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="send" class="w-3 h-3"></i> Send Now
                         </button>
-                        <button onclick="TOC.notifications.scheduleNotification()" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.notifications.scheduleNotification" class="px-3 py-2 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="clock" class="w-3 h-3"></i> Schedule
                         </button>
-                        <button onclick="TOC.notifications.refresh()" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
+                        <button data-click="TOC.notifications.refresh" class="px-3 py-2 border border-dc-border text-dc-text text-xs rounded-lg hover:bg-dc-surface transition-all flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -3930,7 +3930,7 @@
                         <h3 class="font-display font-bold text-white text-sm flex items-center gap-2">
                             <i data-lucide="file-text" class="w-4 h-4 text-theme"></i> Templates
                         </h3>
-                        <button onclick="TOC.notifications.createTemplate()" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button data-click="TOC.notifications.createTemplate" class="px-3 py-1.5 border border-theme/30 text-theme text-xs rounded-lg hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="plus" class="w-3 h-3"></i> Create
                         </button>
                     </div>
@@ -3970,7 +3970,7 @@
                             <input id="notif-webhook-url" type="url" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                         </div>
                         <div class="flex justify-end">
-                            <button onclick="TOC.notifications.saveChannels()" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Channels</button>
+                            <button data-click="TOC.notifications.saveChannels" class="px-4 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity">Save Channels</button>
                         </div>
                     </div>
                 </details>
@@ -4005,13 +4005,13 @@
                         <p id="logs-sync-status" class="text-[10px] font-mono text-dc-text mt-1">Not synced yet</p>
                     </div>
                     <div class="flex items-center flex-wrap gap-2">
-                        <button id="logs-live-toggle" onclick="TOC.logs.toggleLive()" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors flex items-center gap-1">
+                        <button id="logs-live-toggle" data-click="TOC.logs.toggleLive" class="px-3 py-2 rounded-lg border border-theme/30 text-theme text-xs font-bold hover:bg-theme/10 transition-colors flex items-center gap-1">
                             <i data-lucide="radio" class="w-3 h-3"></i> Live OFF
                         </button>
-                        <button onclick="TOC.logs.exportJson()" class="px-3 py-2 rounded-lg border border-dc-border text-dc-text text-xs font-bold hover:bg-dc-surface transition-colors flex items-center gap-1">
+                        <button data-click="TOC.logs.exportJson" class="px-3 py-2 rounded-lg border border-dc-border text-dc-text text-xs font-bold hover:bg-dc-surface transition-colors flex items-center gap-1">
                             <i data-lucide="download" class="w-3 h-3"></i> Export JSON
                         </button>
-                        <button onclick="TOC.logs.refresh()" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <button data-click="TOC.logs.refresh" class="px-3 py-2 rounded-lg bg-theme text-black text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
                         </button>
                     </div>
@@ -4029,10 +4029,10 @@
                         <p class="text-dc-text/70">No anomaly scan results yet.</p>
                     </div>
                     <div class="mt-3 flex items-center gap-2">
-                        <button id="logs-repair-dryrun" onclick="TOC.logs.repairCapacityOverflow(false)" class="px-3 py-1.5 rounded border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase tracking-widest hover:bg-dc-warning/10 transition-colors">
+                        <button id="logs-repair-dryrun" data-click="TOC.logs.repairCapacityOverflow" data-click-args='[false]' class="px-3 py-1.5 rounded border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase tracking-widest hover:bg-dc-warning/10 transition-colors">
                             Dry-Run Repair
                         </button>
-                        <button id="logs-repair-apply" onclick="TOC.logs.repairCapacityOverflow(true)" class="px-3 py-1.5 rounded border border-dc-danger/30 text-dc-danger text-[10px] font-bold uppercase tracking-widest hover:bg-dc-danger/10 transition-colors">
+                        <button id="logs-repair-apply" data-click="TOC.logs.repairCapacityOverflow" data-click-args='[true]' class="px-3 py-1.5 rounded border border-dc-danger/30 text-dc-danger text-[10px] font-bold uppercase tracking-widest hover:bg-dc-danger/10 transition-colors">
                             Apply Repair
                         </button>
                     </div>
@@ -4096,11 +4096,11 @@
 
     {# ── Right slide-out drawer ── #}
     <div id="toc-drawer" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="TOC.drawer.close()"></div>
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-click="TOC.drawer.close"></div>
         <div class="absolute right-0 top-0 bottom-0 w-[500px] max-w-full bg-dc-surface border-l border-dc-border shadow-2xl flex flex-col transform translate-x-0 transition-transform duration-300">
             <div class="h-[64px] p-4 border-b border-dc-borderLight bg-dc-panel flex items-center justify-between shrink-0">
                 <h2 id="toc-drawer-title" class="font-display font-bold text-sm text-white"></h2>
-                <button class="p-2 text-dc-text hover:text-white rounded-lg hover:bg-white/5 transition-colors" onclick="TOC.drawer.close()">
+                <button class="p-2 text-dc-text hover:text-white rounded-lg hover:bg-white/5 transition-colors" data-click="TOC.drawer.close">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -4111,7 +4111,7 @@
 
     {# ── Command Palette (Cmd+K) ── #}
     <div id="cmd-palette" class="fixed inset-0 z-[110] hidden flex items-start justify-center pt-[20vh]">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="TOC.cmdk.close()"></div>
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-md" data-click="TOC.cmdk.close"></div>
         <div class="relative z-10 w-full max-w-xl bg-dc-surface border border-dc-borderLight rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden">
             <div class="flex items-center gap-3 px-5 py-4 border-b border-dc-border">
                 <i data-lucide="search" class="w-5 h-5 text-theme"></i>
@@ -4139,7 +4139,7 @@
 
     {# ── Freeze Modal ── #}
     <div id="modal-freeze" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="document.getElementById('modal-freeze').classList.add('hidden')"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md"  data-click-hide="modal-freeze"></div>
         <div class="bg-dc-surface border border-dc-danger shadow-[0_0_50px_rgba(255,42,85,0.3)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">
             <div class="h-2 w-full bg-dc-danger animate-pulse"></div>
             <div class="p-6 text-center">
@@ -4153,8 +4153,8 @@
                     <input id="freeze-reason" type="text" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-dc-danger outline-none" placeholder="e.g. Server Outage, Broadcast Issue...">
                 </div>
                 <div class="flex gap-3">
-                    <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors" onclick="document.getElementById('modal-freeze').classList.add('hidden')">Cancel</button>
-                    <button class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(255,42,85,0.5)]" data-cap-require="edit_settings" onclick="TOC.overview && TOC.overview.executeFreeze()">Freeze System</button>
+                    <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors"  data-click-hide="modal-freeze">Cancel</button>
+                    <button class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(255,42,85,0.5)]" data-cap-require="edit_settings" data-click="TOC.overview.executeFreeze">Freeze System</button>
                 </div>
             </div>
         </div>
@@ -4166,7 +4166,7 @@
     {# ══════════════════════════════════════════════════════════════ #}
     {# CONFIG INJECTION + SCRIPTS                                    #}
     {# ══════════════════════════════════════════════════════════════ #}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         window.TOC_INITIAL_SETTINGS = JSON.parse('{{ toc_initial_settings_json|escapejs }}');
         (function () {
             function setField(sectionId, field, value) {
@@ -4273,6 +4273,7 @@
         };
         window.TOC_USER_CAPABILITIES = [{% for cap in user_capabilities %}'{{ cap }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
     </script>
+    <script defer src="{% static 'js/csp-delegator.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-core.js' %}?v=20260323a"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-polish.js' %}"></script>
     <script defer src="{% static 'tournaments/toc/js/toc-overview.js' %}"></script>

@@ -7,8 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <script defer src="{% static 'siteui/js/command-center.js' %}?v=20260313-hotfix2"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.x.x/dist/cdn.min.js"></script>
+<script nonce="{{ request.csp_nonce }}">
   tailwind.config = {
     darkMode: 'class',
     theme: {
@@ -265,7 +265,7 @@
                 <div class="flex-1 min-w-0">
                   <div class="text-xs font-bold text-white truncate group-hover:text-dc-accent transition-colors" x-text="pos.title"></div>
                   <div class="flex items-center gap-2 mt-0.5">
-                    <img x-show="pos.gameIcon" :src="pos.gameIcon" class="game-icon-sm">
+                    <img x-show="pos.gameIcon" :src="pos.gameIcon" class="game-icon-sm" alt="">
                     <span class="text-[10px] text-dc-textMuted" x-text="pos.team + ' · ' + pos.role"></span>
                   </div>
                 </div>
@@ -307,7 +307,7 @@
                     <h3 class="font-bold text-white text-sm" x-text="item.title"></h3>
                   </div>
                   <div class="flex items-center gap-1.5 mt-0.5">
-                    <img x-show="item.gameIcon" :src="item.gameIcon" class="game-icon-sm">
+                    <img x-show="item.gameIcon" :src="item.gameIcon" class="game-icon-sm" alt="">
                     <span class="text-[10px] font-mono text-dc-textMuted uppercase tracking-wider" x-text="item.game"></span>
                   </div>
                 </div>
@@ -388,7 +388,7 @@
                       </span>
                       <span x-show="!tourney.isLive" class="bg-white/[0.1] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest" x-text="tourney.status"></span>
                       <span class="flex items-center gap-1.5 text-[10px] font-mono text-dc-textMuted">
-                        <img x-show="tourney.gameIcon" :src="tourney.gameIcon" class="game-icon-sm">
+                        <img x-show="tourney.gameIcon" :src="tourney.gameIcon" class="game-icon-sm" alt="">
                         <span x-text="tourney.game"></span>
                       </span>
                     </div>
@@ -413,7 +413,7 @@
                         x-show="tourney.canManage && tourney.manageUrl"
                         type="button"
                         class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white"
-                        @click.prevent.stop="if (tourney.manageUrl) { window.location.href = tourney.manageUrl }"
+                        @click.prevent.stop="navigateTo(tourney.manageUrl)"
                       >
                         Manage
                       </button>
@@ -421,7 +421,7 @@
                         x-show="tourney.canEnterHub && tourney.hubUrl"
                         type="button"
                         class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-accent/90 hover:bg-dc-accent text-white shadow-glow-accent"
-                        @click.prevent.stop="window.location.href = tourney.hubUrl"
+                        @click.prevent.stop="navigateTo(tourney.hubUrl)"
                       >
                         HUB
                       </button>
@@ -429,7 +429,7 @@
                         x-show="tourney.hasMatchLobby && tourney.matchLobbyUrl"
                         type="button"
                         class="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-[0.98] bg-dc-danger hover:bg-rose-600 text-white shadow-glow-danger"
-                        @click.prevent.stop="window.location.href = tourney.matchLobbyUrl"
+                        @click.prevent.stop="navigateTo(tourney.matchLobbyUrl)"
                       >
                         Match Lobby
                       </button>
@@ -453,7 +453,7 @@
             <div class="flex gap-3 flex-wrap" x-show="myOrgs.length > 0">
               <template x-for="org in myOrgs" :key="org.id">
                 <a :href="'/orgs/' + org.slug + '/'" class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-dc-accent/50 hover:bg-white/[0.05] transition-all group no-underline">
-                  <img :src="org.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(org.name) + '&background=1a1a2e&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover">
+                  <img :src="org.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(org.name) + '&background=1a1a2e&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" alt="">
                   <div class="text-left">
                     <div class="flex items-center gap-1.5">
                       <div class="text-sm font-bold text-white group-hover:text-dc-accent transition-colors" x-text="org.name"></div>
@@ -491,7 +491,7 @@
 
                 <div class="flex justify-between items-start mb-4">
                   <div class="flex items-center gap-3">
-                    <img :src="team.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(team.name) + '&background=1a1a2e&color=fff&size=80&bold=true'" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium">
+                    <img :src="team.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(team.name) + '&background=1a1a2e&color=fff&size=80&bold=true'" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium" alt="">
                     <div>
                       <div class="flex items-center gap-2">
                         <h3 class="font-bold text-white text-base leading-tight group-hover:text-gray-200 transition-colors" x-text="team.name"></h3>
@@ -499,13 +499,13 @@
                       </div>
                       <div class="flex items-center gap-2 mt-1 flex-wrap">
                         <span class="flex items-center gap-1.5">
-                          <img x-show="team.gameIcon" :src="team.gameIcon" class="game-icon-sm">
+                          <img x-show="team.gameIcon" :src="team.gameIcon" class="game-icon-sm" alt="">
                           <span class="text-[10px] text-dc-textMuted font-medium" x-text="team.game"></span>
                         </span>
                         <span class="text-white/[0.15]">&middot;</span>
                         <template x-if="team.org">
                           <a :href="'/orgs/' + team.org.slug + '/'" class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-dc-accent transition-colors no-underline" @click.stop>
-                            <img x-show="team.org.logo" :src="team.org.logo" class="w-3.5 h-3.5 rounded object-cover">
+                            <img x-show="team.org.logo" :src="team.org.logo" class="w-3.5 h-3.5 rounded object-cover" alt="">
                             <span x-text="team.org.name"></span>
                             <i x-show="team.org.verified" class="fa-solid fa-circle-check text-dc-accent text-[8px]"></i>
                           </a>
@@ -598,7 +598,7 @@
               <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner-light shrink-0 border border-white/[0.1]"
                      :style="'background: ' + gp.gameColor + '15'">
-                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="game-icon-lg">
+                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="game-icon-lg" alt="">
                   <i x-show="!gp.gameIcon" class="fa-solid fa-gamepad text-dc-textMuted"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -664,7 +664,7 @@
                     </div>
                     <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
                       <span class="flex items-center gap-1">
-                        <img x-show="ch.gameIcon" :src="ch.gameIcon" class="game-icon-sm">
+                        <img x-show="ch.gameIcon" :src="ch.gameIcon" class="game-icon-sm" alt="">
                         <span x-text="ch.game || ch.type"></span>
                       </span>
                       <span x-text="ch.format"></span>
@@ -704,7 +704,7 @@
                     </div>
                     <div class="flex items-center gap-3 text-[10px] text-dc-textMuted">
                       <span class="flex items-center gap-1">
-                        <img x-show="b.gameIcon" :src="b.gameIcon" class="game-icon-sm">
+                        <img x-show="b.gameIcon" :src="b.gameIcon" class="game-icon-sm" alt="">
                         <span x-text="b.game"></span>
                       </span>
                       <span class="text-white/[0.15]">&middot;</span>
@@ -835,7 +835,7 @@
                    :class="msg.unread
                      ? 'bg-white/[0.05] border-dc-accent/35 hover:bg-white/[0.08] shadow-[inset_0_0_0_1px_rgba(99,102,241,0.18)]'
                      : 'bg-transparent border-white/[0.04] hover:bg-white/[0.03]'"
-                   @click="msg.url ? window.location.href = msg.url : markRead(msg.id)">
+                   @click="msg.url ? navigateTo(msg.url) : markRead(msg.id)">
 
                 <div class="flex justify-between items-center mb-3">
                   <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest inline-flex items-center gap-1.5" :class="msg.color">
@@ -848,7 +848,7 @@
                 <div class="flex items-start gap-3">
                   <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] overflow-hidden"
                        :class="msg.avatar ? '' : 'bg-white/[0.05]'">
-                    <img x-show="msg.avatar" :src="msg.avatar" class="w-full h-full object-cover">
+                    <img x-show="msg.avatar" :src="msg.avatar" class="w-full h-full object-cover" alt="">
                     <i x-show="!msg.avatar" :class="(msg.icon || 'fa-solid fa-bell') + ' text-dc-textMuted text-sm'"></i>
                   </div>
                   <div class="flex-1">
@@ -969,7 +969,7 @@
                   </td>
                   <td class="p-4">
                     <div class="flex items-center gap-2">
-                      <img x-show="match.gameIcon" :src="match.gameIcon" class="game-icon">
+                      <img x-show="match.gameIcon" :src="match.gameIcon" class="game-icon" alt="">
                       <div x-show="!match.gameIcon" class="w-5 h-5 rounded flex items-center justify-center bg-white/[0.05] border border-white/[0.1]">
                         <i class="fa-solid fa-gamepad text-[10px] text-dc-textMuted"></i>
                       </div>
@@ -1071,7 +1071,7 @@
         <template x-if="featuredProduct">
           <div class="flex flex-col h-full">
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
-            <img x-show="featuredProduct.image" :src="featuredProduct.image" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700">
+            <img x-show="featuredProduct.image" :src="featuredProduct.image" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700" alt="">
             <div class="absolute inset-0 bg-gradient-to-br from-dc-accent/20 to-dc-danger/10 opacity-30 group-hover:opacity-50 transition-opacity duration-700" x-show="!featuredProduct.image"></div>
             <div class="relative z-20 p-6 flex flex-col h-full justify-end">
               <div class="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/[0.1] text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">

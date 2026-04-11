@@ -88,7 +88,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Standings request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.standings.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.standings.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -367,7 +367,7 @@
       return '<button data-stage="' + t.key + '" class="' +
         (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
         ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
-        'onclick="TOC.standings.filterStage(\'' + t.key + '\')" role="tab" aria-selected="' + active + '">' +
+        'data-click="TOC.standings.filterStage" data-click-args="[&quot;' + t.key + '&quot;]" role="tab" aria-selected="' + active + '">' +
         t.label + '</button>';
     }).join('');
   }

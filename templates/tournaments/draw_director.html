@@ -1326,7 +1326,7 @@
           <span class="dd-instruct-num">3</span>
           <div class="dd-instruct-text"><strong>Finalize</strong> to lock groups and auto-generate group stage matches.</div>
         </div>
-        <button class="dd-instruct-close" onclick="document.getElementById('dd-instructions').classList.add('hidden')" title="Dismiss">&times;</button>
+        <button class="dd-instruct-close"  data-click-hide="dd-instructions" title="Dismiss">&times;</button>
       </div>
 
       {# ── Theater: Draw Status / Last Drawn ── #}
@@ -1343,35 +1343,35 @@
       {# ── Controls ── #}
       <div class="dd-controls" id="dd-controls">
         <div id="mode-toggle" class="dd-mode-toggle" style="display:none">
-          <button class="dd-mode-btn active" data-mode="random" onclick="DrawDirector.setMode('random')">
+          <button class="dd-mode-btn active" data-mode="random" data-click="DrawDirector.setMode" data-click-args='["random"]'>
             <i data-lucide="dice-5" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:3px"></i> Random Spin
           </button>
-          <button class="dd-mode-btn" data-mode="manual" onclick="DrawDirector.setMode('manual')">
+          <button class="dd-mode-btn" data-mode="manual" data-click="DrawDirector.setMode" data-click-args='["manual"]'>
             <i data-lucide="hand" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:3px"></i> Manual Pick
           </button>
         </div>
 
-        <button id="btn-init" class="dd-btn-primary" onclick="DrawDirector.openConfig()">
+        <button id="btn-init" class="dd-btn-primary" data-click="DrawDirector.openConfig">
           <span class="pulse-ring"></span>
           <i data-lucide="shuffle" style="width:18px;height:18px"></i> Initialize Draw
         </button>
-        <button id="btn-draw" class="dd-btn-primary" style="display:none" disabled onclick="DrawDirector.drawNext()">
+        <button id="btn-draw" class="dd-btn-primary" style="display:none" disabled data-click="DrawDirector.drawNext">
           <span class="pulse-ring"></span>
           <i data-lucide="dice-5" style="width:18px;height:18px"></i> Draw Next Player
         </button>
 
         {# ── Advanced Director Controls ── #}
-        <button id="btn-draw-all" class="dd-btn-secondary" style="display:none" onclick="DrawDirector.drawAll()">
+        <button id="btn-draw-all" class="dd-btn-secondary" style="display:none" data-click="DrawDirector.drawAll">
           <i data-lucide="fast-forward" style="width:14px;height:14px"></i> Draw All Remaining
         </button>
-        <button id="btn-undo" class="dd-btn-secondary" style="display:none" disabled onclick="DrawDirector.undoLast()">
+        <button id="btn-undo" class="dd-btn-secondary" style="display:none" disabled data-click="DrawDirector.undoLast">
           <i data-lucide="undo-2" style="width:14px;height:14px"></i> Undo Last
         </button>
 
-        <button id="btn-finalize" class="dd-btn-secondary" style="display:none" disabled onclick="DrawDirector.finalize()">
+        <button id="btn-finalize" class="dd-btn-secondary" style="display:none" disabled data-click="DrawDirector.finalize">
           <i data-lucide="check-circle" style="width:16px;height:16px"></i> Finalize &amp; Generate Matches
         </button>
-        <button id="btn-abort" class="dd-btn-abort" style="display:none" onclick="DrawDirector.abort()">
+        <button id="btn-abort" class="dd-btn-abort" style="display:none" data-click="DrawDirector.abort">
           <i data-lucide="x-circle" style="width:14px;height:14px"></i> Abort
         </button>
 
@@ -1459,13 +1459,13 @@
 
         {# ── Left Navigation Rail ── #}
         <nav class="wizard-nav">
-          <button class="wizard-nav-btn active" onclick="DrawDirector.openTab(event,'tab-structure')">
+          <button class="wizard-nav-btn active" data-click="DrawDirector.openTab" data-click-args='["tab-structure"]'>
             <i data-lucide="layout-template"></i> Structure &amp; Seeding
           </button>
-          <button class="wizard-nav-btn" onclick="DrawDirector.openTab(event,'tab-rules')">
+          <button class="wizard-nav-btn" data-click="DrawDirector.openTab" data-click-args='["tab-rules"]'>
             <i data-lucide="gavel"></i> Rules &amp; Constraints
           </button>
-          <button class="wizard-nav-btn" onclick="DrawDirector.openTab(event,'tab-broadcast')">
+          <button class="wizard-nav-btn" data-click="DrawDirector.openTab" data-click-args='["tab-broadcast"]'>
             <i data-lucide="radio"></i> Broadcast Settings
           </button>
         </nav>
@@ -1491,15 +1491,15 @@
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
                 <div class="arch-input-cell">
                   <label>Total Groups</label>
-                  <input type="number" id="cfg-num-groups" min="1" max="64" value="0" oninput="DrawDirector.onArchChange()">
+                  <input type="number" id="cfg-num-groups" min="1" max="64" value="0" data-input="DrawDirector.onArchChange">
                 </div>
                 <div class="arch-input-cell">
                   <label>Size per Group</label>
-                  <input type="number" id="cfg-group-size" min="2" max="32" value="4" oninput="DrawDirector.onArchChange()">
+                  <input type="number" id="cfg-group-size" min="2" max="32" value="4" data-input="DrawDirector.onArchChange">
                 </div>
                 <div class="arch-input-cell arch-advance">
                   <label>Advance</label>
-                  <input type="number" id="cfg-adv-count" min="1" max="16" value="2" oninput="DrawDirector.onArchChange()">
+                  <input type="number" id="cfg-adv-count" min="1" max="16" value="2" data-input="DrawDirector.onArchChange">
                 </div>
               </div>
               <div id="arch-summary" class="arch-summary-bar" style="display:none"></div>
@@ -1512,7 +1512,7 @@
               </div>
               <div style="display:flex;flex-direction:column;gap:10px">
                 <label style="cursor:pointer;display:block">
-                  <input type="radio" name="cfg-strategy" value="round_robin" class="strategy-radio" checked onchange="DrawDirector.setStrategy(this)">
+                  <input type="radio" name="cfg-strategy" value="round_robin" class="strategy-radio" checked data-change="DrawDirector.setStrategy" data-change-pass-el>
                   <div class="strategy-option">
                     <div class="strat-name">Round-Robin</div>
                     <div class="strat-desc">A1, B1, C1… then A2</div>
@@ -1520,7 +1520,7 @@
                   </div>
                 </label>
                 <label style="cursor:pointer;display:block">
-                  <input type="radio" name="cfg-strategy" value="sequential" class="strategy-radio" onchange="DrawDirector.setStrategy(this)">
+                  <input type="radio" name="cfg-strategy" value="sequential" class="strategy-radio" data-change="DrawDirector.setStrategy" data-change-pass-el>
                   <div class="strategy-option">
                     <div class="strat-name">Sequential</div>
                     <div class="strat-desc">Group A full, then B</div>
@@ -1543,7 +1543,7 @@
                     <i data-lucide="bar-chart-2"></i> Pot Seeding Engine
                   </div>
                   <label class="neon-toggle">
-                    <input type="checkbox" class="neon-toggle-input" id="cfg-use-pots" onchange="DrawDirector.togglePots(this.checked)">
+                    <input type="checkbox" class="neon-toggle-input" id="cfg-use-pots" data-change="DrawDirector.togglePots">
                     <div class="neon-toggle-track"><div class="neon-toggle-dot"></div></div>
                   </label>
                 </div>
@@ -1565,7 +1565,7 @@
                 <div id="locked-seeds-list" class="dd-locked-seeds">
                   <div style="font-size:10px;color:rgba(255,255,255,0.12)">No locked seeds. Teams will be drawn randomly.</div>
                 </div>
-                <button class="dd-seed-add" id="btn-add-seed" onclick="DrawDirector.addLockedSeed()">
+                <button class="dd-seed-add" id="btn-add-seed" data-click="DrawDirector.addLockedSeed">
                   <i data-lucide="plus" style="width:12px;height:12px"></i> Add Locked Seed
                 </button>
               </div>
@@ -1612,7 +1612,7 @@
                       <div class="rule-card-sub">Cap teams from same org</div>
                     </div>
                     <label class="neon-toggle">
-                      <input type="checkbox" class="neon-toggle-input" id="cfg-org-limit-enable" onchange="DrawDirector.toggleOrgLimit(this.checked)">
+                      <input type="checkbox" class="neon-toggle-input" id="cfg-org-limit-enable" data-change="DrawDirector.toggleOrgLimit">
                       <div class="neon-toggle-track"><div class="neon-toggle-dot"></div></div>
                     </label>
                   </div>
@@ -1653,15 +1653,15 @@
               <div>
                 <label style="display:block;font-family:'Space Grotesk',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.25);margin-bottom:6px">Accent Hex</label>
                 <div class="bc-color-wrap">
-                  <input type="color" id="cfg-accent-color" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
-                  <input type="text" id="cfg-accent-hex" value="#00ffaa" onchange="DrawDirector.onAccentChange(this.value)">
+                  <input type="color" id="cfg-accent-color" value="#00ffaa" data-change="DrawDirector.onAccentChange" data-change-pass="value">
+                  <input type="text" id="cfg-accent-hex" value="#00ffaa" data-change="DrawDirector.onAccentChange" data-change-pass="value">
                 </div>
               </div>
               <div>
                 <label style="display:block;font-family:'Space Groteq',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.25);margin-bottom:6px">Cinematic Background Plate</label>
                 <div class="bc-input-wrap">
                   <i data-lucide="image" style="width:15px;height:15px"></i>
-                  <input type="url" id="cfg-bg-url" placeholder="https://assets.deltacrown.com/bg-ucl.jpg" oninput="DrawDirector.onBgPreview(this.value)">
+                  <input type="url" id="cfg-bg-url" placeholder="https://assets.deltacrown.com/bg-ucl.jpg" data-input="DrawDirector.onBgPreview" data-input-pass="value">
                 </div>
                 <div class="dd-broadcast-preview" id="cfg-bg-preview">
                   <span>No background set — uses cinematic default</span>
@@ -1679,10 +1679,10 @@
               Paces the draw engine to allow casters time to react to picks.
             </p>
             <div class="delay-group">
-              <button class="delay-btn active" data-delay="0" onclick="DrawDirector.setDelay(this)">0s (Off)</button>
-              <button class="delay-btn" data-delay="5" onclick="DrawDirector.setDelay(this)">5s</button>
-              <button class="delay-btn" data-delay="10" onclick="DrawDirector.setDelay(this)">10s</button>
-              <button class="delay-btn" data-delay="-1" onclick="DrawDirector.setDelay(this)">Manual</button>
+              <button class="delay-btn active" data-delay="0" data-click="DrawDirector.setDelay" data-click-pass-el>0s (Off)</button>
+              <button class="delay-btn" data-delay="5" data-click="DrawDirector.setDelay" data-click-pass-el>5s</button>
+              <button class="delay-btn" data-delay="10" data-click="DrawDirector.setDelay" data-click-pass-el>10s</button>
+              <button class="delay-btn" data-delay="-1" data-click="DrawDirector.setDelay" data-click-pass-el>Manual</button>
             </div>
           </div>
 
@@ -1692,8 +1692,8 @@
 
       {# ── Footer ── #}
       <div class="wizard-footer">
-        <button class="wizard-cancel-btn" onclick="DrawDirector.closeConfig()">Cancel</button>
-        <button class="wizard-init-btn" onclick="DrawDirector.confirmInit()">
+        <button class="wizard-cancel-btn" data-click="DrawDirector.closeConfig">Cancel</button>
+        <button class="wizard-init-btn" data-click="DrawDirector.confirmInit">
           <span class="shimmer"></span>
           <i data-lucide="play" style="width:18px;height:18px;fill:currentColor"></i>
           INITIALIZE DRAW
@@ -1720,7 +1720,7 @@
 {% endblock %}
 
 {% block draw_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   'use strict';
 
@@ -2398,7 +2398,7 @@
       const count = (assignments[g] || []).length;
       const full = count >= groupSize;
       return '<button class="dd-pick-btn" ' + (full ? 'disabled' : '') +
-        ' onclick="DrawDirector.manualAssign(' + (player.user_id || player.registration_id) + ',\'' + g + '\');closeGroupPicker();">' +
+        ' data-click="DrawDirector.manualAssign" data-click-args=\'[' + (player.user_id || player.registration_id) + ',"' + g + '"]\' data-click-then="closeGroupPicker">' +
         'Group ' + g +
         '<span class="pick-count">' + count + '/' + groupSize + '</span>' +
       '</button>';
@@ -2410,7 +2410,7 @@
         '<div style="color:#fff;font-weight:700;font-size:18px;font-family:\'Space Grotesk\',sans-serif">' + (player.display_name || player.name) + '</div>' +
         '<div style="font-size:11px;color:rgba(255,255,255,0.3);margin:4px 0 0">Select a group:</div>' +
         '<div class="dd-picker-grid">' + btns + '</div>' +
-        '<button onclick="closeGroupPicker()" style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);background:none;border:none;cursor:pointer;width:100%;text-align:center;padding:6px">Cancel</button>' +
+        '<button data-click="closeGroupPicker" style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);background:none;border:none;cursor:pointer;width:100%;text-align:center;padding:6px">Cancel</button>' +
       '</div>';
 
     document.body.appendChild(overlay);
@@ -2903,7 +2903,7 @@
       var preview = document.getElementById('cfg-bg-preview');
       if (!preview) return;
       if (url && url.match(/^https?:\/\/.+/)) {
-        preview.innerHTML = '<img src="' + url.replace(/"/g, '&quot;') + '" onerror="this.parentNode.innerHTML=\'<span>Failed to load image</span>\'">';
+        preview.innerHTML = '<img src="' + url.replace(/"/g, '&quot;') + '" data-fallback="hide">';
       } else {
         preview.innerHTML = '<span>No background set — uses cinematic default</span>';
       }

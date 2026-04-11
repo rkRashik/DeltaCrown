@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from ..choices import MembershipStatus, MembershipRole, RosterSlot
+from apps.common.validators import validate_image_upload
 
 User = get_user_model()
 
@@ -127,7 +128,8 @@ class TeamMembership(models.Model):
         upload_to='roster_photos/',
         blank=True,
         null=True,
-        help_text="Dedicated roster photo for this team membership"
+        help_text="Dedicated roster photo for this team membership",
+        validators=[validate_image_upload],
     )
     
     # Tournament captain designation

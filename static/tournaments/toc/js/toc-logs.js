@@ -237,7 +237,7 @@
           : 'border-dc-warning/30 bg-dc-warning/10 text-dc-warning';
         const hasRepair = item.code === 'capacity_overflow';
         const repairBtn = hasRepair
-          ? '<button onclick="TOC.logs.repairCapacityOverflow(false)" class="px-2 py-1 rounded border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase tracking-widest hover:bg-dc-warning/10 transition-colors">Dry-run fix</button>'
+          ? '<button data-click="TOC.logs.repairCapacityOverflow" data-click-args="[false]" class="px-2 py-1 rounded border border-dc-warning/30 text-dc-warning text-[10px] font-bold uppercase tracking-widest hover:bg-dc-warning/10 transition-colors">Dry-run fix</button>'
           : '';
         return '' +
           '<div class="rounded-lg border px-3 py-2 ' + tone + '">' +

@@ -487,7 +487,7 @@
       {# ── INLINE COMPOSE TRIGGER ── #}
       {% if request.user.is_authenticated %}
       <div id="compose-trigger" class="dc-compose-inline mb-6 rounded-2xl dc-glass p-4 flex items-center gap-4 cursor-text dc-enter"
-           onclick="CommunityHub.openComposer()">
+           data-click="CommunityHub.openComposer">
         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 grid place-items-center text-sm font-bold text-white/60 shrink-0 border border-white/[.06]">
           {{ request.user.username|first|upper }}
         </div>
@@ -619,7 +619,7 @@
         <h3 class="text-xl font-bold text-white/60 mb-2">No posts yet</h3>
         <p class="text-sm text-white/30 mb-6 max-w-sm mx-auto">Be the first to share something with the DeltaCrown community!</p>
         {% if request.user.is_authenticated %}
-        <button onclick="CommunityHub.openComposer()"
+        <button data-click="CommunityHub.openComposer"
                 class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-sm font-bold text-white hover:shadow-lg hover:shadow-cyan-500/20 transition">
           Create First Post
         </button>
@@ -794,7 +794,7 @@
 
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   window.DC_COMMUNITY = {
     csrfToken: '{{ csrf_token }}',
     isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},

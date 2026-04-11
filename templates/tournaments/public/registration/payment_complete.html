@@ -182,7 +182,7 @@
   </section>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
   (function () {
     const manualForm = document.getElementById('manual-payment-form');
     const select = document.getElementById('manual-method-select');

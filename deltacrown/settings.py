@@ -711,6 +711,9 @@ REST_FRAMEWORK = {
         "results_inbox_write": os.getenv("THROTTLE_RESULTS_INBOX_WRITE_RATE", "60/min"),
         "match_ops_read": os.getenv("THROTTLE_MATCH_OPS_READ_RATE", "180/min"),
         "match_ops_write": os.getenv("THROTTLE_MATCH_OPS_WRITE_RATE", "90/min"),
+        "login": os.getenv("THROTTLE_LOGIN_RATE", "10/min"),
+        "password_reset": os.getenv("THROTTLE_PASSWORD_RESET_RATE", "5/min"),
+        "payout_write": os.getenv("THROTTLE_PAYOUT_WRITE_RATE", "20/min"),
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
@@ -1192,10 +1195,12 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
 
 # Memory safety: recycle worker after N tasks to prevent slow leaks
-CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', '50'))
+CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.getenv('CELERY_MAX_TASKS_PER_CHILD', '200'))
 # Kill stuck/runaway tasks before they exhaust RAM
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv('CELERY_TASK_SOFT_TIME_LIMIT', '120'))
 CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', '180'))
+# Expire old results from Redis after 1 hour to prevent unbounded growth
+CELERY_RESULT_EXPIRES = int(os.getenv('CELERY_RESULT_EXPIRES', '3600'))
 
 # Local dev safety: avoid request hangs when Redis/Celery broker is not running.
 # Default to eager sync execution on local Windows/dev when broker URLs are unset
@@ -1750,7 +1755,7 @@ if _HAS_UNFOLD:
     # Sidebar navigation — grouped by domain
     # ---------------------------------------------------------------------------
     "SIDEBAR": {
-        "show_search": True,
+        "show_search": False,  # Disabled: unfold 0.80 sidebar search overlay intermittently sticks visible
         "show_all_applications": False,
         "navigation": [
             {

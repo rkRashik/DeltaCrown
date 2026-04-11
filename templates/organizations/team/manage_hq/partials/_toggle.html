@@ -10,7 +10,7 @@ Expected context: field (str), label (str), desc (str), checked (bool).
     <div class="relative shrink-0">
         <input type="checkbox" data-setting-toggle="{{ field }}"
                {% if checked %}checked{% endif %}
-               onchange="ManageHQ.toggleSetting('{{ field }}', this.checked)"
+               data-change="ManageHQ.toggleSetting" data-change-args='["{{ field }}"]'
                class="sr-only peer">
         <div class="w-10 h-5 rounded-full bg-white/15 peer-checked:bg-emerald-500/80 transition-colors"></div>
         <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>

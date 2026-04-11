@@ -15,10 +15,12 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 
+from apps.common.models import SoftDeleteModel
+
 User = get_user_model()
 
 
-class DisputeRecord(models.Model):
+class DisputeRecord(SoftDeleteModel):
     """
     Tracks disputes raised against match result submissions.
     
@@ -223,7 +225,7 @@ def _dispute_evidence_upload_to(instance, filename):
     return f"disputes/evidence/{uuid.uuid4().hex}.{ext}"
 
 
-class DisputeEvidence(models.Model):
+class DisputeEvidence(SoftDeleteModel):
     """
     Evidence attached to a dispute (screenshots, videos, chat logs, etc.).
     

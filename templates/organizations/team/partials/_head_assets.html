@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
   tailwind.config = {
     darkMode: "class",
     theme: {
@@ -408,7 +408,7 @@
 </style>
 
 {# ── Smart Color System — auto-adjust dark team colors for visibility ──── #}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   var raw = '{{ team.primary_color|default:"#3B82F6" }}';
 

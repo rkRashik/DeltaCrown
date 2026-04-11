@@ -389,7 +389,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
         return None
 
 
-class Payment(models.Model):
+class Payment(SoftDeleteModel):
     """
     Payment proof and verification tracking for tournament registrations.
     
@@ -397,7 +397,8 @@ class Payment(models.Model):
     - Multiple payment methods (bKash, Nagad, Rocket, Bank, DeltaCoin)
     - Payment proof upload and storage
     - Admin verification workflow
-    - Status tracking (pending â†’ submitted â†’ verified/rejected)
+    - Status tracking (pending → submitted → verified/rejected)
+    - Soft deletion for cancelled/refunded payments
     
     Source: PART_3.1_DATABASE_DESIGN_ERD.md Section 4.2
     """
@@ -633,6 +634,10 @@ class Payment(models.Model):
         help_text="Last update timestamp"
     )
     
+    # Managers — default excludes soft-deleted rows
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+    
     class Meta:
         db_table = 'tournaments_payment'
         verbose_name = 'Payment'
@@ -642,6 +647,7 @@ class Payment(models.Model):
             models.Index(fields=['payment_method', 'status']),
             models.Index(fields=['status', '-submitted_at']),
             models.Index(fields=['verified_by', 'verified_at']),
+            models.Index(fields=['is_deleted', 'status'], name='payment_del_stat_idx'),
         ]
         constraints = [
             # Amount must be positive

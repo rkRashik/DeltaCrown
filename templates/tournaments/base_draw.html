@@ -59,7 +59,7 @@
 <body>
   {% block draw_body %}{% endblock %}
 
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function() {
       if (typeof lucide !== 'undefined') lucide.createIcons();
     });

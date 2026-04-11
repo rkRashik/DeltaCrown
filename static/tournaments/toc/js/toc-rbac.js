@@ -74,7 +74,7 @@
                         <span class="text-[10px] font-bold uppercase bg-dc-info/20 text-dc-info px-2 py-0.5 rounded ml-2">${esc(s.role_name)}</span>
                     </div>
                 </div>
-                <button onclick="TOC.rbac.removeStaff(${s.id})" class="p-1.5 text-dc-text hover:text-dc-danger rounded hover:bg-dc-danger/10 transition-colors" title="Remove">
+                <button data-click="TOC.rbac.removeStaff" data-click-args="[${s.id}]" class="p-1.5 text-dc-text hover:text-dc-danger rounded hover:bg-dc-danger/10 transition-colors" title="Remove">
                     <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
                 </button>
             </div>`;
@@ -102,7 +102,7 @@
                 + (isFirst ? 'border-theme bg-theme/5' : 'border-dc-border hover:border-theme/40 bg-dc-surface/50')
                 + '" data-role-card="' + r.id + '">'
                 + '<input type="radio" name="staff-role-radio" value="' + r.id + '"' + (isFirst ? ' checked' : '')
-                + ' class="mt-0.5 accent-[var(--theme-color,#f59e0b)]" onchange="TOC.rbac._onRoleCardChange(this)">'
+                + ' class="mt-0.5 accent-[var(--theme-color,#f59e0b)]" data-change="TOC.rbac._onRoleCardChange" data-change-pass="el">'
                 + '<div class="flex-1 min-w-0">'
                 + '<p class="text-sm font-bold text-white leading-tight">' + esc(r.name) + '</p>'
                 + '<p class="text-[11px] text-dc-text mt-0.5 leading-snug">' + esc(r.description || '') + '</p>'
@@ -125,7 +125,7 @@
             + (roleCards || '<p class="text-xs text-dc-text italic text-center py-4">No roles available. Seed roles first.</p>')
             + '</div>'
             + '</div>'
-            + '<button onclick="TOC.rbac.confirmAssignStaff()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign Staff Member</button>'
+            + '<button data-click="TOC.rbac.confirmAssignStaff" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Assign Staff Member</button>'
             + '</div>';
 
         showOverlay('Assign Staff Member', body);
@@ -164,7 +164,7 @@
                 resultsEl.innerHTML = '<div class="p-2 text-xs text-dc-text italic">No users found</div>';
             } else {
                 resultsEl.innerHTML = users.map(u => `
-                    <button type="button" onclick="TOC.rbac.selectUser(${u.id}, '${esc(u.username).replace(/'/g, "\\'")}', '${esc(u.email).replace(/'/g, "\\'")}')"
+                    <button type="button" data-click="TOC.rbac.selectUser" data-click-args="[${u.id},&quot;${esc(u.username).replace(/"/g, '&quot;')}&quot;,&quot;${esc(u.email).replace(/"/g, '&quot;')}&quot;]"
                         class="w-full text-left px-3 py-2 text-sm text-dc-textBright hover:bg-theme/10 flex items-center gap-2 border-b border-dc-border last:border-0">
                         <span class="font-bold">${esc(u.username)}</span>
                         <span class="text-xs text-dc-text">${esc(u.email)}</span>
@@ -415,7 +415,7 @@
                     <label class="block text-xs text-dc-text mb-1">Amount (leave blank for configured fee)</label>
                     <input id="fee-amount" type="number" step="0.01" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50">
                 </div>
-                <button onclick="TOC.rbac.confirmProcessFee()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Deduct Fee</button>
+                <button data-click="TOC.rbac.confirmProcessFee" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Deduct Fee</button>
             </div>
         `);
     }
@@ -448,7 +448,7 @@
                     <label class="block text-xs text-dc-text mb-1">Description</label>
                     <input id="prize-desc" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="1st Place Prize">
                 </div>
-                <button onclick="TOC.rbac.confirmDistributePrize()" class="w-full py-2.5 rounded-lg bg-dc-warning text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Distribute</button>
+                <button data-click="TOC.rbac.confirmDistributePrize" class="w-full py-2.5 rounded-lg bg-dc-warning text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Distribute</button>
             </div>
         `);
     }
@@ -481,13 +481,13 @@
             document.body.appendChild(ol);
         }
         ol.innerHTML = `
-            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="TOC.rbac.closeOverlay()"></div>
+            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-click="TOC.rbac.closeOverlay"></div>
             <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-lg relative z-10 overflow-hidden">
                 <div class="h-1 w-full bg-theme"></div>
                 <div class="p-5">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="font-display font-bold text-sm text-white">${title}</h2>
-                        <button class="p-1 text-dc-text hover:text-white" onclick="TOC.rbac.closeOverlay()"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        <button class="p-1 text-dc-text hover:text-white" data-click="TOC.rbac.closeOverlay"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
                     ${bodyHtml}
                 </div>

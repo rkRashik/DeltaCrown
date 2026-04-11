@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
     tailwind.config = {
         theme: {
             extend: {
@@ -637,10 +637,10 @@
                 <!-- Content -->
                 <div class="relative z-10">
                     {% if game.icon %}
-                        <img src="{{ game.icon }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <img src="{{ game.icon }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform"  data-fallback="hide-show-next">
                         <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
                     {% elif game.logo %}
-                        <img src="{{ game.logo }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <img src="{{ game.logo }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform"  data-fallback="hide-show-next">
                         <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
                     {% else %}
                         <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">🎮</div>
@@ -1207,7 +1207,7 @@
         <!-- Card Grid -->
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
             {% for faq in featured_faqs %}
-            <div class="faq-card group cursor-pointer" onclick="toggleFAQCard(this)">
+            <div class="faq-card group cursor-pointer" data-click="toggleFAQCard" data-click-pass-el>
                 <div class="relative h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/[0.07] hover:border-dc-cyan/40 hover:scale-[1.02] transition-all duration-300 ease-out overflow-hidden">
                     <!-- Gradient Accent -->
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -1281,7 +1281,7 @@
 </section>
 
 <!-- FAQ Card JavaScript -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function toggleFAQCard(card) {
     const answerContent = card.querySelector('.faq-answer-content');
     const plusIcon = card.querySelector('.faq-plus');
@@ -1488,7 +1488,7 @@ function toggleFAQCard(card) {
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Intersection Observer for Scroll Animations
 document.addEventListener('DOMContentLoaded', function() {
     const animateOnScroll = new IntersectionObserver((entries) => {

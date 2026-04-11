@@ -387,7 +387,7 @@ input:checked + .toggle-slider:before {
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Toast notification for successful save
 if (window.location.search.includes('success=true')) {
     const toast = document.createElement('div');

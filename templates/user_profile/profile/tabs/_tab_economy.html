@@ -326,7 +326,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
     // ========================================================================
     // UP-PHASE7.7: Modern Toast Notification System
@@ -361,7 +361,7 @@
             <div class="flex-1">
                 <p class="text-white text-sm font-medium leading-relaxed">${message}</p>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
+            <button data-click-dismiss-parent class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
                 <i class="fa-solid fa-times"></i>
             </button>
         `;
@@ -413,7 +413,7 @@
             <div class="flex-1">
                 <p class="text-white text-sm font-medium leading-relaxed">${message}</p>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
+            <button data-click-dismiss-parent class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
                 <i class="fa-solid fa-times"></i>
             </button>
         `;
@@ -460,12 +460,12 @@
             console.error('Error loading wallet requests:', error);
             document.getElementById('topups-tbody').innerHTML = `
                 <tr><td colspan="6" class="px-4 py-8 text-center text-red-400 text-sm">
-                    Failed to load requests. <button onclick="loadWalletRequests()" class="text-z-cyan hover:underline ml-2">Retry</button>
+                    Failed to load requests. <button data-click="loadWalletRequests" class="text-z-cyan hover:underline ml-2">Retry</button>
                 </td></tr>
             `;
             document.getElementById('withdrawals-tbody').innerHTML = `
                 <tr><td colspan="7" class="px-4 py-8 text-center text-red-400 text-sm">
-                    Failed to load requests. <button onclick="loadWalletRequests()" class="text-z-cyan hover:underline ml-2">Retry</button>
+                    Failed to load requests. <button data-click="loadWalletRequests" class="text-z-cyan hover:underline ml-2">Retry</button>
                 </td></tr>
             `;
         }

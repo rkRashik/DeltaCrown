@@ -116,10 +116,10 @@ function renderRoster() {
             
             ${state.canManage && member.role !== 'OWNER' ? `
                 <div class="flex gap-2">
-                    <button onclick="openChangeRoleModal(${member.id}, '${escapeHtml(member.username)}', '${member.role}', '${member.roster_slot || ''}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition">
+                    <button data-click="openChangeRoleModal" data-click-args='["${member.id}","${escapeHtml(member.username)}","${member.role}","${member.roster_slot || ''}"]' class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition">
                         Change Role
                     </button>
-                    <button onclick="openRemoveMemberModal(${member.id}, '${escapeHtml(member.username)}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded transition">
+                    <button data-click="openRemoveMemberModal" data-click-args='["${member.id}","${escapeHtml(member.username)}"]' class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded transition">
                         Remove
                     </button>
                 </div>

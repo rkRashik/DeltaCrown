@@ -87,6 +87,10 @@ document.addEventListener('alpine:init', () => {
         }
       },
 
+      navigateTo(url) {
+        if (url) window.location.href = url;
+      },
+
       async handleInvite(inviteId, action) {
         try {
           const res = await fetch('/notifications/api/team-invite/' + inviteId + '/' + action + '/', {

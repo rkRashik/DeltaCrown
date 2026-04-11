@@ -775,7 +775,7 @@ select.form-input {
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // File upload preview
     const fileInput = document.querySelector('input[type="file"]');
@@ -788,7 +788,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     fileDisplay.innerHTML = `
-                        <img src="${e.target.result}" style="max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 8px;">
+                        <img src="${e.target.result}" style="max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 8px;" alt="">
                         <div class="file-text" style="margin-top: 1rem;">File selected: ${file.name}</div>
                     `;
                 };

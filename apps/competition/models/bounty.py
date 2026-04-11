@@ -19,8 +19,11 @@ from django.db import models
 from django.utils import timezone
 import uuid
 
+from apps.common.models import SoftDeleteModel
+from apps.common.managers import SoftDeleteManager
 
-class Bounty(models.Model):
+
+class Bounty(SoftDeleteModel):
     """
     A standing reward for achieving a specific competitive goal.
     """
@@ -158,6 +161,10 @@ class Bounty(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Managers — default excludes soft-deleted rows
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = 'competition_bounty'
         verbose_name = 'Bounty'
@@ -199,7 +206,7 @@ class Bounty(models.Model):
         )
 
 
-class BountyClaim(models.Model):
+class BountyClaim(SoftDeleteModel):
     """
     A team's claim against a bounty, with evidence and verification.
     """

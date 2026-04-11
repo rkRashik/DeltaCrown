@@ -13,7 +13,7 @@
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -102,10 +102,10 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-3 mt-1.5">
-                    <p id="save-status" class="text-xs text-dc-text flex items-center gap-1.5">
+                    <p id="save-status" class="text-xs text-dc-text flex items-center gap-1.5" aria-live="polite">
                         <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Loading...
                     </p>
-                    <span id="dirty-indicator" class="hidden flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-dc-warning bg-dc-warning/10 px-2 py-0.5 rounded-full">
+                    <span id="dirty-indicator" class="hidden flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-dc-warning bg-dc-warning/10 px-2 py-0.5 rounded-full" aria-live="polite">
                         <span class="w-1.5 h-1.5 rounded-full bg-dc-warning animate-pulse"></span> Unsaved Changes
                     </span>
                 </div>
@@ -306,7 +306,7 @@
         </div>
     </template>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function () {
         const tournamentSlug = '{{ tournament.slug }}';
         const API_URL = '/api/toc/' + tournamentSlug + '/settings/form-configuration/';

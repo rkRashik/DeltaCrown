@@ -84,15 +84,17 @@ def tournament_payments(request, tournament_id):
     if status_filter:
         payments_qs = payments_qs.filter(status=status_filter)
     
-    # Status breakdown (all payments regardless of filter)
+    # Status breakdown (all payments regardless of filter) — single query
+    from django.db.models import Count, Case, When, IntegerField
     all_payments = Payment.objects.filter(registration__tournament=tournament)
-    status_breakdown = {
-        'pending': all_payments.filter(status=Payment.PENDING).count(),
-        'submitted': all_payments.filter(status=Payment.SUBMITTED).count(),
-        'verified': all_payments.filter(status=Payment.VERIFIED).count(),
-        'rejected': all_payments.filter(status=Payment.REJECTED).count(),
-        'refunded': all_payments.filter(status=Payment.REFUNDED).count(),
-    }
+    status_agg = all_payments.aggregate(
+        pending=Count(Case(When(status=Payment.PENDING, then=1), output_field=IntegerField())),
+        submitted=Count(Case(When(status=Payment.SUBMITTED, then=1), output_field=IntegerField())),
+        verified=Count(Case(When(status=Payment.VERIFIED, then=1), output_field=IntegerField())),
+        rejected=Count(Case(When(status=Payment.REJECTED, then=1), output_field=IntegerField())),
+        refunded=Count(Case(When(status=Payment.REFUNDED, then=1), output_field=IntegerField())),
+    )
+    status_breakdown = {k: v or 0 for k, v in status_agg.items()}
     
     # Paginate
     total_count = payments_qs.count()
@@ -206,19 +208,20 @@ def tournament_matches(request, tournament_id):
     if round_filter:
         matches_qs = matches_qs.filter(round_number=int(round_filter))
     
-    # State breakdown (all matches regardless of filter)
+    # State breakdown (all matches regardless of filter) — single query
     all_matches = Match.objects.filter(tournament=tournament)
-    state_breakdown = {
-        'scheduled': all_matches.filter(state=Match.SCHEDULED).count(),
-        'check_in': all_matches.filter(state=Match.CHECK_IN).count(),
-        'ready': all_matches.filter(state=Match.READY).count(),
-        'live': all_matches.filter(state=Match.LIVE).count(),
-        'pending_result': all_matches.filter(state=Match.PENDING_RESULT).count(),
-        'completed': all_matches.filter(state=Match.COMPLETED).count(),
-        'disputed': all_matches.filter(state=Match.DISPUTED).count(),
-        'forfeit': all_matches.filter(state=Match.FORFEIT).count(),
-        'cancelled': all_matches.filter(state=Match.CANCELLED).count(),
-    }
+    state_agg = all_matches.aggregate(
+        scheduled=Count(Case(When(state=Match.SCHEDULED, then=1), output_field=IntegerField())),
+        check_in=Count(Case(When(state=Match.CHECK_IN, then=1), output_field=IntegerField())),
+        ready=Count(Case(When(state=Match.READY, then=1), output_field=IntegerField())),
+        live=Count(Case(When(state=Match.LIVE, then=1), output_field=IntegerField())),
+        pending_result=Count(Case(When(state=Match.PENDING_RESULT, then=1), output_field=IntegerField())),
+        completed=Count(Case(When(state=Match.COMPLETED, then=1), output_field=IntegerField())),
+        disputed=Count(Case(When(state=Match.DISPUTED, then=1), output_field=IntegerField())),
+        forfeit=Count(Case(When(state=Match.FORFEIT, then=1), output_field=IntegerField())),
+        cancelled=Count(Case(When(state=Match.CANCELLED, then=1), output_field=IntegerField())),
+    )
+    state_breakdown = {k: v or 0 for k, v in state_agg.items()}
     
     # Paginate
     total_count = matches_qs.count()

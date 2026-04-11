@@ -163,6 +163,29 @@ html, body {
   :root { --motion-ok: 0; }
 }
 
+/* iOS zoom prevention: inputs < 16px trigger auto-zoom on focus in Safari.
+   This ensures a smooth mobile experience without disabling user zoom. */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="search"]:focus,
+  input[type="tel"]:focus,
+  input[type="url"]:focus,
+  input[type="date"]:focus,
+  select:focus,
+  textarea:focus {
+    font-size: max(1em, 16px);
+  }
+}
+
+/* Global focus-visible ring for interactive elements */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* -------------------------------------------------------------------------- */
 /* 5) Per-game variables (used by pages/components via [data-game])           */
 /*    Defaults, then overrides for each supported game                        */

@@ -14,6 +14,8 @@ from apps.games.models import (
     GameTournamentConfig,
     GameRole,
 )
+from apps.games.models.map_pool import GameMapPool
+from apps.games.models.pipeline_template import GamePipelineTemplate
 from apps.games.models.rules import VetoConfiguration
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,12 @@ class GameRoleInline(TabularInline):
     model = GameRole
     extra = 1
     fields = ['role_name', 'role_code', 'icon', 'color', 'is_competitive', 'order']
+
+
+class GameMapPoolInline(TabularInline):
+    model = GameMapPool
+    extra = 1
+    fields = ['map_name', 'map_code', 'is_active', 'is_competitive', 'order']
 
 
 @admin.register(Game)
@@ -86,6 +94,7 @@ class GameAdmin(SafeUploadMixin, ModelAdmin):
         GameTournamentConfigInline,
         GamePlayerIdentityConfigInline,
         GameRoleInline,
+        GameMapPoolInline,
     ]
 
     def save_model(self, request, obj, form, change):
@@ -112,9 +121,22 @@ class GamePlayerIdentityConfigAdmin(ModelAdmin):
 
 @admin.register(GameTournamentConfig)
 class GameTournamentConfigAdmin(ModelAdmin):
-    list_display = ['game', 'default_match_format', 'default_scoring_type', 'require_check_in']
-    list_filter = ['default_match_format', 'default_scoring_type', 'require_check_in']
+    list_display = ['game', 'default_match_format', 'default_scoring_type', 'max_score', 'require_check_in', 'allow_draws']
+    list_filter = ['default_match_format', 'default_scoring_type', 'require_check_in', 'allow_draws']
     search_fields = ['game__name']
+    fieldsets = (
+        ('Game', {'fields': ('game',)}),
+        ('Match Settings', {'fields': ('available_match_formats', 'default_match_format', 'default_match_duration_minutes')}),
+        ('Scoring', {'fields': ('default_scoring_type', 'scoring_rules', 'max_score', 'allow_draws', 'overtime_enabled')}),
+        ('Tiebreakers', {'fields': ('default_tiebreakers',)}),
+        ('Format Support', {'fields': ('supports_single_elimination', 'supports_double_elimination', 'supports_round_robin', 'supports_swiss', 'supports_group_stage')}),
+        ('Check-in', {'fields': ('require_check_in', 'check_in_window_minutes')}),
+        ('Credentials (Manual Input Schema)', {
+            'fields': ('credential_schema',),
+            'description': 'JSON array of credential fields for games without APIs. '
+                         'Format: [{"key": "lobby_code", "label": "Lobby Code", "kind": "text", "required": true}]',
+        }),
+    )
 
 
 @admin.register(GameRole)
@@ -126,6 +148,33 @@ class GameRoleAdmin(ModelAdmin):
 
 
 # GameMatchPipeline admin now registered in apps.match_engine.admin (Phase 6)
+
+
+@admin.register(GameMapPool)
+class GameMapPoolAdmin(ModelAdmin):
+    list_display = ['game', 'map_name', 'map_code', 'is_active', 'is_competitive', 'order']
+    list_filter = ['game', 'is_active', 'is_competitive']
+    list_editable = ['is_active', 'is_competitive', 'order']
+    search_fields = ['game__name', 'map_name', 'map_code']
+    ordering = ['game', 'order', 'map_name']
+
+
+@admin.register(GamePipelineTemplate)
+class GamePipelineTemplateAdmin(ModelAdmin):
+    list_display = ['game', 'name', 'pipeline_mode', 'scoring_type', 'default_match_format', 'is_default', 'is_active']
+    list_filter = ['game', 'pipeline_mode', 'scoring_type', 'is_default', 'is_active']
+    list_editable = ['is_active', 'is_default']
+    search_fields = ['game__name', 'name']
+    fieldsets = (
+        ('Game', {'fields': ('game', 'name', 'is_default', 'is_active')}),
+        ('Pipeline', {'fields': ('pipeline_mode', 'scoring_type', 'default_match_format')}),
+        ('Tiebreakers', {'fields': ('tiebreakers',)}),
+        ('Manual Input Schema', {
+            'fields': ('credential_schema',),
+            'description': 'JSON array of credential fields for match setup. '
+                         'This is the per-pipeline override; falls back to GameTournamentConfig.',
+        }),
+    )
 
 
 @admin.register(VetoConfiguration)

@@ -60,7 +60,7 @@
         <button id="hub-checkin-btn-lobby"
                 class="w-full md:w-auto px-10 py-4 rounded-xl btn-solid-primary font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                 {% if hub_critical_locked %}disabled{% endif %}
-                onclick="HubEngine.performCheckIn()">
+                data-click="HubEngine.performCheckIn">
           <i data-lucide="check-circle" class="w-5 h-5"></i> Check In Now
         </button>
         {% elif is_checked_in %}

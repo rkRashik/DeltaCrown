@@ -5,6 +5,7 @@ from django.utils.text import slugify
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django_countries.fields import CountryField
+from apps.common.validators import validate_image_upload
 import uuid
 
 REGION_CHOICES = [
@@ -99,8 +100,8 @@ class UserProfile(models.Model):
         default="",
         help_text="Custom URL slug (e.g., deltacrown.com/u/legend)"
     )
-    avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True)
-    banner = models.ImageField(upload_to=user_banner_path, blank=True, null=True, help_text="Profile banner image")
+    avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True, validators=[validate_image_upload])
+    banner = models.ImageField(upload_to=user_banner_path, blank=True, null=True, help_text="Profile banner image", validators=[validate_image_upload])
     bio = models.TextField(
         blank=True,
         default="",
@@ -1217,19 +1218,22 @@ class VerificationRecord(models.Model):
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
-        help_text="Front side of government-issued ID (NID, Passport, Driver's License)"
+        help_text="Front side of government-issued ID (NID, Passport, Driver's License)",
+        validators=[validate_image_upload],
     )
     id_document_back = models.ImageField(
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
-        help_text="Back side of government-issued ID"
+        help_text="Back side of government-issued ID",
+        validators=[validate_image_upload],
     )
     selfie_with_id = models.ImageField(
         upload_to=verification_kyc_document_path,
         null=True,
         blank=True,
-        help_text="Selfie holding the ID document for liveness verification"
+        help_text="Selfie holding the ID document for liveness verification",
+        validators=[validate_image_upload],
     )
     
     # ===== VERIFICATION STATUS =====
@@ -1730,7 +1734,8 @@ class GameProfile(models.Model):
         upload_to='rank_images/',
         blank=True,
         null=True,
-        help_text="Rank badge image"
+        help_text="Rank badge image",
+        validators=[validate_image_upload],
     )
     rank_points = models.IntegerField(
         blank=True,
@@ -2297,7 +2302,8 @@ class Certificate(models.Model):
     # Images
     image = models.ImageField(
         upload_to='certificates/',
-        help_text="Full certificate image"
+        help_text="Full certificate image",
+        validators=[validate_image_upload],
     )
     thumbnail_url = models.CharField(
         max_length=500,
@@ -2433,19 +2439,22 @@ class KYCSubmission(models.Model):
     )
     document_front = models.ImageField(
         upload_to=kyc_document_path,
-        help_text="Front side of the identity document"
+        help_text="Front side of the identity document",
+        validators=[validate_image_upload],
     )
     document_back = models.ImageField(
         upload_to=kyc_document_path,
         blank=True,
         null=True,
-        help_text="Back side of the identity document (if applicable)"
+        help_text="Back side of the identity document (if applicable)",
+        validators=[validate_image_upload],
     )
     selfie_with_document = models.ImageField(
         upload_to=kyc_document_path,
         blank=True,
         null=True,
-        help_text="Selfie holding the document for verification"
+        help_text="Selfie holding the document for verification",
+        validators=[validate_image_upload],
     )
     status = models.CharField(
         max_length=20,

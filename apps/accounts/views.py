@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import secrets
 import urllib.parse
@@ -30,6 +31,31 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+# ---------- IP-based Rate Limiting Helper ----------
+
+
+def _get_client_ip(request):
+    """Extract client IP, respecting X-Forwarded-For behind reverse proxies."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
+def _is_rate_limited(request, scope, max_attempts, window_seconds):
+    """
+    Cache-based rate limiter for Django views.
+    Returns True if the request should be blocked.
+    """
+    ip = _get_client_ip(request)
+    key = f"ratelimit:{scope}:{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
+    attempts = cache.get(key, 0)
+    if attempts >= max_attempts:
+        return True
+    cache.set(key, attempts + 1, timeout=window_seconds)
+    return False
+
+
 # ---------- Safe Password Reset ----------
 
 
@@ -40,6 +66,13 @@ class SafePasswordResetView(PasswordResetView):
     redirected to the 'done' page.  The real error is logged so you can
     diagnose email-configuration issues in Render logs.
     """
+
+    def post(self, request, *args, **kwargs):
+        # Rate limit: 5 requests per 60 seconds per IP
+        if _is_rate_limited(request, 'password_reset', max_attempts=5, window_seconds=60):
+            logger.warning("Password reset rate limited: ip=%s", _get_client_ip(request))
+            return HttpResponseRedirect(self.get_success_url())
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         try:
@@ -78,6 +111,15 @@ class DCLoginView(LoginView):
     template_name = "account/login.html"
     redirect_authenticated_user = True
     form_class = EmailOrUsernameAuthenticationForm
+
+    def post(self, request, *args, **kwargs):
+        # Rate limit: 10 login attempts per 60 seconds per IP
+        if _is_rate_limited(request, 'login', max_attempts=10, window_seconds=60):
+            logger.warning("Login rate limited: ip=%s", _get_client_ip(request))
+            from django.contrib import messages as django_messages
+            django_messages.error(request, "Too many login attempts. Please try again later.")
+            return self.get(request, *args, **kwargs)
+        return super().post(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

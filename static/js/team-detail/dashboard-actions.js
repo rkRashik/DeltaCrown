@@ -194,7 +194,7 @@
                   <div class="image-upload-preview">
                     <img id="logo-preview" src="/static/img/deltaCrown_logos/logo.svg" alt="Logo Preview">
                     <input type="file" id="logo-upload" accept="image/*" hidden>
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload').click()">
+                    <button type="button" class="btn btn-secondary" data-click-trigger="logo-upload">
                       <i class="fa-solid fa-upload"></i>
                       Upload Logo
                     </button>
@@ -207,7 +207,7 @@
                   <div class="image-upload-preview banner">
                     <img id="banner-preview" src="/static/img/game_cards/VALORANT.jpg" alt="Banner Preview">
                     <input type="file" id="banner-upload" accept="image/*" hidden>
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('banner-upload').click()">
+                    <button type="button" class="btn btn-secondary" data-click-trigger="banner-upload">
                       <i class="fa-solid fa-upload"></i>
                       Upload Banner
                     </button>
@@ -271,7 +271,7 @@
                     <h4>Delete Team</h4>
                     <p>Permanently delete this team. This action cannot be undone.</p>
                   </div>
-                  <button type="button" class="btn btn-danger" onclick="confirmDeleteTeam()">
+                  <button type="button" class="btn btn-danger" data-click="confirmDeleteTeam">
                     <i class="fa-solid fa-trash"></i>
                     Delete Team
                   </button>

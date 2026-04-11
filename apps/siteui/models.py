@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
+from apps.common.validators import validate_image_upload
 
 User = get_user_model()
 
@@ -647,7 +648,7 @@ class CommunityPostMedia(models.Model):
     post = models.ForeignKey(CommunityPost, on_delete=models.CASCADE, related_name='media')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES, default='image')
     file = models.FileField(upload_to='community/posts/%Y/%m/%d/')
-    thumbnail = models.ImageField(upload_to='community/thumbnails/%Y/%m/%d/', blank=True)
+    thumbnail = models.ImageField(upload_to='community/thumbnails/%Y/%m/%d/', blank=True, validators=[validate_image_upload])
     alt_text = models.CharField(max_length=200, blank=True)
     
     # File info

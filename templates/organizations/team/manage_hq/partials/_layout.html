@@ -144,7 +144,7 @@
 
     {% include "organizations/team/manage_hq/partials/_mobile_nav.html" %}
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         lucide.createIcons();
 
         const sidebar = document.getElementById('sidebar');
@@ -271,7 +271,7 @@
             if (!actions.length) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
             container.innerHTML = actions.map(a => `
-                <button onclick="${a.onclick}"
+                <button data-click="${a.onclick}"
                     class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-${a.color}-500/15 text-${a.color}-400 border border-${a.color}-500/20 hover:bg-${a.color}-500/25 transition whitespace-nowrap">
                     <i data-lucide="${a.icon}" class="w-3 h-3"></i>
                     <span class="hidden md:inline">${a.label}</span>
@@ -300,7 +300,7 @@
     </script>
 
     <!-- Manage HQ config & controller -->
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         window.MANAGE_HQ = {
             slug: "{{ team.slug|escapejs }}",
             csrfToken: "{{ csrf_token }}",

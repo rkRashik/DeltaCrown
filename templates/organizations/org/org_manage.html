@@ -115,7 +115,7 @@
         <div id="members" class="tab-content hidden glass-panel rounded-2xl p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold">Organization Staff</h2>
-                <button onclick="showInviteOrgMember()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">
+                <button data-click="showInviteOrgMember" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">
                     Invite Member
                 </button>
             </div>
@@ -125,14 +125,14 @@
                 <div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
                     <div class="flex items-center gap-3">
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ member.user.username }}" 
-                             class="w-10 h-10 rounded-full">
+                             class="w-10 h-10 rounded-full" alt="">
                         <div>
                             <div class="font-semibold">{{ member.user.username }}</div>
                             <div class="text-xs text-gray-400">{{ member.role }}</div>
                         </div>
                     </div>
                     {% if member.role != 'CEO' %}
-                    <button onclick="removeOrgMember({{ member.id }}, '{{ member.user.username }}')" 
+                    <button data-click="removeOrgMember" data-click-args='[{{ member.id }}, '{{ member.user.username }}']' 
                             class="text-red-400 hover:text-red-300 text-sm">
                         Remove
                     </button>
@@ -172,7 +172,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -35,7 +35,7 @@
       {{ tournament.rules_text|render_rulebook }}
     </div>
   </div>
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     (function () {
       const root = document.getElementById('hub-rulebook-content');
       if (!root) return;

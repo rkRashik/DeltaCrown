@@ -104,7 +104,7 @@
                         <input type="file" name="document_front" id="document-front" accept="image/*" class="hidden" required>
                         <label for="document-front" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-cyan-500/50 transition group">
                             <div id="front-preview" class="hidden mb-4">
-                                <img id="front-preview-img" class="max-h-48 mx-auto rounded-lg">
+                                <img id="front-preview-img" class="max-h-48 mx-auto rounded-lg" alt="">
                             </div>
                             <div id="front-placeholder">
                                 <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-500 group-hover:text-cyan-400 mb-3 transition"></i>
@@ -124,7 +124,7 @@
                         <input type="file" name="document_back" id="document-back" accept="image/*" class="hidden">
                         <label for="document-back" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-blue-500/50 transition group">
                             <div id="back-preview" class="hidden mb-4">
-                                <img id="back-preview-img" class="max-h-48 mx-auto rounded-lg">
+                                <img id="back-preview-img" class="max-h-48 mx-auto rounded-lg" alt="">
                             </div>
                             <div id="back-placeholder">
                                 <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-500 group-hover:text-blue-400 mb-3 transition"></i>
@@ -144,7 +144,7 @@
                         <input type="file" name="selfie_with_document" id="selfie" accept="image/*" class="hidden">
                         <label for="selfie" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-purple-500/50 transition group">
                             <div id="selfie-preview" class="hidden mb-4">
-                                <img id="selfie-preview-img" class="max-h-48 mx-auto rounded-lg">
+                                <img id="selfie-preview-img" class="max-h-48 mx-auto rounded-lg" alt="">
                             </div>
                             <div id="selfie-placeholder">
                                 <i class="fa-solid fa-camera text-5xl text-gray-500 group-hover:text-purple-400 mb-3 transition"></i>
@@ -187,7 +187,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Image preview functionality
 function setupImagePreview(inputId, previewId, previewImgId, placeholderId) {
     const input = document.getElementById(inputId);

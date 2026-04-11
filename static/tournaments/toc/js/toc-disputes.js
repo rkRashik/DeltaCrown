@@ -12,6 +12,20 @@
 
   const $ = (sel) => document.querySelector(sel);
 
+  /** Disable a button, add a spinner, and restore on done. Returns a restore function. */
+  function withSpinner(btn) {
+    if (!btn) return function() {};
+    var orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'pointer-events-none');
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>' + orig;
+    return function() {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'pointer-events-none');
+      btn.innerHTML = orig;
+    };
+  }
+
   const severityConfig = {
     critical: { label: 'Critical', cls: 'bg-dc-danger text-white', order: 0 },
     high:     { label: 'High',     cls: 'bg-dc-danger/30 text-dc-danger border border-dc-danger/40', order: 1 },
@@ -178,7 +192,7 @@
         ? '<span class="text-[8px] uppercase tracking-wider text-dc-info bg-dc-info/20 border border-dc-info/30 px-1.5 py-0.5 rounded-full">Hub Ticket</span>'
         : '';
       return `
-        <div class="p-4 hover:bg-white/[0.02] transition-colors cursor-pointer flex items-start gap-4" onclick="TOC.disputes.openDetail('${safeUiId}')">
+        <div class="p-4 hover:bg-white/[0.02] transition-colors cursor-pointer flex items-start gap-4" data-click="TOC.disputes.openDetail" data-click-args="['${safeUiId}']">
           <div class="flex-shrink-0 mt-1">
             <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${sev.cls}">${sev.label}</span>
           </div>
@@ -297,12 +311,12 @@
           <div class="border-t border-dc-border pt-4 space-y-3">
             <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Actions</p>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="TOC.disputes.openResolveForm(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
-              <button onclick="TOC.disputes.escalate(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
+              <button data-click="TOC.disputes.openResolveForm" data-click-args="[${d.id}, '${sourceType}']" data-cap-require="resolve_disputes" class="py-2.5 bg-dc-success/20 border border-dc-success/30 text-dc-success text-[10px] font-bold uppercase rounded-lg hover:bg-dc-success/30">Resolve</button>
+              <button data-click="TOC.disputes.escalate" data-click-args="[${d.id}, '${sourceType}']" data-cap-require="resolve_disputes" class="py-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[10px] font-bold uppercase rounded-lg hover:bg-purple-500/30">Escalate</button>
             </div>
             <div class="flex gap-2">
               <input id="assign-staff-id" type="number" placeholder="Staff User ID" class="flex-1 bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none">
-              <button onclick="TOC.disputes.assign(${d.id}, '${sourceType}')" data-cap-require="resolve_disputes" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
+              <button data-click="TOC.disputes.assign" data-click-args="[${d.id}, '${sourceType}']" data-cap-require="resolve_disputes" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-[10px] font-bold uppercase rounded-lg hover:bg-white/5">Assign</button>
             </div>
           </div>` : ''}
         </div>`;
@@ -331,12 +345,14 @@
           <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Resolution Notes</label>
           <textarea id="resolve-notes" rows="3" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Explain your ruling..."></textarea>
         </div>
-        <button onclick="TOC.disputes.confirmResolve(${id}, '${source}')" data-cap-require="resolve_disputes" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
+        <button data-click="TOC.disputes.confirmResolve" data-click-args="[${id}, '${source}']" data-cap-require="resolve_disputes" class="w-full py-2.5 bg-dc-success text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Issue Ruling</button>
       </div>`;
     showOverlay('resolve-overlay', html);
   }
 
   async function confirmResolve(id, sourceType) {
+    var btn = $('[onclick*="confirmResolve"]');
+    var restore = withSpinner(btn);
     try {
       await API.post(`disputes/${id}/resolve/`, {
         ruling: $('#resolve-ruling')?.value || 'submitter_wins',
@@ -347,6 +363,7 @@
       closeOverlay('resolve-overlay');
       refresh();
     } catch (e) { toast(e.message || 'Failed', 'error'); }
+    finally { restore(); }
   }
 
   /* ─── S7-F4: Escalate ───────────────────────────────────── */
@@ -356,7 +373,7 @@
       <div class="p-5 space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="font-display font-black text-base text-white">Escalate Dispute</h3>
-          <button onclick="TOC.disputes.closeOverlay('escalate-overlay')" class="text-dc-text hover:text-white transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+          <button data-click="TOC.disputes.closeOverlay" data-click-args="[&quot;escalate-overlay&quot;]" class="text-dc-text hover:text-white transition"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
         <p class="text-xs text-dc-text">Escalating will flag this dispute for senior staff review.</p>
         <div>
@@ -364,14 +381,16 @@
           <textarea id="escalate-reason" rows="3" class="w-full bg-dc-bg border border-dc-border/60 rounded-lg px-3 py-2 text-white text-xs focus:border-dc-warning/60 focus:outline-none resize-none placeholder-dc-text/40" placeholder="Describe why this needs escalation..."></textarea>
         </div>
         <div class="flex gap-3">
-          <button onclick="TOC.disputes._confirmEscalate('${id}', '${source}')" class="flex-1 bg-dc-warning hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Escalate</button>
-          <button onclick="TOC.disputes.closeOverlay('escalate-overlay')" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
+          <button data-click="TOC.disputes._confirmEscalate" data-click-args="['${id}', '${source}']" class="flex-1 bg-dc-warning hover:opacity-90 text-dc-bg text-xs font-black uppercase tracking-widest py-2 rounded-lg transition">Escalate</button>
+          <button data-click="TOC.disputes.closeOverlay" data-click-args="[&quot;escalate-overlay&quot;]" class="text-dc-text text-xs py-2 px-4 hover:text-white transition">Cancel</button>
         </div>
       </div>`);
   }
 
   async function _confirmEscalate(id, sourceType) {
     const reason = document.getElementById('escalate-reason')?.value.trim() || '';
+    var btn = $('[onclick*="_confirmEscalate"]');
+    var restore = withSpinner(btn);
     try {
       await API.post(`disputes/${id}/escalate/`, {
         reason,
@@ -382,6 +401,7 @@
       closeOverlay('dispute-detail-overlay');
       refresh();
     } catch (e) { toast(e.message || 'Failed', 'error'); }
+    finally { restore(); }
   }
 
   /* ─── S7-F5: Staff assignment ───────────────────────────── */
@@ -417,7 +437,7 @@
     modal.id = id;
     modal.className = 'fixed inset-0 z-[110] flex items-center justify-center';
     modal.innerHTML = `
-      <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.disputes.closeOverlay('${id}')"></div>
+      <div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.disputes.closeOverlay" data-click-args="['${id}']"></div>
       <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-lg relative z-10 overflow-hidden">
         <div class="h-1 w-full bg-theme"></div>
         ${innerHtml}

@@ -15,7 +15,7 @@
             </p>
         </div>
         {% if is_owner and roster_lock_source == 'owner' %}
-        <button onclick="ManageHQ.toggleRosterLock(false)"
+        <button data-click="ManageHQ.toggleRosterLock" data-click-args='[false]'
             class="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/15 transition font-medium">
             Unlock
         </button>
@@ -35,13 +35,13 @@
                 </div>
                 <div class="flex items-center gap-2">
                     {% if is_owner and roster_lock_source != 'organization' and not roster_locked %}
-                    <button onclick="ManageHQ.toggleRosterLock(true)"
+                    <button data-click="ManageHQ.toggleRosterLock" data-click-args='[true]'
                         class="text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/50 hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/10 transition font-medium inline-flex items-center gap-1.5">
                         <i data-lucide="lock" class="w-3 h-3"></i>Lock
                     </button>
                     {% endif %}
                     {% if can_manage_roster and not roster_locked %}
-                    <button onclick="ManageHQ.openInviteModal()"
+                    <button data-click="ManageHQ.openInviteModal"
                         class="text-xs px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/25 transition font-semibold inline-flex items-center gap-1.5">
                         <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>Invite Member
                     </button>
@@ -98,7 +98,7 @@
             {% for m in members %}{% if m.role == 'OWNER' %}
             <div class="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3.5 flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/25 to-orange-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-amber-500/20 shrink-0">
-                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                     {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -113,7 +113,7 @@
             {% for m in members %}{% if m.is_tournament_captain %}
             <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3.5 flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/25 to-cyan-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-emerald-500/20 shrink-0">
-                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                     {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -135,7 +135,7 @@
                     <div class="text-xs text-white/40">Required for tournament registration</div>
                 </div>
                 {% if can_manage_roster %}
-                <button onclick="document.querySelector('[data-membership-id]')?.querySelector('[title=Edit]')?.click()"
+                <button data-click="ManageHQ.editFirstMember"
                     class="text-[10px] px-2 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition font-medium">Assign</button>
                 {% endif %}
             </div>
@@ -144,7 +144,7 @@
             {% for m in members %}{% if m.role == 'MANAGER' %}
             <div class="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3.5 flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/25 to-indigo-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-blue-500/20 shrink-0">
-                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                     {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -159,7 +159,7 @@
             {% for m in members %}{% if m.role == 'COACH' %}
             <div class="rounded-xl border border-purple-500/20 bg-purple-500/[0.04] p-3.5 flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/25 to-pink-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-purple-500/20 shrink-0">
-                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                    {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                     {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -188,7 +188,7 @@
             {% for s in org_staff %}
             <div class="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/[0.04] p-3.5 flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-fuchsia-500/20 shrink-0">
-                    {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ s.username|slice:':2'|upper|escapejs }}')">
+                    {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ s.username|slice:':2'|upper }}">
                     {% else %}{{ s.username|slice:":2"|upper }}{% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -212,7 +212,7 @@
                 {% if m.role == 'OWNER' or m.role == 'MANAGER' %}
                 <span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-white/5 border border-white/8 text-white/60">
                     <span class="h-4 w-4 rounded-full bg-white/10 grid place-items-center text-[8px] font-bold overflow-hidden shrink-0">
-                        {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':1'|upper|escapejs }}')">
+                        {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':1'|upper }}">
                         {% else %}{{ m.user.username|slice:":1"|upper }}{% endif %}
                     </span>
                     {{ m.user.username }}
@@ -223,7 +223,7 @@
                 {% for s in org_staff %}
                 <span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-fuchsia-500/5 border border-fuchsia-500/15 text-white/60">
                     <span class="h-4 w-4 rounded-full bg-fuchsia-500/15 grid place-items-center text-[8px] font-bold overflow-hidden shrink-0">
-                        {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ s.username|slice:':1'|upper|escapejs }}')">
+                        {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ s.username|slice:':1'|upper }}">
                         {% else %}{{ s.username|slice:":1"|upper }}{% endif %}
                     </span>
                     {{ s.username }}
@@ -255,14 +255,14 @@
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
                      data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
                      data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
-                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:"true,false" }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
 
                     <div class="flex items-start gap-3">
                         <div class="relative shrink-0">
                             <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 grid place-items-center text-sm font-bold overflow-hidden border border-white/10">
-                                {% if m.roster_image %}<img src="{{ m.roster_image.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
-                                {% elif m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                                {% if m.roster_image %}<img src="{{ m.roster_image.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
+                                {% elif m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                                 {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                             </div>
                             {% if m.is_tournament_captain %}
@@ -289,20 +289,20 @@
 
                     {% if can_manage_roster and not roster_locked %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                        <button data-click="ManageHQ.showMemberInfo" data-click-args='[{{ m.id }}, "{{ m.display_name|default:m.user.username|escapejs }}", "{{ m.user.username|escapejs }}", "{{ m.get_role_display|escapejs }}", "{{ m.player_role|default:""|escapejs }}", "{{ m.user.email|escapejs }}", "{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
                             <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.openRoleModal({{ m.id }}, '{{ m.role }}', '{{ m.user.username|escapejs }}', {{ m.is_tournament_captain|yesno:'true,false' }}, '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}')"
+                        <button data-click="ManageHQ.openRoleModal" data-click-args='[{{ m.id }}, "{{ m.role }}", "{{ m.user.username|escapejs }}", {{ m.is_tournament_captain|yesno:"true,false" }}, "{{ m.player_role|default:""|escapejs }}", "{{ m.roster_slot|default:""|escapejs }}", "{{ m.display_name|default:""|escapejs }}", "{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-blue-500/20 grid place-items-center transition" title="Edit">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.swapSlot({{ m.id }}, 'SUBSTITUTE')"
+                        <button data-click="ManageHQ.swapSlot" data-click-args='[{{ m.id }}, "SUBSTITUTE"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-amber-500/20 grid place-items-center transition" title="Move to Bench">
                             <i data-lucide="arrow-down" class="w-3 h-3 text-white/60"></i>
                         </button>
                         {% if m.role != 'OWNER' %}
-                        <button onclick="ManageHQ.openRemoveModal({{ m.id }}, '{{ m.user.username|escapejs }}')"
+                        <button data-click="ManageHQ.openRemoveModal" data-click-args='[{{ m.id }}, "{{ m.user.username|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-red-500/20 grid place-items-center transition" title="Remove">
                             <i data-lucide="x" class="w-3 h-3 text-white/60"></i>
                         </button>
@@ -312,7 +312,7 @@
 
                     {% if m.user.id == request.user.id and not can_manage_roster %}
                     <div class="absolute top-2 right-2">
-                        <button onclick="ManageHQ.openSelfEditModal({{ m.id }}, '{{ m.user.username|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}')"
+                        <button data-click="ManageHQ.openSelfEditModal" data-click-args='[{{ m.id }}, "{{ m.user.username|escapejs }}", "{{ m.player_role|default:""|escapejs }}", "{{ m.roster_slot|default:""|escapejs }}", "{{ m.display_name|default:""|escapejs }}", "{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 grid place-items-center transition" title="Edit your info">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/50"></i>
                         </button>
@@ -348,12 +348,12 @@
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
                      data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
                      data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
-                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:"true,false" }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-start gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-indigo-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">
-                            {% if m.roster_image %}<img src="{{ m.roster_image.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
-                            {% elif m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                            {% if m.roster_image %}<img src="{{ m.roster_image.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
+                            {% elif m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                             {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                         </div>
                         <div class="flex-1 min-w-0">
@@ -366,19 +366,19 @@
                     </div>
                     {% if can_manage_roster and not roster_locked %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                        <button data-click="ManageHQ.showMemberInfo" data-click-args='[{{ m.id }}, "{{ m.display_name|default:m.user.username|escapejs }}", "{{ m.user.username|escapejs }}", "{{ m.get_role_display|escapejs }}", "{{ m.player_role|default:""|escapejs }}", "{{ m.user.email|escapejs }}", "{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
                             <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.swapSlot({{ m.id }}, 'STARTER')"
+                        <button data-click="ManageHQ.swapSlot" data-click-args='[{{ m.id }}, "STARTER"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-emerald-500/20 grid place-items-center transition" title="Promote to Starter">
                             <i data-lucide="arrow-up" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.openRoleModal({{ m.id }}, '{{ m.role }}', '{{ m.user.username|escapejs }}', {{ m.is_tournament_captain|yesno:'true,false' }}, '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}')"
+                        <button data-click="ManageHQ.openRoleModal" data-click-args='[{{ m.id }}, "{{ m.role }}", "{{ m.user.username|escapejs }}", {{ m.is_tournament_captain|yesno:"true,false" }}, "{{ m.player_role|default:""|escapejs }}", "{{ m.roster_slot|default:""|escapejs }}", "{{ m.display_name|default:""|escapejs }}", "{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-blue-500/20 grid place-items-center transition" title="Edit">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.openRemoveModal({{ m.id }}, '{{ m.user.username|escapejs }}')"
+                        <button data-click="ManageHQ.openRemoveModal" data-click-args='[{{ m.id }}, "{{ m.user.username|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-red-500/20 grid place-items-center transition" title="Remove">
                             <i data-lucide="x" class="w-3 h-3 text-white/60"></i>
                         </button>
@@ -413,11 +413,11 @@
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
                      data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
                      data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
-                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:"true,false" }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">
-                            {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
+                            {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" data-fallback-text="{{ m.user.username|slice:':2'|upper }}">
                             {% else %}{{ m.user.username|slice:":2"|upper }}{% endif %}
                         </div>
                         <div class="flex-1 min-w-0">
@@ -427,15 +427,15 @@
                     </div>
                     {% if can_manage_roster and not roster_locked and m.role != 'OWNER' %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                        <button data-click="ManageHQ.showMemberInfo" data-click-args='[{{ m.id }}, "{{ m.display_name|default:m.user.username|escapejs }}", "{{ m.user.username|escapejs }}", "{{ m.get_role_display|escapejs }}", "{{ m.player_role|default:""|escapejs }}", "{{ m.user.email|escapejs }}", "{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
                             <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.openRoleModal({{ m.id }}, '{{ m.role }}', '{{ m.user.username|escapejs }}', {{ m.is_tournament_captain|yesno:'true,false' }}, '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '')"
+                        <button data-click="ManageHQ.openRoleModal" data-click-args='[{{ m.id }}, "{{ m.role }}", "{{ m.user.username|escapejs }}", {{ m.is_tournament_captain|yesno:"true,false" }}, "{{ m.player_role|default:""|escapejs }}", "{{ m.roster_slot|default:""|escapejs }}", "{{ m.display_name|default:""|escapejs }}", '']'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-blue-500/20 grid place-items-center transition" title="Edit">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/60"></i>
                         </button>
-                        <button onclick="ManageHQ.openRemoveModal({{ m.id }}, '{{ m.user.username|escapejs }}')"
+                        <button data-click="ManageHQ.openRemoveModal" data-click-args='[{{ m.id }}, "{{ m.user.username|escapejs }}"]'
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-red-500/20 grid place-items-center transition" title="Remove">
                             <i data-lucide="x" class="w-3 h-3 text-white/60"></i>
                         </button>
@@ -448,7 +448,7 @@
             <div id="staff-empty" class="rounded-xl border border-dashed border-white/10 p-6 text-center hidden">
                 <p class="text-sm text-white/30">No coaching or support staff yet</p>
                 {% if can_manage_roster %}
-                <button onclick="ManageHQ.openInviteModal()" class="text-xs text-cyan-400 hover:underline mt-1">+ Invite Staff</button>
+                <button data-click="ManageHQ.openInviteModal" class="text-xs text-cyan-400 hover:underline mt-1">+ Invite Staff</button>
                 {% endif %}
             </div>
         </div>
@@ -474,7 +474,7 @@
                     </div>
                 </div>
                 {% if can_manage_roster %}
-                <button onclick="ManageHQ.cancelInvite({{ inv.id }}, this)"
+                <button data-click="ManageHQ.cancelInvite" data-click-args='[{{ inv.id }}, this]'
                     class="text-xs px-3 py-1 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/15 transition shrink-0">
                     Cancel
                 </button>
@@ -486,7 +486,7 @@
     {% endif %}
 
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-        <button class="w-full flex items-center justify-between" onclick="this.closest('.rounded-3xl').querySelector('#guide-content').classList.toggle('hidden'); this.querySelector('[data-lucide]').classList.toggle('rotate-180')">
+        <button class="w-full flex items-center justify-between" data-click="ManageHQ.toggleRosterGuide">
             <h3 class="text-sm font-bold flex items-center gap-2">
                 <i data-lucide="book-open" class="w-4 h-4 text-white/50"></i>
                 Roster Guide &amp; Rules
@@ -521,15 +521,15 @@
         </div>
     </div>
 
-    <div id="modal-invite" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onclick="if(event.target===this) ManageHQ.closeModal('modal-invite')">
-        <div class="w-full max-w-md rounded-3xl border border-line bg-[#0c1020] shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div id="modal-invite" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm"data-click-self="ManageHQ.closeModal" data-click-args='["modal-invite"]'>
+        <div class="w-full max-w-md rounded-3xl border border-line bg-[#0c1020] shadow-2xl overflow-hidden" data-stop-propagation>
             <div class="p-6 border-b border-white/8">
                 <div class="flex items-center justify-between">
                     <h3 class="text-base font-bold flex items-center gap-2">
                         <i data-lucide="user-plus" class="w-5 h-5 text-cyan-400"></i>
                         Invite Member
                     </h3>
-                    <button onclick="ManageHQ.closeModal('modal-invite')" class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
+                    <button data-click="ManageHQ.closeModal" data-click-args='["modal-invite"]' class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
                         <i data-lucide="x" class="w-4 h-4 text-white/50"></i>
                     </button>
                 </div>
@@ -553,7 +553,7 @@
                 </div>
                 <div id="invite-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3"></div>
                 <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="ManageHQ.closeModal('modal-invite')"
+                    <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-invite"]'
                         class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:bg-white/5 transition font-medium">Cancel</button>
                     <button type="submit" id="invite-submit-btn"
                         class="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition">Send Invite</button>
@@ -562,8 +562,8 @@
         </div>
     </div>
 
-    <div id="modal-role-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onclick="if(event.target===this) ManageHQ.closeModal('modal-role-edit')">
-        <div class="w-full max-w-lg rounded-3xl border border-line bg-[#0c1020] shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <div id="modal-role-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm"data-click-self="ManageHQ.closeModal" data-click-args='["modal-role-edit"]'>
+        <div class="w-full max-w-lg rounded-3xl border border-line bg-[#0c1020] shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
             <div class="p-5 border-b border-white/8">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -575,7 +575,7 @@
                             <p class="text-xs text-white/40" id="role-username-display"></p>
                         </div>
                     </div>
-                    <button onclick="ManageHQ.closeModal('modal-role-edit')" class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
+                    <button data-click="ManageHQ.closeModal" data-click-args='["modal-role-edit"]' class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
                         <i data-lucide="x" class="w-4 h-4 text-white/50"></i>
                     </button>
                 </div>
@@ -656,7 +656,7 @@
                                     <i data-lucide="upload" class="w-3 h-3"></i> Choose Photo
                                 </label>
                                 <input type="file" id="role-photo-input" accept="image/jpeg,image/png,image/webp" class="hidden"
-                                    onchange="if(this.files[0]){var r=new FileReader();r.onload=function(e){document.getElementById('role-photo-preview').innerHTML='<img src=&quot;'+e.target.result+'&quot; class=&quot;w-full h-full object-cover&quot;>'};r.readAsDataURL(this.files[0])}">
+                                    data-change="ManageHQ.previewRolePhoto">
                                 <p class="text-[10px] text-white/25 mt-1">Max 5 MB &middot; JPEG, PNG, WebP</p>
                             </div>
                         </div>
@@ -664,7 +664,7 @@
                 </div>
 
                 <div id="role-permissions-section" class="rounded-xl border border-white/8 bg-white/[0.025] overflow-hidden">
-                    <button type="button" onclick="document.getElementById('role-perm-grid').classList.toggle('hidden'); this.querySelector('.perm-chevron').classList.toggle('rotate-180')"
+                    <button type="button" data-click="ManageHQ.togglePermGrid"
                         class="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
                         <div class="flex items-center gap-2">
                             <i data-lucide="key" class="w-4 h-4 text-amber-400"></i>
@@ -676,7 +676,7 @@
                     <div id="role-perm-grid" class="hidden border-t border-white/6 p-4">
                         <div class="flex items-center justify-between mb-3">
                             <p class="text-xs text-white/40">Checked = granted. Unchecked = revoked (falls back to role default).</p>
-                            <button type="button" id="perm-reset-btn" onclick="window._resetPermsToRoleDefaults()"
+                            <button type="button" id="perm-reset-btn" data-click="window._resetPermsToRoleDefaults"
                                 class="text-[10px] px-2 py-1 rounded-md bg-white/5 text-white/40 hover:text-white/70 hover:bg-white/10 transition font-medium">
                                 Reset to Role Defaults
                             </button>
@@ -771,7 +771,7 @@
                 <div id="role-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3"></div>
 
                 <div class="flex gap-3">
-                    <button type="button" onclick="ManageHQ.closeModal('modal-role-edit')"
+                    <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-role-edit"]'
                         class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:bg-white/5 transition font-medium">Cancel</button>
                     <button type="submit" id="role-submit-btn"
                         class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition inline-flex items-center justify-center gap-1.5">
@@ -782,15 +782,15 @@
         </div>
     </div>
 
-    <div id="modal-remove" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onclick="if(event.target===this) ManageHQ.closeModal('modal-remove')">
-        <div class="w-full max-w-sm rounded-3xl border border-red-500/20 bg-[#0c1020] shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div id="modal-remove" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm"data-click-self="ManageHQ.closeModal" data-click-args='["modal-remove"]'>
+        <div class="w-full max-w-sm rounded-3xl border border-red-500/20 bg-[#0c1020] shadow-2xl overflow-hidden" data-stop-propagation>
             <div class="p-6 border-b border-white/8">
                 <div class="flex items-center justify-between">
                     <h3 class="text-base font-bold text-red-400 flex items-center gap-2">
                         <i data-lucide="user-minus" class="w-5 h-5"></i>
                         Remove Member
                     </h3>
-                    <button onclick="ManageHQ.closeModal('modal-remove')" class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
+                    <button data-click="ManageHQ.closeModal" data-click-args='["modal-remove"]' class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
                         <i data-lucide="x" class="w-4 h-4 text-white/50"></i>
                     </button>
                 </div>
@@ -807,24 +807,24 @@
                 </div>
                 <div id="remove-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3"></div>
                 <div class="flex gap-3">
-                    <button onclick="ManageHQ.closeModal('modal-remove')"
+                    <button data-click="ManageHQ.closeModal" data-click-args='["modal-remove"]'
                         class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:bg-white/5 transition font-medium">Cancel</button>
-                    <button onclick="ManageHQ.confirmRemove()" id="remove-submit-btn"
+                    <button data-click="ManageHQ.confirmRemove" id="remove-submit-btn"
                         class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition">Remove</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modal-self-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onclick="if(event.target===this) ManageHQ.closeModal('modal-self-edit')">
-        <div class="w-full max-w-md rounded-3xl border border-line bg-[#0c1020] shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div id="modal-self-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm"data-click-self="ManageHQ.closeModal" data-click-args='["modal-self-edit"]'>
+        <div class="w-full max-w-md rounded-3xl border border-line bg-[#0c1020] shadow-2xl overflow-hidden" data-stop-propagation>
             <div class="p-6 border-b border-white/8">
                 <div class="flex items-center justify-between">
                     <h3 class="text-base font-bold flex items-center gap-2">
                         <i data-lucide="user-pen" class="w-5 h-5 text-cyan-400"></i>
                         Edit Your Info
                     </h3>
-                    <button onclick="ManageHQ.closeModal('modal-self-edit')" class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
+                    <button data-click="ManageHQ.closeModal" data-click-args='["modal-self-edit"]' class="h-8 w-8 rounded-lg hover:bg-white/10 grid place-items-center transition">
                         <i data-lucide="x" class="w-4 h-4 text-white/50"></i>
                     </button>
                 </div>
@@ -862,14 +862,14 @@
                                 <i data-lucide="upload" class="w-3 h-3"></i> Choose Photo
                             </label>
                             <input type="file" id="self-edit-photo-input" accept="image/jpeg,image/png,image/webp" class="hidden"
-                                onchange="ManageHQ.previewSelfPhoto(this)">
+                                data-change="ManageHQ.previewSelfPhoto" data-change-pass-el>
                             <p class="text-[11px] text-white/30 mt-1">Max 5 MB</p>
                         </div>
                     </div>
                 </div>
                 <div id="self-edit-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3"></div>
                 <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="ManageHQ.closeModal('modal-self-edit')"
+                    <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-self-edit"]'
                         class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:bg-white/5 transition font-medium">Cancel</button>
                     <button type="submit" id="self-edit-submit-btn"
                         class="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition">Save Changes</button>
@@ -878,7 +878,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function() {
         /* ── Role-based permission defaults (mirrors backend) ── */
         var ROLE_DEFAULTS = {

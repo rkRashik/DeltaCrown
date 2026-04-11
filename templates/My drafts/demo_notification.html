@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -327,7 +327,7 @@
         </section>
     </main>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // --- AUDIO ENGINE (Web Audio API) ---
         const AudioEngine = (function() {
             let ctx = null;

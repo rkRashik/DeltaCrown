@@ -80,7 +80,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="cat-{{ category.slug }}" name="category" value="{{ category.slug }}"
                                     {% if current_filters.category == category.slug %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="cat-{{ category.slug }}">
                                     {{ category.name }}
                                     <span class="product-count">({{ category.products.count }})</span>
@@ -97,19 +97,19 @@
                             <div class="filter-option">
                                 <input type="radio" id="type-physical" name="type" value="physical"
                                     {% if current_filters.type == 'physical' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="type-physical">Physical Products</label>
                             </div>
                             <div class="filter-option">
                                 <input type="radio" id="type-digital" name="type" value="digital"
                                     {% if current_filters.type == 'digital' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="type-digital">Digital Products</label>
                             </div>
                             <div class="filter-option">
                                 <input type="radio" id="type-subscription" name="type" value="subscription"
                                     {% if current_filters.type == 'subscription' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="type-subscription">Subscriptions</label>
                             </div>
                         </div>
@@ -122,12 +122,12 @@
                             <div class="price-input-group">
                                 <label>Min Price</label>
                                 <input type="number" name="min_price" value="{{ current_filters.min_price }}" 
-                                    placeholder="0" class="form-control" onchange="updateFilters()">
+                                    placeholder="0" class="form-control" data-change="updateFilters">
                             </div>
                             <div class="price-input-group">
                                 <label>Max Price</label>
                                 <input type="number" name="max_price" value="{{ current_filters.max_price }}" 
-                                    placeholder="999" class="form-control" onchange="updateFilters()">
+                                    placeholder="999" class="form-control" data-change="updateFilters">
                             </div>
                         </div>
                     </div>
@@ -139,7 +139,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="rarity-common" name="rarity" value="common"
                                     {% if current_filters.rarity == 'common' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="rarity-common">
                                     <span class="rarity-badge common">Common</span>
                                 </label>
@@ -147,7 +147,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="rarity-rare" name="rarity" value="rare"
                                     {% if current_filters.rarity == 'rare' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="rarity-rare">
                                     <span class="rarity-badge rare">Rare</span>
                                 </label>
@@ -155,7 +155,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="rarity-epic" name="rarity" value="epic"
                                     {% if current_filters.rarity == 'epic' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="rarity-epic">
                                     <span class="rarity-badge epic">Epic</span>
                                 </label>
@@ -163,7 +163,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="rarity-legendary" name="rarity" value="legendary"
                                     {% if current_filters.rarity == 'legendary' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="rarity-legendary">
                                     <span class="rarity-badge legendary">Legendary</span>
                                 </label>
@@ -171,7 +171,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="rarity-mythic" name="rarity" value="mythic"
                                     {% if current_filters.rarity == 'mythic' %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="rarity-mythic">
                                     <span class="rarity-badge mythic">Mythic</span>
                                 </label>
@@ -188,7 +188,7 @@
                             <div class="filter-option">
                                 <input type="radio" id="brand-{{ brand.slug }}" name="brand" value="{{ brand.slug }}"
                                     {% if current_filters.brand == brand.slug %}checked{% endif %}
-                                    onchange="updateFilters()">
+                                    data-change="updateFilters">
                                 <label for="brand-{{ brand.slug }}">{{ brand.name }}</label>
                             </div>
                             {% endfor %}
@@ -210,7 +210,7 @@
                     <div class="toolbar-right">
                         <div class="sort-options">
                             <label for="sort-select">Sort by:</label>
-                            <select id="sort-select" name="sort" onchange="updateFilters()" class="form-select">
+                            <select id="sort-select" name="sort" data-change="updateFilters" class="form-select">
                                 <option value="newest" {% if current_filters.sort == 'newest' %}selected{% endif %}>Newest First</option>
                                 <option value="price_low" {% if current_filters.sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
                                 <option value="price_high" {% if current_filters.sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
@@ -399,7 +399,7 @@
 
 {% block extra_js %}
 <script src="{% static 'ecommerce/js/product-list.js' %}"></script>
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function updateFilters() {
     const form = document.createElement('form');
     form.method = 'get';

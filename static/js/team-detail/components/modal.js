@@ -137,10 +137,10 @@ class Modal {
       title: title,
       content: `<p>${message}</p>`,
       footer: `
-        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').dispatchEvent(new Event('close'))">
+        <button class="btn btn-secondary" data-click="__dispatchOnClosest" data-click-args='[".modal-overlay","close"]' data-click-pass-el>
           Cancel
         </button>
-        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').dispatchEvent(new Event('confirm'))">
+        <button class="btn btn-primary" data-click="__dispatchOnClosest" data-click-args='[".modal-overlay","confirm"]' data-click-pass-el>
           Confirm
         </button>
       `,

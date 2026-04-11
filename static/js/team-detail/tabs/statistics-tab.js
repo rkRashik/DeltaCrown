@@ -74,7 +74,7 @@ class StatisticsTab {
           </div>
           <h2>Failed to Load Statistics</h2>
           <p>${this.escapeHtml(message)}</p>
-          <button class="btn btn-primary" onclick="window.location.reload()">
+          <button class="btn btn-primary" data-click="window.location.reload">
             <i class="fa-solid fa-refresh"></i>
             Retry
           </button>

@@ -147,7 +147,7 @@ class DiscussionsTab {
           <i class="fa-solid fa-exclamation-triangle"></i>
           <h3>Failed to Load Discussions</h3>
           <p>${error.message || 'Unable to fetch discussions. Please try again.'}</p>
-          <button class="btn btn-primary" onclick="window.location.reload()">
+          <button class="btn btn-primary" data-click="window.location.reload">
             <i class="fa-solid fa-refresh"></i>
             Retry
           </button>

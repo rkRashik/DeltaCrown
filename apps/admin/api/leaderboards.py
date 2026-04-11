@@ -146,7 +146,7 @@ def tournament_leaderboard_debug(request, tournament_id: int):
                 if isinstance(cache, RedisCache):
                     client = cache._cache.get_client()
                     cache_ttl = client.ttl(cache_key)
-            except:
+            except Exception:
                 cache_ttl = 300  # Default TTL
     
     # Query service layer

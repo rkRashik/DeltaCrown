@@ -142,7 +142,7 @@
     /* Delete button (owner only) */
     var deleteBtn = "";
     if (CFG.currentUser === p.author.username) {
-      deleteBtn = '<button onclick="CommunityHub.deletePost(' + p.id + ')" '
+      deleteBtn = '<button data-click="CommunityHub.deletePost" data-click-args='[" + p.id + "]' '
                 + 'class="ml-auto text-[11px] text-white/15 hover:text-red-400/60 transition">Delete</button>';
     }
 
@@ -174,19 +174,19 @@
     +       contentHtml + mediaHtml
     +       '<div class="flex items-center gap-1 mt-4 pt-3 border-t border-white/[.04]">'
     /* Like */
-    +         '<button onclick="CommunityHub.toggleLike(' + p.id + ', this)" '
+    +         '<button data-click="CommunityHub.toggleLike" data-click-args='[" + p.id + ", this]' '
     +           'class="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg ' + likeClr + ' hover:text-rose-400 hover:bg-rose-500/[.06] transition text-xs">'
     +           '<svg class="w-[15px] h-[15px] ' + likeFill + '" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">'
     +             '<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>'
     +           '</svg><span class="like-count">' + fmtNum(p.likes_count) + '</span></button>'
     /* Comment */
-    +         '<button onclick="CommunityHub.openComments(' + p.id + ')" '
+    +         '<button data-click="CommunityHub.openComments" data-click-args='[" + p.id + "]' '
     +           'class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/30 hover:text-cyan-400 hover:bg-cyan-500/[.06] transition text-xs">'
     +           '<svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">'
     +             '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>'
     +           '</svg><span class="comment-count">' + fmtNum(p.comments_count) + '</span></button>'
     /* Share */
-    +         '<button onclick="CommunityHub.sharePost(' + p.id + ', \'' + esc(p.title || "").replace(/'/g, "\\'") + '\')" '
+    +         '<button data-click="CommunityHub.sharePost" data-click-args='[' + p.id + ',"' + esc(p.title || '').replace(/"/g, '&quot;') + '"]' '
     +           'class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/30 hover:text-emerald-400 hover:bg-emerald-500/[.06] transition text-xs">'
     +           '<svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">'
     +             '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>'

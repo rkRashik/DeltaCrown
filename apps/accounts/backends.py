@@ -41,7 +41,7 @@ class EmailOrUsernameBackend(ModelBackend):
                     if user.deletion_request.status == AccountDeletionRequest.Status.SCHEDULED:
                         # Deny authentication for scheduled deletion users
                         return None
-            except:
+            except Exception:
                 # If deletion_request doesn't exist or any error, allow authentication
                 pass
             

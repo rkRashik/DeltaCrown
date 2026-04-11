@@ -5,7 +5,7 @@
     <!-- Google Analytics (production only) -->
     {% if not debug %}
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-B3V6T6X4FV"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
@@ -41,7 +41,7 @@
 
     <!-- Tailwind CSS: CDN Play + custom DeltaCrown config (works everywhere, no build step) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       tailwind.config = {
         darkMode: 'class',
         theme: {
@@ -111,7 +111,7 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
     {% block extra_head %}{% endblock %}
     <!-- Provide a safe no-op `dcLog` early so inline scripts can call it without errors -->
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       window.DELTACROWN_DEBUG = false;
       window.dcLog = function(){};
     </script>
@@ -133,7 +133,8 @@
     {% include "partials/toasts.html" %}
 
     <!-- Site JS -->
-    <script>
+    <script src="{% static 'js/csp-delegator.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}">
       // Server-side controlled debug flag (authorized users only)
       window.DELTACROWN_DEBUG = {% if request.user.is_superuser or debug|default:False %}true{% else %}false{% endif %};
     </script>
@@ -163,7 +164,7 @@
         {"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}
       {% endfor %}
     ]</script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       // Phase 9A-24: Auto-show Django messages as toasts on page load
       document.addEventListener('DOMContentLoaded', function() {
         const messagesEl = document.getElementById('messages-data');

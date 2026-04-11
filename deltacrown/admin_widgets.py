@@ -7,7 +7,7 @@ that organizers can easily edit without knowing JSON syntax.
 
 import json
 from django import forms
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html, escapejs, escape
 
 
 class PrizeDistributionWidget(forms.Textarea):
@@ -36,33 +36,34 @@ class PrizeDistributionWidget(forms.Textarea):
         if data and isinstance(data, dict):
             for placement, amount in data.items():
                 rows_html += (
-                    f'<tr>'
-                    f'<td><input type="text" value="{placement}" class="jw-input jw-prize-placement" placeholder="e.g. 1"></td>'
-                    f'<td><input type="number" value="{amount}" class="jw-input jw-prize-amount" placeholder="e.g. 500"></td>'
-                    f'<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();prizeSync(\'{textarea_id}\')">✕</button></td>'
-                    f'</tr>'
-                )
+                    '<tr>'
+                    '<td><input type="text" value="{}" class="jw-input jw-prize-placement" placeholder="e.g. 1"></td>'
+                    '<td><input type="number" value="{}" class="jw-input jw-prize-amount" placeholder="e.g. 500"></td>'
+                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();prizeSync(\'{}\')">✕</button></td>'
+                    '</tr>'
+                ).format(escape(str(placement)), escape(str(amount)), escapejs(textarea_id))
 
-        html = f'''
-        <div class="jw-widget jw-prize-widget" data-target="{textarea_id}">
+        html = format_html('''
+        <div class="jw-widget jw-prize-widget" data-target="{}">
             <div class="jw-header">
                 <span class="jw-title">💰 Prize Distribution</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="prizePreset('{textarea_id}', 3)">Preset: Top 3</button>
-                    <button type="button" class="jw-btn" onclick="prizePreset('{textarea_id}', 4)">Preset: Top 4</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="prizeAddRow('{textarea_id}')">+ Add Place</button>
+                    <button type="button" class="jw-btn" onclick="prizePreset('{}', 3)">Preset: Top 3</button>
+                    <button type="button" class="jw-btn" onclick="prizePreset('{}', 4)">Preset: Top 4</button>
+                    <button type="button" class="jw-btn jw-btn-add" onclick="prizeAddRow('{}')">+ Add Place</button>
                 </div>
             </div>
-            <table class="jw-table" id="{textarea_id}_table">
+            <table class="jw-table" id="{}_table">
                 <thead>
                     <tr><th>Placement</th><th>Prize Amount (৳)</th><th></th></tr>
                 </thead>
-                <tbody>{rows_html}</tbody>
+                <tbody>{}</tbody>
             </table>
-            <textarea name="{name}" id="{textarea_id}" class="jw-hidden-textarea" style="display:none;">{json_str}</textarea>
+            <textarea name="{}" id="{}" class="jw-hidden-textarea" style="display:none;">{}</textarea>
         </div>
-        '''
-        return mark_safe(html)
+        ''', textarea_id, textarea_id, textarea_id, textarea_id, textarea_id,
+             format_html(rows_html), name, textarea_id, json_str)
+        return html
 
 
 class CoordinatorRolesWidget(forms.Textarea):
@@ -89,37 +90,38 @@ class CoordinatorRolesWidget(forms.Textarea):
         rows_html = ''
         if data and isinstance(data, list):
             for item in data:
-                key = item.get('key', '')
-                label = item.get('label', '')
-                desc = item.get('description', '')
+                key = escape(str(item.get('key', '')))
+                label = escape(str(item.get('label', '')))
+                desc = escape(str(item.get('description', '')))
                 rows_html += (
-                    f'<tr>'
-                    f'<td><input type="text" value="{key}" class="jw-input jw-role-key" placeholder="captain_igl"></td>'
-                    f'<td><input type="text" value="{label}" class="jw-input jw-role-label" placeholder="Captain / IGL"></td>'
-                    f'<td><input type="text" value="{desc}" class="jw-input jw-role-desc" placeholder="Team leader"></td>'
-                    f'<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();rolesSync(\'{textarea_id}\')">✕</button></td>'
-                    f'</tr>'
-                )
+                    '<tr>'
+                    '<td><input type="text" value="{}" class="jw-input jw-role-key" placeholder="captain_igl"></td>'
+                    '<td><input type="text" value="{}" class="jw-input jw-role-label" placeholder="Captain / IGL"></td>'
+                    '<td><input type="text" value="{}" class="jw-input jw-role-desc" placeholder="Team leader"></td>'
+                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();rolesSync(\'{}\')">✕</button></td>'
+                    '</tr>'
+                ).format(key, label, desc, escapejs(textarea_id))
 
-        html = f'''
-        <div class="jw-widget jw-roles-widget" data-target="{textarea_id}">
+        html = format_html('''
+        <div class="jw-widget jw-roles-widget" data-target="{}">
             <div class="jw-header">
                 <span class="jw-title">🎖️ Coordinator Roles</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="rolesPresetDefaults('{textarea_id}')">Load Defaults</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="rolesAddRow('{textarea_id}')">+ Add Role</button>
+                    <button type="button" class="jw-btn" onclick="rolesPresetDefaults('{}')">Load Defaults</button>
+                    <button type="button" class="jw-btn jw-btn-add" onclick="rolesAddRow('{}')">+ Add Role</button>
                 </div>
             </div>
-            <table class="jw-table" id="{textarea_id}_table">
+            <table class="jw-table" id="{}_table">
                 <thead>
                     <tr><th>Key (internal)</th><th>Label (shown)</th><th>Description</th><th></th></tr>
                 </thead>
-                <tbody>{rows_html}</tbody>
+                <tbody>{}</tbody>
             </table>
-            <textarea name="{name}" id="{textarea_id}" class="jw-hidden-textarea" style="display:none;">{json_str}</textarea>
+            <textarea name="{}" id="{}" class="jw-hidden-textarea" style="display:none;">{}</textarea>
         </div>
-        '''
-        return mark_safe(html)
+        ''', textarea_id, textarea_id, textarea_id, textarea_id,
+             format_html(rows_html), name, textarea_id, json_str)
+        return html
 
 
 class CommunicationChannelsWidget(forms.Textarea):
@@ -146,45 +148,52 @@ class CommunicationChannelsWidget(forms.Textarea):
         rows_html = ''
         if data and isinstance(data, list):
             for ch in data:
-                key = ch.get('key', '')
-                label = ch.get('label', '')
-                placeholder = ch.get('placeholder', '')
+                key = escape(str(ch.get('key', '')))
+                label = escape(str(ch.get('label', '')))
+                placeholder = escape(str(ch.get('placeholder', '')))
                 required = 'checked' if ch.get('required') else ''
                 ch_type = ch.get('type', 'text')
                 rows_html += (
-                    f'<tr>'
-                    f'<td><input type="text" value="{key}" class="jw-input jw-ch-key" placeholder="discord"></td>'
-                    f'<td><input type="text" value="{label}" class="jw-input jw-ch-label" placeholder="Discord Tag"></td>'
-                    f'<td><input type="text" value="{placeholder}" class="jw-input jw-ch-placeholder" placeholder="user#1234"></td>'
-                    f'<td><select class="jw-input jw-ch-type">'
-                    f'<option value="text" {"selected" if ch_type == "text" else ""}>Text</option>'
-                    f'<option value="url" {"selected" if ch_type == "url" else ""}>URL</option>'
-                    f'<option value="tel" {"selected" if ch_type == "tel" else ""}>Phone</option>'
-                    f'</select></td>'
-                    f'<td class="jw-center"><input type="checkbox" class="jw-ch-required" {required}></td>'
-                    f'<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();channelsSync(\'{textarea_id}\')">✕</button></td>'
-                    f'</tr>'
+                    '<tr>'
+                    '<td><input type="text" value="{key}" class="jw-input jw-ch-key" placeholder="discord"></td>'
+                    '<td><input type="text" value="{label}" class="jw-input jw-ch-label" placeholder="Discord Tag"></td>'
+                    '<td><input type="text" value="{placeholder}" class="jw-input jw-ch-placeholder" placeholder="user#1234"></td>'
+                    '<td><select class="jw-input jw-ch-type">'
+                    '<option value="text" {sel_text}>Text</option>'
+                    '<option value="url" {sel_url}>URL</option>'
+                    '<option value="tel" {sel_tel}>Phone</option>'
+                    '</select></td>'
+                    '<td class="jw-center"><input type="checkbox" class="jw-ch-required" {required}></td>'
+                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();channelsSync(\'{tid}\')">✕</button></td>'
+                    '</tr>'
+                ).format(
+                    key=key, label=label, placeholder=placeholder, required=required,
+                    sel_text='selected' if ch_type == 'text' else '',
+                    sel_url='selected' if ch_type == 'url' else '',
+                    sel_tel='selected' if ch_type == 'tel' else '',
+                    tid=escapejs(textarea_id),
                 )
 
-        html = f'''
-        <div class="jw-widget jw-channels-widget" data-target="{textarea_id}">
+        html = format_html('''
+        <div class="jw-widget jw-channels-widget" data-target="{}">
             <div class="jw-header">
                 <span class="jw-title">📡 Communication Channels</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn" onclick="channelsPresetDefaults('{textarea_id}')">Load Defaults</button>
-                    <button type="button" class="jw-btn jw-btn-add" onclick="channelsAddRow('{textarea_id}')">+ Add Channel</button>
+                    <button type="button" class="jw-btn" onclick="channelsPresetDefaults('{}')">Load Defaults</button>
+                    <button type="button" class="jw-btn jw-btn-add" onclick="channelsAddRow('{}')">+ Add Channel</button>
                 </div>
             </div>
-            <table class="jw-table" id="{textarea_id}_table">
+            <table class="jw-table" id="{}_table">
                 <thead>
                     <tr><th>Key</th><th>Label</th><th>Placeholder</th><th>Type</th><th>Required</th><th></th></tr>
                 </thead>
-                <tbody>{rows_html}</tbody>
+                <tbody>{}</tbody>
             </table>
-            <textarea name="{name}" id="{textarea_id}" class="jw-hidden-textarea" style="display:none;">{json_str}</textarea>
+            <textarea name="{}" id="{}" class="jw-hidden-textarea" style="display:none;">{}</textarea>
         </div>
-        '''
-        return mark_safe(html)
+        ''', textarea_id, textarea_id, textarea_id, textarea_id,
+             format_html(rows_html), name, textarea_id, json_str)
+        return html
 
 
 class MemberCustomFieldsWidget(forms.Textarea):
@@ -211,41 +220,50 @@ class MemberCustomFieldsWidget(forms.Textarea):
         rows_html = ''
         if data and isinstance(data, list):
             for fld in data:
-                fname = fld.get('field_name', '')
-                label = fld.get('label', '')
+                fname = escape(str(fld.get('field_name', '')))
+                label = escape(str(fld.get('label', '')))
                 ftype = fld.get('type', 'text')
                 required = 'checked' if fld.get('required') else ''
                 rows_html += (
-                    f'<tr>'
-                    f'<td><input type="text" value="{fname}" class="jw-input jw-mcf-name" placeholder="national_id"></td>'
-                    f'<td><input type="text" value="{label}" class="jw-input jw-mcf-label" placeholder="National ID"></td>'
-                    f'<td><select class="jw-input jw-mcf-type">'
-                    f'<option value="text" {"selected" if ftype == "text" else ""}>Text</option>'
-                    f'<option value="number" {"selected" if ftype == "number" else ""}>Number</option>'
-                    f'<option value="email" {"selected" if ftype == "email" else ""}>Email</option>'
-                    f'<option value="url" {"selected" if ftype == "url" else ""}>URL</option>'
-                    f'<option value="date" {"selected" if ftype == "date" else ""}>Date</option>'
-                    f'</select></td>'
-                    f'<td class="jw-center"><input type="checkbox" class="jw-mcf-required" {required}></td>'
-                    f'<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();mcfSync(\'{textarea_id}\')">✕</button></td>'
-                    f'</tr>'
+                    '<tr>'
+                    '<td><input type="text" value="{fname}" class="jw-input jw-mcf-name" placeholder="national_id"></td>'
+                    '<td><input type="text" value="{label}" class="jw-input jw-mcf-label" placeholder="National ID"></td>'
+                    '<td><select class="jw-input jw-mcf-type">'
+                    '<option value="text" {sel_text}>Text</option>'
+                    '<option value="number" {sel_number}>Number</option>'
+                    '<option value="email" {sel_email}>Email</option>'
+                    '<option value="url" {sel_url}>URL</option>'
+                    '<option value="date" {sel_date}>Date</option>'
+                    '</select></td>'
+                    '<td class="jw-center"><input type="checkbox" class="jw-mcf-required" {required}></td>'
+                    '<td><button type="button" class="jw-btn-remove" onclick="this.closest(\'tr\').remove();mcfSync(\'{tid}\')">✕</button></td>'
+                    '</tr>'
+                ).format(
+                    fname=fname, label=label, required=required,
+                    sel_text='selected' if ftype == 'text' else '',
+                    sel_number='selected' if ftype == 'number' else '',
+                    sel_email='selected' if ftype == 'email' else '',
+                    sel_url='selected' if ftype == 'url' else '',
+                    sel_date='selected' if ftype == 'date' else '',
+                    tid=escapejs(textarea_id),
                 )
 
-        html = f'''
-        <div class="jw-widget jw-mcf-widget" data-target="{textarea_id}">
+        html = format_html('''
+        <div class="jw-widget jw-mcf-widget" data-target="{}">
             <div class="jw-header">
                 <span class="jw-title">📝 Custom Member Fields</span>
                 <div class="jw-actions">
-                    <button type="button" class="jw-btn jw-btn-add" onclick="mcfAddRow('{textarea_id}')">+ Add Field</button>
+                    <button type="button" class="jw-btn jw-btn-add" onclick="mcfAddRow('{}')">+ Add Field</button>
                 </div>
             </div>
-            <table class="jw-table" id="{textarea_id}_table">
+            <table class="jw-table" id="{}_table">
                 <thead>
                     <tr><th>Field Name</th><th>Label</th><th>Type</th><th>Required</th><th></th></tr>
                 </thead>
-                <tbody>{rows_html}</tbody>
+                <tbody>{}</tbody>
             </table>
-            <textarea name="{name}" id="{textarea_id}" class="jw-hidden-textarea" style="display:none;">{json_str}</textarea>
+            <textarea name="{}" id="{}" class="jw-hidden-textarea" style="display:none;">{}</textarea>
         </div>
-        '''
-        return mark_safe(html)
+        ''', textarea_id, textarea_id, textarea_id,
+             format_html(rows_html), name, textarea_id, json_str)
+        return html

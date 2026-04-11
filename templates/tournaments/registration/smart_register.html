@@ -13,7 +13,7 @@
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -192,12 +192,23 @@
             border:1px solid rgba(255,255,255,.08); box-shadow:0 40px 80px -20px rgba(0,0,0,.9),inset 0 0 0 1px rgba(255,255,255,.02); }
 
         .input-premium { width:100%;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:.75rem;padding:.75rem 1rem;
-            color:white;font-family:'Inter',sans-serif;font-size:var(--fs-base);transition:all .3s ease;outline:none;box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
-        .input-premium:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15),inset 0 2px 4px rgba(0,0,0,.2); }
+            color:white;font-family:'Inter',sans-serif;font-size:var(--fs-base);transition:all .3s ease;outline:none;box-shadow:inset 0 2px 4px rgba(0,0,0,.2);
+            min-height:44px; /* WCAG 2.5.8: minimum touch target */ }
+        .input-premium:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15),inset 0 2px 4px rgba(0,0,0,.2);
+            outline:2px solid var(--accent);outline-offset:2px; /* WCAG 2.4.7: visible focus indicator */ }
         .input-premium::placeholder { color:rgba(255,255,255,.3);font-weight:400; }
         .input-premium.input-valid { border-color:#4ade80; }
         .input-premium.input-error { border-color:#f87171; }
+        /* WCAG: validation text indicators (not color-only) */
+        .input-premium.input-valid + .field-status::after { content:"✓ Valid"; color:#4ade80; font-size:0.75rem; display:block; margin-top:0.25rem; }
+        .input-premium.input-error + .field-status::after { content:"⚠ Required"; color:#f87171; font-size:0.75rem; display:block; margin-top:0.25rem; }
         select.input-premium { appearance:none; padding-right:2.5rem; }
+        /* WCAG 2.4.7: Visible focus for all interactive elements */
+        button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+            outline:2px solid var(--accent);outline-offset:2px;border-radius:0.5rem;
+        }
+        /* WCAG 2.5.8: Touch target minimum 44×44px */
+        button, [role="button"], a[onclick] { min-height:44px; min-width:44px; }
 
         .player-slot { background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:1rem;transition:all .3s cubic-bezier(.4,0,.2,1); }
         .player-slot:hover { border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.04); }
@@ -344,14 +355,14 @@
 
     <!-- MAIN -->
     <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-6 md:py-10 flex flex-col items-center relative z-10">
-        <form method="post" enctype="multipart/form-data" id="registration-form" class="w-full" novalidate>
+        <form method="post" enctype="multipart/form-data" id="registration-form" class="w-full" novalidate aria-label="Tournament registration form">
             {% csrf_token %}
             <input type="hidden" name="registration_type" value="{{ registration_type }}">
             {% if team %}<input type="hidden" name="team_id" value="{{ team.id }}">{% endif %}
 
-            <div class="w-full glass-wizard rounded-2xl md:rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[600px] relative">
+            <div class="w-full glass-wizard rounded-2xl md:rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[600px] relative" role="group" aria-label="Registration wizard">
 
-                <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center text-white" style="display: none;">
+                <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center text-white" style="display: none;" role="alert" aria-live="assertive" aria-label="Processing registration">
                     <div class="flex flex-col items-center justify-center">
                         <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-4" style="color: var(--accent);"></i>
                         <p class="font-mono text-xs uppercase tracking-widest" style="color: var(--accent);">Processing Registration...</p>
@@ -359,7 +370,7 @@
                 </div>
 
                 <!-- SIDEBAR (desktop) -->
-                <div class="hidden lg:flex w-[300px] bg-black/50 border-r border-white/5 flex-col relative overflow-hidden shrink-0" id="sidebar-nav">
+                <div class="hidden lg:flex w-[300px] bg-black/50 border-r border-white/5 flex-col relative overflow-hidden shrink-0" id="sidebar-nav" role="navigation" aria-label="Registration steps">
                     <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b to-transparent pointer-events-none" style="background: linear-gradient(to bottom, rgba(var(--accent-rgb), 0.1), transparent);"></div>
 
                     <div class="p-5 pb-4 border-b border-white/5 relative z-10">
@@ -418,7 +429,7 @@
 
                 <!-- WIZARD CONTENT -->
                 <div class="flex-1 flex flex-col relative bg-gradient-to-br from-white/[0.01] to-transparent w-full">
-                    <div class="flex-1 overflow-y-auto p-5 md:p-8 lg:p-10 relative" id="wizard-content">
+                    <div class="flex-1 overflow-y-auto p-5 md:p-8 lg:p-10 relative" id="wizard-content" role="region" aria-live="polite" aria-label="Current registration step">
 
                         {% if registration_type == 'team' and not is_guest_team %}
                             {% include "tournaments/registration/includes/_step_select_team.html" %}
@@ -447,15 +458,15 @@
                     </div>
 
                     <div class="p-4 md:px-8 md:py-5 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-between items-center gap-3" id="wizard-footer">
-                        <button type="button" id="btn-back" class="px-5 py-2.5 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" onclick="prevStep()">
+                        <button type="button" id="btn-back" class="px-5 py-2.5 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" data-click="prevStep">
                             <i data-lucide="arrow-left" class="w-4 h-4"></i> <span class="hidden sm:inline">Back</span>
                         </button>
 
-                        <button type="button" id="btn-next" class="px-7 py-2.5 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-lg flex items-center gap-2" onclick="nextStep()">
+                        <button type="button" id="btn-next" class="px-7 py-2.5 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-lg flex items-center gap-2" data-click="nextStep">
                             Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
 
-                        <button type="button" id="btn-submit" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="{% if is_waitlist %}background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);{% else %}background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);{% endif %}" onclick="handleSubmit(event)">
+                        <button type="button" id="btn-submit" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="{% if is_waitlist %}background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);{% else %}background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);{% endif %}" data-click="handleSubmit">
                             <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
                             {{ submit_action_label|default:'Register Now' }}
                         </button>
@@ -466,20 +477,20 @@
     </main>
 
     <!-- MEMBER MODAL (outside glass for z-index) -->
-    <div id="member-modal-overlay" class="fixed inset-0 z-[200] hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);" onclick="closeMemberModal(event)">
-        <div class="relative w-full max-w-lg md:max-w-xl lg:max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-2xl overflow-hidden shadow-2xl" id="member-modal-panel" style="transition: transform 0.2s ease, opacity 0.2s ease;" onclick="event.stopPropagation()">
+    <div id="member-modal-overlay" class="fixed inset-0 z-[200] hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);" data-click="closeMemberModal" role="dialog" aria-modal="true" aria-labelledby="member-modal-title">
+        <div class="relative w-full max-w-lg md:max-w-xl lg:max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-2xl overflow-hidden shadow-2xl" id="member-modal-panel" style="transition: transform 0.2s ease, opacity 0.2s ease;" data-stop-propagation>
             <div class="bg-black/60 border-b border-white/10 px-5 py-3 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                     <i data-lucide="user-cog" class="w-4 h-4" style="color: var(--accent);"></i> <span id="member-modal-title">Edit Player</span>
                 </h3>
-                <button type="button" onclick="closeMemberModal()" class="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/20 transition-all">
+                <button type="button" data-click="closeMemberModal" class="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/20 transition-all">
                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
             <div class="p-5 max-h-[70vh] overflow-y-auto space-y-3" id="member-modal-body"></div>
             <div class="bg-black/60 border-t border-white/10 p-3 flex justify-end gap-3">
-                <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">Cancel</button>
-                <button type="button" onclick="saveMemberChanges()" class="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all" style="background: var(--accent); box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);">Save Changes</button>
+                <button type="button" data-click="closeMemberModal" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">Cancel</button>
+                <button type="button" data-click="saveMemberChanges" class="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all" style="background: var(--accent); box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);">Save Changes</button>
             </div>
         </div>
     </div>
@@ -550,7 +561,7 @@
     }
     </script>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     {% include "tournaments/registration/includes/_wizard_engine.js" %}
     </script>
 </body>

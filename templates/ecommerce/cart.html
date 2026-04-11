@@ -32,7 +32,7 @@
                 <div class="cart-items">
                     <div class="cart-header">
                         <h3>Your Items ({{ cart_items.count }})</h3>
-                        <button class="clear-cart-btn" onclick="clearCart()">
+                        <button class="clear-cart-btn" data-click="clearCart">
                             <i class="fas fa-trash"></i>
                             Clear Cart
                         </button>
@@ -182,7 +182,7 @@
                         <div class="coupon-section">
                             <div class="coupon-input">
                                 <input type="text" id="couponCode" placeholder="Enter coupon code" class="form-control">
-                                <button type="button" class="btn btn-outline-secondary" onclick="applyCoupon()">
+                                <button type="button" class="btn btn-outline-secondary" data-click="applyCoupon">
                                     Apply
                                 </button>
                             </div>
@@ -351,7 +351,7 @@
 
 {% block extra_js %}
 <script src="{% static 'ecommerce/js/cart.js' %}"></script>
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Quantity controls
     document.querySelectorAll('.quantity-btn').forEach(btn => {

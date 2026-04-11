@@ -878,7 +878,7 @@
                             border: 2px solid var(--dark-border); border-radius: var(--radius-lg); color: white; 
                             font-family: inherit; resize: vertical; margin-bottom: 1.5rem;"></textarea>
                         <div style="display: flex; gap: 1rem;">
-                            <button class="btn-action primary-action" onclick="submitJoinRequest('${teamSlug}')" style="flex: 1;">
+                            <button class="btn-action primary-action" data-click="submitJoinRequest" data-click-args='['${teamSlug}']' style="flex: 1;">
                                 <i class="fas fa-paper-plane"></i> Send Request
                             </button>
                             <button class="btn-action secondary-action modal-close-btn" style="flex: 1;">Cancel</button>

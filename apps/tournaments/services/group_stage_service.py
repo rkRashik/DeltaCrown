@@ -424,10 +424,16 @@ class GroupStageService:
             standing.placement_points = Decimal('0.00')
             standing.total_score = 0
         
-        # Aggregate match results
+        # Aggregate match results — pre-fetch game config once
+        from apps.games.services import game_service
+        _cached_tournament_config = None
+        if matches:
+            first_match = matches[0]
+            _cached_tournament_config = game_service.get_tournament_config(first_match.tournament.game)
+        
         for match in matches:
             GroupStageService._update_standing_from_match(
-                standings, match, game_slug, group
+                standings, match, game_slug, group, _cached_tournament_config
             )
         
         # Apply tiebreakers and assign ranks
@@ -453,7 +459,8 @@ class GroupStageService:
         standings: List[GroupStanding],
         match: Match,
         game_slug: str,
-        group: Group
+        group: Group,
+        tournament_config=None
     ):
         """Update standings based on match result."""
         # Match.participant1_id / participant2_id are plain integers that can be
@@ -493,66 +500,17 @@ class GroupStageService:
         # Game-specific stat updates using config-driven approach.
         # Legacy callers may pass Match instances without a result_data payload;
         # use score fields as a stable fallback source of truth.
-        from apps.games.services import game_service
         match_data = dict(getattr(match, 'result_data', {}) or {})
         match_data.setdefault('participant1_score', match.participant1_score or 0)
         match_data.setdefault('participant2_score', match.participant2_score or 0)
         
-        # Get game tournament config for stat field mapping
-        tournament_config = game_service.get_tournament_config(match.tournament.game)
+        # Use pre-fetched game tournament config (passed from caller to avoid N+1)
         scoring_type = tournament_config.default_scoring_type if tournament_config else 'WIN_LOSS'
         
-        # Update stats based on scoring type
-        if scoring_type == 'GOALS':
-            # Goals-based games (eFootball, FC Mobile, FIFA)
-            standing1.goals_for += match_data.get('participant1_score', 0)
-            standing1.goals_against += match_data.get('participant2_score', 0)
-            standing1.goal_difference = standing1.goals_for - standing1.goals_against
-            
-            standing2.goals_for += match_data.get('participant2_score', 0)
-            standing2.goals_against += match_data.get('participant1_score', 0)
-            standing2.goal_difference = standing2.goals_for - standing2.goals_against
-        
-        elif scoring_type == 'ROUNDS':
-            # Rounds-based games (Valorant, CS2, COD Mobile)
-            standing1.rounds_won += match_data.get('participant1_rounds', 0)
-            standing1.rounds_lost += match_data.get('participant2_rounds', 0)
-            standing1.round_difference = standing1.rounds_won - standing1.rounds_lost
-            
-            standing2.rounds_won += match_data.get('participant2_rounds', 0)
-            standing2.rounds_lost += match_data.get('participant1_rounds', 0)
-            standing2.round_difference = standing2.rounds_won - standing2.rounds_lost
-            
-            # Also track kills/deaths for FPS games
-            standing1.total_kills += match_data.get('participant1_kills', 0)
-            standing1.total_deaths += match_data.get('participant1_deaths', 0)
-            standing2.total_kills += match_data.get('participant2_kills', 0)
-            standing2.total_deaths += match_data.get('participant2_deaths', 0)
-        
-        elif scoring_type in ['PLACEMENT', 'KILLS']:
-            # Battle Royale games (PUBG Mobile, Free Fire)
-            standing1.total_kills += match_data.get('participant1_kills', 0)
-            standing1.placement_points += Decimal(str(match_data.get('participant1_placement_points', 0)))
-            
-            standing2.total_kills += match_data.get('participant2_kills', 0)
-            standing2.placement_points += Decimal(str(match_data.get('participant2_placement_points', 0)))
-        
-        elif scoring_type == 'WIN_LOSS' and match.tournament.game.category == 'MOBA':
-            # MOBA games (Mobile Legends)
-            standing1.total_kills += match_data.get('participant1_kills', 0)
-            standing1.total_deaths += match_data.get('participant1_deaths', 0)
-            standing1.total_assists += match_data.get('participant1_assists', 0)
-            standing1.kda_ratio = standing1.calculate_kda()
-            
-            standing2.total_kills += match_data.get('participant2_kills', 0)
-            standing2.total_deaths += match_data.get('participant2_deaths', 0)
-            standing2.total_assists += match_data.get('participant2_assists', 0)
-            standing2.kda_ratio = standing2.calculate_kda()
-            standing1.total_score += match_data.get('participant1_score', 0)
-            
-            standing2.total_kills += match_data.get('participant2_eliminations', 0)
-            standing2.total_deaths += match_data.get('participant2_deaths', 0)
-            standing2.total_score += match_data.get('participant2_score', 0)
+        # Delegate game-specific stat updates to the ScoringEvaluator
+        from apps.games.services.scoring_evaluator import scoring_evaluator
+        game_category = getattr(match.tournament.game, 'category', None) if match.tournament and match.tournament.game else None
+        scoring_evaluator.update_standings(standing1, standing2, match_data, scoring_type, game_category)
     
     @staticmethod
     def _apply_tiebreakers(

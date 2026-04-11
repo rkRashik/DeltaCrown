@@ -306,7 +306,7 @@
                     </button>
                     <button type="button" id="discordTestWebhookBtn"
                             class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/25 hover:bg-violet-500/25 transition {% if not team.discord_webhook_url %}hidden{% endif %}"
-                            onclick="TeamHQ.testDiscordWebhook()">
+                            data-click="TeamHQ.testDiscordWebhook">
                         <i data-lucide="send" class="w-3.5 h-3.5"></i>
                         Test Webhook
                     </button>

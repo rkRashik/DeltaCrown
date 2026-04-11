@@ -86,7 +86,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Rosters request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.rosters.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.rosters.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -270,7 +270,7 @@
       { key: 'invalid', label: 'Issues' },
     ];
     wrap.innerHTML = chips.map(c => `
-      <button onclick="TOC.rosters._setFilter('${c.key}')"
+      <button data-click="TOC.rosters._setFilter" data-click-args="['${c.key}']"
         class="rosters-chip text-[11px] px-3 py-1 rounded-full border transition-colors ${statusFilter === c.key
           ? 'bg-theme text-black border-theme font-semibold'
           : 'bg-transparent text-dc-text border-dc-border/50 hover:border-theme/50'}"
@@ -533,7 +533,7 @@
           <span class="text-[10px] text-dc-text opacity-60">${t.registered_at ? 'Reg: ' + new Date(t.registered_at).toLocaleDateString() : ''}</span>
           <div class="flex items-center gap-2">
             ${t.discord_invite_url ? `<a href="${esc(t.discord_invite_url)}" target="_blank" class="inline-flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors"><i data-lucide="send" class="w-3 h-3"></i>Message</a>` : ''}
-            <button onclick="TOC.rosters.addPlayer(${t.team_id})"
+            <button data-click="TOC.rosters.addPlayer" data-click-args="[${t.team_id}]"
               class="inline-flex items-center gap-1 text-[10px] text-theme hover:underline">
               <i data-lucide="user-plus" class="w-3 h-3"></i>Add Player
             </button>
@@ -618,8 +618,8 @@
     const profileItem = p.profile_slug
       ? `<a href="/u/${esc(p.profile_slug)}/" target="_blank" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-text hover:bg-white/[.04] hover:text-white transition-colors"><i data-lucide="user" class="inline w-3 h-3 mr-1 opacity-60"></i>View Profile</a>` : '';
     const setIglItem = !p.is_igl
-      ? `<button onclick="TOC.rosters.setCaptain(${t.team_id}, ${uid})" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-text hover:bg-white/[.04] hover:text-theme transition-colors"><i data-lucide="crown" class="inline w-3 h-3 mr-1 opacity-60"></i>Set as IGL</button>` : '';
-    const removeItem = `<button onclick="TOC.rosters.removePlayer(${t.team_id}, ${uid})" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-danger hover:bg-white/[.04] transition-colors"><i data-lucide="user-minus" class="inline w-3 h-3 mr-1 opacity-60"></i>Remove</button>`;
+      ? `<button data-click="TOC.rosters.setCaptain" data-click-args="[${t.team_id}, ${uid}]" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-text hover:bg-white/[.04] hover:text-theme transition-colors"><i data-lucide="crown" class="inline w-3 h-3 mr-1 opacity-60"></i>Set as IGL</button>` : '';
+    const removeItem = `<button data-click="TOC.rosters.removePlayer" data-click-args="[${t.team_id}, ${uid}]" class="block w-full text-left px-3 py-1.5 text-[10px] text-dc-danger hover:bg-white/[.04] transition-colors"><i data-lucide="user-minus" class="inline w-3 h-3 mr-1 opacity-60"></i>Remove</button>`;
 
     return `
       <tr class="hover:bg-white/[.02] transition-colors group">
@@ -736,8 +736,8 @@
         <input id="roster-add-uid" type="number" class="${FIELD}" placeholder="Numeric user ID"></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.rosters._submitAddPlayer(${teamId})" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Player</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.rosters._submitAddPlayer" data-click-args="[${teamId}]" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Add Player</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Add Player to Roster', body, footer);
     setTimeout(() => document.getElementById('roster-add-uid')?.focus(), 50);

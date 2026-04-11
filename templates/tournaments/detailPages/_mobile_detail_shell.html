@@ -232,7 +232,7 @@
         <div class="dc-mobile-card-head">
           <h3 class="dc-mobile-card-title">Standings</h3>
           {% if show_standings %}
-          <button type="button" class="dc-mobile-text-link" onclick="document.querySelector('[data-mobile-tab=standings]').click()">Full Table</button>
+          <button type="button" class="dc-mobile-text-link" data-click-query="[data-mobile-tab=standings]">Full Table</button>
           {% endif %}
         </div>
         {% if standings_source == 'group_stage' and group_standings_summary %}

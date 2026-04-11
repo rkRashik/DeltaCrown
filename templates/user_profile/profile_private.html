@@ -41,7 +41,7 @@
                         <i class="fa-solid fa-sign-in-alt mr-2"></i>Log In
                     </a>
                 {% elif viewer_role == 'visitor' and not has_pending_request %}
-                    <button onclick="sendFollowRequest()" id="follow-request-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+                    <button data-click="sendFollowRequest" id="follow-request-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition">
                         <i class="fa-solid fa-user-plus mr-2"></i>Send Follow Request
                     </button>
                 {% elif has_pending_request %}
@@ -54,7 +54,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 async function sendFollowRequest() {
     const btn = document.getElementById('follow-request-btn');
     btn.disabled = true;

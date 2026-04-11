@@ -430,6 +430,9 @@ class MatchService:
                 participant2_score=11
             )
         """
+        # Re-fetch with row-level lock to prevent concurrent submissions
+        match = Match.objects.select_for_update().get(id=match.id)
+
         # Validation
         if match.state not in [Match.LIVE, Match.PENDING_RESULT]:
             raise ValidationError(f"Cannot submit result in state: {match.state}")
@@ -557,6 +560,9 @@ class MatchService:
         Example:
             match = MatchService.confirm_result(match, confirmed_by_id=102)
         """
+        # Re-fetch with row-level lock to prevent concurrent confirmations
+        match = Match.objects.select_for_update().get(id=match.id)
+
         # Validation
         if match.state != Match.PENDING_RESULT:
             raise ValidationError(f"Cannot confirm result in state: {match.state}")

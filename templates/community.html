@@ -484,7 +484,7 @@
 </main>
 
 <!-- ===================== Minimal JS: shortcuts + share ===================== -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function(){
   const search = document.getElementById('cmd-search');
   document.addEventListener('keydown', (e)=>{

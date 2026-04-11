@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -149,7 +149,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // --- 1. GAME DATA & SCHEMAS ---
         // Accurately maps to your seed_games.py and cleanup_passport_schema.py definitions
         const platformGames = [

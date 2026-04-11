@@ -38,19 +38,19 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
 
     {# ── Sub-tab Navigation ── #}
     <div class="flex items-center gap-1 bg-white/5 rounded-xl p-1 overflow-x-auto">
-        <button onclick="ManageHQ.Training.switchSubTab('challenges')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition bg-white/10 text-white flex items-center justify-center gap-1.5" data-tab="challenges">
+        <button data-click="ManageHQ.Training.switchSubTab" data-click-args='["challenges"]' class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition bg-white/10 text-white flex items-center justify-center gap-1.5" data-tab="challenges">
             <i data-lucide="swords" class="w-3.5 h-3.5"></i> Challenges
         </button>
-        <button onclick="ManageHQ.Training.switchSubTab('bounties')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="bounties">
+        <button data-click="ManageHQ.Training.switchSubTab" data-click-args='["bounties"]' class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="bounties">
             <i data-lucide="target" class="w-3.5 h-3.5"></i> Bounties
         </button>
-        <button onclick="ManageHQ.Training.switchSubTab('scrims')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="scrims">
+        <button data-click="ManageHQ.Training.switchSubTab" data-click-args='["scrims"]' class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="scrims">
             <i data-lucide="radar" class="w-3.5 h-3.5"></i> Scrims
         </button>
-        <button onclick="ManageHQ.Training.switchSubTab('schedule')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="schedule">
+        <button data-click="ManageHQ.Training.switchSubTab" data-click-args='["schedule"]' class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="schedule">
             <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i> Schedule
         </button>
-        <button onclick="ManageHQ.Training.switchSubTab('vods')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="vods">
+        <button data-click="ManageHQ.Training.switchSubTab" data-click-args='["vods"]' class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="vods">
             <i data-lucide="video" class="w-3.5 h-3.5"></i> VODs
         </button>
     </div>
@@ -145,7 +145,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 font-semibold" id="ch-active-count">0</span>
                 </h3>
                 <div class="flex items-center gap-2">
-                    <select id="ch-filter-status" onchange="ManageHQ.Training.filterChallenges()"
+                    <select id="ch-filter-status" data-change="ManageHQ.Training.filterChallenges"
                             class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
                         <option value="">All</option>
                         <option value="OPEN">Open</option>
@@ -308,7 +308,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                     Scrim Finder
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Training.openScrimModal()"
+                <button data-click="ManageHQ.Training.openScrimModal"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition">
                     <i data-lucide="plus" class="w-3 h-3"></i>
                     Post LFG
@@ -316,14 +316,14 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                 {% endif %}
             </div>
             <div class="flex flex-wrap items-center gap-2 mb-4">
-                <select id="scrim-filter-status" onchange="ManageHQ.Training.filterScrims()"
+                <select id="scrim-filter-status" data-change="ManageHQ.Training.filterScrims"
                         class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
                     <option value="">All Status</option>
                     <option value="open">Open</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="completed">Completed</option>
                 </select>
-                <select id="scrim-filter-type" onchange="ManageHQ.Training.filterScrims()"
+                <select id="scrim-filter-type" data-change="ManageHQ.Training.filterScrims"
                         class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
                     <option value="">All Types</option>
                     <option value="bo1">Best of 1</option>
@@ -364,7 +364,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                     Practice Schedule
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Training.openScheduleModal()"
+                <button data-click="ManageHQ.Training.openScheduleModal"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/25 transition">
                     <i data-lucide="plus" class="w-3 h-3"></i>
                     New Session
@@ -408,7 +408,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                     VOD Library
                 </h3>
                 {% if is_admin %}
-                <button onclick="ManageHQ.Training.openVodModal()"
+                <button data-click="ManageHQ.Training.openVodModal"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition">
                     <i data-lucide="upload" class="w-3 h-3"></i>
                     Add VOD
@@ -416,10 +416,10 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
                 {% endif %}
             </div>
             <div class="flex items-center gap-1 mb-4 bg-white/5 rounded-xl p-1 overflow-x-auto">
-                <button onclick="ManageHQ.Training.filterVods('all')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition bg-white/10 text-white" data-vod-tab="all">All</button>
-                <button onclick="ManageHQ.Training.filterVods('match')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="match">Matches</button>
-                <button onclick="ManageHQ.Training.filterVods('scrim')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="scrim">Scrims</button>
-                <button onclick="ManageHQ.Training.filterVods('analysis')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="analysis">Analysis</button>
+                <button data-click="ManageHQ.Training.filterVods" data-click-args='["all"]' class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition bg-white/10 text-white" data-vod-tab="all">All</button>
+                <button data-click="ManageHQ.Training.filterVods" data-click-args='["match"]' class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="match">Matches</button>
+                <button data-click="ManageHQ.Training.filterVods" data-click-args='["scrim"]' class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="scrim">Scrims</button>
+                <button data-click="ManageHQ.Training.filterVods" data-click-args='["analysis"]' class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="analysis">Analysis</button>
             </div>
             <div id="vod-library-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div class="col-span-full rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
@@ -438,11 +438,11 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
 {# ── Schedule Practice Modal ── #}
 <div id="modal-schedule-practice" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-schedule-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-schedule-practice')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-schedule-title" class="font-bold text-base">Schedule Practice Session</h3>
-            <button onclick="ManageHQ.closeModal('modal-schedule-practice')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -490,7 +490,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
             </div>
             <div id="schedule-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-schedule-practice')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-schedule-practice"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="schedule-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 transition">Schedule</button>
@@ -502,11 +502,11 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
 {# ── Post LFG (Scrim) Modal ── #}
 <div id="modal-post-scrim" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-scrim-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-post-scrim')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-scrim-title" class="font-bold text-base">Post Scrim Request</h3>
-            <button onclick="ManageHQ.closeModal('modal-post-scrim')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -538,7 +538,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
             </div>
             <div id="scrim-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-post-scrim')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-post-scrim"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="scrim-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 transition">Post LFG</button>
@@ -550,11 +550,11 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
 {# ── Add VOD Modal ── #}
 <div id="modal-add-vod" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="modal-vod-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-add-vod')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    data-click-self="ManageHQ.closeModal" data-click-args='["modal-add-vod"]'>
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" data-stop-propagation>
         <div class="flex items-center justify-between p-4 border-b border-white/10">
             <h3 id="modal-vod-title" class="font-bold text-base">Add VOD</h3>
-            <button onclick="ManageHQ.closeModal('modal-add-vod')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+            <button data-click="ManageHQ.closeModal" data-click-args='["modal-add-vod"]' aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -585,7 +585,7 @@ Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty A
             </div>
             <div id="vod-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
             <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-add-vod')"
+                <button type="button" data-click="ManageHQ.closeModal" data-click-args='["modal-add-vod"]'
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="vod-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 transition">Add VOD</button>

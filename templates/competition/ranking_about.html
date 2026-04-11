@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
-<script>
+<script nonce="{{ request.csp_nonce }}">
 Object.assign(tailwind.config.theme.extend.colors, {
   dc: { bg:'#05050A', surface:'#0f0f16', surfaceHover:'#161622', cyan:'#06b6d4',
         border:'rgba(255,255,255,0.08)', success:'#22c55e', danger:'#ef4444',
@@ -261,7 +261,7 @@ body {
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   if (!('IntersectionObserver' in window)) {
     document.querySelectorAll('.slide-in-view').forEach(function(el) { el.classList.add('visible'); });

@@ -17,6 +17,8 @@ from apps.games.models import (
     GamePlayerIdentityConfig,
     GameTournamentConfig
 )
+from apps.games.models.map_pool import GameMapPool
+from apps.games.models.pipeline_template import GamePipelineTemplate
 from apps.user_profile.models import GameChoiceConfig
 
 
@@ -178,7 +180,29 @@ class Command(BaseCommand):
                     'overtime_enabled': True,
                     'require_check_in': True,
                     'check_in_window_minutes': 30,
-                }
+                    'max_score': 13,
+                },
+                'map_pool': [
+                    {'map_name': 'Ascent', 'map_code': 'ascent'},
+                    {'map_name': 'Bind', 'map_code': 'bind'},
+                    {'map_name': 'Haven', 'map_code': 'haven'},
+                    {'map_name': 'Split', 'map_code': 'split'},
+                    {'map_name': 'Icebox', 'map_code': 'icebox'},
+                    {'map_name': 'Lotus', 'map_code': 'lotus'},
+                    {'map_name': 'Sunset', 'map_code': 'sunset'},
+                ],
+                'pipeline_template': {
+                    'name': 'Valorant Default',
+                    'pipeline_mode': 'veto',
+                    'scoring_type': 'ROUNDS',
+                    'default_match_format': 'BO3',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Custom Game Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': False},
+                        {'key': 'server', 'label': 'Server', 'kind': 'text', 'required': False},
+                    ],
+                    'tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
+                },
             },
 
             'cs2': {
@@ -270,7 +294,29 @@ class Command(BaseCommand):
                     'default_match_duration_minutes': 60,
                     'allow_draws': False,
                     'overtime_enabled': True,
-                }
+                    'max_score': 16,
+                },
+                'map_pool': [
+                    {'map_name': 'Mirage', 'map_code': 'mirage'},
+                    {'map_name': 'Inferno', 'map_code': 'inferno'},
+                    {'map_name': 'Dust II', 'map_code': 'dust2'},
+                    {'map_name': 'Nuke', 'map_code': 'nuke'},
+                    {'map_name': 'Ancient', 'map_code': 'ancient'},
+                    {'map_name': 'Anubis', 'map_code': 'anubis'},
+                    {'map_name': 'Vertigo', 'map_code': 'vertigo'},
+                ],
+                'pipeline_template': {
+                    'name': 'CS2 Default',
+                    'pipeline_mode': 'veto',
+                    'scoring_type': 'ROUNDS',
+                    'default_match_format': 'BO3',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Server IP / Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': False},
+                        {'key': 'gotv', 'label': 'GOTV Port', 'kind': 'text', 'required': False},
+                    ],
+                    'tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
+                },
             },
 
             'dota2': {
@@ -357,7 +403,24 @@ class Command(BaseCommand):
                     'default_tiebreakers': ['head_to_head', 'time_rating'],
                     'default_match_duration_minutes': 45,
                     'allow_draws': False,
-                }
+                    'max_score': None,
+                },
+                'pipeline_template': {
+                    'name': 'Dota 2 Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'WIN_LOSS',
+                    'default_match_format': 'BO3',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Lobby Name', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['head_to_head', 'time_rating'],
+                },
+                'map_pool': [
+                    {'map_name': 'Captains Mode', 'map_code': 'captains_mode', 'is_competitive': True, 'order': 1},
+                    {'map_name': 'All Pick', 'map_code': 'all_pick', 'is_competitive': True, 'order': 2},
+                    {'map_name': 'Random Draft', 'map_code': 'random_draft', 'is_competitive': False, 'order': 3},
+                ],
             },
 
             'ea-fc': {
@@ -438,7 +501,26 @@ class Command(BaseCommand):
                     'default_match_duration_minutes': 12,
                     'allow_draws': True,
                     'overtime_enabled': True,
-                }
+                    'max_score': 99,
+                },
+                'pipeline_template': {
+                    'name': 'EA FC Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'GOALS',
+                    'default_match_format': 'BO1',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': False},
+                    ],
+                    'tiebreakers': ['goal_difference', 'goals_scored'],
+                },
+                'map_pool': [
+                    {'map_name': 'FUT Champions', 'map_code': 'fut_champions', 'is_competitive': True, 'order': 1},
+                    {'map_name': 'FUT Rivals', 'map_code': 'fut_rivals', 'is_competitive': True, 'order': 2},
+                    {'map_name': 'Pro Clubs', 'map_code': 'pro_clubs', 'is_competitive': True, 'order': 3},
+                    {'map_name': 'Seasons Online', 'map_code': 'seasons_online', 'is_competitive': True, 'order': 4},
+                    {'map_name': 'Draft Mode', 'map_code': 'draft_mode', 'is_competitive': False, 'order': 5},
+                ],
             },
 
             'efootball': {
@@ -504,11 +586,28 @@ class Command(BaseCommand):
                     'default_tiebreakers': ['goal_difference', 'goals_scored'],
                     'default_match_duration_minutes': 10,
                     'allow_draws': True,
-                }
+                    'max_score': 99,
+                },
+                'pipeline_template': {
+                    'name': 'eFootball Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'GOALS',
+                    'default_match_format': 'BO1',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room Number', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': False},
+                    ],
+                    'tiebreakers': ['goal_difference', 'goals_scored'],
+                },
+                'map_pool': [
+                    {'map_name': 'Online Match', 'map_code': 'online_match', 'is_competitive': True, 'order': 1},
+                    {'map_name': 'eFootball League', 'map_code': 'efootball_league', 'is_competitive': True, 'order': 2},
+                    {'map_name': 'Friendly Match', 'map_code': 'friendly_match', 'is_competitive': False, 'order': 3},
+                ],
             },
 
-            # Alias slug seeded from live DB — seeds identity configs for the auto-generated
-            # efootball-1773578027 game object so passport_schema lookups resolve correctly.
+            # Alias slug from live DB — seeds identity configs so passport_schema lookups resolve.
+            # Marked is_active=False so it doesn't appear in game selection.
             'efootball-1773578027': {
                 'name': 'eFootball',
                 'display_name': 'eFootball™ 2026',
@@ -519,12 +618,13 @@ class Command(BaseCommand):
                 'primary_color': '#0051a5',
                 'secondary_color': '#ffffff',
                 'accent_color': '#00b0ff',
-                'description': 'Free-to-play cross-platform football simulation (auto-generated game record).',
+                'description': 'Legacy alias for eFootball. Use the primary efootball slug instead.',
                 'developer': 'Konami',
                 'publisher': 'Konami',
                 'official_website': 'https://efootball.konami.net',
                 'release_date': date(2021, 9, 30),
                 'is_featured': False,
+                'is_active': False,
                 'roster': {
                     'min_team_size': 1,
                     'max_team_size': 1,
@@ -570,6 +670,7 @@ class Command(BaseCommand):
                     'default_tiebreakers': ['goal_difference', 'goals_scored'],
                     'default_match_duration_minutes': 10,
                     'allow_draws': True,
+                    'max_score': 99,
                 }
             },
 
@@ -656,7 +757,26 @@ class Command(BaseCommand):
                     },
                     'default_tiebreakers': ['total_points', 'total_kills', 'avg_placement'],
                     'default_match_duration_minutes': 30,
-                }
+                    'max_score': 999,
+                },
+                'map_pool': [
+                    {'map_name': 'Erangel', 'map_code': 'erangel'},
+                    {'map_name': 'Miramar', 'map_code': 'miramar'},
+                    {'map_name': 'Sanhok', 'map_code': 'sanhok'},
+                    {'map_name': 'Vikendi', 'map_code': 'vikendi'},
+                    {'map_name': 'Livik', 'map_code': 'livik'},
+                ],
+                'pipeline_template': {
+                    'name': 'PUBG Mobile Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'PLACEMENT',
+                    'default_match_format': 'SINGLE',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room ID', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['total_points', 'total_kills', 'avg_placement'],
+                },
             },
 
             'mlbb': {
@@ -743,7 +863,25 @@ class Command(BaseCommand):
                     'default_scoring_type': 'WIN_LOSS',
                     'default_tiebreakers': ['head_to_head', 'game_time'],
                     'default_match_duration_minutes': 20,
-                }
+                    'max_score': None,
+                },
+                'pipeline_template': {
+                    'name': 'MLBB Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'WIN_LOSS',
+                    'default_match_format': 'BO3',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['head_to_head', 'game_time'],
+                },
+                'map_pool': [
+                    {'map_name': 'Ranked Mode', 'map_code': 'ranked_mode', 'is_competitive': True, 'order': 1},
+                    {'map_name': 'Draft Pick', 'map_code': 'draft_pick', 'is_competitive': True, 'order': 2},
+                    {'map_name': 'Classic Mode', 'map_code': 'classic_mode', 'is_competitive': False, 'order': 3},
+                    {'map_name': 'Brawl', 'map_code': 'brawl', 'is_competitive': False, 'order': 4},
+                ],
             },
 
             'freefire': {
@@ -812,7 +950,25 @@ class Command(BaseCommand):
                     'default_scoring_type': 'PLACEMENT',
                     'default_tiebreakers': ['total_points', 'total_kills'],
                     'default_match_duration_minutes': 15,
-                }
+                    'max_score': 999,
+                },
+                'map_pool': [
+                    {'map_name': 'Bermuda', 'map_code': 'bermuda'},
+                    {'map_name': 'Kalahari', 'map_code': 'kalahari'},
+                    {'map_name': 'Purgatory', 'map_code': 'purgatory'},
+                    {'map_name': 'Alpine', 'map_code': 'alpine'},
+                ],
+                'pipeline_template': {
+                    'name': 'Free Fire Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'PLACEMENT',
+                    'default_match_format': 'SINGLE',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['total_points', 'total_kills'],
+                },
             },
 
             'codm': {
@@ -891,7 +1047,27 @@ class Command(BaseCommand):
                     'default_scoring_type': 'ROUNDS',
                     'default_tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
                     'default_match_duration_minutes': 30,
-                }
+                    'max_score': 10,
+                },
+                'map_pool': [
+                    {'map_name': 'Crossfire', 'map_code': 'crossfire'},
+                    {'map_name': 'Crash', 'map_code': 'crash'},
+                    {'map_name': 'Raid', 'map_code': 'raid'},
+                    {'map_name': 'Takeoff', 'map_code': 'takeoff'},
+                    {'map_name': 'Standoff', 'map_code': 'standoff'},
+                    {'map_name': 'Firing Range', 'map_code': 'firing_range'},
+                ],
+                'pipeline_template': {
+                    'name': 'CODM Default',
+                    'pipeline_mode': 'veto',
+                    'scoring_type': 'ROUNDS',
+                    'default_match_format': 'BO3',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Room Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
+                },
             },
 
             'rocketleague': {
@@ -980,7 +1156,27 @@ class Command(BaseCommand):
                     'default_scoring_type': 'GOALS',
                     'default_tiebreakers': ['head_to_head', 'goal_difference'],
                     'default_match_duration_minutes': 10,
-                }
+                    'max_score': 20,
+                },
+                'pipeline_template': {
+                    'name': 'Rocket League Default',
+                    'pipeline_mode': 'direct',
+                    'scoring_type': 'GOALS',
+                    'default_match_format': 'BO5',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Private Match Name', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': True},
+                    ],
+                    'tiebreakers': ['head_to_head', 'goal_difference'],
+                },
+                'map_pool': [
+                    {'map_name': 'DFH Stadium', 'map_code': 'dfh_stadium', 'is_competitive': True, 'order': 1},
+                    {'map_name': 'Mannfield', 'map_code': 'mannfield', 'is_competitive': True, 'order': 2},
+                    {'map_name': 'Champions Field', 'map_code': 'champions_field', 'is_competitive': True, 'order': 3},
+                    {'map_name': 'Forbidden Temple', 'map_code': 'forbidden_temple', 'is_competitive': True, 'order': 4},
+                    {'map_name': 'Wasteland', 'map_code': 'wasteland', 'is_competitive': True, 'order': 5},
+                    {'map_name': 'Neo Tokyo', 'map_code': 'neo_tokyo', 'is_competitive': False, 'order': 6},
+                ],
             },
 
             'r6siege': {
@@ -1097,7 +1293,27 @@ class Command(BaseCommand):
                     'default_match_duration_minutes': 45,
                     'overtime_enabled': True,
                     'default_tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
-                }
+                    'max_score': 7,
+                },
+                'map_pool': [
+                    {'map_name': 'Clubhouse', 'map_code': 'clubhouse'},
+                    {'map_name': 'Coastline', 'map_code': 'coastline'},
+                    {'map_name': 'Border', 'map_code': 'border'},
+                    {'map_name': 'Kafe', 'map_code': 'kafe'},
+                    {'map_name': 'Villa', 'map_code': 'villa'},
+                    {'map_name': 'Chalet', 'map_code': 'chalet'},
+                ],
+                'pipeline_template': {
+                    'name': 'R6 Siege Default',
+                    'pipeline_mode': 'veto',
+                    'scoring_type': 'ROUNDS',
+                    'default_match_format': 'BO1',
+                    'credential_schema': [
+                        {'key': 'lobby_code', 'label': 'Custom Match Code', 'kind': 'text', 'required': True},
+                        {'key': 'password', 'label': 'Password', 'kind': 'text', 'required': False},
+                    ],
+                    'tiebreakers': ['head_to_head', 'round_diff', 'rounds_won'],
+                },
             },
         }
 
@@ -1125,7 +1341,7 @@ class Command(BaseCommand):
                 'publisher': game_data['publisher'],
                 'official_website': game_data.get('official_website', ''),
                 'release_date': game_data.get('release_date'),
-                'is_active': True,
+                'is_active': game_data.get('is_active', True),
                 'is_featured': game_data['is_featured'],
             }
         )
@@ -1275,10 +1491,52 @@ class Command(BaseCommand):
                     'overtime_enabled': tc_data.get('overtime_enabled', False),
                     'require_check_in': tc_data.get('require_check_in', True),
                     'check_in_window_minutes': tc_data.get('check_in_window_minutes', 30),
+                    'max_score': tc_data.get('max_score'),
+                    'credential_schema': tc_data.get('credential_schema', []),
                 }
             )
             tc_action = "Created" if tc_created else "Updated"
             self.stdout.write(f"✓ {tc_action} Tournament Config")
+
+        # Create or update Map Pools
+        if 'map_pool' in game_data:
+            canonical_codes = set()
+            for idx, mp in enumerate(game_data['map_pool']):
+                code = mp.get('map_code', mp['map_name'].lower().replace(' ', '_').replace('-', '_'))
+                canonical_codes.add(code)
+                GameMapPool.objects.update_or_create(
+                    game=game,
+                    map_code=code,
+                    defaults={
+                        'map_name': mp['map_name'],
+                        'is_active': mp.get('is_active', True),
+                        'is_competitive': mp.get('is_competitive', True),
+                        'order': mp.get('order', idx + 1),
+                    }
+                )
+            # Deactivate stale maps not in the canonical set
+            stale = GameMapPool.objects.filter(game=game, is_active=True).exclude(map_code__in=canonical_codes)
+            stale_count = stale.update(is_active=False)
+            if stale_count:
+                self.stdout.write(f"  ✓ Deactivated {stale_count} stale map(s)")
+            self.stdout.write(f"✓ Seeded {len(game_data['map_pool'])} map pool entries")
+
+        # Create or update Pipeline Template
+        if 'pipeline_template' in game_data:
+            pt = game_data['pipeline_template']
+            GamePipelineTemplate.objects.update_or_create(
+                game=game,
+                is_default=True,
+                defaults={
+                    'name': pt.get('name', f"{game.display_name} Default"),
+                    'pipeline_mode': pt.get('pipeline_mode', 'direct'),
+                    'scoring_type': pt.get('scoring_type', tc_data.get('default_scoring_type', 'WIN_LOSS') if 'tournament_config' in game_data else 'WIN_LOSS'),
+                    'default_match_format': pt.get('default_match_format', 'BO1'),
+                    'credential_schema': pt.get('credential_schema', []),
+                    'tiebreakers': pt.get('tiebreakers', []),
+                }
+            )
+            self.stdout.write(f"✓ Seeded Pipeline Template")
 
         self.stdout.write(self.style.SUCCESS(f"✓ Completed: {game.display_name}"))
         return game

@@ -82,7 +82,7 @@
         <div class="p-5 pb-3 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-purple p-0.5 flex-shrink-0">
                 {% if profile.avatar %}
-                <img src="{{ profile.avatar.url }}" class="w-full h-full object-cover rounded-xl bg-black">
+                <img src="{{ profile.avatar.url }}" class="w-full h-full object-cover rounded-xl bg-black" alt="">
                 {% else %}
                 <div class="w-full h-full rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold">
                     {{ profile_user.username|slice:":1"|upper }}
@@ -166,7 +166,7 @@
                 <div class="flex items-start gap-3 mb-4 relative z-10">
                     <a href="/@{{ post.author.user.username }}/" class="flex-shrink-0">
                         {% if post.author.avatar %}
-                        <img src="{{ post.author.avatar.url }}" class="w-10 h-10 rounded-lg object-cover">
+                        <img src="{{ post.author.avatar.url }}" class="w-10 h-10 rounded-lg object-cover" alt="">
                         {% else %}
                         <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-sm">
                             {{ post.author.user.username|slice:":1"|upper }}
@@ -277,7 +277,7 @@
                     {% if request.user.is_authenticated %}
                     <div class="flex gap-3 mb-4">
                         {% if request.user.profile.avatar %}
-                        <img src="{{ request.user.profile.avatar.url }}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+                        <img src="{{ request.user.profile.avatar.url }}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt="">
                         {% else %}
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                             {{ request.user.username|slice:":1"|upper }}
@@ -316,7 +316,7 @@
 </div>
 
 {% if relationship_ctx.is_owner %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
     const submitBtn = document.getElementById('post-submit-btn');
     const editorEl = document.getElementById('post-content-editor');
@@ -445,7 +445,7 @@
                 preview.className = 'relative rounded-lg overflow-hidden bg-black/20 aspect-square';
                 preview.innerHTML = `
                     ${file.type.startsWith('image/') ? 
-                        `<img src=\"${e.target.result}\" class=\"w-full h-full object-cover\">` :
+                        `<img src=\"${e.target.result}\" class=\"w-full h-full object-cover\" alt="">` :
                         `<div class=\"w-full h-full flex items-center justify-center bg-black/40\">
                             <div class=\"text-center\">
                                 <i class=\"fa-solid fa-video text-3xl text-z-cyan mb-2\"></i>
@@ -590,7 +590,7 @@
             post.media.forEach(media => {
                 mediaHTML += `<div class="rounded-lg overflow-hidden bg-black/20">`;
                 if (media.type === 'image' || media.type === 'gif') {
-                    mediaHTML += `<img src="${media.url}" class="w-full h-full object-cover">`;
+                    mediaHTML += `<img src="${media.url}" class="w-full h-full object-cover" alt="">`;
                 } else if (media.type === 'video') {
                     mediaHTML += `<video src="${media.url}" class="w-full h-full object-cover" controls></video>`;
                 }
@@ -604,7 +604,7 @@
                 <div class="flex items-start gap-3 mb-4 relative z-10">
                     <a href="/@${post.author.username}/" class="flex-shrink-0">
                         ${post.author.avatar_url ? 
-                            `<img src="${post.author.avatar_url}" class="w-10 h-10 rounded-lg object-cover">` :
+                            `<img src="${post.author.avatar_url}" class="w-10 h-10 rounded-lg object-cover" alt="">` :
                             `<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-sm">
                                 ${post.author.username.charAt(0).toUpperCase()}
                             </div>`
@@ -998,7 +998,7 @@
         return `
             <div class="flex gap-3">
                 ${comment.author.avatar_url ? 
-                    `<img src="${comment.author.avatar_url}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">` :
+                    `<img src="${comment.author.avatar_url}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0" alt="">` :
                     `<div class="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                         ${comment.author.username.charAt(0).toUpperCase()}
                     </div>`

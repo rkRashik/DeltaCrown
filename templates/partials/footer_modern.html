@@ -335,7 +335,7 @@
     </div>
 </footer>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Newsletter Form - Enhanced with animations
 (function() {
     const form = document.getElementById('footerNewsletterForm');

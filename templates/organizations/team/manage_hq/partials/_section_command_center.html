@@ -209,7 +209,7 @@ Section 7.1 of the Master Plan.
             </div>
         </div>
     </div>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         (function() {
             var score = 0, total = 9, critical = 0;
             // Profile (5 items)
@@ -261,21 +261,21 @@ Section 7.1 of the Master Plan.
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
                 <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">Roster below minimum (<strong class="text-red-400">{{ current_roster_size }}/{{ min_roster_size }}</strong>)</span>
-                <button onclick="ManageHQ.openInviteModal()" class="text-xs text-red-400 hover:underline shrink-0">Invite →</button>
+                <button data-click="ManageHQ.openInviteModal" class="text-xs text-red-400 hover:underline shrink-0">Invite →</button>
             </div>
             {% endif %}
             {% if not has_captain %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
                 <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">No captain designated — tournament check-ins will fail</span>
-                <button onclick="setActiveRoute('roster')" class="text-xs text-red-400 hover:underline shrink-0">Fix →</button>
+                <button data-click="setActiveRoute" data-click-args='["roster"]' class="text-xs text-red-400 hover:underline shrink-0">Fix →</button>
             </div>
             {% endif %}
             {% if not team.discord_url %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
                 <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">Discord server not linked — required for team comms</span>
-                <button onclick="setActiveRoute('discord')" class="text-xs text-red-400 hover:underline shrink-0">Set Up →</button>
+                <button data-click="setActiveRoute" data-click-args='["discord"]' class="text-xs text-red-400 hover:underline shrink-0">Set Up →</button>
             </div>
             {% endif %}
 
@@ -284,33 +284,33 @@ Section 7.1 of the Master Plan.
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
                 <i data-lucide="image" class="w-4 h-4 text-amber-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">No team logo — required for tournaments</span>
-                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
+                <button data-click="setActiveRoute" data-click-args='["profile"]' class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
             </div>
             {% endif %}
             {% if not team.banner %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
                 <i data-lucide="panorama" class="w-4 h-4 text-amber-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">No banner image — brands your team page</span>
-                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
+                <button data-click="setActiveRoute" data-click-args='["profile"]' class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
             </div>
             {% endif %}
             {% if not team.region %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
                 <i data-lucide="map-pin" class="w-4 h-4 text-amber-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">Region not set — affects tournament eligibility</span>
-                <button onclick="setActiveRoute('settings')" class="text-xs text-amber-400 hover:underline shrink-0">Set →</button>
+                <button data-click="setActiveRoute" data-click-args='["settings"]' class="text-xs text-amber-400 hover:underline shrink-0">Set →</button>
             </div>
             {% endif %}
             {% if not team.description %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
                 <i data-lucide="file-text" class="w-4 h-4 text-amber-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">No team description — helps attract recruits</span>
-                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Add →</button>
+                <button data-click="setActiveRoute" data-click-args='["profile"]' class="text-xs text-amber-400 hover:underline shrink-0">Add →</button>
             </div>
             {% endif %}
         </div>
     </div>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         (function() {
             var alerts = document.querySelectorAll('#attention-alerts > div');
             var badge = document.getElementById('alert-count');
@@ -322,7 +322,7 @@ Section 7.1 of the Master Plan.
     {# ── Quick Action Bar ── #}
     {% if can_manage_roster %}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <button onclick="ManageHQ.openInviteModal()"
+        <button data-click="ManageHQ.openInviteModal"
             class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
             <div class="h-10 w-10 rounded-xl bg-emerald-500/15 text-emerald-400 grid place-items-center group-hover:scale-110 transition-transform">
                 <i data-lucide="user-plus" class="w-5 h-5"></i>
@@ -330,28 +330,28 @@ Section 7.1 of the Master Plan.
             <span class="text-xs font-medium">Invite Player</span>
         </button>
         <a href="#" data-discord-chat="true" data-team-slug="{{ team.slug }}"
-            onclick="setActiveRoute('discord'); return false;"
+            data-click="setActiveRoute" data-click-args='["discord"]'
             class="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
             <div class="h-10 w-10 rounded-xl bg-indigo-500/15 text-indigo-400 grid place-items-center group-hover:scale-110 transition-transform">
                 <i data-lucide="message-circle" class="w-5 h-5"></i>
             </div>
             <span class="text-xs font-medium text-indigo-400">Discord</span>
         </a>
-        <button onclick="setActiveRoute('roster')"
+        <button data-click="setActiveRoute" data-click-args='["roster"]'
             class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
             <div class="h-10 w-10 rounded-xl bg-blue-500/15 text-blue-400 grid place-items-center group-hover:scale-110 transition-transform">
                 <i data-lucide="users" class="w-5 h-5"></i>
             </div>
             <span class="text-xs font-medium">Manage Roster</span>
         </button>
-        <button onclick="setActiveRoute('competition')"
+        <button data-click="setActiveRoute" data-click-args='["competition"]'
             class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
             <div class="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-400 grid place-items-center group-hover:scale-110 transition-transform">
                 <i data-lucide="trophy" class="w-5 h-5"></i>
             </div>
             <span class="text-xs font-medium">Competitions</span>
         </button>
-        <button onclick="setActiveRoute('profile')"
+        <button data-click="setActiveRoute" data-click-args='["profile"]'
             class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
             <div class="h-10 w-10 rounded-xl bg-purple-500/15 text-purple-400 grid place-items-center group-hover:scale-110 transition-transform">
                 <i data-lucide="palette" class="w-5 h-5"></i>
@@ -392,11 +392,11 @@ Section 7.1 of the Master Plan.
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0 ml-2">
-                        <button onclick="ManageHQ.handleJoinRequest({{ jr.id }}, 'approve', this)"
+                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, 'approve', this]'
                             class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition font-medium">
                             Approve
                         </button>
-                        <button onclick="ManageHQ.handleJoinRequest({{ jr.id }}, 'reject', this)"
+                        <button data-click="ManageHQ.handleJoinRequest" data-click-args='[{{ jr.id }}, 'reject', this]'
                             class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition font-medium">
                             Reject
                         </button>
@@ -417,7 +417,7 @@ Section 7.1 of the Master Plan.
                         <span class="font-medium">{{ invite.invited_user.username|default:invite.invited_email }}</span>
                         <span class="text-white/40 ml-1">{{ invite.created_at|timesince }} ago</span>
                     </span>
-                    <button onclick="ManageHQ.cancelInvite({{ invite.id }}, this)"
+                    <button data-click="ManageHQ.cancelInvite" data-click-args='[{{ invite.id }}, this]'
                         class="text-xs text-red-400 hover:text-red-300 transition">Cancel</button>
                 </div>
                 {% endfor %}
@@ -479,11 +479,11 @@ Section 7.1 of the Master Plan.
 
         {# Calendar Navigation #}
         <div class="flex items-center justify-between mb-3">
-            <button onclick="dcCalendar.prev()" class="h-7 w-7 rounded-lg hover:bg-white/10 transition grid place-items-center" aria-label="Previous month">
+            <button data-click="dcCalendar.prev" class="h-7 w-7 rounded-lg hover:bg-white/10 transition grid place-items-center" aria-label="Previous month">
                 <i data-lucide="chevron-left" class="w-4 h-4 text-white/50"></i>
             </button>
             <span id="dc-cal-month-label" class="text-sm font-bold text-white/80"></span>
-            <button onclick="dcCalendar.next()" class="h-7 w-7 rounded-lg hover:bg-white/10 transition grid place-items-center" aria-label="Next month">
+            <button data-click="dcCalendar.next" class="h-7 w-7 rounded-lg hover:bg-white/10 transition grid place-items-center" aria-label="Next month">
                 <i data-lucide="chevron-right" class="w-4 h-4 text-white/50"></i>
             </button>
         </div>
@@ -519,7 +519,7 @@ Section 7.1 of the Master Plan.
     </div>
 
     {# Calendar Data (serialized from backend) #}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     (function() {
         const matchDates = {};
         const eventDates = {};
@@ -591,7 +591,7 @@ Section 7.1 of the Master Plan.
 
                 const textClass = isToday ? 'text-emerald-400 font-bold' : (hasMatch ? 'text-red-300 font-semibold' : 'text-white/50');
 
-                html += `<div class="${cellClasses}" onclick="dcCalendar.selectDay('${dateKey}')">
+                html += `<div class="${cellClasses}" data-click="dcCalendar.selectDay" data-click-args='["${dateKey}"]'>
                     <span class="text-[11px] ${textClass}">${d}</span>
                     ${dots ? `<div class="flex gap-0.5">${dots}</div>` : ''}
                 </div>`;

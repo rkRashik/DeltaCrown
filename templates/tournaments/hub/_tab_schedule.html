@@ -29,14 +29,52 @@
 
   {% comment %}── Date Tape — horizontal scrolling day strip ─────────────{% endcomment %}
   <div id="schedule-date-tape-wrapper" class="hidden mb-8">
-    <div class="relative">
+    <div class="relative group">
+      {% comment %}Scroll left button (hidden on start){% endcomment %}
+      <button type="button" id="date-tape-scroll-left"
+              class="absolute left-0 top-0 bottom-2 z-20 w-8 flex items-center justify-center bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent text-gray-400 hover:text-white transition opacity-0 pointer-events-none"
+              aria-label="Scroll dates left">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <div id="schedule-date-tape" class="flex gap-2 overflow-x-auto pb-2 scroll-smooth custom-scrollbar" style="scrollbar-width:thin">
         {% comment %}Date chips rendered by JS{% endcomment %}
       </div>
-      <div class="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-[#0a0a0f] to-transparent pointer-events-none z-10"></div>
-      <div class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-[#0a0a0f] to-transparent pointer-events-none z-10"></div>
+      {% comment %}Scroll right button (visible when overflowing){% endcomment %}
+      <button type="button" id="date-tape-scroll-right"
+              class="absolute right-0 top-0 bottom-2 z-20 w-8 flex items-center justify-center bg-gradient-to-l from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent text-gray-400 hover:text-white transition opacity-0 pointer-events-none"
+              aria-label="Scroll dates right">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </button>
     </div>
+    {% comment %}Mobile swipe hint — visible only on small screens{% endcomment %}
+    <p class="text-[10px] text-gray-600 mt-1 text-center sm:hidden">
+      <span class="inline-block animate-pulse">← swipe →</span>
+    </p>
   </div>
+
+  {% comment %}Date tape scroll indicator JS{% endcomment %}
+  <script nonce="{{ request.csp_nonce }}">
+  (function() {
+    var tape = document.getElementById('schedule-date-tape');
+    var btnL = document.getElementById('date-tape-scroll-left');
+    var btnR = document.getElementById('date-tape-scroll-right');
+    if (!tape || !btnL || !btnR) return;
+    function updateArrows() {
+      var canLeft = tape.scrollLeft > 4;
+      var canRight = tape.scrollLeft < tape.scrollWidth - tape.clientWidth - 4;
+      btnL.style.opacity = canLeft ? '1' : '0';
+      btnL.style.pointerEvents = canLeft ? 'auto' : 'none';
+      btnR.style.opacity = canRight ? '1' : '0';
+      btnR.style.pointerEvents = canRight ? 'auto' : 'none';
+    }
+    tape.addEventListener('scroll', updateArrows, { passive: true });
+    new ResizeObserver(updateArrows).observe(tape);
+    btnL.addEventListener('click', function() { tape.scrollBy({ left: -200, behavior: 'smooth' }); });
+    btnR.addEventListener('click', function() { tape.scrollBy({ left: 200, behavior: 'smooth' }); });
+    // Initial check after chips render (use MutationObserver)
+    new MutationObserver(function() { requestAnimationFrame(updateArrows); }).observe(tape, { childList: true });
+  })();
+  </script>
 
   {% comment %}── Match Content Area ─────────────────{% endcomment %}
   <div id="hub-match-schedule-section">

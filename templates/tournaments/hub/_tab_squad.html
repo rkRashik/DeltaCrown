@@ -153,7 +153,7 @@
           {% if is_captain and not member.is_captain_igl and not roster_locked %}
             <button class="squad-swap-btn text-[9px] px-2 py-1 rounded bg-white/5 hover:bg-[#FFB800]/20 text-gray-400 hover:text-[#FFB800] border border-white/10 hover:border-[#FFB800]/30 transition-all"
                     {% if hub_critical_locked %}disabled title="Locked until verification"{% endif %}
-                    onclick="HubEngine.swapToSub({{ member.id }})">
+                    data-click="HubEngine.swapToSub" data-click-args='[{{ member.id }}]'>
               <i data-lucide="arrow-down" class="w-3 h-3 inline"></i> To Sub
             </button>
           {% endif %}
@@ -192,7 +192,7 @@
           {% if is_captain and not roster_locked %}
             <button class="squad-swap-btn text-[9px] px-2 py-1 rounded bg-white/5 hover:bg-[#00F0FF]/20 text-gray-400 hover:text-[#00F0FF] border border-white/10 hover:border-[#00F0FF]/30 transition-all"
                     {% if hub_critical_locked %}disabled title="Locked until verification"{% endif %}
-                    onclick="HubEngine.swapToStarter({{ member.id }})">
+                    data-click="HubEngine.swapToStarter" data-click-args='[{{ member.id }}]'>
               <i data-lucide="arrow-up" class="w-3 h-3 inline"></i> To Starter
             </button>
           {% endif %}

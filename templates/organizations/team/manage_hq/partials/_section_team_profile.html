@@ -35,7 +35,7 @@ All changes submit via AJAX — no page reload required.
             <div>
                 <label class="block text-xs text-white/60 mb-2 font-medium">Team Logo</label>
                 <div class="relative rounded-2xl border-2 border-dashed border-white/15 hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
-                     onclick="this.querySelector('input[type=file]').click()">
+                     data-click-child="input[type=file]">
                     <div class="h-24 w-24 mx-auto rounded-2xl overflow-hidden bg-white/10 grid place-items-center mb-3">
                         {% if team.logo %}
                         <img id="preview-logo" src="{{ team.logo.url }}" alt="Logo" class="w-full h-full object-cover">
@@ -47,7 +47,7 @@ All changes submit via AJAX — no page reload required.
                     <p class="text-xs text-white/40 group-hover:text-white/60 transition">Click to upload logo</p>
                     <p class="text-[10px] text-white/25 mt-1">500×500px · 1:1 ratio · Max 5MB</p>
                     <input type="file" accept="image/*" data-media-upload="logo" class="hidden"
-                           onchange="ManageHQ.uploadMedia(this)">
+                           data-change="ManageHQ.uploadMedia" data-change-pass-el>
                 </div>
             </div>
 
@@ -55,7 +55,7 @@ All changes submit via AJAX — no page reload required.
             <div>
                 <label class="block text-xs text-white/60 mb-2 font-medium">Team Banner / Cover</label>
                 <div class="relative rounded-2xl border-2 border-dashed border-white/15 hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
-                     onclick="this.querySelector('input[type=file]').click()">
+                     data-click-child="input[type=file]">
                     <div class="h-24 w-full rounded-xl overflow-hidden bg-white/10 grid place-items-center mb-3">
                         {% if team.banner %}
                         <img id="preview-banner" src="{{ team.banner.url }}" alt="Banner" class="w-full h-full object-cover">
@@ -67,7 +67,7 @@ All changes submit via AJAX — no page reload required.
                     <p class="text-xs text-white/40 group-hover:text-white/60 transition">Click to upload banner</p>
                     <p class="text-[10px] text-white/25 mt-1">1920×480px · 4:1 ratio · Max 10MB</p>
                     <input type="file" accept="image/*" data-media-upload="banner" class="hidden"
-                           onchange="ManageHQ.uploadMedia(this)">
+                           data-change="ManageHQ.uploadMedia" data-change-pass-el>
                 </div>
             </div>
         </div>
@@ -452,7 +452,7 @@ All changes submit via AJAX — no page reload required.
 
 </section>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 // Character counter for description
 document.addEventListener('DOMContentLoaded', function() {
     const desc = document.getElementById('profile-description');

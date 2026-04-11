@@ -38,7 +38,7 @@ Topbar — Single-line smart header with breadcrumb, page title, quick actions, 
             <button id="notifBellBtn"
                     aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notifPanel"
                     class="relative h-8 w-8 grid place-items-center rounded-lg bg-white/8 hover:bg-white/12 transition"
-                    onclick="ManageHQ.toggleNotifPanel()">
+                    data-click="ManageHQ.toggleNotifPanel">
                 <i data-lucide="bell" class="w-4 h-4 text-white/70"></i>
                 <span id="notifBadge" aria-live="polite" aria-atomic="true"
                       class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center px-0.5 pointer-events-none">
@@ -51,7 +51,7 @@ Topbar — Single-line smart header with breadcrumb, page title, quick actions, 
                 <div class="flex items-center justify-between px-4 py-3 border-b border-line">
                     <span class="text-xs font-bold text-white/80">Notifications</span>
                     <button id="notifMarkAllRead" class="text-[10px] text-white/50 hover:text-white/80 transition"
-                            onclick="ManageHQ.markAllNotifRead()">Mark all read</button>
+                            data-click="ManageHQ.markAllNotifRead">Mark all read</button>
                 </div>
                 <div id="notifList" class="divide-y divide-white/5">
                     <div class="px-4 py-6 text-center text-xs text-white/30">Loading…</div>

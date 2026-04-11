@@ -141,6 +141,7 @@
       <div id="current-pin-field" class="hidden">
         <label class="text-white text-sm font-bold mb-2 block">Current PIN</label>
         <input type="password" id="current-pin" maxlength="6" placeholder="••••••" 
+               aria-label="Current PIN" aria-required="true"
                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan">
         <p class="text-muted text-xs mt-1">Enter your current PIN</p>
       </div>
@@ -149,6 +150,7 @@
       <div>
         <label class="text-white text-sm font-bold mb-2 block">New PIN</label>
         <input type="password" id="new-pin" maxlength="6" placeholder="••••••" 
+               aria-label="New PIN" aria-required="true"
                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan" required>
         <p class="text-muted text-xs mt-1">Enter a 6-digit PIN</p>
       </div>
@@ -157,6 +159,7 @@
       <div>
         <label class="text-white text-sm font-bold mb-2 block">Confirm PIN</label>
         <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" 
+               aria-label="Confirm PIN" aria-required="true"
                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan" required>
         <p class="text-muted text-xs mt-1">Re-enter to confirm</p>
       </div>
@@ -185,7 +188,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function() {
   const setupPinBtn = document.getElementById('setup-pin-btn');
   const changePinBtn = document.getElementById('change-pin-btn');

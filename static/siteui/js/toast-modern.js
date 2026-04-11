@@ -52,7 +52,7 @@ class ToastManager {
             <div class="dc-toast__content">
                 <div class="dc-toast__message">${this.escapeHtml(message)}</div>
             </div>
-            <button class="dc-toast__close" onclick="window.DCToast.remove(this.parentElement)">
+            <button class="dc-toast__close" data-click="window.DCToast.remove" data-click-args='[this.parentElement]'>
                 <i class="fa-solid fa-xmark"></i>
             </button>
         `;

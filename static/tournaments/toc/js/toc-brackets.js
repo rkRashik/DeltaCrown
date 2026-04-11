@@ -22,16 +22,43 @@
 
   function toast(msg, type) { if (window.TOC?.toast) window.TOC.toast(msg, type); }
 
+  /** Disable a button, add a spinner, and restore on done. Returns a restore function. */
+  function withSpinner(btn) {
+    if (!btn) return function() {};
+    var orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'pointer-events-none');
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>' + orig;
+    return function() {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'pointer-events-none');
+      btn.innerHTML = orig;
+    };
+  }
+
   /** Parse error body from API — returns human-readable message */
   function parseError(e) {
+    // HTTP status-specific friendly messages
+    if (e && e.status) {
+      if (e.status === 403) return 'You do not have permission to perform this action.';
+      if (e.status === 404) return 'The requested resource was not found. It may have been deleted.';
+      if (e.status === 409) return 'This action conflicts with the current state. Please refresh and try again.';
+      if (e.status === 429) return 'Too many requests — please wait a moment and try again.';
+      if (e.status >= 500) return 'Server error — our team has been notified. Please try again later.';
+    }
     var payload = (e && e.payload && typeof e.payload === 'object')
       ? e.payload
       : ((e && e.body && typeof e.body === 'object') ? e.body : null);
     if (payload && payload.error) return payload.error;
+    if (payload && payload.detail) return payload.detail;
     var blocked = payload && payload.details && Array.isArray(payload.details.blocked_groups)
       ? payload.details.blocked_groups
       : [];
     if (blocked.length && blocked[0] && blocked[0].reason) return blocked[0].reason;
+    // Non-field validation errors from DRF
+    if (payload && payload.non_field_errors && payload.non_field_errors.length) {
+      return payload.non_field_errors.join('. ');
+    }
     if (e && e.message) return e.message;
     return 'Something went wrong. Please try again.';
   }
@@ -376,7 +403,7 @@
         + '<i data-lucide="layout-grid" class="w-8 h-8 text-dc-text/30"></i></div>'
         + '<h3 class="text-lg font-bold text-white mb-2">No Group Stage Configured</h3>'
         + '<p class="text-sm text-dc-text max-w-sm mb-6">Set up groups to organize ' + (cfg.isSolo ? 'players' : 'teams') + ' into pools for the ' + (cfg.format === 'group_playoff' ? 'group stage → playoff' : 'group stage') + ' format.</p>'
-        + '<button onclick="TOC.brackets.openGroupConfig()" class="px-5 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">'
+        + '<button data-click="TOC.brackets.openGroupConfig" class="px-5 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">'
         + '<i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Configure Groups</button></div>';
       iconsRefresh();
       return;
@@ -416,7 +443,7 @@
         + '<i data-lucide="radio" class="w-4 h-4"></i> Start Live Draw</a>'
         + '<a href="/tournaments/' + slug + '/draw/live/" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold uppercase tracking-widest rounded-xl hover:border-dc-borderLight transition-colors">'
         + '<i data-lucide="eye" class="w-4 h-4"></i> Spectator Link</a></div>'
-        + '<button onclick="TOC.brackets.showDrawGuide()" class="mt-4 text-[10px] text-dc-text/50 hover:text-white transition cursor-pointer flex items-center justify-center gap-1 mx-auto">'
+        + '<button data-click="TOC.brackets.showDrawGuide" class="mt-4 text-[10px] text-dc-text/50 hover:text-white transition cursor-pointer flex items-center justify-center gap-1 mx-auto">'
         + '<i data-lucide="help-circle" class="w-3 h-3"></i> How does the Live Draw work?</button></div>'
         + (data.groups.length > 0 ? '<div class="border-t border-dc-border/30 px-8 py-5">'
         + '<p class="text-[10px] font-mono text-dc-text/50 uppercase tracking-widest mb-3">Group Pool Overview</p>'
@@ -447,7 +474,7 @@
         + '<h4 class="text-sm font-bold text-white mb-1">Generate Group Matches</h4>'
         + '<p class="text-xs text-dc-text max-w-xl">Groups are drawn, but no ' + formatLabel + ' matches exist yet. Generate matches now, then schedule kickoff times in the Schedule sub-tab.</p>'
         + '</div>'
-        + '<button onclick="TOC.brackets.generateGroupMatches()" class="px-5 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">'
+        + '<button data-click="TOC.brackets.generateGroupMatches" class="px-5 py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">'
         + '<i data-lucide="swords" class="w-3.5 h-3.5 inline mr-1.5"></i>Generate Round-Robin Matches</button>'
         + '</div></div>';
     }
@@ -465,7 +492,7 @@
         + '<i data-lucide="check-circle" class="w-6 h-6 text-emerald-400 mx-auto mb-3"></i>'
         + '<h4 class="text-sm font-bold text-white mb-1">All Groups Finalized</h4>'
         + '<p class="text-xs text-dc-text mb-4">Switch to the <strong class="text-white">Playoff Bracket</strong> tab to generate the bracket from group standings.</p>'
-        + '<button onclick="TOC.brackets.switchSubTab(\'bracket\')" class="px-5 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Playoff Bracket &rarr;</button></div>';
+        + '<button data-click="TOC.brackets.switchSubTab" data-click-args="[&quot;bracket&quot;]" class="px-5 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Playoff Bracket &rarr;</button></div>';
     }
 
     // Draw Audit Hash
@@ -589,7 +616,7 @@
           + '<i data-lucide="zap" class="w-8 h-8 text-emerald-400/60"></i></div>'
           + '<h3 class="text-lg font-bold text-white mb-2">Group Stage Complete</h3>'
           + '<p class="text-sm text-dc-text max-w-md mb-6">All groups finalized. Generate the playoff bracket from group standings.</p>'
-          + '<button onclick="TOC.brackets.generatePlayoffs()" class="px-6 py-3 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-theme/20">'
+          + '<button data-click="TOC.brackets.generatePlayoffs" class="px-6 py-3 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-theme/20">'
           + '<i data-lucide="trophy" class="w-4 h-4 inline mr-2"></i>Generate Playoffs</button></div>';
       } else {
         container.innerHTML = '<div class="flex flex-col items-center justify-center py-16 text-center">'
@@ -731,7 +758,7 @@
       if (!isTeam || !hasId) return '';
       if (logo) {
         return '<img src="' + logo + '" alt="" class="w-5 h-5 rounded-full object-cover border border-dc-border/30 flex-shrink-0"'
-          + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+          + ' data-fallback="hide-show-next">'
           + '<div class="w-5 h-5 rounded-full bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">'
           + '<span class="text-[8px] font-bold text-theme">' + (name || '?')[0].toUpperCase() + '</span></div>';
       }
@@ -878,7 +905,7 @@
       if (isTeam) {
         if (p.logo) {
           logoHtml = '<img src="' + p.logo + '" alt="" class="w-6 h-6 rounded-full object-cover border border-dc-border/30 flex-shrink-0"'
-            + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+            + ' data-fallback="hide-show-next">'
             + '<div class="w-6 h-6 rounded-full bg-theme-surface border border-theme-border items-center justify-center flex-shrink-0" style="display:none">'
             + '<span class="text-[9px] font-bold text-theme">' + (p.name || '?')[0].toUpperCase() + '</span></div>';
         } else {
@@ -945,11 +972,18 @@
       confirmText: 'Generate Bracket',
       variant: 'warning',
       onConfirm: async function () {
+        var btn = document.querySelector('[onclick*="generate()"]') || document.querySelector('#btn-generate-bracket');
+        var restore = withSpinner(btn);
         try {
+          toast('Generating bracket…', 'info');
           await API.post('brackets/generate/');
           toast('Bracket generated', 'success');
           refresh();
-        } catch (e) { toast(parseError(e), 'error'); }
+        } catch (e) {
+          toast(parseError(e), 'error');
+        } finally {
+          restore();
+        }
       },
     });
   }
@@ -965,11 +999,14 @@
       'RESET'
     );
     if (!confirmed) return;
+    var btn = document.querySelector('#btn-bracket-reset') || document.querySelector('[onclick*="resetBracket"]');
+    var restore = withSpinner(btn);
     try {
       await API.post('brackets/reset/');
       toast('Bracket reset', 'info');
       refresh();
     } catch (e) { toast(parseError(e), 'error'); }
+    finally { restore(); }
   }
 
   async function publish() {
@@ -987,11 +1024,14 @@
       confirmText: 'Publish Bracket',
       variant: 'warning',
       onConfirm: async function () {
+        var btn = document.querySelector('#btn-bracket-publish') || document.querySelector('[onclick*="publish"]');
+        var restore = withSpinner(btn);
         try {
           await API.post('brackets/publish/');
           toast('Bracket published', 'success');
           refresh();
         } catch (e) { toast(parseError(e), 'error'); }
+        finally { restore(); }
       },
     });
   }
@@ -1023,8 +1063,8 @@
             <div class="flex gap-2">
               <input type="text" value="${publicUrl}" readonly
                 class="flex-1 bg-dc-base border border-dc-border rounded-lg px-3 py-2 text-xs font-mono text-dc-textBright outline-none focus:border-theme/50"
-                onclick="this.select()">
-              <button onclick="navigator.clipboard.writeText('${publicUrl}').then(()=>TOC.toast('Link copied!','success'))"
+                data-click="this.select">
+              <button data-click-copy="${publicUrl}"
                 class="px-4 py-2 bg-theme text-dc-bg text-xs font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
               </button>
@@ -1040,8 +1080,8 @@
             <div class="flex gap-2">
               <textarea id="bracket-share-embed" readonly rows="3"
                 class="flex-1 bg-dc-base border border-dc-border rounded-lg px-3 py-2 text-xs font-mono text-dc-text outline-none focus:border-theme/50 resize-none"
-                onclick="this.select()">${embedCode}</textarea>
-              <button onclick="navigator.clipboard.writeText(document.querySelector('#bracket-share-embed').value).then(()=>TOC.toast('Embed code copied!','success'))"
+                data-click="this.select">${embedCode}</textarea>
+              <button data-click="__copySelector" data-click-args="[&quot;#bracket-share-embed&quot;]"
                 class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-textBright text-xs font-bold rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5 self-start">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
               </button>
@@ -1056,7 +1096,7 @@
         </div>
 
         <div class="flex justify-end">
-          <button onclick="TOC.brackets.closeOverlay('bracket-share-overlay')" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:bg-white/5 transition-colors">
+          <button data-click="TOC.brackets.closeOverlay" data-click-args="[&quot;bracket-share-overlay&quot;]" class="px-4 py-2 bg-dc-panel border border-dc-border text-dc-text text-xs font-bold rounded-lg hover:bg-white/5 transition-colors">
             Close
           </button>
         </div>
@@ -1111,7 +1151,7 @@
       + '<div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Advance Per Group</label>'
       + '<input id="gc-advance" type="number" value="' + gAdv + '" min="1" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none"></div>'
       + '</div>'
-      + '<button onclick="TOC.brackets.confirmGroupConfig()" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Configuration</button>'
+      + '<button data-click="TOC.brackets.confirmGroupConfig" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity">Save Configuration</button>'
       + '</div>';
     showOverlay('group-config-overlay', html);
   }
@@ -1172,11 +1212,14 @@
       'RESET'
     );
     if (!confirmed) return;
+    var btn = document.querySelector('#btn-group-reset') || document.querySelector('[onclick*="resetGroups"]');
+    var restore = withSpinner(btn);
     try {
       await API.post('groups/reset/');
       toast('Group draw reset', 'info');
       refreshGroups();
     } catch (e) { toast(parseError(e), 'error'); }
+    finally { restore(); }
   }
 
   function generateGroupMatches() {
@@ -1198,8 +1241,10 @@
       confirmText: hasExisting ? 'Re-Generate Matches' : 'Generate Matches',
       variant: 'warning',
       onConfirm: async function () {
+        var btn = document.querySelector('#btn-group-generate-matches') || document.querySelector('[onclick*="generateGroupMatches"]');
+        var restore = withSpinner(btn);
         try {
-          toast(hasExisting ? 'Re-generating group matches...' : 'Generating group matches...', 'info');
+          toast(hasExisting ? 'Re-generating group matches…' : 'Generating group matches…', 'info');
           var payload = { rounds: rounds };
           if (hasExisting) payload.allow_regenerate = true;
           var data = await API.post('groups/generate-matches/', payload);
@@ -1214,8 +1259,8 @@
           }
         } catch (e) {
           toast(parseError(e), 'error');
-          var genMatchesBtn = document.querySelector('#btn-group-generate-matches');
-          if (genMatchesBtn) genMatchesBtn.classList.remove('hidden');
+        } finally {
+          restore();
         }
       },
     });
@@ -1228,13 +1273,19 @@
       confirmText: 'Generate Playoffs',
       variant: 'warning',
       onConfirm: async function () {
+        var btn = document.querySelector('[onclick*="generatePlayoffs"]');
+        var restore = withSpinner(btn);
         try {
           toast('Generating playoff bracket…', 'info');
           await API.post('brackets/generate/', { seeding_method: 'group_standings' });
           toast('Playoff bracket generated!', 'success');
           switchSubTab('bracket');
           refresh();
-        } catch (e) { toast(parseError(e), 'error'); }
+        } catch (e) {
+          toast(parseError(e), 'error');
+        } finally {
+          restore();
+        }
       },
     });
   }
@@ -1312,7 +1363,7 @@
       if (context.has_groups) {
         emptyTitle = 'Group Matches Not Generated';
         emptyDesc = 'Groups are configured, but no group-stage matches exist yet. Go to Group Stage and generate round-robin matches first.';
-        actionHtml = '<button onclick="TOC.brackets.switchSubTab(\'groups\')" class="px-4 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Group Stage</button>';
+        actionHtml = '<button data-click="TOC.brackets.switchSubTab" data-click-args="[&quot;groups&quot;]" class="px-4 py-2 bg-theme/15 border border-theme/30 text-theme text-xs font-bold rounded-lg hover:bg-theme/20 transition-colors">Go to Group Stage</button>';
       }
       container.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center">'
         + '<div class="w-16 h-16 rounded-2xl bg-dc-panel border border-dc-border flex items-center justify-center mb-5">'
@@ -1417,7 +1468,7 @@
         + '<div class="flex items-start justify-between mb-3"><div>'
         + '<h4 class="text-sm font-bold text-white">' + p.name + '</h4>'
         + '<span class="text-[9px] font-bold uppercase text-dc-text tracking-wider">' + p.status + '</span></div>'
-        + '<button onclick="TOC.brackets.deletePipeline(\'' + p.id + '\')" class="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20">'
+        + '<button data-click="TOC.brackets.deletePipeline" data-click-args="[&quot;' + p.id + '&quot;]" class="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20">'
         + '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>'
         + (p.description ? '<p class="text-xs text-dc-text mb-3">' + p.description + '</p>' : '')
         + '<div class="flex items-center gap-1.5 flex-wrap">' + stages + '</div></div>';
@@ -1439,7 +1490,7 @@
       + '<input id="pl-name" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none" placeholder="e.g. Open Qualifier"></div>'
       + '<div><label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-1">Description</label>'
       + '<textarea id="pl-desc" rows="2" class="w-full bg-dc-bg border border-dc-border rounded-lg px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Optional description..."></textarea></div>'
-      + '<button onclick="TOC.brackets.confirmCreatePipeline()" class="w-full py-2.5 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-purple-500 transition-colors">Create Pipeline</button></div>';
+      + '<button data-click="TOC.brackets.confirmCreatePipeline" class="w-full py-2.5 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-purple-500 transition-colors">Create Pipeline</button></div>';
     showOverlay('pipeline-create-overlay', html);
   }
 
@@ -1447,6 +1498,8 @@
     var nameEl = document.querySelector('#pl-name');
     var name = nameEl ? nameEl.value.trim() : '';
     if (!name) { toast('Name required', 'error'); return; }
+    var btn = document.querySelector('[onclick*="confirmCreatePipeline"]');
+    var restore = withSpinner(btn);
     try {
       var descEl = document.querySelector('#pl-desc');
       await API.post('pipelines/', { name: name, description: descEl ? descEl.value.trim() : '' });
@@ -1454,6 +1507,7 @@
       closeOverlay('pipeline-create-overlay');
       refreshPipelines();
     } catch (e) { toast(parseError(e), 'error'); }
+    finally { restore(); }
   }
 
   async function deletePipeline(id) {
@@ -1480,7 +1534,7 @@
     var modal = document.createElement('div');
     modal.id = id;
     modal.className = 'fixed inset-0 z-[110] flex items-center justify-center';
-    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="TOC.brackets.closeOverlay(\'' + id + '\')"></div>'
+    modal.innerHTML = '<div class="absolute inset-0 bg-black/80 backdrop-blur-md" data-click="TOC.brackets.closeOverlay" data-click-args="[&quot;' + id + '&quot;]"></div>'
       + '<div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-md relative z-10 overflow-hidden">'
       + '<div class="h-1 w-full bg-theme"></div>' + innerHtml + '</div>';
     document.body.appendChild(modal);
@@ -1527,15 +1581,15 @@
     if (m) {
       html += '<div class="flex gap-2 flex-wrap">';
       if (state === 'scheduled') {
-        html += '<button onclick="TOC.matches && TOC.matches.markLive && TOC.matches.markLive(' + m.id + '); TOC.brackets.closeOverlay(\'bracket-match-detail\')" class="flex-1 py-2.5 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-lg hover:bg-emerald-500/25 transition-colors">'
+        html += '<button data-click="TOC.matches.markLive" data-click-args="[' + m.id + ']" data-click-also="TOC.brackets.closeOverlay" data-click-also-args="[&quot;bracket-match-detail&quot;]"  class="flex-1 py-2.5 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-lg hover:bg-emerald-500/25 transition-colors">'
           + '<i data-lucide="play" class="w-3 h-3 inline mr-1"></i>Start</button>';
       }
       if (state === 'live') {
-        html += '<button onclick="TOC.matches && TOC.matches.openScoreDrawer && TOC.matches.openScoreDrawer(' + m.id + ', \'' + p1Name.replace(/'/g, "\\'") + '\', \'' + p2Name.replace(/'/g, "\\'") + '\')" class="flex-1 py-2.5 bg-theme/15 text-theme text-xs font-bold rounded-lg hover:bg-theme/25 transition-colors">'
+        html += '<button data-click="TOC.matches.openScoreDrawer" data-click-args="[' + m.id + ',&quot;' + p1Name.replace(/"/g, '\\&quot;') + '&quot;,&quot;' + p2Name.replace(/"/g, '\\&quot;') + '&quot;]"  class="flex-1 py-2.5 bg-theme/15 text-theme text-xs font-bold rounded-lg hover:bg-theme/25 transition-colors">'
           + '<i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Score</button>';
       }
       if (state !== 'completed' && state !== 'forfeit' && state !== 'cancelled') {
-        html += '<button onclick="TOC.brackets.forfeitFromBracket(' + m.id + ')" class="py-2.5 px-4 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">'
+        html += '<button data-click="TOC.brackets.forfeitFromBracket" data-click-args="[' + m.id + ']" class="py-2.5 px-4 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-xs font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">'
           + '<i data-lucide="flag" class="w-3 h-3 inline mr-1"></i>Forfeit</button>';
       }
       html += '</div>';
@@ -1620,7 +1674,7 @@
       if (container) container.innerHTML = '<div class="flex flex-col items-center justify-center py-16">'
         + '<i data-lucide="info" class="w-8 h-8 text-dc-border mb-3"></i>'
         + '<p class="text-sm text-dc-text/50">No Swiss bracket generated yet.</p>'
-        + '<button onclick="TOC.brackets.generate()" class="mt-4 px-5 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90">'
+        + '<button data-click="TOC.brackets.generate" class="mt-4 px-5 py-2 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90">'
         + '<i data-lucide="zap" class="w-3.5 h-3.5 inline mr-1.5"></i>Generate Swiss Bracket</button></div>';
       iconsRefresh();
     }
@@ -1689,7 +1743,7 @@
 
   async function advanceSwissRound() {
     var btn = document.querySelector('#btn-swiss-advance');
-    if (btn) btn.setAttribute('disabled', '');
+    var restore = withSpinner(btn);
     try {
       var data = await API.post('swiss/advance-round/', {});
       _swissData = data;
@@ -1700,7 +1754,8 @@
       if (bData) { bracketData = bData; renderBracketView(bData, groupsData); }
     } catch (e) {
       toast(parseError(e), 'error');
-      if (btn) btn.removeAttribute('disabled');
+    } finally {
+      restore();
     }
   }
 

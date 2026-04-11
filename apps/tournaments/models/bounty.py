@@ -13,8 +13,10 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from apps.common.models import SoftDeleteModel
 
-class TournamentBounty(models.Model):
+
+class TournamentBounty(SoftDeleteModel):
     """
     Named, non-placement prize for a tournament.
 

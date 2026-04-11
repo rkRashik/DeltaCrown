@@ -12,8 +12,10 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from apps.common.models import SoftDeleteModel
 
-class ModerationSanction(models.Model):
+
+class ModerationSanction(SoftDeleteModel):
     """
     Account sanctions: ban, suspend, or mute a user profile.
     
@@ -146,7 +148,7 @@ class ModerationAudit(models.Model):
         return f"{self.event} by {actor_str} on {self.ref_type}#{self.ref_id}"
 
 
-class AbuseReport(models.Model):
+class AbuseReport(SoftDeleteModel):
     """
     User-submitted abuse reports with state machine.
     

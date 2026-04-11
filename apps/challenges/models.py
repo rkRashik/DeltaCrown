@@ -1,18 +1,34 @@
 """
-Challenge Hub Models
+Challenge Hub Models  (DEPRECATED — compatibility shim)
 
-Supports inter-team wager matches, community bounties, and 1v1/team challenges.
-Referenced by the team detail page Challenge Hub sidebar widget.
+The canonical Challenge model now lives at apps.competition.models.Challenge.
+This module preserves the legacy DB table for migration continuity and
+re-exports the Competition Challenge as ``CompetitionChallenge`` for new code.
+
+All **new** features should target ``apps.competition.models.Challenge``.
 """
+import warnings
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+# Re-export the canonical model so callers can migrate gradually.
+try:
+    from apps.competition.models.challenge import (  # noqa: F401
+        Challenge as CompetitionChallenge,
+    )
+except ImportError:
+    CompetitionChallenge = None  # competition app might not be installed
+
 
 class Challenge(models.Model):
     """
-    A challenge issued by or to a team. Supports wager matches (team vs team)
-    and community bounties (open challenges anyone can accept).
+    DEPRECATED — Legacy challenge issued by or to a team.
+
+    Prefer ``apps.competition.models.Challenge`` for all new code.
+    This model is kept for backward-compatible reads on the existing
+    ``challenges_challenge`` DB table.
     """
 
     class ChallengeType(models.TextChoices):
@@ -101,6 +117,15 @@ class Challenge(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.get_challenge_type_display()}) — {self.get_status_display()}"
+
+    def save(self, *args, **kwargs):
+        warnings.warn(
+            "Writing to challenges.Challenge is deprecated — "
+            "use apps.competition.models.Challenge instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().save(*args, **kwargs)
 
     @property
     def is_expired(self):

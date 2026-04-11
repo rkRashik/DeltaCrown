@@ -132,10 +132,10 @@
                 <p class="text-[11px] text-dc-text mb-3 italic">"${esc(sub.reason)}"</p>
                 ${sub.status === 'pending' ? `
                 <div class="flex items-center gap-2 pt-2 border-t border-dc-border/50">
-                    <button onclick="TOC.participantsAdv.approveEmergencySub('${sub.id}')" class="flex-1 px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">
+                    <button data-click="TOC.participantsAdv.approveEmergencySub" data-click-args="['${sub.id}']" class="flex-1 px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">
                         <i data-lucide="check" class="w-3 h-3 inline-block mr-1"></i> Approve
                     </button>
-                    <button onclick="TOC.participantsAdv.denyEmergencySub('${sub.id}')" class="flex-1 px-3 py-1.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-danger/20 transition-colors">
+                    <button data-click="TOC.participantsAdv.denyEmergencySub" data-click-args="['${sub.id}']" class="flex-1 px-3 py-1.5 bg-dc-danger/10 border border-dc-danger/20 text-dc-danger text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-danger/20 transition-colors">
                         <i data-lucide="x" class="w-3 h-3 inline-block mr-1"></i> Deny
                     </button>
                 </div>` : `
@@ -222,7 +222,7 @@
                 <td class="px-3 py-2.5">${statusBadge(fa.status)}</td>
                 <td class="px-3 py-2.5 text-right">
                     ${fa.status === 'available' ? `
-                        <button onclick="TOC.participantsAdv.openAssignDrawer('${fa.id}', '${fa.username}')" class="px-2 py-1 bg-theme-surface border border-theme-border text-theme text-[9px] font-bold rounded hover:bg-theme hover:text-dc-bg transition-all">
+                        <button data-click="TOC.participantsAdv.openAssignDrawer" data-click-args="['${fa.id}', '${fa.username}']" class="px-2 py-1 bg-theme-surface border border-theme-border text-theme text-[9px] font-bold rounded hover:bg-theme hover:text-dc-bg transition-all">
                             Assign
                         </button>
                     ` : `
@@ -243,7 +243,7 @@
                     <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Team ID</label>
                     <input id="fa-assign-team-id" type="number" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-theme outline-none" placeholder="Enter team ID">
                 </div>
-                <button onclick="TOC.participantsAdv.confirmAssign('${faId}')" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all shadow-[0_0_15px_var(--color-primary-muted)]">
+                <button data-click="TOC.participantsAdv.confirmAssign" data-click-args="['${faId}']" class="w-full py-2.5 bg-theme text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all shadow-[0_0_15px_var(--color-primary-muted)]">
                     Assign to Team
                 </button>
             </div>`
@@ -311,7 +311,7 @@
                         <p class="text-[9px] text-dc-text font-mono">${esc(w.registration_number || '')} · ${timeAgo(w.registered_at)}</p>
                     </div>
                 </div>
-                <button onclick="TOC.participantsAdv.promoteWaitlist(${w.id})" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">
+                <button data-click="TOC.participantsAdv.promoteWaitlist" data-click-args="[${w.id}]" class="px-3 py-1.5 bg-dc-success/10 border border-dc-success/20 text-dc-success text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-success/20 transition-colors">
                     <i data-lucide="arrow-up" class="w-3 h-3 inline-block mr-1"></i> Promote
                 </button>
             </div>
@@ -435,7 +435,7 @@
                             <p class="text-[11px] text-dc-text mt-2">${reason}</p>
                         </div>
                         <div class="shrink-0 flex items-center gap-2">
-                            <button onclick="TOC.participantsAdv.openMoveToWaitlistPrompt(${row.id})" data-cap-require="manage_registrations" class="px-2.5 py-1.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-warning/20 transition-colors">
+                            <button data-click="TOC.participantsAdv.openMoveToWaitlistPrompt" data-click-args="[${row.id}]" data-cap-require="manage_registrations" class="px-2.5 py-1.5 bg-dc-warning/10 border border-dc-warning/20 text-dc-warning text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-warning/20 transition-colors">
                                 Move to Waitlist
                             </button>
                         </div>
@@ -471,7 +471,7 @@
                     <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (required)</label>
                     <textarea id="move-waitlist-reason" rows="4" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="Write why this participant is being reconsidered..."></textarea>
                 </div>
-                <button onclick="TOC.participantsAdv.confirmMoveToWaitlist(${regId})" class="w-full py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">
+                <button data-click="TOC.participantsAdv.confirmMoveToWaitlist" data-click-args="[${regId}]" class="w-full py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">
                     Confirm Move
                 </button>
             </div>`
@@ -541,7 +541,7 @@
                     <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason (required)</label>
                     <textarea id="waiver-reason" rows="3" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-theme outline-none resize-none" placeholder="e.g., Top-ranked team, sponsor invitation..."></textarea>
                 </div>
-                <button onclick="TOC.participantsAdv.confirmFeeWaiver(${regId})" class="w-full py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">
+                <button data-click="TOC.participantsAdv.confirmFeeWaiver" data-click-args="[${regId}]" class="w-full py-2.5 bg-dc-warning text-dc-bg text-xs font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">
                     Confirm Fee Waiver
                 </button>
             </div>`,

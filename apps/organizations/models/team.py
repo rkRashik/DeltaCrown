@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from django.db.models import Q
 
 from ..choices import TeamStatus
+from apps.common.validators import validate_image_upload
 
 User = get_user_model()
 
@@ -118,13 +119,15 @@ class Team(models.Model):
         upload_to='teams/logos/',
         null=True,
         blank=True,
-        help_text="Team logo (or inherits from organization if enforce_brand=True)"
+        help_text="Team logo (or inherits from organization if enforce_brand=True)",
+        validators=[validate_image_upload],
     )
     banner = models.ImageField(
         upload_to='teams/banners/',
         null=True,
         blank=True,
-        help_text="Profile page header banner"
+        help_text="Profile page header banner",
+        validators=[validate_image_upload],
     )
     
     # Team Colors

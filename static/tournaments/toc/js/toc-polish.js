@@ -63,7 +63,7 @@
                         <i data-lucide="alert-triangle" class="w-10 h-10 text-dc-danger mb-3"></i>
                         <p class="text-sm font-bold text-dc-danger">Failed to load data</p>
                         <p class="text-xs text-dc-text mt-1 mb-4">${esc(err.message || 'Something went wrong while loading this section.')}</p>
-                        <button onclick="location.reload()" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-xs hover:bg-dc-surface transition-all">
+                        <button data-click="location.reload" class="px-4 py-2 rounded-lg border border-dc-border text-dc-text text-xs hover:bg-dc-surface transition-all">
                             <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i> Retry
                         </button>
                     </div>
@@ -342,8 +342,8 @@
         bar.id = 'stale-warning';
         bar.className = 'fixed top-0 left-0 right-0 z-[300] bg-dc-warning/90 text-dc-bg text-center py-2 text-xs font-bold';
         bar.innerHTML = `
-            Data may be stale. <button onclick="location.reload()" class="underline ml-2">Refresh now</button>
-            <button onclick="this.parentElement.remove()" class="ml-4 opacity-70 hover:opacity-100">✕</button>
+            Data may be stale. <button data-click="location.reload" class="underline ml-2">Refresh now</button>
+            <button data-click="this.parentElement.remove" class="ml-4 opacity-70 hover:opacity-100">✕</button>
         `;
         document.body.prepend(bar);
     }

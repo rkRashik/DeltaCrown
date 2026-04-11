@@ -327,7 +327,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Rules request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.rules.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.rules.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -481,8 +481,8 @@
               <i data-lucide="file-text" class="w-4 h-4 text-theme"></i> ${esc(s.title)}
             </span>
             <div class="flex items-center gap-2">
-              <button onclick="event.stopPropagation(); TOC.rules.editSection('${s.id}')" class="text-[10px] text-theme hover:underline">Edit</button>
-              <button onclick="event.stopPropagation(); TOC.rules.deleteSection('${s.id}')" class="text-[10px] text-dc-danger hover:underline">Delete</button>
+              <button data-click="event.stopPropagation" class="text-[10px] text-theme hover:underline">Edit</button>
+              <button data-click="event.stopPropagation" class="text-[10px] text-dc-danger hover:underline">Delete</button>
               <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text group-open:rotate-180 transition-transform"></i>
             </div>
           </summary>
@@ -514,8 +514,8 @@
           <summary class="p-3 cursor-pointer flex items-center justify-between select-none text-sm">
             <span class="text-white font-medium">${esc(f.question)}</span>
             <div class="flex items-center gap-2">
-              <button onclick="event.stopPropagation(); TOC.rules.editFaq('${f.id}')" class="text-[10px] text-theme hover:underline">Edit</button>
-              <button onclick="event.stopPropagation(); TOC.rules.deleteFaq('${f.id}')" class="text-[10px] text-dc-danger hover:underline">Delete</button>
+              <button data-click="event.stopPropagation" class="text-[10px] text-theme hover:underline">Edit</button>
+              <button data-click="event.stopPropagation" class="text-[10px] text-dc-danger hover:underline">Delete</button>
               <i data-lucide="chevron-down" class="w-3 h-3 text-dc-text group-open:rotate-180 transition-transform"></i>
             </div>
           </summary>
@@ -590,9 +590,13 @@
   const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
   function drawerFooter(submitCall, submitLabel, danger = false) {
     const btnCls = danger ? 'bg-dc-danger hover:opacity-90' : 'bg-theme hover:opacity-90';
+    const scMatch = submitCall.match(/^([\w.]+)\((.*)\)$/s);
+    const scAttrs = scMatch
+      ? `data-click="${scMatch[1]}"` + (scMatch[2].trim() ? ` data-click-args="[${scMatch[2].trim()}]"` : '')
+      : '';
     return `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="${submitCall}" class="flex-1 ${btnCls} text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button ${scAttrs} class="flex-1 ${btnCls} text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
   }
 
@@ -703,8 +707,8 @@
         <textarea id="rules-pub-changelog" rows="4" class="${FIELD} resize-none" placeholder="What changed in this version?"></textarea></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.rules._submitPublish()" class="flex-1 bg-dc-success hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Publish Version</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.rules._submitPublish" class="flex-1 bg-dc-success hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Publish Version</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Publish Rulebook Version', body, footer);
     setTimeout(() => document.getElementById('rules-pub-version')?.focus(), 50);

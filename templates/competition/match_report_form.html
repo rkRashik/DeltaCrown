@@ -112,6 +112,7 @@
                         <i class="fas fa-calendar mr-2"></i>Match Date & Time
                     </label>
                     <input type="datetime-local" name="played_at" id="played_at" required
+                           aria-label="Match date and time" aria-required="true"
                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
 
@@ -121,6 +122,7 @@
                         <i class="fas fa-link mr-2"></i>Evidence URL (Optional)
                     </label>
                     <input type="url" name="evidence_url" id="evidence_url" placeholder="https://example.com/match-screenshot"
+                           aria-label="Evidence URL"
                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     <p class="text-sm text-gray-400 mt-1">Screenshot, VOD, or match link to support your report</p>
                 </div>
@@ -131,6 +133,7 @@
                         <i class="fas fa-upload mr-2"></i>Evidence File (Optional)
                     </label>
                     <input type="file" name="evidence_file" id="evidence_file" accept="image/*,video/*"
+                           aria-label="Upload evidence file"
                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     <p class="text-sm text-gray-400 mt-1">Upload a screenshot or video of the match results</p>
                 </div>

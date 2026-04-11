@@ -1,7 +1,7 @@
 {# SCRIPTS — Page JS (no demo controller) #}
 {# Rebuilt from Demo_Team_detail_templete.html — production-ready #}
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 document.addEventListener("DOMContentLoaded", () => {
 
   // ── BOOTSTRAP: Read data attributes & apply to body ───────────────────
@@ -480,6 +480,43 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── CSP-SAFE: Roster card clicks → open player popup ────────────────
+  document.querySelectorAll(".dc-roster-card").forEach(card => {
+    card.addEventListener("click", function() { dcOpenPlayerPopup(this); });
+  });
+
+  // ── CSP-SAFE: Lightbox close (backdrop + button) ────────────────────
+  const lightbox = document.getElementById("dc-media-lightbox");
+  if (lightbox) {
+    lightbox.addEventListener("click", function(e) {
+      if (e.target === lightbox || e.target.closest("button") ||
+          e.target.hasAttribute("data-action")) {
+        dcCloseLightbox();
+      }
+    });
+  }
+
+  // ── CSP-SAFE: Player popup close (backdrop + button) ────────────────
+  const playerPopup = document.getElementById("dc-player-popup");
+  if (playerPopup) {
+    playerPopup.addEventListener("click", function(e) {
+      if (e.target === playerPopup || e.target.closest("button")) {
+        dcClosePlayerPopup();
+      }
+    });
+    const popupCard = document.getElementById("dc-player-popup-card");
+    if (popupCard) {
+      popupCard.addEventListener("click", function(e) { e.stopPropagation(); });
+      // Allow only the close button inside the card
+      popupCard.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          dcClosePlayerPopup();
+        });
+      });
+    }
+  }
+
 });
 
 // ── Global Media Lightbox Functions ─────────────────────────────────────
@@ -516,7 +553,7 @@ function dcOpenLightbox(type, url, title) {
     // Image
     content.innerHTML = `<img src="${url}" alt="${title}" 
       class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain select-none"
-      style="cursor:zoom-out" onclick="dcCloseLightbox()">`;
+      style="cursor:zoom-out" data-action="close-lightbox">`;
   }
 
   lb.classList.remove("hidden");

@@ -68,7 +68,7 @@ class SoftDeleteModel(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='%(class)s_deletions',
+        related_name='%(app_label)s_%(class)s_deletions',
         help_text="User who deleted this record"
     )
 

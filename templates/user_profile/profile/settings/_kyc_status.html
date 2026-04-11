@@ -95,7 +95,7 @@
 }
 </style>
 
-<script type="module">
+<script type="module" nonce="{{ request.csp_nonce }}">
 // KYC Start Button Handler
 document.addEventListener('DOMContentLoaded', () => {
     const startKycBtn = document.getElementById('start-kyc-btn');

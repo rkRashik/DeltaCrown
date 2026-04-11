@@ -1734,7 +1734,7 @@ const HubEngine = (() => {
             ? `<span class="hub-badge hub-badge-${p.claim_status === 'paid' ? 'live' : p.claim_status === 'rejected' ? 'danger' : 'warning'}">${_esc(p.claim_status)}</span>`
             : '';
           const claimBtn = !p.claimed
-            ? `<button class="prize-claim-btn" onclick="HubEngine.openPrizeModal(${p.id}, '${_esc(p.amount)}', '${_esc(p.placement_display)}')">Claim Prize</button>`
+            ? `<button class="prize-claim-btn" data-click="HubEngine.openPrizeModal" data-click-args="[&quot;${p.id}&quot;,&quot;${_esc(p.amount)}&quot;,&quot;${_esc(p.placement_display)}&quot;]">Claim Prize</button>`
             : '';
 
           html += `
@@ -2246,7 +2246,7 @@ const HubEngine = (() => {
     const normalizedUrl = String(mediaUrl || '').trim();
 
     if (normalizedUrl && !_brokenAvatarUrls.has(normalizedUrl)) {
-      return `<img src="${_esc(normalizedUrl)}" class="${imageClass}" alt="${safeName}" loading="lazy" decoding="async" data-avatar-name="${safeName}" data-avatar-url="${_esc(normalizedUrl)}" data-avatar-initial-class="${_esc(initialClass)}" onerror="HubEngine.handleAvatarLoadError(this)">`;
+      return `<img src="${_esc(normalizedUrl)}" class="${imageClass}" alt="${safeName}" loading="lazy" decoding="async" data-avatar-name="${safeName}" data-avatar-url="${_esc(normalizedUrl)}" data-avatar-initial-class="${_esc(initialClass)}" data-fallback="hide">`;
     }
     return _renderAvatarInitial(safeNameRaw, initialClass);
   }
@@ -2511,9 +2511,9 @@ const HubEngine = (() => {
               <p class="text-xs text-gray-300 mt-1">${_esc(opponent)} proposed ${_esc(proposedAt)}.</p>
             </div>
             <div class="flex flex-wrap gap-2 lg:justify-end">
-              <button onclick='HubEngine.respondReschedule(${matchId}, "accept")' class='px-3 py-1.5 rounded-lg border border-[#00FF66]/35 bg-[#00FF66]/12 text-[#66FFAE] text-[10px] font-black uppercase tracking-wider hover:bg-[#00FF66]/20 transition-colors'>Accept</button>
-              ${canCounter ? `<button onclick='HubEngine.respondReschedule(${matchId}, "counter")' class='px-3 py-1.5 rounded-lg border border-blue-400/35 bg-blue-400/15 text-blue-100 text-[10px] font-black uppercase tracking-wider hover:bg-blue-400/25 transition-colors'>Propose New Time</button>` : ''}
-              <button onclick='HubEngine.respondReschedule(${matchId}, "reject")' class='px-3 py-1.5 rounded-lg border border-[#FF2A55]/35 bg-[#FF2A55]/12 text-[#FF97AA] text-[10px] font-black uppercase tracking-wider hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>
+              <button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;accept&quot;]" class='px-3 py-1.5 rounded-lg border border-[#00FF66]/35 bg-[#00FF66]/12 text-[#66FFAE] text-[10px] font-black uppercase tracking-wider hover:bg-[#00FF66]/20 transition-colors'>Accept</button>
+              ${canCounter ? `<button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;counter&quot;]" class='px-3 py-1.5 rounded-lg border border-blue-400/35 bg-blue-400/15 text-blue-100 text-[10px] font-black uppercase tracking-wider hover:bg-blue-400/25 transition-colors'>Propose New Time</button>` : ''}
+              <button data-click="HubEngine.respondReschedule" data-click-args="[&quot;${matchId}&quot;,&quot;reject&quot;]" class='px-3 py-1.5 rounded-lg border border-[#FF2A55]/35 bg-[#FF2A55]/12 text-[#FF97AA] text-[10px] font-black uppercase tracking-wider hover:bg-[#FF2A55]/20 transition-colors'>Reject</button>
             </div>
           </div>
         </div>`;
@@ -3265,7 +3265,7 @@ const HubEngine = (() => {
               ${_esc(m.round_name || '')} · Match ${m.match_number || ''} · BO${bo}
             </p>
           </div>
-          <button onclick="HubEngine.closeMapViewer()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button data-click="HubEngine.closeMapViewer" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
@@ -4220,7 +4220,16 @@ const HubEngine = (() => {
       const disabledAttr = disabled ? ' disabled' : '';
       const disabledClass = disabled ? ' hub-match-cta-disabled' : '';
       const iconHtml = icon ? `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i>` : '';
-      return `<button onclick='${clickHandler}' class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${iconHtml}${_esc(label)}</button>`;
+      // Parse clickHandler string into data-click attributes
+      let clickAttrs = '';
+      if (clickHandler && clickHandler !== 'void(0)') {
+        const hMatch = clickHandler.match(/^([\w.]+)\((.*)\)$/s);
+        if (hMatch) {
+          clickAttrs = `data-click="${hMatch[1]}"`;
+          if (hMatch[2].trim()) clickAttrs += ` data-click-args="[${hMatch[2].trim()}]"`;
+        }
+      }
+      return `<button ${clickAttrs} class='${buttonBase} hub-match-cta-${tone}${disabledClass}'${disabledAttr}>${iconHtml}${_esc(label)}</button>`;
     };
 
     const buttons = [];
@@ -4446,7 +4455,7 @@ const HubEngine = (() => {
 
           const hasDetail = Array.isArray(m.game_scores) && m.game_scores.length > 0;
           const cursorCls = hasDetail ? 'cursor-pointer' : '';
-          const clickAttr = hasDetail ? `onclick="HubEngine.openMapViewer(window._hubMatchHistory[${mi}])"` : '';
+          const clickAttr = hasDetail ? `data-click="HubEngine.openMapViewer" data-click-args="[window._hubMatchHistory[${mi}]]"` : '';
 
           html += `
             <div class="premium-card p-4 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 bg-black/40 hover:bg-black/60 transition ${cursorCls}" style="border-left-color:${borderColor}" ${clickAttr}>
@@ -4870,10 +4879,10 @@ const HubEngine = (() => {
       <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">${_esc(title)}</h3>
       <p class="text-sm text-gray-500 max-w-xl">${_esc(message)}</p>
       <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" onclick="HubEngine.switchTab('schedule')">
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args="[&quot;schedule&quot;]">
           View Schedule
         </button>
-        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" onclick="HubEngine.switchTab('bracket')">
+        <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args="[&quot;bracket&quot;]">
           Check Bracket Status
         </button>
       </div>
@@ -4984,7 +4993,7 @@ const HubEngine = (() => {
 
       // "All" chip
       const allActive = _scheduleSelectedDay === null;
-      tapeHtml += `<button onclick="HubEngine.scheduleSelectDay(null)" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all ${allActive ? 'bg-[#00F0FF]/20 border-[#00F0FF]/40 shadow-[0_0_15px_rgba(0,240,255,0.3)]' : 'bg-black/40 border-white/10 hover:border-white/20'}">
+      tapeHtml += `<button data-click="HubEngine.scheduleSelectDay" data-click-args="[null]" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all ${allActive ? 'bg-[#00F0FF]/20 border-[#00F0FF]/40 shadow-[0_0_15px_rgba(0,240,255,0.3)]' : 'bg-black/40 border-white/10 hover:border-white/20'}">
         <div class="font-mono text-[10px] uppercase tracking-widest ${allActive ? 'text-[#00F0FF]' : 'text-gray-500'}">All</div>
         <div class="font-mono font-bold text-sm ${allActive ? 'text-[#00F0FF]' : 'text-gray-400'}">${filteredMatches.length}</div>
       </button>`;
@@ -5019,7 +5028,7 @@ const HubEngine = (() => {
         const textCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-white' : 'text-gray-400';
         const subCls = isActive ? 'text-[#00F0FF]' : isToday ? 'text-[#00F0FF]' : 'text-gray-500';
 
-        tapeHtml += `<button onclick="HubEngine.scheduleSelectDay('${_esc(dayKey)}')" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all min-w-[72px] ${activeCls} relative" data-tape-day="${_esc(dayKey)}">
+        tapeHtml += `<button data-click="HubEngine.scheduleSelectDay" data-click-args="[&quot;${_esc(dayKey)}&quot;]" class="shrink-0 px-4 py-3 rounded-xl border text-center transition-all min-w-[72px] ${activeCls} relative" data-tape-day="${_esc(dayKey)}">
           ${hasLive ? '<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>' : ''}
           <div class="font-mono text-[10px] uppercase tracking-widest ${subCls}">${dayLabel}</div>
           <div class="font-mono font-bold text-sm ${textCls}">${dateLabel}</div>
@@ -5860,7 +5869,7 @@ const HubEngine = (() => {
         avatarStack = '<div class="flex -space-x-2 overflow-hidden mt-3">';
         p.member_avatars.slice(0, 3).forEach(ma => {
           if (ma.avatar_url) {
-            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white',textContent:'${_esc(ma.initial)}'}))">`;
+            avatarStack += `<img class="inline-block h-8 w-8 rounded-full ring-2 ring-[#08080C] object-cover" src="${_esc(ma.avatar_url)}" alt="${_esc(ma.initial)}" loading="lazy" decoding="async" data-fallback-text="${_esc(ma.initial)}" data-fallback-class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">`;
           } else {
             avatarStack += `<div class="inline-flex h-8 w-8 rounded-full ring-2 ring-[#08080C] bg-gray-800 items-center justify-center text-[10px] font-bold text-white">${_esc(ma.initial)}</div>`;
           }
@@ -5871,7 +5880,7 @@ const HubEngine = (() => {
       // Logo / avatar (prefer logo_url, fall back to profile_avatar_url)
       const avatarSrc = p.logo_url || p.profile_avatar_url || '';
       const logo = avatarSrc
-        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-xl\\' style=\\'font-family:Outfit,sans-serif\\'>${_esc(p.tag)}</span>')">`
+        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${_esc(p.name)}" loading="lazy" decoding="async" data-fallback="hide">`
         : `<span class="font-black text-xl" style="font-family:Outfit,sans-serif;">${_esc(p.tag)}</span>`;
       const logoColorClass = p.is_you ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-gray-400';
 
@@ -5921,7 +5930,7 @@ const HubEngine = (() => {
       const tag = _esc(p.tag || '?');
       const avatarSrc = p.logo_url || p.profile_avatar_url || '';
       const avatar = avatarSrc
-        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\\'font-black text-sm\\' style=\\'font-family:Outfit,sans-serif\\'>${tag}</span>')">`
+        ? `<img src="${_esc(avatarSrc)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async" data-fallback="hide">`
         : `<span class="font-black text-sm" style="font-family:Outfit,sans-serif;">${tag}</span>`;
       const metaPill = _participantMetaPill(p);
       const seed = p.seed ? `<span class="text-[10px] text-slate-400 font-semibold">#${p.seed}</span>` : '';
@@ -6502,7 +6511,7 @@ const HubEngine = (() => {
     const card = document.getElementById('hub-ticket-export');
     if (!card) return;
 
-    const button = document.querySelector('#ticketModal button[onclick="HubEngine.downloadTicketPass()"]');
+    const button = document.querySelector('#ticketModal button[data-click="HubEngine.downloadTicketPass"]');
     const originalHtml = button ? button.innerHTML : '';
 
     if (button) {
@@ -7055,3 +7064,6 @@ const HubEngine = (() => {
     handleAvatarLoadError,
   };
 })();
+
+// Expose on window so csp-delegator can resolve "HubEngine.*" paths
+window.HubEngine = HubEngine;

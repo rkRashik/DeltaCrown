@@ -195,7 +195,12 @@ def product_detail(request, slug):
     # Reviews
     reviews = product.reviews.filter(is_approved=True).select_related('user')
     avg_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
-    rating_counts = {i: reviews.filter(rating=i).count() for i in range(1, 6)}
+    # Single query instead of 5 separate .filter(rating=X).count() calls
+    from django.db.models import Count, Case, When, IntegerField
+    rating_agg = reviews.aggregate(
+        **{f'r{i}': Count(Case(When(rating=i, then=1), output_field=IntegerField())) for i in range(1, 6)}
+    )
+    rating_counts = {i: rating_agg[f'r{i}'] for i in range(1, 6)}
     
     # Check if user has this in wishlist
     in_wishlist = False

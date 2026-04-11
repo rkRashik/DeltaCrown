@@ -279,7 +279,7 @@
             <div class="follower-card">
                 <div class="follower-avatar">
                     <img src="{{ follower.avatar_url }}" alt="{{ follower.username }}" 
-                         onerror="this.src='/static/images/default-avatar.png'">
+                         data-fallback-src="/static/images/default-avatar.png">
                     {% if follower.is_verified %}
                     <div class="verified-badge">
                         <svg viewBox="0 0 24 24">
@@ -315,11 +315,11 @@
                     {% elif follower.viewer_follows %}
                         <button class="follow-btn following" 
                                 data-username="{{ follower.username }}"
-                                onclick="toggleFollow(this)">Following</button>
+                                data-click="toggleFollow" data-click-pass-el>Following</button>
                     {% else %}
                         <button class="follow-btn follow" 
                                 data-username="{{ follower.username }}"
-                                onclick="toggleFollow(this)">Follow</button>
+                                data-click="toggleFollow" data-click-pass-el>Follow</button>
                     {% endif %}
                 </div>
             </div>
@@ -358,7 +358,7 @@
     {% endif %}
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
 async function toggleFollow(button) {
     const username = button.dataset.username;
     const isFollowing = button.classList.contains('following');

@@ -60,12 +60,25 @@ PIPELINE_OVERRIDES = {
     "efootball": "direct",
 }
 
-DEFAULT_MAP_POOLS = {
+# Legacy hardcoded map pools — used as fallback when GameMapPool table is empty.
+_LEGACY_MAP_POOLS = {
     "valorant": ["Ascent", "Bind", "Haven", "Split", "Icebox", "Lotus", "Sunset"],
     "r6siege": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
     "r6": ["Clubhouse", "Coastline", "Border", "Kafe", "Villa", "Chalet"],
     "cs2": ["Mirage", "Inferno", "Dust II", "Nuke", "Ancient", "Anubis", "Vertigo"],
 }
+
+
+def _get_map_pool_for_game(game_slug: str) -> list:
+    """Return map pool from DB (GameMapPool), falling back to legacy dict."""
+    try:
+        from apps.games.models.map_pool import GameMapPool
+        db_maps = GameMapPool.get_active_maps_by_slug(game_slug)
+        if db_maps:
+            return db_maps
+    except Exception:
+        pass
+    return list(_LEGACY_MAP_POOLS.get(game_slug, []))
 
 DEFAULT_CREDENTIAL_SCHEMA = [
     {"key": "lobby_code", "label": "Lobby Code", "kind": "text", "required": True},
@@ -80,6 +93,28 @@ EFOOTBALL_CREDENTIAL_SCHEMA = [
     {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
     {"key": "password", "label": "Password", "kind": "text", "required": False},
 ]
+
+
+def _get_credential_schema_for_game(game_slug: str) -> list:
+    """Return credential schema from DB (GameTournamentConfig → GamePipelineTemplate), falling back to legacy dicts."""
+    try:
+        # Prefer GameTournamentConfig.credential_schema (authoritative per-game setting)
+        from apps.games.models.tournament_config import GameTournamentConfig
+        cfg = GameTournamentConfig.objects.filter(game__slug=game_slug).first()
+        if cfg and cfg.credential_schema:
+            return cfg.credential_schema
+    except Exception:
+        pass
+    try:
+        from apps.games.models.pipeline_template import GamePipelineTemplate
+        tpl = GamePipelineTemplate.get_default_for_slug(game_slug)
+        if tpl and tpl.credential_schema:
+            return tpl.credential_schema
+    except Exception:
+        pass
+    if game_slug == "efootball":
+        return EFOOTBALL_CREDENTIAL_SCHEMA
+    return DEFAULT_CREDENTIAL_SCHEMA
 
 PRESENCE_STALE_SECONDS = 45
 
@@ -344,14 +379,23 @@ def _build_check_in_rule_text(match: Match, check_in_window: Dict[str, Any]) -> 
 
 
 def _canonical_match_configuration_game_key(value: Any) -> str:
+    """Resolve a raw game token to a canonical slug using the game registry.
+
+    Falls back to simple lowercase for unknown tokens.
+    """
     token = str(value or "").strip().lower()
     if not token:
         return ""
-    if "efootball" in token or token == "pes":
-        return "efootball"
-    if "valorant" in token:
-        return "valorant"
-    return token
+    try:
+        from apps.games.services.game_service import GameService
+        return GameService.normalize_slug(token)
+    except Exception:
+        # Minimal legacy fallback if registry unavailable
+        if "efootball" in token or token == "pes":
+            return "efootball"
+        if "valorant" in token:
+            return "valorant"
+        return token
 
 
 def _dynamic_match_configuration_values(
@@ -1016,7 +1060,7 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     best_of = int(getattr(match, "best_of", 1) or 1)
     map_pool = _load_config_map_pool(match)
     if not map_pool:
-        map_pool = deepcopy(DEFAULT_MAP_POOLS.get(game_key, DEFAULT_MAP_POOLS.get(game_slug, [])))
+        map_pool = _get_map_pool_for_game(game_key) or _get_map_pool_for_game(game_slug)
     if not map_pool:
         map_pool = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5"]
 

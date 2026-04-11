@@ -18,6 +18,8 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 
+from apps.common.models import SoftDeleteModel
+
 User = get_user_model()
 
 
@@ -39,7 +41,7 @@ class BountyStatus(models.TextChoices):
     CANCELLED = 'cancelled', 'Cancelled'
 
 
-class Bounty(models.Model):
+class Bounty(SoftDeleteModel):
     """
     Peer-to-peer challenge with escrow-backed stake.
     

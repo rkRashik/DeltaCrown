@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -411,7 +411,7 @@
 
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // Init Lucide Icons
         lucide.createIcons();
 

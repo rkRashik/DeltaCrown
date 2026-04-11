@@ -118,7 +118,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // WebSocket connection for real-time updates
     document.addEventListener('alpine:init', () => {
         Alpine.data('tournamentSpectator', () => ({

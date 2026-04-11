@@ -71,9 +71,9 @@
                     <p class="text-[11px] text-dc-text mt-1">Variables: ${(t.variables || []).map(v => '<code class="text-theme">' + esc(v) + '</code>').join(', ') || 'None'}</p>
                 </div>
                 <div class="flex gap-1.5 shrink-0">
-                    <button onclick="TOC.stats.editTemplate('${t.id}')" class="p-1.5 text-dc-text hover:text-white rounded hover:bg-white/5 transition-colors" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                    <button onclick="TOC.stats.generateSingle('${t.id}')" class="p-1.5 text-dc-text hover:text-dc-success rounded hover:bg-dc-success/10 transition-colors" title="Generate for user"><i data-lucide="file-output" class="w-3.5 h-3.5"></i></button>
-                    <button onclick="TOC.stats.deleteTemplate('${t.id}')" class="p-1.5 text-dc-text hover:text-dc-danger rounded hover:bg-dc-danger/10 transition-colors" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    <button data-click="TOC.stats.editTemplate" data-click-args="['${t.id}']" class="p-1.5 text-dc-text hover:text-white rounded hover:bg-white/5 transition-colors" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                    <button data-click="TOC.stats.generateSingle" data-click-args="['${t.id}']" class="p-1.5 text-dc-text hover:text-dc-success rounded hover:bg-dc-success/10 transition-colors" title="Generate for user"><i data-lucide="file-output" class="w-3.5 h-3.5"></i></button>
+                    <button data-click="TOC.stats.deleteTemplate" data-click-args="['${t.id}']" class="p-1.5 text-dc-text hover:text-dc-danger rounded hover:bg-dc-danger/10 transition-colors" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                 </div>
             </div>
         `).join('');
@@ -99,7 +99,7 @@
                     <input id="cert-tpl-default" type="checkbox" class="accent-theme">
                     <span class="text-xs text-dc-text">Set as Default Template</span>
                 </label>
-                <button onclick="TOC.stats.confirmCreateTemplate()" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Create Template</button>
+                <button data-click="TOC.stats.confirmCreateTemplate" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Create Template</button>
             </div>
         `);
     }
@@ -137,7 +137,7 @@
                     <input id="cert-edit-default" type="checkbox" class="accent-theme" ${tpl.is_default ? 'checked' : ''}>
                     <span class="text-xs text-dc-text">Set as Default Template</span>
                 </label>
-                <button onclick="TOC.stats.confirmEditTemplate('${id}')" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Save Changes</button>
+                <button data-click="TOC.stats.confirmEditTemplate" data-click-args="['${id}']" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Save Changes</button>
             </div>
         `);
     }
@@ -175,7 +175,7 @@
                     <label class="block text-xs text-dc-text mb-1">User ID</label>
                     <input id="cert-gen-user" type="number" class="w-full bg-dc-surface border border-dc-border rounded-lg px-3 py-2 text-sm text-dc-textBright focus:outline-none focus:border-theme/50" placeholder="Enter user ID">
                 </div>
-                <button onclick="TOC.stats.confirmGenerateSingle('${templateId}')" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Generate</button>
+                <button data-click="TOC.stats.confirmGenerateSingle" data-click-args="['${templateId}']" class="w-full py-2.5 rounded-lg bg-theme text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Generate</button>
             </div>
         `);
     }
@@ -191,7 +191,7 @@
         if (result.rendered_html) {
             showOverlay('Certificate Preview', `
                 <div class="bg-white rounded-lg p-6 text-black">${result.rendered_html}</div>
-                <button onclick="TOC.stats.closeOverlay()" class="mt-4 w-full py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Close</button>
+                <button data-click="TOC.stats.closeOverlay" class="mt-4 w-full py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Close</button>
             `);
         }
     }
@@ -214,7 +214,7 @@
                     </select>
                 </div>
                 <p class="text-xs text-dc-text">Generates certificates for all approved participants.</p>
-                <button onclick="TOC.stats.confirmBulkGenerate()" class="w-full py-2.5 rounded-lg bg-dc-success text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Generate for All Approved</button>
+                <button data-click="TOC.stats.confirmBulkGenerate" class="w-full py-2.5 rounded-lg bg-dc-success text-dc-bg font-bold text-sm hover:brightness-110 transition-all">Generate for All Approved</button>
             </div>
         `);
     }
@@ -232,7 +232,7 @@
             <div class="text-center space-y-4 py-4">
                 <i data-lucide="check-circle-2" class="w-12 h-12 text-dc-success mx-auto"></i>
                 <p class="text-white font-bold">${result.generated} / ${result.total} certificates generated</p>
-                <button onclick="TOC.stats.closeOverlay()" class="px-6 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Close</button>
+                <button data-click="TOC.stats.closeOverlay" class="px-6 py-2 rounded-lg border border-dc-border text-dc-text text-sm hover:bg-dc-surface transition-colors">Close</button>
             </div>
         `);
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -331,13 +331,13 @@
             document.body.appendChild(ol);
         }
         ol.innerHTML = `
-            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="TOC.stats.closeOverlay()"></div>
+            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-click="TOC.stats.closeOverlay"></div>
             <div class="bg-dc-surface border border-dc-borderLight shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl w-full max-w-lg relative z-10 overflow-hidden">
                 <div class="h-1 w-full bg-theme"></div>
                 <div class="p-5">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="font-display font-bold text-sm text-white">${title}</h2>
-                        <button class="p-1 text-dc-text hover:text-white" onclick="TOC.stats.closeOverlay()"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        <button class="p-1 text-dc-text hover:text-white" data-click="TOC.stats.closeOverlay"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
                     ${bodyHtml}
                 </div>

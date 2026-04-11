@@ -204,7 +204,7 @@
         if (this._hasMore) {
           const loadMoreHtml = `
             <div class="load-more-wrap text-center pt-3">
-              <button onclick="ManageHQ.loadMoreActivity()" id="load-more-activity"
+              <button data-click="ManageHQ.loadMoreActivity" id="load-more-activity"
                 class="text-xs px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 border border-white/10 transition font-medium">
                 Load More Activity
               </button>
@@ -379,7 +379,7 @@
                 <div class="text-xs text-white/40">${esc(inv.role)} · Just now</div>
               </div>
             </div>
-            <button onclick="ManageHQ.cancelInvite(${inv.id}, this)" class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">Cancel</button>
+            <button data-click="ManageHQ.cancelInvite" data-click-args='[${inv.id}, this]' class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">Cancel</button>
           `;
           list.prepend(row);
           document.getElementById("pending-invites-section")?.classList.remove("hidden");
@@ -759,12 +759,12 @@
       let html = '<div class="flex items-center gap-1.5 shrink-0">';
 
       if (c.status === "PENDING" && !isOurs) {
-        html += `<button onclick="ManageHQ.Training.acceptChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition">Accept</button>`;
-        html += `<button onclick="ManageHQ.Training.declineChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition">Decline</button>`;
+        html += `<button data-click="ManageHQ.Training.acceptChallenge" data-click-args='['${c.id}']' class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition">Accept</button>`;
+        html += `<button data-click="ManageHQ.Training.declineChallenge" data-click-args='['${c.id}']' class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition">Decline</button>`;
       } else if (c.status === "OPEN" || (c.status === "PENDING" && isOurs)) {
-        html += `<button onclick="ManageHQ.Training.cancelChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-white/50 transition">Cancel</button>`;
+        html += `<button data-click="ManageHQ.Training.cancelChallenge" data-click-args='['${c.id}']' class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-white/50 transition">Cancel</button>`;
       } else if (c.status === "ACCEPTED" || c.status === "SCHEDULED") {
-        html += `<button onclick="ManageHQ.Training.openResultModal('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition">Submit Result</button>`;
+        html += `<button data-click="ManageHQ.Training.openResultModal" data-click-args='['${c.id}']' class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition">Submit Result</button>`;
       }
       html += '</div>';
       return html;
@@ -3090,13 +3090,13 @@
       const hasPassport = gpRows.length > 0;
 
       const html = `
-        <div id="member-info-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick="ManageHQ.closeMemberInfo(event)">
-          <div class="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+        <div id="member-info-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" data-click="ManageHQ.closeMemberInfo" data-click-args='[event]'>
+          <div class="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl overflow-hidden" data-click="event.stopPropagation">
             <div class="flex items-center justify-between px-5 pt-4 pb-2">
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
                 <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i> Player Info
               </h3>
-              <button onclick="ManageHQ.closeMemberInfo()" class="h-7 w-7 rounded-lg bg-white/5 hover:bg-white/10 grid place-items-center transition">
+              <button data-click="ManageHQ.closeMemberInfo" class="h-7 w-7 rounded-lg bg-white/5 hover:bg-white/10 grid place-items-center transition">
                 <i data-lucide="x" class="w-3.5 h-3.5 text-white/50"></i>
               </button>
             </div>

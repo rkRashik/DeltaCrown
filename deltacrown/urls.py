@@ -8,6 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.urls import include, path
 from .views import healthz, readiness, test_game_assets
+from .lifecycle_cron import lifecycle_cron
 from django.views.generic import TemplateView
 from apps.players import views as player_views
 from apps.search import views as search_views
@@ -42,6 +43,9 @@ urlpatterns = [
     path("", include("apps.siteui.urls")),
     path("healthz/", healthz, name="healthz"),
     path("readiness/", readiness, name="readiness"),  # Module 2.4: Security Hardening
+    
+    # Free-tier lifecycle cron (replaces Celery Beat for critical tasks)
+    path("api/lifecycle/cron/", lifecycle_cron, name="lifecycle_cron"),
     
     # Prometheus metrics (Phase 3 Prep: Monitoring)
     path("metrics/", include("django_prometheus.urls")),

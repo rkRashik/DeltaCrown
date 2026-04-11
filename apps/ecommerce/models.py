@@ -2,6 +2,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from apps.user_profile.models import UserProfile
+from apps.common.validators import validate_image_upload
+from apps.common.models import SoftDeleteModel
 from decimal import Decimal
 import uuid
 
@@ -18,7 +20,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES, default='merchandise')
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True, null=True)
+    image = models.ImageField(upload_to="categories/", blank=True, null=True, validators=[validate_image_upload])
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -37,7 +39,7 @@ class Category(models.Model):
 class Brand(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
-    logo = models.ImageField(upload_to="brands/", blank=True, null=True)
+    logo = models.ImageField(upload_to="brands/", blank=True, null=True, validators=[validate_image_upload])
     description = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -49,7 +51,7 @@ class Brand(models.Model):
     def __str__(self):
         return self.name
 
-class Product(models.Model):
+class Product(SoftDeleteModel):
     PRODUCT_TYPES = [
         ('physical', 'Physical Product'),
         ('digital', 'Digital Product'),
@@ -82,8 +84,8 @@ class Product(models.Model):
     rarity = models.CharField(max_length=20, choices=RARITY_LEVELS, default='common')
     
     # Images
-    featured_image = models.ImageField(upload_to="products/", blank=True, null=True)
-    hover_image = models.ImageField(upload_to="products/", blank=True, null=True)
+    featured_image = models.ImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
+    hover_image = models.ImageField(upload_to="products/", blank=True, null=True, validators=[validate_image_upload])
     
     # Inventory
     stock = models.PositiveIntegerField(default=0)
@@ -149,7 +151,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to="products/")
+    image = models.ImageField(upload_to="products/", validators=[validate_image_upload])
     alt_text = models.CharField(max_length=255, blank=True)
     is_main = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0)
@@ -222,7 +224,7 @@ class CartItem(models.Model):
     def total_price(self):
         return self.unit_price * self.quantity
 
-class Order(models.Model):
+class Order(SoftDeleteModel):
     STATUS_CHOICES = [
         ("pending", "Pending Payment"),
         ("processing", "Processing"),
@@ -301,7 +303,7 @@ class Order(models.Model):
     def get_absolute_url(self):
         return reverse('ecommerce:order_detail', kwargs={'order_number': self.order_number})
 
-class OrderItem(models.Model):
+class OrderItem(SoftDeleteModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)

@@ -20,7 +20,7 @@ Last Updated: 2026-01-19
             <div class="flex gap-2 min-w-max px-1">
                 {% for game in career_payload_initial.available_games %}
                 <button
-                    onclick="switchCareerGame('{{ game.slug }}', this)"
+                    data-click="switchCareerGame" data-click-args='["{{ game.slug }}"]'
                     data-game-slug="{{ game.slug }}"
                     class="game-btn shrink-0 px-4 py-2.5 rounded-lg border border-white/10 bg-z-panel text-gray-400 hover:bg-white/5 transition-all duration-200 flex items-center gap-2 whitespace-nowrap relative group
                     {% if forloop.first %}active bg-z-cyan text-black shadow-neon-cyan border-z-cyan{% endif %}"
@@ -57,9 +57,9 @@ Last Updated: 2026-01-19
             <!-- Background Layer -->
             <div class="absolute inset-0" id="hero-background-container">
                 {% if career_payload_initial.game.banner_url %}
-                <img id="hero-background-img" src="{{ career_payload_initial.game.banner_url }}" class="w-full h-full object-cover opacity-20">
+                <img id="hero-background-img" src="{{ career_payload_initial.game.banner_url }}" class="w-full h-full object-cover opacity-20" alt="">
                 {% else %}
-                <img id="hero-background-img" src="" class="w-full h-full object-cover opacity-20 hidden">
+                <img id="hero-background-img" src="" class="w-full h-full object-cover opacity-20 hidden" alt="">
                 {% endif %}
                 <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-transparent to-transparent"></div>
             </div>
@@ -377,7 +377,7 @@ Last Updated: 2026-01-19
 <!-- ================================== -->
 <!-- SCRIPTS -->
 <!-- ================================== -->
-<script>
+<script nonce="{{ request.csp_nonce }}">
     // In-memory cache for career data (TASK 2.3)
     window.__careerCache = window.__careerCache || {};
     let careerFetchController = null;  // AbortController for debouncing
@@ -408,7 +408,7 @@ Last Updated: 2026-01-19
             <div class="text-center py-12">
                 <i class="fa-solid fa-triangle-exclamation text-4xl text-orange-500 mb-4"></i>
                 <p class="text-gray-400 text-lg mb-4">${message}</p>
-                <button onclick="location.reload()" class="px-6 py-2 bg-z-cyan text-black font-bold rounded-lg hover:bg-cyan-400 transition">
+                <button data-click="location.reload" class="px-6 py-2 bg-z-cyan text-black font-bold rounded-lg hover:bg-cyan-400 transition">
                     <i class="fa-solid fa-rotate-right mr-2"></i>Retry
                 </button>
             </div>

@@ -915,11 +915,11 @@ async function loadHardwareList() {
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick='editHardware(${JSON.stringify(item).replace(/'/g, "&apos;")})' 
+                    <button data-click="editHardware" data-click-json='${JSON.stringify(item).replace(/'/g, "&#39;")}' 
                         class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <button onclick="deleteHardware(${item.id}, '${category}')" 
+                    <button data-click="deleteHardware" data-click-args='[${item.id}, '${category}']' 
                         class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -1109,11 +1109,11 @@ async function loadGameConfigList() {
                 ${config.notes ? `<div class="text-xs text-gray-500 mt-1">${config.notes}</div>` : ''}
             </div>
             <div class="flex gap-2">
-                <button onclick='editGameConfig(${JSON.stringify(config).replace(/'/g, "&apos;")})' 
+                <button data-click="editGameConfig" data-click-json='${JSON.stringify(config).replace(/'/g, "&#39;")}' 
                     class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
                     <i class="fa-solid fa-pen"></i>
                 </button>
-                <button onclick="deleteGameConfig(${config.id}, '${config.game}')" 
+                <button data-click="deleteGameConfig" data-click-args='[${config.id}, '${config.game}']' 
                     class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
                     <i class="fa-solid fa-trash"></i>
                 </button>
@@ -1677,7 +1677,7 @@ async function loadSocialLinks() {
                             <div class="font-bold text-white text-sm capitalize">${getPlatformName(link.platform)}</div>
                             <div class="text-xs text-gray-500 truncate">${link.url}</div>
                         </div>
-                        <button onclick="deleteSocialLink(${link.id}, '${link.platform}')" 
+                        <button data-click="deleteSocialLink" data-click-args='[${link.id}, '${link.platform}']' 
                                 class="opacity-0 group-hover:opacity-100 transition px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -1887,12 +1887,12 @@ function renderFollowButton(user) {
     }
     
     if (user.is_following) {
-        return `<button onclick="handleFollowAction('${user.username}', 'unfollow', this)" 
+        return `<button data-click="handleFollowAction" data-click-args='['${user.username}', "unfollow", this]' 
                        class="px-4 py-2 bg-white/10 hover:bg-red-500/20 text-white rounded-lg transition text-sm font-bold border border-white/20">
                     Following
                 </button>`;
     } else {
-        return `<button onclick="handleFollowAction('${user.username}', 'follow', this)" 
+        return `<button data-click="handleFollowAction" data-click-args='['${user.username}', "follow", this]' 
                        class="px-4 py-2 bg-gradient-to-r from-[var(--z-cyan)] to-[var(--z-purple)] hover:opacity-90 text-white rounded-lg transition text-sm font-bold">
                     Follow
                 </button>`;

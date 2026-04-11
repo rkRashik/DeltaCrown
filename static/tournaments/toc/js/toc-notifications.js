@@ -76,7 +76,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-xs font-bold text-white">Notifications request failed</p>
           <p class="text-[11px] text-dc-text mt-1">${esc(message)}</p>
-          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" onclick="TOC.notifications.refresh({ force: true })">Retry now</button>
+          <button type="button" class="mt-2 px-2.5 py-1 rounded border border-dc-danger/40 text-[10px] font-bold uppercase tracking-wider text-dc-danger hover:bg-dc-danger/20 transition-colors" data-click="TOC.notifications.refresh" data-click-args="[{&quot;force&quot;:true}]">Retry now</button>
         </div>
       </div>`;
     refreshIcons();
@@ -244,8 +244,8 @@
             </div>
             <div class="flex items-center gap-2">
               ${enabledBadge}
-              <button onclick="TOC.notifications.editTemplate('${esc(t.id || i)}')" class="text-[10px] text-theme hover:underline">Edit</button>
-              <button onclick="TOC.notifications.deleteTemplate('${esc(t.id || i)}')" class="text-[10px] text-dc-danger hover:underline">Delete</button>
+              <button data-click="TOC.notifications.editTemplate" data-click-args="[&quot;${esc(t.id || i)}&quot;]" class="text-[10px] text-theme hover:underline">Edit</button>
+              <button data-click="TOC.notifications.deleteTemplate" data-click-args="[&quot;${esc(t.id || i)}&quot;]" class="text-[10px] text-dc-danger hover:underline">Delete</button>
             </div>
           </div>
           <div class="text-[11px] text-dc-text bg-dc-surface/20 rounded-lg p-2">
@@ -282,7 +282,7 @@
             <span class="text-[10px] text-dc-text">→ ${esc(r.event)}</span>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="TOC.notifications.toggleAutoRule('${esc(r.id || r.event)}', this.checked)" class="sr-only peer">
+            <input type="checkbox" ${r.enabled ? 'checked' : ''} data-change="TOC.notifications.toggleAutoRule" data-change-args="['${esc(r.id || r.event)}']" data-change-pass="checked" class="sr-only peer">
             <div class="w-7 h-4 bg-dc-surface rounded-full peer peer-checked:bg-theme transition"></div>
           </label>
         </div>`;
@@ -356,9 +356,13 @@
   const LABEL = 'block text-[10px] text-dc-text uppercase tracking-widest mb-1';
   const TRIGGERS = ['manual', 'match_ready', 'checkin_open', 'round_start', 'tournament_end'];
   function drawerFooter(submitCall, submitLabel) {
+    const scMatch = submitCall.match(/^([\w.]+)\((.*)\)$/s);
+    const scAttrs = scMatch
+      ? `data-click="${scMatch[1]}"` + (scMatch[2].trim() ? ` data-click-args="[${scMatch[2].trim()}]"` : '')
+      : '';
     return `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="${submitCall}" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button ${scAttrs} class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">${submitLabel}</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
   }
 
@@ -445,8 +449,8 @@
         <select id="notif-send-target" class="${FIELD}">${targetOpts}</select></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.notifications._submitSend()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Send Now</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.notifications._submitSend" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Send Now</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Send Notification', body, footer);
     setTimeout(() => document.getElementById('notif-send-subject')?.focus(), 50);
@@ -476,8 +480,8 @@
         <input id="notif-sched-dt" type="datetime-local" class="${FIELD}"></div>
     </div>`;
     const footer = `<div class="flex gap-3 p-4 pt-0">
-      <button onclick="TOC.notifications._submitSchedule()" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Schedule</button>
-      <button onclick="TOC.drawer.close()" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
+      <button data-click="TOC.notifications._submitSchedule" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Schedule</button>
+      <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
     </div>`;
     TOC.drawer.open('Schedule Notification', body, footer);
     setTimeout(() => document.getElementById('notif-sched-subject')?.focus(), 50);

@@ -198,7 +198,7 @@
         if (this._hasMore) {
           const loadMoreHtml = `
             <div class="load-more-wrap text-center pt-3">
-              <button onclick="ManageHQ.loadMoreActivity()" id="load-more-activity"
+              <button data-click="ManageHQ.loadMoreActivity" id="load-more-activity"
                 class="text-xs px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 border border-white/10 transition font-medium">
                 Load More Activity
               </button>
@@ -373,7 +373,7 @@
                 <div class="text-xs text-white/40">${esc(inv.role)} · Just now</div>
               </div>
             </div>
-            <button onclick="ManageHQ.cancelInvite(${inv.id}, this)" class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">Cancel</button>
+            <button data-click="ManageHQ.cancelInvite" data-click-args='[${inv.id}, this]' class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">Cancel</button>
           `;
           list.prepend(row);
           document.getElementById("pending-invites-section")?.classList.remove("hidden");
