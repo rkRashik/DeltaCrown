@@ -540,10 +540,116 @@
   }
 
   /* ==========================================================
+     DETAIL PAGE BRACKET RENDERER
+     Renders window.__detailBracketData into #detail-bracket-tree
+     ========================================================== */
+  var _bracketScale = 1;
+  var _BRACKET_SCALE_STEP = 0.15;
+  var _BRACKET_SCALE_MIN = 0.5;
+  var _BRACKET_SCALE_MAX = 1.8;
+
+  window.detailBracketZoom = function (dir) {
+    var tree = document.getElementById('detail-bracket-tree');
+    if (!tree) return;
+    if (dir === 0) {
+      _bracketScale = 1;
+    } else {
+      _bracketScale = Math.min(_BRACKET_SCALE_MAX, Math.max(_BRACKET_SCALE_MIN, _bracketScale + dir * _BRACKET_SCALE_STEP));
+    }
+    tree.style.transform = 'scale(' + _bracketScale + ')';
+  };
+
+  function _esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function _avatarHTML(name, logoUrl) {
+    var initial = (name || '?').charAt(0).toUpperCase();
+    if (logoUrl) {
+      return '<img src="' + _esc(logoUrl) + '" class="db-avatar" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'">'
+           + '<div class="db-avatar db-avatar-fb" style="display:none">' + initial + '</div>';
+    }
+    return '<div class="db-avatar db-avatar-fb">' + initial + '</div>';
+  }
+
+  function _renderDetailBracket() {
+    var data = window.__detailBracketData;
+    if (!data || !data.matches || !data.matches.length) return;
+    var tree = document.getElementById('detail-bracket-tree');
+    if (!tree) return;
+
+    // Group by round
+    var rounds = {};
+    var roundOrder = [];
+    data.matches.forEach(function (m) {
+      var rn = m.round_number || 0;
+      if (!rounds[rn]) {
+        rounds[rn] = { label: m.round_label || ('Round ' + rn), matches: [] };
+        roundOrder.push(rn);
+      }
+      rounds[rn].matches.push(m);
+    });
+    roundOrder.sort(function (a, b) { return a - b; });
+
+    // Determine friendly round names for single-elimination
+    var totalRounds = roundOrder.length;
+    roundOrder.forEach(function (rn, idx) {
+      var r = rounds[rn];
+      var fromEnd = totalRounds - 1 - idx;
+      if (!r.label || r.label === 'Round ' + rn) {
+        if (fromEnd === 0) r.label = r.matches.length === 1 ? 'Grand Final' : 'Finals';
+        else if (fromEnd === 1 && r.matches.length <= 2) r.label = 'Semifinals';
+        else if (fromEnd === 2 && r.matches.length <= 4) r.label = 'Quarterfinals';
+      }
+    });
+
+    var html = '';
+    roundOrder.forEach(function (rn) {
+      var r = rounds[rn];
+      html += '<div class="db-col">';
+      html += '<div class="db-col-title">' + _esc(r.label) + '</div>';
+      html += '<div class="db-col-body">';
+      r.matches.forEach(function (m) {
+        var isLive = m.is_live;
+        var isDone = m.state === 'completed' || m.state === 'forfeit';
+        var isPending = !isLive && !isDone;
+        var isTBD = isPending && (!m.p1_name || m.p1_name === 'TBD') && (!m.p2_name || m.p2_name === 'TBD');
+        var stateCls = isLive ? ' db-live' : isDone ? ' db-done' : isTBD ? ' db-tbd' : ' db-sched';
+        var matchNum = m.match_number ? 'M' + m.match_number : '';
+
+        // State badge
+        var badge = '';
+        if (isLive) badge = '<span class="db-badge-live"><span class="db-dot"></span> LIVE</span>';
+        else if (isDone) badge = '<span class="db-badge-ft">FT</span>';
+        else if (m.state === 'check_in') badge = '<span class="db-badge-up">CHECK IN</span>';
+        else if (isTBD) badge = '<span class="db-badge-up db-badge-tbd">TBD</span>';
+        else badge = '<span class="db-badge-up">UPCOMING</span>';
+
+        // Player rows
+        var p1cls = m.p1_winner ? ' db-w' : (isDone && !m.p1_winner ? ' db-loser' : '');
+        var p2cls = m.p2_winner ? ' db-w' : (isDone && !m.p2_winner ? ' db-loser' : '');
+        var s1 = m.p1_score != null ? m.p1_score : (isPending ? '–' : '-');
+        var s2 = m.p2_score != null ? m.p2_score : (isPending ? '–' : '-');
+
+        html += '<div class="db-match' + stateCls + '">';
+        html += '<div class="db-match-head"><span class="db-mnum">' + matchNum + '</span>' + badge + '</div>';
+        html += '<div class="db-team' + p1cls + '"><div class="db-team-meta">' + _avatarHTML(m.p1_name, m.p1_logo)
+              + '<span class="db-name">' + _esc(m.p1_name || 'TBD') + '</span></div><span class="db-sc">' + s1 + '</span></div>';
+        html += '<div class="db-vs">VS</div>';
+        html += '<div class="db-team' + p2cls + '"><div class="db-team-meta">' + _avatarHTML(m.p2_name, m.p2_logo)
+              + '<span class="db-name">' + _esc(m.p2_name || 'TBD') + '</span></div><span class="db-sc">' + s2 + '</span></div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+
+    tree.innerHTML = html;
+  }
+
+  /* ==========================================================
      DOMContentLoaded INIT
      ========================================================== */
   document.addEventListener('DOMContentLoaded', function () {
     _initMobileDetail();
     _initLucideIcons();
+    _renderDetailBracket();
   });
 })();

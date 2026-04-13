@@ -146,7 +146,7 @@ class CommandCenterService:
         Stages: draft → registration → brackets → live → completed
         Returns: {stage, progress_pct, stages: [{name, status, icon}]}
         """
-        status = getattr(tournament, 'status', 'draft')
+        status = getattr(tournament, 'get_effective_status', lambda: getattr(tournament, 'status', 'draft'))() or 'draft'
 
         stage_map = {
             'draft': 0,

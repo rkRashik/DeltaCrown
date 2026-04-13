@@ -1963,17 +1963,41 @@
      * CLONE TOURNAMENT
      * ================================================================== */
     function cloneTournament() {
-        const defaultName = (document.querySelector('[data-field="name"]')?.value || 'Tournament') + ' (Copy)';
+        const currentName = document.querySelector('[data-field="name"]')?.value || 'Tournament';
+        const defaultName = currentName + ' (Copy)';
         const FIELD = 'w-full bg-dc-bg border border-dc-border/60 rounded-lg px-3 py-2 text-white text-sm focus:border-theme focus:outline-none';
-        const body = `<div class="space-y-4 p-5">
-          <p class="text-xs text-dc-text">Creates a full copy of this tournament with all settings, rules and configuration — but no participants or match data.</p>
+        const FIELD_SM = FIELD;
+        const body = `<div class="space-y-5 p-5">
+          <div class="flex items-start gap-3 p-3 rounded-lg bg-theme/5 border border-theme/15">
+            <i data-lucide="copy" class="w-5 h-5 text-theme flex-shrink-0 mt-0.5"></i>
+            <div>
+              <p class="text-xs text-dc-textBright font-bold">Clone for Recurring Series</p>
+              <p class="text-[11px] text-dc-text mt-0.5">Copies all settings, format, rules, game config, regions, payment methods, scoring, and automation config. Participants, matches, and results are NOT copied.</p>
+            </div>
+          </div>
           <div>
             <label class="block text-[10px] text-dc-text uppercase tracking-widest mb-1">New Tournament Name *</label>
-            <input id="clone-tournament-name" type="text" value="${defaultName.replace(/"/g, '&quot;')}" class="${FIELD}">
+            <input id="clone-tournament-name" type="text" value="${defaultName.replace(/"/g, '&amp;quot;')}" class="${FIELD}">
+          </div>
+          <div class="pt-2 border-t border-dc-border/30">
+            <p class="text-[10px] text-dc-text/60 italic mb-3">Clone will be created as <span class="text-theme font-bold">Draft</span> — publish when ready.</p>
+          </div>
+          <div class="pt-2 border-t border-dc-border/30">
+            <p class="text-[10px] text-dc-text/60 uppercase tracking-widest mb-2">What gets copied</p>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-dc-text">
+              <span>✓ Format &amp; structure</span><span>✓ Game config &amp; scoring</span>
+              <span>✓ Map pool &amp; regions</span><span>✓ Rules &amp; terms</span>
+              <span>✓ Fee &amp; payment config</span><span>✓ Prize distribution</span>
+              <span>✓ Notification config</span><span>✓ Automation rules</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-dc-text/40 mt-2">
+              <span>✗ Participants</span><span>✗ Matches &amp; results</span>
+              <span>✗ Brackets &amp; groups</span><span>✗ Disputes &amp; logs</span>
+            </div>
           </div>
         </div>`;
         const footer = `<div class="flex gap-3 p-4 pt-0">
-          <button data-click="TOC.settings._confirmClone" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Clone Tournament</button>
+          <button id="btn-confirm-clone" data-click="TOC.settings._confirmClone" class="flex-1 bg-theme hover:opacity-90 text-white text-sm font-bold py-2 rounded-lg transition">Clone Tournament</button>
           <button data-click="TOC.drawer.close" class="text-dc-text text-sm py-2 px-4 hover:text-white transition">Cancel</button>
         </div>`;
         TOC.drawer.open('Clone Tournament', body, footer);
@@ -1992,10 +2016,10 @@
         if (btn) { btn.disabled = true; btn.textContent = 'Cloning…'; }
 
         try {
-            const result = await API.post('settings/clone/', { name: newName });
+            const result = await API('settings/clone/', { method: 'POST', body: JSON.stringify({ name: newName }) });
             toast('Tournament cloned! Redirecting…', 'success');
             setTimeout(() => {
-                window.location.href = `/tournaments/${result.slug}/manage/`;
+                window.location.href = `/toc/${result.slug}/`;
             }, 1200);
         } catch (e) {
             toast((e && e.message) ? e.message : 'Could not clone the tournament right now. Please try again.', 'error');

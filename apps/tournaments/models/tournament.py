@@ -714,6 +714,16 @@ class Tournament(SoftDeleteModel, TimestampedModel):
                         f"'{old_status}' → '{self.status}'. "
                         f"Allowed from '{old_status}': {sorted(allowed)}"
                     )
+                # T2-5: Invalidate detail page cache on status change
+                try:
+                    from django.core.cache import cache
+                    cache.delete_many(
+                        cache.keys(f"*detail_page*{self.slug}*")
+                        if hasattr(cache, 'keys')
+                        else []
+                    )
+                except Exception:
+                    pass
 
         # ── Slug generation ─────────────────────────────────────────────
         if not self.slug:
@@ -839,7 +849,29 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     
     STAGE_GROUP = "group_stage"
     STAGE_KNOCKOUT = "knockout_stage"
-    
+
+    def get_effective_status(self) -> str:
+        """
+        Return the effective operational status considering inner-stage state.
+
+        For GROUP_PLAYOFF tournaments, if config says knockout is 'live' but
+        the model-level status drifted to 'completed', this returns 'live'
+        because the tournament still has active knockout matches.
+        """
+        status = self.status
+        if self.format == self.GROUP_PLAYOFF and status == self.COMPLETED:
+            config = self.config or {}
+            stage = config.get("current_stage")
+            stages = config.get("stages", [])
+            # If knockout stage is marked live in config, tournament is not truly completed
+            for s in stages:
+                if s.get("name") == self.STAGE_KNOCKOUT and s.get("status") == "live":
+                    return self.LIVE
+            # If current_stage is knockout and bracket is not finalized
+            if stage == self.STAGE_KNOCKOUT:
+                return self.LIVE
+        return status
+
     def get_current_stage(self) -> Optional[str]:
         """
         Get current tournament stage for GROUP_PLAYOFF tournaments.

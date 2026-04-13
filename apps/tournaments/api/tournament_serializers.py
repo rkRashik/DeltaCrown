@@ -48,6 +48,7 @@ class TournamentListSerializer(serializers.ModelSerializer):
     organizer_id = serializers.IntegerField(source='organizer.id', read_only=True)
     organizer_username = serializers.CharField(source='organizer.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
+    effective_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Tournament
@@ -60,6 +61,7 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'organizer_id',
             'organizer_username',
             'status',
+            'effective_status',
             'format',
             'participation_type',
             'max_participants',
@@ -81,6 +83,12 @@ class TournamentListSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'participant_count'):
             return obj.participant_count
         return obj.registrations.filter(status='confirmed').count()
+
+    def get_effective_status(self, obj):
+        """Return effective status considering inner-stage state for GROUP_PLAYOFF."""
+        if hasattr(obj, 'get_effective_status'):
+            return obj.get_effective_status()
+        return obj.status
 
 
 class TournamentDetailSerializer(serializers.ModelSerializer):

@@ -286,7 +286,7 @@ def _announcement_visuals_from_text(title, message, is_important=False):
     return {'type': 'info', 'icon': 'megaphone', 'symbol': '📣'}
 
 
-def _build_hub_announcements(tournament, now=None, limit=20, offset=0):
+def _build_hub_announcements(tournament, now=None, limit=20, offset=0, user=None, registration=None):
     now = now or timezone.now()
     items = []
     limit = max(1, int(limit or 20))
@@ -313,10 +313,71 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0):
             'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
         })
 
-    # Legacy LobbyAnnouncement fallback removed — Phase 1 cleanup.
+    # Append derived lifecycle events (global + personal)
+    try:
+        from apps.tournaments.services.lifecycle_announcements import (
+            derive_participant_events,
+            derive_tournament_events,
+        )
+        color_to_type = {'emerald': 'success', 'amber': 'warning', 'red': 'urgent', 'cyan': 'info'}
+        color_to_symbol = {'emerald': '✓', 'amber': '⚡', 'red': '⚠', 'cyan': 'ℹ'}
 
+        # Respect organizer automation config
+        auto_config = (getattr(tournament, 'config', None) or {}).get('announcement_automation', {})
+
+        def _is_enabled(evt_type):
+            return auto_config.get(evt_type, {}).get('enabled', True)
+
+        def _custom_msg(evt):
+            custom = auto_config.get(evt['event_type'], {}).get('custom_message')
+            return custom if custom else evt['message']
+
+        for evt in derive_tournament_events(tournament, now=now):
+            if not _is_enabled(evt['event_type']):
+                continue
+            items.append({
+                'id': f'lifecycle-{evt["event_type"]}',
+                'title': evt['title'],
+                'message': _custom_msg(evt),
+                'type': color_to_type.get(evt.get('color'), 'info'),
+                'icon': evt.get('icon', 'info'),
+                'symbol': color_to_symbol.get(evt.get('color'), 'ℹ'),
+                'is_pinned': False,
+                'is_important': evt.get('urgent', False),
+                'posted_by': 'System',
+                'created_at': evt['timestamp'].isoformat() if evt.get('timestamp') else None,
+                'sort_ts': evt['timestamp'].timestamp() if evt.get('timestamp') else 0,
+                'time_ago': _time_ago(evt['timestamp'], now) if evt.get('timestamp') else '',
+                'is_derived': True,
+                'scope': evt.get('scope', 'global'),
+            })
+
+        if user or registration:
+            for evt in derive_participant_events(tournament, user=user, registration=registration, now=now):
+                if not _is_enabled(evt['event_type']):
+                    continue
+                items.append({
+                    'id': f'personal-{evt["event_type"]}',
+                    'title': evt['title'],
+                    'message': _custom_msg(evt),
+                    'type': color_to_type.get(evt.get('color'), 'info'),
+                    'icon': evt.get('icon', 'info'),
+                    'symbol': color_to_symbol.get(evt.get('color'), 'ℹ'),
+                    'is_pinned': False,
+                    'is_important': evt.get('urgent', False),
+                    'posted_by': 'System',
+                    'created_at': evt['timestamp'].isoformat() if evt.get('timestamp') else None,
+                    'sort_ts': evt['timestamp'].timestamp() if evt.get('timestamp') else 0,
+                    'time_ago': _time_ago(evt['timestamp'], now) if evt.get('timestamp') else '',
+                    'is_derived': True,
+                    'scope': 'personal',
+                })
+    except Exception:
+        logger.warning("Failed to derive lifecycle events for HUB announcements", exc_info=True)
+
+    # Pinned first, then newest
     items.sort(key=lambda entry: (0 if entry.get('is_pinned') else 1, -float(entry.get('sort_ts') or 0)))
-    return items[:limit]
+    return items[:limit + 20]  # allow extra for lifecycle events
 
 
 def _format_currency_amount(value):
@@ -368,6 +429,7 @@ def _resolve_hub_command_center(
         'match_state': '',
         'scheduled_at': None,
         'lobby_window_open': False,
+        'lobby_state': '',
         'within_priority_window': False,
     }
 
@@ -456,15 +518,13 @@ def _resolve_hub_command_center(
     within_priority_window = bool(
         seconds_to_match is not None and 0 <= seconds_to_match <= 30 * 60
     )
-    lobby_window_minutes_before = 30
-    lobby_window_opens_at = (
-        scheduled_at - timedelta(minutes=lobby_window_minutes_before)
-        if scheduled_at else None
-    )
-    lobby_window_open = bool(
-        target.state in {Match.READY, Match.LIVE, Match.PENDING_RESULT}
-        or (lobby_window_opens_at and now >= lobby_window_opens_at)
-    )
+    from apps.tournaments.services.match_lobby_service import resolve_lobby_state as _rls
+    _lobby_cmd = _rls(target, now=now)
+    lobby_window_open = _lobby_cmd['is_open']
+    lobby_window_opens_at = _lobby_cmd['opens_at']
+    lobby_state_canonical = _lobby_cmd['state']
+    lobby_can_reschedule = _lobby_cmd['can_reschedule']
+    lobby_closes_at = _lobby_cmd['closes_at']
 
     if is_staff_view:
         opponent_name = (target.participant2_name or target.participant1_name or 'Opponent')
@@ -474,7 +534,12 @@ def _resolve_hub_command_center(
         else:
             opponent_name = target.participant1_name or 'Opponent'
 
-    show_command = bool(target.state in active_states or within_priority_window)
+    show_command = bool(
+        target.state in active_states
+        or within_priority_window
+        or lobby_window_open
+        or target.state == Match.SCHEDULED  # Always show card for scheduled matches
+    )
     if tournament.status in {Tournament.DRAFT, Tournament.REGISTRATION_OPEN}:
         show_command = bool(target.state in active_states)
     if target_reschedule:
@@ -532,6 +597,22 @@ def _resolve_hub_command_center(
         if seconds_to_match is not None and 0 <= seconds_to_match <= 30 * 60:
             badge_label = 'Match Starting Soon'
             title = f"Match Starting Soon: VS {opponent_name}"
+    elif lobby_state_canonical in ('lobby_closed', 'forfeit_review'):
+        badge_label = 'Lobby Closed'
+        badge_tone = 'danger'
+        title = f"Lobby Expired: VS {opponent_name}"
+        subtitle = 'The lobby window has expired. Request a reschedule or check match status.'
+        hint = 'If both players missed the window, request a reschedule. If opponent was absent, forfeit may apply.'
+        countdown_label = 'Status'
+        countdown_mode = 'static'
+        countdown_text = 'EXPIRED'
+        countdown_target = ''
+        if lobby_can_reschedule:
+            cta_action = 'open_matches'
+            cta_label = 'Request Reschedule'
+        else:
+            cta_action = 'open_matches'
+            cta_label = 'View Match Status'
     elif target.state == Match.CHECK_IN or (check_in_status == 'open' and not (check_in and check_in.is_checked_in)):
         badge_label = 'Check-In Required'
         badge_tone = 'warning'
@@ -560,6 +641,20 @@ def _resolve_hub_command_center(
         hint = _critical_lock_reason(registration)
         cta_disabled = False
 
+    # Derive round name for the target match
+    match_round_name = ''
+    match_stage_label = ''
+    if target.bracket_id:
+        match_stage_label = 'Knockout Stage'
+        try:
+            bracket = Bracket.objects.get(id=target.bracket_id)
+            match_round_name = bracket.get_round_name(target.round_number) or f'Round {target.round_number}'
+        except Bracket.DoesNotExist:
+            match_round_name = f'Round {target.round_number}'
+    else:
+        match_stage_label = 'Group Stage'
+        match_round_name = f'Round {target.round_number}' if target.round_number else ''
+
     payload_match_id = target.id if target else None
 
     payload.update({
@@ -578,11 +673,15 @@ def _resolve_hub_command_center(
         'cta_url': cta_url,
         'cta_disabled': cta_disabled,
         'match_id': payload_match_id,
+        'match_number': target.match_number,
+        'match_round_name': match_round_name,
+        'match_stage_label': match_stage_label,
         'match_room_url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': target.id}) if (show_command and cta_action == 'enter_lobby') else '',
         'opponent_name': opponent_name,
         'match_state': target.state,
         'scheduled_at': scheduled_at.isoformat() if scheduled_at else None,
         'lobby_window_open': bool(lobby_window_open),
+        'lobby_state': lobby_state_canonical,
         'within_priority_window': bool(within_priority_window),
     })
     return payload
@@ -599,7 +698,10 @@ def _build_hub_lifecycle_pipeline(tournament, *, command_center=None):
         is_deleted=False,
     ).exists()
 
-    status = str(tournament.status or '').lower()
+    status = str(
+        (tournament.get_effective_status() if hasattr(tournament, 'get_effective_status') else tournament.status)
+        or ''
+    ).lower()
     active_key = 'registered'
 
     if status == Tournament.COMPLETED:
@@ -908,7 +1010,9 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
     # ── Announcements ────────────────────────────────────
-    announcements = _build_hub_announcements(tournament, now=now, limit=20)
+    announcements = _build_hub_announcements(tournament, now=now, limit=20, user=user, registration=registration)
+    hub_lifecycle_events = [a for a in announcements if a.get('is_derived')]
+    hub_manual_announcements = [a for a in announcements if not a.get('is_derived')]
 
     # ── Registration count ───────────────────────────────
     reg_count = Registration.objects.filter(
@@ -1129,11 +1233,60 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
         hub_critical_locked=hub_critical_locked,
     )
 
+    # Derive effective status so SSR templates show stage-aware truth
+    effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+    effective_status_display = dict(Tournament.STATUS_CHOICES).get(
+        effective_status, tournament.get_status_display()
+    )
+
+    # T2-1: Stage-specific badge text for GROUP_PLAYOFF tournaments
+    current_stage = getattr(tournament, 'get_current_stage', lambda: None)()
+    stage_display = None
+    if current_stage == 'group_stage':
+        stage_display = 'Group Stage'
+    elif current_stage == 'knockout_stage':
+        stage_display = 'Knockout Stage'
+
+    # T2-2: Participant progression messaging for GROUP_PLAYOFF knockout stage
+    participant_progression = None
+    if current_stage == 'knockout_stage' and request.user.is_authenticated:
+        try:
+            from apps.tournaments.models import GroupStanding
+            gs = GroupStanding.objects.filter(
+                group__tournament=tournament,
+                user=request.user,
+                is_deleted=False,
+            ).select_related('group').first()
+            if gs:
+                if gs.is_advancing:
+                    participant_progression = {
+                        'advanced': True,
+                        'message': f'You advanced from {gs.group.name} — Knockout stage is live',
+                        'group_name': gs.group.name,
+                        'rank': gs.rank,
+                    }
+                else:
+                    participant_progression = {
+                        'advanced': False,
+                        'message': f'Eliminated in {gs.group.name} (Rank #{gs.rank}) — Watch the Knockout',
+                        'group_name': gs.group.name,
+                        'rank': gs.rank,
+                    }
+        except Exception:
+            pass
+
     context = {
         'tournament': tournament,
         'registration': registration,
         'lobby': lobby,
         'is_team': is_team,
+
+        # Effective status (stage-aware, not raw DB field)
+        'effective_status': effective_status,
+        'effective_status_display': effective_status_display,
+        'current_stage': current_stage,
+        'stage_display': stage_display,
+        'participant_progression': participant_progression,
 
         # Status
         'user_status': user_status,
@@ -1171,6 +1324,8 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
 
         # Announcements
         'announcements': announcements,
+        'hub_lifecycle_events': hub_lifecycle_events,
+        'hub_manual_announcements': hub_manual_announcements,
 
         # Tournament meta
         'reg_count': reg_count,
@@ -1305,9 +1460,14 @@ def _build_status_detail(registration, check_in, tournament, now):
             steps.append({'label': 'Check-In', 'done': False, 'icon': 'clock'})
 
     # Tournament start
-    if tournament.status == 'live':
+    eff_status = (
+        tournament.get_effective_status()
+        if hasattr(tournament, 'get_effective_status')
+        else tournament.status
+    )
+    if eff_status == 'live':
         steps.append({'label': 'Tournament In Progress', 'done': True, 'icon': 'zap', 'active': True})
-    elif tournament.status == 'completed':
+    elif eff_status == 'completed':
         steps.append({'label': 'Tournament Completed', 'done': True, 'icon': 'flag'})
     else:
         steps.append({'label': 'Tournament Starts', 'done': False, 'icon': 'play'})
@@ -1817,7 +1977,7 @@ class HubStateAPIView(LoginRequiredMixin, View):
         )
 
         data = {
-            'tournament_status': tournament.status,
+            'tournament_status': getattr(tournament, 'get_effective_status', lambda: tournament.status)(),
             'user_status': _registration_status_label(registration, check_in),
             'phase_event': phase_event,
             'command_center': command_center,
@@ -1892,7 +2052,7 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
         offset = max(0, offset)
 
         now = timezone.now()
-        data_plus_one = _build_hub_announcements(tournament, now=now, limit=limit + 1, offset=offset)
+        data_plus_one = _build_hub_announcements(tournament, now=now, limit=limit + 1, offset=offset, user=request.user, registration=registration)
         has_more = len(data_plus_one) > limit
         data = data_plus_one[:limit]
 
@@ -1961,11 +2121,11 @@ class HubUnifiedAPIView(LoginRequiredMixin, View):
         ).count()
 
         # Announcements (compact: first 20)
-        announcements = _build_hub_announcements(tournament, now=now, limit=20, offset=0)
+        announcements = _build_hub_announcements(tournament, now=now, limit=20, offset=0, user=request.user, registration=registration)
 
         payload = {
             'state': {
-                'tournament_status': tournament.status,
+                'tournament_status': getattr(tournament, 'get_effective_status', lambda: tournament.status)(),
                 'user_status': _registration_status_label(registration, check_in),
                 'phase_event': phase_event,
                 'command_center': command_center,
@@ -2315,7 +2475,7 @@ class HubPrizeClaimAPIView(LoginRequiredMixin, View):
             'prize_pool': prize_pool,
             'your_prizes': prizes,
             'overview': overview,
-            'tournament_status': tournament.status,
+            'tournament_status': getattr(tournament, 'get_effective_status', lambda: tournament.status)(),
         }, cache_control='no-store')
 
     def post(self, request, slug):
@@ -2533,6 +2693,9 @@ class HubBracketAPIView(LoginRequiredMixin, View):
         }
         participant_media_map = _build_participant_media_map(tournament, participant_ids)
 
+        from apps.tournaments.services.match_lobby_service import resolve_lobby_state as _rls_bracket
+        _bracket_now = timezone.now()
+
         def _coerce_group_id(raw_group_id):
             if raw_group_id in (None, ''):
                 return None
@@ -2591,11 +2754,13 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'matches': [],
                 }
 
+            _lobby = _rls_bracket(m, now=_bracket_now)
             serialized_match = {
                 'id': m.id,
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'phase': 'group_stage' if m.bracket_id is None else 'knockout_stage',
                 'participant1': {
                     'id': m.participant1_id,
                     'name': m.participant1_name or 'TBD',
@@ -2611,6 +2776,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     'logo_url': participant_media_map.get(m.participant2_id, ''),
                 },
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
+                'lobby_state': _lobby['state'],
             }
 
             if bracket is None:
@@ -2648,6 +2814,44 @@ class HubBracketAPIView(LoginRequiredMixin, View):
                     r.get('round_number') or 0,
                 ),
             )
+        elif bracket is not None:
+            # Fill placeholder TBD entries for future bracket rounds not yet
+            # created in the database, so the bracket tree renders all columns.
+            bs = bracket.bracket_structure or {}
+            struct_rounds = bs.get('rounds', [])
+            existing_round_numbers = {r['round_number'] for r in rounds_payload}
+            for sr in struct_rounds:
+                rn = sr.get('round_number', 0)
+                if rn in existing_round_numbers:
+                    continue
+                match_count = sr.get('matches', 0)
+                round_name = sr.get('round_name') or bracket.get_round_name(rn) or f'Round {rn}'
+                placeholder_matches = []
+                for mi in range(1, match_count + 1):
+                    placeholder_matches.append({
+                        'id': None,
+                        'match_number': mi,
+                        'state': 'pending',
+                        'state_display': 'TBD',
+                        'participant1': {
+                            'id': None, 'name': 'TBD', 'score': 0,
+                            'is_winner': False, 'logo_url': '',
+                        },
+                        'participant2': {
+                            'id': None, 'name': 'TBD', 'score': 0,
+                            'is_winner': False, 'logo_url': '',
+                        },
+                        'scheduled_at': None,
+                        'lobby_state': 'upcoming_not_open',
+                    })
+                rounds_payload.append({
+                    'round_number': rn,
+                    'round_name': round_name,
+                    'group_id': None,
+                    'group_name': None,
+                    'matches': placeholder_matches,
+                })
+            rounds_payload.sort(key=lambda r: r.get('round_number') or 0)
 
         group_stage_payload = None
         group_context_payload = None
@@ -2704,6 +2908,7 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             'total_matches': bracket.total_matches if bracket is not None else len(matches),
             'is_finalized': bracket.is_finalized if bracket is not None else False,
             'rounds': rounds_payload,
+            'my_participant_id': _resolve_hub_participant_id(tournament, registration, request.user),
         }
         if group_stage_payload is not None:
             response_payload['group_stage'] = group_stage_payload
@@ -2882,6 +3087,8 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                         'name': name,
                         'logo_url': logo_url,
                         'is_you': is_you,
+                        'is_advancing': s.is_advancing,
+                        'is_eliminated': s.is_eliminated,
                         'matches_played': s.matches_played,
                         'won': s.matches_won,
                         'drawn': s.matches_drawn,
@@ -2910,10 +3117,16 @@ class HubStandingsAPIView(LoginRequiredMixin, View):
                     'standings': rows,
                 })
 
+            effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+            current_stage = getattr(tournament, 'get_current_stage', lambda: None)()
+
             return _json_response({
                 'has_standings': True,
                 'standings_type': 'groups',
                 'groups': groups_data,
+                'current_stage': current_stage,
+                'effective_status': effective_status,
+                'stage_label': 'Group Stage Standings',
             }, cache_control='private, max-age=15')
 
         # ── Fallback: derive standings from bracket match results ──
@@ -3109,8 +3322,8 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
         reschedule_disabled_reason = None if reschedule_enabled else 'participant_rescheduling_disabled'
         reschedule_deadline_minutes = reschedule_policy['deadline_minutes_before']
         now = timezone.now()
-        lobby_window_minutes_before = 30
-        lobby_close_after_minutes = 10
+
+        from apps.tournaments.services.match_lobby_service import resolve_lobby_state, serialize_lobby_state
 
         pending_requests_by_match = {}
         if user_matches and reschedule_enabled:
@@ -3182,10 +3395,13 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 opponent_score = m.participant2_score if is_p1 else m.participant1_score
                 is_winner = inferred_winner_id == participant_id if inferred_winner_id else None
 
-            if bracket:
+            is_knockout_match = bool(m.bracket_id)
+            if is_knockout_match and bracket:
                 round_name = bracket.get_round_name(m.round_number)
-            else:
+            elif is_knockout_match:
                 round_name = f'Round {m.round_number}'
+            else:
+                round_name = 'Group Stage'
 
             winner_name = getattr(m, 'winner_name', None)
             if not winner_name and inferred_winner_id:
@@ -3241,26 +3457,21 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 (m.scheduled_time - timedelta(minutes=reschedule_deadline_minutes))
                 if m.scheduled_time else None
             )
-            lobby_window_opens_at_dt = (
-                (m.scheduled_time - timedelta(minutes=lobby_window_minutes_before))
-                if m.scheduled_time else None
-            )
 
-            is_terminal_state = m.state in (Match.COMPLETED, Match.FORFEIT, Match.CANCELLED, Match.DISPUTED)
-            lobby_window_open = False
-            if not is_terminal_state:
-                if m.state in (Match.READY, Match.LIVE, Match.PENDING_RESULT):
-                    lobby_window_open = True
-                elif lobby_window_opens_at_dt:
-                    lobby_window_open = now >= lobby_window_opens_at_dt
+            # ── Canonical lobby state (single source of truth) ─────
+            # Temporarily attach lobby_info for resolve_lobby_state to inspect
+            _orig_lobby = getattr(m, 'lobby_info', None)
+            m.lobby_info = lobby_info
+            lobby = resolve_lobby_state(m, now=now)
+            m.lobby_info = _orig_lobby
+            lobby_serialized = serialize_lobby_state(lobby)
 
-            lobby_window_starts_in_seconds = None
-            if lobby_window_opens_at_dt:
-                lobby_window_starts_in_seconds = int((lobby_window_opens_at_dt - now).total_seconds())
-
-            lobby_closes_at_dt = (
-                (m.scheduled_time + timedelta(minutes=lobby_close_after_minutes))
-                if m.scheduled_time else None
+            lobby_window_open = lobby['is_open']
+            lobby_window_opens_at_dt = lobby['opens_at']
+            lobby_closes_at_dt = lobby['closes_at']
+            lobby_window_starts_in_seconds = (
+                int((lobby_window_opens_at_dt - now).total_seconds())
+                if lobby_window_opens_at_dt else None
             )
 
             # Presence: who is online in this match room?
@@ -3299,6 +3510,9 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'match_number': m.match_number,
                 'state': m.state,
                 'state_display': m.get_state_display(),
+                'phase': 'group_stage' if not is_knockout_match else 'knockout_stage',
+                'stage': 'knockout' if is_knockout_match else 'group',
+                'is_knockout': is_knockout_match,
                 'p1_id': m.participant1_id,
                 'p2_id': m.participant2_id,
                 'p1_name': m.participant1_name or 'TBD',
@@ -3320,9 +3534,13 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
                 'scheduled_at': m.scheduled_time.isoformat() if m.scheduled_time else None,
                 'lobby_window_opens_at': lobby_window_opens_at_dt.isoformat() if lobby_window_opens_at_dt else None,
                 'lobby_window_open': bool(lobby_window_open),
-                'lobby_window_minutes_before': int(lobby_window_minutes_before),
+                'lobby_window_minutes_before': lobby['minutes_before'],
                 'lobby_window_starts_in_seconds': lobby_window_starts_in_seconds,
                 'lobby_closes_at': lobby_closes_at_dt.isoformat() if lobby_closes_at_dt else None,
+                'lobby_state': lobby['state'],
+                'lobby_can_enter': lobby['can_enter'],
+                'lobby_can_reschedule': lobby['can_reschedule'],
+                'lobby_policy_summary': lobby['policy_summary'],
                 'p1_online': p1_online,
                 'p2_online': p2_online,
                 'game_scores': raw_gs,
@@ -3366,15 +3584,30 @@ class HubMatchesAPIView(LoginRequiredMixin, View):
             else:
                 match_data['opponent_logo_url'] = ''
 
-            if m.state in ('completed', 'forfeit'):
+            if m.state in ('completed', 'forfeit', 'cancelled', 'disputed'):
                 history.append(match_data)
             else:
                 active.append(match_data)
+
+        # Sort active: knockout matches first, then by state priority
+        _state_priority = {'live': 0, 'in_progress': 0, 'pending_result': 1, 'ready': 2, 'check_in': 3, 'scheduled': 4}
+        active.sort(key=lambda x: (
+            0 if x.get('round_name') != 'Group Stage' else 1,
+            _state_priority.get(x.get('state', ''), 9),
+            x.get('id', 0),
+        ))
 
         return _json_response({
             'active_matches': active,
             'match_history': history,
             'total': len(active) + len(history),
+            'current_stage': getattr(tournament, 'get_current_stage', lambda: None)(),
+            'tournament_format': tournament.format,
+            'effective_status': (
+                tournament.get_effective_status()
+                if hasattr(tournament, 'get_effective_status')
+                else getattr(tournament, 'status', '')
+            ),
         }, cache_control='private, max-age=10')
 
 

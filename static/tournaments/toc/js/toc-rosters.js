@@ -183,6 +183,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     autoRefreshTimer = setInterval(() => {
       if (!isRostersTabActive()) return;
       refresh({ silent: true });

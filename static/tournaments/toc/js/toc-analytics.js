@@ -388,6 +388,33 @@
           <div class="text-[9px] text-dc-text">Dispute Rate</div>
         </div>
       </div>`;
+
+    // T2-6: Stage segmentation for GROUP_PLAYOFF tournaments
+    const sb = mat.stage_breakdown;
+    if (sb) {
+      const gs = sb.group_stage || {};
+      const ko = sb.knockout || {};
+      container.innerHTML += `
+        <div class="mt-3 border-t border-dc-border/50 pt-3">
+          <div class="text-[9px] text-dc-text uppercase tracking-widest font-bold mb-2">Stage Breakdown</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-dc-surface/50 rounded-lg p-2.5">
+              <div class="text-[9px] text-dc-text uppercase tracking-wider mb-1">Group Stage</div>
+              <div class="text-sm font-bold text-white">${gs.completed || 0}<span class="text-dc-text font-normal text-xs">/${gs.total || 0}</span></div>
+              <div class="h-1 bg-dc-surface rounded-full mt-1 overflow-hidden">
+                <div class="${(gs.pct || 0) >= 100 ? 'bg-dc-success' : 'bg-theme'} h-full rounded-full" style="width:${gs.pct || 0}%"></div>
+              </div>
+            </div>
+            <div class="bg-dc-surface/50 rounded-lg p-2.5">
+              <div class="text-[9px] text-dc-text uppercase tracking-wider mb-1">Knockout</div>
+              <div class="text-sm font-bold text-white">${ko.completed || 0}<span class="text-dc-text font-normal text-xs">/${ko.total || 0}</span></div>
+              <div class="h-1 bg-dc-surface rounded-full mt-1 overflow-hidden">
+                <div class="${(ko.pct || 0) >= 100 ? 'bg-dc-success' : 'bg-theme'} h-full rounded-full" style="width:${ko.pct || 0}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
   }
 
   function renderRoundsProgress(mat) {

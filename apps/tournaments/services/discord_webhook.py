@@ -411,7 +411,7 @@ class DiscordWebhookService:
         ),
         'bracket_generated': _bracket_generated,
         'bracket_published': _bracket_published,
-        'group_draw_complete': _group_draw_complete,
+        'group_draw_completed': _group_draw_complete,
         'match_complete': _match_complete,
         'match_ready': lambda self, t, tu, hu, ctx: self.build_embed(
             title="⏱️ Match Starting Soon",

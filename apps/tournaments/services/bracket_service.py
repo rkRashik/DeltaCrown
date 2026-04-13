@@ -1472,15 +1472,38 @@ class BracketService:
         
         created_matches = []
         
+        # Determine a default scheduled_time for knockout matches.
+        # Use the tournament's knockout_start_time config if set, otherwise
+        # fall back to tournament_start (the overall start datetime).  A NULL
+        # scheduled_time causes knockout matches to disappear from time-sorted
+        # schedule views, so we always provide a value here.
+        _knockout_start = None
+        _config = getattr(bracket.tournament, 'config', None) or {}
+        _ko_cfg = _config.get('knockout_config', {})
+        _ko_start_raw = _ko_cfg.get('start_time') or _config.get('knockout_start_time')
+        if _ko_start_raw:
+            from django.utils.dateparse import parse_datetime
+            _knockout_start = parse_datetime(str(_ko_start_raw))
+        if not _knockout_start:
+            _knockout_start = getattr(bracket.tournament, 'tournament_start', None)
+        if not _knockout_start:
+            _knockout_start = timezone.now()
+
         for node in ready_nodes:
-            # Create Match instance
+            # Create Match instance — bracket FK links knockout matches to the
+            # bracket so they are distinguishable from group-stage matches
+            # (which have bracket=NULL).
             match = Match.objects.create(
                 tournament=bracket.tournament,
+                bracket=bracket,
                 round_number=node.round_number,
                 match_number=node.match_number_in_round,
                 participant1_id=node.participant1_id,
+                participant1_name=node.participant1_name or '',
                 participant2_id=node.participant2_id,
+                participant2_name=node.participant2_name or '',
                 state=Match.SCHEDULED,
+                scheduled_time=_knockout_start,
             )
             
             # Link match to node

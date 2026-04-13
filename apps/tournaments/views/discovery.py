@@ -76,6 +76,14 @@ class TournamentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # T3-2: Annotate effective status efficiently — only GROUP_PLAYOFF
+        # + completed need the method call; all others are identity.
+        for t in context['tournament_list']:
+            if t.format == Tournament.GROUP_PLAYOFF and t.status == Tournament.COMPLETED:
+                t.effective_status = t.get_effective_status()
+            else:
+                t.effective_status = t.status
+
         from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
 
         tournament_eligibility = {}
@@ -191,7 +199,7 @@ class TournamentListView(ListView):
                         'id': t.id,
                         'name': t.name,
                         'slug': t.slug,
-                        'status': t.status,
+                        'status': getattr(t, 'effective_status', None) or t.status,
                         'game_name': t.game.display_name if t.game else '',
                         'game_logo': t.game.logo.url if t.game and t.game.logo else None,
                         'tournament_start': t.tournament_start,

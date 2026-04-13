@@ -1,5 +1,5 @@
 {% extends "tournaments/base.html" %}
-{% load static humanize tournament_tags %}
+{% load static humanize tournament_tags platform_filters %}
 
 {# ─────────────────────────────────────────────────────────
    My Matches — Player match tracker
@@ -90,7 +90,7 @@
                 {% if match.scheduled_time %}
                   <span>
                     <i data-lucide="calendar" class="w-3 h-3 inline"></i>
-                    {{ match.scheduled_time|date:"M d, H:i" }}
+                    {% format_dt_context match.scheduled_time %}
                   </span>
                 {% endif %}
               </div>

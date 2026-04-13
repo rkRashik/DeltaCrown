@@ -479,8 +479,8 @@ class TournamentAdmin(SafeUploadMixin, ModelAdmin):
         },
     )
     def status_badge(self, obj):
-        """Display status with Unfold colored label badge."""
-        return obj.status
+        """Display effective status (stage-aware) with Unfold colored label badge."""
+        return getattr(obj, 'get_effective_status', lambda: obj.status)()
     
     def registration_count(self, obj):
         """Display registration count"""

@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Case, When, IntegerField
 from django.shortcuts import get_object_or_404
 
 from apps.tournaments.models import Tournament, Match, Registration
+from apps.tournaments.models.group import GroupStanding
 
 
 class TournamentLeaderboardView(DetailView):
@@ -33,8 +34,14 @@ class TournamentLeaderboardView(DetailView):
         context = super().get_context_data(**kwargs)
         tournament = self.object
         
+        # Effective status for template consistency
+        effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        context['effective_status'] = effective_status
+        context['current_stage'] = getattr(tournament, 'get_current_stage', lambda: None)()
+        
         standings = self._calculate_standings(tournament)
         context['standings'] = standings
+        context['standings_source'] = getattr(self, '_standings_source', 'matches')
         
         if self.request.user.is_authenticated:
             user_standing = self._find_user_standing(standings, self.request.user)
@@ -56,11 +63,16 @@ class TournamentLeaderboardView(DetailView):
         
         has_completed_matches = Match.objects.filter(
             tournament=tournament,
-            state=Match.COMPLETED,
+            state__in=[Match.COMPLETED, 'forfeit'],
             is_deleted=False
         ).exists()
         
         if not has_completed_matches:
+            # Try GroupStanding data (group_playoff / round_robin formats)
+            group_standings = self._build_from_group_standings(tournament)
+            if group_standings:
+                self._standings_source = 'groups'
+                return group_standings
             return []
         
         completed_matches = list(Match.objects.filter(
@@ -195,6 +207,95 @@ class TournamentLeaderboardView(DetailView):
         
         return standings
     
+    def _build_from_group_standings(self, tournament):
+        """Build leaderboard from GroupStanding records (group_playoff / round_robin)."""
+        gs_qs = GroupStanding.objects.filter(
+            group__tournament=tournament,
+            is_deleted=False,
+        ).select_related('group', 'user', 'user__profile').order_by(
+            '-points', '-goal_difference', '-goals_for', 'rank'
+        )
+        if not gs_qs.exists():
+            return []
+
+        is_team = tournament.participation_type == 'team'
+        teams_map = {}
+        if is_team:
+            team_ids = [gs.team_id for gs in gs_qs if gs.team_id]
+            if team_ids:
+                from apps.organizations.models import Team
+                for t in Team.objects.filter(id__in=team_ids).only('id', 'name', 'logo', 'tag', 'region'):
+                    try:
+                        logo = t.logo.url if t.logo else ''
+                    except Exception:
+                        logo = ''
+                    teams_map[t.id] = {
+                        'name': t.name, 'logo': logo,
+                        'tag': t.tag, 'region': t.region or '',
+                    }
+
+        standings = []
+        for gs in gs_qs:
+            if is_team and gs.team_id:
+                team_info = teams_map.get(gs.team_id, {})
+                name = team_info.get('name', f'Team {gs.team_id}')
+                logo = team_info.get('logo', '')
+                tag = team_info.get('tag', '')
+                region = team_info.get('region', '')
+            elif gs.user:
+                profile = getattr(gs.user, 'profile', None)
+                name = (profile.display_name if profile and profile.display_name
+                        else gs.user.username)
+                try:
+                    logo = profile.avatar.url if profile and profile.avatar else ''
+                except Exception:
+                    logo = ''
+                tag = ''
+                region = getattr(profile, 'region', '') if profile else ''
+            else:
+                continue
+
+            is_current_user = False
+            if self.request.user.is_authenticated and gs.user_id:
+                is_current_user = (self.request.user.id == gs.user_id)
+
+            standings.append({
+                'rank': 0,
+                'name': name,
+                'logo': logo,
+                'tag': tag,
+                'region': region,
+                'games_played': gs.matches_played,
+                'wins': gs.matches_won,
+                'draws': gs.matches_drawn,
+                'losses': gs.matches_lost,
+                'goals_for': gs.goals_for,
+                'goals_against': gs.goals_against,
+                'goal_diff': gs.goal_difference,
+                'points': int(gs.points),
+                'is_current_user': is_current_user,
+                'is_team': is_team,
+                'registration_id': 0,
+                'is_advancing': gs.is_advancing,
+                'is_eliminated': gs.is_eliminated,
+                'group_name': gs.group.name if gs.group else '',
+            })
+
+        # Already sorted by queryset order; assign ranks per group
+        # Sort by group_name first, then by points/GD within each group
+        standings.sort(key=lambda s: (s['group_name'], -s['points'], -s['goal_diff'], -s['goals_for']))
+        current_group = None
+        rank_in_group = 0
+        for s in standings:
+            if s['group_name'] != current_group:
+                current_group = s['group_name']
+                rank_in_group = 1
+            else:
+                rank_in_group += 1
+            s['rank'] = rank_in_group
+
+        return standings
+
     def _find_user_standing(self, standings, user):
         for standing in standings:
             if standing['is_current_user']:

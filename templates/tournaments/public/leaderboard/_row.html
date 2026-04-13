@@ -1,0 +1,61 @@
+<div class="lb-row {% if entry.is_current_user %}is-you{% endif %} {% if entry.is_eliminated %}opacity-50{% endif %} border-b border-white/[0.03] last:border-b-0">
+    <div class="sm:grid grid-cols-[3.5rem_1fr_3rem_3rem_3rem_3rem_3rem_3rem_3.25rem_3.75rem] gap-x-3 px-5 py-[1.1rem] items-center">
+        <div class="flex items-center gap-3.5 sm:contents">
+            <div class="rank-badge {% if entry.rank == 1 %}rank-1{% elif entry.rank == 2 %}rank-2{% elif entry.rank == 3 %}rank-3{% else %}rank-default{% endif %} flex-shrink-0 justify-self-center">
+                {% if entry.rank == 1 %}
+                <i data-lucide="crown" class="w-4 h-4"></i>
+                {% else %}
+                {{ entry.rank }}
+                {% endif %}
+            </div>
+
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                {% if entry.logo %}
+                <img src="{{ entry.logo }}" class="lb-avatar" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+                <div class="lb-avatar-fallback" style="display:none">{{ entry.name|slice:":1"|upper }}</div>
+                {% else %}
+                <div class="lb-avatar-fallback">{{ entry.name|slice:":1"|upper }}</div>
+                {% endif %}
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        {% if entry.tag %}<span class="text-[9px] font-black text-gray-600 uppercase">[{{ entry.tag }}]</span>{% endif %}
+                        <span class="text-[12px] sm:text-[13px] font-bold text-white truncate max-w-[10rem] sm:max-w-none">{{ entry.name }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        {% if entry.is_current_user %}
+                        <span class="text-[8px] font-black text-cyan-400 bg-cyan-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider">You</span>
+                        {% endif %}
+                        {% if entry.is_advancing %}
+                        <span class="text-[8px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Advancing</span>
+                        {% endif %}
+                        {% if entry.region %}
+                        <span class="text-[9px] text-gray-600 uppercase tracking-wider">{{ entry.region }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="lb-mobile-stats flex-wrap gap-3 mt-2 ml-[2.75rem]">
+                <span class="text-[10px] text-gray-400">{{ entry.games_played }}MP</span>
+                <span class="text-[10px] text-emerald-400">{{ entry.wins }}W</span>
+                <span class="text-[10px] text-gray-400">{{ entry.draws }}D</span>
+                <span class="text-[10px] text-red-400">{{ entry.losses }}L</span>
+                <span class="text-[10px] {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
+                    {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
+                </span>
+                <span class="text-[10px] text-amber-400 font-bold">{{ entry.points }}pts</span>
+            </div>
+        </div>
+
+        <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.games_played }}</span>
+        <span class="lb-desktop text-xs text-emerald-400 font-bold text-center tabular-nums">{{ entry.wins }}</span>
+        <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.draws }}</span>
+        <span class="lb-desktop text-xs text-red-400 font-bold text-center tabular-nums">{{ entry.losses }}</span>
+        <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_for }}</span>
+        <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_against }}</span>
+        <span class="lb-desktop text-xs text-center tabular-nums font-bold {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
+            {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
+        </span>
+        <span class="lb-desktop text-sm font-display font-black text-amber-400 text-right tabular-nums">{{ entry.points }}</span>
+    </div>
+</div>

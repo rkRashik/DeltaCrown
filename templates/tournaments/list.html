@@ -94,15 +94,15 @@
       <div class="max-w-[1600px] mx-auto px-6 w-full pt-10">
         <div class="max-w-2xl space-y-4">
           <div class="flex items-center gap-3">
-            {% if t.status == 'live' %}
+            {% if t.effective_status == 'live' %}
             <span class="px-3 py-1 rounded bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg animate-pulse">Live Now</span>
-            {% elif t.status == 'registration_open' %}
+            {% elif t.effective_status == 'registration_open' %}
             <span class="px-3 py-1 rounded bg-green-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg">Open</span>
             {% else %}
             <span class="px-3 py-1 rounded bg-dc-purple/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg">Upcoming</span>
             {% endif %}
             <span class="text-xs font-bold text-gray-300 flex items-center gap-1">
-              <i data-lucide="monitor" class="w-3 h-3 text-{% if t.status == 'live' %}red-500{% else %}dc-cyan{% endif %}"></i>
+              <i data-lucide="monitor" class="w-3 h-3 text-{% if t.effective_status == 'live' %}red-500{% else %}dc-cyan{% endif %}"></i>
               {{ t.game.display_name }}
             </span>
           </div>
@@ -116,10 +116,10 @@
           </a>
           {% endif %}
           <div class="flex items-center gap-4 pt-2">
-            <a href="{% if t.id in user_registered_tournaments and t.status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% elif t.status == 'registration_open' %}{{ t.discovery_eligibility.action_url|default:'#' }}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
+            <a href="{% if t.id in user_registered_tournaments and t.effective_status == 'live' %}{% url 'tournaments:tournament_hub' t.slug %}{% elif t.effective_status == 'registration_open' %}{{ t.discovery_eligibility.action_url|default:'#' }}{% else %}{% url 'tournaments:detail' t.slug %}{% endif %}"
                class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition flex items-center gap-2">
-              <i data-lucide="{% if t.status == 'live' %}play{% elif t.status == 'registration_open' %}user-plus{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
-              {% if t.id in organizer_tournaments %}Manage{% elif t.id in user_registered_tournaments and t.status == 'live' %}Enter Hub{% elif t.status == 'live' %}Watch Live{% elif t.status == 'registration_open' %}{{ t.discovery_eligibility.action_label|default:'Register Now' }}{% else %}View Details{% endif %}
+              <i data-lucide="{% if t.effective_status == 'live' %}play{% elif t.effective_status == 'registration_open' %}user-plus{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
+              {% if t.id in organizer_tournaments %}Manage{% elif t.id in user_registered_tournaments and t.effective_status == 'live' %}Enter Hub{% elif t.effective_status == 'live' %}Watch Live{% elif t.effective_status == 'registration_open' %}{{ t.discovery_eligibility.action_label|default:'Register Now' }}{% else %}View Details{% endif %}
             </a>
             {% if t.prize_pool %}
             <div class="text-sm font-medium text-white bg-black/50 px-4 py-2 rounded-lg border border-white/10">
@@ -255,7 +255,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         {% for t in tournament_list %}
         <a href="{% url 'tournaments:detail' t.slug %}"
-           class="card-modern group cursor-pointer {% if t.status == 'live' %}card-live{% elif t.status == 'completed' %}card-ended{% endif %}">
+           class="card-modern group cursor-pointer {% if t.effective_status == 'live' %}card-live{% elif t.effective_status == 'completed' %}card-ended{% endif %}">
           <div class="card-img-wrap">
             <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% elif t.game.banner %}{{ t.game.banner.url }}{% elif t.game.card_image %}{{ t.game.card_image.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop{% endif %}"
                  class="w-full h-full object-cover" alt="{{ t.name }}">
@@ -273,13 +273,13 @@
             </div>
             {# Right status badge #}
             <div class="absolute top-3 right-3 z-10">
-              {% if t.status == 'live' %}
+              {% if t.effective_status == 'live' %}
               <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase animate-pulse">● Live</span>
-              {% elif t.status == 'registration_open' %}
+              {% elif t.effective_status == 'registration_open' %}
               <span class="bg-green-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Open</span>
-              {% elif t.status == 'registration_closed' %}
+              {% elif t.effective_status == 'registration_closed' %}
               <span class="bg-amber-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Reg Closed</span>
-              {% elif t.status == 'completed' %}
+              {% elif t.effective_status == 'completed' %}
               <span class="bg-gray-800 text-gray-300 text-[10px] font-bold px-2 py-1 rounded uppercase">Ended</span>
               {% else %}
               <span class="bg-dc-purple text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">{{ t.tournament_start|date:"M j" }}</span>
@@ -287,33 +287,33 @@
             </div>
           </div>
 
-          <div class="p-5 {% if t.status == 'live' %}relative overflow-hidden{% endif %}">
-            {% if t.status == 'live' %}
+          <div class="p-5 {% if t.effective_status == 'live' %}relative overflow-hidden{% endif %}">
+            {% if t.effective_status == 'live' %}
             <div class="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
             {% endif %}
 
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5
-                {% if t.status == 'live' %}text-red-400{% elif t.status == 'completed' %}text-gray-500{% else %}text-dc-cyan{% endif %}">
+                {% if t.effective_status == 'live' %}text-red-400{% elif t.effective_status == 'completed' %}text-gray-500{% else %}text-dc-cyan{% endif %}">
                 {% if t.game.icon %}<img src="{{ t.game.icon.url }}" alt="" class="w-4 h-4 rounded object-cover">{% endif %}
                 {{ t.game.display_name }}
               </span>
-              {% if t.status != 'live' %}
+              {% if t.effective_status != 'live' %}
               <span class="text-[10px] text-gray-500">
-                {% if t.status == 'completed' %}Ended{% else %}Starts {{ t.tournament_start|date:"M j" }}{% endif %}
+                {% if t.effective_status == 'completed' %}Ended{% else %}Starts {{ t.tournament_start|date:"M j" }}{% endif %}
               </span>
               {% endif %}
             </div>
 
             <h3 class="font-display font-bold text-lg text-white mb-4 transition-colors line-clamp-1
-              {% if t.status == 'live' %}group-hover:text-red-500{% elif t.status == 'completed' %}{% else %}group-hover:text-dc-cyan{% endif %}">
+              {% if t.effective_status == 'live' %}group-hover:text-red-500{% elif t.effective_status == 'completed' %}{% else %}group-hover:text-dc-cyan{% endif %}">
               {{ t.name }}
             </h3>
 
             {# Stats bar #}
             <div class="flex items-center justify-between p-3 rounded-lg mb-4
-              {% if t.status == 'live' %}bg-red-500/5 border border-red-500/10{% elif t.status == 'completed' %}bg-gradient-to-r from-dc-gold/10 to-transparent border border-dc-gold/20{% else %}bg-white/5 border border-white/5{% endif %}">
-              {% if t.status == 'completed' %}
+              {% if t.effective_status == 'live' %}bg-red-500/5 border border-red-500/10{% elif t.effective_status == 'completed' %}bg-gradient-to-r from-dc-gold/10 to-transparent border border-dc-gold/20{% else %}bg-white/5 border border-white/5{% endif %}">
+              {% if t.effective_status == 'completed' %}
               <div class="flex items-center gap-3 w-full">
                 <div class="w-8 h-8 rounded bg-dc-gold/20 flex items-center justify-center text-dc-gold"><i data-lucide="crown" class="w-4 h-4 fill-current"></i></div>
                 <div>
@@ -348,17 +348,17 @@
             {% elif t.id in user_registered_tournaments %}
               {% if t.user_reg_status == 'waitlisted' %}
               <span class="w-full py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
-                <i data-lucide="hourglass" class="w-4 h-4"></i> On Waitlist{% if t.status == 'registration_open' %} — Awaiting Call-up{% endif %}
+                <i data-lucide="hourglass" class="w-4 h-4"></i> On Waitlist{% if t.effective_status == 'registration_open' %} — Awaiting Call-up{% endif %}
               </span>
-              {% elif t.status == 'live' %}
+              {% elif t.effective_status == 'live' %}
               <span class="w-full py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 border border-red-500/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 animate-pulse">
                 <i data-lucide="swords" class="w-4 h-4"></i> Enter Tournament Hub
               </span>
-              {% elif t.status == 'completed' %}
+              {% elif t.effective_status == 'completed' %}
               <span class="w-full py-2.5 rounded-lg bg-dc-gold/10 border border-dc-gold/30 text-dc-gold group-hover:bg-dc-gold/20 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="trophy" class="w-4 h-4"></i> View Results
               </span>
-              {% elif t.status == 'registration_closed' %}
+              {% elif t.effective_status == 'registration_closed' %}
               <span class="w-full py-2.5 rounded-lg bg-amber-600/20 border border-amber-500/30 text-amber-400 group-hover:bg-amber-600/30 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="clock" class="w-4 h-4"></i> Registered — Awaiting Start
               </span>
@@ -368,23 +368,23 @@
               </span>
               {% endif %}
             {% else %}
-              {% if t.status == 'live' %}
+              {% if t.effective_status == 'live' %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-red-600 group-hover:border-red-600 group-hover:text-white text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="tv" class="w-4 h-4"></i> Watch Live
               </span>
-              {% elif t.status == 'completed' %}
+              {% elif t.effective_status == 'completed' %}
               <span class="w-full py-2.5 rounded-lg bg-transparent border border-white/10 group-hover:bg-white/5 text-gray-400 group-hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="trophy" class="w-4 h-4"></i> View Results
               </span>
-              {% elif t.status == 'registration_open' %}
+              {% elif t.effective_status == 'registration_open' %}
               <span class="w-full py-2.5 rounded-lg {% if t.discovery_eligibility.status == 'full_waitlist' %}bg-amber-400 hover:bg-amber-300 text-black{% else %}bg-dc-cyan hover:bg-dc-cyan/90 text-black{% endif %} font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="{% if t.discovery_eligibility.status == 'full_waitlist' %}hourglass{% else %}user-plus{% endif %}" class="w-4 h-4"></i> {{ t.discovery_eligibility.action_label|default:'Register Now' }} <i data-lucide="arrow-right" class="w-4 h-4"></i>
               </span>
-              {% elif t.status == 'registration_closed' %}
+              {% elif t.effective_status == 'registration_closed' %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-amber-500/20 text-amber-400/80 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="lock" class="w-4 h-4"></i> Registration Closed
               </span>
-              {% elif t.status == 'published' %}
+              {% elif t.effective_status == 'published' %}
               <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-dc-cyan/10 group-hover:border-dc-cyan/30 group-hover:text-dc-cyan text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <i data-lucide="bell" class="w-4 h-4"></i> Notify Me When Open
               </span>

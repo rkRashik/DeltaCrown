@@ -17,9 +17,9 @@
       <div class="dc-mobile-badge-row">
         <span
           id="dc-mobile-status-badge"
-          class="dc-mobile-status-badge {% if tournament.status == 'live' %}dc-mobile-status-live{% elif tournament.status == 'registration_open' %}dc-mobile-status-open{% elif tournament.status == 'completed' or tournament.status == 'archived' %}dc-mobile-status-completed{% elif tournament.status == 'cancelled' %}dc-mobile-status-cancelled{% else %}dc-mobile-status-upcoming{% endif %}"
+          class="dc-mobile-status-badge {% if effective_status == 'live' %}dc-mobile-status-live{% elif effective_status == 'registration_open' %}dc-mobile-status-open{% elif effective_status == 'completed' or effective_status == 'archived' %}dc-mobile-status-completed{% elif effective_status == 'cancelled' %}dc-mobile-status-cancelled{% else %}dc-mobile-status-upcoming{% endif %}"
         >
-          {% if tournament.status == 'registration_open' %}Registration Open{% elif tournament.status == 'live' %}Live{% elif tournament.status == 'completed' or tournament.status == 'archived' %}Completed{% elif tournament.status == 'cancelled' %}Cancelled{% else %}Upcoming{% endif %}
+          {% if effective_status == 'registration_open' %}Registration Open{% elif effective_status == 'live' %}Live{% elif effective_status == 'completed' or effective_status == 'archived' %}Completed{% elif effective_status == 'cancelled' %}Cancelled{% else %}Upcoming{% endif %}
         </span>
         <span class="dc-mobile-game-badge">
           <i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i>
@@ -36,14 +36,14 @@
 
   <section class="dc-mobile-status-bar" aria-live="polite">
     <p class="dc-mobile-status-line">
-      <span id="dc-mobile-status-primary">{% if tournament.status == 'registration_open' %}Registration Open{% elif tournament.status == 'live' %}Live{% elif tournament.status == 'completed' or tournament.status == 'archived' %}Completed{% elif tournament.status == 'cancelled' %}Cancelled{% else %}Upcoming{% endif %}</span>
+      <span id="dc-mobile-status-primary">{% if effective_status == 'registration_open' %}Registration Open{% elif effective_status == 'live' %}Live{% elif effective_status == 'completed' or effective_status == 'archived' %}Completed{% elif effective_status == 'cancelled' %}Cancelled{% else %}Upcoming{% endif %}</span>
       <span class="dc-mobile-dot">•</span>
       <span id="dc-mobile-status-context">
-        {% if tournament.status == 'registration_open' %}
+        {% if effective_status == 'registration_open' %}
           {{ slots_filled }}/{{ slots_total }} slots filled{% if tournament.tournament_start %} • Starts in {{ tournament.tournament_start|timeuntil }}{% endif %}
-        {% elif tournament.status == 'live' %}
+        {% elif effective_status == 'live' %}
           {% if current_round %}Round {{ current_round }} in progress{% elif live_match_count %}{{ live_match_count }} matches in progress{% else %}Matches in progress{% endif %}
-        {% elif tournament.status == 'completed' or tournament.status == 'archived' %}
+        {% elif effective_status == 'completed' or effective_status == 'archived' %}
           {% if podium and podium|length %}
             {% with podium.0 as winner %}
               Winner: {% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}TBD{% endif %}
@@ -51,14 +51,14 @@
           {% else %}
             Results published
           {% endif %}
-        {% elif tournament.status == 'cancelled' %}
+        {% elif effective_status == 'cancelled' %}
           Event cancelled by organizer
         {% else %}
           {% if tournament.tournament_start %}Starts in {{ tournament.tournament_start|timeuntil }}{% else %}Awaiting schedule{% endif %}
         {% endif %}
       </span>
     </p>
-    <p id="dc-mobile-slots-fast" class="dc-mobile-fast-indicator {% if tournament.status != 'registration_open' or slots_percentage < 80 %}hidden{% endif %}">
+    <p id="dc-mobile-slots-fast" class="dc-mobile-fast-indicator {% if effective_status != 'registration_open' or slots_percentage < 80 %}hidden{% endif %}">
       Slots filling fast
     </p>
   </section>
@@ -817,9 +817,9 @@
   <div class="dc-mobile-bottom-space"></div>
 
   <div class="dc-mobile-sticky-cta" id="dc-mobile-sticky-cta">
-    {% if tournament.status == 'completed' or tournament.status == 'archived' %}
+    {% if effective_status == 'completed' or effective_status == 'archived' %}
     <a id="dc-mobile-cta-button" data-cta-kind="results" class="dc-mobile-cta-button" href="/tournaments/{{ tournament.slug }}/results/">View Results</a>
-    {% elif tournament.status == 'live' and user_next_match and user_next_match_lobby_open %}
+    {% elif effective_status == 'live' and user_next_match and user_next_match_lobby_open %}
     <a id="dc-mobile-cta-button" data-cta-kind="enter_match" class="dc-mobile-cta-button" href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}">Enter Lobby</a>
     {% elif is_registered %}
     <a id="dc-mobile-cta-button" data-cta-kind="hub" class="dc-mobile-cta-button" href="/tournaments/{{ tournament.slug }}/hub/">Go to HUB</a>

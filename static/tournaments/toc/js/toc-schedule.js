@@ -1691,7 +1691,7 @@
       _initialized = true;
     }
     refresh();
-    if (!autoRefreshTimer) {
+    if (!autoRefreshTimer && !(window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus())) {
       autoRefreshTimer = setInterval(() => {
         if (!isScheduleTabActive()) return;
         refresh({ silent: true });

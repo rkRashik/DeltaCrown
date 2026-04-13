@@ -174,6 +174,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     autoRefreshTimer = setInterval(() => {
       if (!isNotificationsTabActive()) return;
       refresh({ silent: true });

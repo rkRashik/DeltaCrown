@@ -56,37 +56,37 @@
 
                 <!-- Status + Game Badges -->
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                    {% if tournament.status == 'live' %}
+                    {% if effective_status == 'live' %}
                     <div class="bg-red-600/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>
                         Live Now
                     </div>
-                    {% elif tournament.status == 'registration_open' %}
+                    {% elif effective_status == 'registration_open' %}
                     <div class="bg-green-600/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>
                         Registration Open
                     </div>
-                    {% elif tournament.status == 'registration_closed' %}
+                    {% elif effective_status == 'registration_closed' %}
                     <div class="bg-yellow-600/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="lock" class="w-3 h-3"></i> Registration Closed
                     </div>
-                    {% elif tournament.status == 'completed' %}
+                    {% elif effective_status == 'completed' %}
                     <div class="bg-gray-700/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="check-circle-2" class="w-3 h-3"></i> Completed
                     </div>
-                    {% elif tournament.status == 'cancelled' %}
+                    {% elif effective_status == 'cancelled' %}
                     <div class="bg-red-900/90 text-red-300 px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="x-circle" class="w-3 h-3"></i> Cancelled
                     </div>
-                    {% elif tournament.status == 'archived' %}
+                    {% elif effective_status == 'archived' %}
                     <div class="bg-gray-800/90 text-gray-400 px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="archive" class="w-3 h-3"></i> Archived
                     </div>
-                    {% elif tournament.status == 'pending_approval' %}
+                    {% elif effective_status == 'pending_approval' %}
                     <div class="bg-amber-700/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="clock" class="w-3 h-3"></i> Pending Approval
                     </div>
-                    {% elif tournament.status == 'published' %}
+                    {% elif effective_status == 'published' %}
                     <div class="bg-blue-600/90 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="eye" class="w-3 h-3"></i> Published
                     </div>
@@ -284,19 +284,19 @@
                                 Event Status
                             </h3>
                             <p class="text-xs text-gray-400 mt-1 font-mono uppercase tracking-widest">
-                                {% if tournament.status == 'draft' %}Phase 0: Draft Mode
-                                {% elif tournament.status == 'pending_approval' %}Phase 0: Awaiting Admin Approval
-                                {% elif tournament.status == 'published' %}Phase 1: Published
-                                {% elif tournament.status == 'registration_open' %}Phase 1: Registration Protocol Active
-                                {% elif tournament.status == 'registration_closed' %}Phase 2: Registration Sealed
-                                {% elif tournament.status == 'live' %}Phase 3: Matches In Progress
-                                {% elif tournament.status == 'completed' %}Phase 4: Event Complete
-                                {% elif tournament.status == 'cancelled' %}Cancelled
-                                {% elif tournament.status == 'archived' %}Archived
+                                {% if effective_status == 'draft' %}Phase 0: Draft Mode
+                                {% elif effective_status == 'pending_approval' %}Phase 0: Awaiting Admin Approval
+                                {% elif effective_status == 'published' %}Phase 1: Published
+                                {% elif effective_status == 'registration_open' %}Phase 1: Registration Protocol Active
+                                {% elif effective_status == 'registration_closed' %}Phase 2: Registration Sealed
+                                {% elif effective_status == 'live' %}Phase 3: Matches In Progress
+                                {% elif effective_status == 'completed' %}Phase 4: Event Complete
+                                {% elif effective_status == 'cancelled' %}Cancelled
+                                {% elif effective_status == 'archived' %}Archived
                                 {% endif %}
                             </p>
                         </div>
-                        {% if tournament.status == 'registration_open' and tournament.registration_end %}
+                        {% if effective_status == 'registration_open' and tournament.registration_end %}
                         <div class="mt-4 md:mt-0 flex items-center gap-3 bg-black/40 border px-4 py-2 rounded-lg backdrop-blur-md" style="border-color: color-mix(in srgb, var(--game-color) 30%, transparent);">
                             <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background: var(--game-color);"></span><span class="relative inline-flex rounded-full h-2 w-2" style="background: var(--game-color);"></span></span>
                             <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Reg Closes In:</span>
@@ -976,6 +976,51 @@
             <div id="tab-matches" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tab-matches" aria-hidden="true">
                 {% if matches %}
 
+                {% if group_standings_summary and tournament.current_stage == 'knockout_stage' %}
+                <div class="glass rounded-xl border border-white/[0.06] p-4 sm:p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                        <h4 class="text-xs font-black text-emerald-400 uppercase tracking-widest">Group Stage Complete</h4>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mb-3">Groups have concluded. Advancing players are now competing in the knockout bracket.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {% for grp in group_standings_summary %}
+                        <div class="rounded-lg bg-white/[0.02] border border-white/[0.05] p-3">
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">{{ grp.name }}</p>
+                            <div class="space-y-1.5">
+                                {% for a in grp.advancers %}
+                                <div class="flex items-center gap-2">
+                                    {% if a.logo_url %}
+                                    <img src="{{ a.logo_url }}" class="w-5 h-5 rounded-full object-cover border border-emerald-500/30" alt="">
+                                    {% else %}
+                                    <div class="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                                        <span class="text-[8px] font-bold text-emerald-400">{{ a.name|truncatechars:1 }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <span class="text-xs font-bold text-emerald-400 truncate">{{ a.name }}</span>
+                                    <span class="text-[9px] text-emerald-500/60 ml-auto flex-shrink-0">Advanced</span>
+                                </div>
+                                {% endfor %}
+                                {% for o in grp.others %}
+                                <div class="flex items-center gap-2 opacity-50">
+                                    {% if o.logo_url %}
+                                    <img src="{{ o.logo_url }}" class="w-5 h-5 rounded-full object-cover border border-white/10" alt="">
+                                    {% else %}
+                                    <div class="w-5 h-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                                        <span class="text-[8px] font-bold text-gray-500">{{ o.name|truncatechars:1 }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <span class="text-xs text-gray-500 truncate">{{ o.name }}</span>
+                                    <span class="text-[9px] text-gray-600 ml-auto flex-shrink-0">Eliminated</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 {% for m in matches %}
                 {% if m.is_live %}
                 {% if forloop.first %}
@@ -1343,18 +1388,18 @@
                             <div>
                                 <p class="text-[10px] font-bold uppercase tracking-widest mb-1 game-accent">Current Status</p>
                                 <div class="flex items-center gap-2">
-                                    {% if tournament.status == 'registration_open' %}
+                                    {% if effective_status == 'registration_open' %}
                                     <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
                                     <span class="font-bold text-white text-lg tracking-tight">Registration Open</span>
-                                    {% elif tournament.status == 'live' %}
+                                    {% elif effective_status == 'live' %}
                                     <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>
                                     <span class="font-bold text-white text-lg tracking-tight">Live Now</span>
-                                    {% elif tournament.status == 'completed' %}
+                                    {% elif effective_status == 'completed' %}
                                     <span class="font-bold text-gray-400 text-lg tracking-tight">Completed</span>
-                                    {% elif tournament.status == 'cancelled' %}
+                                    {% elif effective_status == 'cancelled' %}
                                     <span class="font-bold text-red-400 text-lg tracking-tight">Cancelled</span>
                                     {% else %}
-                                    <span class="font-bold text-white text-lg tracking-tight">{{ tournament.get_status_display }}</span>
+                                    <span class="font-bold text-white text-lg tracking-tight">{{ effective_status_display|default:tournament.get_status_display }}</span>
                                     {% endif %}
                                 </div>
                             </div>

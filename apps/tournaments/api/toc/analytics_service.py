@@ -121,7 +121,7 @@ class TOCAnalyticsService:
     @staticmethod
     def get_match_analytics(tournament: Tournament) -> dict:
         """Match performance analytics."""
-        matches = Match.objects.filter(tournament=tournament)
+        matches = Match.objects.filter(tournament=tournament, is_deleted=False)
         agg = matches.aggregate(
             total=Count("id"),
             scheduled=Count("id", filter=Q(state="scheduled")),
@@ -215,6 +215,28 @@ class TOCAnalyticsService:
                 })
         closest.sort(key=lambda x: x["diff"])
 
+        # T2-6: Stage segmentation for GROUP_PLAYOFF tournaments
+        stage_breakdown = None
+        if tournament.format == Tournament.GROUP_PLAYOFF:
+            group_qs = matches.filter(bracket__isnull=True)
+            ko_qs = matches.filter(bracket__isnull=False)
+            g_total = group_qs.count()
+            g_completed = group_qs.filter(state="completed").count()
+            k_total = ko_qs.count()
+            k_completed = ko_qs.filter(state="completed").count()
+            stage_breakdown = {
+                "group_stage": {
+                    "total": g_total,
+                    "completed": g_completed,
+                    "pct": round(g_completed / g_total * 100) if g_total > 0 else 0,
+                },
+                "knockout": {
+                    "total": k_total,
+                    "completed": k_completed,
+                    "pct": round(k_completed / k_total * 100) if k_total > 0 else 0,
+                },
+            }
+
         return {
             "total": total,
             "by_state": by_state,
@@ -225,6 +247,7 @@ class TOCAnalyticsService:
             "dispute_rate": dispute_rate,
             "rounds": rounds_data,
             "closest_matches": closest[:5],
+            "stage_breakdown": stage_breakdown,
             # JS aliases: in_progress for live, forfeited for forfeit
             "in_progress": by_state.get("live", 0),
             "forfeited": by_state.get("forfeit", 0),
@@ -267,7 +290,7 @@ class TOCAnalyticsService:
     @staticmethod
     def get_engagement_analytics(tournament: Tournament) -> dict:
         """Engagement and activity metrics."""
-        matches = Match.objects.filter(tournament=tournament)
+        matches = Match.objects.filter(tournament=tournament, is_deleted=False)
         agg = matches.aggregate(
             total=Count("id"),
             streamed=Count("id", filter=~Q(stream_url__isnull=True) & ~Q(stream_url="")),

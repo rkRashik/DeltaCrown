@@ -9,23 +9,23 @@
 .lb-row:hover { background: rgba(255,255,255,0.03); }
 .lb-row.is-you { background: rgba(6,182,212,0.06); border-left: 3px solid rgba(6,182,212,0.5); }
 .lb-avatar {
-    width: 2rem; height: 2rem; border-radius: 50%;
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
     flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08);
     object-fit: cover;
 }
 .lb-avatar-fallback {
-    width: 2rem; height: 2rem; border-radius: 50%;
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
     flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.05);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.45);
+    font-size: 0.7rem; font-weight: 800; color: rgba(255,255,255,0.45);
 }
 .win-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
 .win-bar-fill { height: 100%; border-radius: 2px; }
 .rank-badge {
-    min-width: 2rem; height: 2rem; border-radius: 0.5rem;
+    min-width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; font-weight: 800; font-family: 'Space Grotesk', monospace;
+    font-size: 0.8rem; font-weight: 800; font-family: 'Space Grotesk', monospace;
 }
 .rank-1 { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.25); }
 .rank-2 { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
@@ -55,7 +55,7 @@
                     <i data-lucide="bar-chart-3" class="w-5 h-5 sm:w-6 sm:h-6 inline mr-1.5 text-amber-400"></i> Leaderboard
                 </h1>
                 {% if tournament.game %}
-                <p class="text-xs text-gray-500 mt-0.5">{{ tournament.game.name }} · {{ standings|length }} participant{{ standings|length|pluralize }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ tournament.game.name }} · {{ standings|length }} participant{{ standings|length|pluralize }}{% if standings_source == 'groups' %} · Group Stage Standings{% endif %}</p>
                 {% endif %}
             </div>
             <div class="flex items-center gap-2 flex-wrap">
@@ -70,6 +70,42 @@
             </div>
         </div>
     </div>
+
+    {% if standings_source == 'groups' %}
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 mb-5">
+        <div class="rounded-xl overflow-hidden border {% if current_stage == 'knockout_stage' %}border-emerald-500/20{% else %}border-amber-500/20{% endif %} bg-[#0e0e18] relative">
+            {% if current_stage == 'knockout_stage' %}
+            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] to-transparent pointer-events-none"></div>
+            {% endif %}
+            <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl {% if current_stage == 'knockout_stage' %}bg-emerald-500/10 border border-emerald-500/20{% else %}bg-amber-500/10 border border-amber-500/20{% endif %} flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="{% if current_stage == 'knockout_stage' %}swords{% else %}layers{% endif %}" class="w-4.5 h-4.5 {% if current_stage == 'knockout_stage' %}text-emerald-400{% else %}text-amber-400{% endif %}"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <p class="text-sm font-display font-black text-white">
+                                {% if current_stage == 'knockout_stage' %}Final Group Standings{% else %}Group Stage Standings{% endif %}
+                            </p>
+                            {% if current_stage == 'knockout_stage' %}
+                            <span class="inline-flex items-center gap-1 text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Knockout Live</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-[11px] text-gray-500">
+                            {% if current_stage == 'knockout_stage' %}These are the final group rankings. Top qualifiers now compete in the knockout bracket.{% else %}Live group stage leaderboard. Rankings update after each match.{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if current_stage == 'knockout_stage' %}
+                <a href="{% url 'tournaments:bracket' tournament.slug %}"
+                   class="px-5 py-2.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 ring-1 ring-emerald-400/30 inline-flex items-center gap-2 flex-shrink-0">
+                    <i data-lucide="git-branch" class="w-4 h-4"></i> View Bracket
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if user_standing %}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 mb-5">
@@ -109,9 +145,43 @@
 
     {% if standings %}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-10">
+
+        {% if standings_source == 'groups' %}
+        {% regroup standings by group_name as grouped_standings %}
+        {% for group in grouped_standings %}
+        <div class="mb-6">
+            <div class="flex items-center gap-2.5 mb-3 px-1">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center border border-white/[0.08]" style="background: rgba(var(--game-color-rgb, 99,102,241), 0.12);">
+                    <i data-lucide="shield" class="w-3.5 h-3.5" style="color: var(--game-color, #6366f1);"></i>
+                </div>
+                <h3 class="text-sm font-display font-black text-white uppercase tracking-wider">{{ group.grouper }}</h3>
+                <span class="text-[10px] text-gray-600 font-mono">{{ group.list|length }} players</span>
+            </div>
+            <div class="rounded-xl border border-white/[0.06] bg-[#0e0e18] overflow-hidden">
+                <div class="hidden sm:grid grid-cols-[3.5rem_1fr_3rem_3rem_3rem_3rem_3rem_3rem_3.25rem_3.75rem] gap-x-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015]">
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">#</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em]">{% if standings.0.is_team %}Team{% else %}Player{% endif %}</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">MP</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">W</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">D</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">L</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GF</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GA</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">GD</span>
+                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-right">Pts</span>
+                </div>
+                {% for entry in group.list %}
+                {% include "tournaments/public/leaderboard/_row.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% else %}
+        {# Non-grouped flat standings #}
         <div class="rounded-xl border border-white/[0.06] bg-[#0e0e18] overflow-hidden">
-            <div class="hidden sm:grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_3rem_3.5rem] gap-0 px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.015]">
-                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em]">#</span>
+            <div class="hidden sm:grid grid-cols-[3.5rem_1fr_3rem_3rem_3rem_3rem_3rem_3rem_3.25rem_3.75rem] gap-x-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015]">
+                <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">#</span>
                 <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em]">{% if standings.0.is_team %}Team{% else %}Player{% endif %}</span>
                 <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">MP</span>
                 <span class="text-[9px] font-black text-gray-600 uppercase tracking-[0.12em] text-center">W</span>
@@ -124,63 +194,10 @@
             </div>
 
             {% for entry in standings %}
-            <div class="lb-row {% if entry.is_current_user %}is-you{% endif %} border-b border-white/[0.03] last:border-b-0">
-                <div class="sm:grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_3rem_3.5rem] gap-0 px-4 py-3 items-center">
-                    <div class="flex items-center gap-3 sm:contents">
-                        <div class="rank-badge {% if entry.rank == 1 %}rank-1{% elif entry.rank == 2 %}rank-2{% elif entry.rank == 3 %}rank-3{% else %}rank-default{% endif %} flex-shrink-0">
-                            {% if entry.rank == 1 %}
-                            <i data-lucide="crown" class="w-3.5 h-3.5"></i>
-                            {% else %}
-                            {{ entry.rank }}
-                            {% endif %}
-                        </div>
-
-                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                            {% if entry.logo %}
-                            <img src="{{ entry.logo }}" class="lb-avatar" alt="">
-                            {% else %}
-                            <div class="lb-avatar-fallback">{{ entry.name|slice:":1"|upper }}</div>
-                            {% endif %}
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5">
-                                    {% if entry.tag %}<span class="text-[9px] font-black text-gray-600 uppercase">[{{ entry.tag }}]</span>{% endif %}
-                                    <span class="text-[12px] sm:text-sm font-bold text-white truncate">{{ entry.name }}</span>
-                                    {% if entry.is_current_user %}
-                                    <span class="text-[8px] font-black text-cyan-400 bg-cyan-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider">You</span>
-                                    {% endif %}
-                                </div>
-                                {% if entry.region %}
-                                <span class="text-[9px] text-gray-600 uppercase tracking-wider">{{ entry.region }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="lb-mobile-stats flex-wrap gap-3 mt-2 ml-[2.75rem]">
-                            <span class="text-[10px] text-gray-400">{{ entry.games_played }}MP</span>
-                            <span class="text-[10px] text-emerald-400">{{ entry.wins }}W</span>
-                            <span class="text-[10px] text-gray-400">{{ entry.draws }}D</span>
-                            <span class="text-[10px] text-red-400">{{ entry.losses }}L</span>
-                            <span class="text-[10px] {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
-                                {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
-                            </span>
-                            <span class="text-[10px] text-amber-400 font-bold">{{ entry.points }}pts</span>
-                        </div>
-                    </div>
-
-                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.games_played }}</span>
-                    <span class="lb-desktop text-xs text-emerald-400 font-bold text-center tabular-nums">{{ entry.wins }}</span>
-                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.draws }}</span>
-                    <span class="lb-desktop text-xs text-red-400 font-bold text-center tabular-nums">{{ entry.losses }}</span>
-                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_for }}</span>
-                    <span class="lb-desktop text-xs text-gray-400 text-center tabular-nums">{{ entry.goals_against }}</span>
-                    <span class="lb-desktop text-xs text-center tabular-nums font-bold {% if entry.goal_diff > 0 %}text-emerald-400{% elif entry.goal_diff < 0 %}text-red-400{% else %}text-gray-500{% endif %}">
-                        {% if entry.goal_diff > 0 %}+{% endif %}{{ entry.goal_diff }}
-                    </span>
-                    <span class="lb-desktop text-sm font-display font-black text-amber-400 text-right tabular-nums">{{ entry.points }}</span>
-                </div>
-            </div>
+            {% include "tournaments/public/leaderboard/_row.html" %}
             {% endfor %}
         </div>
+        {% endif %}
 
         <div class="mt-4 flex items-center gap-4 px-1">
             <div class="flex items-center gap-1.5">
@@ -203,7 +220,7 @@
             <i data-lucide="bar-chart-3" class="w-10 h-10 text-gray-700"></i>
         </div>
         <h2 class="text-xl font-display font-bold text-white mb-2">No Standings Yet</h2>
-        <p class="text-sm text-gray-500 mb-6">Leaderboard will populate once matches are completed.</p>
+        <p class="text-sm text-gray-500 mb-6">Standings will populate once group stage matches are played.</p>
         <a href="{% url 'tournaments:detail' tournament.slug %}" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-white/[0.06] border border-white/[0.08] rounded-xl hover:bg-white/[0.10] transition">
             <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Tournament
         </a>

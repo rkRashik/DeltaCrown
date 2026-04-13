@@ -154,9 +154,14 @@ class TOCService:
                 (t_final - t_actions) * 1000.0,
             )
 
+        effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        # Derive display from effective status (not raw), so UI label matches the operational status
+        status_display_map = dict(Tournament.STATUS_CHOICES)
+        effective_display = status_display_map.get(effective_status, tournament.get_status_display())
+
         return {
-            'status': tournament.status,
-            'status_display': tournament.get_status_display(),
+            'status': effective_status,
+            'status_display': effective_display,
             'is_frozen': is_frozen,
             'freeze_reason': freeze_reason,
             'lifecycle': lifecycle,
@@ -531,7 +536,7 @@ class TOCService:
         group_progress: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Build organizer guidance for lifecycle progression in the Overview tab."""
-        status = str(tournament.status or '').lower()
+        status = str(getattr(tournament, 'get_effective_status', lambda: tournament.status)() or '').lower()
         fmt = str(tournament.format or '').lower().replace('-', '_')
         is_group_flow = fmt in ('group_playoff', 'group_stage')
 
@@ -572,6 +577,11 @@ class TOCService:
         live_done = status in ('live', 'completed', 'archived')
         completed_done = status in ('completed', 'archived')
 
+        # Resolve current stage for group_playoff tournaments
+        inner_stage = None
+        if is_group_flow and fmt == 'group_playoff':
+            inner_stage = tournament.get_current_stage() if hasattr(tournament, 'get_current_stage') else None
+
         if is_group_flow:
             steps = [
                 {'key': 'setup', 'label': 'Setup', 'icon': 'settings-2'},
@@ -580,20 +590,27 @@ class TOCService:
                 {'key': 'generate_matches', 'label': 'Generate Matches', 'icon': 'swords'},
                 {'key': 'scheduling', 'label': 'Scheduling', 'icon': 'calendar-days'},
             ]
-            # For GROUP_PLAYOFF format, add the knockout bracket step
+            # For GROUP_PLAYOFF, split live into two sub-phases
             if fmt == 'group_playoff':
+                steps.append({'key': 'group_stage_live', 'label': 'Group Stage', 'icon': 'users'})
                 steps.append({'key': 'generate_playoffs', 'label': 'Playoffs', 'icon': 'trophy'})
-            steps += [
-                {'key': 'live', 'label': 'Live', 'icon': 'radio'},
-                {'key': 'completed', 'label': 'Completed', 'icon': 'flag'},
-            ]
+                steps.append({'key': 'knockout_live', 'label': 'Knockout', 'icon': 'swords'})
+            else:
+                steps.append({'key': 'live', 'label': 'Live', 'icon': 'radio'})
+            steps.append({'key': 'completed', 'label': 'Completed', 'icon': 'flag'})
+
+            group_stage_done = group_stage_complete or (inner_stage == 'knockout_stage')
+            knockout_live_or_done = inner_stage == 'knockout_stage' and live_done
+
             done_map = {
                 'setup': setup_done,
                 'registration': registration_done,
                 'draw_groups': groups_drawn,
                 'generate_matches': group_matches_generated,
                 'scheduling': scheduling_done,
+                'group_stage_live': group_stage_done,
                 'generate_playoffs': knockout_bracket_generated,
+                'knockout_live': completed_done,
                 'live': live_done,
                 'completed': completed_done,
             }
@@ -618,7 +635,13 @@ class TOCService:
         if status in ('completed', 'archived'):
             current_key = 'completed'
         elif status == 'live':
-            current_key = 'live'
+            # Stage-aware current key for group_playoff
+            if fmt == 'group_playoff' and inner_stage == 'knockout_stage':
+                current_key = 'knockout_live'
+            elif fmt == 'group_playoff' and inner_stage == 'group_stage':
+                current_key = 'group_stage_live'
+            else:
+                current_key = 'live'
         else:
             current_key = next((step['key'] for step in steps if not done_map.get(step['key'], False)), steps[-1]['key'])
 
@@ -654,8 +677,16 @@ class TOCService:
                 'label': 'Generate round-robin matches from the completed group draw.',
                 'tab': 'matches',
             },
+            'group_stage_live': {
+                'label': 'Group stage is live. Monitor matches and standings.',
+                'tab': 'standings',
+            },
             'generate_playoffs': {
                 'label': 'Group stage complete! Generate the playoff bracket from advancers.',
+                'tab': 'brackets',
+            },
+            'knockout_live': {
+                'label': 'Knockout stage is live. Monitor bracket matches and resolve disputes.',
                 'tab': 'brackets',
             },
             'generate_bracket': {

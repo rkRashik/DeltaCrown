@@ -8,7 +8,7 @@
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
     <div>
       <h2 class="font-display font-black text-4xl text-white tracking-wide">Feed & Updates</h2>
-      <p class="font-mono text-xs text-gray-400 mt-2 tracking-wide">Live broadcast from Tournament Admins.</p>
+      <p class="font-mono text-xs text-gray-400 mt-2 tracking-wide">Live broadcast from Tournament Admins.{% if stage_display %} <span class="text-[#FFB800] font-bold">· {{ stage_display }}</span>{% endif %}</p>
     </div>
     <div class="flex bg-black/40 p-1 rounded-xl border border-white/10" id="hub-ann-filters">
       <button type="button" data-hub-feed-filter="all" class="px-5 py-2 rounded-lg bg-white/10 text-white text-xs font-bold">All</button>
@@ -18,7 +18,97 @@
   </div>
 
   <div class="space-y-5" id="hub-announcements-feed">
-    {% for ann in announcements %}
+    {% if stage_display and effective_status == 'live' %}
+    <div class="premium-card p-6 md:p-8 border-l-4 border-l-[#FFB800] relative overflow-hidden">
+      <div class="absolute right-0 top-0 p-6 opacity-5 pointer-events-none">
+        <i data-lucide="trophy" class="w-28 h-28 text-[#FFB800]"></i>
+      </div>
+      <div class="flex items-center gap-3 mb-4 relative z-10">
+        <span class="hub-badge bg-[#FFB800]/10 text-[#FFB800] border border-[#FFB800]/30">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#FFB800] animate-pulse"></span> Current Stage
+        </span>
+        <span class="font-mono text-[10px] text-gray-400">Now</span>
+      </div>
+      <h3 class="font-display font-bold text-xl text-white mb-3 relative z-10">{{ stage_display }} is Active</h3>
+      <p class="text-sm text-gray-400 leading-relaxed relative z-10 max-w-3xl mb-4">
+        {% if stage_display == 'Knockout Stage' %}
+        The knockout bracket is live. Single-elimination — every match matters.
+        {% elif stage_display == 'Group Stage' %}
+        Group stage matches are underway. Top performers advance to knockout rounds.
+        {% else %}
+        Tournament is currently active.
+        {% endif %}
+      </p>
+      <div class="flex flex-wrap gap-2 relative z-10">
+        {% if stage_display == 'Knockout Stage' %}
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="px-3 py-1.5 text-[10px] font-bold text-[#00F0FF] bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-lg hover:bg-[#00F0FF]/20 transition uppercase tracking-wider">
+          <i data-lucide="git-branch" class="w-3 h-3 inline mr-0.5"></i> View Bracket
+        </button>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["matches"]' class="px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 border border-white/[0.06] rounded-lg hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
+          <i data-lucide="swords" class="w-3 h-3 inline mr-0.5"></i> My Matches
+        </button>
+        {% elif stage_display == 'Group Stage' %}
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["standings"]' class="px-3 py-1.5 text-[10px] font-bold text-[#00F0FF] bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-lg hover:bg-[#00F0FF]/20 transition uppercase tracking-wider">
+          <i data-lucide="bar-chart-3" class="w-3 h-3 inline mr-0.5"></i> Standings
+        </button>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["matches"]' class="px-3 py-1.5 text-[10px] font-bold text-gray-400 bg-white/5 border border-white/[0.06] rounded-lg hover:bg-white/10 hover:text-white transition uppercase tracking-wider">
+          <i data-lucide="swords" class="w-3 h-3 inline mr-0.5"></i> My Matches
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Participant intelligence card — loaded dynamically #}
+    <div id="hub-ann-intelligence" class="hidden premium-card p-5 md:p-6 border-l-4 border-l-[#00F0FF] relative overflow-hidden">
+    </div>
+    {% endif %}
+    {% if hub_lifecycle_events or hub_manual_announcements or announcements %}
+
+    {# ── Lifecycle Intelligence Strip ── #}
+    {% if hub_lifecycle_events %}
+    <div class="space-y-1.5 mb-5">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="sparkles" class="w-3 h-3 text-gray-600"></i>
+        <span class="text-[10px] font-bold text-gray-600 uppercase tracking-[0.15em]">Tournament Intelligence</span>
+      </div>
+      {% for ann in hub_lifecycle_events %}
+      <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg
+        {% if ann.type == 'urgent' %}bg-[#FF2A55]/[0.06] ring-1 ring-[#FF2A55]/15
+        {% elif ann.type == 'warning' %}bg-[#FFB800]/[0.06] ring-1 ring-[#FFB800]/15
+        {% elif ann.type == 'success' %}bg-[#00FF66]/[0.06] ring-1 ring-[#00FF66]/15
+        {% else %}bg-[#00F0FF]/[0.06] ring-1 ring-[#00F0FF]/15{% endif %}
+        hover:ring-white/10 transition-all duration-200">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0
+          {% if ann.type == 'urgent' %}bg-[#FF2A55]/10
+          {% elif ann.type == 'warning' %}bg-[#FFB800]/10
+          {% elif ann.type == 'success' %}bg-[#00FF66]/10
+          {% else %}bg-[#00F0FF]/10{% endif %}">
+          <i data-lucide="{{ ann.icon|default:'info' }}" class="w-3.5 h-3.5
+            {% if ann.type == 'urgent' %}text-[#FF2A55]
+            {% elif ann.type == 'warning' %}text-[#FFB800]
+            {% elif ann.type == 'success' %}text-[#00FF66]
+            {% else %}text-[#00F0FF]{% endif %}"></i>
+        </div>
+        <div class="flex-1 min-w-0 flex items-center gap-2">
+          {% if ann.is_important %}<span class="w-1.5 h-1.5 rounded-full bg-[#FF2A55] animate-pulse flex-shrink-0"></span>{% endif %}
+          {% if ann.scope == 'personal' %}<span class="text-[8px] font-black text-[#FFB800] bg-[#FFB800]/10 px-1.5 py-0.5 rounded uppercase tracking-wider flex-shrink-0">You</span>{% endif %}
+          <span class="text-xs font-bold text-white/90 truncate">{{ ann.title }}</span>
+          <span class="hidden sm:inline text-[10px] text-gray-500 truncate">{{ ann.message }}</span>
+        </div>
+        {% if ann.time_ago %}<span class="text-[9px] text-gray-700 tabular-nums flex-shrink-0">{{ ann.time_ago }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Manual Announcements ── #}
+    {% if hub_manual_announcements %}
+    <div class="flex items-center gap-3 pt-2 pb-1">
+      <div class="h-px flex-1 bg-white/[0.06]"></div>
+      <span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Announcements</span>
+      <div class="h-px flex-1 bg-white/[0.06]"></div>
+    </div>
+    {% for ann in hub_manual_announcements %}
     <div class="premium-card p-6 md:p-8
       {% if ann.type == 'urgent' %}border-l-4 border-l-[#FF2A55]
       {% elif ann.type == 'warning' %}border-l-4 border-l-[#FFB800]
@@ -57,7 +147,10 @@
 
       <p class="text-sm {% if ann.type == 'urgent' %}text-gray-300{% else %}text-gray-400{% endif %} leading-relaxed relative z-10 max-w-3xl">{{ ann.message }}</p>
     </div>
-    {% empty %}
+    {% endfor %}
+    {% endif %}
+
+    {% else %}
     <div class="premium-card p-10 flex flex-col items-center justify-center text-center">
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="radio" class="w-8 h-8 text-gray-600"></i>
@@ -65,7 +158,7 @@
       <h3 class="font-display text-lg font-bold text-white mb-2">No announcements yet</h3>
       <p class="text-sm text-gray-500 max-w-md">Organizer updates will appear here in real-time.</p>
     </div>
-    {% endfor %}
+    {% endif %}
   </div>
 
   {% comment %}Hidden JS binding elements — hub-engine.js writes to these{% endcomment %}

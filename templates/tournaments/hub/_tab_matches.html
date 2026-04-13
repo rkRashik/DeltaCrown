@@ -9,9 +9,18 @@
   <div class="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-white/10 pb-6 mb-8 gap-6">
     <div>
       <h2 class="font-display font-black text-4xl text-white tracking-wide">Match Lobby</h2>
-      <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time.</p>
+      <p class="font-mono text-xs text-gray-400 mt-3 max-w-2xl leading-relaxed">
+        {% if current_stage == 'knockout_stage' %}Knockout stage is live. Your bracket matches appear below.
+        {% elif current_stage == 'group_stage' %}Group stage matches and standings are active.
+        {% else %}Your active combat staging area. Check in, verify opponents, and orchestrate your matches in real-time.{% endif %}
+      </p>
     </div>
     <div class="flex flex-wrap gap-2 shrink-0">
+      {% if stage_display %}
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00F0FF]/30 bg-[#00F0FF]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#00F0FF]">
+        <i data-lucide="layers" class="w-3.5 h-3.5"></i> {{ stage_display }}
+      </span>
+      {% endif %}
       <span class="inline-flex items-center gap-1.5 rounded-full border border-[#FF2A55]/40 bg-[#FF2A55]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]" style="box-shadow: 0 0 10px rgba(255,42,85,0.2)">
         <i data-lucide="radio-tower" class="w-3.5 h-3.5"></i> Live First
       </span>

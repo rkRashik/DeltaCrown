@@ -192,6 +192,15 @@
         lastFetchedAt = Date.now();
         lastGroupId = groupId;
 
+        // T2-3: Auto-default stage filter to current stage on first load
+        if (!standingsStageFilter && currentStage) {
+          if (currentStage === 'knockout_stage' || currentStage === 'knockout') {
+            standingsStageFilter = 'knockout';
+          } else if (currentStage === 'group_stage' || currentStage === 'group') {
+            standingsStageFilter = 'group';
+          }
+        }
+
         renderDashboard(dashboardData, dashboardData._qualification);
         return dashboardData;
       } catch (e) {
@@ -227,6 +236,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     autoRefreshTimer = setInterval(() => {
       if (!isStandingsTabActive()) return;
       refresh({ silent: true });

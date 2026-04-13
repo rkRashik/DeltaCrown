@@ -1076,6 +1076,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     _refreshTimer = setInterval(() => {
       // Only refresh if overview tab is visible
       const panel = $('[data-tab-content="overview"]');

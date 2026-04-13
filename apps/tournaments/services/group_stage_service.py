@@ -1052,14 +1052,32 @@ class GroupStageService:
             matches = group_matches.get(group.id, [])
             standings_for_group = list(getattr(group, '_active_standings', []))
             
-            # If no matches exist yet, return existing GroupStanding data (for testing/manual entry)
+            # If no completed matches exist, rank from pre-populated standings data
+            # (manual entry, imports, or cancelled-match scenarios).
             if not matches:
+                sorted_standings = sorted(
+                    standings_for_group,
+                    key=lambda s: (
+                        -(s.points or 0),
+                        -(s.matches_won or 0),
+                        -(s.goal_difference or 0),
+                        -(s.goals_for or 0),
+                        s.id,  # deterministic tiebreak
+                    ),
+                )
                 existing_standings = []
-                for standing in sorted(standings_for_group, key=lambda s: s.rank or 0):
+                standings_to_fix = []
+                for rank, standing in enumerate(sorted_standings, start=1):
+                    needs_update = (standing.rank != rank)
+                    standing.rank = rank
+                    standing.is_advancing = rank <= group.advancement_count
+                    standing.is_eliminated = rank > group.advancement_count
+                    if needs_update:
+                        standings_to_fix.append(standing)
                     participant_id = standing.team_id if standing.team_id else standing.user_id
                     existing_standings.append({
                         "participant_id": participant_id,
-                        "rank": standing.rank,
+                        "rank": rank,
                         "points": standing.points,
                         "wins": standing.matches_won,
                         "draws": standing.matches_drawn,
@@ -1069,6 +1087,11 @@ class GroupStageService:
                         "goal_diff": standing.goal_difference,
                         "scored_data": {},
                     })
+                if standings_to_fix:
+                    GroupStanding.objects.bulk_update(
+                        standings_to_fix,
+                        fields=['rank', 'is_advancing', 'is_eliminated'],
+                    )
                 result[group.id] = existing_standings
                 continue
             
@@ -1212,6 +1235,8 @@ class GroupStageService:
                 if not standing_obj:
                     continue
                 standing_obj.rank = rank
+                standing_obj.is_advancing = rank <= group.advancement_count
+                standing_obj.is_eliminated = rank > group.advancement_count
                 standing_obj.matches_played = data["matches_played"]
                 standing_obj.points = data["points"]
                 standing_obj.matches_won = data["wins"]
@@ -1227,6 +1252,8 @@ class GroupStageService:
                     standings_to_update,
                     fields=[
                         'rank',
+                        'is_advancing',
+                        'is_eliminated',
                         'matches_played',
                         'points',
                         'matches_won',

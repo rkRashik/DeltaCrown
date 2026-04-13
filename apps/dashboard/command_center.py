@@ -152,14 +152,26 @@ def build_cc_data(context, user, now):
         if nmi and nmi.get('tournament_slug') == slug:
             opponent = nmi.get('opponent_name', 'TBD')
         match_lobby_url = ''
+        match_state = ''
+        match_time = ''
+        lobby_status = ''
         if (
             slug
             and nmi
             and nmi.get('tournament_slug') == slug
             and nmi.get('match_id')
-            and nmi.get('state') in ('check_in', 'ready', 'live')
         ):
-            match_lobby_url = '/tournaments/%s/matches/%s/room/' % (slug, nmi.get('match_id'))
+            match_state = nmi.get('state', '')
+            if nmi.get('scheduled_time'):
+                match_time = _ts(nmi.get('scheduled_time'), now)
+            if nmi.get('lobby_open'):
+                lobby_status = 'open'
+            elif nmi.get('lobby_status'):
+                lobby_status = nmi.get('lobby_status')
+            if match_state in ('check_in', 'ready', 'live'):
+                match_lobby_url = '/tournaments/%s/matches/%s/room/' % (slug, nmi.get('match_id'))
+        cur_stage_raw = tr.get('current_stage', '')
+        cur_stage = str(cur_stage_raw).replace('_', ' ').title() if cur_stage_raw else ''
         pp = tr.get('prize_pool')
         try:
             prize_str = '{:,} DC'.format(int(pp)) if pp else '\u2014'
@@ -173,7 +185,8 @@ def build_cc_data(context, user, now):
             'gameIcon': tr.get('game_icon', ''),
             'banner': tr.get('banner_url', ''),
             'thumbnail': tr.get('thumbnail_url', ''),
-            'status': (tr.get('reg_status') or tr.get('status') or '').replace('_', ' ').title(),
+            'status': (tr.get('status') or '').replace('_', ' ').title(),
+            'regStatus': (tr.get('reg_status') or '').replace('_', ' ').title(),
             'opponent': opponent,
             'prizePool': prize_str,
             'format': (tr.get('format') or '').replace('_', ' ').title(),
@@ -187,6 +200,10 @@ def build_cc_data(context, user, now):
             'canEnterHub': True,
             'matchLobbyUrl': match_lobby_url,
             'hasMatchLobby': bool(match_lobby_url),
+            'currentStage': cur_stage,
+            'matchState': match_state,
+            'matchTime': match_time,
+            'lobbyStatus': lobby_status,
         })
 
     # --- Inbox (invites + notifications merged) ---

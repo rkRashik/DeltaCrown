@@ -655,7 +655,7 @@
                                 {% if check_in_live %}
                                 <p class="text-sm text-emerald-300 leading-relaxed">Check-in is open now. Open the hub and follow the check-in action before it closes.</p>
                                 {% elif check_in_open_at %}
-                                <p class="text-sm text-gray-400 leading-relaxed">Check-in window opens {{ check_in_open_at|date:"d M Y, h:i A" }}{% if check_in_close_at %} and closes {{ check_in_close_at|date:"d M Y, h:i A" }}{% endif %}. Keep this pass ready.</p>
+                                <p class="text-sm text-gray-400 leading-relaxed">Check-in window opens {{ check_in_open_at|date:"d M Y, g:i A" }}{% if check_in_close_at %} and closes {{ check_in_close_at|date:"d M Y, g:i A" }}{% endif %}. Keep this pass ready.</p>
                                 {% else %}
                                 <p class="text-sm text-gray-400 leading-relaxed">Organizer has not enabled automated check-in yet. Track tournament announcements in hub and Discord.</p>
                                 {% endif %}

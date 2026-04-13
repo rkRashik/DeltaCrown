@@ -1,7 +1,6 @@
-# Python bytecode
+# Python
 __pycache__/
 *.py[cod]
-*.class
 *.pyc
 *.pyo
 
@@ -39,7 +38,7 @@ Thumbs.db
 .vscode/
 *.sublime-*
 
-# Node (if any)
+# Node
 node_modules/
 npm-debug.log
 yarn-error.log
@@ -58,16 +57,13 @@ build/
 *_backup.*
 *_old.*
 
-# Documentation clutter (keep only README.md)
-*_COMPLETE.md
-*_SUMMARY.md
-*_GUIDE.md
-*_REPORT.md
-TASK*.md
-PHASE*.md
-TEAM_*.md
-CLEANUP*.md
-TESTING*.md
+# Local-only planning, docs, and artifacts (keep on disk, not in git)
+docs/
+Documents/
+evidence/
+Artifacts/
+reports/
 
+# Misc
 riot.txt
 

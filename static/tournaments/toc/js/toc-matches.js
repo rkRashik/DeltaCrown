@@ -523,29 +523,44 @@
     _debounceTimer = setTimeout(refresh, 300);
   }
 
-  /* --- Stage phase tabs (Group / Knockout) ---------------- */
+  /* --- Stage phase tabs (Group / Knockout) with context banner -- */
   function renderStageTabs() {
     var container = $('#match-stage-tabs');
     if (!container) return;
     var cfg = window.TOC_CONFIG || {};
     var fmt = (cfg.tournamentFormat || '').toLowerCase();
+    var currentStage = (cfg.currentStage || '').toLowerCase();
     // Only show stage tabs for group_playoff format
     if (fmt !== 'group_playoff') { container.classList.add('hidden'); return; }
     container.classList.remove('hidden');
+
+    // Stage context banner
+    var bannerHtml = '';
+    if (currentStage === 'knockout_stage') {
+      bannerHtml = '<div class="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border border-theme/20 bg-theme/5">'
+        + '<i data-lucide="trophy" class="w-3.5 h-3.5 text-theme"></i>'
+        + '<span class="text-[10px] font-bold text-theme uppercase tracking-widest">Knockout Stage Active</span>'
+        + '<span class="text-[10px] text-dc-text/50 ml-auto">Group stage completed</span></div>';
+    } else if (currentStage === 'group_stage') {
+      bannerHtml = '<div class="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border border-dc-info/20 bg-dc-info/5">'
+        + '<i data-lucide="users" class="w-3.5 h-3.5 text-dc-info"></i>'
+        + '<span class="text-[10px] font-bold text-dc-info uppercase tracking-widest">Group Stage Active</span></div>';
+    }
 
     var tabs = [
       { key: '', label: 'All Matches' },
       { key: 'group_stage', label: 'Group Stage' },
       { key: 'knockout', label: 'Knockout' },
     ];
-    container.innerHTML = tabs.map(function(t) {
+    container.innerHTML = bannerHtml + '<div class="flex items-center gap-2 flex-wrap">' + tabs.map(function(t) {
       var active = activeStageFilter === t.key;
       return '<button data-stage="' + t.key + '" class="' +
         (active ? 'bg-theme/15 text-theme border-theme/30' : 'bg-dc-bg text-dc-text border-dc-border hover:text-white') +
         ' px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border" ' +
         'data-click="TOC.matches.filterStage" data-click-args="[&quot;' + t.key + '&quot;]" role="tab" aria-selected="' + active + '">' +
         t.label + '</button>';
-    }).join('');
+    }).join('') + '</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [container] });
   }
 
   function filterStage(stage) {
@@ -674,7 +689,9 @@
 
       // Swiss round label + BO series vars for card display
       var isSwissRound = (window.TOC_CONFIG || {}).tournamentFormat === 'swiss';
-      var roundPrefix = isSwissRound ? 'Swiss R' : 'R';
+      var roundLabel = m.bracket_round_label || '';
+      var roundPrefix = roundLabel ? '' : (isSwissRound ? 'Swiss R' : 'R');
+      var roundDisplay = roundLabel || (roundPrefix + m.round_number);
       var bestOf = m.best_of || 1;
       var rawGs = m.game_scores || [];
       if (typeof rawGs === 'string') { try { rawGs = JSON.parse(rawGs); } catch (_e) { rawGs = []; } }
@@ -706,7 +723,7 @@
 
         // Row 1: Round/match info + state badge
         '<div class="flex items-center justify-between mb-2">' +
-        '<span class="text-xs font-mono text-dc-text">' + roundPrefix + m.round_number + ' &middot; #' + m.match_number + phaseTag + '</span>' +
+        '<span class="text-xs font-mono text-dc-text">' + esc(roundDisplay) + ' &middot; #' + m.match_number + phaseTag + '</span>' +
         '<div class="flex items-center gap-2">' + checkinHtml + liveDot +
         '<span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ' + sc.cls + '">' + sc.label + '</span>' +
         (m.is_paused ? '<span class="text-xs font-bold text-dc-warning" title="Paused">&#x23F8;</span>' : '') +
@@ -1602,8 +1619,8 @@
       '<h3 class="font-display font-black text-lg text-white">Declare Forfeit</h3>' +
       '<p class="text-sm text-dc-text">Select which participant is forfeiting:</p>' +
       '<div class="grid grid-cols-2 gap-3">' +
-      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + &quot;, &quot; + m.participant1_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant1_name || 'Team A') + '</button>' +
-      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + &quot;, &quot; + m.participant2_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant2_name || 'Team B') + '</button>' +
+      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + ', ' + m.participant1_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant1_name || 'Team A') + '</button>' +
+      '<button data-click="TOC.matches.confirmForfeit" data-click-args="[' + mid + ', ' + m.participant2_id + ']" class="py-3 bg-dc-danger/10 border border-dc-danger/30 text-dc-danger text-sm font-bold rounded-lg hover:bg-dc-danger/20 transition-colors">' + esc(m.participant2_name || 'Team B') + '</button>' +
       '</div></div>';
     showOverlay('forfeit-overlay', html);
   }
@@ -2143,6 +2160,13 @@
   function init() {
     if (!matchesPagination.page_size) {
       matchesPagination.page_size = DEFAULT_PAGE_SIZE;
+    }
+    // Default to knockout tab for group_playoff tournaments in knockout stage
+    var cfg = window.TOC_CONFIG || {};
+    var fmt = (cfg.tournamentFormat || '').toLowerCase();
+    var stage = (cfg.currentStage || '').toLowerCase();
+    if (fmt === 'group_playoff' && stage === 'knockout_stage' && !activeStageFilter) {
+      activeStageFilter = 'knockout';
     }
     refresh({ keepPage: true });
     switchDetailTab('score');

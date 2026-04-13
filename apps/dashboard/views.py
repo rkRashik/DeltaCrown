@@ -355,11 +355,14 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         or getattr(t, "organizer_id", None) == user.id
                         or t.id in vnext_staff_tournament_ids
                     )
+                    _eff = t.get_effective_status() if hasattr(t, 'get_effective_status') else getattr(t, "status", "")
+                    _cur_stage = t.get_current_stage() if hasattr(t, 'get_current_stage') else ''
                     active_tournaments.append({
                         "id": t.id,
                         "name": t.name,
                         "slug": getattr(t, "slug", ""),
-                        "status": getattr(t, "status", ""),
+                        "status": _eff,
+                        "current_stage": _cur_stage or '',
                         "game_name": t.game.display_name if t.game else game_map.get(getattr(t, "game_id", None), ""),
                         "game_icon": _img_url(t.game, "icon") if t.game else None,
                         "banner_url": _img_url(t, "banner_image"),
@@ -369,7 +372,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         "prize_pool": getattr(t, "prize_pool", None),
                         "format": getattr(t, "format", ""),
                         "reg_status": getattr(reg, "status", ""),
-                        "is_live": getattr(t, "status", "") == "live",
+                        "is_live": _eff == "live",
                         "platform": getattr(t, "platform", ""),
                         "max_participants": getattr(t, "max_participants", 0),
                         "can_manage": can_manage,
@@ -404,10 +407,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 .first()
             )
             if nm:
+                from apps.tournaments.services.match_lobby_service import resolve_lobby_state
+                nm_lobby = resolve_lobby_state(nm, now=now)
                 nm_lobby_info = nm.lobby_info if isinstance(nm.lobby_info, dict) else {}
                 nm_lobby_code = (nm_lobby_info.get('lobby_code') or nm_lobby_info.get('code') or '').strip()
-                nm_lobby_status = str(nm_lobby_info.get('status') or '').strip().lower()
-                nm_lobby_open = bool(nm_lobby_code) and nm_lobby_status not in {'closed', 'completed', 'cancelled'}
                 all_participant_ids = set([user.id] + user_team_ids + user_reg_ids)
                 next_match_info = {
                     "match_id": nm.id,
@@ -419,8 +422,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     "is_live": nm.state == "live",
                     "match_room_url": '/tournaments/%s/matches/%s/room/' % (nm.tournament.slug, nm.id) if nm.tournament else '',
                     "lobby_code": nm_lobby_code,
-                    "lobby_status": nm_lobby_status,
-                    "lobby_open": nm_lobby_open,
+                    "lobby_status": nm_lobby['state'],
+                    "lobby_open": nm_lobby['is_open'],
+                    "lobby_state": nm_lobby['state'],
                     "game_icon": _img_url(nm.tournament.game, "icon") if nm.tournament and nm.tournament.game else None,
                 }
 
@@ -438,10 +442,10 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 .order_by("scheduled_time", "round_number", "match_number")[:8]
             )
             for wm in window_matches:
+                from apps.tournaments.services.match_lobby_service import resolve_lobby_state
+                wm_lobby = resolve_lobby_state(wm, now=now)
                 lobby_info = wm.lobby_info if isinstance(wm.lobby_info, dict) else {}
                 lobby_code = (lobby_info.get('lobby_code') or lobby_info.get('code') or '').strip()
-                lobby_status = str(lobby_info.get('status') or '').strip().lower()
-                lobby_open = bool(lobby_code) and lobby_status not in {'closed', 'completed', 'cancelled'}
 
                 starts_in_minutes = max(int((wm.scheduled_time - now).total_seconds() // 60), 0)
 
@@ -454,8 +458,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                     "scheduled_time": wm.scheduled_time,
                     "starts_in_minutes": starts_in_minutes,
                     "lobby_code": lobby_code,
-                    "lobby_status": lobby_status,
-                    "lobby_open": lobby_open,
+                    "lobby_status": wm_lobby['state'],
+                    "lobby_open": wm_lobby['is_open'],
+                    "lobby_state": wm_lobby['state'],
                     "match_room_url": '/tournaments/%s/matches/%s/room/' % (wm.tournament.slug, wm.id) if wm.tournament else '',
                     "game_icon": _img_url(wm.tournament.game, "icon") if wm.tournament and wm.tournament.game else None,
                     "match_state": wm.state,

@@ -94,7 +94,10 @@ class TOCView(LoginRequiredMixin, TemplateView):
             'accent': getattr(game, 'accent_color', '#06B6D4') or '#06B6D4',
             'primary_rgb': getattr(game, 'primary_color_rgb', '59, 130, 246') if game else '59, 130, 246',
         }
-        ctx['status'] = t.status
+        ctx['status'] = getattr(t, 'get_effective_status', lambda: t.status)()
+        ctx['effective_status_display'] = dict(Tournament.STATUS_CHOICES).get(
+            ctx['status'], t.get_status_display()
+        )
         ctx['is_organizer'] = (t.organizer_id == self.request.user.id)
         ctx['is_frozen'] = bool((t.config or {}).get('frozen'))
         ctx['is_official'] = getattr(t, 'is_official', False)
@@ -172,6 +175,7 @@ class TOCView(LoginRequiredMixin, TemplateView):
         ctx['has_brackets'] = has_brackets
         ctx['has_groups'] = has_groups
         ctx['tournament_format'] = fmt
+        ctx['current_stage'] = t.get_current_stage() if hasattr(t, 'get_current_stage') else ''
 
         # Provide initial settings payload so Settings tab can hydrate even if
         # runtime API calls fail due transient client/network issues.

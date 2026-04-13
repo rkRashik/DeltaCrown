@@ -391,20 +391,21 @@ def team_manage(request, team_slug, org_slug=None):
             for reg in team_regs[:10]:
                 t = reg.tournament
                 if t:
+                    _eff = t.get_effective_status() if hasattr(t, 'get_effective_status') else t.status
                     entry = {
                         'id': t.id,
                         'name': t.name,
                         'slug': getattr(t, 'slug', ''),
-                        'status': getattr(t, 'status', ''),
+                        'status': _eff,
                         'game_name': t.game.display_name if t.game else '',
                         'game_icon': t.game.icon.url if t.game and t.game.icon else None,
                         'tournament_start': getattr(t, 'tournament_start', None),
                         'prize_pool': getattr(t, 'prize_pool', None),
                         'format': getattr(t, 'format', ''),
                         'reg_status': getattr(reg, 'status', ''),
-                        'is_live': t.status == 'live',
+                        'is_live': _eff == 'live',
                     }
-                    if t.status == 'completed':
+                    if _eff == 'completed':
                         team_tournament_history.append(entry)
                     else:
                         team_tournaments.append(entry)

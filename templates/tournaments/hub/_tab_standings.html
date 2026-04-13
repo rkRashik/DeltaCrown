@@ -9,11 +9,47 @@
   {% comment %}── Header — exactly matches demo ────────────────────────{% endcomment %}
   <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
     <div>
-      <h2 class="font-display font-black text-4xl text-white tracking-wide">Rankings</h2>
-      <p class="font-mono text-xs text-gray-400 mt-2">Group stage leaderboard. Data updates strictly post-match.</p>
+      <h2 class="font-display font-black text-4xl text-white tracking-wide">Standings</h2>
+      <p class="font-mono text-xs text-gray-400 mt-2">
+        {% if current_stage == 'knockout_stage' and tournament.format == 'group_playoff' %}Final group rankings.
+        {% elif current_stage == 'group_stage' %}Live group stage leaderboard. Data updates strictly post-match.
+        {% else %}Tournament standings. Data updates strictly post-match.{% endif %}
+      </p>
     </div>
-    <span id="standings-format-badge" class="hub-badge bg-black/50 border border-white/10 text-gray-300 px-4 py-2 text-xs">{{ tournament.get_format_display|default:"Phase: Groups" }}</span>
+    <div class="flex items-center gap-2">
+      {% if current_stage == 'knockout_stage' %}
+      <span class="hub-badge bg-[#00FF66]/10 border border-[#00FF66]/20 text-[#00FF66] px-3 py-1.5 text-[10px] font-black">Groups Completed</span>
+      {% endif %}
+      <span id="standings-format-badge" class="hub-badge bg-black/50 border border-white/10 text-gray-300 px-4 py-2 text-xs">{{ tournament.get_format_display|default:"Phase: Groups" }}</span>
+    </div>
   </div>
+
+  {% comment %}── Participant intelligence banner (populated by JS) ──{% endcomment %}
+  <div id="hub-standings-intelligence" class="hidden mb-6"></div>
+
+  {% if current_stage == 'knockout_stage' %}
+  {% comment %}── Knockout transition CTA ─────────────────────────────{% endcomment %}
+  <div class="mb-6 rounded-xl overflow-hidden border border-emerald-500/20 bg-[#0e0e18] relative">
+    <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] to-transparent pointer-events-none"></div>
+    <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
+      <div class="flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 flex-shrink-0">
+          <i data-lucide="swords" class="w-4.5 h-4.5 text-emerald-400"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 mb-0.5">
+            <p class="text-sm font-display font-black text-white">Knockout Bracket is Live</p>
+            <span class="inline-flex items-center gap-1 text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Active</span>
+          </div>
+          <p class="text-[11px] text-gray-500">Top qualifiers from group stage now compete in the bracket</p>
+        </div>
+      </div>
+      <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="px-5 py-2.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 ring-1 ring-emerald-400/30 inline-flex items-center gap-2 flex-shrink-0">
+        <i data-lucide="git-branch" class="w-4 h-4"></i> View Bracket
+      </button>
+    </div>
+  </div>
+  {% endif %}
 
   {% comment %}── Loading Skeleton ────────────────────────────────────────{% endcomment %}
   <div id="standings-skeleton" class="space-y-4 animate-pulse">

@@ -834,6 +834,11 @@
         },
     };
 
+    const TERMINAL_STATUSES = ['completed', 'archived', 'cancelled'];
+    function isTerminalStatus() {
+        return TERMINAL_STATUSES.includes((CFG.status || '').toLowerCase());
+    }
+
     window.TOC = {
         config: CFG,
         slug: CFG.tournamentSlug || '',
@@ -848,6 +853,7 @@
         toast,
         cmdk,
         badge,
+        isTerminalStatus,
     };
 
 })();

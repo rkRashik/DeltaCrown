@@ -23,8 +23,10 @@ NOT cloned:
 import copy
 import logging
 import re
+from datetime import timedelta
 
 from django.db import transaction
+from django.utils import timezone
 from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
@@ -104,6 +106,11 @@ class TournamentCloningService:
         new_slug = _unique_slug(slugify(base_name))
 
         # 2. Copy core fields
+        #    Dates: preserve source offsets so the organizer has a sensible
+        #    starting point.  If source dates are missing, use now+7d placeholder
+        #    because registration_start/end/tournament_start are NOT NULL.
+        _now = timezone.now()
+        _placeholder = _now + timedelta(days=7)
         new_t = Tournament(
             name=base_name,
             slug=new_slug,
@@ -112,11 +119,10 @@ class TournamentCloningService:
             status="draft",
             is_featured=False,
             is_official=False,
-            # Dates: start blank — organizer must set dates before publishing
-            registration_start=None,
-            registration_end=None,
-            tournament_start=None,
-            tournament_end=None,
+            registration_start=source.registration_start or _placeholder,
+            registration_end=source.registration_end or (_placeholder + timedelta(days=3)),
+            tournament_start=source.tournament_start or (_placeholder + timedelta(days=5)),
+            tournament_end=source.tournament_end,  # nullable
             # Counters reset
             total_registrations=0,
             total_matches=0,

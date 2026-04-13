@@ -1735,17 +1735,17 @@ body.hub-mobile-nav-open {
 /* ── Round Column ── */
 .bk-col {
   flex: 0 0 auto;
-  min-width: 210px;
+  min-width: 260px;
   z-index: 2;
   position: relative;
 }
 .bk-col-title {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #4B5563;
-  margin-bottom: 0.75rem;
+  color: #6B7280;
+  margin-bottom: 0.85rem;
   text-align: center;
 }
 .bk-col-body {
@@ -1756,20 +1756,19 @@ body.hub-mobile-nav-open {
 
 /* ── Match Card ── */
 .bk-match {
-  background: linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(13, 13, 17, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  background: linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(14, 14, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 0.75rem;
-  overflow: hidden;
-  margin: 4px 0;
+  overflow: visible;
+  margin: 6px 0;
   transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
   position: relative;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 .bk-match:hover {
   border-color: rgba(0, 240, 255, 0.3);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 240, 255, 0.1);
-  background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(17, 17, 24, 0.92) 100%);
+  background: linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(17, 17, 24, 0.95) 100%);
   transform: translateY(-1px);
 }
 .bk-match.bk-live {
@@ -1777,8 +1776,23 @@ body.hub-mobile-nav-open {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 24px rgba(255, 42, 85, 0.15);
   animation: bkPulseCard 2s ease-in-out infinite alternate;
 }
-.bk-match.bk-done { opacity: 0.75; }
+.bk-match.bk-done { opacity: 0.92; }
 .bk-match.bk-done:hover { opacity: 1; }
+.bk-match.bk-mine {
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 14px rgba(0, 240, 255, 0.15);
+}
+.bk-match.bk-mine::before {
+  content: '★ YOUR MATCH';
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(0, 240, 255, 0.6);
+  z-index: 3;
+}
 
 @keyframes bkPulseCard {
   from { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 14px rgba(255, 42, 85, 0.1); }
@@ -1790,14 +1804,15 @@ body.hub-mobile-nav-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 8px;
-  min-height: 14px;
+  padding: 5px 12px 3px;
+  min-height: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .bk-mnum {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.40);
   font-family: 'Outfit', 'Space Grotesk', monospace;
 }
 .bk-badge-live {
@@ -1826,22 +1841,21 @@ body.hub-mobile-nav-open {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 7px 12px;
 }
 .bk-team-meta {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   min-width: 0;
   flex: 1;
 }
 .bk-team-avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1855,38 +1869,125 @@ body.hub-mobile-nav-open {
   display: block;
 }
 .bk-team-avatar-initial {
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   font-weight: 800;
-  color: #6B7280;
+  color: #9CA3AF;
   text-transform: uppercase;
   line-height: 1;
 }
 .bk-name {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #9CA3AF;
+  color: #E5E7EB;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 128px;
+  max-width: 155px;
 }
 .bk-w .bk-name { color: #FFFFFF; font-weight: 700; }
 .bk-sc {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
-  color: #4B5563;
-  min-width: 1.2rem;
+  color: #9CA3AF;
+  min-width: 1.4rem;
   text-align: center;
 }
 .bk-w .bk-sc { color: #00FF66; text-shadow: 0 0 8px rgba(0, 255, 102, 0.3); }
 
+/* ── VS Divider ── */
+.bk-vs {
+  text-align: center;
+  padding: 2px 0;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.25);
+  user-select: none;
+}
+.bk-live .bk-vs { color: rgba(0, 240, 255, 0.5); }
+.bk-mine .bk-vs { color: rgba(0, 240, 255, 0.35); }
+
+/* ── Status Badges (class-based) ── */
+.bk-badge-up {
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(255, 184, 0, 0.7);
+}
+.bk-badge-up.bk-badge-tbd {
+  color: #374151;
+}
+.bk-badge-up.bk-badge-sched-dt {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(219, 234, 254, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10rem;
+}
+.bk-badge-up.bk-badge-lobby {
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(0, 240, 255, 0.85);
+}
+.bk-badge-up.bk-badge-expired {
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(239, 68, 68, 0.7);
+}
+.bk-badge-ft {
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #374151;
+}
+
+/* ── TBD Match (future rounds, no players assigned) ── */
+.bk-match.bk-tbd {
+  border-color: rgba(255, 255, 255, 0.10);
+  opacity: 0.65;
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+}
+.bk-match.bk-tbd:hover {
+  opacity: 0.8;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── Scheduled Match (real players assigned, awaiting play) ── */
+.bk-match.bk-sched {
+  border-color: rgba(255, 184, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 12px rgba(255, 184, 0, 0.06);
+  background: linear-gradient(160deg, rgba(255, 184, 0, 0.04) 0%, rgba(14, 14, 20, 0.95) 100%);
+}
+.bk-match.bk-sched:hover {
+  border-color: rgba(255, 184, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 184, 0, 0.12);
+}
+.bk-match.bk-sched .bk-name {
+  color: #F3F4F6;
+  font-weight: 700;
+}
+
 /* ── SVG Connector Lines ── */
 .bk-svg { overflow: visible; }
 .bk-line {
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 1.5;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 2;
   fill: none;
+}
+.bk-line-mine {
+  stroke: rgba(0, 240, 255, 0.35);
+  stroke-width: 2;
+  fill: none;
+  filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.2));
 }
 
 /* ── Bracket Zoom Controls ── */
@@ -2923,27 +3024,27 @@ body.hub-mobile-nav-open {
     padding-bottom: 1.5rem;
   }
   .bk-col {
-    min-width: 180px;
+    min-width: 210px;
   }
   .bk-match {
-    margin: 2px 0;
+    margin: 3px 0;
   }
   .bk-name {
-    max-width: 90px;
-    font-size: 0.6rem;
+    max-width: 110px;
+    font-size: 0.7rem;
   }
   .bk-team-avatar {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
   }
   .bk-team-avatar-initial {
-    font-size: 0.45rem;
+    font-size: 0.5rem;
   }
   .bk-sc {
-    font-size: 0.65rem;
+    font-size: 0.72rem;
   }
   .bk-col-title {
-    font-size: 0.5rem;
+    font-size: 0.58rem;
   }
   .bk-label {
     font-size: 0.55rem;

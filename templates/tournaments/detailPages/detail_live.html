@@ -118,6 +118,9 @@ Inspired by FotMob live matches + VCT brackets:
                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
                     Live
                 </div>
+                {% if current_stage_label %}
+                <span class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-lg border {% if current_stage == 'knockout_stage' %}text-amber-300 border-amber-400/20 bg-amber-400/10{% else %}text-cyan-300 border-cyan-400/20 bg-cyan-400/10{% endif %}">{{ current_stage_label }}</span>
+                {% endif %}
                 <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="matches" data-click="switchTab" data-click-args='["matches"]'>Matches</button>
                 {% if show_standings %}
                 <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-tab="standings" data-click="switchTab" data-click-args='["standings"]'>Standings</button>
@@ -159,6 +162,8 @@ Inspired by FotMob live matches + VCT brackets:
                 <p class="text-sm font-bold text-white">
                     {% if user_next_match.state == 'live' %}
                     <span class="text-red-400">IN PROGRESS</span>
+                    {% elif is_group_playoff and current_stage_label %}
+                    {{ current_stage_label }} · Match #{{ user_next_match.match_number }}
                     {% else %}
                     Round {{ user_next_match.round_number }} · Match #{{ user_next_match.match_number }}
                     {% endif %}
@@ -196,13 +201,34 @@ Inspired by FotMob live matches + VCT brackets:
             <h3 class="text-base font-display font-bold text-white">Tournament Progress</h3>
         </div>
         <span class="text-xs text-gray-400">
-            {% if current_round and total_rounds %}
+            {% if group_stage_done %}
+            Knockout Stage
+            {% elif current_round and total_rounds %}
             Round {{ current_round }} of {{ total_rounds }}
             {% elif is_group_playoff and current_stage_label %}
             {{ current_stage_label }}
             {% endif %}
         </span>
     </div>
+    {% if group_stage_done %}
+    <div class="flex items-center gap-3 mb-3">
+        <div class="flex items-center gap-1.5 text-[10px]">
+            <span class="w-4 h-4 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="check" class="w-2.5 h-2.5 text-emerald-400"></i>
+            </span>
+            <span class="text-emerald-400 font-bold">Group Stage Complete</span>
+            <span class="text-gray-600">· {{ group_match_count }} matches</span>
+        </div>
+        <span class="text-gray-700">→</span>
+        <div class="flex items-center gap-1.5 text-[10px]">
+            <span class="w-4 h-4 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="trophy" class="w-2.5 h-2.5 text-amber-400"></i>
+            </span>
+            <span class="text-amber-400 font-bold">Knockout</span>
+            <span class="text-gray-600">· {{ knockout_completed }}/{{ knockout_total }} played</span>
+        </div>
+    </div>
+    {% endif %}
     <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
         <div class="h-full rounded-full transition-all duration-700 relative" style="width: {{ match_progress_pct }}%; background: linear-gradient(90deg, #ef4444, #f97316);">
             <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
@@ -290,7 +316,19 @@ Inspired by FotMob live matches + VCT brackets:
     <div class="flex items-center gap-2 mb-2">
         <i data-lucide="layers" class="w-4 h-4 game-accent"></i>
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Group Stage Matches</h3>
+        {% if current_stage == 'knockout_stage' %}
+        <span class="ml-auto text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">Complete</span>
+        {% endif %}
     </div>
+
+    {% if current_stage == 'knockout_stage' %}
+    <div class="section-card p-4 rounded-xl border border-emerald-400/10">
+        <div class="flex items-center gap-2 text-sm text-gray-400">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>Group stage is complete. See <strong class="text-white">Standings</strong> tab for final group results. Knockout bracket is now live.</span>
+        </div>
+    </div>
+    {% endif %}
 
     {% for group in groups %}
     <div class="section-card p-4 rounded-xl">
@@ -494,6 +532,9 @@ Inspired by FotMob live matches + VCT brackets:
         <div class="flex items-center gap-2 mb-2">
             <i data-lucide="list-ordered" class="w-5 h-5 game-accent"></i>
             <h3 class="text-base font-display font-bold text-white">Standings</h3>
+            {% if current_stage == 'knockout_stage' %}
+            <span class="ml-auto text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">Group Stage Complete</span>
+            {% endif %}
         </div>
 
         {% if standings_source == 'group_stage' and group_standings_summary %}
@@ -611,57 +652,202 @@ Inspired by FotMob live matches + VCT brackets:
 <!-- ═══════════ TAB PANEL: BRACKET ═══════════ -->
 <div id="tab-panel-bracket" class="tab-panel" style="display: none;">
     <div class="section-card p-6 sm:p-8 rounded-2xl">
-        <div class="flex items-center gap-2 mb-4">
-            <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
-            <h3 class="text-lg font-display font-bold text-white">Bracket</h3>
-            <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ml-auto text-[10px] font-bold game-accent uppercase tracking-wider hover:text-white transition">
-                Full View →
+
+        {% if bracket %}
+        {# ── Header with stage context + Full Bracket CTA ── #}
+        <div class="flex items-center justify-between mb-6 gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                    <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-display font-black text-white">Knockout Bracket</h3>
+                        {% if current_stage == 'knockout_stage' %}
+                        <span class="inline-flex items-center gap-1 text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Live</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-0.5">
+                        {% if is_group_playoff %}Single elimination · Seeded from group standings{% else %}{{ bracket.get_format_display|default:"Single Elimination" }}{% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="/tournaments/{{ tournament.slug }}/bracket/" class="px-5 py-2.5 text-[11px] font-extrabold text-white bg-amber-600 hover:bg-amber-500 rounded-xl uppercase tracking-wider transition shadow-lg shadow-amber-600/25 ring-1 ring-amber-500/30 inline-flex items-center gap-2 flex-shrink-0">
+                <i data-lucide="git-branch" class="w-4 h-4"></i> Full Bracket
             </a>
         </div>
 
-        {% if bracket %}
-        <div class="overflow-x-auto no-scrollbar">
-            <div class="min-w-[600px] flex gap-8">
-                {% regroup matches|dictsort:"round_number" by round_number as rounds %}
-                {% for round in rounds %}
-                {% if round.list.0.phase == 'knockout_stage' or not is_group_playoff %}
-                <div class="flex-1 space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
-                        {% with round.grouper as rn %}
-                        {% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
-                        {% endwith %}
-                    </h4>
-                    {% for m in round.list %}
-                    {% if m.phase == 'knockout_stage' or not is_group_playoff %}
-                    <div class="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center space-y-1.5 {% if m.is_live %}border-red-500/20{% endif %}">
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team1_name|truncatechars:12 }}</span>
-                            <span class="font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score1|default:"0" }}{% endif %}</span>
+        {# ── Round roadmap bar ── #}
+        <div id="bkt-roadmap" class="flex items-center gap-1.5 mb-6 px-1">
+            {% regroup matches|dictsortreversed:"round_number" by round_number as bkt_preview_rounds %}
+            {% for round in bkt_preview_rounds %}
+            {% if round.list.0.phase == 'knockout_stage' or not is_group_playoff %}
+            {% with round.grouper as rn %}
+            <div class="flex-1 group">
+                <div class="text-[8px] font-black uppercase tracking-widest mb-1.5 text-center {% if round.list.0.state == 'completed' or round.list.0.state == 'forfeit' %}text-emerald-500/70{% elif round.list.0.state == 'live' %}text-red-400{% elif round.list.0.state == 'scheduled' or round.list.0.state == 'check_in' or round.list.0.state == 'ready' %}text-amber-400{% else %}text-gray-600{% endif %}">
+                    {% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
+                </div>
+                <div class="h-2 rounded-full transition-all {% if round.list.0.state == 'completed' or round.list.0.state == 'forfeit' %}bg-emerald-500/50{% elif round.list.0.state == 'live' %}bg-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.3)]{% elif round.list.0.state == 'scheduled' or round.list.0.state == 'check_in' or round.list.0.state == 'ready' %}bg-amber-500/40{% else %}bg-white/[0.06]{% endif %}"></div>
+                <div class="text-[8px] text-gray-600 mt-1 text-center">{{ round.list|length }} match{{ round.list|length|pluralize:"es" }}</div>
+            </div>
+            {% endwith %}
+            {% if not forloop.last %}<div class="text-gray-700 text-[10px] font-bold mt-[-4px]">›</div>{% endif %}
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {# ── Current round: detailed match cards ── #}
+        {% regroup matches|dictsortreversed:"round_number" by round_number as bkt_rounds %}
+        {% with bkt_rounds.0 as current_bkt_round %}
+        {% if current_bkt_round %}
+        <div class="mb-5">
+            <div class="flex items-center gap-2.5 mb-3">
+                <div class="w-1.5 h-5 rounded-full bg-amber-500"></div>
+                <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest">Current Round</span>
+                <span class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+                    {% with current_bkt_round.grouper as rn %}· {% if current_bkt_round.list.0.round_label %}{{ current_bkt_round.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}{% endwith %}
+                </span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for m in current_bkt_round.list %}
+                {% if m.phase == 'knockout_stage' or not is_group_playoff %}
+                <div class="rounded-xl border {% if m.is_live %}border-red-500/30 bg-gradient-to-br from-red-500/[0.05] to-transparent{% elif m.state == 'completed' %}border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.03] to-transparent{% else %}border-white/[0.08] bg-gradient-to-br from-white/[0.02] to-transparent{% endif %} p-4 relative overflow-hidden group/card hover:border-white/[0.12] transition-colors">
+                    {% if m.is_live %}<div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 via-red-400/50 to-transparent"></div>{% endif %}
+                    {# Match header: number + state + date #}
+                    <div class="flex items-center justify-between mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[8px] font-bold text-gray-600 uppercase tracking-wider bg-white/[0.03] px-1.5 py-0.5 rounded">M{{ m.match_number }}</span>
+                            {% if m.best_of_label %}<span class="text-[8px] font-bold text-gray-700 uppercase">{{ m.best_of_label }}</span>{% endif %}
                         </div>
-                        <div class="w-full h-px bg-white/5"></div>
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team2_name|truncatechars:12 }}</span>
-                            <span class="font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score2|default:"0" }}{% endif %}</span>
+                        <div class="flex items-center gap-2">
+                            {% if m.start_time_display %}
+                            <span class="text-[9px] font-medium text-gray-500 font-mono">{{ m.start_time_display }}</span>
+                            {% endif %}
+                            {% if m.is_live %}
+                            <span class="text-[8px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></span>Live</span>
+                            {% elif m.state == 'completed' %}
+                            <span class="text-[8px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Complete</span>
+                            {% elif m.state == 'check_in' %}
+                            <span class="text-[8px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Check-in</span>
+                            {% elif m.state == 'ready' %}
+                            <span class="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Ready</span>
+                            {% elif m.state == 'scheduled' %}
+                            <span class="text-[8px] font-bold text-gray-500 bg-white/[0.04] px-1.5 py-0.5 rounded uppercase tracking-wider">{% if m.starts_at_relative %}{{ m.starts_at_relative }}{% else %}Scheduled{% endif %}</span>
+                            {% endif %}
                         </div>
-                        {% if m.is_live %}
-                        <span class="text-[8px] text-red-400 uppercase font-bold tracking-widest">● Live</span>
-                        {% endif %}
                     </div>
-                    {% endif %}
-                    {% endfor %}
+                    {# Player 1 #}
+                    <div class="flex items-center gap-2.5 py-2 {% if m.state == 'completed' and not m.team1_is_winner %}opacity-40{% endif %}">
+                        {% if m.team1_logo_url %}
+                        <img src="{{ m.team1_logo_url }}" class="w-7 h-7 rounded-full border border-white/[0.1] object-cover flex-shrink-0" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+                        <div class="w-7 h-7 rounded-full border border-white/[0.06] bg-white/[0.04] flex items-center justify-center text-[9px] font-black text-white/30 flex-shrink-0" style="display:none">{{ m.team1_name|slice:":1"|upper }}</div>
+                        {% else %}
+                        <div class="w-7 h-7 rounded-full border border-white/[0.06] bg-white/[0.04] flex items-center justify-center text-[9px] font-black text-white/30 flex-shrink-0">{{ m.team1_name|slice:":1"|upper }}</div>
+                        {% endif %}
+                        <span class="text-sm font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-400{% endif %} truncate flex-1">{{ m.team1_name|truncatechars:20 }}</span>
+                        {% if m.show_scores %}<span class="text-base font-display font-black {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} tabular-nums w-6 text-right">{{ m.score1|default:"0" }}</span>{% endif %}
+                    </div>
+                    {# VS divider #}
+                    <div class="flex items-center gap-2 my-0.5 px-1">
+                        <div class="flex-1 h-px bg-white/[0.05]"></div>
+                        <span class="text-[7px] font-black text-white/[0.08] tracking-[0.3em]">VS</span>
+                        <div class="flex-1 h-px bg-white/[0.05]"></div>
+                    </div>
+                    {# Player 2 #}
+                    <div class="flex items-center gap-2.5 py-2 {% if m.state == 'completed' and not m.team2_is_winner %}opacity-40{% endif %}">
+                        {% if m.team2_logo_url %}
+                        <img src="{{ m.team2_logo_url }}" class="w-7 h-7 rounded-full border border-white/[0.1] object-cover flex-shrink-0" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+                        <div class="w-7 h-7 rounded-full border border-white/[0.06] bg-white/[0.04] flex items-center justify-center text-[9px] font-black text-white/30 flex-shrink-0" style="display:none">{{ m.team2_name|slice:":1"|upper }}</div>
+                        {% else %}
+                        <div class="w-7 h-7 rounded-full border border-white/[0.06] bg-white/[0.04] flex items-center justify-center text-[9px] font-black text-white/30 flex-shrink-0">{{ m.team2_name|slice:":1"|upper }}</div>
+                        {% endif %}
+                        <span class="text-sm font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-400{% endif %} truncate flex-1">{{ m.team2_name|truncatechars:20 }}</span>
+                        {% if m.show_scores %}<span class="text-base font-display font-black {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-600{% endif %} tabular-nums w-6 text-right">{{ m.score2|default:"0" }}</span>{% endif %}
+                    </div>
                 </div>
                 {% endif %}
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
+        {% endwith %}
+
+        {# ── Future rounds: faded TBD cards ── #}
+        {% regroup matches|dictsortreversed:"round_number" by round_number as bkt_future_rounds %}
+        {% for rnd in bkt_future_rounds %}
+        {% if not forloop.first and rnd.list.0.phase == 'knockout_stage' or not forloop.first and not is_group_playoff %}
+        <div class="mb-4 opacity-50">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-1 h-4 rounded-full bg-gray-700"></div>
+                <span class="text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+                    {% with rnd.grouper as rn %}{% if rnd.list.0.round_label %}{{ rnd.list.0.round_label }}{% elif rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}{% endwith %}
+                </span>
+                <span class="text-[9px] text-gray-700">· {{ rnd.list|length }} match{{ rnd.list|length|pluralize:"es" }}</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {% for m in rnd.list %}
+                {% if m.phase == 'knockout_stage' or not is_group_playoff %}
+                <div class="rounded-lg border border-white/[0.04] bg-white/[0.01] p-2.5 text-center">
+                    <div class="text-[8px] font-bold text-gray-700 uppercase tracking-wider mb-1">M{{ m.match_number }}</div>
+                    <div class="text-[10px] text-gray-600 truncate">{{ m.team1_name|default:"TBD"|truncatechars:10 }}</div>
+                    <div class="text-[7px] text-gray-800 my-0.5">vs</div>
+                    <div class="text-[10px] text-gray-600 truncate">{{ m.team2_name|default:"TBD"|truncatechars:10 }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {# ── Footer CTA ── #}
+        <div class="border-t border-white/[0.05] pt-4 flex items-center justify-between">
+            <span class="text-[9px] text-gray-600 uppercase tracking-widest font-bold">
+                {% if bkt_future_rounds|length > 1 %}{{ bkt_future_rounds|length|add:"-1" }} more round{{ bkt_future_rounds|length|add:"-1"|pluralize }} to play{% else %}Bracket preview{% endif %}
+            </span>
+            <a href="/tournaments/{{ tournament.slug }}/bracket/" class="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition uppercase tracking-wider inline-flex items-center gap-1">
+                Full Roadmap <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </a>
+        </div>
+
+        <script>
+        {# Add TBD round hints to bracket roadmap if future rounds are missing #}
+        (function(){
+            var bar=document.getElementById('bkt-roadmap');
+            if(!bar)return;
+            var rounds=bar.querySelectorAll('.group');
+            if(!rounds.length)return;
+            var maxRn=0;
+            rounds.forEach(function(r){
+                var txt=r.querySelector('.text-\\[8px\\]');
+                if(!txt)return;
+                var t=txt.textContent.trim().toLowerCase();
+                if(t.indexOf('quarter')!==-1)maxRn=Math.max(maxRn,3);
+                else if(t.indexOf('semi')!==-1)maxRn=Math.max(maxRn,2);
+                else if(t==='final')maxRn=Math.max(maxRn,1);
+            });
+            var names={2:'Semi-Finals',1:'Final'};
+            for(var rn=maxRn-1;rn>=1;rn--){
+                if(!names[rn])continue;
+                var sep=document.createElement('div');sep.className='text-gray-700 text-[10px] font-bold';sep.style.marginTop='-4px';sep.textContent='›';
+                var col=document.createElement('div');col.className='flex-1 group';
+                col.innerHTML='<div class="text-[8px] font-black uppercase tracking-widest mb-1.5 text-center text-gray-700">'+names[rn]+'</div><div class="h-2 rounded-full bg-white/[0.03]"></div><div class="text-[8px] text-gray-700 mt-1 text-center">TBD</div>';
+                bar.appendChild(sep);bar.appendChild(col);
+            }
+        })();
+        </script>
+
         {% else %}
-        <div class="text-center py-8">
-            <i data-lucide="git-branch" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
-            <p class="text-sm text-gray-500">
+        <div class="text-center py-10">
+            <div class="w-14 h-14 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="git-branch" class="w-7 h-7 text-gray-600"></i>
+            </div>
+            <p class="text-sm font-bold text-gray-400 mb-1">Bracket Not Available Yet</p>
+            <p class="text-xs text-gray-600">
                 {% if is_group_playoff %}
-                Knockout bracket will appear after group stage is complete.
+                The knockout bracket will appear after group stage is complete.
                 {% else %}
-                Bracket visualization will appear here.
+                Bracket visualization will appear when matches are scheduled.
                 {% endif %}
             </p>
         </div>
@@ -837,23 +1023,36 @@ Inspired by FotMob live matches + VCT brackets:
 </div>
 
 {% if is_group_playoff and group_standings_summary %}
-<!-- Group Stage Quick Summary -->
+<!-- Group Stage Summary — Per-group outcomes -->
 <div class="glass p-4 rounded-2xl">
     <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
-        <i data-lucide="layers" class="w-3 h-3"></i> Group Summary
+        <i data-lucide="layers" class="w-3 h-3"></i> Group Stage Results
     </h4>
-    <div class="space-y-3">
+    <div class="space-y-4">
         {% for gs in group_standings_summary %}
         <div>
-            <p class="text-[10px] font-black uppercase tracking-widest mb-1.5" style="color: var(--game-color);">{{ gs.name }}</p>
+            <p class="text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5" style="color: var(--game-color);">
+                <i data-lucide="shield" class="w-3 h-3"></i> {{ gs.name }}
+            </p>
             <div class="space-y-1">
                 {% for a in gs.advancers %}
-                <div class="flex items-center gap-2 text-xs">
+                <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/10">
                     <span class="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center text-[8px] font-black text-emerald-400">{{ a.rank }}</span>
                     {% if a.logo_url %}
                     <img src="{{ a.logo_url }}" alt="" class="w-4 h-4 rounded-full object-cover border border-white/10">
                     {% endif %}
-                    <span class="text-white font-bold truncate">{{ a.name }}</span>
+                    <span class="text-white font-bold truncate flex-1">{{ a.name }}</span>
+                    <span class="text-[8px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Q</span>
+                </div>
+                {% endfor %}
+                {% for o in gs.others %}
+                <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg">
+                    <span class="w-4 h-4 rounded-full bg-white/5 border border-white/[0.08] flex items-center justify-center text-[8px] font-black text-gray-600">{{ o.rank }}</span>
+                    {% if o.logo_url %}
+                    <img src="{{ o.logo_url }}" alt="" class="w-4 h-4 rounded-full object-cover border border-white/10 opacity-50">
+                    {% endif %}
+                    <span class="text-gray-600 font-bold truncate flex-1">{{ o.name }}</span>
+                    <span class="text-[8px] font-black text-red-500/60 uppercase tracking-wider">Elim</span>
                 </div>
                 {% endfor %}
             </div>

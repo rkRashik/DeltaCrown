@@ -476,11 +476,16 @@ class TOCBracketsService:
                 data["is_gf_reset"] = False
             return data
 
+        current_stage = None
+        if hasattr(tournament, 'get_current_stage'):
+            current_stage = tournament.get_current_stage()
+
         return {
             "exists": True,
             "bracket": TOCBracketsService._serialize_bracket(bracket),
             "visualization": viz,
             "nodes": [_annotate(n) for n in nodes],
+            "current_stage": current_stage,
         }
 
     @staticmethod
@@ -701,7 +706,7 @@ class TOCBracketsService:
                 from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
                 TOCNotificationsService.fire_auto_event(
                     tournament,
-                    "group_draw_complete",
+                    "group_draw_completed",
                     {
                         "force_email": force_email,
                         "dedupe": False,
@@ -863,6 +868,8 @@ class TOCBracketsService:
         matches_qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False,
+        ).exclude(
+            state=Match.CANCELLED,
         ).only(
             'id',
             'round_number',

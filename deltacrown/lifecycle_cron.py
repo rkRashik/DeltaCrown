@@ -24,6 +24,12 @@ Tasks executed (in order):
 Beat-only daily tasks (auto_archive, ranking snapshots, analytics) are
 intentionally excluded — they are low-priority and can run when Beat is
 eventually enabled on a paid tier.
+
+Duplicate-execution protection:
+    Uses Django cache (Redis in production) as an atomic lock.  ``cache.add()``
+    is atomic — the first caller wins, subsequent callers within the TTL get a
+    409 Conflict.  The lock auto-expires after LOCK_TTL_SECONDS (default 4 min)
+    so a crashed run cannot permanently block future executions.
 """
 
 from __future__ import annotations
@@ -32,6 +38,7 @@ import logging
 import os
 import time
 
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -39,6 +46,9 @@ from django.views.decorators.http import require_POST
 logger = logging.getLogger(__name__)
 
 _CRON_SECRET = os.environ.get('CRON_SECRET', '')
+_LOCK_KEY = 'lifecycle_cron:running'
+_LOCK_TTL_SECONDS = int(os.environ.get('CRON_LOCK_TTL', '240'))  # 4 min default
+_SLOW_THRESHOLD_MS = 5000
 
 
 @csrf_exempt
@@ -63,27 +73,62 @@ def lifecycle_cron(request):
     if auth != f'Bearer {_CRON_SECRET}':
         return JsonResponse({'error': 'unauthorized'}, status=401)
 
-    # ── Run tasks ───────────────────────────────────────────────────
-    results = {}
+    # ── Duplicate-execution lock ────────────────────────────────────
+    # cache.add() is atomic: returns True only if the key didn't exist.
+    # Lock auto-expires after _LOCK_TTL_SECONDS so a crash can't deadlock.
+    if not cache.add(_LOCK_KEY, True, timeout=_LOCK_TTL_SECONDS):
+        logger.warning('[lifecycle_cron] skipped — another run is still in progress')
+        return JsonResponse(
+            {'status': 'skipped', 'reason': 'concurrent execution'},
+            status=409,
+        )
+
     t0 = time.monotonic()
+    logger.info('[lifecycle_cron] started')
 
-    results['auto_advance'] = _run_auto_advance()
-    results['wrapup'] = _run_wrapup()
-    results['no_show'] = _run_no_show()
-    results['lobby_close'] = _run_lobby_close()
-    results['payment_expiry'] = _run_payment_expiry()
-    results['group_playoff_reconcile'] = _run_group_playoff_reconcile()
-    results['auto_confirm_submissions'] = _run_auto_confirm_submissions()
-    results['dispute_escalation'] = _run_dispute_escalation()
+    try:
+        results = {}
+        tasks = [
+            ('auto_advance', _run_auto_advance),
+            ('wrapup', _run_wrapup),
+            ('no_show', _run_no_show),
+            ('lobby_close', _run_lobby_close),
+            ('payment_expiry', _run_payment_expiry),
+            ('group_playoff_reconcile', _run_group_playoff_reconcile),
+            ('auto_confirm_submissions', _run_auto_confirm_submissions),
+            ('dispute_escalation', _run_dispute_escalation),
+        ]
 
-    elapsed_ms = round((time.monotonic() - t0) * 1000)
-    logger.info('[lifecycle_cron] completed in %dms: %s', elapsed_ms, results)
+        for name, runner in tasks:
+            task_t0 = time.monotonic()
+            results[name] = runner()
+            task_ms = round((time.monotonic() - task_t0) * 1000)
+            results[name]['elapsed_ms'] = task_ms
 
-    return JsonResponse({
-        'status': 'ok',
-        'elapsed_ms': elapsed_ms,
-        'results': results,
-    })
+            level = logging.WARNING if task_ms > _SLOW_THRESHOLD_MS else logging.DEBUG
+            logger.log(level, '[lifecycle_cron] task=%s elapsed=%dms result=%s', name, task_ms, results[name])
+
+        elapsed_ms = round((time.monotonic() - t0) * 1000)
+
+        if elapsed_ms > _SLOW_THRESHOLD_MS:
+            logger.warning('[lifecycle_cron] SLOW RUN completed in %dms', elapsed_ms)
+        else:
+            logger.info('[lifecycle_cron] completed in %dms', elapsed_ms)
+
+        return JsonResponse({
+            'status': 'ok',
+            'elapsed_ms': elapsed_ms,
+            'results': results,
+        })
+    except Exception:
+        elapsed_ms = round((time.monotonic() - t0) * 1000)
+        logger.exception('[lifecycle_cron] FATAL unhandled error after %dms', elapsed_ms)
+        return JsonResponse(
+            {'status': 'error', 'error': 'internal server error', 'elapsed_ms': elapsed_ms},
+            status=500,
+        )
+    finally:
+        cache.delete(_LOCK_KEY)
 
 
 # ── Task Runners ────────────────────────────────────────────────────
@@ -96,7 +141,13 @@ def _run_auto_advance():
     try:
         from apps.tournaments.services.lifecycle_service import TournamentLifecycleService
         result = TournamentLifecycleService.auto_advance_all()
-        return {'ok': True, 'advanced': result or []}
+        advanced = result or []
+        if advanced:
+            for item in advanced:
+                logger.info('[lifecycle_cron] auto_advance transition: %s', item)
+        else:
+            logger.debug('[lifecycle_cron] auto_advance: no tournaments to advance')
+        return {'ok': True, 'advanced': advanced}
     except Exception as exc:
         logger.exception('[lifecycle_cron] auto_advance failed')
         return {'ok': False, 'error': str(exc)}
@@ -123,9 +174,15 @@ def _run_wrapup():
                         t.id, Tournament.COMPLETED,
                         reason=f'Cron: all {total} match(es) complete',
                     )
+                    logger.info(
+                        '[lifecycle_cron] wrapup transition: tournament=%s LIVE→COMPLETED (%d matches)',
+                        t.slug, total,
+                    )
                     completed += 1
                 except Exception:
-                    pass
+                    logger.exception('[lifecycle_cron] wrapup transition failed for tournament=%s', t.slug)
+        if completed == 0:
+            logger.debug('[lifecycle_cron] wrapup: no tournaments ready to complete')
         return {'ok': True, 'completed': completed}
     except Exception as exc:
         logger.exception('[lifecycle_cron] wrapup failed')

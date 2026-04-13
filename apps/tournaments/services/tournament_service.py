@@ -604,9 +604,10 @@ class TournamentService:
         from apps.tournaments.services.group_stage_service import GroupStageService
         from apps.tournaments.services.bracket_service import BracketService
         
-        # Load tournament
+        # Load tournament with row lock to prevent concurrent transitions
+        # (e.g. signal + reconcile task racing).
         try:
-            tournament = Tournament.objects.select_related('game').get(id=tournament_id)
+            tournament = Tournament.objects.select_for_update().select_related('game').get(id=tournament_id)
         except Tournament.DoesNotExist:
             raise ValidationError(f"Tournament with ID {tournament_id} not found")
         

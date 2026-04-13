@@ -40,6 +40,49 @@ class TOCStandingsService:
         )
 
     @staticmethod
+    def _build_name_map(team_ids, user_ids):
+        """Batch-resolve team/user names in 1-2 queries instead of N."""
+        name_map = {}
+        if team_ids:
+            from apps.organizations.models.team import Team as OrgTeam
+            for tid, tname in OrgTeam.objects.filter(id__in=team_ids).values_list("id", "name"):
+                name_map[("team", tid)] = tname or f"Team #{tid}"
+        if user_ids:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            for uid, uname in User.objects.filter(id__in=user_ids).values_list("id", "username"):
+                name_map[("user", uid)] = uname or f"Player #{uid}"
+        return name_map
+
+    @staticmethod
+    def _batch_recent_form(tournament, participant_ids, limit=5):
+        """Batch-fetch recent form for all participants in 1 query."""
+        if not participant_ids:
+            return {}
+        matches = (
+            Match.objects.filter(
+                tournament=tournament,
+                state="completed",
+                is_deleted=False,
+            )
+            .filter(Q(participant1_id__in=participant_ids) | Q(participant2_id__in=participant_ids))
+            .order_by("-completed_at")
+            .values("participant1_id", "participant2_id", "winner_id")
+        )
+        # Collect per-participant results (capped at limit)
+        form_map = {pid: [] for pid in participant_ids}
+        for m in matches:
+            for pid in (m["participant1_id"], m["participant2_id"]):
+                if pid in form_map and len(form_map[pid]) < limit:
+                    if m["winner_id"] == pid:
+                        form_map[pid].append("W")
+                    elif m["winner_id"] is None:
+                        form_map[pid].append("D")
+                    else:
+                        form_map[pid].append("L")
+        return form_map
+
+    @staticmethod
     def get_standings(tournament: Tournament, group_id: str = "", stage: str = "") -> dict:
         """Return full standings data for the tournament."""
         from apps.tournaments.models.group import Group, GroupStanding, GroupStage
@@ -51,9 +94,13 @@ class TOCStandingsService:
         stages = GroupStage.objects.filter(tournament=tournament).values("id", "name", "format", "state")
         stage_list = list(stages)
 
-        group_standings = []
+        # Collect all standings first to batch-resolve names and form
+        all_standings_by_group = {}
+        all_team_ids = set()
+        all_user_ids = set()
+        all_participant_ids = set()
         for g in groups:
-            standings = (
+            standings = list(
                 GroupStanding.objects.filter(group=g, is_deleted=False)
                 .order_by("rank")
                 .values(
@@ -67,27 +114,34 @@ class TOCStandingsService:
                     "is_advancing", "is_eliminated",
                 )
             )
+            all_standings_by_group[g] = standings
+            for s in standings:
+                if s["team_id"]:
+                    all_team_ids.add(s["team_id"])
+                    all_participant_ids.add(s["team_id"])
+                elif s["user_id"]:
+                    all_user_ids.add(s["user_id"])
+                    all_participant_ids.add(s["user_id"])
 
+        # Batch resolve names (1-2 queries) and form (1 query)
+        name_map = TOCStandingsService._build_name_map(all_team_ids, all_user_ids)
+        form_map = TOCStandingsService._batch_recent_form(tournament, all_participant_ids)
+
+        group_standings = []
+        for g, standings in all_standings_by_group.items():
             rows = []
             for s in standings:
-                # Resolve display name
-                name = "Unknown"
+                # Resolve display name from batch map
                 if s["team_id"]:
-                    from apps.organizations.models.team import Team as OrgTeam
-                    try:
-                        name = OrgTeam.objects.filter(id=s["team_id"]).values_list("name", flat=True).first() or f"Team #{s['team_id']}"
-                    except Exception:
-                        name = f"Team #{s['team_id']}"
+                    name = name_map.get(("team", s["team_id"]), f"Team #{s['team_id']}")
                 elif s["user_id"]:
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
-                    try:
-                        name = User.objects.filter(id=s["user_id"]).values_list("username", flat=True).first() or f"Player #{s['user_id']}"
-                    except Exception:
-                        name = f"Player #{s['user_id']}"
+                    name = name_map.get(("user", s["user_id"]), f"Player #{s['user_id']}")
+                else:
+                    name = "Unknown"
 
+                pid = s["team_id"] or s["user_id"]
                 win_rate = round(s["matches_won"] / s["matches_played"] * 100, 1) if s["matches_played"] > 0 else 0
-                form = TOCStandingsService._get_recent_form(tournament, s["team_id"] or s["user_id"], is_team=bool(s["team_id"]))
+                form = form_map.get(pid, [])
 
                 rows.append({
                     "id": s["id"],
@@ -140,8 +194,12 @@ class TOCStandingsService:
         # Overall summary
         total_teams = sum(len(gs["standings"]) for gs in group_standings)
         total_advancing = sum(gs["qualify_count"] for gs in group_standings)
-        total_matches = Match.objects.filter(tournament=tournament).count()
-        completed_matches = Match.objects.filter(tournament=tournament, state="completed").count()
+        match_agg = Match.objects.filter(tournament=tournament, is_deleted=False).aggregate(
+            total=Count("id"),
+            completed=Count("id", filter=Q(state="completed")),
+        )
+        total_matches = match_agg["total"]
+        completed_matches = match_agg["completed"]
         completion_pct = round(completed_matches / total_matches * 100) if total_matches > 0 else 0
 
         # Determine leader: team/player with highest points across all groups
@@ -343,48 +401,53 @@ class TOCStandingsService:
         """Track which teams qualify from groups to playoffs."""
         from apps.tournaments.models.group import Group, GroupStanding
 
-        groups = Group.objects.filter(tournament=tournament, is_deleted=False)
+        groups = list(Group.objects.filter(tournament=tournament, is_deleted=False))
+
+        # Collect all participant IDs across all groups for batch name resolution
+        all_standings_by_group = {}
+        all_team_ids = set()
+        all_user_ids = set()
+        for g in groups:
+            standings = list(
+                GroupStanding.objects.filter(group=g, is_deleted=False).order_by(
+                    "-points", "-matches_won", "-goal_difference", "-goals_for", "id",
+                ).values("id", "team_id", "user_id", "points", "is_advancing", "is_eliminated")
+            )
+            all_standings_by_group[g] = standings
+            for s in standings:
+                if s["team_id"]:
+                    all_team_ids.add(s["team_id"])
+                elif s["user_id"]:
+                    all_user_ids.add(s["user_id"])
+
+        name_map = TOCStandingsService._build_name_map(all_team_ids, all_user_ids)
+
         tracker = []
         for g in groups:
-            standings = GroupStanding.objects.filter(group=g, is_deleted=False).order_by(
-                "-points",
-                "-matches_won",
-                "-goal_difference",
-                "-goals_for",
-                "id",
-            )
+            standings = all_standings_by_group[g]
             adv_count = g.advancement_count or 0
             rows = []
             qualified = []
             for idx, s in enumerate(standings, start=1):
-                # Resolve name
-                name = "Unknown"
-                if s.team_id:
-                    from apps.organizations.models.team import Team as OrgTeam
-                    try:
-                        name = OrgTeam.objects.filter(id=s.team_id).values_list("name", flat=True).first() or f"Team #{s.team_id}"
-                    except Exception:
-                        name = f"Team #{s.team_id}"
-                elif s.user_id:
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
-                    try:
-                        name = User.objects.filter(id=s.user_id).values_list("username", flat=True).first() or f"Player #{s.user_id}"
-                    except Exception:
-                        name = f"Player #{s.user_id}"
+                if s["team_id"]:
+                    name = name_map.get(("team", s["team_id"]), f"Team #{s['team_id']}")
+                elif s["user_id"]:
+                    name = name_map.get(("user", s["user_id"]), f"Player #{s['user_id']}")
+                else:
+                    name = "Unknown"
 
                 qualifies = idx <= adv_count if adv_count > 0 else False
                 rows.append({
                     "rank": idx,
-                    "team_id": s.team_id,
-                    "user_id": s.user_id,
+                    "team_id": s["team_id"],
+                    "user_id": s["user_id"],
                     "name": name,
-                    "points": s.points,
+                    "points": s["points"],
                     "qualifies": qualifies,
-                    "is_advancing": s.is_advancing,
-                    "is_eliminated": s.is_eliminated,
+                    "is_advancing": s["is_advancing"],
+                    "is_eliminated": s["is_eliminated"],
                 })
-                if qualifies or s.is_advancing:
+                if qualifies or s["is_advancing"]:
                     qualified.append({"name": name, "rank": idx})
 
             tracker.append({

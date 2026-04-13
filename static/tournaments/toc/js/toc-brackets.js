@@ -154,7 +154,9 @@
       else                 swissPill.classList.add('hidden');
     }
 
+    var stage = (window.TOC_CONFIG || {}).currentStage || '';
     if (fmt === 'swiss')        switchSubTab('swiss');
+    else if (fmt === 'group_playoff' && stage === 'knockout_stage') switchSubTab('bracket');
     else if (fmt === 'group_playoff') switchSubTab('groups');
     else if (hideGroups)        switchSubTab('bracket');
     else                        switchSubTab('groups');
@@ -1405,38 +1407,69 @@
         }).join('') + (conflicts.length > 5 ? '<p class="text-[10px] text-dc-text/50">\u2026and ' + (conflicts.length - 5) + ' more</p>' : '') + '</div></div>';
     }
 
-    // Group by day
-    var byDay = {};
+    // Group by stage first, then by day within each stage
+    var currentStage = (data && data.current_stage) || (window.TOC_CONFIG || {}).currentStage || '';
+    var stageOrder = currentStage === 'knockout_stage' ? ['knockout', 'group_stage'] : ['group_stage', 'knockout'];
+    var byStage = { knockout: [], group_stage: [] };
     matches.forEach(function(m) {
-      var day = m.scheduled_time ? new Date(m.scheduled_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Unscheduled';
-      if (!byDay[day]) byDay[day] = [];
-      byDay[day].push(m);
+      var stage = m.stage || 'group_stage';
+      if (!byStage[stage]) byStage[stage] = [];
+      byStage[stage].push(m);
     });
 
-    var tableHtml = Object.keys(byDay).map(function(day) {
-      var dayMatches = byDay[day];
-      var rows = dayMatches.map(function(m) {
-        var sc = stateColors[m.state] || stateColors.scheduled;
-        var time = m.scheduled_time ? new Date(m.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '\u2014';
-        return '<tr class="border-b border-dc-border/10 hover:bg-white/[0.02] transition-colors">'
-          + '<td class="py-2.5 px-3 text-[10px] font-mono text-dc-text/60">' + time + '</td>'
-          + '<td class="py-2.5 px-3 text-[10px] font-mono text-dc-text/40">R' + (m.round_number || '\u2014') + ' M' + (m.match_number || '\u2014') + '</td>'
-          + '<td class="py-2.5 px-3 text-xs text-white/80 font-medium">' + (m.participant1_name || 'TBD') + '</td>'
-          + '<td class="py-2.5 px-1 text-center text-dc-text/20 text-[10px]">vs</td>'
-          + '<td class="py-2.5 px-3 text-xs text-white/80 font-medium">' + (m.participant2_name || 'TBD') + '</td>'
-          + '<td class="py-2.5 px-3 text-center"><span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ' + sc + '">' + (m.state || 'scheduled') + '</span></td>'
-          + '<td class="py-2.5 px-3 text-center font-mono text-xs text-white/60">'
-          + (m.participant1_score != null ? m.participant1_score + ' - ' + m.participant2_score : '\u2014') + '</td></tr>';
+    var stageLabels = { knockout: 'Knockout Stage', group_stage: 'Group Stage' };
+    var stageIcons = { knockout: 'trophy', group_stage: 'users' };
+
+    var tableHtml = stageOrder.map(function(stageKey) {
+      var stageMatches = byStage[stageKey] || [];
+      if (!stageMatches.length) return '';
+
+      var isCurrentStage = (stageKey === 'knockout' && currentStage === 'knockout_stage') || (stageKey === 'group_stage' && currentStage === 'group_stage');
+      var isHistorical = !isCurrentStage && stageMatches.every(function(m) { return m.state === 'cancelled' || m.state === 'completed' || m.state === 'forfeit'; });
+
+      // Group by day within stage
+      var byDay = {};
+      stageMatches.forEach(function(m) {
+        var day = m.scheduled_time ? new Date(m.scheduled_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Unscheduled';
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push(m);
+      });
+
+      var stageHeader = '<div class="flex items-center gap-2 mb-3 mt-4 first:mt-0">'
+        + '<i data-lucide="' + (stageIcons[stageKey] || 'swords') + '" class="w-4 h-4 ' + (isCurrentStage ? 'text-theme' : 'text-dc-text/30') + '"></i>'
+        + '<span class="text-xs font-black uppercase tracking-widest ' + (isCurrentStage ? 'text-theme' : 'text-dc-text/40') + '">' + (stageLabels[stageKey] || stageKey) + '</span>'
+        + (isCurrentStage ? '<span class="text-[8px] font-bold bg-theme/15 text-theme border border-theme/20 px-2 py-0.5 rounded-full uppercase">Current</span>' : '')
+        + (isHistorical ? '<span class="text-[8px] font-bold bg-dc-bg text-dc-text/40 border border-dc-border px-2 py-0.5 rounded-full uppercase">Historical</span>' : '')
+        + '<span class="text-[9px] text-dc-text/30 ml-auto">' + stageMatches.length + ' match' + (stageMatches.length !== 1 ? 'es' : '') + '</span></div>';
+
+      var dayHtml = Object.keys(byDay).map(function(day) {
+        var dayMatches = byDay[day];
+        var rows = dayMatches.map(function(m) {
+          var sc = stateColors[m.state] || stateColors.scheduled;
+          var time = m.scheduled_time ? new Date(m.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '\u2014';
+          var roundLabel = m.bracket_round_label || ('R' + (m.round_number || '\u2014'));
+          return '<tr class="border-b border-dc-border/10 hover:bg-white/[0.02] transition-colors' + (isHistorical ? ' opacity-50' : '') + '">'
+            + '<td class="py-2.5 px-3 text-[10px] font-mono text-dc-text/60">' + time + '</td>'
+            + '<td class="py-2.5 px-3 text-[10px] font-mono text-dc-text/40">' + roundLabel + ' M' + (m.match_number || '\u2014') + '</td>'
+            + '<td class="py-2.5 px-3 text-xs text-white/80 font-medium">' + (m.participant1_name || 'TBD') + '</td>'
+            + '<td class="py-2.5 px-1 text-center text-dc-text/20 text-[10px]">vs</td>'
+            + '<td class="py-2.5 px-3 text-xs text-white/80 font-medium">' + (m.participant2_name || 'TBD') + '</td>'
+            + '<td class="py-2.5 px-3 text-center"><span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ' + sc + '">' + (m.state || 'scheduled') + '</span></td>'
+            + '<td class="py-2.5 px-3 text-center font-mono text-xs text-white/60">'
+            + (m.participant1_score != null ? m.participant1_score + ' - ' + m.participant2_score : '\u2014') + '</td></tr>';
+        }).join('');
+
+        return '<div class="mb-4"><div class="text-[10px] font-bold text-dc-text/50 uppercase tracking-widest mb-2 px-1">' + day + '</div>'
+          + '<div class="glass-box rounded-xl overflow-hidden border border-dc-border' + (isHistorical ? ' border-dc-border/50' : '') + '">'
+          + '<table class="w-full text-[10px]"><thead><tr class="text-dc-text/60 border-b border-dc-border/30 bg-dc-panel/20">'
+          + '<th class="text-left py-2 px-3 w-16">Time</th><th class="text-left py-2 px-3 w-20">Round</th>'
+          + '<th class="text-left py-2 px-3">Home</th><th class="w-6"></th><th class="text-left py-2 px-3">Away</th>'
+          + '<th class="text-center py-2 px-3 w-20">Status</th><th class="text-center py-2 px-3 w-16">Score</th>'
+          + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
       }).join('');
 
-      return '<div class="mb-4"><div class="text-[10px] font-bold text-dc-text/50 uppercase tracking-widest mb-2 px-1">' + day + '</div>'
-        + '<div class="glass-box rounded-xl overflow-hidden border border-dc-border">'
-        + '<table class="w-full text-[10px]"><thead><tr class="text-dc-text/60 border-b border-dc-border/30 bg-dc-panel/20">'
-        + '<th class="text-left py-2 px-3 w-16">Time</th><th class="text-left py-2 px-3 w-16">ID</th>'
-        + '<th class="text-left py-2 px-3">Home</th><th class="w-6"></th><th class="text-left py-2 px-3">Away</th>'
-        + '<th class="text-center py-2 px-3 w-20">Status</th><th class="text-center py-2 px-3 w-16">Score</th>'
-        + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
-    }).join('');
+      return stageHeader + dayHtml;
+    }).filter(Boolean).join('<div class="border-t border-dc-border/20 my-4"></div>');
 
     container.innerHTML = statsHtml + conflictHtml + tableHtml;
     iconsRefresh();

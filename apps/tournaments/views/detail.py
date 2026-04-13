@@ -62,7 +62,8 @@ class TournamentDetailView(DetailView):
     def dispatch(self, request, *args, **kwargs):
         """Cache entire response for anonymous users on completed tournaments."""
         self.object = self.get_object()
-        if not request.user.is_authenticated and self.object.status in ('completed', 'archived'):
+        effective = getattr(self.object, 'get_effective_status', lambda: self.object.status)()
+        if not request.user.is_authenticated and effective in ('completed', 'archived'):
             from django.views.decorators.cache import cache_page
             from django.utils.decorators import method_decorator
             cached_view = cache_page(3600, key_prefix='detail_page')(
@@ -79,10 +80,11 @@ class TournamentDetailView(DetailView):
         return self._cached_object
 
     def get_template_names(self):
-        """Route to phase-specific template based on tournament status."""
+        """Route to phase-specific template based on tournament effective status."""
         tournament = self.object
-        if tournament and tournament.status in self.PHASE_TEMPLATES:
-            phase_template = self.PHASE_TEMPLATES[tournament.status]
+        effective = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        if effective in self.PHASE_TEMPLATES:
+            phase_template = self.PHASE_TEMPLATES[effective]
             # Try phase template first, fall back to monolith
             from django.template.loader import get_template
             from django.template import TemplateDoesNotExist
@@ -104,7 +106,12 @@ class TournamentDetailView(DetailView):
         context['game_spec'] = game_spec
 
         # Eligibility check — skip expensive service for completed/archived
-        if tournament.status in ('completed', 'archived'):
+        effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        context['effective_status'] = effective_status
+        context['effective_status_display'] = dict(Tournament.STATUS_CHOICES).get(
+            effective_status, tournament.get_status_display()
+        )
+        if effective_status in ('completed', 'archived'):
             context['can_register'] = False
             context['registration_status_reason'] = 'This tournament has ended.'
             context['is_registered'] = False
@@ -231,7 +238,7 @@ class TournamentDetailView(DetailView):
         ])
 
         # Spectator page link (for live/completed tournaments)
-        if tournament.status in ['live', 'completed', 'archived']:
+        if effective_status in ['live', 'completed', 'archived']:
             context['spectator_url'] = f'/tournaments/{tournament.slug}/spectate/'
 
         # Lightweight mobile polling endpoint for real-time header/slots/match updates.
@@ -271,14 +278,15 @@ class TournamentDetailView(DetailView):
 
     def _get_phase_context(self, tournament, user):
         """Build phase-specific context for the dynamic detail view."""
-        if tournament.status in ('completed', 'archived'):
+        effective = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        if effective in ('completed', 'archived'):
             cache_key = f'detail_phase_{tournament.id}'
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
 
         now = timezone.now()
-        status = tournament.status
+        status = effective
 
         phase_ctx = {
             'tournament_phase': status,
@@ -354,10 +362,54 @@ class TournamentDetailView(DetailView):
                 state__in=['completed', 'forfeit'],
                 is_deleted=False
             ).count()
-            phase_ctx['total_match_count'] = total_matches
-            phase_ctx['completed_match_count'] = completed_matches
+
+            # ── Group-playoff stage-aware progress ───────────────────
+            # When group stage is complete (knockout_stage active), the
+            # cancelled group matches still represent completed work.
+            # Use GroupStanding records as evidence of group completion.
+            is_gp = tournament.format == Tournament.GROUP_PLAYOFF
+            current_stage = getattr(tournament, 'get_current_stage', lambda: None)()
+            group_stage_done = False
+            group_match_count = 0
+            knockout_total = total_matches
+            knockout_completed = completed_matches
+
+            if is_gp and current_stage == 'knockout_stage':
+                from apps.tournaments.models.group import GroupStanding
+                group_stage_done = GroupStanding.objects.filter(
+                    group__tournament=tournament, is_deleted=False
+                ).exists()
+                if group_stage_done:
+                    group_match_count = Match.objects.filter(
+                        tournament=tournament, is_deleted=False,
+                        bracket__isnull=True
+                    ).count()
+                    knockout_total = Match.objects.filter(
+                        tournament=tournament, is_deleted=False,
+                        bracket__isnull=False
+                    ).count()
+                    knockout_completed = Match.objects.filter(
+                        tournament=tournament, is_deleted=False,
+                        bracket__isnull=False,
+                        state__in=['completed', 'forfeit']
+                    ).count()
+
+            phase_ctx['group_stage_done'] = group_stage_done
+            phase_ctx['group_match_count'] = group_match_count
+            phase_ctx['knockout_total'] = knockout_total
+            phase_ctx['knockout_completed'] = knockout_completed
+
+            if group_stage_done:
+                eff_total = group_match_count + knockout_total
+                eff_completed = group_match_count + knockout_completed
+            else:
+                eff_total = total_matches
+                eff_completed = completed_matches
+
+            phase_ctx['total_match_count'] = eff_total
+            phase_ctx['completed_match_count'] = eff_completed
             phase_ctx['match_progress_pct'] = (
-                round(completed_matches / total_matches * 100) if total_matches > 0 else 0
+                round(eff_completed / eff_total * 100) if eff_total > 0 else 0
             )
 
             # Current round
@@ -435,7 +487,7 @@ class TournamentDetailView(DetailView):
             ).exclude(state='cancelled').count()
             phase_ctx['total_matches_played'] = total
 
-        if tournament.status in ('completed', 'archived'):
+        if effective in ('completed', 'archived'):
             cache.set(f'detail_phase_{tournament.id}', phase_ctx, 3600)
 
         return phase_ctx
@@ -485,25 +537,26 @@ class TournamentDetailView(DetailView):
         }
 
         now = timezone.now()
+        _tf = getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h') if hasattr(self, 'request') else '12h'
 
         if registration.checked_in:
             return {
                 'state': 'checked_in',
-                'reason': f'Checked in at {registration.checked_in_at.strftime("%b %d, %H:%M")}',
+                'reason': f'Checked in at {_format_display_datetime(registration.checked_in_at, _tf)}',
                 'check_in_window': check_in_window,
             }
 
         if check_in_window['is_open']:
             return {
                 'state': 'check_in_required',
-                'reason': f'Check-in required before {check_in_window["closes_at"].strftime("%b %d, %H:%M")}',
+                'reason': f'Check-in required before {_format_display_datetime(check_in_window["closes_at"], _tf)}',
                 'check_in_window': check_in_window,
             }
 
         if check_in_window['opens_at'] and now < check_in_window['opens_at']:
             return {
                 'state': 'confirmed',
-                'reason': f'Registration confirmed. Check-in opens {check_in_window["opens_at"].strftime("%b %d, %H:%M")}',
+                'reason': f'Registration confirmed. Check-in opens {_format_display_datetime(check_in_window["opens_at"], _tf)}',
                 'check_in_window': check_in_window,
             }
 
@@ -689,6 +742,8 @@ class TournamentDetailView(DetailView):
         matches_qs = Match.objects.filter(
             tournament=tournament,
             is_deleted=False
+        ).exclude(
+            state='cancelled'
         ).select_related('bracket').order_by(
             'scheduled_time',
             'round_number',
@@ -725,6 +780,7 @@ class TournamentDetailView(DetailView):
 
         matches_list = []
         now = timezone.now()
+        _tf = getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h') if hasattr(self, 'request') else '12h'
 
         for match in matches_qs:
             if tournament.format == tournament.GROUP_PLAYOFF:
@@ -798,7 +854,7 @@ class TournamentDetailView(DetailView):
 
             start_time_display = ''
             if match.scheduled_time:
-                start_time_display = match.scheduled_time.strftime('%b %d · %H:%M')
+                start_time_display = _format_display_datetime(match.scheduled_time, _tf)
 
             p1_name = 'TBD'
             p2_name = 'TBD'
@@ -1350,14 +1406,16 @@ MATCH_LOBBY_ALWAYS_OPEN_STATES = {
 }
 
 
-def _format_display_datetime(value):
+def _format_display_datetime(value, time_format='12h'):
     if not value:
         return 'TBD'
     try:
         value = timezone.localtime(value)
     except Exception:
         pass
-    return value.strftime('%b %d · %H:%M')
+    if time_format == '24h':
+        return value.strftime('%b %d · %H:%M')
+    return value.strftime('%b %d · %I:%M %p')
 
 
 def _relative_match_time(scheduled_time, now, is_completed):
@@ -1386,24 +1444,17 @@ def _relative_match_time(scheduled_time, now, is_completed):
 
 
 def _resolve_match_lobby_window(match, *, now=None):
-    now = now or timezone.now()
-    state = str(getattr(match, 'state', '') or '').lower()
-
-    if state in MATCH_LOBBY_ALWAYS_OPEN_STATES:
-        return {'is_open': True, 'opens_at': None}
-
-    scheduled_time = getattr(match, 'scheduled_time', None)
-    if not scheduled_time:
-        return {'is_open': True, 'opens_at': None}
-
-    opens_at = scheduled_time - timedelta(minutes=MATCH_LOBBY_OPEN_LEAD_MINUTES)
+    """Delegate to canonical lobby state helper."""
+    from apps.tournaments.services.match_lobby_service import resolve_lobby_state
+    lobby = resolve_lobby_state(match, now=now)
     return {
-        'is_open': now >= opens_at,
-        'opens_at': opens_at,
+        'is_open': lobby['is_open'],
+        'opens_at': lobby['opens_at'],
+        'lobby_state': lobby['state'],
     }
 
 
-def _detail_status_context(tournament, slots_filled, slots_total, live_match_count):
+def _detail_status_context(tournament, slots_filled, slots_total, live_match_count, time_format='12h'):
     status = tournament.status
     if status == 'live':
         return f'{live_match_count} matches live now' if live_match_count > 0 else 'Bracket is in progress'
@@ -1426,7 +1477,7 @@ def _detail_status_context(tournament, slots_filled, slots_total, live_match_cou
         return 'Tournament cancelled by organizer.'
 
     if tournament.tournament_start:
-        return f"Starts {_format_display_datetime(tournament.tournament_start)}"
+        return f"Starts {_format_display_datetime(tournament.tournament_start, time_format)}"
 
     return 'Awaiting schedule details.'
 
@@ -1572,6 +1623,8 @@ def tournament_detail_mobile_state(request, slug):
         'scheduled_time',
     )[:30]
 
+    _tf = getattr(request, 'user_platform_prefs', {}).get('time_format', '12h')
+
     matches_payload = []
     for row in match_rows:
         state = row['state']
@@ -1595,19 +1648,19 @@ def tournament_detail_mobile_state(request, slug):
             'status': status_key,
             'status_label': 'Live' if status_key == 'live' else ('Completed' if status_key == 'completed' else 'Upcoming'),
             'score_text': score_text,
-            'starts_at_display': _format_display_datetime(scheduled_time) if scheduled_time else '',
+            'starts_at_display': _format_display_datetime(scheduled_time, _tf) if scheduled_time else '',
             'starts_at_relative': _relative_match_time(scheduled_time, now, status_key == 'completed'),
         })
 
     payload = {
         'status_key': tournament.status,
         'status_label': _DETAIL_STATUS_LABELS.get(tournament.status, 'Upcoming'),
-        'status_context': _detail_status_context(tournament, slots_filled, slots_total, live_match_count),
+        'status_context': _detail_status_context(tournament, slots_filled, slots_total, live_match_count, _tf),
         'slots_filled': slots_filled,
         'slots_total': slots_total,
         'slots_percentage': slots_percentage,
         'slots_filling_fast': slots_filling_fast,
-        'start_display': _format_display_datetime(tournament.tournament_start),
+        'start_display': _format_display_datetime(tournament.tournament_start, _tf),
         'live_match_count': live_match_count,
         'cta': _mobile_cta_payload(tournament, request.user),
         'matches': matches_payload,
@@ -1648,7 +1701,7 @@ def participant_checkin(request, slug):
         if now < check_in_opens:
             return JsonResponse({
                 'success': False,
-                'error': f'Check-in opens at {check_in_opens.strftime("%b %d, %H:%M")}'
+                'error': f'Check-in opens at {_format_display_datetime(check_in_opens, getattr(request, "user_platform_prefs", {}).get("time_format", "12h"))}'
             }, status=400)
 
         if now > check_in_closes:

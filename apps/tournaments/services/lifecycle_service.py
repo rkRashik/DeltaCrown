@@ -152,7 +152,7 @@ def _on_enter_registration_open(t: Tournament) -> None:
 def _on_enter_registration_closed(t: Tournament) -> None:
     try:
         from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
-        TOCNotificationsService.fire_auto_event(t, "registration_closed")
+        TOCNotificationsService.fire_auto_event(t, "registrations_closed")
     except Exception:
         pass
 
@@ -174,7 +174,7 @@ def _on_enter_completed(t: Tournament) -> None:
         t.save(update_fields=['tournament_end'])
     try:
         from apps.tournaments.api.toc.notifications_service import TOCNotificationsService
-        TOCNotificationsService.fire_auto_event(t, "tournament_complete")
+        TOCNotificationsService.fire_auto_event(t, "tournament_completed")
     except Exception:
         pass
 

@@ -427,6 +427,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     autoRefreshTimer = setInterval(() => {
       if (!isRulesTabActive()) return;
       refresh({ silent: true });

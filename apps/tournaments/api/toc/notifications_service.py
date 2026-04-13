@@ -74,6 +74,30 @@ class TOCNotificationsService:
         """Default notification templates."""
         return [
             {
+                "id": "registration_open",
+                "name": "Registration Open",
+                "subject": "Registration is now open",
+                "body": "Registration for {tournament_name} is now open — sign up before spots fill.",
+                "trigger": "registration_open",
+                "enabled": True,
+            },
+            {
+                "id": "registrations_closed",
+                "name": "Registration Closed",
+                "subject": "Registration is now closed",
+                "body": "Registration for {tournament_name} is now closed.",
+                "trigger": "registrations_closed",
+                "enabled": True,
+            },
+            {
+                "id": "tournament_completed",
+                "name": "Tournament Completed",
+                "subject": "Tournament Complete",
+                "body": "All matches in {tournament_name} have concluded. Final standings and prizes are available.",
+                "trigger": "tournament_completed",
+                "enabled": True,
+            },
+            {
                 "id": "match_ready",
                 "name": "Match Reminder",
                 "subject": "Your match is starting soon",
@@ -146,11 +170,11 @@ class TOCNotificationsService:
                 "enabled": True,
             },
             {
-                "id": "group_draw_complete",
-                "name": "Group Draw Complete",
-                "subject": "Group Draw Complete",
+                "id": "group_draw_completed",
+                "name": "Group Draw Completed",
+                "subject": "Group Draw Completed",
                 "body": "The groups have been drawn for {tournament_name}. Check your group assignment.",
-                "trigger": "group_draw_complete",
+                "trigger": "group_draw_completed",
                 "enabled": True,
             },
             {
@@ -199,6 +223,8 @@ class TOCNotificationsService:
     def _default_auto_rules():
         """Default auto-notification rules."""
         return [
+            {"id": "auto_registration_open", "event": "registration_open", "template_id": "registration_open", "enabled": True},
+            {"id": "auto_registrations_closed", "event": "registrations_closed", "template_id": "registrations_closed", "enabled": True},
             {"id": "auto_checkin_open", "event": "checkin_open", "template_id": "checkin_reminder", "enabled": True},
             {"id": "auto_checkin_closed", "event": "checkin_closed", "template_id": "checkin_closed", "enabled": True},
             {"id": "auto_match_ready", "event": "match_ready", "template_id": "match_ready", "enabled": True},
@@ -208,8 +234,9 @@ class TOCNotificationsService:
             {"id": "auto_round_start", "event": "round_start", "template_id": "round_start", "enabled": True},
             {"id": "auto_bracket_generated", "event": "bracket_generated", "template_id": "bracket_generated", "enabled": True},
             {"id": "auto_bracket_published", "event": "bracket_published", "template_id": "bracket_published", "enabled": True},
-            {"id": "auto_group_draw", "event": "group_draw_complete", "template_id": "group_draw_complete", "enabled": True},
+            {"id": "auto_group_draw", "event": "group_draw_completed", "template_id": "group_draw_completed", "enabled": True},
             {"id": "auto_schedule_generated", "event": "schedule_generated", "template_id": "schedule_generated", "enabled": True},
+            {"id": "auto_tournament_completed", "event": "tournament_completed", "template_id": "tournament_completed", "enabled": True},
             {"id": "auto_match_reschedule_proposed", "event": "match_reschedule_proposed", "template_id": "match_reschedule_proposed", "enabled": True},
             {"id": "auto_match_reschedule_accepted", "event": "match_reschedule_accepted", "template_id": "match_reschedule_accepted", "enabled": True},
             {"id": "auto_match_reschedule_rejected", "event": "match_reschedule_rejected", "template_id": "match_reschedule_rejected", "enabled": True},
@@ -507,7 +534,7 @@ class TOCNotificationsService:
           - bracket_generated, bracket_published
           - checkin_open, checkin_closed
           - match_ready, match_complete
-          - round_start, group_draw_complete
+          - round_start, group_draw_completed
           - tournament_live
 
         Args:
@@ -518,6 +545,11 @@ class TOCNotificationsService:
         try:
             config = tournament.config or {}
             notif_config = config.get("notifications", {})
+
+            # Respect organizer's announcement_automation toggle
+            auto_config = config.get("announcement_automation", {})
+            if not auto_config.get(event, {}).get("enabled", True):
+                return  # Disabled by organizer in Automation Control Center
 
             # Get auto-rules/templates and backfill missing defaults for legacy configs.
             default_rules = cls._default_auto_rules()

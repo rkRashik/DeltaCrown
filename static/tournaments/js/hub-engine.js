@@ -717,14 +717,16 @@ const HubEngine = (() => {
     if (normalizedTab === 'standings' && !_standingsCache) {
       _fetchStandings();
     }
-    if (normalizedTab === 'matches' && !_matchesCache) {
-      _fetchMatches();
+    if (normalizedTab === 'matches') {
+      const _matchStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 15000;
+      if (_matchStale) _fetchMatches();
     }
     if (normalizedTab === 'participants' && !_participantsCache) {
       _fetchParticipants({ reset: true });
     }
     if (normalizedTab === 'lobby') {
-      if (!_matchesCache) {
+      const _lobbyStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 15000;
+      if (_lobbyStale) {
         _fetchMatches();
       } else {
         _renderMobileLobby(_matchesCache);
@@ -1027,6 +1029,10 @@ const HubEngine = (() => {
   // State Polling
   // ──────────────────────────────────────────────────────────
   function _startPolling() {
+    // T3-3: Skip polling for terminal tournament states
+    const initStatus = String(_shell?.dataset.tournamentStatus || '').toLowerCase();
+    if (['completed', 'archived', 'cancelled'].includes(initStatus)) return;
+
     // WS-first: no HTTP polling when WebSocket is healthy
     if (_wsConnected) {
       _stopPolling();
@@ -2403,6 +2409,39 @@ const HubEngine = (() => {
   }
 
   function _resolveLobbyWindow(match) {
+    // ── Canonical lobby state from backend (single source of truth) ──
+    // When the backend sends lobby_state, trust it completely.
+    const backendState = match?.lobby_state || '';
+    if (backendState) {
+      const scheduledAt = _toValidDate(match?.scheduled_at);
+      const opensAt = _toValidDate(match?.lobby_window_opens_at);
+      const closesAt = _toValidDate(match?.lobby_closes_at);
+      const rawMinutes = Number.parseInt(String(match?.lobby_window_minutes_before ?? ''), 10);
+      const minutesBefore = Number.isFinite(rawMinutes) && rawMinutes > 0
+        ? rawMinutes
+        : PRE_MATCH_LOBBY_WINDOW_MINUTES;
+      const isOpen = backendState === 'lobby_open' || backendState === 'live_grace_or_ready';
+      const isClosed = backendState === 'lobby_closed' || backendState === 'forfeit_review';
+      const canEnter = match?.lobby_can_enter === true;
+      const canReschedule = match?.lobby_can_reschedule === true;
+      return {
+        isOpen,
+        isClosed,
+        canEnter,
+        canReschedule,
+        lobbyState: backendState,
+        minutesBefore,
+        opensAt,
+        closesAt,
+        scheduledAt,
+        policySummary: match?.lobby_policy_summary || '',
+        startsInSeconds: Number.isFinite(Number(match?.lobby_window_starts_in_seconds))
+          ? Number(match?.lobby_window_starts_in_seconds)
+          : null,
+      };
+    }
+
+    // ── Fallback: compute locally (legacy / non-hub surfaces) ──
     const state = String(match?.state || '').toLowerCase();
     const terminal = ['completed', 'forfeit', 'cancelled', 'disputed'].includes(state);
     const forcedOpen = ['ready', 'live', 'pending_result'].includes(state);
@@ -2421,20 +2460,22 @@ const HubEngine = (() => {
     const closesAt = closesAtFromApi || (scheduledAt ? new Date(scheduledAt.getTime() + (LOBBY_CLOSE_AFTER_MINUTES * 60 * 1000)) : null);
     const isClosed = !forcedOpen && closesAt ? Date.now() > closesAt.getTime() : false;
 
-    const explicitOpen = match?.lobby_window_open === true;
     const isOpen = !terminal && !isClosed && (
       forcedOpen
-      || explicitOpen
       || (opensAt ? Date.now() >= opensAt.getTime() : false)
     );
 
     return {
       isOpen,
       isClosed,
+      canEnter: isOpen,
+      canReschedule: isClosed && !terminal,
+      lobbyState: terminal ? 'completed' : (forcedOpen ? 'live_grace_or_ready' : (isClosed ? 'lobby_closed' : (isOpen ? 'lobby_open' : 'upcoming_not_open'))),
       minutesBefore,
       opensAt,
       closesAt,
       scheduledAt,
+      policySummary: '',
       startsInSeconds: Number.isFinite(Number(match?.lobby_window_starts_in_seconds))
         ? Number(match?.lobby_window_starts_in_seconds)
         : null,
@@ -2680,17 +2721,26 @@ const HubEngine = (() => {
 
       if (timeValue) {
         const mode = String(backendCommand.countdown_mode || '').toLowerCase();
-        if (mode === 'live') {
+        const lobbyState = String(backendCommand.lobby_state || '').toLowerCase();
+        if (lobbyState === 'lobby_closed' || lobbyState === 'forfeit_review') {
+          timeValue.dataset.matchTime = '';
+          timeValue.textContent = backendCommand.countdown_text || 'EXPIRED';
+          timeValue.classList.add('text-red-400');
+          _stopOverviewCountdown();
+        } else if (mode === 'live') {
           timeValue.dataset.matchTime = 'live';
           timeValue.textContent = 'LIVE NOW';
+          timeValue.classList.remove('text-red-400');
           _stopOverviewCountdown();
         } else if (backendCommand.countdown_target) {
           const targetTime = _toValidDate(backendCommand.countdown_target);
           timeValue.dataset.matchTime = 'countdown';
+          timeValue.classList.remove('text-red-400');
           _startOverviewCountdown(targetTime);
         } else {
           timeValue.dataset.matchTime = '';
           timeValue.textContent = backendCommand.countdown_text || 'Awaiting schedule';
+          timeValue.classList.remove('text-red-400');
           _stopOverviewCountdown();
         }
       }
@@ -2701,7 +2751,7 @@ const HubEngine = (() => {
         const iconMap = {
           check_in: 'shield-alert',
           enter_lobby: 'swords',
-          open_matches: 'swords',
+          open_matches: 'clock-3',
           open_support: 'life-buoy',
           respond_reschedule: 'clock-3',
           view_schedule: 'calendar',
@@ -2843,11 +2893,16 @@ const HubEngine = (() => {
     const matchup = isStaffPerspective
       ? `${target.p1_name || 'TBD'} vs ${target.p2_name || 'TBD'}`
       : `vs ${target.opponent_name || 'TBD'}`;
+    const _staticLobby = _resolveLobbyWindow(target);
+    const _staticLobbyClosed = _staticLobby.isClosed;
 
     if (badge) {
       if (isLive) {
         badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
         badge.textContent = 'Live';
+      } else if (_staticLobbyClosed) {
+        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/25 bg-[#FF2A55]/10 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
+        badge.textContent = 'Lobby Closed';
       } else if (isReady) {
         badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
         badge.textContent = 'Ready';
@@ -2858,7 +2913,7 @@ const HubEngine = (() => {
     }
 
     if (title) {
-      title.textContent = isLive ? `Live Match: ${matchup}` : `Next Match: ${matchup}`;
+      title.textContent = isLive ? `Live Match: ${matchup}` : (_staticLobbyClosed ? `Lobby Expired: ${matchup}` : `Next Match: ${matchup}`);
     }
 
     const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
@@ -2871,16 +2926,23 @@ const HubEngine = (() => {
     }
 
     if (timeLabel) {
-      timeLabel.textContent = isLive ? 'Status' : 'Starts In';
+      timeLabel.textContent = isLive ? 'Status' : (_staticLobbyClosed ? 'Status' : 'Starts In');
     }
 
     if (timeValue) {
       if (isLive) {
         timeValue.dataset.matchTime = 'live';
         timeValue.textContent = 'LIVE NOW';
+        timeValue.classList.remove('text-red-400');
+        _stopOverviewCountdown();
+      } else if (_staticLobbyClosed) {
+        timeValue.dataset.matchTime = '';
+        timeValue.textContent = 'EXPIRED';
+        timeValue.classList.add('text-red-400');
         _stopOverviewCountdown();
       } else {
         timeValue.dataset.matchTime = 'countdown';
+        timeValue.classList.remove('text-red-400');
         _startOverviewCountdown(scheduled);
       }
     }
@@ -2889,6 +2951,7 @@ const HubEngine = (() => {
       const canOpenLobby = Boolean(target.match_room_url);
       const lobbyWindow = _resolveLobbyWindow(target);
       const isLobbyWindowOpen = canOpenLobby && lobbyWindow.isOpen;
+      const isLobbyClosed = lobbyWindow.isClosed;
       const opensAt = lobbyWindow.opensAt;
 
       if (card) {
@@ -2896,6 +2959,10 @@ const HubEngine = (() => {
           card.style.borderColor = 'rgba(255, 42, 85, 0.35)';
           card.style.background = 'linear-gradient(135deg, rgba(255, 42, 85, 0.12) 0%, rgba(14, 10, 16, 0.94) 80%)';
           card.style.boxShadow = '0 14px 40px rgba(255, 42, 85, 0.16)';
+        } else if (isLobbyClosed) {
+          card.style.borderColor = 'rgba(255, 42, 85, 0.25)';
+          card.style.background = 'linear-gradient(135deg, rgba(255, 42, 85, 0.08) 0%, rgba(14, 10, 16, 0.94) 80%)';
+          card.style.boxShadow = '0 14px 40px rgba(255, 42, 85, 0.08)';
         } else if (isLobbyWindowOpen) {
           card.style.borderColor = 'rgba(0, 255, 102, 0.35)';
           card.style.background = 'linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 15, 12, 0.92) 82%)';
@@ -2911,6 +2978,9 @@ const HubEngine = (() => {
         if (isLive) {
           badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
           badge.textContent = 'Live';
+        } else if (isLobbyClosed) {
+          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/25 bg-[#FF2A55]/10 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
+          badge.textContent = 'Lobby Closed';
         } else if (isLobbyWindowOpen) {
           badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/35 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
           badge.textContent = 'Lobby Open';
@@ -2919,13 +2989,15 @@ const HubEngine = (() => {
           badge.textContent = 'Ready';
         } else {
           badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
-          badge.textContent = opensAt ? 'Lobby Countdown' : 'Up Next';
+          badge.textContent = opensAt ? 'Upcoming' : 'Up Next';
         }
       }
 
       if (title) {
         if (isLive) {
           title.textContent = `Live Match: ${matchup}`;
+        } else if (isLobbyClosed) {
+          title.textContent = `Lobby Expired: ${matchup}`;
         } else if (isLobbyWindowOpen) {
           title.textContent = `Lobby Open: ${matchup}`;
         } else {
@@ -2939,7 +3011,9 @@ const HubEngine = (() => {
           ? `Match starts ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
           : 'Schedule time pending.';
 
-        if (isLobbyWindowOpen) {
+        if (isLobbyClosed) {
+          subtitle.textContent = `The lobby window has expired. Request a reschedule or contact the organizer.`;
+        } else if (isLobbyWindowOpen) {
           subtitle.textContent = `Lobby unlocked ${lobbyWindow.minutesBefore} minutes before kickoff. Enter now and coordinate check-in.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
         } else if (opensAt) {
           subtitle.textContent = `Lobby unlocks ${_formatCountdownLabel(opensAt)} before this match.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
@@ -2950,6 +3024,8 @@ const HubEngine = (() => {
 
       if (timeLabel) {
         if (isLive) {
+          timeLabel.textContent = 'Status';
+        } else if (isLobbyClosed) {
           timeLabel.textContent = 'Status';
         } else if (isLobbyWindowOpen) {
           timeLabel.textContent = 'Match Starts In';
@@ -2963,28 +3039,39 @@ const HubEngine = (() => {
           timeValue.dataset.matchTime = 'live';
           timeValue.textContent = 'LIVE NOW';
           _stopOverviewCountdown();
+        } else if (isLobbyClosed) {
+          timeValue.dataset.matchTime = 'closed';
+          timeValue.textContent = 'EXPIRED';
+          timeValue.style.color = '#FF8AA0';
+          _stopOverviewCountdown();
         } else if (isLobbyWindowOpen) {
           timeValue.dataset.matchTime = 'countdown';
+          timeValue.style.color = '';
           _startOverviewCountdown(scheduled);
         } else if (opensAt) {
           timeValue.dataset.matchTime = 'countdown';
+          timeValue.style.color = '';
           _startOverviewCountdown(opensAt);
         } else {
           timeValue.dataset.matchTime = 'countdown';
+          timeValue.style.color = '';
           _startOverviewCountdown(scheduled);
         }
       }
 
-      actionBtn.textContent = (isLive || isReady || isLobbyWindowOpen)
-        ? (canOpenLobby ? 'Enter Lobby' : 'Open Match Lobby')
-        : 'View Schedule';
-      actionBtn.onclick = () => {
-        if ((isLive || isReady || isLobbyWindowOpen) && canOpenLobby) {
-          _openMatchRoom(target.match_room_url);
-          return;
-        }
-        switchTab((isLive || isReady || isLobbyWindowOpen) ? 'matches' : 'schedule');
-      };
+      if (isLobbyClosed) {
+        actionBtn.textContent = 'Request Reschedule';
+        actionBtn.onclick = () => { switchTab('matches'); };
+      } else if (isLive || isReady || isLobbyWindowOpen) {
+        actionBtn.textContent = canOpenLobby ? 'Enter Lobby' : 'Open Match Lobby';
+        actionBtn.onclick = () => {
+          if (canOpenLobby) { _openMatchRoom(target.match_room_url); return; }
+          switchTab('matches');
+        };
+      } else {
+        actionBtn.textContent = 'View Schedule';
+        actionBtn.onclick = () => { switchTab('schedule'); };
+      }
     }
   }
 
@@ -3511,6 +3598,14 @@ const HubEngine = (() => {
       return;
     }
 
+    const myPid = data.my_participant_id || null;
+    function _isMyMatch(m) {
+      if (!myPid) return false;
+      const p1id = m.participant1?.id || null;
+      const p2id = m.participant2?.id || null;
+      return p1id === myPid || p2id === myPid;
+    }
+
     tree.classList.remove('hidden');
     _hide('bracket-not-generated');
     _show('bracket-zoom-controls');
@@ -3525,80 +3620,102 @@ const HubEngine = (() => {
       const isDone = m.state === 'completed' || m.state === 'forfeit';
       const isPending = !isDone && !isLive;
       const isTBD = isPending && p1.name === 'TBD' && p2.name === 'TBD';
+      const isMine = _isMyMatch(m);
+      const mineAttr = isMine ? ' data-mine="1"' : '';
+      const mineCls = isMine ? ' bk-mine' : '';
       const p1Avatar = _renderAvatarInner(p1.name || 'TBD', p1.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
       const p2Avatar = _renderAvatarInner(p2.name || 'TBD', p2.logo_url || '', 'text-[9px] font-black text-white flex items-center justify-center', 'w-full h-full object-cover');
+      const matchNum = m.match_number ? `M${m.match_number}` : '';
 
-      // Winner highlight: glow left bar + brighter text
-      const p1BarCls = p1.is_winner ? 'absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_15px_#00F0FF]' : 'absolute left-0 top-0 bottom-0 w-1.5 bg-gray-800';
-      const p2BarCls = p2.is_winner ? 'absolute left-0 top-0 bottom-0 w-1.5 bg-[#00FF66] shadow-[0_0_15px_#00FF66]' : '';
-      const p1NameCls = p1.is_winner ? 'font-display text-sm font-bold text-white' : 'font-display text-sm text-white';
-      const p2NameCls = p2.is_winner ? 'font-display text-sm font-bold text-white' : 'font-display text-sm text-white';
-      const p1ScoreCls = p1.is_winner ? 'font-mono text-base font-black text-[#00F0FF]' : 'font-mono text-base font-bold text-gray-500';
-      const p2ScoreCls = p2.is_winner ? 'font-mono text-base font-black text-[#00FF66]' : 'font-mono text-base font-bold text-gray-500';
-      const p1Opacity = !p1.is_winner && isDone ? 'opacity-40 grayscale' : '';
-      const p2Opacity = !p2.is_winner && isDone ? 'opacity-40 grayscale' : '';
-      const p1AvatarBorder = p1.is_winner ? 'border border-[#00FF66]' : '';
-      const p2AvatarBorder = p2.is_winner ? 'border border-[#00FF66]' : '';
-
+      // ── LIVE match ──
       if (isLive) {
-        // Live match: glowing border + header badge
-        return `<div class="bk-match premium-card bg-black border border-[#00F0FF]/40 rounded-xl overflow-hidden relative group shadow-[0_0_20px_rgba(0,240,255,0.3)]" data-mid="${m.id || ''}">
-          <div class="glow-border"></div>
-          <div class="bg-[#00F0FF]/15 px-4 py-1.5 border-b border-[#00F0FF]/30 flex items-center justify-between">
-            <span class="font-mono text-[9px] font-black uppercase text-[#00F0FF] tracking-widest">Match Live</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse"></span>
+        return `<div class="bk-match bk-live${mineCls}" data-mid="${m.id || ''}"${mineAttr}>
+          <div class="bk-match-head" style="background:rgba(0,240,255,0.08);border-bottom:1px solid rgba(0,240,255,0.15);">
+            <span class="bk-mnum">${matchNum}</span>
+            <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
           </div>
-          <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/5">
-            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-[#050508] overflow-hidden">${p1Avatar}</div><span class="font-display text-base font-bold text-white">${_esc(p1.name)}</span></div>
-            <span class="font-mono text-lg font-bold text-gray-400">${p1.score != null ? p1.score : '-'}</span>
+          <div class="bk-team">
+            <div class="bk-team-meta"><div class="bk-team-avatar">${p1Avatar}</div><span class="bk-name" style="color:#fff;font-weight:700;">${_esc(p1.name)}</span></div>
+            <span class="bk-sc" style="color:#9CA3AF;">${p1.score != null ? p1.score : '-'}</span>
           </div>
-          <div class="flex justify-between items-center p-4 bg-white/5">
-            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-[#050508] overflow-hidden">${p2Avatar}</div><span class="font-display text-base font-bold text-white">${_esc(p2.name)}</span></div>
-            <span class="font-mono text-lg font-bold text-gray-400">${p2.score != null ? p2.score : '-'}</span>
+          <div class="bk-vs">VS</div>
+          <div class="bk-team">
+            <div class="bk-team-meta"><div class="bk-team-avatar">${p2Avatar}</div><span class="bk-name" style="color:#fff;font-weight:700;">${_esc(p2.name)}</span></div>
+            <span class="bk-sc" style="color:#9CA3AF;">${p2.score != null ? p2.score : '-'}</span>
           </div>
         </div>`;
       }
 
-      // ── Upcoming / unplayed match ──
+      // ── UPCOMING / PENDING match ──
       if (isPending) {
-        const upLabel = m.state === 'check_in' ? 'CHECK IN' : m.state === 'ready' ? 'READY' : 'UPCOMING';
-        const headerBg = isTBD ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)';
-        const cardBorder = isTBD ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,184,0,0.2)';
-        const labelColor = isTBD ? '#374151' : 'rgba(255,184,0,0.75)';
-        const nameStyle = isTBD ? 'color:#374151;font-style:italic;' : 'color:#6b7280;';
-        return `<div class="bk-match rounded-xl overflow-hidden relative" style="background:rgba(5,5,8,0.55);border:${cardBorder};" data-mid="${m.id || ''}">
-          <div style="background:${headerBg};border-bottom:1px solid rgba(255,255,255,0.04);" class="px-4 py-1.5 flex items-center justify-between">
-            <span class="font-mono text-[9px] uppercase tracking-widest font-bold" style="color:${labelColor}">${upLabel}</span>
-            ${!isTBD ? `<span class="w-1.5 h-1.5 rounded-full" style="background:#FFB800;opacity:0.5;"></span>` : ''}
+        // Canonical bracket badge: lobby_state → check_in/ready → datetime → TBD
+        const lobbyState = m.lobby_state || '';
+        let upLabel, badgeCls;
+        if (lobbyState === 'lobby_open' || lobbyState === 'live_grace_or_ready') {
+          upLabel = 'LOBBY OPEN';
+          badgeCls = 'bk-badge-up bk-badge-lobby';
+        } else if (lobbyState === 'lobby_closed' || lobbyState === 'forfeit_review') {
+          upLabel = 'EXPIRED';
+          badgeCls = 'bk-badge-up bk-badge-expired';
+        } else if (m.state === 'check_in') {
+          upLabel = 'CHECK IN';
+          badgeCls = 'bk-badge-up';
+        } else if (m.state === 'ready') {
+          upLabel = 'READY';
+          badgeCls = 'bk-badge-up';
+        } else if (isTBD) {
+          upLabel = 'TBD';
+          badgeCls = 'bk-badge-up bk-badge-tbd';
+        } else if (m.scheduled_at) {
+          // Scheduled match with real participants — show formatted datetime
+          const dt = new Date(m.scheduled_at);
+          if (!Number.isNaN(dt.getTime())) {
+            const opts = _timeFormatOptions({ day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+            upLabel = dt.toLocaleString([], opts);
+          } else {
+            upLabel = 'UPCOMING';
+          }
+          badgeCls = 'bk-badge-up bk-badge-sched-dt';
+        } else {
+          upLabel = 'UPCOMING';
+          badgeCls = 'bk-badge-up';
+        }
+        const nameStyle = isTBD ? 'color:#4B5563;font-style:italic;' : '';
+        const tbdCls = isTBD ? ' bk-tbd' : '';
+        const schedCls = !isTBD ? ' bk-sched' : '';
+        return `<div class="bk-match${mineCls}${tbdCls}${schedCls}" data-mid="${m.id || ''}"${mineAttr}>
+          <div class="bk-match-head">
+            <span class="bk-mnum">${matchNum}</span>
+            <span class="${badgeCls}">${_esc(upLabel)}</span>
           </div>
-          <div class="flex justify-between items-center p-4 border-b" style="border-color:rgba(255,255,255,0.04);opacity:0.55;">
-            <div class="flex items-center gap-3">
-              <div class="w-7 h-7 rounded overflow-hidden" style="background:#050508;">${p1Avatar}</div>
-              <span class="font-display text-sm" style="${nameStyle}">${_esc(p1.name)}</span>
-            </div>
-            <span class="font-mono text-sm" style="color:#1f2937;">—</span>
+          <div class="bk-team">
+            <div class="bk-team-meta"><div class="bk-team-avatar">${p1Avatar}</div><span class="bk-name" style="${nameStyle}">${_esc(p1.name)}</span></div>
+            <span class="bk-sc">–</span>
           </div>
-          <div class="flex justify-between items-center p-4" style="opacity:0.55;">
-            <div class="flex items-center gap-3">
-              <div class="w-7 h-7 rounded overflow-hidden" style="background:#050508;">${p2Avatar}</div>
-              <span class="font-display text-sm" style="${nameStyle}">${_esc(p2.name)}</span>
-            </div>
-            <span class="font-mono text-sm" style="color:#1f2937;">—</span>
+          <div class="bk-vs">VS</div>
+          <div class="bk-team">
+            <div class="bk-team-meta"><div class="bk-team-avatar">${p2Avatar}</div><span class="bk-name" style="${nameStyle}">${_esc(p2.name)}</span></div>
+            <span class="bk-sc">–</span>
           </div>
         </div>`;
       }
 
-      // ── Completed / Default match ──
-      return `<div class="bk-match premium-card bg-black/60 border border-white/5 rounded-xl overflow-hidden relative" data-mid="${m.id || ''}">
-        <div class="flex justify-between items-center p-4 border-b border-white/5 ${p1Opacity}" style="position:relative">
-          ${p1.is_winner ? '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00F0FF] shadow-[0_0_15px_#00F0FF]"></div>' : ''}
-          <div class="flex items-center gap-3"><div class="w-7 h-7 rounded bg-[#050508] overflow-hidden ${p1AvatarBorder}">${p1Avatar}</div><span class="${p1NameCls}">${_esc(p1.name)}</span></div>
-          <span class="${p1ScoreCls}">${p1.score != null ? p1.score : '-'}</span>
+      // ── COMPLETED match ──
+      const p1w = p1.is_winner;
+      const p2w = p2.is_winner;
+      return `<div class="bk-match bk-done${mineCls}" data-mid="${m.id || ''}"${mineAttr}>
+        <div class="bk-match-head">
+          <span class="bk-mnum">${matchNum}</span>
+          <span class="bk-badge-ft">FT</span>
         </div>
-        <div class="flex justify-between items-center p-4 ${p2Opacity}" style="position:relative">
-          ${p2.is_winner ? '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00FF66] shadow-[0_0_15px_#00FF66]"></div>' : ''}
-          <div class="flex items-center gap-3"><div class="w-7 h-7 rounded bg-[#050508] overflow-hidden ${p2AvatarBorder}">${p2Avatar}</div><span class="${p2NameCls}">${_esc(p2.name)}</span></div>
-          <span class="${p2ScoreCls}">${p2.score != null ? p2.score : '-'}</span>
+        <div class="bk-team${p1w ? ' bk-w' : ''}"${!p1w && isDone ? ' style="opacity:0.5;"' : ''}>
+          <div class="bk-team-meta">${p1w ? '<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>' : ''}<div class="bk-team-avatar${p1w ? ' border border-[#00FF66]/40' : ''}">${p1Avatar}</div><span class="bk-name">${_esc(p1.name)}</span></div>
+          <span class="bk-sc">${p1.score != null ? p1.score : '-'}</span>
+        </div>
+        <div class="bk-vs">VS</div>
+        <div class="bk-team${p2w ? ' bk-w' : ''}"${!p2w && isDone ? ' style="opacity:0.5;"' : ''}>
+          <div class="bk-team-meta">${p2w ? '<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>' : ''}<div class="bk-team-avatar${p2w ? ' border border-[#00FF66]/40' : ''}">${p2Avatar}</div><span class="bk-name">${_esc(p2.name)}</span></div>
+          <span class="bk-sc">${p2.score != null ? p2.score : '-'}</span>
         </div>
       </div>`;
     }
@@ -3763,7 +3880,7 @@ const HubEngine = (() => {
     let html = '';
     sections.forEach(sec => {
       const maxMatches = Math.max(...sec.rounds.map(r => (r.matches || []).length), 1);
-      const secH = Math.max(maxMatches * 92, 200);
+      const secH = Math.max(maxMatches * 160, 200);
 
       if (sec.label) {
         html += `<div class="bk-label ${sec.cls}">${sec.icon} ${sec.label}</div>`;
@@ -3825,7 +3942,8 @@ const HubEngine = (() => {
 
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('d', `M${cx},${cy} H${mx} V${ny} H${nx}`);
-          path.classList.add('bk-line');
+          const isMyPath = cc.hasAttribute('data-mine') || nc.hasAttribute('data-mine');
+          path.classList.add(isMyPath ? 'bk-line-mine' : 'bk-line');
           svg.appendChild(path);
         }
       });
@@ -3972,6 +4090,16 @@ const HubEngine = (() => {
 
     // ── Group-based standings (premium) ──
     else if (Array.isArray(data.groups) && data.groups.length > 0) {
+      // Stage context header
+      if (data.stage_label) {
+        html += `<div class="flex items-center gap-3 mb-6">`;
+        html += `<div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10"><i data-lucide="layers" class="w-4 h-4 text-gray-400"></i></div>`;
+        html += `<h2 class="font-display font-bold text-xl text-gray-400 uppercase tracking-widest">${_esc(data.stage_label)}</h2>`;
+        if (data.current_stage === 'knockout_stage') {
+          html += `<span class="ml-auto text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-3 py-1 rounded-full border border-[#00FF66]/20">Group Stage Complete</span>`;
+        }
+        html += `</div>`;
+      }
       data.groups.forEach(group => {
         html += `<div class="mb-10">`;
         html += `<div class="flex items-center gap-3 mb-6">`;
@@ -4005,10 +4133,12 @@ const HubEngine = (() => {
           }
           const youRowCls = isYou
             ? 'bg-[#00F0FF]/5 hover:bg-[#00F0FF]/10 transition border-l-4 border-l-[#00F0FF] relative'
-            : (row.rank > 2 ? 'hover:bg-white/5 transition opacity-70' : 'hover:bg-white/5 transition');
+            : (row.is_advancing ? 'hover:bg-white/5 transition' : 'hover:bg-white/5 transition opacity-60');
           const nameCls = isYou ? 'font-display font-bold text-lg text-[#00F0FF]' : 'font-display font-bold text-lg text-white';
           const avatarRing = isYou ? ' ring-2 ring-[#00F0FF]' : '';
           const youLabel = isYou ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#00F0FF] font-bold">You</span>` : '';
+          const advancingBadge = (row.is_advancing && !isYou) ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#00FF66] font-bold">Qualified</span>` : '';
+          const eliminatedBadge = (row.is_eliminated && !isYou) ? `<span class="font-mono text-[9px] uppercase tracking-widest text-[#FF2A55]/60 font-bold">Eliminated</span>` : '';
           const avatarInner = _renderAvatarInner(row.name || 'TBD', row.logo_url || '', '', 'w-10 h-10 rounded-lg object-cover');
 
           const gdColor = row.goal_difference > 0 ? 'text-[#00FF66]' : row.goal_difference < 0 ? 'text-[#FF2A55]' : 'text-gray-300';
@@ -4030,7 +4160,7 @@ const HubEngine = (() => {
 
           html += `<tr class="${youRowCls}">`;
           html += `<td class="p-5 text-center">${rankBadge}</td>`;
-          html += `<td class="p-5"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg bg-[#050508] overflow-hidden${avatarRing}">${avatarInner}</div><div class="flex flex-col"><span class="${nameCls}">${_esc(row.name)}</span>${youLabel}</div></div></td>`;
+          html += `<td class="p-5"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg bg-[#050508] overflow-hidden${avatarRing}">${avatarInner}</div><div class="flex flex-col"><span class="${nameCls}">${_esc(row.name)}</span>${youLabel}${advancingBadge}${eliminatedBadge}</div></div></td>`;
           html += `<td class="p-5 text-center font-mono text-gray-300">${row.matches_played}</td>`;
           html += `<td class="p-5 text-center font-mono font-bold" style="color:#00FF66">${row.won}</td>`;
           html += `<td class="p-5 text-center font-mono text-gray-500">${row.drawn}</td>`;
@@ -4051,11 +4181,325 @@ const HubEngine = (() => {
     container.innerHTML = html;
     container.classList.remove('hidden');
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    _updateStandingsIntelligence(data);
+  }
+
+  // ── Standings intelligence banner ──
+  function _updateStandingsIntelligence(data) {
+    const el = document.getElementById('hub-standings-intelligence');
+    if (!el) return;
+
+    // Find the user's row across groups or bracket rows
+    let myRow = null;
+    let myGroup = null;
+    if (Array.isArray(data.groups)) {
+      for (const g of data.groups) {
+        for (const r of (g.standings || [])) {
+          if (r.is_you) { myRow = r; myGroup = g.name; break; }
+        }
+        if (myRow) break;
+      }
+    } else if (Array.isArray(data.rows)) {
+      myRow = data.rows.find(r => r.is_you);
+    }
+
+    if (!myRow) { el.classList.add('hidden'); return; }
+
+    let msg = '';
+    let icon = 'user';
+    let color = 'cyan';
+
+    if (myRow.is_advancing) {
+      icon = 'trophy';
+      color = 'emerald';
+      msg = myGroup
+        ? `Rank #${myRow.rank} in ${myGroup} — <span class="text-emerald-400 font-bold">Qualified for Knockout</span>`
+        : `Rank #${myRow.rank} — Advancing`;
+    } else if (myRow.is_eliminated) {
+      icon = 'eye';
+      color = 'gray';
+      msg = myGroup
+        ? `Rank #${myRow.rank} in ${myGroup} — Eliminated from group stage`
+        : `Rank #${myRow.rank} — Eliminated`;
+    } else {
+      msg = myGroup
+        ? `You are ranked <span class="text-white font-bold">#${myRow.rank}</span> in ${myGroup}`
+        : `You are ranked <span class="text-white font-bold">#${myRow.rank}</span>`;
+
+      const adv = data.advancing_per_group;
+      if (adv && myGroup) {
+        msg += ` · Top ${adv} advance to Knockout`;
+      }
+    }
+
+    const borderCls = color === 'emerald' ? 'border-emerald-500/20 bg-emerald-500/[0.04]' :
+                      color === 'gray' ? 'border-gray-500/20 bg-gray-500/[0.04]' :
+                      'border-cyan-500/20 bg-cyan-500/[0.04]';
+    const iconCls = color === 'emerald' ? 'text-emerald-400' :
+                    color === 'gray' ? 'text-gray-400' :
+                    'text-cyan-400';
+
+    el.innerHTML = `<div class="rounded-xl p-3.5 border ${borderCls} flex items-center gap-3">
+      <i data-lucide="${icon}" class="w-4 h-4 ${iconCls} flex-shrink-0"></i>
+      <p class="text-xs text-gray-300">${msg}</p>
+    </div>`;
+    el.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ──────────────────────────────────────────────────────────
   // Matches Tab — Async Fetch & Render
   // ──────────────────────────────────────────────────────────
+  // ── Announcement intelligence card (populated after matches fetch) ──
+  function _updateAnnouncementIntelligence(data) {
+    const el = document.getElementById('hub-ann-intelligence');
+    if (!el) return;
+
+    const active = Array.isArray(data.active_matches) ? data.active_matches : [];
+    const history = Array.isArray(data.match_history) ? data.match_history : [];
+    const myPid = data.my_participant_id || null;
+    const currentStage = data.current_stage || null;
+    const tournamentFormat = data.tournament_format || null;
+    const isGroupPlayoff = tournamentFormat === 'group_playoff';
+
+    // Find user's next scheduled/upcoming match
+    let myNext = null;
+    if (myPid) {
+      for (const m of active) {
+        const p1id = m.participant1?.id || m.p1_id || null;
+        const p2id = m.participant2?.id || m.p2_id || null;
+        if (p1id === myPid || p2id === myPid) {
+          const s = String(m.state || '');
+          if (s === 'scheduled' || s === 'check_in' || s === 'ready') {
+            myNext = m;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!myNext && active.length === 0 && !isGroupPlayoff) {
+      el.classList.add('hidden');
+      return;
+    }
+
+    let html = '';
+
+    // ── Lifecycle Intelligence: Stage Transition Banner ──
+    if (isGroupPlayoff && currentStage === 'knockout_stage') {
+      const cancelledGroupMatches = history.filter(m => m.state === 'cancelled' && m.phase === 'group_stage').length;
+      const knockoutMatches = active.length;
+      html += `<div class="flex items-center gap-2.5 mb-3 p-3 rounded-lg" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);">`;
+      html += `<div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background:rgba(16,185,129,0.15);"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i></div>`;
+      html += `<div>`;
+      html += `<span class="text-xs font-bold text-emerald-400">Group Stage Complete</span>`;
+      html += `<span class="text-[10px] text-gray-500 ml-2">Knockout bracket is now live`;
+      if (knockoutMatches) html += ` · ${knockoutMatches} match${knockoutMatches > 1 ? 'es' : ''} scheduled`;
+      html += `</span></div></div>`;
+    }
+
+    // ── Lifecycle Event Cards ──
+    const lifecycleEvents = [];
+
+    // Event: Group Stage Complete
+    if (isGroupPlayoff && currentStage === 'knockout_stage') {
+      lifecycleEvents.push({ icon: 'check-circle', color: 'emerald', title: 'Group Stage Complete', desc: 'All group matches concluded. Bracket seeded from final standings.' });
+    }
+
+    // Event: Group Draw Complete (groups exist but still in group stage)
+    if (isGroupPlayoff && currentStage === 'group_stage' && active.length > 0) {
+      lifecycleEvents.push({ icon: 'layers', color: 'cyan', title: 'Group Draw Complete', desc: 'Groups have been drawn. Group stage matches are underway.' });
+    }
+
+    // Event: Bracket Published / Knockout Active
+    if (currentStage === 'knockout_stage' && active.length > 0) {
+      const knockoutActive = active.filter(m => m.phase === 'knockout_stage' || m.round_name !== 'Group Stage');
+      if (knockoutActive.length > 0) {
+        lifecycleEvents.push({ icon: 'git-branch', color: 'cyan', title: 'Bracket Published', desc: knockoutActive.length + ' knockout match' + (knockoutActive.length > 1 ? 'es' : '') + ' in bracket.' });
+      }
+    }
+
+    // Event: Tournament Complete / Rewards Available (all matches done, effective status = completed)
+    const allMatchesDone = active.length === 0 && history.length > 0;
+    const effectiveStatus = data.effective_status || data.status || null;
+    if (allMatchesDone && effectiveStatus === 'completed') {
+      lifecycleEvents.push({ icon: 'trophy', color: 'amber', title: 'Tournament Complete', desc: 'All matches concluded. Final standings and rewards are available.' });
+    }
+
+    // Events derived from user's match data
+    if (myPid) {
+      // Find user's completed knockout matches
+      const myCompleted = history.filter(m => {
+        const p1id = m.participant1?.id || m.p1_id || null;
+        const p2id = m.participant2?.id || m.p2_id || null;
+        return (p1id === myPid || p2id === myPid) && m.state === 'completed';
+      });
+      const myKnockoutWins = myCompleted.filter(m => m.winner_id === myPid);
+      const myKnockoutLosses = myCompleted.filter(m => m.winner_id && m.winner_id !== myPid);
+
+      // Event: Advanced in bracket (won a knockout match)
+      if (myKnockoutWins.length > 0 && currentStage === 'knockout_stage') {
+        lifecycleEvents.push({ icon: 'trending-up', color: 'emerald', title: 'Advanced', desc: 'Won ' + myKnockoutWins.length + ' knockout match' + (myKnockoutWins.length > 1 ? 'es' : '') + '. Moving forward in the bracket.' });
+      }
+
+      // Event: Eliminated (lost in knockout, no next match)
+      if (myKnockoutLosses.length > 0 && !myNext && currentStage === 'knockout_stage') {
+        lifecycleEvents.push({ icon: 'x-circle', color: 'red', title: 'Eliminated', desc: 'Your tournament run has ended. Check the bracket for final results.' });
+      }
+
+      // Event: Opponent Assigned
+      if (myNext) {
+        const p1id = myNext.participant1?.id || myNext.p1_id || null;
+        const oppName = (p1id === myPid)
+          ? (myNext.participant2?.name || myNext.p2_name || 'TBD')
+          : (myNext.participant1?.name || myNext.p1_name || 'TBD');
+        if (oppName && oppName !== 'TBD') {
+          lifecycleEvents.push({ icon: 'crosshair', color: 'amber', title: 'Opponent Assigned', desc: 'You face ' + oppName + ' in your next match.' });
+        }
+      }
+
+      // Event: Check-in Open
+      if (myNext && myNext.state === 'check_in') {
+        lifecycleEvents.push({ icon: 'ticket', color: 'amber', title: 'Check-in Open', desc: 'Check in now to confirm your participation.', urgent: true });
+      }
+
+      // Event: Match Ready
+      if (myNext && myNext.state === 'ready') {
+        lifecycleEvents.push({ icon: 'zap', color: 'amber', title: 'Match Ready', desc: 'Both players checked in. Enter the match lobby.', urgent: true });
+      }
+
+      // Event: Lobby timing
+      if (myNext && myNext.state === 'scheduled' && myNext.scheduled_at) {
+        try {
+          const d = new Date(myNext.scheduled_at);
+          const diff = d.getTime() - Date.now();
+          if (diff > 0 && diff <= 1800000) {
+            lifecycleEvents.push({ icon: 'clock', color: 'amber', title: 'Lobby Opens Soon', desc: 'Match lobby opens in less than 30 minutes.' });
+          }
+        } catch (_) {}
+      }
+
+      // Event: Match Live (user's match is currently in progress)
+      if (myPid) {
+        const myLiveMatch = active.find(m => {
+          const p1id = m.participant1?.id || m.p1_id || null;
+          const p2id = m.participant2?.id || m.p2_id || null;
+          return (p1id === myPid || p2id === myPid) && String(m.state || '') === 'live';
+        });
+        if (myLiveMatch) {
+          lifecycleEvents.push({ icon: 'radio', color: 'red', title: 'Match Live', desc: 'Your match is in progress right now.', urgent: true });
+        }
+      }
+    }
+
+    // Render lifecycle event cards
+    if (lifecycleEvents.length > 0) {
+      html += `<div class="space-y-2 mb-4">`;
+      const colorMap = { emerald: 'rgba(16,185,129,VAL)', cyan: 'rgba(6,182,212,VAL)', amber: 'rgba(245,158,11,VAL)', red: 'rgba(239,68,68,VAL)' };
+      for (const evt of lifecycleEvents) {
+        const cFn = colorMap[evt.color] || colorMap.cyan;
+        const border = cFn.replace('VAL', '0.2');
+        const bg = cFn.replace('VAL', '0.04');
+        const iconColor = evt.color === 'emerald' ? 'text-emerald-400' : evt.color === 'amber' ? 'text-amber-400' : evt.color === 'red' ? 'text-red-400' : 'text-cyan-400';
+        html += `<div class="flex items-start gap-2.5 p-2.5 rounded-lg" style="background:${bg};border:1px solid ${border};">`;
+        html += `<i data-lucide="${_esc(evt.icon)}" class="w-3.5 h-3.5 ${iconColor} mt-0.5 flex-shrink-0"></i>`;
+        html += `<div><span class="text-xs font-bold text-white">${_esc(evt.title)}</span>`;
+        html += `<span class="text-[10px] text-gray-500 ml-1.5">${_esc(evt.desc)}</span></div>`;
+        if (evt.urgent) html += `<span class="ml-auto text-[8px] font-black text-amber-400 uppercase tracking-wider flex-shrink-0 mt-0.5">Action</span>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+
+    // ── Your Status Section ──
+    html += `<div class="flex items-center gap-2 mb-3">`;
+    html += `<span class="hub-badge bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30"><i data-lucide="compass" class="w-3 h-3"></i> Your Status</span>`;
+    html += `</div>`;
+
+    if (myNext) {
+      const p1id = myNext.participant1?.id || myNext.p1_id || null;
+      const oppName = (p1id === myPid)
+        ? (myNext.participant2?.name || myNext.p2_name || 'TBD')
+        : (myNext.participant1?.name || myNext.p1_name || 'TBD');
+      const stateLabel = myNext.state === 'check_in' ? 'Check-in Open'
+                       : myNext.state === 'ready' ? 'Match Ready'
+                       : 'Scheduled';
+      const schedAt = myNext.scheduled_at;
+      let timeHint = '';
+      if (schedAt) {
+        try {
+          const d = new Date(schedAt);
+          if (!isNaN(d.getTime())) {
+            const diff = d.getTime() - Date.now();
+            if (diff > 0 && diff < 86400000) {
+              const hrs = Math.floor(diff / 3600000);
+              const mins = Math.floor((diff % 3600000) / 60000);
+              timeHint = hrs > 0 ? `in ${hrs}h ${mins}m` : `in ${mins}m`;
+            } else {
+              timeHint = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Stage context for knockout matches
+      const phaseHint = (isGroupPlayoff && currentStage === 'knockout_stage' && myNext.round_name)
+        ? ` · ${myNext.round_name}` : '';
+
+      html += `<h4 class="font-display font-bold text-base text-white mb-1">Next Match: vs ${_esc(oppName)}</h4>`;
+      html += `<p class="text-xs text-gray-400">`;
+      html += `<span class="font-bold text-[#FFB800]">${stateLabel}</span>`;
+      if (timeHint) html += ` · ${timeHint}`;
+      html += phaseHint;
+      html += `</p>`;
+      if (myNext.state === 'scheduled') {
+        html += `<p class="text-[10px] text-gray-600 mt-2 italic">Lobby opens 30 minutes before match time.</p>`;
+      }
+    } else if (myPid) {
+      // Participant with no upcoming match — check elimination
+      const hasLive = active.some(m => m.state === 'live');
+      const myFinished = history.filter(m => {
+        const p1id = m.participant1?.id || m.p1_id || null;
+        const p2id = m.participant2?.id || m.p2_id || null;
+        return p1id === myPid || p2id === myPid;
+      });
+      const myLosses = myFinished.filter(m => {
+        return m.loser_id === myPid || (m.winner_id && m.winner_id !== myPid);
+      });
+
+      if (isGroupPlayoff && currentStage === 'knockout_stage' && active.length === 0 && myFinished.length > 0) {
+        // All knockout matches done and no more scheduled — tournament ending
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">Tournament Complete</h4>`;
+        html += `<p class="text-xs text-gray-400">All matches have concluded. Check the bracket for final results.</p>`;
+      } else if (hasLive) {
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">Matches In Progress</h4>`;
+        html += `<p class="text-xs text-gray-400">Other matches are being played. Your next match will be determined by current results.</p>`;
+      } else {
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">Still Competing</h4>`;
+        html += `<p class="text-xs text-gray-400">No immediate action needed. Check the Matches tab for updates.</p>`;
+      }
+    } else {
+      // Spectator
+      const liveCount = active.filter(m => m.state === 'live').length;
+      const upcomingCount = active.filter(m => m.state === 'scheduled' || m.state === 'check_in' || m.state === 'ready').length;
+      if (liveCount) {
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">${liveCount} Match${liveCount > 1 ? 'es' : ''} Live Now</h4>`;
+      } else if (upcomingCount) {
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">${upcomingCount} Match${upcomingCount > 1 ? 'es' : ''} Upcoming</h4>`;
+      } else if (isGroupPlayoff && currentStage === 'knockout_stage') {
+        html += `<h4 class="font-display font-bold text-base text-white mb-1">Knockout Stage Active</h4>`;
+        html += `<p class="text-xs text-gray-400">Group stage is complete. Watch the knockout bracket unfold.</p>`;
+      }
+      if (liveCount || upcomingCount) {
+        html += `<p class="text-xs text-gray-400">Follow along in the Matches and Bracket tabs.</p>`;
+      }
+    }
+
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [el] });
+  }
+
   async function _fetchMatches() {
     const url = _shell?.dataset.apiMatches;
     if (!url) return;
@@ -4072,6 +4516,7 @@ const HubEngine = (() => {
       _matchesCacheFetchedAt = Date.now();
       _hide('matches-skeleton');
       _renderMatches(data);
+      _updateAnnouncementIntelligence(data);
     } catch (err) {
       console.warn('[HubEngine] Matches fetch failed:', err.message);
       _hide('matches-skeleton');
@@ -4286,7 +4731,15 @@ const HubEngine = (() => {
       if (activeMatches.length > 0) {
         _hide('matches-empty');
         let html = '';
-        activeMatches.forEach((m) => {
+        // Group active matches by stage for section headers
+        const knockoutActive = activeMatches.filter(m => m.is_knockout || (m.stage || '').toLowerCase().includes('knockout'));
+        const groupActive = activeMatches.filter(m => !m.is_knockout && !(m.stage || '').toLowerCase().includes('knockout'));
+        const hasMultipleActiveStages = knockoutActive.length > 0 && groupActive.length > 0;
+
+        if (hasMultipleActiveStages && knockoutActive.length > 0) {
+          html += `<div class="flex items-center gap-2 mb-3 mt-2"><i data-lucide="trophy" class="w-4 h-4 text-[#FFB800]"></i><span class="text-[10px] font-black uppercase tracking-widest text-[#FFB800]">Knockout Stage</span><div class="flex-1 h-px bg-white/5"></div></div>`;
+        }
+        const renderCard = (m) => {
           const stateRaw = String(m?.state || '').toLowerCase();
           const isLive = stateRaw === 'live';
           const isReady = stateRaw === 'ready';
@@ -4411,7 +4864,15 @@ const HubEngine = (() => {
                 ${_renderMatchActionControls(m)}
               </div>
             </article>`;
-        });
+        };
+
+        // Render knockout active matches first, then group stage
+        knockoutActive.forEach(m => { renderCard(m); });
+        if (hasMultipleActiveStages && groupActive.length > 0) {
+          html += `<div class="flex items-center gap-2 mb-3 mt-5"><i data-lucide="users" class="w-4 h-4 text-[#00F0FF]"></i><span class="text-[10px] font-black uppercase tracking-widest text-[#00F0FF]">Group Stage</span><div class="flex-1 h-px bg-white/5"></div></div>`;
+        }
+        groupActive.forEach(m => { renderCard(m); });
+
         cardsEl.innerHTML = html;
         cardsEl.classList.remove('hidden');
         if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [cardsEl] });
@@ -4432,8 +4893,16 @@ const HubEngine = (() => {
       if (historyMatches.length > 0) {
         // Store match data for map viewer access
         window._hubMatchHistory = historyMatches;
+
+        // Group history by stage for section headers
+        const knockoutHistory = historyMatches.filter(m => m.is_knockout || (m.stage || '').toLowerCase().includes('knockout'));
+        const groupHistory = historyMatches.filter(m => !m.is_knockout && !(m.stage || '').toLowerCase().includes('knockout'));
+        const hasMultipleStages = knockoutHistory.length > 0 && groupHistory.length > 0;
+
         let html = '';
-        historyMatches.forEach((m, mi) => {
+        let globalIdx = 0;
+
+        function renderHistoryCard(m, mi) {
           const isWin = m.is_winner === true;
           const isLoss = m.is_winner === false;
           const borderColor = isWin ? '#00FF66' : isLoss ? '#FF2A55' : '#4B5563';
@@ -4481,7 +4950,21 @@ const HubEngine = (() => {
                 <span class="w-8 text-center text-xs font-black ${resultBgClass} py-1 rounded">${resultBadge}</span>
               </div>
             </div>`;
-        });
+        }
+
+        // Render with stage section headers
+        if (hasMultipleStages && knockoutHistory.length) {
+          html += `<div class="flex items-center gap-3 mb-3 mt-2"><span class="font-mono text-[10px] font-black text-[#00F0FF] uppercase tracking-widest">Knockout Stage</span><div class="h-px flex-1 bg-[#00F0FF]/20"></div></div>`;
+          knockoutHistory.forEach((m) => { renderHistoryCard(m, globalIdx); globalIdx++; });
+        }
+        if (hasMultipleStages && groupHistory.length) {
+          html += `<div class="flex items-center gap-3 mb-3 mt-6"><span class="font-mono text-[10px] font-black text-gray-500 uppercase tracking-widest">Group Stage</span><div class="h-px flex-1 bg-white/10"></div></div>`;
+          groupHistory.forEach((m) => { renderHistoryCard(m, globalIdx); globalIdx++; });
+        }
+        if (!hasMultipleStages) {
+          historyMatches.forEach((m) => { renderHistoryCard(m, globalIdx); globalIdx++; });
+        }
+
         historyEl.innerHTML = html;
         if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [historyEl] });
       } else {
@@ -4655,7 +5138,15 @@ const HubEngine = (() => {
     function tick() {
       const diff = targetDate.getTime() - Date.now();
       if (diff <= 0) {
-        el.textContent = 'NOW';
+        // Guard: if lobby is already closed, show EXPIRED instead of NOW
+        const ccState = _lastPolledState?.command_center?.lobby_state || '';
+        if (ccState === 'lobby_closed' || ccState === 'forfeit_review') {
+          el.textContent = 'EXPIRED';
+          el.classList.add('text-red-400');
+        } else {
+          el.textContent = 'NOW';
+          el.classList.remove('text-red-400');
+        }
         _stopOverviewCountdown();
         _pollState();
         return;
@@ -4942,11 +5433,11 @@ const HubEngine = (() => {
 
     if (skeleton) skeleton.classList.add('hidden');
 
-    // Combine active + history matches
+    // Combine active + history matches (exclude cancelled group-stage clutter)
     const allMatches = [
       ...(data.active_matches || []),
       ...(data.match_history || [])
-    ];
+    ].filter(m => m.state !== 'cancelled');
 
     const isParticipantView = _shell?.dataset.isStaffView !== 'true';
     const filteredMatches = isParticipantView && _scheduleFilter === 'my'

@@ -208,6 +208,7 @@ urlpatterns = [
     path('<slug:slug>/announcements/', announcements.AnnouncementListView.as_view(), name='announcements'),
     path('<slug:slug>/announcements/<int:pk>/', announcements.AnnouncementDetailView.as_view(), name='announcement-detail'),
     path('<slug:slug>/announcements/broadcast/', announcements.AnnouncementBroadcastView.as_view(), name='announcements-broadcast'),
+    path('<slug:slug>/announcements/automation/', announcements.AnnouncementAutomationView.as_view(), name='announcements-automation'),
 
     # ── Quick Comms (S8-B8) ──
     path('<slug:slug>/announcements/quick-comms/', announcements.QuickCommsView.as_view(), name='announcements-quick-comms'),

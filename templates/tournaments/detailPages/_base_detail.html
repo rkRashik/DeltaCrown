@@ -56,33 +56,33 @@
 
                 <!-- Status + Game Badges (pill style) -->
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 fade-up">
-                    {% if tournament.status == 'live' %}
+                    {% if effective_status == 'live' %}
                     <div class="badge-live px-4 py-1.5 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span></span>
                         Live Now
                     </div>
-                    {% elif tournament.status == 'registration_open' %}
+                    {% elif effective_status == 'registration_open' %}
                     <div class="badge-open px-4 py-1.5 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
                         Registration Open
                     </div>
-                    {% elif tournament.status == 'registration_closed' %}
+                    {% elif effective_status == 'registration_closed' %}
                     <div class="px-4 py-1.5 rounded-full bg-amber-500/12 border border-amber-500/20 backdrop-blur-md text-amber-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="lock" class="w-3 h-3"></i> Registration Closed
                     </div>
-                    {% elif tournament.status == 'completed' %}
+                    {% elif effective_status == 'completed' %>
                     <div class="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md text-emerald-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="check-circle-2" class="w-3 h-3"></i> Completed
                     </div>
-                    {% elif tournament.status == 'cancelled' %}
+                    {% elif effective_status == 'cancelled' %}
                     <div class="px-4 py-1.5 rounded-full bg-red-900/20 border border-red-800/25 backdrop-blur-md text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="x-circle" class="w-3 h-3"></i> Cancelled
                     </div>
-                    {% elif tournament.status == 'archived' %}
+                    {% elif effective_status == 'archived' %>
                     <div class="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="archive" class="w-3 h-3"></i> Archived
                     </div>
-                    {% elif tournament.status == 'published' %}
+                    {% elif effective_status == 'published' %}
                     <div class="px-4 py-1.5 rounded-full bg-blue-500/12 border border-blue-500/20 backdrop-blur-md text-blue-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="eye" class="w-3 h-3"></i> Published
                     </div>

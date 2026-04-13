@@ -65,25 +65,40 @@ class TournamentBracketView(DetailView):
         context['bracket_available'] = bracket_available
         
         if bracket_available:
-            all_matches = list(tournament.matches.all())
+            # Only include bracket matches for bracket visualization
+            all_matches = list(
+                Match.objects.filter(
+                    tournament=tournament,
+                    bracket=tournament.bracket,
+                    is_deleted=False,
+                ).order_by('round_number', 'match_number')
+            )
 
-            # Batch-load team logos/names for team tournaments
+            # Batch-load logos/avatars for participants
             teams_map = {}
-            if tournament.participation_type == 'team' and all_matches:
-                from apps.organizations.models import Team
+            if all_matches:
                 pids = set()
                 for m in all_matches:
                     if m.participant1_id:
                         pids.add(m.participant1_id)
                     if m.participant2_id:
                         pids.add(m.participant2_id)
-                if pids:
+                if pids and tournament.participation_type == 'team':
+                    from apps.organizations.models import Team
                     for t in Team.objects.filter(id__in=pids).only('id', 'name', 'logo', 'tag'):
                         try:
                             logo = t.logo.url if t.logo else ''
                         except Exception:
                             logo = ''
                         teams_map[t.id] = {'name': t.name, 'logo': logo, 'tag': t.tag}
+                elif pids and tournament.participation_type == 'solo':
+                    from apps.accounts.models import User
+                    for u in User.objects.filter(id__in=pids).select_related('profile').only('id', 'username', 'profile__avatar'):
+                        try:
+                            logo = u.profile.avatar.url if u.profile.avatar else ''
+                        except Exception:
+                            logo = ''
+                        teams_map[u.id] = {'name': u.username, 'logo': logo, 'tag': ''}
 
             # Organize matches by round with enriched data
             # Pre-build round name lookup to avoid O(n) scan per match
@@ -162,6 +177,48 @@ class TournamentBracketView(DetailView):
                 }
                 matches_by_round[round_num]['matches'].append(match_data)
             
+            # Fill placeholder TBD entries for future bracket rounds
+            bs = (tournament.bracket.bracket_structure or {})
+            for sr in bs.get('rounds', []):
+                rn = sr.get('round_number', 0)
+                if rn in matches_by_round:
+                    continue
+                round_name = sr.get('round_name') or _round_name_map.get(rn) or f'Round {rn}'
+                placeholder_matches = []
+                match_count = sr.get('matches', 0)
+                for mi in range(1, match_count + 1):
+                    placeholder_matches.append({
+                        'id': None,
+                        'match_number': mi,
+                        'round_number': rn,
+                        'state': 'pending',
+                        'bracket_type': 'main',
+                        'round_label': round_name,
+                        'team1_name': 'TBD',
+                        'team2_name': 'TBD',
+                        'team1_logo': '',
+                        'team2_logo': '',
+                        'team1_tag': '',
+                        'team2_tag': '',
+                        'participant1_id': None,
+                        'participant2_id': None,
+                        'score1': 0,
+                        'score2': 0,
+                        'winner_id': None,
+                        'team1_is_winner': False,
+                        'team2_is_winner': False,
+                        'is_live': False,
+                        'is_completed': False,
+                        'scheduled_time': None,
+                        'best_of_label': '',
+                        'map_scores': mark_safe('[]'),
+                    })
+                matches_by_round[rn] = {
+                    'round_number': rn,
+                    'round_name': round_name,
+                    'matches': placeholder_matches,
+                }
+
             context['matches_by_round'] = sorted(
                 matches_by_round.values(),
                 key=lambda x: x['round_number']
@@ -181,6 +238,18 @@ class TournamentBracketView(DetailView):
             context['is_double_elim'] = False
             context['all_matches'] = []
         
+        # Effective status for template (stage-aware)
+        effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        context['effective_status'] = effective_status
+        context['effective_status_display'] = effective_status.replace('_', ' ').title()
+        current_stage = getattr(tournament, 'get_current_stage', lambda: None)()
+        stage_display = None
+        if current_stage == 'group_stage':
+            stage_display = 'Group Stage'
+        elif current_stage == 'knockout_stage':
+            stage_display = 'Knockout Stage'
+        context['stage_display'] = stage_display
+
         return context
     
     def _is_bracket_available(self, tournament):
@@ -202,8 +271,8 @@ class TournamentBracketView(DetailView):
         if not hasattr(tournament, 'bracket') or not tournament.bracket:
             return False
         
-        # Bracket generation not complete
-        if not tournament.bracket.is_finalized:
+        # Bracket generation not complete — show if finalized OR if generated_at is set
+        if not tournament.bracket.is_finalized and not tournament.bracket.generated_at:
             return False
         
         return True
@@ -225,7 +294,7 @@ class TournamentBracketView(DetailView):
         if not hasattr(tournament, 'bracket') or not tournament.bracket:
             return "Bracket has not been generated yet."
         
-        if hasattr(tournament, 'bracket') and not tournament.bracket.is_generated:
+        if hasattr(tournament, 'bracket') and not tournament.bracket.is_finalized and not tournament.bracket.generated_at:
             return "Bracket generation is in progress."
         
         return "Bracket is not available at this time."
@@ -469,12 +538,10 @@ class MatchDetailView(DetailView):
                     is_part = True
 
             if is_part:
-                always_open_states = {'live', 'pending_result', 'completed', 'forfeit', 'disputed', 'cancelled'}
-                if match.state in always_open_states or not match.scheduled_time:
-                    lobby_open_for_participant = True
-                else:
-                    lobby_window_opens_at = match.scheduled_time - timedelta(minutes=30)
-                    lobby_open_for_participant = timezone.now() >= lobby_window_opens_at
+                from apps.tournaments.services.match_lobby_service import resolve_lobby_state
+                lobby = resolve_lobby_state(match)
+                lobby_open_for_participant = lobby['is_open']
+                lobby_window_opens_at = lobby['opens_at']
 
             context['is_participant'] = is_part
         else:

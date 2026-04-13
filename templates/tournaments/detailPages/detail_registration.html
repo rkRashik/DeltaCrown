@@ -406,8 +406,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <!-- Registration Opens -->
         {% if tournament.registration_start %}
         <div class="timeline-step">
-            <div class="timeline-dot {% if tournament.status != 'draft' and tournament.status != 'pending_approval' %}completed{% endif %}">
-                <i data-lucide="user-plus" class="w-3 h-3 {% if tournament.status != 'draft' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            <div class="timeline-dot {% if effective_status != 'draft' and effective_status != 'pending_approval' %}completed{% endif %}">
+                <i data-lucide="user-plus" class="w-3 h-3 {% if effective_status != 'draft' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
             </div>
             <div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Opens</p>
@@ -419,8 +419,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <!-- Registration Closes -->
         {% if tournament.registration_end %}
         <div class="timeline-step">
-            <div class="timeline-dot {% if tournament.status == 'registration_open' %}active{% elif tournament.status == 'registration_closed' or tournament.status == 'live' or tournament.status == 'completed' %}completed{% endif %}">
-                <i data-lucide="lock" class="w-3 h-3 {% if tournament.status == 'registration_open' %}game-accent{% elif tournament.status == 'registration_closed' or tournament.status == 'live' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            <div class="timeline-dot {% if effective_status == 'registration_open' %}active{% elif effective_status == 'registration_closed' or effective_status == 'live' or effective_status == 'completed' %}completed{% endif %}">
+                <i data-lucide="lock" class="w-3 h-3 {% if effective_status == 'registration_open' %}game-accent{% elif effective_status == 'registration_closed' or effective_status == 'live' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
             </div>
             <div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Closes</p>
@@ -432,8 +432,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <!-- Tournament Start -->
         {% if tournament.tournament_start %}
         <div class="timeline-step">
-            <div class="timeline-dot {% if tournament.status == 'registration_closed' %}active{% elif tournament.status == 'live' or tournament.status == 'completed' %}completed{% endif %}">
-                <i data-lucide="play" class="w-3 h-3 {% if tournament.status == 'live' %}text-red-400{% elif tournament.status == 'registration_closed' %}game-accent{% elif tournament.status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            <div class="timeline-dot {% if effective_status == 'registration_closed' %}active{% elif effective_status == 'live' or effective_status == 'completed' %}completed{% endif %}">
+                <i data-lucide="play" class="w-3 h-3 {% if effective_status == 'live' %}text-red-400{% elif effective_status == 'registration_closed' %}game-accent{% elif effective_status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
             </div>
             <div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tournament Begins</p>
@@ -445,8 +445,8 @@ Inspired by Battlefy/FACEIT tournament listings with:
         <!-- Tournament End -->
         {% if tournament.tournament_end %}
         <div class="timeline-step">
-            <div class="timeline-dot {% if tournament.status == 'completed' %}completed{% endif %}">
-                <i data-lucide="flag" class="w-3 h-3 {% if tournament.status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            <div class="timeline-dot {% if effective_status == 'completed' %}completed{% endif %}">
+                <i data-lucide="flag" class="w-3 h-3 {% if effective_status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
             </div>
             <div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tournament Ends</p>

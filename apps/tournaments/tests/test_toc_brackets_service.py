@@ -425,7 +425,7 @@ def test_draw_groups_respects_notify_toggle(tournament, organizer, monkeypatch):
         organizer,
     )
     assert len(fired_events) == 1
-    assert fired_events[0][0] == "group_draw_complete"
+    assert fired_events[0][0] == "group_draw_completed"
     assert fired_events[0][1].get("force_email") is True
 
 

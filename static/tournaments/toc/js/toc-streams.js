@@ -172,6 +172,7 @@
 
   function startAutoRefresh() {
     stopAutoRefresh();
+    if (window.TOC && TOC.isTerminalStatus && TOC.isTerminalStatus()) return;
     autoRefreshTimer = setInterval(() => {
       if (!isStreamsTabActive()) return;
       refresh({ silent: true });

@@ -1,8 +1,8 @@
-{% extends "tournaments/detailPages/_base_detail.html" %}
-{% load static humanize %}
+﻿{% extends "tournaments/detailPages/_base_detail.html" %}
+{% load static humanize platform_filters %}
 
 {% comment %}
-Tournament Detail — Completed Phase
+Tournament Detail â€” Completed Phase
 Statuses: completed, archived
 
 Features:
@@ -47,7 +47,7 @@ Features:
     filter: drop-shadow(0 0 20px rgba(250,204,21,0.4));
 }
 
-/* Bracket connector lines — TOC-style */
+/* Bracket connector lines â€” TOC-style */
 .bracket-tree-wrap {
     position: relative;
 }
@@ -60,7 +60,7 @@ Features:
 }
 .bracket-tree-wrap svg.bracket-connectors path {
     fill: none;
-    stroke: rgba(255,255,255,0.12);
+    stroke: rgba(255,255,255,0.30);
     stroke-width: 2;
     stroke-linecap: round;
 }
@@ -167,7 +167,7 @@ Features:
 
     <div class="relative z-10 text-center">
         <div class="trophy-glow inline-block mb-4">
-            <span class="text-6xl">🏆</span>
+            <span class="text-6xl">ðŸ†</span>
         </div>
         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Champion</p>
 
@@ -181,12 +181,12 @@ Features:
             </h2>
             {% if winner.prize_amount %}
             <p class="text-xl font-display font-bold text-dc-gold text-glow-gold">
-                ৳{{ winner.prize_amount|floatformat:0|intcomma }}
+                à§³{{ winner.prize_amount|floatformat:0|intcomma }}
             </p>
             {% endif %}
             {% endwith %}
         {% else %}
-            <!-- No formal results — show winner from matches -->
+            <!-- No formal results â€” show winner from matches -->
             <h2 class="text-2xl sm:text-3xl font-display font-black text-white mb-2">Results Pending</h2>
             <p class="text-sm text-gray-400">Final results will be published soon.</p>
         {% endif %}
@@ -199,7 +199,7 @@ Features:
     {% for result in podium %}
     <div class="section-card p-5 rounded-xl text-center {% if forloop.counter == 1 %}border-yellow-500/20{% elif forloop.counter == 2 %}border-gray-400/15{% elif forloop.counter == 3 %}border-orange-500/15{% endif %}">
         <div class="text-3xl mb-2">
-            {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
+            {% if forloop.counter == 1 %}ðŸ¥‡{% elif forloop.counter == 2 %}ðŸ¥ˆ{% elif forloop.counter == 3 %}ðŸ¥‰{% endif %}
         </div>
         {% if result.team and result.team.logo %}
         <img src="{{ result.team.logo.url }}" alt="{{ result.team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/15 mx-auto mb-2">
@@ -208,11 +208,11 @@ Features:
             {{ forloop.counter }}{% if forloop.counter == 1 %}st{% elif forloop.counter == 2 %}nd{% elif forloop.counter == 3 %}rd{% endif %} Place
         </p>
         <p class="text-base font-bold text-white truncate">
-            {% if result.team %}{{ result.team.name }}{% elif result.player %}{{ result.player.username }}{% else %}—{% endif %}
+            {% if result.team %}{{ result.team.name }}{% elif result.player %}{{ result.player.username }}{% else %}â€”{% endif %}
         </p>
         {% if result.prize_amount %}
         <p class="text-sm font-bold {% if forloop.counter == 1 %}text-yellow-400{% elif forloop.counter == 2 %}text-gray-300{% else %}text-orange-400{% endif %} mt-1">
-            ৳{{ result.prize_amount|floatformat:0|intcomma }}
+            à§³{{ result.prize_amount|floatformat:0|intcomma }}
         </p>
         {% endif %}
     </div>
@@ -235,7 +235,7 @@ Features:
     <div class="glass p-4 rounded-xl text-center">
         <i data-lucide="trophy" class="w-5 h-5 text-dc-gold mx-auto mb-2"></i>
         <p class="text-2xl font-display font-bold text-dc-gold text-glow-gold">
-            {% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}—{% endif %}
+            {% if tournament.prize_pool %}à§³{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}â€”{% endif %}
         </p>
         <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Prize Pool</p>
     </div>
@@ -246,7 +246,7 @@ Features:
     </div>
 </div>
 
-<!-- ALL MATCH RESULTS — Esports Style -->
+<!-- ALL MATCH RESULTS â€” Esports Style -->
 <div id="section-results" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-3">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
@@ -264,7 +264,7 @@ Features:
         <div x-data="{ detail: false }"
              class="group rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12] transition-all duration-200 overflow-hidden"
              {% if forloop.counter > 5 %}x-show="showAll" x-transition.opacity.duration.200ms{% endif %}>
-            {# ── Compact match row (always visible) ── #}
+            {# â”€â”€ Compact match row (always visible) â”€â”€ #}
             <div class="match-row-compact flex items-center px-3 sm:px-4 py-2.5 gap-2 sm:gap-3 cursor-pointer" @click="detail = !detail">
                 <span class="match-stage-label text-[9px] font-bold uppercase tracking-widest flex-shrink-0 w-16 sm:w-24 {% if m.round_number == 1 %}text-dc-gold{% elif m.round_number == 2 %}game-accent{% else %}text-gray-600{% endif %}">{{ m.stage_label }}</span>
                 <div class="flex-1 min-w-0 text-right">
@@ -288,7 +288,7 @@ Features:
                 </div>
             </div>
 
-            {# ── Expandable detail section (hidden by default) ── #}
+            {# â”€â”€ Expandable detail section (hidden by default) â”€â”€ #}
             <div x-show="detail" x-collapse>
                 {# Map-by-map scores #}
                 {% if m.map_scores %}
@@ -304,7 +304,7 @@ Features:
                         {% endfor %}
                         {% if m.mvp_name %}
                         <div class="flex items-center gap-1 ml-auto">
-                            <span class="text-[9px] font-bold text-dc-gold uppercase tracking-wider">★ MVP</span>
+                            <span class="text-[9px] font-bold text-dc-gold uppercase tracking-wider">â˜… MVP</span>
                             <span class="text-[10px] font-bold text-gray-300">{{ m.mvp_name }}</span>
                         </div>
                         {% endif %}
@@ -346,7 +346,7 @@ Features:
                                     <tbody>
                                         {% for s in m.team1_stats %}
                                         <tr class="border-b border-white/[0.02] {% if s.is_mvp %}bg-dc-gold/[0.06]{% endif %}">
-                                            <td class="py-1.5 pr-3 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-300{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px] text-dc-gold">★</span>{% endif %}</td>
+                                            <td class="py-1.5 pr-3 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-300{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px] text-dc-gold">â˜…</span>{% endif %}</td>
                                             <td class="py-1.5 px-1.5 text-gray-500">{{ s.agent }}</td>
                                             <td class="py-1.5 px-1.5 text-emerald-400 font-bold">{{ s.kills }}</td>
                                             <td class="py-1.5 px-1.5 text-red-400/80">{{ s.deaths }}</td>
@@ -389,7 +389,7 @@ Features:
                                     <tbody>
                                         {% for s in m.team2_stats %}
                                         <tr class="border-b border-white/[0.02] {% if s.is_mvp %}bg-dc-gold/[0.06]{% endif %}">
-                                            <td class="py-1.5 pr-3 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-300{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px] text-dc-gold">★</span>{% endif %}</td>
+                                            <td class="py-1.5 pr-3 font-bold {% if s.is_mvp %}text-dc-gold{% else %}text-gray-300{% endif %}">{{ s.display_name }}{% if s.is_mvp %} <span class="text-[8px] text-dc-gold">â˜…</span>{% endif %}</td>
                                             <td class="py-1.5 px-1.5 text-gray-500">{{ s.agent }}</td>
                                             <td class="py-1.5 px-1.5 text-emerald-400 font-bold">{{ s.kills }}</td>
                                             <td class="py-1.5 px-1.5 text-red-400/80">{{ s.deaths }}</td>
@@ -437,7 +437,7 @@ Features:
     {% endif %}
 </div>
 
-<!-- PARTICIPANTS — Compact Modern Cards with Show More -->
+<!-- PARTICIPANTS â€” Compact Modern Cards with Show More -->
 <div id="section-participants" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up" x-data="{ showAll: false }">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
@@ -497,7 +497,7 @@ Features:
     {% endif %}
 </div>
 
-<!-- FINAL BRACKET — TOC-style -->
+<!-- FINAL BRACKET â€” TOC-style -->
 <div id="section-bracket" role="tabpanel" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-4">
     <div class="flex items-center justify-between mb-5">
         <div class="flex items-center gap-2">
@@ -512,7 +512,7 @@ Features:
     {% if matches %}
     {% with has_double_elim=tournament.format %}
 
-    {# ─── UPPER BRACKET ─── #}
+    {# â”€â”€â”€ UPPER BRACKET â”€â”€â”€ #}
     {% if has_double_elim == 'double_elimination' %}
     <div class="mb-6">
         <div class="flex items-center gap-2 mb-4">
@@ -520,7 +520,7 @@ Features:
             <div class="flex items-center gap-1.5 px-3"><div class="w-2 h-2 rounded-full bg-emerald-400"></div><span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.25em]">Winners Bracket</span></div>
             <div class="h-px flex-1 bg-emerald-500/20"></div>
         </div>
-        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
             <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-winners">
                 {% regroup matches|dictsort:"round_number" by round_number as rounds %}
                 {% for round in rounds %}
@@ -554,21 +554,21 @@ Features:
         </div>
     </div>
 
-    {# ─── Bridge annotation ─── #}
+    {# â”€â”€â”€ Bridge annotation â”€â”€â”€ #}
     <div class="flex items-center justify-center gap-2 my-2 opacity-50">
         <div class="h-px w-16 bg-amber-500/30"></div>
-        <span class="text-[8px] font-bold text-amber-400/60 uppercase tracking-widest">LB Finals Winner → Grand Finals</span>
+        <span class="text-[8px] font-bold text-amber-400/60 uppercase tracking-widest">LB Finals Winner â†’ Grand Finals</span>
         <div class="h-px w-16 bg-amber-500/30"></div>
     </div>
 
-    {# ─── LOWER BRACKET ─── #}
+    {# â”€â”€â”€ LOWER BRACKET â”€â”€â”€ #}
     <div class="mb-6">
         <div class="flex items-center gap-2 mb-4">
             <div class="h-px flex-1 bg-red-500/20"></div>
             <div class="flex items-center gap-1.5 px-3"><div class="w-2 h-2 rounded-full bg-red-400"></div><span class="text-[10px] font-black text-red-400 uppercase tracking-[0.25em]">Losers Bracket</span></div>
             <div class="h-px flex-1 bg-red-500/20"></div>
         </div>
-        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+        <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
             <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-losers">
                 {% regroup matches|dictsort:"round_number" by round_number as rounds %}
                 {% for round in rounds %}
@@ -602,7 +602,7 @@ Features:
         </div>
     </div>
 
-    {# ─── GRAND FINAL ─── #}
+    {# â”€â”€â”€ GRAND FINAL â”€â”€â”€ #}
     {% regroup matches|dictsort:"round_number" by round_number as rounds %}
     {% for round in rounds %}
     {% if round.list.0.round_label == 'Grand Final' %}
@@ -640,8 +640,8 @@ Features:
     {% endfor %}
 
     {% else %}
-    {# Single elimination — TOC-style flat bracket #}
-    <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag()" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
+    {# Single elimination â€” TOC-style flat bracket #}
+    <div class="bracket-scroll-wrap pb-2" x-data="bracketDrag" @mousedown="startDrag($event)" @mousemove="onDrag($event)" @mouseup="stopDrag()" @mouseleave="stopDrag()">
         <div class="bracket-tree-wrap flex gap-0 min-w-max py-4 px-2" id="bracket-grid-single">
             {% regroup matches|dictsort:"round_number" by round_number as rounds %}
             {% for round in rounds %}
@@ -750,7 +750,7 @@ Features:
                 </div>
                 {% if row.map_differential is not None %}
                 <div class="text-center hidden sm:block">
-                    <p class="text-[9px] font-bold text-gray-600 uppercase tracking-wider mb-0.5">±Maps</p>
+                    <p class="text-[9px] font-bold text-gray-600 uppercase tracking-wider mb-0.5">Â±Maps</p>
                     <p class="text-sm font-bold {% if row.map_differential > 0 %}text-emerald-400{% elif row.map_differential < 0 %}text-red-400/80{% else %}text-gray-500{% endif %}">
                         {% if row.map_differential > 0 %}+{% endif %}{{ row.map_differential }}
                     </p>
@@ -763,7 +763,7 @@ Features:
                 {% if row.prize_amount %}
                 <div class="text-center hidden sm:block">
                     <p class="text-[9px] font-bold text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
-                    <p class="text-sm font-bold {% if row.rank == 1 %}text-dc-gold{% else %}text-yellow-400/70{% endif %}">৳{{ row.prize_amount|floatformat:0 }}</p>
+                    <p class="text-sm font-bold {% if row.rank == 1 %}text-dc-gold{% else %}text-yellow-400/70{% endif %}">à§³{{ row.prize_amount|floatformat:0 }}</p>
                 </div>
                 {% endif %}
                 {# Win rate bar #}
@@ -813,7 +813,7 @@ Features:
         </div>
         <div class="glass p-4 rounded-xl">
             <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Platform</p>
-            <p class="text-sm font-bold text-white">{{ tournament.get_platform_display|default:"—" }}</p>
+            <p class="text-sm font-bold text-white">{{ tournament.get_platform_display|default:"â€”" }}</p>
         </div>
         <div class="glass p-4 rounded-xl">
             <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Game</p>
@@ -822,19 +822,19 @@ Features:
         {% if tournament.tournament_start %}
         <div class="glass p-4 rounded-xl">
             <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Start Date</p>
-            <p class="text-sm font-bold text-white">{{ tournament.tournament_start|date:"M j, Y · H:i" }}</p>
+            <p class="text-sm font-bold text-white">{% format_dt_context tournament.tournament_start %}</p>
         </div>
         {% endif %}
         {% if tournament.tournament_end %}
         <div class="glass p-4 rounded-xl">
             <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">End Date</p>
-            <p class="text-sm font-bold text-white">{{ tournament.tournament_end|date:"M j, Y · H:i" }}</p>
+            <p class="text-sm font-bold text-white">{% format_dt_context tournament.tournament_end %}</p>
         </div>
         {% endif %}
         {% if tournament.prize_pool %}
         <div class="glass p-4 rounded-xl">
             <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Prize Pool</p>
-            <p class="text-sm font-bold text-dc-gold">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</p>
+            <p class="text-sm font-bold text-dc-gold">à§³{{ tournament.prize_pool|floatformat:0|intcomma }}</p>
         </div>
         {% endif %}
         {% if tournament.max_participants %}
@@ -925,7 +925,7 @@ Features:
         }
     }
 
-    /* SVG bracket connectors — matches TOC design */
+    /* SVG bracket connectors â€” matches TOC design */
     function drawBracketConnectors(wrapperId) {
         var wrap = document.getElementById(wrapperId);
         if (!wrap) return;
@@ -987,8 +987,8 @@ Features:
     });
 
     /* Drag-to-scroll for bracket sections */
-    function bracketDrag() {
-        return {
+    document.addEventListener('alpine:init', function() {
+        Alpine.data('bracketDrag', function() { return {
             dragging: false, startX: 0, scrollLeft: 0,
             startDrag(e) {
                 if (e.button !== 0) return;
@@ -1007,7 +1007,7 @@ Features:
                 this.dragging = false;
                 if (this.$el) this.$el.style.cursor = 'grab';
             }
-        }
-    }
+        }; });
+    });
 </script>
 {% endblock %}
