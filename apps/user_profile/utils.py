@@ -9,9 +9,12 @@ See: Documents/UserProfile_CommandCenter_v1/00_TargetArchitecture/UP_01_CORE_USE
 """
 from django.contrib.auth import get_user_model
 from django.db import transaction, IntegrityError
-from typing import Tuple
+from django.conf import settings
+from typing import Tuple, Optional
 import logging
 import time
+from functools import lru_cache
+from django.contrib.staticfiles import finders
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +192,12 @@ GAME_ICON_MAP = {
 }
 
 DEFAULT_ICON = 'default-game.svg'
+ICON_SEARCH_PATTERNS = (
+    'user_profile/game_icons/{filename}',
+    'img/games/{filename}',
+    'img/game_logos/logos/{filename}',
+)
+FINAL_FALLBACK_ICON_PATH = 'img/teams/default-logo.svg'
 
 
 def get_game_icon_path(game_slug: str) -> str:
@@ -204,6 +213,91 @@ def get_game_icon_path(game_slug: str) -> str:
     return GAME_ICON_MAP.get(game_slug, DEFAULT_ICON)
 
 
+def _build_unhashed_static_url(static_path: str) -> str:
+    """
+    Build a STATIC_URL-based path without manifest lookup.
+
+    This is the last-resort fallback when staticfiles manifest resolution
+    fails for all candidates, ensuring profile pages never crash.
+    """
+    static_url = getattr(settings, 'STATIC_URL', '/static/') or '/static/'
+    return f"{static_url.rstrip('/')}/{static_path.lstrip('/')}"
+
+
+def _safe_static(static_path: str) -> Optional[str]:
+    """
+    Resolve a static path through Django's storage backend.
+
+    Returns None when Manifest storage cannot resolve the file so callers can
+    attempt other candidates safely.
+    """
+    try:
+        return static(static_path)
+    except ValueError:
+        return None
+
+
+def _static_path_exists(static_path: str) -> bool:
+    """
+    Check whether a static asset path is discoverable by Django staticfiles.
+
+    We verify existence before resolving URLs so local/dev behavior matches
+    production expectations for missing files.
+    """
+    try:
+        return bool(finders.find(static_path))
+    except Exception:
+        return False
+
+
+@lru_cache(maxsize=256)
+def _resolve_game_icon_url(icon_filename: str) -> str:
+    """
+    Resolve icon URL with safe fallback order.
+
+    1) Preferred profile icon namespace
+    2) Legacy shared game icon namespaces
+    3) Default icon filename in same namespaces
+    4) Final guaranteed fallback icon URL
+    """
+    candidate_paths = [
+        pattern.format(filename=icon_filename)
+        for pattern in ICON_SEARCH_PATTERNS
+    ]
+
+    if icon_filename != DEFAULT_ICON:
+        candidate_paths.extend(
+            pattern.format(filename=DEFAULT_ICON)
+            for pattern in ICON_SEARCH_PATTERNS
+        )
+
+    first_existing_path = None
+
+    for static_path in candidate_paths:
+        if not _static_path_exists(static_path):
+            continue
+
+        if first_existing_path is None:
+            first_existing_path = static_path
+
+        resolved = _safe_static(static_path)
+        if resolved:
+            return resolved
+
+    if _static_path_exists(FINAL_FALLBACK_ICON_PATH):
+        if first_existing_path is None:
+            first_existing_path = FINAL_FALLBACK_ICON_PATH
+
+        resolved_fallback = _safe_static(FINAL_FALLBACK_ICON_PATH)
+        if resolved_fallback:
+            return resolved_fallback
+
+    if first_existing_path:
+        return _build_unhashed_static_url(first_existing_path)
+
+    return _build_unhashed_static_url(FINAL_FALLBACK_ICON_PATH)
+
+
 def get_game_icon_url(game_slug: str) -> str:
     """
     Get the full static URL for a game icon.
@@ -212,10 +306,10 @@ def get_game_icon_url(game_slug: str) -> str:
         game_slug: Game identifier
     
     Returns:
-        str: Full static URL path (e.g., '/static/user_profile/game_icons/valorant.svg')
+        str: Resolved static URL with safe fallback behavior
     """
     icon_filename = get_game_icon_path(game_slug)
-    return static(f'user_profile/game_icons/{icon_filename}')
+    return _resolve_game_icon_url(icon_filename)
 
 
 def has_custom_icon(game_slug: str) -> bool:
