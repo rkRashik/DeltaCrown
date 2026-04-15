@@ -4,6 +4,25 @@
 {% endcomment %}
 
 <div class="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-5 md:space-y-8">
+  <div id="hub-overview-outcome-spotlight" class="hub-outcome-spotlight-overlay hidden" aria-hidden="true">
+    <section id="hub-overview-outcome-spotlight-shell" class="hub-outcome-spotlight-shell" role="dialog" aria-modal="true" aria-labelledby="hub-overview-outcome-spotlight-title">
+      <div class="hub-outcome-spotlight-header">
+        <span id="hub-overview-outcome-spotlight-badge" class="hub-outcome-spotlight-badge">Result Spotlight</span>
+        <button id="hub-overview-outcome-spotlight-dismiss" type="button" class="hub-outcome-spotlight-dismiss">Dismiss</button>
+      </div>
+      <div class="hub-outcome-spotlight-body-wrap">
+        <div id="hub-overview-outcome-spotlight-icon" class="hub-outcome-spotlight-icon" aria-hidden="true">
+          <i data-lucide="trophy" class="w-6 h-6"></i>
+        </div>
+        <div class="hub-outcome-spotlight-copy">
+          <h3 id="hub-overview-outcome-spotlight-title" class="hub-outcome-spotlight-title">Match Result</h3>
+          <p id="hub-overview-outcome-spotlight-body" class="hub-outcome-spotlight-body"></p>
+        </div>
+      </div>
+      <div id="hub-overview-outcome-spotlight-cta" class="hub-outcome-spotlight-cta"></div>
+    </section>
+  </div>
+
   <div class="hidden md:block">
     <p class="text-sm text-gray-400">Welcome back, <span class="font-bold text-white">{{ request.user.username }}</span>. Here is your operational status.</p>
   </div>
@@ -151,8 +170,14 @@
               data-click="HubEngine.respondReschedule" data-click-args='["{{ hub_command_center.match_id }}"]'
             {% elif hub_command_center.cta_action == 'open_matches' %}
               data-click="HubEngine.switchTab" data-click-args='["matches"]'
+            {% elif hub_command_center.cta_action == 'open_bracket' %}
+              data-click="HubEngine.switchTab" data-click-args='["bracket"]'
+            {% elif hub_command_center.cta_action == 'open_standings' %}
+              data-click="HubEngine.switchTab" data-click-args='["standings"]'
             {% elif hub_command_center.cta_action == 'open_support' %}
               data-click="HubEngine.switchTab" data-click-args='["support"]'
+            {% elif hub_command_center.cta_action == 'open_announcements' %}
+              data-click="HubEngine.switchTab" data-click-args='["announcements"]'
             {% else %}
               data-click="HubEngine.switchTab" data-click-args='["schedule"]'
             {% endif %}
@@ -164,8 +189,14 @@
               <i data-lucide="swords" class="w-5 h-5"></i>
             {% elif hub_command_center.cta_action == 'respond_reschedule' %}
               <i data-lucide="clock-3" class="w-5 h-5"></i>
+            {% elif hub_command_center.cta_action == 'open_bracket' %}
+              <i data-lucide="git-branch" class="w-5 h-5"></i>
+            {% elif hub_command_center.cta_action == 'open_standings' %}
+              <i data-lucide="list-ordered" class="w-5 h-5"></i>
             {% elif hub_command_center.cta_action == 'open_support' %}
               <i data-lucide="life-buoy" class="w-5 h-5"></i>
+            {% elif hub_command_center.cta_action == 'open_announcements' %}
+              <i data-lucide="megaphone" class="w-5 h-5"></i>
             {% else %}
               <i data-lucide="calendar" class="w-5 h-5"></i>
             {% endif %}
@@ -201,6 +232,22 @@
       <div class="mt-4 flex flex-wrap gap-2">
         <button type="button" data-click="HubEngine.switchTab" data-click-args='["schedule"]' class="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10 transition-colors">View Schedule</button>
         <button type="button" data-click="HubEngine.switchTab" data-click-args='["announcements"]' class="px-4 py-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-xs font-black uppercase tracking-wider text-cyan-200 hover:bg-cyan-300/15 transition-colors">Announcements</button>
+      </div>
+    </div>
+
+    <div id="hub-overview-outcome-persistent" class="hidden lg:col-span-2 hub-outcome-persistent">
+      <div class="hub-outcome-persistent-head">
+        <div>
+          <p id="hub-overview-outcome-persistent-kicker" class="hub-outcome-persistent-kicker">Journey Update</p>
+          <h4 id="hub-overview-outcome-persistent-title" class="hub-outcome-persistent-title">Result Summary</h4>
+        </div>
+        <span id="hub-overview-outcome-persistent-state" class="hub-outcome-persistent-state">Updated</span>
+      </div>
+      <p id="hub-overview-outcome-persistent-body" class="hub-outcome-persistent-body"></p>
+      <div id="hub-overview-outcome-persistent-cta" class="hub-outcome-persistent-cta"></div>
+      <div class="hub-outcome-community">
+        <p class="hub-outcome-community-label">Suggested Community Post</p>
+        <p id="hub-overview-community-draft" class="hub-outcome-community-text"></p>
       </div>
     </div>
 

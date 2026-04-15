@@ -9,6 +9,10 @@ from apps.tournaments.views import match_room as match_room_view
 from apps.tournaments.views.match_room import _build_phase_order, _ensure_match_workflow
 
 
+class _SessionStub(dict):
+    modified = False
+
+
 def _build_match_stub(*, slug, category, game_type, policy=None):
     game = SimpleNamespace(
         slug=slug,
@@ -217,6 +221,146 @@ def test_build_room_payload_sets_is_host(monkeypatch):
 
     assert host_payload["me"]["is_host"] is True
     assert guest_payload["me"]["is_host"] is False
+
+
+def test_build_room_payload_marks_checkin_passive_for_direct_ready_mode(monkeypatch):
+    tournament = SimpleNamespace(id=77, slug="direct-cup", name="Direct Cup")
+    match = SimpleNamespace(
+        id=230,
+        state=Match.SCHEDULED,
+        get_state_display=lambda: "Scheduled",
+        round_number=1,
+        match_number=1,
+        participant1_id=6101,
+        participant1_name="Alpha",
+        participant1_score=0,
+        participant1_checked_in=False,
+        participant2_id=6102,
+        participant2_name="Bravo",
+        participant2_score=0,
+        participant2_checked_in=False,
+        winner_id=None,
+        scheduled_time=None,
+        started_at=None,
+        completed_at=None,
+        tournament=tournament,
+        tournament_id=tournament.id,
+        best_of=1,
+    )
+
+    runtime = {
+        "game_name": "PUBG Mobile",
+        "game_slug": "pubgm",
+        "pipeline_game_key": "pubgm",
+        "phase_mode": "direct",
+        "credential_schema": [
+            {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
+        ],
+        "best_of": 1,
+        "map_pool": [],
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "phase1_kind": "direct",
+        "policy": {"effective": {"require_check_in": True}},
+        "check_in_window": {
+            "required": True,
+            "is_pending": True,
+            "is_open": False,
+            "is_closed": False,
+        },
+        "presence": {"1": {}, "2": {}},
+    }
+    workflow = {
+        "phase": "phase1",
+        "phase_order": runtime["phase_order"],
+        "phase1_kind": "direct",
+        "policy": runtime["policy"],
+        "check_in_window": runtime["check_in_window"],
+        "presence": runtime["presence"],
+        "credentials": {"lobby_code": "ROOM-230"},
+        "result_submissions": {"1": None, "2": None},
+    }
+
+    monkeypatch.setattr(match_room_view, "_side_submission_map", lambda _match: {})
+    monkeypatch.setattr(match_room_view, "_participant_media_map", lambda _match: {})
+
+    payload = match_room_view._build_room_payload(
+        match,
+        {"user_id": 6101, "user_side": 1, "is_staff": False, "admin_mode": False},
+        {"lobby_code": "ROOM-230"},
+        workflow,
+        runtime,
+    )
+
+    check_in_window = payload["workflow"]["check_in_window"]
+    assert check_in_window["required"] is False
+    assert check_in_window["passive"] is True
+    assert check_in_window["passive_reason"] == "direct_ready_authoritative"
+
+
+def test_direct_ready_progressed_room_never_re_emits_ready_confirmation_blocker():
+    tournament = SimpleNamespace(id=91, slug="direct-authority-cup", name="Direct Authority Cup")
+    match = SimpleNamespace(
+        id=910,
+        state=Match.READY,
+        participant1_id=8001,
+        participant2_id=8002,
+        participant1_name="Alpha",
+        participant2_name="Bravo",
+        participant1_checked_in=False,
+        participant2_checked_in=False,
+        started_at=None,
+        completed_at=None,
+        participant1_score=0,
+        participant2_score=0,
+        winner_id=None,
+        loser_id=None,
+        tournament=tournament,
+    )
+
+    lobby_info = {}
+    workflow = {
+        "phase": "lobby_setup",
+        "mode": "direct",
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "policy": {"effective": {"require_check_in": True}},
+        "check_in_window": {"required": True},
+        "direct_ready": {"1": True, "2": True},
+        "credentials": {},
+        "result_submissions": {"1": None, "2": None},
+    }
+    runtime = {
+        "phase_mode": "direct",
+        "phase_order": workflow["phase_order"],
+        "policy": workflow["policy"],
+        "check_in_window": workflow["check_in_window"],
+        "best_of": 1,
+        "credential_schema": [
+            {"key": "lobby_code", "label": "Room Number", "kind": "text", "required": True},
+            {"key": "password", "label": "Password", "kind": "text", "required": False},
+        ],
+    }
+    access = {
+        "is_staff": False,
+        "admin_mode": False,
+        "user_side": 1,
+        "user_id": 8001,
+    }
+
+    changed, message = match_room_view.MatchRoomWorkflowView()._apply_action(
+        match=match,
+        access=access,
+        lobby_info=lobby_info,
+        workflow=workflow,
+        runtime=runtime,
+        action="save_credentials",
+        payload={"lobby_code": "ROOM-910", "password": "abc123"},
+        files={},
+    )
+
+    assert changed is True
+    assert message == "Host broadcasted lobby credentials."
+    assert workflow["phase"] == "lobby_setup"
+    assert lobby_info["lobby_code"] == "ROOM-910"
 
 
 def test_build_room_payload_efootball_rules_surface_platform_and_match_time(monkeypatch):
@@ -543,6 +687,122 @@ def test_build_room_payload_masks_opponent_result_for_participants_and_reveals_f
     assert admin_visibility["opponent_revealed"] is True
 
 
+def test_direct_ready_marks_side_ready_without_separate_match_checkin_gate():
+    view = match_room_view.MatchRoomWorkflowView()
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_checked_in=False,
+        participant2_checked_in=False,
+        participant1_name="rkrashik",
+        participant2_name="Nawab",
+        state=Match.SCHEDULED,
+        started_at=None,
+    )
+    access = {"is_staff": False, "admin_mode": False, "user_side": 1, "user_id": 101}
+    lobby_info = {}
+    workflow = {
+        "phase": "phase1",
+        "mode": "direct",
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "direct_ready": {"1": False, "2": False},
+        "credentials": {"lobby_code": ""},
+    }
+    runtime = {
+        "phase_mode": "direct",
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "phase1_kind": "direct",
+        "policy": {"effective": {"require_check_in": True}},
+        "check_in_window": {
+            "required": True,
+            "is_pending": True,
+            "is_closed": False,
+            "opens_at": (now + timedelta(minutes=5)).isoformat(),
+            "closes_at": (now + timedelta(minutes=15)).isoformat(),
+        },
+    }
+
+    changed, message = view._apply_action(
+        match=match,
+        access=access,
+        lobby_info=lobby_info,
+        workflow=workflow,
+        runtime=runtime,
+        action="direct_ready",
+        payload={"ready": True},
+        files={},
+    )
+
+    assert changed is True
+    assert message == "Ready status updated."
+    assert workflow["direct_ready"]["1"] is True
+    assert match.participant1_checked_in is True
+    assert workflow["phase"] == "phase1"
+
+
+def test_start_live_after_both_direct_ready_no_longer_raises_waiting_for_checkin():
+    view = match_room_view.MatchRoomWorkflowView()
+    match = SimpleNamespace(
+        participant1_checked_in=False,
+        participant2_checked_in=False,
+        participant1_name="rkrashik",
+        participant2_name="Nawab",
+        state=Match.SCHEDULED,
+        started_at=None,
+    )
+    lobby_info = {}
+    workflow = {
+        "phase": "phase1",
+        "mode": "direct",
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "direct_ready": {"1": False, "2": False},
+        "credentials": {"lobby_code": "ROOM-77"},
+    }
+    runtime = {
+        "phase_mode": "direct",
+        "phase_order": ["phase1", "lobby_setup", "live", "results", "completed"],
+        "phase1_kind": "direct",
+        "policy": {"effective": {"require_check_in": True}},
+        "check_in_window": {"required": True, "is_pending": True, "is_closed": False},
+    }
+
+    view._apply_action(
+        match=match,
+        access={"is_staff": False, "admin_mode": False, "user_side": 1, "user_id": 101},
+        lobby_info=lobby_info,
+        workflow=workflow,
+        runtime=runtime,
+        action="direct_ready",
+        payload={"ready": True},
+        files={},
+    )
+    view._apply_action(
+        match=match,
+        access={"is_staff": False, "admin_mode": False, "user_side": 2, "user_id": 202},
+        lobby_info=lobby_info,
+        workflow=workflow,
+        runtime=runtime,
+        action="direct_ready",
+        payload={"ready": True},
+        files={},
+    )
+
+    changed, message = view._apply_action(
+        match=match,
+        access={"is_staff": False, "admin_mode": False, "user_side": 1, "user_id": 101},
+        lobby_info=lobby_info,
+        workflow=workflow,
+        runtime=runtime,
+        action="start_live",
+        payload={},
+        files={},
+    )
+
+    assert changed is True
+    assert message == "Match marked live."
+    assert match.state == Match.LIVE
+    assert match.started_at is not None
+
+
 def test_resolve_match_room_access_blocks_participant_before_30_minutes():
     now = timezone.now()
     match = SimpleNamespace(
@@ -579,9 +839,11 @@ def test_resolve_match_room_access_allows_participant_within_30_minutes():
     assert access["denied_reason"] is None
 
 
-def test_resolve_match_room_access_allows_staff_before_window():
+def test_resolve_match_room_access_allows_toc_authorized_staff_before_window():
     now = timezone.now()
     match = SimpleNamespace(
+        id=901,
+        tournament_id=77,
         participant1_id=101,
         participant2_id=202,
         state=Match.SCHEDULED,
@@ -590,8 +852,180 @@ def test_resolve_match_room_access_allows_staff_before_window():
     )
     staff_user = SimpleNamespace(is_authenticated=True, is_staff=True, id=500)
 
-    access = match_room_view._resolve_match_room_access(staff_user, match)
+    access = match_room_view._resolve_match_room_access(
+        staff_user,
+        match,
+        admin_mode_requested=True,
+        admin_mode_authorized=True,
+        admin_mode_token="tok-1",
+    )
 
     assert access["allowed"] is True
     assert access["is_staff"] is True
+    assert access["admin_mode"] is True
+    assert access["admin_token"] == "tok-1"
+    assert access["denied_reason"] is None
+
+
+def test_resolve_match_room_access_organizer_participant_uses_participant_mode_without_toc_admin():
+    now = timezone.now()
+    match = SimpleNamespace(
+        id=902,
+        tournament_id=78,
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(hours=2),
+        tournament=SimpleNamespace(organizer_id=101),
+    )
+    organizer_participant = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(
+        organizer_participant,
+        match,
+        admin_mode_requested=False,
+        admin_mode_authorized=False,
+    )
+
+    assert access["allowed"] is False
+    assert access["is_staff"] is False
+    assert access["admin_mode"] is False
+    assert access["user_side"] == 1
+    assert access["denied_reason"] == "lobby_not_open"
+
+
+def test_resolve_match_room_access_denies_admin_mode_without_toc_authorization():
+    now = timezone.now()
+    match = SimpleNamespace(
+        id=903,
+        tournament_id=79,
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(hours=2),
+        tournament=SimpleNamespace(organizer_id=101),
+    )
+    organizer_participant = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(
+        organizer_participant,
+        match,
+        admin_mode_requested=True,
+        admin_mode_authorized=False,
+    )
+
+    assert access["admin_mode"] is False
+    assert access["is_staff"] is False
+    assert access["denied_reason"] == "lobby_not_open"
+
+
+def test_resolve_match_room_access_allows_admin_mode_when_toc_authorized():
+    now = timezone.now()
+    match = SimpleNamespace(
+        id=904,
+        tournament_id=80,
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now + timedelta(hours=2),
+        tournament=SimpleNamespace(organizer_id=101),
+    )
+    organizer_participant = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(
+        organizer_participant,
+        match,
+        admin_mode_requested=True,
+        admin_mode_authorized=True,
+        admin_mode_token="tok-2",
+    )
+
+    assert access["allowed"] is True
+    assert access["admin_mode"] is True
+    assert access["is_staff"] is True
+    assert access["admin_token"] == "tok-2"
+    assert access["denied_reason"] is None
+
+
+def test_resolve_admin_mode_request_rejects_non_toc_admin_query():
+    request = SimpleNamespace(
+        GET={"admin": "1"},
+        META={"HTTP_REFERER": "https://example.com/tournaments/cup/hub/"},
+        session=_SessionStub(),
+        user=SimpleNamespace(id=501),
+    )
+    match = SimpleNamespace(id=905, tournament_id=81)
+
+    requested, authorized, token = match_room_view._resolve_admin_mode_request(request, match)
+
+    assert requested is True
+    assert authorized is False
+    assert token == ""
+
+
+def test_resolve_admin_mode_request_allows_toc_flow_and_reuses_token():
+    session = _SessionStub()
+    match = SimpleNamespace(id=906, tournament_id=82)
+
+    first_request = SimpleNamespace(
+        GET={"admin": "1"},
+        META={"HTTP_REFERER": "https://example.com/toc/cup/"},
+        session=session,
+        user=SimpleNamespace(id=502),
+    )
+    requested, authorized, issued_token = match_room_view._resolve_admin_mode_request(first_request, match)
+
+    assert requested is True
+    assert authorized is True
+    assert issued_token
+
+    follow_up_request = SimpleNamespace(
+        GET={"admin": "1", "admin_token": issued_token},
+        META={"HTTP_REFERER": "https://example.com/tournaments/cup/hub/"},
+        session=session,
+        user=SimpleNamespace(id=502),
+    )
+    requested_follow_up, authorized_follow_up, token_follow_up = match_room_view._resolve_admin_mode_request(
+        follow_up_request,
+        match,
+    )
+
+    assert requested_follow_up is True
+    assert authorized_follow_up is True
+    assert token_follow_up == issued_token
+
+
+def test_resolve_match_room_access_blocks_participant_after_lobby_close():
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_id=101,
+        participant2_id=202,
+        state=Match.SCHEDULED,
+        scheduled_time=now - timedelta(minutes=20),
+        tournament=SimpleNamespace(organizer_id=999),
+    )
+    user = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(user, match)
+
+    assert access["allowed"] is False
+    assert access["denied_reason"] == "lobby_closed"
+    assert access["lobby_closes_at"] is not None
+
+
+@pytest.mark.parametrize("match_state", [Match.READY, Match.LIVE, Match.PENDING_RESULT])
+def test_resolve_match_room_access_allows_participant_reentry_for_forced_open_states(match_state):
+    now = timezone.now()
+    match = SimpleNamespace(
+        participant1_id=101,
+        participant2_id=202,
+        state=match_state,
+        scheduled_time=now - timedelta(hours=3),
+        tournament=SimpleNamespace(organizer_id=999),
+    )
+    user = SimpleNamespace(is_authenticated=True, is_staff=False, id=101)
+
+    access = match_room_view._resolve_match_room_access(user, match)
+
+    assert access["allowed"] is True
     assert access["denied_reason"] is None

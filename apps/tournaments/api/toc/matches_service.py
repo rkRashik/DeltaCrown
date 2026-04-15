@@ -191,6 +191,8 @@ class TOCMatchesService:
         winner_side: Optional[Any] = None,
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
+        previous_state = match.state
+        previous_winner_id = match.winner_id
         normalized_winner_side = cls._normalize_winner_side(winner_side)
         try:
             actor_username = cls._resolve_username(user_id)
@@ -235,6 +237,12 @@ class TOCMatchesService:
                 match.completed_at = timezone.now()
             match.save()
             updated = match
+
+        cls._sync_bracket_progression_if_needed(
+            updated,
+            previous_state=previous_state,
+            previous_winner_id=previous_winner_id,
+        )
         return cls._serialize_match(updated)
 
     # ── S6-B3: Mark live ──────────────────────────────────────
@@ -279,10 +287,17 @@ class TOCMatchesService:
     @classmethod
     def force_complete(cls, match_id: int, tournament: Tournament, *, user_id: int) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
+        previous_state = match.state
+        previous_winner_id = match.winner_id
         match.state = Match.COMPLETED
         match.completed_at = timezone.now()
         match.lobby_info['force_completed_by'] = user_id
         match.save(update_fields=['state', 'completed_at', 'lobby_info'])
+        cls._sync_bracket_progression_if_needed(
+            match,
+            previous_state=previous_state,
+            previous_winner_id=previous_winner_id,
+        )
         return cls._serialize_match(match)
 
     @classmethod
@@ -387,6 +402,8 @@ class TOCMatchesService:
         user_id: int,
     ) -> Dict[str, Any]:
         match = Match.objects.get(pk=match_id, tournament=tournament)
+        previous_state = match.state
+        previous_winner_id = match.winner_id
         try:
             if forfeiter_id == match.participant1_id:
                 forfeiting_participant = 1
@@ -413,6 +430,12 @@ class TOCMatchesService:
             match.completed_at = timezone.now()
             match.save()
             updated = match
+
+        cls._sync_bracket_progression_if_needed(
+            updated,
+            previous_state=previous_state,
+            previous_winner_id=previous_winner_id,
+        )
         return cls._serialize_match(updated)
 
     # ── S6-B9: Match notes ───────────────────────────────────
@@ -716,6 +739,9 @@ class TOCMatchesService:
         if p1_score is None or p2_score is None:
             raise ValueError('Scores are required for confirm action.')
 
+        previous_state = match.state
+        previous_winner_id = match.winner_id
+
         try:
             p1_score = int(p1_score)
             p2_score = int(p2_score)
@@ -738,6 +764,12 @@ class TOCMatchesService:
         match.state = Match.COMPLETED
         match.completed_at = timezone.now()
         match.save()
+
+        cls._sync_bracket_progression_if_needed(
+            match,
+            previous_state=previous_state,
+            previous_winner_id=previous_winner_id,
+        )
 
         # Mark submissions finalized
         for s in submissions:
@@ -764,6 +796,39 @@ class TOCMatchesService:
             'status': 'confirmed',
             'match': cls._serialize_match(match),
         }
+
+    @classmethod
+    def _sync_bracket_progression_if_needed(
+        cls,
+        match: Match,
+        *,
+        previous_state: Optional[str] = None,
+        previous_winner_id: Optional[int] = None,
+    ) -> None:
+        """Advance bracket state when a match reaches terminal status with a winner."""
+        terminal_states = (Match.COMPLETED, Match.FORFEIT)
+        if match.state not in terminal_states:
+            return
+        if not match.winner_id:
+            return
+        # Transition-based progression is handled centrally via Match post-save signals.
+        # This helper only covers terminal-to-terminal winner corrections.
+        if previous_state not in terminal_states:
+            return
+        if previous_winner_id == match.winner_id:
+            return
+
+        try:
+            from apps.tournaments.services.bracket_service import BracketService
+
+            BracketService.update_bracket_after_match(match)
+        except Exception as exc:
+            logger.warning('Failed to advance bracket for match %s: %s', match.id, exc)
+
+        try:
+            MatchService.check_and_activate_gf_reset(match)
+        except Exception as exc:
+            logger.warning('Failed to evaluate GF reset for match %s: %s', match.id, exc)
 
     @classmethod
     def _action_dispute(cls, match, submissions, user_id, notes, reason_code):

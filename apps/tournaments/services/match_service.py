@@ -45,6 +45,7 @@ from apps.tournaments.models import (
     Registration
 )
 from apps.tournaments.models.dispute import DisputeRecord
+from apps.tournaments.state_machine import validate_transition
 
 # User Profile Integration
 from apps.user_profile.integrations.tournaments import (
@@ -275,8 +276,10 @@ class MatchService:
         
         # Update state if both checked in
         if match.is_both_checked_in:
+            validate_transition(match, Match.READY)
             match.state = Match.READY
         else:
+            validate_transition(match, Match.CHECK_IN)
             match.state = Match.CHECK_IN
         
         match.save()
@@ -350,6 +353,7 @@ class MatchService:
         if not match.is_ready_to_start:
             raise ValidationError("Match not ready to start (check-in incomplete)")
         
+        validate_transition(match, Match.LIVE)
         match.state = Match.LIVE
         match.started_at = timezone.now()
         match.save()
@@ -456,6 +460,7 @@ class MatchService:
         # Update match with submitted result
         match.participant1_score = participant1_score
         match.participant2_score = participant2_score
+        validate_transition(match, Match.PENDING_RESULT)
         match.state = Match.PENDING_RESULT
         
         # Save per-map scores if provided
@@ -571,6 +576,7 @@ class MatchService:
             raise ValidationError("No result to confirm (winner not set)")
         
         # Finalize match
+        validate_transition(match, Match.COMPLETED)
         match.state = Match.COMPLETED
         match.completed_at = timezone.now()
         match.save()
@@ -709,6 +715,7 @@ class MatchService:
         )
 
         # Update match state
+        validate_transition(match, Match.DISPUTED)
         match.state = Match.DISPUTED
         match.save()
 
@@ -884,6 +891,7 @@ class MatchService:
             DisputeRecord.RESOLVED_FOR_OPPONENT,
             DisputeRecord.RESOLVED_CUSTOM,
         ):
+            validate_transition(match, Match.COMPLETED)
             match.state = Match.COMPLETED
             match.completed_at = timezone.now()
 
@@ -1043,6 +1051,7 @@ class MatchService:
         if match.state == Match.COMPLETED:
             raise ValidationError("Cannot cancel completed match")
         
+        validate_transition(match, Match.CANCELLED)
         match.state = Match.CANCELLED
         # Store reason in lobby_info
         match.lobby_info['cancellation_reason'] = reason
@@ -1091,6 +1100,7 @@ class MatchService:
         if match.state in [Match.COMPLETED, Match.CANCELLED]:
             raise ValidationError(f"Cannot forfeit match in state: {match.state}")
         
+        validate_transition(match, Match.FORFEIT)
         match.state = Match.FORFEIT
         
         # Determine winner by forfeit
@@ -1227,7 +1237,8 @@ class MatchService:
             match.participant1_score = 1  # Forfeit score
             match.participant2_score = 0
         
-        match.state = 'completed'
+        validate_transition(match, Match.COMPLETED)
+        match.state = Match.COMPLETED
         
         # Store forfeit metadata in lobby_info
         match.lobby_info['forfeit'] = {
@@ -1386,6 +1397,7 @@ class MatchService:
                 match.winner_id = match.participant2_id
                 match.loser_id = match.participant1_id
         
+        validate_transition(match, Match.COMPLETED)
         match.state = Match.COMPLETED
         if not match.completed_at:
             match.completed_at = timezone.now()
@@ -1437,7 +1449,8 @@ class MatchService:
             Updated Match instance
         """
         # Mark match as cancelled
-        match.state = 'cancelled'
+        validate_transition(match, Match.CANCELLED)
+        match.state = Match.CANCELLED
         
         # Store cancellation metadata in lobby_info
         match.lobby_info['cancelled'] = {
@@ -1485,7 +1498,8 @@ class MatchService:
         # Update match
         match.participant1_score = score1
         match.participant2_score = score2
-        match.state = 'completed'
+        validate_transition(match, Match.COMPLETED)
+        match.state = Match.COMPLETED
         
         # Determine winner
         if score1 > score2:

@@ -20,6 +20,7 @@ import json
 from decimal import Decimal
 
 from apps.tournaments.models import Tournament, Match, Registration
+from apps.tournaments.models.bracket import BracketNode
 from apps.tournaments.models.result import TournamentResult
 
 
@@ -100,6 +101,50 @@ class TournamentBracketView(DetailView):
                             logo = ''
                         teams_map[u.id] = {'name': u.username, 'logo': logo, 'tag': ''}
 
+            node_slots = {}
+            slot_participant_ids = set()
+            if getattr(tournament, 'bracket', None):
+                node_rows = BracketNode.objects.filter(bracket=tournament.bracket).only(
+                    'round_number',
+                    'match_number_in_round',
+                    'participant1_id',
+                    'participant1_name',
+                    'participant2_id',
+                    'participant2_name',
+                )
+                for node in node_rows:
+                    slot_key = (node.round_number or 0, node.match_number_in_round or 0)
+                    node_slots[slot_key] = {
+                        'participant1_id': node.participant1_id,
+                        'participant1_name': node.participant1_name or '',
+                        'participant2_id': node.participant2_id,
+                        'participant2_name': node.participant2_name or '',
+                    }
+                    if node.participant1_id:
+                        slot_participant_ids.add(node.participant1_id)
+                    if node.participant2_id:
+                        slot_participant_ids.add(node.participant2_id)
+
+            missing_slot_ids = [pid for pid in slot_participant_ids if pid and pid not in teams_map]
+            if missing_slot_ids and tournament.participation_type == 'team':
+                from apps.organizations.models import Team
+
+                for t in Team.objects.filter(id__in=missing_slot_ids).only('id', 'name', 'logo', 'tag'):
+                    try:
+                        logo = t.logo.url if t.logo else ''
+                    except Exception:
+                        logo = ''
+                    teams_map[t.id] = {'name': t.name, 'logo': logo, 'tag': t.tag}
+            elif missing_slot_ids and tournament.participation_type == 'solo':
+                from apps.accounts.models import User
+
+                for u in User.objects.filter(id__in=missing_slot_ids).select_related('profile').only('id', 'username', 'profile__avatar'):
+                    try:
+                        logo = u.profile.avatar.url if u.profile.avatar else ''
+                    except Exception:
+                        logo = ''
+                    teams_map[u.id] = {'name': u.username, 'logo': logo, 'tag': ''}
+
             # Organize matches by round with enriched data
             # Pre-build round name lookup to avoid O(n) scan per match
             _round_name_map = {}
@@ -176,32 +221,124 @@ class TournamentBracketView(DetailView):
                     'map_scores': mark_safe(json.dumps(map_scores)),
                 }
                 matches_by_round[round_num]['matches'].append(match_data)
+
+            def _slot_team_payload(participant_id, participant_name):
+                team_meta = teams_map.get(participant_id, {})
+                return {
+                    'id': participant_id,
+                    'name': team_meta.get('name') or participant_name or 'TBD',
+                    'logo': team_meta.get('logo', ''),
+                    'tag': team_meta.get('tag', ''),
+                }
+
+            def _merge_slot_teams(match_payload, slot_payload):
+                if not slot_payload:
+                    return
+
+                slot_team1 = _slot_team_payload(
+                    slot_payload.get('participant1_id'),
+                    slot_payload.get('participant1_name'),
+                )
+                slot_team2 = _slot_team_payload(
+                    slot_payload.get('participant2_id'),
+                    slot_payload.get('participant2_name'),
+                )
+
+                current_name_1 = str(match_payload.get('team1_name') or '').strip()
+                current_name_2 = str(match_payload.get('team2_name') or '').strip()
+
+                if match_payload.get('participant1_id') in (None, '') and slot_team1['id']:
+                    match_payload['participant1_id'] = slot_team1['id']
+                if match_payload.get('participant2_id') in (None, '') and slot_team2['id']:
+                    match_payload['participant2_id'] = slot_team2['id']
+
+                if (not current_name_1 or current_name_1 == 'TBD') and slot_team1['name']:
+                    match_payload['team1_name'] = slot_team1['name']
+                if (not current_name_2 or current_name_2 == 'TBD') and slot_team2['name']:
+                    match_payload['team2_name'] = slot_team2['name']
+
+                if not match_payload.get('team1_logo') and slot_team1['logo']:
+                    match_payload['team1_logo'] = slot_team1['logo']
+                if not match_payload.get('team2_logo') and slot_team2['logo']:
+                    match_payload['team2_logo'] = slot_team2['logo']
+
+                if not match_payload.get('team1_tag') and slot_team1['tag']:
+                    match_payload['team1_tag'] = slot_team1['tag']
+                if not match_payload.get('team2_tag') and slot_team2['tag']:
+                    match_payload['team2_tag'] = slot_team2['tag']
             
             # Fill placeholder TBD entries for future bracket rounds
             bs = (tournament.bracket.bracket_structure or {})
             for sr in bs.get('rounds', []):
-                rn = sr.get('round_number', 0)
-                if rn in matches_by_round:
-                    continue
+                try:
+                    rn = int(sr.get('round_number', 0) or 0)
+                except (TypeError, ValueError):
+                    rn = 0
                 round_name = sr.get('round_name') or _round_name_map.get(rn) or f'Round {rn}'
+                round_payload = matches_by_round.get(rn)
+                if round_payload is None:
+                    round_payload = {
+                        'round_number': rn,
+                        'round_name': round_name,
+                        'matches': [],
+                    }
+                    matches_by_round[rn] = round_payload
+                elif not round_payload.get('round_name'):
+                    round_payload['round_name'] = round_name
+
+                existing_matches = {
+                    m.get('match_number'): m
+                    for m in round_payload.get('matches', [])
+                    if m.get('match_number') is not None
+                }
+
+                try:
+                    match_count = max(int(sr.get('matches', 0) or 0), 0)
+                except (TypeError, ValueError):
+                    match_count = 0
+
+                if tournament.format == 'double_elimination' and rn:
+                    if 5 <= rn <= 10:
+                        placeholder_bracket_type = 'losers'
+                    elif rn == 11:
+                        placeholder_bracket_type = 'grand_final'
+                    else:
+                        placeholder_bracket_type = 'winners'
+                else:
+                    placeholder_bracket_type = 'main'
+
                 placeholder_matches = []
-                match_count = sr.get('matches', 0)
                 for mi in range(1, match_count + 1):
+                    slot_payload = node_slots.get((rn, mi), {})
+                    existing_match = existing_matches.get(mi)
+                    if existing_match is not None:
+                        _merge_slot_teams(existing_match, slot_payload)
+                        continue
+
+                    slot_team1 = _slot_team_payload(
+                        slot_payload.get('participant1_id'),
+                        slot_payload.get('participant1_name'),
+                    )
+                    slot_team2 = _slot_team_payload(
+                        slot_payload.get('participant2_id'),
+                        slot_payload.get('participant2_name'),
+                    )
+
                     placeholder_matches.append({
                         'id': None,
                         'match_number': mi,
                         'round_number': rn,
                         'state': 'pending',
-                        'bracket_type': 'main',
+                        'bracket_type': placeholder_bracket_type,
                         'round_label': round_name,
-                        'team1_name': 'TBD',
-                        'team2_name': 'TBD',
-                        'team1_logo': '',
-                        'team2_logo': '',
-                        'team1_tag': '',
-                        'team2_tag': '',
-                        'participant1_id': None,
-                        'participant2_id': None,
+                        'team1_name': slot_team1['name'],
+                        'team2_name': slot_team2['name'],
+                        'team1_logo': slot_team1['logo'],
+                        'team2_logo': slot_team2['logo'],
+                        'team1_tag': slot_team1['tag'],
+                        'team2_tag': slot_team2['tag'],
+                        'participant1_id': slot_team1['id'],
+                        'participant2_id': slot_team2['id'],
                         'score1': 0,
                         'score2': 0,
                         'winner_id': None,
@@ -213,11 +350,10 @@ class TournamentBracketView(DetailView):
                         'best_of_label': '',
                         'map_scores': mark_safe('[]'),
                     })
-                matches_by_round[rn] = {
-                    'round_number': rn,
-                    'round_name': round_name,
-                    'matches': placeholder_matches,
-                }
+
+                if placeholder_matches:
+                    round_payload['matches'].extend(placeholder_matches)
+                round_payload['matches'].sort(key=lambda row: row.get('match_number') or 0)
 
             context['matches_by_round'] = sorted(
                 matches_by_round.values(),

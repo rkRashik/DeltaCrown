@@ -1,4 +1,6 @@
 # apps/tournaments/api/matches.py
+import logging
+
 from rest_framework import status, permissions, viewsets, decorators
 from rest_framework.response import Response
 from django.utils import timezone
@@ -15,6 +17,9 @@ from .serializers_matches import (
 )
 from ..models import Match
 from apps.tournaments.models.dispute import DisputeRecord
+
+
+logger = logging.getLogger(__name__)
 
 
 class IsParticipant(permissions.BasePermission):
@@ -255,6 +260,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         match.save(update_fields=[
             'state', 'winner_id', 'loser_id', 'completed_at', 'updated_at'
         ])
+
+        # Keep knockout bracket progression in sync with confirmed result.
+        try:
+            from apps.tournaments.services.bracket_service import BracketService
+
+            BracketService.update_bracket_after_match(match)
+        except Exception as exc:
+            logger.warning(
+                "Legacy matches API confirm_result failed to advance bracket for match %s: %s",
+                match.id,
+                exc,
+            )
         
         data = MatchSerializer(match).data
         data["meta"] = {"idempotent_replay": False}
@@ -415,6 +432,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'state', 'participant1_score', 'participant2_score',
             'winner_id', 'loser_id', 'completed_at', 'updated_at'
         ])
+
+        # Keep knockout bracket progression in sync with dispute resolution result.
+        try:
+            from apps.tournaments.services.bracket_service import BracketService
+
+            BracketService.update_bracket_after_match(match)
+        except Exception as exc:
+            logger.warning(
+                "Legacy matches API resolve_dispute failed to advance bracket for match %s: %s",
+                match.id,
+                exc,
+            )
         
         data = MatchSerializer(match).data
         data["meta"] = {"idempotent_replay": False}

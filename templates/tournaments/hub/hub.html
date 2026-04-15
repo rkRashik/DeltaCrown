@@ -8,7 +8,7 @@
 {% block title %}The Hub — {{ tournament.name }} | DeltaCrown{% endblock %}
 
 {% block tournament_css %}
-<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260413b">
+<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}?v=20260414_outcome_spotlight_refine">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
@@ -1114,7 +1114,7 @@
 {% block tournament_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260413b"></script>
+<script src="{% static 'tournaments/js/hub-engine.js' %}?v=20260414_outcome_spotlight_refine"></script>
 <script nonce="{{ request.csp_nonce }}">
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();

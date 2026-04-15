@@ -20,6 +20,9 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 
+from apps.tournaments.services.match_lobby_service import LOBBY_CLOSES_AFTER_MINUTES
+from apps.tournaments.state_machine import validate_transition
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,6 +119,7 @@ def _auto_forfeit_match(match, now):
 
     # Both missed — cancel (no winner is fair)
     if not p1_ok and not p2_ok:
+        validate_transition(match, Match.CANCELLED)
         match.state = Match.CANCELLED
         if not isinstance(match.lobby_info, dict):
             match.lobby_info = {}
@@ -172,18 +176,11 @@ def _fire_notification(match, event: str, reason: str):
         logger.debug('no_show_timer: notification failed: %s', exc)
 
 
-# ---------------------------------------------------------------------------
-# Lobby auto-close task
-# ---------------------------------------------------------------------------
-
-LOBBY_CLOSE_AFTER_MINUTES = 10
-
-
 @shared_task(name='apps.tournaments.tasks.auto_close_expired_lobbies', bind=True, max_retries=1)
 def auto_close_expired_lobbies(self):
     """
     Celery beat task — auto-forfeit/cancel matches whose lobby window has
-    expired (scheduled_time + LOBBY_CLOSE_AFTER_MINUTES) and match never
+    expired (scheduled_time + LOBBY_CLOSES_AFTER_MINUTES) and match never
     went LIVE.
 
     Handles SCHEDULED and CHECK_IN state matches that sat idle past the
@@ -192,7 +189,7 @@ def auto_close_expired_lobbies(self):
     from apps.tournaments.models import Match, Tournament
 
     now = timezone.now()
-    cutoff = now - timedelta(minutes=LOBBY_CLOSE_AFTER_MINUTES)
+    cutoff = now - timedelta(minutes=LOBBY_CLOSES_AFTER_MINUTES)
     forfeit_count = 0
     cancel_count = 0
     error_count = 0
@@ -266,6 +263,7 @@ def _auto_close_lobby(match, now):
         match.lobby_info = {}
 
     if not p1_ok and not p2_ok:
+        validate_transition(match, Match.CANCELLED)
         match.state = Match.CANCELLED
         match.lobby_info['lobby_auto_closed'] = True
         match.lobby_info['lobby_closed_reason'] = 'both_no_show'

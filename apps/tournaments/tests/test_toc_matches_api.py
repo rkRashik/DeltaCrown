@@ -105,6 +105,129 @@ def test_submit_score_uses_match_service_override_signature(match, tournament, o
 
 
 @pytest.mark.django_db
+def test_submit_score_advances_bracket_for_terminal_winner_correction(match, tournament, organizer, monkeypatch):
+    match.state = Match.COMPLETED
+    match.winner_id = None
+    match.loser_id = None
+    match.participant1_score = 0
+    match.participant2_score = 0
+    match.completed_at = timezone.now() - timedelta(minutes=5)
+    match.save(
+        update_fields=[
+            'state',
+            'winner_id',
+            'loser_id',
+            'participant1_score',
+            'participant2_score',
+            'completed_at',
+        ]
+    )
+
+    advanced = []
+    gf_checked = []
+
+    def fake_override(match, score1, score2, reason, overridden_by_username, winner_side=None):
+        match.participant1_score = score1
+        match.participant2_score = score2
+        match.state = Match.COMPLETED
+        match.winner_id = match.participant1_id
+        match.loser_id = match.participant2_id
+        match.completed_at = timezone.now()
+        return match
+
+    def fake_advance(match_obj):
+        advanced.append(match_obj.id)
+        return None
+
+    def fake_gf_reset(match_obj):
+        gf_checked.append(match_obj.id)
+        return False
+
+    monkeypatch.setattr(MatchService, 'organizer_override_score', staticmethod(fake_override))
+    monkeypatch.setattr(MatchService, 'check_and_activate_gf_reset', staticmethod(fake_gf_reset))
+
+    from apps.tournaments.services.bracket_service import BracketService
+
+    monkeypatch.setattr(BracketService, 'update_bracket_after_match', staticmethod(fake_advance))
+
+    TOCMatchesService.submit_score(
+        match_id=match.id,
+        tournament=tournament,
+        p1_score=2,
+        p2_score=0,
+        user_id=organizer.id,
+    )
+
+    assert advanced == [match.id]
+    assert gf_checked == [match.id]
+
+
+@pytest.mark.django_db
+def test_submit_score_does_not_readvance_when_terminal_winner_unchanged(match, tournament, organizer, monkeypatch):
+    match.state = Match.COMPLETED
+    match.winner_id = match.participant1_id
+    match.loser_id = match.participant2_id
+    match.completed_at = timezone.now() - timedelta(minutes=3)
+    match.save(update_fields=['state', 'winner_id', 'loser_id', 'completed_at'])
+
+    advanced = []
+
+    def fake_override(match, score1, score2, reason, overridden_by_username, winner_side=None):
+        match.participant1_score = score1
+        match.participant2_score = score2
+        match.state = Match.COMPLETED
+        match.winner_id = match.participant1_id
+        match.loser_id = match.participant2_id
+        return match
+
+    monkeypatch.setattr(MatchService, 'organizer_override_score', staticmethod(fake_override))
+
+    from apps.tournaments.services.bracket_service import BracketService
+
+    monkeypatch.setattr(
+        BracketService,
+        'update_bracket_after_match',
+        staticmethod(lambda match_obj: advanced.append(match_obj.id)),
+    )
+
+    TOCMatchesService.submit_score(
+        match_id=match.id,
+        tournament=tournament,
+        p1_score=3,
+        p2_score=1,
+        user_id=organizer.id,
+    )
+
+    assert advanced == []
+
+
+@pytest.mark.django_db
+def test_verify_confirm_advances_bracket_on_terminal_transition(match, tournament, organizer, monkeypatch):
+    advanced = []
+
+    from apps.tournaments.services.bracket_service import BracketService
+
+    monkeypatch.setattr(
+        BracketService,
+        'update_bracket_after_match',
+        staticmethod(lambda match_obj: advanced.append(match_obj.id)),
+    )
+
+    payload = TOCMatchesService.verify_match(
+        match_id=match.id,
+        tournament=tournament,
+        action='confirm',
+        user_id=organizer.id,
+        p1_score=2,
+        p2_score=1,
+        notes='confirm from test',
+    )
+
+    assert payload['status'] == 'confirmed'
+    assert advanced == [match.id]
+
+
+@pytest.mark.django_db
 def test_forfeit_match_maps_forfeiter_to_side(match, tournament, organizer, monkeypatch):
     captured = {}
 

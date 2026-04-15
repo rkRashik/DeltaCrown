@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 from typing import Any, Dict, Optional
+from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -24,6 +25,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from apps.tournaments.security import TournamentRole, get_user_tournament_role
+from apps.tournaments.services.match_lobby_service import (
+    resolve_participant_lobby_access,
+    validate_match_room_admin_token,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +253,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
         self.tournament_id = match.tournament_id
         self.user_role = await database_sync_to_async(get_user_tournament_role)(self.user)
         self.is_official_staff = bool(self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN))
+        self.is_admin_mode = False
         self.chat_display_name = self.user.username  # Set after side resolution below
         self.chat_avatar_url = None  # Resolved lazily on first chat message
 
@@ -309,20 +315,53 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     extra={"match_id": self.match_id, "user_id": self.user.id},
                 )
 
-        # If the URL has ?admin=1 and the user is official staff, strip participant
-        # status so their role is fully staff-mode (no GUEST/HOST badge in chat).
         query_string = self.scope.get("query_string", b"")
         if isinstance(query_string, bytes):
             query_string = query_string.decode("utf-8", errors="ignore")
-        if self.is_official_staff and "admin=1" in query_string:
+        query_params = parse_qs(query_string, keep_blank_values=False)
+        admin_requested = str((query_params.get("admin") or [""])[0]).strip().lower() in {"1", "true", "yes", "y", "on"}
+        admin_token = str((query_params.get("admin_token") or [""])[0]).strip()
+        if self.is_official_staff and admin_requested:
+            session = self.scope.get("session")
+            self.is_admin_mode = validate_match_room_admin_token(
+                session,
+                token=admin_token,
+                user_id=self.user.id,
+                tournament_id=match.tournament_id,
+                match_id=self.match_id,
+            )
+
+        if self.is_admin_mode:
             self.is_participant = False
             self.participant_side = None
+
+        if self.is_participant:
+            lobby_access = resolve_participant_lobby_access(match)
+            if not lobby_access.get("allowed"):
+                logger.info(
+                    "WebSocket lobby gate rejected participant",
+                    extra={
+                        "match_id": self.match_id,
+                        "user_id": self.user.id,
+                        "reason": lobby_access.get("denied_reason"),
+                        "lobby_state": lobby_access.get("lobby_state"),
+                    },
+                )
+                await self.close(code=4403)
+                return
+        elif not self.is_admin_mode:
+            logger.info(
+                "WebSocket lobby gate rejected non-participant",
+                extra={"match_id": self.match_id, "user_id": self.user.id},
+            )
+            await self.close(code=4403)
+            return
 
         # Display name: use participant name for participants, fixed label for staff
         if self.is_participant and self.participant_side:
             side_name = match.participant1_name if self.participant_side == 1 else match.participant2_name
             self.chat_display_name = side_name or self.user.username
-        elif self.is_official_staff:
+        elif self.is_admin_mode:
             self.chat_display_name = "Tournament Admin"
 
         allowed_origins = self.get_allowed_origins()
@@ -643,7 +682,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 )
                 return
 
-            can_chat = self.is_participant or self.user_role in (TournamentRole.ORGANIZER, TournamentRole.ADMIN)
+            can_chat = self.is_participant or self.is_admin_mode
             if not can_chat:
                 await self.send_json(
                     {
@@ -661,7 +700,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                 except Exception:
                     self.chat_avatar_url = ""
 
-            is_official_in_chat = self.is_official_staff and not self.is_participant
+            is_official_in_chat = self.is_admin_mode and not self.is_participant
 
             # Build msg_data immediately
             msg_data = {
@@ -710,7 +749,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
 
         if message_type == "voice_link":
             # Admin-only: set/update the persistent voice channel widget
-            if not self.is_official_staff:
+            if not self.is_admin_mode:
                 await self.send_json({"type": "error", "code": "forbidden", "message": "Only staff can post voice links."})
                 return
             voice_url = str(content.get("url") or "").strip()
@@ -937,6 +976,7 @@ class MatchConsumer(AsyncJsonWebsocketConsumer):
                     "id", "tournament_id", "state",
                     "participant1_id", "participant2_id",
                     "participant1_name", "participant2_name",
+                    "scheduled_time", "lobby_info",
                 )
                 .first()
             )

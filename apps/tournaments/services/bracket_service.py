@@ -1652,6 +1652,29 @@ class BracketService:
         parent_node.save(update_fields=save_fields)
         updated_node_ids.append(parent_node.id)
 
+        # If a parent match already exists (placeholder/precreated), sync it so
+        # all match-row driven bracket surfaces reflect the newly advanced slot.
+        if parent_node.match_id:
+            parent_match = parent_node.match
+            parent_match_updates = []
+
+            if parent_match.participant1_id != parent_node.participant1_id:
+                parent_match.participant1_id = parent_node.participant1_id
+                parent_match_updates.append('participant1_id')
+            if (parent_match.participant1_name or "") != (parent_node.participant1_name or ""):
+                parent_match.participant1_name = parent_node.participant1_name or ""
+                parent_match_updates.append('participant1_name')
+
+            if parent_match.participant2_id != parent_node.participant2_id:
+                parent_match.participant2_id = parent_node.participant2_id
+                parent_match_updates.append('participant2_id')
+            if (parent_match.participant2_name or "") != (parent_node.participant2_name or ""):
+                parent_match.participant2_name = parent_node.participant2_name or ""
+                parent_match_updates.append('participant2_name')
+
+            if parent_match_updates:
+                parent_match.save(update_fields=parent_match_updates + ['updated_at'])
+
         # ── WB Loser Drop (Double Elimination) ───────────────────────
         # When a WB (bracket_type=MAIN) match completes and the bracket is DE,
         # route the loser to the appropriate LB node as stored in loser_drops.

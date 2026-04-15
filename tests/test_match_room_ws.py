@@ -8,8 +8,11 @@ Tests MatchConsumer class without requiring a running channel layer.
 import asyncio
 import json
 import time
+from datetime import timedelta
+from types import SimpleNamespace
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+from django.utils import timezone
 
 
 class TestMatchConsumerStructure:
@@ -222,3 +225,222 @@ class TestGlobalMatchClientRegistry:
         from apps.match_engine.consumers import MatchConsumer
         consumer = MatchConsumer()
         assert asyncio.iscoroutinefunction(consumer.direct_broadcast)
+
+
+class TestMatchConsumerLobbyWindowGate:
+    """Validate WS connect uses canonical lobby timing gate for participants."""
+
+    def _build_consumer(self, user_id=101, username="player-one"):
+        from apps.match_engine.consumers import MatchConsumer
+
+        consumer = MatchConsumer()
+        consumer.scope = {
+            "url_route": {"kwargs": {"match_id": "42"}},
+            "user": SimpleNamespace(
+                id=user_id,
+                username=username,
+                is_authenticated=True,
+            ),
+            "query_string": b"",
+            "headers": [],
+            "session": {},
+        }
+        consumer.channel_layer = SimpleNamespace(
+            group_add=AsyncMock(),
+            group_discard=AsyncMock(),
+        )
+        consumer.channel_name = "test-channel"
+        consumer.accept = AsyncMock()
+        consumer.close = AsyncMock()
+        consumer.send_json = AsyncMock()
+        consumer._register_presence = AsyncMock()
+        consumer._broadcast_presence = AsyncMock()
+        consumer._build_presence_snapshot = MagicMock(return_value={"1": {}, "2": {}})
+        consumer._heartbeat_loop = AsyncMock(return_value=None)
+        return consumer
+
+    @pytest.mark.asyncio
+    async def test_connect_rejects_participant_before_lobby_window(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=101)
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="scheduled",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() + timedelta(hours=2),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.PLAYER,
+        )
+
+        await consumer.connect()
+
+        consumer.close.assert_awaited_with(code=4403)
+        consumer.accept.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_rejects_participant_after_lobby_window(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=101)
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="scheduled",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() - timedelta(minutes=20),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.PLAYER,
+        )
+
+        await consumer.connect()
+
+        consumer.close.assert_awaited_with(code=4403)
+        consumer.accept.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_allows_participant_in_live_reentry(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=101)
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="live",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() - timedelta(hours=4),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.PLAYER,
+        )
+
+        await consumer.connect()
+
+        consumer.accept.assert_awaited_once()
+        consumer.close.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_treats_organizer_participant_as_participant_without_admin_mode(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=101, username="organizer-player")
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="scheduled",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() + timedelta(hours=2),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.ORGANIZER,
+        )
+
+        await consumer.connect()
+
+        consumer.close.assert_awaited_with(code=4403)
+        consumer.accept.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_denies_organizer_without_toc_admin_mode(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=999, username="organizer")
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="scheduled",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() + timedelta(hours=2),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.ORGANIZER,
+        )
+
+        await consumer.connect()
+
+        consumer.close.assert_awaited_with(code=4403)
+        consumer.accept.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_allows_toc_authorized_admin_mode(self, monkeypatch):
+        import apps.match_engine.consumers as consumers_module
+        from apps.tournaments.security import TournamentRole
+
+        consumer = self._build_consumer(user_id=999, username="organizer")
+        consumer.scope["query_string"] = b"admin=1&admin_token=valid-token"
+        consumer._get_match = AsyncMock(
+            return_value=SimpleNamespace(
+                id=42,
+                tournament_id=77,
+                state="scheduled",
+                participant1_id=101,
+                participant2_id=202,
+                participant1_name="P1",
+                participant2_name="P2",
+                scheduled_time=timezone.now() + timedelta(hours=2),
+                lobby_info={},
+            )
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "get_user_tournament_role",
+            lambda _user: TournamentRole.ORGANIZER,
+        )
+        monkeypatch.setattr(
+            consumers_module,
+            "validate_match_room_admin_token",
+            lambda _session, **_kwargs: True,
+        )
+
+        await consumer.connect()
+
+        consumer.accept.assert_awaited_once()
+        consumer.close.assert_not_awaited()

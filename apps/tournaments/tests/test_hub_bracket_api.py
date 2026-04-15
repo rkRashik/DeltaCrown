@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.tournaments.models import Game, Match, Registration, Tournament
+from apps.tournaments.models import Bracket, BracketNode, Game, Match, Registration, Tournament
 from apps.tournaments.models.group import Group
 
 
@@ -169,3 +169,64 @@ def test_hub_bracket_api_exposes_projected_seeding_pairs_for_pending_group_playo
         {'p1_label': 'A1', 'p2_label': 'B2'},
         {'p1_label': 'B1', 'p2_label': 'A2'},
     ]
+
+
+@pytest.mark.django_db
+def test_hub_bracket_api_enriches_future_placeholder_slots_from_bracket_nodes(
+    client,
+    hub_tournament,
+    hub_registration,
+    hub_player,
+):
+    bracket = Bracket.objects.create(
+        tournament=hub_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=2,
+        total_matches=3,
+        bracket_structure={
+            'rounds': [
+                {'round_number': 1, 'round_name': 'Semi Finals', 'matches': 2},
+                {'round_number': 2, 'round_name': 'Finals', 'matches': 1},
+            ]
+        },
+    )
+
+    Match.objects.create(
+        tournament=hub_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=1,
+        participant1_id=101,
+        participant1_name='Alpha',
+        participant2_id=102,
+        participant2_name='Bravo',
+        state=Match.SCHEDULED,
+    )
+
+    BracketNode.objects.create(
+        bracket=bracket,
+        position=3,
+        round_number=2,
+        match_number_in_round=1,
+        participant1_id=101,
+        participant1_name='Alpha',
+        participant2_id=None,
+        participant2_name='',
+    )
+
+    client.force_login(hub_player)
+    response = client.get(reverse('tournaments:hub_bracket_api', kwargs={'slug': hub_tournament.slug}))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['generated'] is True
+    assert payload['generated_mode'] == 'bracket'
+
+    finals_round = next(r for r in payload['rounds'] if r['round_number'] == 2)
+    finals_match = next(m for m in finals_round['matches'] if m['match_number'] == 1)
+
+    assert finals_match['id'] is None
+    assert finals_match['participant1']['id'] == 101
+    assert finals_match['participant1']['name'] == 'Alpha'
+    assert finals_match['participant2']['id'] is None
+    assert finals_match['participant2']['name'] == 'TBD'

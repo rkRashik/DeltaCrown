@@ -17,6 +17,7 @@ import json
 import logging
 import random
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlencode, urlparse
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -34,6 +35,12 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.generic import DetailView
 
 from apps.tournaments.models import Match, MatchResultSubmission
+from apps.tournaments.services.match_lobby_service import (
+    LOBBY_OPENS_BEFORE_MINUTES,
+    issue_match_room_admin_token,
+    resolve_participant_lobby_access,
+    validate_match_room_admin_token,
+)
 from apps.tournaments.services.lobby_policy_profile import (
     apply_lobby_policy_capabilities,
     clamp_lobby_round_overrides,
@@ -178,25 +185,53 @@ MATCH_CONFIGURATION_META_KEYS = {
     "veto_sequence",
 }
 
-PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES = 30
-PARTICIPANT_LOBBY_CLOSE_AFTER_MINUTES = 10  # Auto-close lobby 10 min after scheduled_time
-PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES = {
-    "scheduled",
-    "check_in",
-    "ready",
-    "in_progress",
-    "live",
-    "pending_result",
-    "completed",
-    "forfeit",
-    "disputed",
-    "cancelled",
-}
-
-
 def _is_truthy(value: Any) -> bool:
     token = str(value or "").strip().lower()
     return token in {"1", "true", "yes", "y", "on"}
+
+
+def _is_toc_referer(request) -> bool:
+    raw = str((getattr(request, "META", {}) or {}).get("HTTP_REFERER") or "").strip()
+    if not raw:
+        return False
+
+    try:
+        referer_path = str(urlparse(raw).path or "")
+    except Exception:
+        referer_path = raw
+
+    return referer_path.startswith("/toc/")
+
+
+def _resolve_admin_mode_request(request, match: Match) -> Tuple[bool, bool, str]:
+    admin_mode_requested = _is_truthy(getattr(request, "GET", {}).get("admin"))
+    if not admin_mode_requested:
+        return False, False, ""
+
+    admin_token = str(getattr(request, "GET", {}).get("admin_token") or "").strip()
+    session = getattr(request, "session", None)
+    user_id = getattr(getattr(request, "user", None), "id", None)
+
+    if validate_match_room_admin_token(
+        session,
+        token=admin_token,
+        user_id=user_id,
+        tournament_id=getattr(match, "tournament_id", None),
+        match_id=getattr(match, "id", None),
+    ):
+        return True, True, admin_token
+
+    if _is_toc_referer(request):
+        issued_token = issue_match_room_admin_token(
+            session,
+            user_id=user_id,
+            tournament_id=getattr(match, "tournament_id", None),
+            match_id=getattr(match, "id", None),
+        )
+        if issued_token:
+            return True, True, issued_token
+
+    return True, False, ""
 
 
 def _safe_dict(value: Any) -> Dict[str, Any]:
@@ -1197,7 +1232,14 @@ def _ensure_match_workflow(match: Match, persist: bool = False) -> Tuple[Dict[st
     return lobby_info, workflow, runtime, changed
 
 
-def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool = False) -> Dict[str, Any]:
+def _resolve_match_room_access(
+    user,
+    match: Match,
+    *,
+    admin_mode_requested: bool = False,
+    admin_mode_authorized: bool = False,
+    admin_mode_token: str = "",
+) -> Dict[str, Any]:
     if not user or not getattr(user, "is_authenticated", False):
         return {
             "allowed": False,
@@ -1209,7 +1251,7 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
             "lobby_opens_at": None,
         }
 
-    is_staff = bool(getattr(user, "is_staff", False) or match.tournament.organizer_id == user.id)
+    is_official_staff = bool(getattr(user, "is_staff", False) or match.tournament.organizer_id == user.id)
     user_side = None
 
     if match.participant1_id == user.id:
@@ -1258,23 +1300,22 @@ def _resolve_match_room_access(user, match: Match, *, admin_mode_requested: bool
     lobby_opens_at = None
     lobby_closes_at = None
     is_participant = user_side in (1, 2)
+    is_staff_mode = bool(is_official_staff and admin_mode_requested and admin_mode_authorized)
 
-    if is_participant and not is_staff:
-        state = str(getattr(match, "state", "") or "").lower()
-        scheduled_time = getattr(match, "scheduled_time", None)
-        if state not in PARTICIPANT_LOBBY_ALWAYS_OPEN_STATES and scheduled_time:
-            lobby_opens_at = scheduled_time - timedelta(minutes=PARTICIPANT_LOBBY_OPEN_LEAD_MINUTES)
-            lobby_closes_at = scheduled_time + timedelta(minutes=PARTICIPANT_LOBBY_CLOSE_AFTER_MINUTES)
-            now = timezone.now()
-            if now < lobby_opens_at:
-                denied_reason = "lobby_not_open"
-            elif now > lobby_closes_at:
-                denied_reason = "lobby_closed"
+    if is_participant and not is_staff_mode:
+        lobby_access = resolve_participant_lobby_access(match)
+        denied_reason = lobby_access.get("denied_reason")
+        lobby_opens_at = lobby_access.get("lobby_opens_at")
+        lobby_closes_at = lobby_access.get("lobby_closes_at")
+    elif not is_staff_mode and not is_participant:
+        denied_reason = "forbidden"
 
     return {
-        "allowed": bool(is_staff or (is_participant and denied_reason is None)),
-        "is_staff": is_staff,
-        "admin_mode": bool(is_staff and admin_mode_requested),
+        "allowed": bool(is_staff_mode or (is_participant and denied_reason is None)),
+        "is_staff": is_staff_mode,
+        "is_official_staff": is_official_staff,
+        "admin_mode": is_staff_mode,
+        "admin_token": str(admin_mode_token or "") if is_staff_mode else "",
         "user_side": user_side,
         "user_id": user.id,
         "denied_reason": denied_reason,
@@ -1459,7 +1500,13 @@ def _build_room_payload(
     workflow_payload["phase_order"] = _safe_list(runtime.get("phase_order"))
     workflow_payload["phase1_kind"] = str(runtime.get("phase1_kind") or workflow_payload.get("phase1_kind") or "none")
     workflow_payload["policy"] = _safe_dict(runtime.get("policy"))
-    workflow_payload["check_in_window"] = _safe_dict(runtime.get("check_in_window"))
+    check_in_payload = _safe_dict(runtime.get("check_in_window"))
+    if workflow_payload["phase1_kind"] == "direct":
+        # Direct-ready is the authoritative readiness gate; expose check-in as passive status only.
+        check_in_payload["required"] = False
+        check_in_payload["passive"] = True
+        check_in_payload["passive_reason"] = "direct_ready_authoritative"
+    workflow_payload["check_in_window"] = check_in_payload
     workflow_payload["presence"] = _safe_dict(runtime.get("presence"))
 
     merged_submissions = _safe_dict(workflow_payload.get("result_submissions"))
@@ -1478,7 +1525,17 @@ def _build_room_payload(
 
     participant_media = _participant_media_map(match)
     match_rules = _build_match_rules(match, runtime)
-    admin_suffix = "?admin=1" if access.get("admin_mode") else ""
+    admin_query: Dict[str, str] = {}
+    if access.get("admin_mode"):
+        admin_query["admin"] = "1"
+        admin_token = str(access.get("admin_token") or "")
+        if admin_token:
+            admin_query["admin_token"] = admin_token
+
+    admin_suffix = f"?{urlencode(admin_query)}" if admin_query else ""
+    websocket_path = f"/ws/match/{match.id}/"
+    if admin_query:
+        websocket_path = f"{websocket_path}?{urlencode(admin_query)}"
 
     return {
         "match": {
@@ -1537,7 +1594,7 @@ def _build_room_payload(
             "phase1_kind": workflow_payload.get("phase1_kind"),
             "policy": workflow_payload.get("policy"),
         },
-        "check_in": workflow_payload.get("check_in_window"),
+        "check_in": check_in_payload,
         "presence": workflow_payload.get("presence"),
         "workflow": workflow_payload,
         "me": {
@@ -1563,7 +1620,7 @@ def _build_room_payload(
             "support": reverse("tournaments:hub_support_api", kwargs={"slug": match.tournament.slug}),
         },
         "websocket": {
-            "path": f"/ws/match/{match.id}/",
+            "path": websocket_path,
         },
     }
 
@@ -1622,11 +1679,24 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        admin_mode_requested = _is_truthy(request.GET.get("admin"))
+        admin_mode_requested, admin_mode_authorized, admin_mode_token = _resolve_admin_mode_request(request, self.object)
+        if (
+            admin_mode_requested
+            and admin_mode_authorized
+            and admin_mode_token
+            and str(request.GET.get("admin_token") or "").strip() != admin_mode_token
+        ):
+            query = request.GET.copy()
+            query["admin"] = "1"
+            query["admin_token"] = admin_mode_token
+            return redirect(f"{request.path}?{query.urlencode()}")
+
         self.access = _resolve_match_room_access(
             request.user,
             self.object,
             admin_mode_requested=admin_mode_requested,
+            admin_mode_authorized=admin_mode_authorized,
+            admin_mode_token=admin_mode_token,
         )
 
         if not self.access["allowed"]:
@@ -1640,17 +1710,17 @@ class MatchRoomView(LoginRequiredMixin, DetailView):
                         opens_at_label = str(opens_at)
                     messages.info(
                         request,
-                        f"Match lobby opens at {opens_at_label} (30 minutes before kickoff).",
+                        f"Match lobby opens at {opens_at_label} ({LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff).",
                     )
                 else:
-                    messages.info(request, "Match lobby opens 30 minutes before kickoff.")
+                    messages.info(request, f"Match lobby opens {LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff.")
             elif denied == "lobby_closed":
                 messages.warning(
                     request,
                     "Match lobby has closed. Contact an admin if you need to reschedule.",
                 )
             else:
-                messages.warning(request, "Only match participants and staff can access the match lobby.")
+                messages.warning(request, "Only match participants and TOC-authorized admins can access the match lobby.")
             return redirect(
                 "tournaments:match_detail",
                 slug=self.object.tournament.slug,
@@ -1710,7 +1780,7 @@ class MatchCheckInView(LoginRequiredMixin, View):
                         opens_at_label = str(opens_at)
                     messages.error(request, f"Match lobby opens at {opens_at_label}.")
                 else:
-                    messages.error(request, "Match lobby opens 30 minutes before kickoff.")
+                    messages.error(request, f"Match lobby opens {LOBBY_OPENS_BEFORE_MINUTES} minutes before kickoff.")
                 return redirect("tournaments:match_detail", slug=slug, match_id=match_id)
             if denied == "lobby_closed":
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1821,10 +1891,13 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
 
     def get(self, request, slug, match_id):
         match = self._load_match(slug, match_id)
+        admin_mode_requested, admin_mode_authorized, admin_mode_token = _resolve_admin_mode_request(request, match)
         access = _resolve_match_room_access(
             request.user,
             match,
-            admin_mode_requested=_is_truthy(request.GET.get("admin")),
+            admin_mode_requested=admin_mode_requested,
+            admin_mode_authorized=admin_mode_authorized,
+            admin_mode_token=admin_mode_token,
         )
         if not access["allowed"]:
             if access.get("denied_reason") == "lobby_not_open":
@@ -1859,11 +1932,16 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
         with transaction.atomic():
             match = self._load_match(slug, match_id)
             match = Match.objects.select_for_update().get(pk=match.pk)
+            previous_state = match.state
+            previous_winner_id = match.winner_id
 
+            admin_mode_requested, admin_mode_authorized, admin_mode_token = _resolve_admin_mode_request(request, match)
             access = _resolve_match_room_access(
                 request.user,
                 match,
-                admin_mode_requested=_is_truthy(request.GET.get("admin")),
+                admin_mode_requested=admin_mode_requested,
+                admin_mode_authorized=admin_mode_authorized,
+                admin_mode_token=admin_mode_token,
             )
             if not access["allowed"]:
                 if access.get("denied_reason") == "lobby_not_open":
@@ -1891,6 +1969,8 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 match.save(
                     update_fields=[
                         "lobby_info",
+                        "participant1_checked_in",
+                        "participant2_checked_in",
                         "state",
                         "started_at",
                         "completed_at",
@@ -1902,11 +1982,34 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                     ]
                 )
 
+                should_advance_bracket = bool(
+                    match.state in (Match.COMPLETED, Match.FORFEIT)
+                    and match.winner_id
+                    and (
+                        previous_state not in (Match.COMPLETED, Match.FORFEIT)
+                        or previous_winner_id != match.winner_id
+                    )
+                )
+                if should_advance_bracket:
+                    try:
+                        from apps.tournaments.services.bracket_service import BracketService
+
+                        BracketService.update_bracket_after_match(match)
+                    except Exception as exc:
+                        logger.warning(
+                            "Match room workflow failed to advance bracket for match %s: %s",
+                            match.id,
+                            exc,
+                        )
+
         match = self._load_match(slug, match_id)
+        admin_mode_requested, admin_mode_authorized, admin_mode_token = _resolve_admin_mode_request(request, match)
         access = _resolve_match_room_access(
             request.user,
             match,
-            admin_mode_requested=_is_truthy(request.GET.get("admin")),
+            admin_mode_requested=admin_mode_requested,
+            admin_mode_authorized=admin_mode_authorized,
+            admin_mode_token=admin_mode_token,
         )
         lobby_info, workflow, runtime, _ = _ensure_match_workflow(match, persist=False)
         room_payload = _build_room_payload(match, access, lobby_info, workflow, runtime)
@@ -1960,11 +2063,42 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
                 return fallback
             return str(phase_order[-1])
 
-        def _assert_checkin_gate() -> None:
+        def _assert_checkin_gate(*, allow_direct_ready_action: bool = False) -> None:
             if not bool(policy_effective.get("require_check_in")):
                 return
             if is_staff and is_admin_mode:
                 return
+
+            current_phase = str(workflow.get("phase") or phase or "").strip().lower()
+
+            if mode == "direct":
+                progressed_direct_phases = {"lobby_setup", "live", "results", "completed"}
+                progressed_direct_states = {
+                    Match.READY,
+                    Match.LIVE,
+                    Match.PENDING_RESULT,
+                    Match.COMPLETED,
+                    Match.FORFEIT,
+                    Match.CANCELLED,
+                    Match.DISPUTED,
+                }
+
+                # Once direct-ready has advanced the room, legacy ready-confirmation
+                # blockers must never re-appear.
+                if current_phase in progressed_direct_phases or match.state in progressed_direct_states:
+                    return
+
+                if allow_direct_ready_action:
+                    return
+                if match.participant1_checked_in and match.participant2_checked_in:
+                    return
+                missing = []
+                if not match.participant1_checked_in:
+                    missing.append(match.participant1_name or "Side 1")
+                if not match.participant2_checked_in:
+                    missing.append(match.participant2_name or "Side 2")
+                raise ValueError("Waiting for ready confirmation: " + ", ".join(missing) + ".")
+
             if match.participant1_checked_in and match.participant2_checked_in:
                 return
             if check_in_window.get("is_pending"):
@@ -2163,7 +2297,7 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             message = f"Veto updated: side {actor_side} {expected_action}ed {item}."
 
         elif action == "direct_ready":
-            _assert_checkin_gate()
+            _assert_checkin_gate(allow_direct_ready_action=True)
             if mode != "direct":
                 raise ValueError("This match does not use direct setup flow.")
             if actor_side not in (1, 2):
@@ -2175,10 +2309,17 @@ class MatchRoomWorkflowView(LoginRequiredMixin, View):
             ready_state[str(actor_side)] = bool(payload.get("ready", True))
             workflow["direct_ready"] = ready_state
 
+            match.participant1_checked_in = bool(ready_state.get("1"))
+            match.participant2_checked_in = bool(ready_state.get("2"))
+
             if ready_state.get("1") and ready_state.get("2"):
                 workflow["phase"] = "lobby_setup" if "lobby_setup" in phase_order else _next_phase("phase1")
+                if match.state in (Match.SCHEDULED, Match.CHECK_IN):
+                    match.state = Match.READY
             else:
                 workflow["phase"] = "phase1"
+                if match.state == Match.READY:
+                    match.state = Match.CHECK_IN
 
             changed = True
             message = "Ready status updated."

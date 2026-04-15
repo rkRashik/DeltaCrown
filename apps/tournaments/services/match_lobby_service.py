@@ -34,6 +34,10 @@ LOBBY_STATE_CLOSED = "lobby_closed"
 LOBBY_STATE_FORFEIT_REVIEW = "forfeit_review"
 LOBBY_STATE_COMPLETED = "completed"
 
+MATCH_ROOM_ADMIN_SESSION_KEY = "match_room_admin_tokens"
+MATCH_ROOM_ADMIN_TOKEN_TTL_SECONDS = 4 * 60 * 60
+MATCH_ROOM_ADMIN_MAX_TOKENS = 48
+
 
 def resolve_lobby_state(
     match,
@@ -172,6 +176,170 @@ def serialize_lobby_state(lobby: Dict[str, Any]) -> Dict[str, Any]:
         "lobby_policy_summary": lobby["policy_summary"],
         "scheduled_at": lobby["scheduled_at"].isoformat() if lobby["scheduled_at"] else None,
     }
+
+
+def resolve_participant_lobby_access(
+    match,
+    *,
+    now: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Return canonical participant entry decision for match-room access.
+
+    This helper maps canonical lobby states to gate-friendly reasons used by
+    HTTP and WebSocket access checks.
+    """
+    lobby = resolve_lobby_state(match, now=now)
+    denied_reason = None
+    lobby_state = str(lobby.get("state") or "")
+
+    if not lobby.get("can_enter"):
+        if lobby_state == LOBBY_STATE_UPCOMING:
+            denied_reason = "lobby_not_open"
+        elif lobby_state in {LOBBY_STATE_CLOSED, LOBBY_STATE_FORFEIT_REVIEW, LOBBY_STATE_COMPLETED}:
+            denied_reason = "lobby_closed"
+        else:
+            denied_reason = "forbidden"
+
+    return {
+        "allowed": denied_reason is None,
+        "denied_reason": denied_reason,
+        "lobby_state": lobby_state,
+        "lobby_opens_at": lobby.get("opens_at"),
+        "lobby_closes_at": lobby.get("closes_at"),
+        "lobby": lobby,
+    }
+
+
+def _prune_match_room_admin_tokens(raw_tokens: Any, *, now_ts: int) -> Dict[str, Dict[str, int]]:
+    if not isinstance(raw_tokens, dict):
+        return {}
+
+    normalized: Dict[str, Dict[str, int]] = {}
+    for token, payload in raw_tokens.items():
+        token_text = str(token or "").strip()
+        if not token_text or not isinstance(payload, dict):
+            continue
+
+        try:
+            issued_ts = int(payload.get("issued_ts") or 0)
+            user_id = int(payload.get("user_id") or 0)
+            tournament_id = int(payload.get("tournament_id") or 0)
+            match_id = int(payload.get("match_id") or 0)
+        except (TypeError, ValueError):
+            continue
+
+        if issued_ts <= 0 or now_ts - issued_ts > MATCH_ROOM_ADMIN_TOKEN_TTL_SECONDS:
+            continue
+        if user_id <= 0 or tournament_id <= 0 or match_id <= 0:
+            continue
+
+        normalized[token_text] = {
+            "issued_ts": issued_ts,
+            "user_id": user_id,
+            "tournament_id": tournament_id,
+            "match_id": match_id,
+        }
+
+    if len(normalized) <= MATCH_ROOM_ADMIN_MAX_TOKENS:
+        return normalized
+
+    ordered = sorted(
+        normalized.items(),
+        key=lambda row: int(row[1].get("issued_ts", 0)),
+        reverse=True,
+    )
+    return dict(ordered[:MATCH_ROOM_ADMIN_MAX_TOKENS])
+
+
+def issue_match_room_admin_token(
+    session: Any,
+    *,
+    user_id: int,
+    tournament_id: int,
+    match_id: int,
+    now: Optional[Any] = None,
+) -> str:
+    if session is None:
+        return ""
+
+    try:
+        user_id = int(user_id)
+        tournament_id = int(tournament_id)
+        match_id = int(match_id)
+    except (TypeError, ValueError):
+        return ""
+
+    if user_id <= 0 or tournament_id <= 0 or match_id <= 0:
+        return ""
+
+    now_ts = int((now or timezone.now()).timestamp())
+    tokens = _prune_match_room_admin_tokens(
+        session.get(MATCH_ROOM_ADMIN_SESSION_KEY),
+        now_ts=now_ts,
+    )
+
+    token = secrets.token_urlsafe(24)
+    tokens[token] = {
+        "issued_ts": now_ts,
+        "user_id": user_id,
+        "tournament_id": tournament_id,
+        "match_id": match_id,
+    }
+
+    tokens = _prune_match_room_admin_tokens(tokens, now_ts=now_ts)
+    session[MATCH_ROOM_ADMIN_SESSION_KEY] = tokens
+    try:
+        session.modified = True
+    except Exception:
+        pass
+    return token
+
+
+def validate_match_room_admin_token(
+    session: Any,
+    *,
+    token: str,
+    user_id: int,
+    tournament_id: int,
+    match_id: int,
+    now: Optional[Any] = None,
+) -> bool:
+    token_text = str(token or "").strip()
+    if session is None or not token_text:
+        return False
+
+    try:
+        user_id = int(user_id)
+        tournament_id = int(tournament_id)
+        match_id = int(match_id)
+    except (TypeError, ValueError):
+        return False
+
+    if user_id <= 0 or tournament_id <= 0 or match_id <= 0:
+        return False
+
+    now_ts = int((now or timezone.now()).timestamp())
+    raw_tokens = session.get(MATCH_ROOM_ADMIN_SESSION_KEY)
+    tokens = _prune_match_room_admin_tokens(raw_tokens, now_ts=now_ts)
+
+    if tokens != (raw_tokens if isinstance(raw_tokens, dict) else {}):
+        session[MATCH_ROOM_ADMIN_SESSION_KEY] = tokens
+        try:
+            session.modified = True
+        except Exception:
+            pass
+
+    payload = tokens.get(token_text)
+    if not isinstance(payload, dict):
+        return False
+
+    return bool(
+        int(payload.get("user_id") or 0) == user_id
+        and int(payload.get("tournament_id") or 0) == tournament_id
+        and int(payload.get("match_id") or 0) == match_id
+    )
+
+
 REMINDER_MARKERS_KEY = "auto_reminder_marks"
 
 

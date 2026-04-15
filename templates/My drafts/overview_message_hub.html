@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown | Premium Cinematic Outcome Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* =========================================================
+           CORE TOKENS (2026 ULTRA-SHARP ESPORTS STANDARD)
+           ========================================================= */
+        :root {
+            --accent: #00E5FF;
+            --accent-rgb: 0, 229, 255;
+            
+            --bg-deep: #010102; /* True black/deep space, removes foggy look */
+            --bg-panel: #07070A;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.45);
+            
+            --font-display: 'Impact', 'Oswald', system-ui, sans-serif;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .state-eliminated {
+            --accent: #7A8494;
+            --accent-rgb: 122, 132, 148;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: #000; color: var(--text-main); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; -webkit-font-smoothing: antialiased; }
+        button, input, textarea { font-family: inherit; outline: none; border: none; }
+
+        /* =========================================================
+           DEVICE SIMULATOR (Crystal Clear Background)
+           ========================================================= */
+        #app-wrapper {
+            position: relative; width: 100%; height: 100vh; background: var(--bg-deep);
+            background-image: radial-gradient(circle at top, #0A0A10 0%, var(--bg-deep) 100%);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+        #app-wrapper.mode-mobile {
+            width: 375px; height: 812px; border-radius: 40px; margin: 20px 0;
+            border: 10px solid #111; box-shadow: 0 0 0 1px #333, 0 40px 100px rgba(0,0,0,0.9);
+        }
+
+        /* =========================================================
+           DEV CONTROLS
+           ========================================================= */
+        #dev-panel {
+            position: fixed; top: 20px; left: 20px; width: 280px; z-index: 9999;
+            background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.9);
+        }
+        .ctrl-lbl { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+        .ctrl-sel { width: 100%; background: #000; border: 1px solid var(--glass-border); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s; }
+        .ctrl-sel:focus { border-color: var(--accent); }
+        .ctrl-row { display: flex; gap: 8px; }
+        .btn-trigger { flex: 1; padding: 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.2s; }
+        .btn-win { background: rgba(0, 229, 255, 0.1); color: #00E5FF; border: 1px solid rgba(0, 229, 255, 0.3); }
+        .btn-win:hover { background: #00E5FF; color: #000; box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+        .btn-loss { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--glass-border); }
+        .btn-loss:hover { background: rgba(255,255,255,0.15); }
+
+        /* =========================================================
+           BACKGROUND DASHBOARD (Foggy issue totally fixed)
+           ========================================================= */
+        .dash-bg { padding: 40px 24px; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); height: 100%; }
+        
+        /* SHARP, high-contrast background blur. No grey/muddy wash. */
+        .dash-bg.blurred { filter: blur(10px) brightness(0.25) contrast(1.1); transform: scale(0.96); }
+        
+        .dash-header h1 { font-family: var(--font-display); font-size: 38px; letter-spacing: -1px; margin-bottom: 2px; text-transform: uppercase; }
+        .dash-header p { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+        .empty-dash { margin-top: 40px; border: 1px dashed var(--glass-border); border-radius: 16px; padding: 30px; text-align: center; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; }
+
+        /* =========================================================
+           CINEMATIC OVERLAY & FX
+           ========================================================= */
+        .overlay {
+            position: absolute; inset: 0; z-index: 100;
+            background: rgba(2, 2, 4, 0.75); /* Crisp dark glassmorphism */
+            backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+            padding: 24px;
+        }
+        .overlay.active { opacity: 1; pointer-events: all; }
+        #fx-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+
+        .spotlight-core {
+            position: relative; z-index: 2;
+            display: flex; flex-direction: column; gap: 16px;
+            width: 100%; max-width: 420px;
+            transform: translateY(20px) scale(0.97);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .overlay.active .spotlight-core { transform: translateY(0) scale(1); }
+
+        /* =========================================================
+           THE POSTER CARD
+           ========================================================= */
+        .poster {
+            background-color: #050508;
+            background-image: radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.12) 0%, transparent 70%);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
+            aspect-ratio: 3.7/5; padding: 32px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .poster::before {
+            content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent); opacity: 0.9; z-index: 5;
+        }
+        .state-eliminated .poster::before { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); box-shadow: none; }
+
+        /* Giant Ghost Symbol */
+        .ghost-symbol {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            width: 140%; height: 140%;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0.04; pointer-events: none; z-index: 0;
+            color: var(--accent); filter: drop-shadow(0 0 40px var(--accent));
+        }
+        .state-eliminated .ghost-symbol { color: #fff; filter: none; opacity: 0.02; }
+        .ghost-symbol svg { width: 100%; height: 100%; fill: currentColor; }
+
+        /* Tech Details */
+        .tech-crosshair { position: absolute; width: 12px; height: 12px; border: 1px solid var(--accent); opacity: 0.5; z-index: 1; pointer-events: none; }
+        .tc-tl { top: 24px; left: 24px; border-right: none; border-bottom: none; }
+        .tc-br { bottom: 24px; right: 24px; border-left: none; border-top: none; }
+
+        /* Layout */
+        .p-top { display: flex; justify-content: space-between; align-items: flex-start; z-index: 5; }
+        .p-badge { background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); padding: 8px 16px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
+        .state-eliminated .p-badge { color: var(--text-muted); }
+        
+        .p-icon { width: 44px; height: 44px; color: var(--accent); filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.6)); display: flex; align-items: center; justify-content: center; }
+        .state-eliminated .p-icon { color: var(--text-muted); filter: none; }
+        .p-icon svg { width: 100%; height: 100%; fill: currentColor; }
+
+        .p-mid { text-align: center; z-index: 5; margin: auto 0; }
+        .p-stat { font-size: 12px; font-weight: 800; letter-spacing: 6px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; text-shadow: 0 0 20px rgba(var(--accent-rgb), 0.5); }
+        .state-eliminated .p-stat { color: var(--text-muted); text-shadow: none; }
+        
+        .p-title { font-family: var(--font-display); font-size: 68px; line-height: 0.9; letter-spacing: -2px; text-transform: uppercase; color: #fff; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8)); margin-bottom: 0; }
+        .state-eliminated .p-title { color: #ccc; }
+
+        .p-bot { z-index: 5; border-top: 1px solid var(--glass-border); padding-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .pb-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; font-weight: 800; }
+        .pb-val { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
+        
+        .barcode { height: 10px; width: 60px; background: repeating-linear-gradient(90deg, #fff, #fff 2px, transparent 2px, transparent 4px, #fff 4px, #fff 5px, transparent 5px, transparent 8px); opacity: 0.3; margin-top: 8px; }
+
+        /* =========================================================
+           CONTROLS & SHARE WINDOW (Perfected Slide System)
+           ========================================================= */
+        .controls-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; }
+
+        .action-bar { display: flex; gap: 12px; width: 100%; transition: all 0.3s ease; height: 56px; opacity: 1; overflow: hidden; }
+        .action-bar.hidden { height: 0; opacity: 0; margin: 0; padding: 0; border: none; pointer-events: none; }
+        
+        .btn { border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; height: 100%; }
+        .btn-main { background: var(--accent); color: #000; box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.3); flex: 3; }
+        .btn-main:hover { filter: brightness(1.15); transform: translateY(-2px); box-shadow: 0 10px 40px rgba(var(--accent-rgb), 0.5); }
+        .state-eliminated .btn-main { background: #fff; color: #000; box-shadow: 0 5px 20px rgba(255,255,255,0.1); }
+        .state-eliminated .btn-main:hover { background: #eee; transform: translateY(-2px); }
+        
+        .btn-sec { flex: 1; background: rgba(20, 20, 25, 0.8); color: #fff; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn-sec:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); color: var(--accent); }
+        .state-eliminated .btn-sec:hover { border-color: #fff; color: #fff; }
+        .btn-sec svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+
+        /* Share Composer Panel (In-Flow, no overlap) */
+        .share-suite {
+            background: rgba(10, 10, 14, 0.95); border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 24px; display: flex; flex-direction: column;
+            opacity: 0; height: 0; overflow: hidden; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9); backdrop-filter: blur(24px);
+        }
+        .share-suite.active { opacity: 1; height: auto; pointer-events: all; transform: translateY(0); margin-top: 10px; overflow: visible; }
+
+        .ss-head { font-family: var(--font-display); font-size: 24px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0px; }
+        .ss-sub { font-size: 10px; color: var(--text-muted); margin-bottom: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; }
+        .ss-input { width: 100%; min-height: 90px; background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); border-radius: 8px; padding: 16px; color: #fff; font-size: 13px; line-height: 1.5; resize: none; margin-bottom: 16px; transition: border-color 0.3s; }
+        .ss-input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.2); }
+        .ss-actions { display: flex; gap: 12px; height: 50px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="dev-panel">
+        <label class="ctrl-lbl">Device Format</label>
+        <select id="ctrl-device" class="ctrl-sel" onchange="toggleDevice()">
+            <option value="desktop">Desktop Format</option>
+            <option value="mobile">Mobile Format</option>
+        </select>
+        
+        <label class="ctrl-lbl">Esports Title</label>
+        <select id="ctrl-game" class="ctrl-sel">
+            <option value="valorant">Valorant</option>
+            <option value="efootball">eFootball</option>
+            <option value="cs2">Counter-Strike 2</option>
+            <option value="pubg">PUBG Mobile</option>
+            <option value="dota2">Dota 2</option>
+        </select>
+
+        <label class="ctrl-lbl">Tournament Intelligence</label>
+        <select id="ctrl-tourney" class="ctrl-sel">
+            <option value="Genesis Cup">Genesis Cup</option>
+            <option value="Pro League">Pro League Qualifier</option>
+            <option value="Community Clash">Community Clash</option>
+        </select>
+
+        <label class="ctrl-lbl">Bracket Stage</label>
+        <select id="ctrl-stage" class="ctrl-sel">
+            <option value="groups">Group Stage</option>
+            <option value="knockout">Knockout Phase</option>
+            <option value="quarters">Quarter Final</option>
+            <option value="semis">Semi Final</option>
+            <option value="finals">Grand Final</option>
+        </select>
+
+        <label class="ctrl-lbl" style="margin-top: 16px;">Trigger Outcome</label>
+        <div class="ctrl-row">
+            <button class="btn-trigger btn-win" onclick="initSequence('win')">WINNER</button>
+            <button class="btn-trigger btn-loss" onclick="initSequence('loss')">ELIMINATED</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper">
+        <div id="dashboard" class="dash-bg">
+            <div class="dash-header">
+                <p>Tournament Operations</p>
+                <h1>Command Center</h1>
+            </div>
+            <div id="persistent-slot">
+                <div class="empty-dash">Awaiting Server Results...</div>
+            </div>
+        </div>
+
+        <div id="overlay" class="overlay">
+            <canvas id="fx-canvas"></canvas>
+            
+            <div class="spotlight-core">
+                <div id="match-poster" class="poster">
+                    <div class="tech-crosshair tc-tl"></div>
+                    <div class="tech-crosshair tc-br"></div>
+                    <div id="ghost-symbol" class="ghost-symbol"></div>
+                    
+                    <div class="p-top">
+                        <div id="ui-stage" class="p-badge">Group Stage</div>
+                        <div id="ui-icon" class="p-icon"></div>
+                    </div>
+
+                    <div class="p-mid">
+                        <div id="ui-stat" class="p-stat">Advanced</div>
+                        <h2 id="ui-title" class="p-title">VICTORY</h2>
+                    </div>
+
+                    <div class="p-bot">
+                        <div>
+                            <div class="pb-lbl">Competitor</div>
+                            <div class="pb-val">Axel_Grimes</div>
+                            <div class="barcode"></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="pb-lbl">Event</div>
+                            <div id="ui-tourney" class="pb-val" style="font-size: 13px;">Genesis Cup</div>
+                            <div class="pb-lbl" style="margin-top: 8px; margin-bottom: 0;">DELTACROWN VERIFIED</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-wrapper">
+                    <div id="action-bar" class="action-bar">
+                        <button class="btn btn-sec" onclick="openShareSuite()">
+                            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        </button>
+                        <button id="ui-cta-main" class="btn btn-main" onclick="closeSequence()">Continue Journey</button>
+                    </div>
+
+                    <div id="share-suite" class="share-suite">
+                        <h3 class="ss-head">Broadcast Result</h3>
+                        <p class="ss-sub">Publish to DeltaCrown Community</p>
+                        <textarea id="ui-caption" class="ss-input"></textarea>
+                        <div class="ss-actions">
+                            <button class="btn btn-sec" style="flex:1;" onclick="closeShareSuite()">Cancel</button>
+                            <button id="btn-post" class="btn btn-main" style="flex:2;" onclick="executePost()">Post to Feed</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PERFECTED REAL GAME SVGS ---
+        const svgs = {
+            valorant: `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.792 2.152a.252.252 0 0 0-.098.083c-3.384 4.23-6.769 8.46-10.15 12.69-.107.093-.025.288.119.265 2.439.003 4.877 0 7.316.001a.66.66 0 0 0 .552-.25c.774-.967 1.55-1.934 2.324-2.903a.72.72 0 0 0 .144-.49c-.002-3.077 0-6.153-.003-9.23.016-.11-.1-.206-.204-.167zM.077 2.166c-.077.038-.074.132-.076.205.002 3.074.001 6.15.001 9.225a.679.679 0 0 0 .158.463l7.64 9.55c.12.152.308.25.505.247 2.455 0 4.91.003 7.365 0 .142.02.222-.174.116-.265C10.661 15.176 5.526 8.766.4 2.35c-.08-.094-.174-.272-.322-.184z"/></svg>`,
+            efootball: `<svg viewBox="0 0 212.6 167.35" xmlns="http://www.w3.org/2000/svg"><g><path fill="currentColor" d="M102.17,20.62c10.4,0,19.74,4.52,26.16,11.7h24.42C143.91,13.24,124.59,0,102.17,0 C79.76,0,60.44,13.24,51.59,32.32h24.42C82.44,25.14,91.78,20.62,102.17,20.62z"/><path fill="currentColor" d="M102.17,90.83c-10.4,0-19.73-4.52-26.16-11.7H51.59c8.84,19.08,28.16,32.32,50.58,32.32 c22.41,0,41.74-13.24,50.58-32.32h-24.42C121.91,86.31,112.57,90.83,102.17,90.83z"/><path fill="currentColor" d="M135.74,45.41H47.41c-0.63,3.34-0.96,6.79-0.96,10.31c0,3.52,0.33,6.97,0.96,10.31h88.33 c1-3.26,1.54-6.72,1.54-10.31C137.28,52.13,136.74,48.67,135.74,45.41z"/></g><g><polygon fill="currentColor" points="151.03,140.84 157.31,166.95 165.18,166.95 158.46,140.84 "/><path fill="currentColor" d="M150.98,152.43h-5.47l3.54-14.3c0,0,4.82,0,4.82,0c1.89,0,3.43-1.53,3.43-3.43s-1.53-3.43-3.43-3.43 c0,0-10.36,0-10.36,0l-9.14,35.68h7.53l1.9-7.67h8.82L150.98,152.43z"/><rect fill="currentColor" x="168.7" y="131.27" width="7.14" height="26.12"/><path fill="currentColor" d="M185.77,160.1l-17.06,0v6.85l17.06,0c1.89,0,3.42-1.54,3.42-3.43S187.66,160.1,185.77,160.1z"/><rect fill="currentColor" x="192.12" y="131.27" width="7.14" height="26.12"/><path fill="currentColor" d="M209.18,160.1l-17.06,0v6.85l17.06,0c1.89,0,3.42-1.54,3.42-3.43S211.07,160.1,209.18,160.1z"/><path fill="currentColor" d="M100.91,131.27l-20.35,0v6.85l20.35,0c1.89,0,3.42-1.54,3.42-3.43S102.79,131.27,100.91,131.27z"/><rect fill="currentColor" x="88.87" y="140.83" width="7.14" height="26.12"/><path fill="currentColor" d="M54.85,141.44c-0.05,0.42-0.1,1.47-0.13,2.43c-0.03,0.91-0.05,2.52-0.05,5.33c0,2.67,0.02,4.22,0.05,5.11 c0.03,1.04,0.09,2.08,0.14,2.51c0.61,5.5,4.97,9.87,10.45,10.53v-6.77c-1.62-0.51-2.88-1.84-3.26-3.51 c-0.08-0.35-0.16-1.59-0.2-2.86c-0.03-1.08-0.06-2.7-0.06-5c0-2.25,0.03-3.88,0.06-5c0.04-1.37,0.11-2.58,0.17-2.87 c0.33-1.75,1.62-3.16,3.3-3.68v-6.77C59.81,131.53,55.44,135.92,54.85,141.44z"/><path fill="currentColor" d="M78.61,141.44c-0.59-5.52-4.96-9.91-10.45-10.57v6.77c1.68,0.52,2.96,1.93,3.3,3.68 c0.06,0.29,0.13,1.5,0.17,2.87c0.03,1.12,0.06,2.75,0.06,5c0,2.3-0.03,3.92-0.06,5c-0.04,1.27-0.12,2.52-0.2,2.86 c-0.38,1.67-1.64,3.01-3.26,3.51v6.77c5.48-0.66,9.84-5.03,10.45-10.53c0.05-0.43,0.11-1.47,0.14-2.51 c0.03-0.89,0.05-2.44,0.05-5.11c0-2.81-0.03-4.42-0.05-5.33C78.71,142.91,78.66,141.86,78.61,141.44z"/><rect fill="currentColor" x="107.65" y="140.83" width="7.14" height="26.12"/><path fill="currentColor" d="M124.68,146.01c-0.64-0.12-1.1-0.16-1.91-0.19c0,0-0.21-0.02-1.2-0.02c-0.26,0-0.45,0-0.88,0.02 c-0.14,0.01-0.27,0.01-0.41,0.02c-1.73,0.2-3.04,1.66-3.04,3.43c0,1.9,1.54,3.45,3.45,3.45c0,0,0.49,0.01,1.06,0.01 c0.58,0.01,0.76,0,1.01,0.01c0.25,0.01,0.46,0.03,0.71,0.08c1.7,0.37,2.91,1.79,2.91,3.56c0,2.02-1.64,3.66-3.66,3.66h-5.06 v6.9h5.06c5.82,0,10.56-4.74,10.56-10.56C133.26,151.24,129.56,146.94,124.68,146.01z"/><path fill="currentColor" d="M120.97,138.15c1.87,0.21,3.33,1.8,3.34,3.72v1.81h7.14c0,0,0-1.51,0-1.54l0,0 c0-5.38-3.91-9.84-9.05-10.71c-0.16-0.03-0.53-0.09-0.89-0.12c-0.35-0.03-1.05-0.05-1.05-0.05h-12.7h-0.1v6.85l12.84,0 C120.66,138.12,120.81,138.14,120.97,138.15z"/><rect fill="currentColor" y="140.83" width="7.14" height="26.12"/><path fill="currentColor" d="M20.35,138.12c1.89,0,3.42-1.54,3.42-3.43s-1.53-3.42-3.42-3.43v0H0v6.85L20.35,138.12L20.35,138.12z"/><path fill="currentColor" d="M26.25,141.44c-0.05,0.42-0.1,1.47-0.13,2.43c-0.03,0.91-0.05,2.52-0.05,5.33c0,2.67,0.02,4.22,0.05,5.11 c0.03,1.04,0.09,2.08,0.14,2.51c0.61,5.5,4.97,9.87,10.45,10.53v-6.77c-1.62-0.51-2.88-1.84-3.26-3.51 c-0.08-0.35-0.16-1.59-0.2-2.86c-0.03-1.08-0.06-2.7-0.06-5c0-2.25,0.03-3.88,0.06-5c0.04-1.37,0.11-2.58,0.17-2.87 c0.33-1.75,1.62-3.16,3.3-3.68v-6.77C31.21,131.53,26.84,135.92,26.25,141.44z"/><path fill="currentColor" d="M50.01,141.44c-0.59-5.52-4.96-9.91-10.45-10.57v6.77c1.68,0.52,2.96,1.93,3.3,3.68 c0.06,0.29,0.13,1.5,0.17,2.87c0.03,1.12,0.06,2.75,0.06,5c0,2.3-0.03,3.92-0.06,5c-0.04,1.27-0.12,2.52-0.2,2.86 c-0.38,1.67-1.64,3.01-3.26,3.51v6.77c5.48-0.66,9.84-5.03,10.45-10.53c0.05-0.43,0.11-1.47,0.14-2.51 c0.03-0.89,0.05-2.44,0.05-5.11c0-2.81-0.03-4.42-0.05-5.33C50.11,142.91,50.06,141.86,50.01,141.44z"/><path fill="currentColor" d="M201.96,111.42v1.96H200v7.56h-2.24v-7.56h-1.96v-1.96H201.96z"/><path fill="currentColor" d="M209.45,111.42h3.14v9.53h-2.24v-6.98h-0.06l-1.4,4.31h-2.11l-1.39-4.3h-0.07v6.96h-2.24v-9.53h3.14 l1.57,4.24h0.15L209.45,111.42z"/></g></svg>`,
+            pubg: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.077 15.938h-2.31V8.062h3.421c1.884 0 2.943.905 2.943 2.502 0 1.636-1.121 2.583-2.943 2.583h-1.111v2.791zm0-4.63h1.006c.646 0 1.076-.323 1.076-.95 0-.593-.413-.88-1.058-.88h-1.024v1.83zm5.405 4.63v-5.263h1.83v3.702c0 1.058.485 1.579 1.256 1.579.79 0 1.257-.521 1.257-1.579V11.31h1.848v5.334c0 2.064-1.31 2.998-3.087 2.998-1.849 0-3.104-.987-3.104-3.702zm11.206 0v-7.876h3.481c1.238 0 2.101.448 2.532 1.274l-1.597.88c-.234-.413-.593-.61-1.095-.61h-1.49v2.243h1.364v1.543h-1.364v2.546h-1.83zm-13.914 0V8.062h4.593v1.543H8.448v1.652h2.512v1.49H8.448v1.635h2.89v1.556H6.62z"/></svg>`,
+            cs2: `<svg viewBox="0 0 100 100"><text x="50" y="65" font-family="Impact, system-ui, sans-serif" font-weight="900" font-size="52" font-style="italic" text-anchor="middle" fill="currentColor">CS2</text><polygon points="15,75 85,75 92,82 22,82" fill="currentColor"/></svg>`,
+            dota2: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M14.2 2.9l-6.8 5.4v10.3l7-5.5 4.6 3.7-2 4.3 4.3-1.8L22 10.4zM4.1 8.8l-1.9 2.5 3 2.9zM5.9 16.5l4-3.1v3.4z"/></svg>`
+        };
+
+        // --- ESPORTS INTELLIGENCE LOGIC ---
+        const sys = {
+            games: {
+                valorant: { color: "#ff4655", rgb: "255, 70, 85", icon: svgs.valorant, name: "Valorant" },
+                efootball: { color: "#3b82f6", rgb: "59, 130, 246", icon: svgs.efootball, name: "eFootball" },
+                cs2: { color: "#eab308", rgb: "234, 179, 8", icon: svgs.cs2, name: "Counter-Strike 2" },
+                pubg: { color: "#facc15", rgb: "250, 204, 21", icon: svgs.pubg, name: "PUBG Mobile" },
+                dota2: { color: "#e53935", rgb: "229, 57, 53", icon: svgs.dota2, name: "Dota 2" }
+            },
+            data: {
+                win: {
+                    groups: { title: "SECURED", stat: "Points Earned", cta: "View Bracket", draft: "Cleared the groups. Moving forward. 🥶" },
+                    knockout: { title: "ADVANCED", stat: "Knockout Cleared", cta: "Next Assignment", draft: "Survived the elimination bracket." },
+                    quarters: { title: "CLUTCHED", stat: "Semi-Final Unlocked", cta: "View Bracket", draft: "Clutched up in the quarters. Two more to go. 💯" },
+                    semis: { title: "FINALIST", stat: "Grand Final Bound", cta: "Prepare for Final", draft: "Locked in for the Grand Final. It's time." },
+                    finals: { title: "CHAMPION", stat: "Tournament Won", cta: "Claim Winnings", draft: "CROWNED. 1st place secured. GGs to everyone. 🏆👑" }
+                },
+                loss: {
+                    groups: { title: "ELIMINATED", stat: "Run Ended", cta: "Match Stats", draft: "Tough games today. Didn't make it out of groups." },
+                    knockout: { title: "KNOCKED OUT", stat: "Bracket Exit", cta: "View Bracket", draft: "Run ends here. Played hard but fell short." },
+                    quarters: { title: "RUN ENDED", stat: "Quarter Final Exit", cta: "Tournament Home", draft: "Knocked out in quarters. We go again next time." },
+                    semis: { title: "HEARTBREAK", stat: "Top 4 Finish", cta: "View Standings", draft: "Fell in the semis. Proud of the top 4 finish though." },
+                    finals: { title: "RUNNER UP", stat: "Top 2 Finish", cta: "Tournament Home", draft: "Fell at the final hurdle. 2nd place hurts, but we bounce back. 🥈" }
+                }
+            }
+        };
+
+        const wrapper = document.getElementById('app-wrapper');
+        const overlay = document.getElementById('overlay');
+        const dashboard = document.getElementById('dashboard');
+        const root = document.documentElement;
+        let activeCtx = null;
+        let fxRunning = false;
+
+        function toggleDevice() {
+            wrapper.classList.toggle('mode-mobile', document.getElementById('ctrl-device').value === 'mobile');
+            setTimeout(resizeFX, 500);
+        }
+
+        function initSequence(type) {
+            const gameKey = document.getElementById('ctrl-game').value;
+            const stageKey = document.getElementById('ctrl-stage').value;
+            const tourney = document.getElementById('ctrl-tourney').value;
+            const stageName = document.getElementById('ctrl-stage').options[document.getElementById('ctrl-stage').selectedIndex].text;
+            
+            const game = sys.games[gameKey];
+            const data = sys.data[type][stageKey];
+            
+            // Apply Colors
+            root.style.setProperty('--accent', game.color);
+            root.style.setProperty('--accent-rgb', game.rgb);
+            root.classList.toggle('state-eliminated', type === 'loss');
+
+            // Set UI
+            document.getElementById('ui-icon').innerHTML = game.icon;
+            document.getElementById('ghost-symbol').innerHTML = game.icon;
+            document.getElementById('ui-stage').innerText = stageName;
+            document.getElementById('ui-tourney').innerText = tourney;
+            document.getElementById('ui-title').innerText = data.title;
+            document.getElementById('ui-stat').innerText = data.stat;
+            document.getElementById('ui-cta-main').innerText = data.cta;
+            document.getElementById('ui-caption').value = `${data.draft}\n\n#${gameKey.toUpperCase()} #DeltaCrown`;
+
+            activeCtx = { game, title: data.title, stat: data.stat, tourney };
+
+            // Reset UI and Open
+            closeShareSuite(); 
+            overlay.classList.add('active');
+            dashboard.classList.add('blurred');
+            
+            triggerFX(type);
+        }
+
+        function closeSequence() {
+            overlay.classList.remove('active');
+            dashboard.classList.remove('blurred');
+            closeShareSuite();
+            stopFX();
+            
+            setTimeout(() => {
+                document.getElementById('persistent-slot').innerHTML = `
+                    <div style="background:var(--bg-panel); border:1px solid var(--glass-border); border-radius:16px; padding:24px; display:flex; align-items:center; gap:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                        <div style="width:48px; height:48px; color:var(--accent); filter:drop-shadow(0 0 15px rgba(var(--accent-rgb),0.5));">${activeCtx.game.icon}</div>
+                        <div>
+                            <h4 style="font-family:var(--font-display); font-size:26px; letter-spacing:-0.5px; text-transform:uppercase; margin-bottom:2px; line-height:1;">${activeCtx.title}</h4>
+                            <p style="font-size:11px; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:2px;">${activeCtx.tourney} • ${activeCtx.stat}</p>
+                        </div>
+                    </div>`;
+            }, 400);
+        }
+
+        // --- SHARE PANEL LOGIC (FIXED) ---
+        const actionBar = document.getElementById('action-bar');
+        const shareSuite = document.getElementById('share-suite');
+
+        function openShareSuite() {
+            actionBar.classList.add('hidden');
+            shareSuite.classList.add('active');
+        }
+
+        function closeShareSuite() {
+            actionBar.classList.remove('hidden');
+            shareSuite.classList.remove('active');
+        }
+
+        function executePost() {
+            const btn = document.getElementById('btn-post');
+            const orig = btn.innerText;
+            btn.innerText = "POSTED ✓"; btn.style.background = "#22c55e"; btn.style.color = "#000"; btn.style.boxShadow = "none";
+            setTimeout(() => {
+                closeSequence();
+                setTimeout(() => { btn.innerText = orig; btn.style.background = ""; btn.style.color = ""; btn.style.boxShadow = ""; }, 500);
+            }, 1000);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) {
+                shareSuite.classList.contains('active') ? closeShareSuite() : closeSequence();
+            }
+        });
+
+        // --- FX ENGINE ---
+        const canvas = document.getElementById('fx-canvas');
+        const ctx = canvas.getContext('2d');
+        let parts = [], animId;
+
+        function resizeFX() { 
+            canvas.width = wrapper.clientWidth; 
+            canvas.height = wrapper.clientHeight; 
+        }
+        window.addEventListener('resize', resizeFX);
+        resizeFX();
+
+        function triggerFX(type) {
+            fxRunning = true; parts = []; resizeFX();
+            const color = root.style.getPropertyValue('--accent').trim() || '#00E5FF';
+            const count = type === 'win' ? 40 : 25; 
+            
+            for(let i=0; i<count; i++) {
+                parts.push({
+                    x: Math.random() * canvas.width,
+                    y: type === 'win' ? canvas.height + Math.random()*200 : Math.random()*canvas.height,
+                    s: type === 'win' ? Math.random()*2+1 : Math.random()*1.5+0.5,
+                    vy: type === 'win' ? -(Math.random()*2+1) : (Math.random()*0.3+0.1),
+                    vx: (Math.random()-0.5)*0.8,
+                    life: Math.random(),
+                    c: type === 'win' ? color : '#ffffff',
+                    a: type === 'win' ? 1 : 0.2
+                });
+            }
+            renderFX(type);
+        }
+
+        function stopFX() { 
+            fxRunning = false; 
+            cancelAnimationFrame(animId); 
+            ctx.clearRect(0,0,canvas.width,canvas.height); 
+        }
+
+        function renderFX(type) {
+            if(!fxRunning) return;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            
+            parts.forEach(p => {
+                p.y += p.vy; p.x += p.vx;
+                ctx.fillStyle = p.c;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2);
+                
+                if (type === 'win') {
+                    ctx.globalAlpha = p.life; 
+                    ctx.shadowBlur = 10; 
+                    ctx.shadowColor = p.c; 
+                    ctx.fill();
+                    p.life -= 0.005;
+                    if(p.life <= 0 || p.y < -10) { p.y = canvas.height+10; p.life=1; p.x=Math.random()*canvas.width; }
+                } else {
+                    ctx.globalAlpha = p.a; 
+                    ctx.shadowBlur = 0; 
+                    ctx.fill();
+                    p.a -= 0.001;
+                    if(p.a <= 0 || p.y > canvas.height+10) { p.y = -10; p.a=Math.random()*0.3+0.1; p.x=Math.random()*canvas.width; }
+                }
+            });
+            ctx.globalAlpha = 1;
+            animId = requestAnimationFrame(() => renderFX(type));
+        }
+    </script>
+</body>
+</html>

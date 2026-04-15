@@ -46,6 +46,7 @@ const HubEngine = (() => {
   const PRE_MATCH_LOBBY_WINDOW_MINUTES = 30;
   const SIDEBAR_COLLAPSE_KEY = 'hub_sidebar_collapsed';
   const PARTICIPANTS_SORT_KEY = 'hub_participants_sort';
+  const OUTCOME_DISMISS_KEY = 'hub_outcome_dismissed_v1';
   const DEFAULT_TIMEZONE = 'Asia/Dhaka';
   const DEFAULT_TIME_FORMAT = '12h';
 
@@ -118,6 +119,7 @@ const HubEngine = (() => {
   const WS_RECONNECT_MAX = 3;
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
   const _brokenAvatarUrls = new Set();
+  const _dismissedOutcomeKeys = new Set();
 
   function _isMobileViewport() {
     return window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
@@ -474,6 +476,21 @@ const HubEngine = (() => {
     if (!_shell) return;
 
     _loadBrokenAvatarUrlCache();
+    _loadOutcomeDismissState();
+    _mountOutcomeSpotlightToBody();
+
+    const outcomeDismissBtn = document.getElementById('hub-overview-outcome-spotlight-dismiss');
+    if (outcomeDismissBtn) {
+      outcomeDismissBtn.addEventListener('click', _dismissOutcomeSpotlight);
+    }
+    const outcomeOverlay = document.getElementById('hub-overview-outcome-spotlight');
+    if (outcomeOverlay) {
+      outcomeOverlay.addEventListener('click', (event) => {
+        if (event.target === outcomeOverlay) {
+          _dismissOutcomeSpotlight();
+        }
+      });
+    }
 
     if (_maybeDefaultToParticipantViewOnMobile()) {
       return;
@@ -514,6 +531,7 @@ const HubEngine = (() => {
         closeContactModal();
         closeStatusModal();
         closeTicketModal();
+        _dismissOutcomeSpotlight();
         dismissGuide();
       }
     };
@@ -1033,13 +1051,8 @@ const HubEngine = (() => {
     const initStatus = String(_shell?.dataset.tournamentStatus || '').toLowerCase();
     if (['completed', 'archived', 'cancelled'].includes(initStatus)) return;
 
-    // WS-first: no HTTP polling when WebSocket is healthy
-    if (_wsConnected) {
-      _stopPolling();
-      return;
-    }
-    const stateInterval = POLL_STATE_INTERVAL;
-    const annInterval = POLL_ANN_INTERVAL;
+    const stateInterval = _wsConnected ? POLL_STATE_INTERVAL_WS : POLL_STATE_INTERVAL;
+    const annInterval = _wsConnected ? POLL_ANN_INTERVAL_WS : POLL_ANN_INTERVAL;
 
     if (!_pollStateId) {
       _pollStateId = setInterval(_pollState, stateInterval);
@@ -2234,6 +2247,63 @@ const HubEngine = (() => {
     }
   }
 
+  function _loadOutcomeDismissState() {
+    _dismissedOutcomeKeys.clear();
+    try {
+      const raw = window.localStorage.getItem(OUTCOME_DISMISS_KEY);
+      if (!raw) return;
+      const values = JSON.parse(raw);
+      if (!Array.isArray(values)) return;
+      values.forEach((value) => {
+        const key = String(value || '').trim();
+        if (key) _dismissedOutcomeKeys.add(key);
+      });
+    } catch (_err) {
+      // Ignore malformed storage payload.
+    }
+  }
+
+  function _persistOutcomeDismissState() {
+    try {
+      const values = Array.from(_dismissedOutcomeKeys).slice(-200);
+      window.localStorage.setItem(OUTCOME_DISMISS_KEY, JSON.stringify(values));
+    } catch (_err) {
+      // Ignore storage failures.
+    }
+  }
+
+  function _isOutcomeDismissed(key) {
+    const normalized = String(key || '').trim();
+    if (!normalized) return false;
+    return _dismissedOutcomeKeys.has(normalized);
+  }
+
+  function _mountOutcomeSpotlightToBody() {
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    if (!spotlight) return;
+    if (spotlight.dataset.portalMounted === '1') return;
+    try {
+      document.body.appendChild(spotlight);
+      spotlight.dataset.portalMounted = '1';
+    } catch (_err) {
+      // Keep inline rendering fallback if body append fails.
+    }
+  }
+
+  function _dismissOutcomeSpotlight() {
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    if (!spotlight) return;
+    const key = String(spotlight.dataset.outcomeKey || '').trim();
+    if (key) {
+      _dismissedOutcomeKeys.add(key);
+      _persistOutcomeDismissState();
+    }
+    document.body.classList.remove('hub-outcome-open');
+    spotlight.classList.remove('is-open');
+    spotlight.classList.add('hidden');
+    spotlight.setAttribute('aria-hidden', 'true');
+  }
+
   function _markAvatarUrlBroken(url) {
     const key = String(url || '').trim();
     if (!key) return;
@@ -2623,6 +2693,239 @@ const HubEngine = (() => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
+  function _runOverviewCommandAction(rawAction, backendCommand) {
+    const action = String(rawAction || 'view_schedule').toLowerCase();
+    const command = backendCommand || {};
+
+    if (action === 'check_in') {
+      performCheckIn();
+      return;
+    }
+
+    if (action === 'enter_lobby') {
+      const targetUrl = command.cta_url || command.match_room_url;
+      if (targetUrl) {
+        _openMatchRoom(targetUrl);
+        return;
+      }
+      switchTab('matches');
+      return;
+    }
+
+    if (action === 'respond_reschedule') {
+      const matchId = command.match_id || command.matchId;
+      if (matchId) {
+        respondReschedule(matchId);
+        return;
+      }
+      switchTab('schedule');
+      return;
+    }
+
+    if (action === 'open_matches' || action === 'view_next_assignment') {
+      switchTab('matches');
+      return;
+    }
+    if (action === 'open_bracket') {
+      switchTab('bracket');
+      return;
+    }
+    if (action === 'open_standings') {
+      switchTab('standings');
+      return;
+    }
+    if (action === 'open_support') {
+      switchTab('support');
+      return;
+    }
+    if (action === 'open_announcements') {
+      switchTab('announcements');
+      return;
+    }
+
+    switchTab('schedule');
+  }
+
+  function _renderOutcomeCtaButtons(containerEl, ctas, backendCommand, variant) {
+    if (!containerEl) return;
+    const rows = Array.isArray(ctas) ? ctas.slice(0, 4) : [];
+    if (!rows.length) {
+      containerEl.innerHTML = '';
+      return;
+    }
+
+    const outcomeState = String(backendCommand?.outcome_state || backendCommand?.outcome_experience?.state || '').toLowerCase();
+    const iconMap = {
+      open_bracket: 'git-branch',
+      open_matches: 'swords',
+      view_next_assignment: 'crosshair',
+      open_announcements: 'megaphone',
+      open_standings: 'list-ordered',
+      open_support: 'life-buoy',
+    };
+
+    const primarySpotlightClass = outcomeState === 'eliminated'
+      ? 'px-4 py-2.5 rounded-lg border border-amber-300/45 bg-amber-300/18 text-amber-100 text-[10px] font-black uppercase tracking-[0.09em] hover:bg-amber-300/24 transition-colors'
+      : 'px-4 py-2.5 rounded-lg border border-[#00FF66]/45 bg-[#00FF66]/18 text-[#D7FFE9] text-[10px] font-black uppercase tracking-[0.09em] hover:bg-[#00FF66]/24 transition-colors';
+    const secondarySpotlightClass = 'px-3.5 py-2.5 rounded-lg border border-white/22 bg-white/8 text-[10px] font-black uppercase tracking-[0.085em] text-white hover:bg-white/14 transition-colors';
+    const persistentClass = outcomeState === 'eliminated'
+      ? 'px-3 py-1.5 rounded-md border border-amber-300/28 bg-amber-300/10 text-[10px] font-black uppercase tracking-[0.085em] text-amber-100 hover:bg-amber-300/16 transition-colors'
+      : 'px-3 py-1.5 rounded-md border border-cyan-300/28 bg-cyan-300/10 text-[10px] font-black uppercase tracking-[0.085em] text-cyan-100 hover:bg-cyan-300/16 transition-colors';
+
+    containerEl.innerHTML = rows.map((cta, index) => {
+      const action = String(cta?.action || '').trim().toLowerCase();
+      const label = String(cta?.label || action || 'Open').trim() || 'Open';
+      const icon = iconMap[action] || 'arrow-up-right';
+      const buttonClass = variant === 'spotlight'
+        ? (index === 0 ? primarySpotlightClass : secondarySpotlightClass)
+        : persistentClass;
+      return `<button type="button" data-outcome-action="${_esc(action)}" class="${buttonClass}"><i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${_esc(label)}</span></button>`;
+    }).join('');
+
+    Array.from(containerEl.querySelectorAll('[data-outcome-action]')).forEach((btn) => {
+      btn.onclick = () => {
+        const action = btn.getAttribute('data-outcome-action');
+        _runOverviewCommandAction(action, backendCommand);
+      };
+    });
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+
+  function _renderOutcomeExperience(backendCommand) {
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    const persistent = document.getElementById('hub-overview-outcome-persistent');
+    const persistentKicker = document.getElementById('hub-overview-outcome-persistent-kicker');
+    const persistentState = document.getElementById('hub-overview-outcome-persistent-state');
+    const persistentTitle = document.getElementById('hub-overview-outcome-persistent-title');
+    const persistentBody = document.getElementById('hub-overview-outcome-persistent-body');
+    const persistentCta = document.getElementById('hub-overview-outcome-persistent-cta');
+    const communityDraft = document.getElementById('hub-overview-community-draft');
+    const communityWrap = communityDraft ? communityDraft.closest('.hub-outcome-community') : null;
+    const spotlightBadge = document.getElementById('hub-overview-outcome-spotlight-badge');
+    const spotlightIcon = document.getElementById('hub-overview-outcome-spotlight-icon');
+    const spotlightTitle = document.getElementById('hub-overview-outcome-spotlight-title');
+    const spotlightBody = document.getElementById('hub-overview-outcome-spotlight-body');
+    const spotlightCta = document.getElementById('hub-overview-outcome-spotlight-cta');
+    const spotlightDismiss = document.getElementById('hub-overview-outcome-spotlight-dismiss');
+
+    const experience = backendCommand && typeof backendCommand === 'object'
+      ? (backendCommand.outcome_experience || null)
+      : null;
+
+    if (!experience || !experience.enabled) {
+      if (persistent) {
+        persistent.classList.add('hidden');
+        persistent.removeAttribute('data-outcome-state');
+      }
+      if (spotlight) {
+        document.body.classList.remove('hub-outcome-open');
+        spotlight.classList.remove('is-open');
+        spotlight.classList.add('hidden');
+        spotlight.removeAttribute('data-outcome-state');
+        spotlight.setAttribute('aria-hidden', 'true');
+      }
+      return;
+    }
+
+    const state = String(experience.state || backendCommand?.outcome_state || '').toLowerCase();
+    const key = String(experience.key || '').trim();
+    const spotlightData = experience.spotlight || {};
+    const persistentData = experience.persistent || {};
+    const ctas = Array.isArray(experience.ctas) ? experience.ctas : [];
+
+    if (persistent) {
+      persistent.classList.remove('hidden');
+      persistent.setAttribute('data-outcome-state', state || 'neutral');
+    }
+
+    if (persistentKicker) {
+      persistentKicker.textContent = state === 'eliminated' ? 'Tournament Moment' : 'Journey Update';
+    }
+    if (persistentState) {
+      if (state === 'eliminated') {
+        persistentState.className = 'hub-outcome-persistent-state';
+        persistentState.textContent = 'Eliminated';
+      } else {
+        persistentState.className = 'hub-outcome-persistent-state';
+        persistentState.textContent = 'Advanced';
+      }
+    }
+    if (persistentTitle) {
+      persistentTitle.textContent = String(persistentData.title || (state === 'eliminated' ? 'Run Complete' : 'Victory Confirmed'));
+    }
+    if (persistentBody) {
+      persistentBody.textContent = String(persistentData.body || '');
+    }
+    if (communityDraft) {
+      const suggestion = String(experience.community_post_suggestion || '').trim();
+      communityDraft.textContent = suggestion;
+      if (communityWrap) {
+        communityWrap.classList.toggle('hidden', !suggestion);
+      }
+    }
+
+    _renderOutcomeCtaButtons(persistentCta, ctas, backendCommand, 'persistent');
+
+    const spotlightEnabled = Boolean(spotlightData.enabled);
+    const shouldShowSpotlight = Boolean(
+      spotlight
+      && spotlightEnabled
+      && key
+      && !_isOutcomeDismissed(key)
+      && _currentTab === 'overview'
+    );
+
+    if (!spotlight) {
+      return;
+    }
+
+    if (!shouldShowSpotlight) {
+      document.body.classList.remove('hub-outcome-open');
+      spotlight.classList.remove('is-open');
+      spotlight.classList.add('hidden');
+      spotlight.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    spotlight.dataset.outcomeKey = key;
+    spotlight.setAttribute('data-outcome-state', state || 'neutral');
+    document.body.classList.add('hub-outcome-open');
+    spotlight.classList.remove('hidden');
+    spotlight.classList.remove('is-open');
+    void spotlight.offsetWidth;
+    spotlight.classList.add('is-open');
+    spotlight.setAttribute('aria-hidden', 'false');
+
+    if (spotlightBadge) {
+      spotlightBadge.textContent = state === 'eliminated' ? 'Respect Spotlight' : 'Result Spotlight';
+    }
+    if (spotlightIcon) {
+      if (state === 'eliminated') {
+        spotlightIcon.innerHTML = '<i data-lucide="shield" class="w-6 h-6"></i>';
+      } else {
+        spotlightIcon.innerHTML = '<i data-lucide="trophy" class="w-6 h-6"></i>';
+      }
+    }
+    if (spotlightTitle) {
+      spotlightTitle.textContent = String(spotlightData.title || persistentData.title || 'Result Spotlight');
+    }
+    if (spotlightBody) {
+      spotlightBody.textContent = String(spotlightData.body || persistentData.body || '');
+    }
+    if (spotlightDismiss) {
+      spotlightDismiss.textContent = String(spotlightData.dismiss_label || 'Dismiss');
+    }
+
+    _renderOutcomeCtaButtons(spotlightCta, ctas, backendCommand, 'spotlight');
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+
   function _renderOverviewActionCard(matchPayload, stateData = null) {
     const card = document.getElementById('hub-overview-action-card');
     if (!card) return;
@@ -2644,6 +2947,8 @@ const HubEngine = (() => {
     const actionBtn = document.getElementById('hub-overview-action-btn');
     const statusLabel = document.getElementById('hub-overview-status-label');
     const backendCommand = stateData?.command_center;
+
+    _renderOutcomeExperience(backendCommand || null);
 
     if (statusLabel && stateData?.user_status) {
       statusLabel.textContent = stateData.user_status;
@@ -2752,7 +3057,10 @@ const HubEngine = (() => {
           check_in: 'shield-alert',
           enter_lobby: 'swords',
           open_matches: 'clock-3',
+          open_bracket: 'git-branch',
+          open_standings: 'list-ordered',
           open_support: 'life-buoy',
+          open_announcements: 'megaphone',
           respond_reschedule: 'clock-3',
           view_schedule: 'calendar',
         };
@@ -2766,37 +3074,7 @@ const HubEngine = (() => {
 
         actionBtn.onclick = () => {
           if (actionBtn.disabled) return;
-          if (action === 'check_in') {
-            performCheckIn();
-            return;
-          }
-          if (action === 'enter_lobby') {
-            const targetUrl = backendCommand.cta_url || backendCommand.match_room_url;
-            if (targetUrl) {
-              _openMatchRoom(targetUrl);
-              return;
-            }
-            switchTab('matches');
-            return;
-          }
-          if (action === 'respond_reschedule') {
-            const matchId = backendCommand.match_id || backendCommand.matchId;
-            if (matchId) {
-              respondReschedule(matchId);
-              return;
-            }
-            switchTab('schedule');
-            return;
-          }
-          if (action === 'open_matches') {
-            switchTab('matches');
-            return;
-          }
-          if (action === 'open_support') {
-            switchTab('support');
-            return;
-          }
-          switchTab('schedule');
+          _runOverviewCommandAction(action, backendCommand);
         };
       }
 
@@ -6543,6 +6821,7 @@ const HubEngine = (() => {
       _wsReconnectAttempts = 0;
       _wsConnected = true;
       _restartPolling();
+      _pollState({ force: true });
       // Add a visual connection indicator
       const ind = document.getElementById('hub-ws-indicator');
       if (ind) { ind.classList.remove('disconnected'); ind.classList.add('connected'); }
@@ -6603,6 +6882,7 @@ const HubEngine = (() => {
         _scheduleMatchesCache = null;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        _pollState({ force: true });
         _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         break;
 
@@ -6614,6 +6894,7 @@ const HubEngine = (() => {
         _scheduleMatchesCache = null;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['bracket', 'standings', 'matches', 'schedule']);
+        _pollState({ force: true });
         _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         // Show a toast notification
         _showWsToast('Match completed', 'info');
@@ -6624,6 +6905,7 @@ const HubEngine = (() => {
         _scheduleMatchesCache = null;
         _matchesCacheFetchedAt = 0;
         _refreshActiveTab(['matches', 'schedule']);
+        _pollState({ force: true });
         _refreshOverviewActionCard({ forceFetch: true, stateData: _lastPolledState });
         break;
 

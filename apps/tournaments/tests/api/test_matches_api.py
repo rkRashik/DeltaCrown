@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
-from apps.tournaments.models import Match, Tournament, Bracket
+from apps.tournaments.models import Match, Tournament, Bracket, BracketNode
 from apps.tournaments.models.dispute import DisputeRecord as Dispute
 
 User = get_user_model()
@@ -339,6 +339,56 @@ class TestMatchConfirm:
         
         assert resp.status_code == 409, resp.data
         assert 'Invalid state transition' in resp.data['detail']
+
+    def test_confirm_result_advances_parent_node_and_syncs_parent_match(
+        self, staff_client, match_pending_result, bracket
+    ):
+        parent_match = Match.objects.create(
+            tournament=bracket.tournament,
+            bracket=bracket,
+            round_number=2,
+            match_number=1,
+            participant1_id=None,
+            participant1_name='',
+            participant2_id=None,
+            participant2_name='',
+            state=Match.SCHEDULED,
+            lobby_info={},
+        )
+
+        parent_node = BracketNode.objects.create(
+            bracket=bracket,
+            position=2,
+            round_number=2,
+            match_number_in_round=1,
+            match=parent_match,
+        )
+        BracketNode.objects.create(
+            bracket=bracket,
+            position=1,
+            round_number=1,
+            match_number_in_round=3,
+            match=match_pending_result,
+            participant1_id=match_pending_result.participant1_id,
+            participant1_name=match_pending_result.participant1_name,
+            participant2_id=match_pending_result.participant2_id,
+            participant2_name=match_pending_result.participant2_name,
+            parent_node=parent_node,
+            parent_slot=1,
+        )
+
+        url = f"/api/tournaments/matches/{match_pending_result.id}/confirm-result/"
+        resp = staff_client.post(url, {}, format='json')
+
+        assert resp.status_code == 200, resp.data
+
+        parent_node.refresh_from_db()
+        parent_match.refresh_from_db()
+
+        assert parent_node.participant1_id == match_pending_result.participant1_id
+        assert parent_node.participant1_name == match_pending_result.participant1_name
+        assert parent_match.participant1_id == match_pending_result.participant1_id
+        assert parent_match.participant1_name == match_pending_result.participant1_name
     
     def test_confirm_idempotent_replay(
         self, staff_client, match_pending_result

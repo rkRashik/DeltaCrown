@@ -615,6 +615,7 @@
     room.workflow.veto.bans = asList(room.workflow.veto.bans);
     room.workflow.veto.picks = asList(room.workflow.veto.picks);
     room.workflow.direct_ready = asObject(room.workflow.direct_ready);
+    room.workflow.check_in_window = asObject(room.workflow.check_in_window);
     room.workflow.credentials = asObject(room.workflow.credentials);
     room.workflow.result_submissions = asObject(room.workflow.result_submissions);
     room.workflow.result_visibility = asObject(room.workflow.result_visibility);
@@ -626,6 +627,23 @@
     if (!VALID_PHASES.has(String(room.workflow.phase || ''))) {
       room.workflow.phase = room.workflow.phase_order[0] || defaultPhaseOrder()[0];
     }
+
+    var workflowCheckIn = asObject(room.workflow.check_in_window);
+    if (Object.keys(workflowCheckIn).length) {
+      room.check_in = Object.assign({}, room.check_in, workflowCheckIn);
+      room.workflow.check_in_window = Object.assign({}, room.check_in);
+    }
+
+    var phase1KindToken = String(room.workflow.phase1_kind || room.pipeline.phase1_kind || '').toLowerCase();
+    var modeToken = String(room.workflow.mode || room.game.phase_mode || '').toLowerCase();
+    var gameSlugToken = String(room.game.slug || '').toLowerCase();
+    if (phase1KindToken === 'direct' || modeToken === 'direct' || gameSlugToken === 'efootball') {
+      room.check_in.required = false;
+      room.check_in.passive = true;
+      if (!room.check_in.passive_reason) room.check_in.passive_reason = 'direct_ready_authoritative';
+      room.workflow.check_in_window = Object.assign({}, room.workflow.check_in_window, room.check_in);
+    }
+
     return room;
   }
 
@@ -985,13 +1003,17 @@
 
   function renderCheckInBlock() {
     var checkIn = asObject(state.room.check_in);
-    var required = bool(checkIn.required, false);
+    var directReady = phase1Kind() === 'direct';
+    var required = directReady ? false : bool(checkIn.required, false);
+    var passive = directReady || bool(checkIn.passive, false);
     var side = mySide();
     var p1Ready = sideCheckedIn(1);
     var p2Ready = sideCheckedIn(2);
     var meReady = side === 1 ? p1Ready : (side === 2 ? p2Ready : false);
     var statusPara;
-    if (!required) {
+    if (passive) {
+      statusPara = '<p class="text-xs text-gray-400 mt-1">Direct Ready controls readiness for this match. Check-in is shown as status only.</p>';
+    } else if (!required) {
       statusPara = '<p class="text-xs text-gray-400 mt-1">Check-in optional for this match.</p>';
     } else if (bool(checkIn.is_pending, false)) {
       statusPara = '<p class="text-xs text-gray-400 mt-1">Window opens ' + esc(formatLocalTime(checkIn.opens_at)) + '.</p>';
@@ -1003,9 +1025,10 @@
     } else {
       statusPara = '<p class="text-xs text-gray-400 mt-1">Check-in required before phase actions.</p>';
     }
-    var canCheckIn = required && (side === 1 || side === 2) && !meReady && bool(checkIn.is_open, false) && !state.requestBusy;
+    var canCheckIn = !passive && required && (side === 1 || side === 2) && !meReady && bool(checkIn.is_open, false) && !state.requestBusy;
     var buttonHtml = canCheckIn ? '<button type="button" data-action="check-in" class="px-4 py-2 rounded-lg bg-ac text-black text-xs font-black uppercase tracking-wider active:scale-95 transition-transform">Check In</button>' : '';
-    return '<section class="glass-card rounded-2xl p-4 md:p-5 border border-white/10"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div><p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Entry Gate</p><h3 class="text-sm md:text-base font-bold text-white">Participant Check-In</h3>' + statusPara + '</div>' + buttonHtml + '</div><div class="mt-4 grid grid-cols-2 gap-3">' + renderCheckInChip(1, p1Ready, sideOnline(1)) + renderCheckInChip(2, p2Ready, sideOnline(2)) + '</div></section>';
+    var title = passive ? 'Readiness Status' : 'Participant Check-In';
+    return '<section class="glass-card rounded-2xl p-4 md:p-5 border border-white/10"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div><p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Entry Gate</p><h3 class="text-sm md:text-base font-bold text-white">' + esc(title) + '</h3>' + statusPara + '</div>' + buttonHtml + '</div><div class="mt-4 grid grid-cols-2 gap-3">' + renderCheckInChip(1, p1Ready, sideOnline(1)) + renderCheckInChip(2, p2Ready, sideOnline(2)) + '</div></section>';
   }
 
   function renderCheckInChip(side, checkedIn, online) {

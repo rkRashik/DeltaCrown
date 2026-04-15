@@ -395,6 +395,168 @@ def _resolve_hub_participant_id(tournament, registration, user):
     return user.id if user and user.is_authenticated else None
 
 
+def _resolve_hub_participant_ids(tournament, registration, user):
+    participant_ids = set()
+
+    if registration:
+        if getattr(registration, 'id', None):
+            participant_ids.add(int(registration.id))
+        if getattr(registration, 'team_id', None):
+            participant_ids.add(int(registration.team_id))
+
+    if user and user.is_authenticated and getattr(user, 'id', None):
+        participant_ids.add(int(user.id))
+        try:
+            reg_ids = Registration.objects.filter(
+                tournament=tournament,
+                user=user,
+                is_deleted=False,
+            ).values_list('id', flat=True)
+            participant_ids.update(int(reg_id) for reg_id in reg_ids if reg_id)
+        except Exception:
+            pass
+
+    return participant_ids
+
+
+def _resolve_lifecycle_outcome_signal(tournament, registration, user, now):
+    try:
+        from apps.tournaments.services.lifecycle_announcements import (
+            EVENT_ADVANCED,
+            EVENT_ELIMINATED,
+            derive_participant_events,
+        )
+
+        participant_events = derive_participant_events(
+            tournament,
+            user=user,
+            registration=registration,
+            now=now,
+        )
+    except Exception:
+        return None
+
+    if not participant_events:
+        return None
+
+    eliminated = next(
+        (evt for evt in participant_events if evt.get('event_type') == EVENT_ELIMINATED),
+        None,
+    )
+    if eliminated:
+        return {
+            'state': 'eliminated',
+            'title': eliminated.get('title') or 'Eliminated',
+            'message': eliminated.get('message') or 'Your tournament run has ended.',
+            'source': 'announcement_signal',
+            'event_type': eliminated.get('event_type') or EVENT_ELIMINATED,
+        }
+
+    advanced = next(
+        (evt for evt in participant_events if evt.get('event_type') == EVENT_ADVANCED),
+        None,
+    )
+    if advanced:
+        return {
+            'state': 'advanced',
+            'title': advanced.get('title') or 'Advanced in Bracket',
+            'message': advanced.get('message') or 'You advanced to the next round.',
+            'source': 'announcement_signal',
+            'event_type': advanced.get('event_type') or EVENT_ADVANCED,
+        }
+
+    return None
+
+
+def _build_hub_outcome_experience(
+    tournament,
+    *,
+    outcome_state,
+    match_id=None,
+    opponent_name='',
+    round_name='',
+    next_round_name='',
+    source='terminal_match',
+):
+    safe_opponent = str(opponent_name or 'your opponent').strip()
+    safe_round = str(round_name or '').strip()
+    safe_next_round = str(next_round_name or '').strip()
+
+    key_seed = f'match-{match_id}' if match_id else f'signal-{outcome_state}'
+    experience_key = f'{tournament.id}:{outcome_state}:{key_seed}'
+
+    if outcome_state == 'advanced':
+        round_fragment = f' in {safe_round}' if safe_round else ''
+        if safe_next_round:
+            spotlight_body = f'You defeated {safe_opponent}{round_fragment} and advanced to {safe_next_round}.'
+            persistent_body = f'Advanced to {safe_next_round}. Track bracket movement and prep your next assignment.'
+            community_draft = (
+                f'Just advanced in {tournament.name} to {safe_next_round}. '
+                'Appreciate the support and locked in for the next one.'
+            )
+        else:
+            spotlight_body = f'You defeated {safe_opponent}{round_fragment} and moved forward in the bracket.'
+            persistent_body = 'Victory secured. Keep momentum and watch for your next assignment update.'
+            community_draft = (
+                f'Big win in {tournament.name} today. '
+                'Grateful for the support and ready for the next challenge.'
+            )
+
+        return {
+            'enabled': True,
+            'key': experience_key,
+            'state': 'advanced',
+            'source': source,
+            'spotlight': {
+                'enabled': True,
+                'title': 'Victory Confirmed',
+                'body': spotlight_body,
+                'dismiss_label': 'Continue',
+            },
+            'persistent': {
+                'title': 'Journey Update',
+                'body': persistent_body,
+            },
+            'ctas': [
+                {'action': 'open_bracket', 'label': 'Open Bracket'},
+                {'action': 'open_matches', 'label': 'View Next Assignment'},
+                {'action': 'open_announcements', 'label': 'Announcements'},
+            ],
+            'community_post_suggestion': community_draft,
+        }
+
+    round_fragment = f' in {safe_round}' if safe_round else ''
+    spotlight_body = f'You were eliminated by {safe_opponent}{round_fragment}. Respect the run and reload for the next tournament.'
+    persistent_body = 'Tournament run ended. Review bracket outcomes, standings, and support paths if you need follow-up.'
+    community_draft = (
+        f'Tough loss in {tournament.name}, but respect to {safe_opponent}. '
+        'Appreciate everyone following the run. I will be back stronger next time.'
+    )
+
+    return {
+        'enabled': True,
+        'key': experience_key,
+        'state': 'eliminated',
+        'source': source,
+        'spotlight': {
+            'enabled': True,
+            'title': 'Run Complete',
+            'body': spotlight_body,
+            'dismiss_label': 'Got It',
+        },
+        'persistent': {
+            'title': 'Result Summary',
+            'body': persistent_body,
+        },
+        'ctas': [
+            {'action': 'open_bracket', 'label': 'Open Bracket'},
+            {'action': 'open_standings', 'label': 'Standings'},
+            {'action': 'open_support', 'label': 'Support'},
+        ],
+        'community_post_suggestion': community_draft,
+    }
+
+
 def _resolve_hub_command_center(
     tournament,
     registration,
@@ -430,11 +592,13 @@ def _resolve_hub_command_center(
         'scheduled_at': None,
         'lobby_window_open': False,
         'lobby_state': '',
+        'outcome_state': '',
+        'outcome_experience': {},
         'within_priority_window': False,
     }
 
-    participant_id = _resolve_hub_participant_id(tournament, registration, user)
-    if not participant_id and not is_staff_view:
+    participant_ids = _resolve_hub_participant_ids(tournament, registration, user)
+    if not participant_ids and not is_staff_view:
         return payload
 
     terminal_states = {
@@ -450,6 +614,10 @@ def _resolve_hub_command_center(
         Match.PENDING_RESULT,
     }
 
+    participant_scope_q = models.Q()
+    if not is_staff_view:
+        participant_scope_q = models.Q(participant1_id__in=participant_ids) | models.Q(participant2_id__in=participant_ids)
+
     match_qs = Match.objects.filter(
         tournament=tournament,
         is_deleted=False,
@@ -457,9 +625,7 @@ def _resolve_hub_command_center(
         state__in=terminal_states,
     )
     if not is_staff_view:
-        match_qs = match_qs.filter(
-            models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
-        )
+        match_qs = match_qs.filter(participant_scope_q)
 
     match_rows = list(
         match_qs.only(
@@ -472,15 +638,215 @@ def _resolve_hub_command_center(
             'participant2_id',
             'participant1_name',
             'participant2_name',
+            'bracket_id',
         ).order_by('scheduled_time', 'round_number', 'match_number', 'id')[:30]
     )
     if not match_rows:
+        if not is_staff_view:
+            latest_terminal = (
+                Match.objects.filter(
+                    tournament=tournament,
+                    is_deleted=False,
+                )
+                .filter(participant_scope_q)
+                .filter(state__in=terminal_states)
+                .only(
+                    'id',
+                    'round_number',
+                    'match_number',
+                    'state',
+                    'winner_id',
+                    'loser_id',
+                    'participant1_id',
+                    'participant2_id',
+                    'participant1_name',
+                    'participant2_name',
+                    'bracket_id',
+                )
+                .order_by('-completed_at', '-updated_at', '-id')
+                .first()
+            )
+            terminal_eliminated = bool(
+                latest_terminal
+                and (
+                    (latest_terminal.winner_id and latest_terminal.winner_id not in participant_ids)
+                    or (latest_terminal.loser_id and latest_terminal.loser_id in participant_ids)
+                )
+            )
+            terminal_advanced = bool(
+                latest_terminal
+                and latest_terminal.winner_id
+                and latest_terminal.winner_id in participant_ids
+            )
+            if terminal_advanced or terminal_eliminated:
+                is_p1 = latest_terminal.participant1_id in participant_ids
+                opponent_name = latest_terminal.participant2_name if is_p1 else latest_terminal.participant1_name
+                round_name = f'Round {latest_terminal.round_number}' if latest_terminal.round_number else 'Knockout Match'
+                stage_label = 'Knockout Stage' if latest_terminal.bracket_id else 'Match Stage'
+
+                next_round_name = ''
+                if latest_terminal.bracket_id:
+                    try:
+                        _bracket = Bracket.objects.only('id', 'total_rounds', 'bracket_structure').get(id=latest_terminal.bracket_id)
+                        round_name = _bracket.get_round_name(latest_terminal.round_number) or round_name
+                        if terminal_advanced and latest_terminal.round_number:
+                            candidate_round = int(latest_terminal.round_number) + 1
+                            total_rounds = int(getattr(_bracket, 'total_rounds', 0) or 0)
+                            if total_rounds and candidate_round <= total_rounds:
+                                next_round_name = _bracket.get_round_name(candidate_round) or f'Round {candidate_round}'
+                    except Bracket.DoesNotExist:
+                        pass
+
+                if terminal_advanced:
+                    subtitle = 'You won your latest bracket match and advanced.'
+                    if next_round_name:
+                        subtitle = f'Victory secured. You advanced to {next_round_name}.'
+
+                    payload.update({
+                        'show': True,
+                        'badge_label': 'Victory',
+                        'badge_tone': 'success',
+                        'title': f'Advanced: VS {opponent_name or "Opponent"}',
+                        'subtitle': subtitle,
+                        'countdown_label': 'Status',
+                        'countdown_target': '',
+                        'countdown_mode': 'static',
+                        'countdown_text': 'ADVANCED',
+                        'hint': 'Open bracket progression, check your next assignment window, and monitor announcements.',
+                        'cta_label': 'Open Bracket',
+                        'cta_action': 'open_bracket',
+                        'cta_url': reverse('tournaments:bracket', kwargs={'slug': tournament.slug}),
+                        'cta_disabled': False,
+                        'match_id': latest_terminal.id,
+                        'match_number': latest_terminal.match_number,
+                        'match_round_name': round_name,
+                        'match_stage_label': stage_label,
+                        'match_room_url': '',
+                        'opponent_name': opponent_name or 'Opponent',
+                        'match_state': latest_terminal.state,
+                        'scheduled_at': None,
+                        'lobby_window_open': False,
+                        'lobby_state': 'completed',
+                        'outcome_state': 'advanced',
+                        'outcome_experience': _build_hub_outcome_experience(
+                            tournament,
+                            outcome_state='advanced',
+                            match_id=latest_terminal.id,
+                            opponent_name=opponent_name,
+                            round_name=round_name,
+                            next_round_name=next_round_name,
+                            source='terminal_match',
+                        ),
+                        'within_priority_window': False,
+                    })
+                    return payload
+
+            if terminal_eliminated:
+                payload.update({
+                    'show': True,
+                    'badge_label': 'Outcome',
+                    'badge_tone': 'warning',
+                    'title': f'Eliminated: VS {opponent_name or "Opponent"}',
+                    'subtitle': 'Your run has ended for this tournament. Strong effort - review the bracket and standings for next opportunities.',
+                    'countdown_label': 'Status',
+                    'countdown_target': '',
+                    'countdown_mode': 'static',
+                    'countdown_text': 'ELIMINATED',
+                    'hint': 'Keep momentum: review bracket progression, check final standings, and open support if you need result review help.',
+                    'cta_label': 'View Bracket',
+                    'cta_action': 'open_bracket',
+                    'cta_url': reverse('tournaments:bracket', kwargs={'slug': tournament.slug}),
+                    'cta_disabled': False,
+                    'match_id': latest_terminal.id,
+                    'match_number': latest_terminal.match_number,
+                    'match_round_name': round_name,
+                    'match_stage_label': stage_label,
+                    'match_room_url': '',
+                    'opponent_name': opponent_name or 'Opponent',
+                    'match_state': latest_terminal.state,
+                    'scheduled_at': None,
+                    'lobby_window_open': False,
+                    'lobby_state': 'completed',
+                    'outcome_state': 'eliminated',
+                    'outcome_experience': _build_hub_outcome_experience(
+                        tournament,
+                        outcome_state='eliminated',
+                        match_id=latest_terminal.id,
+                        opponent_name=opponent_name,
+                        round_name=round_name,
+                        source='terminal_match',
+                    ),
+                    'within_priority_window': False,
+                })
+                return payload
+
+            lifecycle_outcome = _resolve_lifecycle_outcome_signal(
+                tournament,
+                registration,
+                user,
+                now,
+            )
+            if lifecycle_outcome:
+                state = str(lifecycle_outcome.get('state') or '').lower()
+                if state == 'advanced':
+                    payload.update({
+                        'show': True,
+                        'badge_label': 'Victory',
+                        'badge_tone': 'success',
+                        'title': lifecycle_outcome.get('title') or 'Advanced in Bracket',
+                        'subtitle': lifecycle_outcome.get('message') or 'You advanced to the next round.',
+                        'countdown_label': 'Status',
+                        'countdown_target': '',
+                        'countdown_mode': 'static',
+                        'countdown_text': 'ADVANCED',
+                        'hint': 'Open bracket progression, check your next assignment window, and monitor announcements.',
+                        'cta_label': 'Open Bracket',
+                        'cta_action': 'open_bracket',
+                        'cta_url': reverse('tournaments:bracket', kwargs={'slug': tournament.slug}),
+                        'cta_disabled': False,
+                        'lobby_state': 'completed',
+                        'outcome_state': 'advanced',
+                        'outcome_experience': _build_hub_outcome_experience(
+                            tournament,
+                            outcome_state='advanced',
+                            source='announcement_signal',
+                        ),
+                        'within_priority_window': False,
+                    })
+                    return payload
+
+                if state == 'eliminated':
+                    payload.update({
+                        'show': True,
+                        'badge_label': 'Outcome',
+                        'badge_tone': 'warning',
+                        'title': lifecycle_outcome.get('title') or 'Eliminated',
+                        'subtitle': lifecycle_outcome.get('message') or 'Your run has ended for this tournament.',
+                        'countdown_label': 'Status',
+                        'countdown_target': '',
+                        'countdown_mode': 'static',
+                        'countdown_text': 'ELIMINATED',
+                        'hint': 'Keep momentum: review bracket progression, check final standings, and open support if you need result review help.',
+                        'cta_label': 'View Bracket',
+                        'cta_action': 'open_bracket',
+                        'cta_url': reverse('tournaments:bracket', kwargs={'slug': tournament.slug}),
+                        'cta_disabled': False,
+                        'lobby_state': 'completed',
+                        'outcome_state': 'eliminated',
+                        'outcome_experience': _build_hub_outcome_experience(
+                            tournament,
+                            outcome_state='eliminated',
+                            source='announcement_signal',
+                        ),
+                        'within_priority_window': False,
+                    })
+                    return payload
         return payload
 
     match_by_id = {m.id: m for m in match_rows}
     target_reschedule = None
     reschedule_match = None
-    if not is_staff_view and participant_id:
+    if not is_staff_view and participant_ids:
         pending_requests = RescheduleRequest.objects.filter(
             match_id__in=match_by_id.keys(),
             status=RescheduleRequest.PENDING,
@@ -489,7 +855,9 @@ def _resolve_hub_command_center(
             match_obj = match_by_id.get(req.match_id)
             if not match_obj:
                 continue
-            is_p1 = match_obj.participant1_id == participant_id
+            is_p1 = match_obj.participant1_id in participant_ids
+            if not is_p1 and match_obj.participant2_id not in participant_ids:
+                continue
             my_side = 1 if is_p1 else 2
             if int(req.proposer_side) != int(my_side):
                 target_reschedule = req
@@ -529,10 +897,12 @@ def _resolve_hub_command_center(
     if is_staff_view:
         opponent_name = (target.participant2_name or target.participant1_name or 'Opponent')
     else:
-        if target.participant1_id == participant_id:
+        if target.participant1_id in participant_ids:
             opponent_name = target.participant2_name or 'Opponent'
-        else:
+        elif target.participant2_id in participant_ids:
             opponent_name = target.participant1_name or 'Opponent'
+        else:
+            opponent_name = target.participant2_name or target.participant1_name or 'Opponent'
 
     show_command = bool(
         target.state in active_states
@@ -2819,38 +3189,130 @@ class HubBracketAPIView(LoginRequiredMixin, View):
             # created in the database, so the bracket tree renders all columns.
             bs = bracket.bracket_structure or {}
             struct_rounds = bs.get('rounds', [])
-            existing_round_numbers = {r['round_number'] for r in rounds_payload}
+
+            node_slots = {}
+            slot_participant_ids = set()
+            node_rows = BracketNode.objects.filter(bracket=bracket).only(
+                'round_number',
+                'match_number_in_round',
+                'participant1_id',
+                'participant1_name',
+                'participant2_id',
+                'participant2_name',
+            )
+            for node in node_rows:
+                slot_key = (node.round_number or 0, node.match_number_in_round or 0)
+                node_slots[slot_key] = {
+                    'participant1_id': node.participant1_id,
+                    'participant1_name': node.participant1_name or '',
+                    'participant2_id': node.participant2_id,
+                    'participant2_name': node.participant2_name or '',
+                }
+                if node.participant1_id:
+                    slot_participant_ids.add(node.participant1_id)
+                if node.participant2_id:
+                    slot_participant_ids.add(node.participant2_id)
+
+            slot_media_map = _build_participant_media_map(tournament, slot_participant_ids)
+
+            def _slot_participant_payload(participant_id, participant_name):
+                return {
+                    'id': participant_id,
+                    'name': participant_name or 'TBD',
+                    'score': 0,
+                    'is_winner': False,
+                    'logo_url': slot_media_map.get(participant_id, '') if participant_id else '',
+                }
+
+            def _merge_slot_participant(match_payload, key, participant_id, participant_name):
+                participant_payload = match_payload.get(key)
+                if not isinstance(participant_payload, dict):
+                    participant_payload = {}
+                    match_payload[key] = participant_payload
+
+                existing_name = str(participant_payload.get('name') or '').strip()
+                if participant_payload.get('id') in (None, '') and participant_id:
+                    participant_payload['id'] = participant_id
+                if (not existing_name or existing_name == 'TBD') and participant_name:
+                    participant_payload['name'] = participant_name
+
+                participant_payload.setdefault('score', 0)
+                participant_payload.setdefault('is_winner', False)
+                if participant_id and not participant_payload.get('logo_url'):
+                    participant_payload['logo_url'] = slot_media_map.get(participant_id, '')
+
+            rounds_by_number = {r['round_number']: r for r in rounds_payload}
             for sr in struct_rounds:
-                rn = sr.get('round_number', 0)
-                if rn in existing_round_numbers:
-                    continue
-                match_count = sr.get('matches', 0)
+                try:
+                    rn = int(sr.get('round_number', 0) or 0)
+                except (TypeError, ValueError):
+                    rn = 0
+                try:
+                    match_count = max(int(sr.get('matches', 0) or 0), 0)
+                except (TypeError, ValueError):
+                    match_count = 0
+
                 round_name = sr.get('round_name') or bracket.get_round_name(rn) or f'Round {rn}'
+                round_payload = rounds_by_number.get(rn)
+                if round_payload is None:
+                    round_payload = {
+                        'round_number': rn,
+                        'round_name': round_name,
+                        'group_id': None,
+                        'group_name': None,
+                        'matches': [],
+                    }
+                    rounds_by_number[rn] = round_payload
+                    rounds_payload.append(round_payload)
+                elif not round_payload.get('round_name'):
+                    round_payload['round_name'] = round_name
+
+                existing_matches = {
+                    m.get('match_number'): m
+                    for m in round_payload.get('matches', [])
+                    if m.get('match_number') is not None
+                }
+
                 placeholder_matches = []
                 for mi in range(1, match_count + 1):
+                    slot_payload = node_slots.get((rn, mi), {})
+                    existing_match = existing_matches.get(mi)
+                    if existing_match is not None:
+                        _merge_slot_participant(
+                            existing_match,
+                            'participant1',
+                            slot_payload.get('participant1_id'),
+                            slot_payload.get('participant1_name'),
+                        )
+                        _merge_slot_participant(
+                            existing_match,
+                            'participant2',
+                            slot_payload.get('participant2_id'),
+                            slot_payload.get('participant2_name'),
+                        )
+                        continue
+
                     placeholder_matches.append({
                         'id': None,
                         'match_number': mi,
                         'state': 'pending',
                         'state_display': 'TBD',
-                        'participant1': {
-                            'id': None, 'name': 'TBD', 'score': 0,
-                            'is_winner': False, 'logo_url': '',
-                        },
-                        'participant2': {
-                            'id': None, 'name': 'TBD', 'score': 0,
-                            'is_winner': False, 'logo_url': '',
-                        },
+                        'participant1': _slot_participant_payload(
+                            slot_payload.get('participant1_id'),
+                            slot_payload.get('participant1_name'),
+                        ),
+                        'participant2': _slot_participant_payload(
+                            slot_payload.get('participant2_id'),
+                            slot_payload.get('participant2_name'),
+                        ),
                         'scheduled_at': None,
                         'lobby_state': 'upcoming_not_open',
                     })
-                rounds_payload.append({
-                    'round_number': rn,
-                    'round_name': round_name,
-                    'group_id': None,
-                    'group_name': None,
-                    'matches': placeholder_matches,
-                })
+
+                if placeholder_matches:
+                    round_payload['matches'].extend(placeholder_matches)
+                round_payload['matches'].sort(key=lambda m: m.get('match_number') or 0)
+
             rounds_payload.sort(key=lambda r: r.get('round_number') or 0)
 
         group_stage_payload = None
