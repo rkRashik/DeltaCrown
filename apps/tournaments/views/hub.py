@@ -286,7 +286,35 @@ def _announcement_visuals_from_text(title, message, is_important=False):
     return {'type': 'info', 'icon': 'megaphone', 'symbol': '📣'}
 
 
-def _build_hub_announcements(tournament, now=None, limit=20, offset=0, user=None, registration=None):
+def _announcement_numeric_id(raw_id):
+    token = str(raw_id or '').strip()
+    if not token:
+        return 0
+
+    tail = token.rsplit('-', 1)[-1]
+    try:
+        return int(tail)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _announcement_sort_tuple(entry):
+    return (
+        float(entry.get('sort_ts') or 0),
+        _announcement_numeric_id(entry.get('id')),
+        str(entry.get('id') or ''),
+    )
+
+
+def _build_hub_announcements(
+    tournament,
+    now=None,
+    limit=20,
+    offset=0,
+    user=None,
+    registration=None,
+    include_derived=True,
+):
     now = now or timezone.now()
     items = []
     limit = max(1, int(limit or 20))
@@ -294,7 +322,7 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0, user=None
 
     toc_rows = TournamentAnnouncement.objects.filter(
         tournament=tournament,
-    ).select_related('created_by').order_by('-is_pinned', '-created_at')[offset:offset + limit]
+    ).select_related('created_by').order_by('-created_at', '-id')[offset:offset + limit]
 
     for row in toc_rows:
         visuals = _announcement_visuals_from_text(row.title, row.message, row.is_important)
@@ -313,51 +341,31 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0, user=None
             'time_ago': _time_ago(row.created_at, now) if row.created_at else '',
         })
 
-    # Append derived lifecycle events (global + personal)
-    try:
-        from apps.tournaments.services.lifecycle_announcements import (
-            derive_participant_events,
-            derive_tournament_events,
-        )
-        color_to_type = {'emerald': 'success', 'amber': 'warning', 'red': 'urgent', 'cyan': 'info'}
-        color_to_symbol = {'emerald': '✓', 'amber': '⚡', 'red': '⚠', 'cyan': 'ℹ'}
+    # Append derived lifecycle events (global + personal) only for SSR strips.
+    if include_derived:
+        try:
+            from apps.tournaments.services.lifecycle_announcements import (
+                derive_participant_events,
+                derive_tournament_events,
+            )
+            color_to_type = {'emerald': 'success', 'amber': 'warning', 'red': 'urgent', 'cyan': 'info'}
+            color_to_symbol = {'emerald': '✓', 'amber': '⚡', 'red': '⚠', 'cyan': 'ℹ'}
 
-        # Respect organizer automation config
-        auto_config = (getattr(tournament, 'config', None) or {}).get('announcement_automation', {})
+            # Respect organizer automation config
+            auto_config = (getattr(tournament, 'config', None) or {}).get('announcement_automation', {})
 
-        def _is_enabled(evt_type):
-            return auto_config.get(evt_type, {}).get('enabled', True)
+            def _is_enabled(evt_type):
+                return auto_config.get(evt_type, {}).get('enabled', True)
 
-        def _custom_msg(evt):
-            custom = auto_config.get(evt['event_type'], {}).get('custom_message')
-            return custom if custom else evt['message']
+            def _custom_msg(evt):
+                custom = auto_config.get(evt['event_type'], {}).get('custom_message')
+                return custom if custom else evt['message']
 
-        for evt in derive_tournament_events(tournament, now=now):
-            if not _is_enabled(evt['event_type']):
-                continue
-            items.append({
-                'id': f'lifecycle-{evt["event_type"]}',
-                'title': evt['title'],
-                'message': _custom_msg(evt),
-                'type': color_to_type.get(evt.get('color'), 'info'),
-                'icon': evt.get('icon', 'info'),
-                'symbol': color_to_symbol.get(evt.get('color'), 'ℹ'),
-                'is_pinned': False,
-                'is_important': evt.get('urgent', False),
-                'posted_by': 'System',
-                'created_at': evt['timestamp'].isoformat() if evt.get('timestamp') else None,
-                'sort_ts': evt['timestamp'].timestamp() if evt.get('timestamp') else 0,
-                'time_ago': _time_ago(evt['timestamp'], now) if evt.get('timestamp') else '',
-                'is_derived': True,
-                'scope': evt.get('scope', 'global'),
-            })
-
-        if user or registration:
-            for evt in derive_participant_events(tournament, user=user, registration=registration, now=now):
+            for evt in derive_tournament_events(tournament, now=now):
                 if not _is_enabled(evt['event_type']):
                     continue
                 items.append({
-                    'id': f'personal-{evt["event_type"]}',
+                    'id': f'lifecycle-{evt["event_type"]}',
                     'title': evt['title'],
                     'message': _custom_msg(evt),
                     'type': color_to_type.get(evt.get('color'), 'info'),
@@ -370,14 +378,50 @@ def _build_hub_announcements(tournament, now=None, limit=20, offset=0, user=None
                     'sort_ts': evt['timestamp'].timestamp() if evt.get('timestamp') else 0,
                     'time_ago': _time_ago(evt['timestamp'], now) if evt.get('timestamp') else '',
                     'is_derived': True,
-                    'scope': 'personal',
+                    'scope': evt.get('scope', 'global'),
                 })
-    except Exception:
-        logger.warning("Failed to derive lifecycle events for HUB announcements", exc_info=True)
 
-    # Pinned first, then newest
-    items.sort(key=lambda entry: (0 if entry.get('is_pinned') else 1, -float(entry.get('sort_ts') or 0)))
-    return items[:limit + 20]  # allow extra for lifecycle events
+            if user or registration:
+                for evt in derive_participant_events(tournament, user=user, registration=registration, now=now):
+                    if not _is_enabled(evt['event_type']):
+                        continue
+                    items.append({
+                        'id': f'personal-{evt["event_type"]}',
+                        'title': evt['title'],
+                        'message': _custom_msg(evt),
+                        'type': color_to_type.get(evt.get('color'), 'info'),
+                        'icon': evt.get('icon', 'info'),
+                        'symbol': color_to_symbol.get(evt.get('color'), 'ℹ'),
+                        'is_pinned': False,
+                        'is_important': evt.get('urgent', False),
+                        'posted_by': 'System',
+                        'created_at': evt['timestamp'].isoformat() if evt.get('timestamp') else None,
+                        'sort_ts': evt['timestamp'].timestamp() if evt.get('timestamp') else 0,
+                        'time_ago': _time_ago(evt['timestamp'], now) if evt.get('timestamp') else '',
+                        'is_derived': True,
+                        'scope': 'personal',
+                    })
+        except Exception:
+            logger.warning("Failed to derive lifecycle events for HUB announcements", exc_info=True)
+
+    deduped_by_id = {}
+    for entry in items:
+        key = str(entry.get('id') or '')
+        if not key:
+            continue
+
+        existing = deduped_by_id.get(key)
+        if existing is None or _announcement_sort_tuple(entry) > _announcement_sort_tuple(existing):
+            deduped_by_id[key] = entry
+
+    items = list(deduped_by_id.values())
+
+    # Canonical order: strict newest-first by persisted/derived timestamp with deterministic id tiebreak.
+    items.sort(key=_announcement_sort_tuple, reverse=True)
+
+    if include_derived:
+        return items[:limit + 20]  # allow extra rows for lifecycle strips
+    return items[:limit]
 
 
 def _format_currency_amount(value):
@@ -1380,9 +1424,17 @@ def _build_hub_context(request, tournament, registration, query_suffix='', is_st
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
     # ── Announcements ────────────────────────────────────
-    announcements = _build_hub_announcements(tournament, now=now, limit=20, user=user, registration=registration)
-    hub_lifecycle_events = [a for a in announcements if a.get('is_derived')]
-    hub_manual_announcements = [a for a in announcements if not a.get('is_derived')]
+    announcements_with_lifecycle = _build_hub_announcements(
+        tournament,
+        now=now,
+        limit=20,
+        user=user,
+        registration=registration,
+        include_derived=True,
+    )
+    hub_lifecycle_events = [a for a in announcements_with_lifecycle if a.get('is_derived')]
+    hub_manual_announcements = [a for a in announcements_with_lifecycle if not a.get('is_derived')]
+    announcements = hub_manual_announcements
 
     # ── Registration count ───────────────────────────────
     reg_count = Registration.objects.filter(
@@ -2422,7 +2474,15 @@ class HubAnnouncementsAPIView(LoginRequiredMixin, View):
         offset = max(0, offset)
 
         now = timezone.now()
-        data_plus_one = _build_hub_announcements(tournament, now=now, limit=limit + 1, offset=offset, user=request.user, registration=registration)
+        data_plus_one = _build_hub_announcements(
+            tournament,
+            now=now,
+            limit=limit + 1,
+            offset=offset,
+            user=request.user,
+            registration=registration,
+            include_derived=False,
+        )
         has_more = len(data_plus_one) > limit
         data = data_plus_one[:limit]
 
@@ -2491,7 +2551,15 @@ class HubUnifiedAPIView(LoginRequiredMixin, View):
         ).count()
 
         # Announcements (compact: first 20)
-        announcements = _build_hub_announcements(tournament, now=now, limit=20, offset=0, user=request.user, registration=registration)
+        announcements = _build_hub_announcements(
+            tournament,
+            now=now,
+            limit=20,
+            offset=0,
+            user=request.user,
+            registration=registration,
+            include_derived=False,
+        )
 
         payload = {
             'state': {

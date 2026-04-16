@@ -47,13 +47,94 @@ const HubEngine = (() => {
   const SIDEBAR_COLLAPSE_KEY = 'hub_sidebar_collapsed';
   const PARTICIPANTS_SORT_KEY = 'hub_participants_sort';
   const OUTCOME_DISMISS_KEY = 'hub_outcome_dismissed_v1';
+  const GAME_LOGO_BASE_PATH = '/static/img/game_logos/svg/';
+  const HUB_GAME_LOGO_MAP = {
+    codm: 'call-of-duty-logo.svg',
+    callofdutymobile: 'call-of-duty-logo.svg',
+    callofduty: 'call-of-duty-logo.svg',
+    codmobile: 'call-of-duty-logo.svg',
+    mlbb: 'mobile-legends-bang-bang.svg',
+    mobilelegends: 'mobile-legends-bang-bang.svg',
+    mobilelegendsbangbang: 'mobile-legends-bang-bang.svg',
+    fc26: 'fifa.svg',
+    fifa: 'fifa.svg',
+    eafc: 'fifa.svg',
+    easportsfc: 'fifa.svg',
+    easportsfc26: 'fifa.svg',
+    efootball: 'Efootball.svg',
+    pes: 'Efootball.svg',
+    proevolutionsoccer: 'Efootball.svg',
+    cs2: 'cs2.svg',
+    csgo: 'cs2.svg',
+    freefire: 'freefire.svg',
+    ff: 'freefire.svg',
+    pubg: 'pubg.svg',
+    pubgm: 'pubg.svg',
+    pubgmobile: 'pubg.svg',
+    valorant: 'valorant.svg',
+    dota2: 'dota2.svg',
+    rocketleague: 'rocket-league.svg',
+  };
   const DEFAULT_TIMEZONE = 'Asia/Dhaka';
   const DEFAULT_TIME_FORMAT = '12h';
+  const OVERVIEW_PHASE_STYLES = {
+    danger: {
+      wrap: 'hub-overview-phase-pill danger',
+      label: 'hub-overview-phase-label',
+      dot: 'hub-overview-phase-dot',
+    },
+    success: {
+      wrap: 'hub-overview-phase-pill success',
+      label: 'hub-overview-phase-label',
+      dot: 'hub-overview-phase-dot',
+    },
+    info: {
+      wrap: 'hub-overview-phase-pill info',
+      label: 'hub-overview-phase-label',
+      dot: 'hub-overview-phase-dot',
+    },
+  };
+  const OVERVIEW_BADGE_BASE_CLASS = 'hub-overview-action-badge';
+  const OVERVIEW_BADGE_TONE_CLASS = {
+    danger: 'danger',
+    success: 'success',
+    warning: 'warning',
+    info: 'info',
+  };
+  const OVERVIEW_PRIMARY_BTN_BASE_CLASS = 'hub-overview-btn primary';
+  const OVERVIEW_SECONDARY_BTN_CLASS = 'hub-overview-btn secondary';
+  const OVERVIEW_TERTIARY_BTN_CLASS = 'hub-overview-btn tertiary';
+  const OVERVIEW_PIPELINE_NODE_CLASS = {
+    active: 'hub-overview-pipeline-node is-active is-pulsing',
+    completed: 'hub-overview-pipeline-node is-completed',
+    upcoming: 'hub-overview-pipeline-node is-upcoming',
+  };
+  const OVERVIEW_PIPELINE_LABEL_CLASS = {
+    active: 'hub-overview-pipeline-label active',
+    completed: 'hub-overview-pipeline-label completed',
+    upcoming: 'hub-overview-pipeline-label upcoming',
+  };
+  const OVERVIEW_FORM_PILL_CLASS = {
+    win: 'hub-overview-form-pill win',
+    loss: 'hub-overview-form-pill loss',
+    draw: 'hub-overview-form-pill draw',
+    muted: 'hub-overview-form-pill muted',
+  };
+  const OVERVIEW_ANN_ITEM_CLASS = 'hub-overview-ann-item grid grid-cols-[auto,1fr] gap-3 rounded-xl border border-white/10 px-3 py-3';
+  const OVERVIEW_ANN_ITEM_LATEST_CLASS = 'ring-1 ring-cyan-300/35 bg-zinc-900/78';
+  const OVERVIEW_ANN_ITEM_DEFAULT_CLASS = 'bg-zinc-950/55';
+  const OVERVIEW_ANN_ICON_CLASS = {
+    urgent: 'border-rose-300/50 bg-rose-500/15 text-rose-100',
+    warning: 'border-amber-300/50 bg-amber-500/15 text-amber-100',
+    success: 'border-emerald-300/50 bg-emerald-500/15 text-emerald-100',
+    info: 'border-cyan-300/45 bg-cyan-500/12 text-cyan-100',
+  };
 
   // ── State ───────────────────────────────────────────────
   let _shell       = null;
   let _currentTab  = null;
   let _pollStateId = null;
+  let _latestOutcomeContext = null;
   let _pollAnnId   = null;
   let _countdownId = null;
   let _timePrefs = { timezone: DEFAULT_TIMEZONE, timeFormat: DEFAULT_TIME_FORMAT };
@@ -95,6 +176,7 @@ const HubEngine = (() => {
   let _lastPolledState = null;
   let _scheduleFilter = 'all';
   let _overviewMatchRefreshInFlight = false;
+  let _overviewIntelViewMode = 'auto';
   let _rescheduleModalState = null;
   let _rescheduleModalBusy = false;
 
@@ -120,6 +202,13 @@ const HubEngine = (() => {
   const WS_RECONNECT_BASE = 3000;  // 3s, doubles each retry
   const _brokenAvatarUrls = new Set();
   const _dismissedOutcomeKeys = new Set();
+  let _latestOutcomeCommand = null;
+  let _outcomeSharePayload = null;
+  let _overviewGameBranding = null;
+  let _heroFxAnimId = null;
+  let _heroFxParticles = [];
+  let _outcomeFxAnimId = null;
+  let _outcomeFxParticles = [];
 
   function _isMobileViewport() {
     return window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
@@ -478,6 +567,11 @@ const HubEngine = (() => {
     _loadBrokenAvatarUrlCache();
     _loadOutcomeDismissState();
     _mountOutcomeSpotlightToBody();
+    _applyOverviewGameBranding();
+    _startOverviewHeroFx();
+    _hydrateOverviewAnnouncementTimesFromDom();
+    _hydrateAnnouncementTimesFromDom('#hub-announcements-lifecycle-strip');
+    _hydrateAnnouncementTimesFromDom('#hub-announcements-feed');
 
     const outcomeDismissBtn = document.getElementById('hub-overview-outcome-spotlight-dismiss');
     if (outcomeDismissBtn) {
@@ -490,6 +584,26 @@ const HubEngine = (() => {
           _dismissOutcomeSpotlight();
         }
       });
+    }
+
+    const shareDismissBtn = document.getElementById('hub-overview-share-dismiss');
+    const shareCopyBtn = document.getElementById('hub-overview-share-copy');
+    const sharePostBtn = document.getElementById('hub-overview-share-post');
+    const shareTriggerBtn = document.getElementById('hub-overview-outcome-spotlight-share-trigger');
+
+    if (shareTriggerBtn) {
+      shareTriggerBtn.setAttribute('aria-expanded', 'false');
+      shareTriggerBtn.addEventListener('click', _openOutcomeShareModal);
+    }
+
+    if (shareDismissBtn) {
+      shareDismissBtn.addEventListener('click', _dismissOutcomeShareModal);
+    }
+    if (shareCopyBtn) {
+      shareCopyBtn.addEventListener('click', _copyOutcomeShareCaption);
+    }
+    if (sharePostBtn) {
+      sharePostBtn.addEventListener('click', _submitOutcomeShare);
     }
 
     if (_maybeDefaultToParticipantViewOnMobile()) {
@@ -524,6 +638,7 @@ const HubEngine = (() => {
     // Keyboard: Escape closes mobile sidebar + modals
     _onKeyDown = (e) => {
       if (e.key === 'Escape') {
+        _dismissOutcomeShareModal();
         closeMobileSidebar();
         closeRescheduleModal();
         closeAlertConfirmModal();
@@ -548,6 +663,7 @@ const HubEngine = (() => {
     _onWindowResize = () => {
       clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(_redrawBracketLines, 150);
+      _startOverviewHeroFx();
 
       if (!_shell) return;
 
@@ -707,6 +823,13 @@ const HubEngine = (() => {
     _applyTabLockState(normalizedTab, {
       announce: shouldLockTab && announceLock,
     });
+
+    if (normalizedTab !== 'overview') {
+      _dismissOutcomeSpotlight({ persist: false });
+      _dismissOutcomeShareModal();
+    } else if (_latestOutcomeCommand) {
+      _renderOutcomeExperience(_latestOutcomeCommand, _latestOutcomeContext || {});
+    }
 
     if (syncUrl) {
       _syncUrlForTab(normalizedTab, historyMode);
@@ -1171,9 +1294,10 @@ const HubEngine = (() => {
       const status = String(data.tournament_status || '').toLowerCase();
       const hasBackendCommand = Boolean(data.command_center && Object.prototype.hasOwnProperty.call(data.command_center, 'show'));
       const shouldRefreshOverviewMatch = ['live', 'check_in', 'registration_closed', 'registration_open'].includes(status)
-        || !_matchesCache;
+        || !_matchesCache
+        || hasBackendCommand;
       const isStale = !_matchesCache || (Date.now() - _matchesCacheFetchedAt) > 60000;
-      if (!hasBackendCommand && shouldRefreshOverviewMatch && isStale) {
+      if (shouldRefreshOverviewMatch && isStale) {
         _refreshOverviewActionCard({ forceFetch: true, stateData: data });
       }
 
@@ -1325,6 +1449,94 @@ const HubEngine = (() => {
     _pollAnnouncements({ append: false });
   }
 
+  function _normalizeAnnouncementLegacyTime(rawLabel) {
+    const text = String(rawLabel || '').trim();
+    if (!text) return '';
+    const lowered = text.toLowerCase();
+    if (lowered === 'just now' || lowered === 'now' || lowered === 'moments ago') return 'Just now';
+    return text
+      .replace(/minutes?/i, 'min')
+      .replace(/hours?/i, 'hr')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function _formatAnnouncementRelativeTime(createdAt) {
+    const dt = _toValidDate(createdAt);
+    if (!dt) return '';
+
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
+    if (diffSeconds < 60) return 'Just now';
+    if (diffSeconds < 3600) return `${Math.max(1, Math.floor(diffSeconds / 60))} min ago`;
+    if (diffSeconds < 86400) return `${Math.max(1, Math.floor(diffSeconds / 3600))} hr ago`;
+    if (diffSeconds < 172800) return 'Yesterday';
+    if (diffSeconds < 604800) return `${Math.max(2, Math.floor(diffSeconds / 86400))} days ago`;
+    if (diffSeconds < 31536000) {
+      return _formatDate(dt, { month: 'short', day: 'numeric' }) || '';
+    }
+    return _formatDate(dt, { year: 'numeric', month: 'short', day: 'numeric' }) || '';
+  }
+
+  function _announcementSortTimestamp(announcement) {
+    const dt = _toValidDate(
+      announcement?.created_at
+      || announcement?.createdAt
+      || announcement?.timestamp
+      || null
+    );
+    return dt ? dt.getTime() : 0;
+  }
+
+  function _announcementSortNumericId(announcement) {
+    const rawId = String(announcement?.id || '').trim();
+    if (!rawId) return 0;
+
+    const tail = rawId.includes('-') ? rawId.split('-').pop() : rawId;
+    const parsed = Number.parseInt(String(tail || ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function _sortAnnouncementsCanonical(items) {
+    const source = Array.isArray(items) ? items.slice() : [];
+    source.sort((a, b) => {
+      const tsDiff = _announcementSortTimestamp(b) - _announcementSortTimestamp(a);
+      if (tsDiff !== 0) return tsDiff;
+
+      const idDiff = _announcementSortNumericId(b) - _announcementSortNumericId(a);
+      if (idDiff !== 0) return idDiff;
+
+      return String(b?.id || '').localeCompare(String(a?.id || ''));
+    });
+    return source;
+  }
+
+  function _resolveAnnouncementTimeLabel(announcement) {
+    const ann = announcement || {};
+    const createdAt = _toValidDate(ann.created_at || ann.createdAt || ann.timestamp || null);
+
+    if (createdAt) {
+      return _formatAnnouncementRelativeTime(createdAt);
+    }
+    return 'Time unavailable';
+  }
+
+  function _hydrateAnnouncementTimesFromDom(rootSelector) {
+    const selector = String(rootSelector || '').trim();
+    if (!selector) return;
+
+    const rows = Array.from(document.querySelectorAll(`${selector} [data-ann-created-at]`));
+    if (!rows.length) return;
+
+    rows.forEach((node) => {
+      const createdAt = node.getAttribute('data-ann-created-at') || '';
+      node.textContent = _resolveAnnouncementTimeLabel({ created_at: createdAt });
+    });
+  }
+
+  function _hydrateOverviewAnnouncementTimesFromDom() {
+    _hydrateAnnouncementTimesFromDom('#hub-overview-announcements-feed');
+  }
+
   function _initDesktopSidebar() {
     const shell = document.getElementById('hub-shell');
     if (!shell) return;
@@ -1385,7 +1597,7 @@ const HubEngine = (() => {
   function _renderAnnouncementsFeed(items) {
       const feed = document.getElementById('hub-announcements-feed');
 
-      const source = Array.isArray(items) ? items : [];
+      const source = _sortAnnouncementsCanonical(items);
       const filtered = source.filter((ann) => {
         if (_announcementFilter === 'pinned' && !ann.is_pinned) return false;
         if (_announcementFilter === 'urgent' && String(ann.type || '').toLowerCase() !== 'urgent') return false;
@@ -1412,6 +1624,7 @@ const HubEngine = (() => {
         const titleSize = type === 'urgent' ? 'text-2xl' : 'text-xl';
         const bodyColor = type === 'urgent' ? 'text-gray-300' : 'text-gray-400';
         const glowStyle = type === 'urgent' ? ' style="text-shadow: 0 0 10px rgba(255,42,85,0.4)"' : '';
+        const timeLabel = _resolveAnnouncementTimeLabel(ann);
 
         return `
           <div class="premium-card p-6 md:p-8 border-l-4 ${borderStyle}" style="border-left-color:${borderColor}">
@@ -1419,7 +1632,7 @@ const HubEngine = (() => {
             <div class="flex items-center gap-3 mb-4 relative z-10">
               ${ann.is_pinned ? '<span class="hub-badge bg-[#FF2A55]/20 text-[#FF8AA0] border border-[#FF2A55]/40" style="box-shadow: 0 0 15px rgba(255,42,85,0.3)"><i data-lucide="pin" class="w-3 h-3"></i> Pinned</span>' : ''}
               <span class="hub-badge ${badgeBg}">${_esc(ann.type || 'Info')}</span>
-              <span class="font-mono text-[10px] text-gray-400">${_esc(ann.time_ago)}</span>
+              <span class="font-mono text-[10px] text-gray-400" data-ann-created-at="${_esc(ann.created_at || ann.createdAt || ann.timestamp || '')}">${_esc(timeLabel)}</span>
             </div>
             ${ann.title ? `<h3 class="font-display font-bold ${titleSize} text-white mb-3 relative z-10"${glowStyle}>${_esc(ann.title)}</h3>` : ''}
             <p class="text-sm ${bodyColor} leading-relaxed relative z-10 max-w-3xl">${_esc(ann.message)}</p>
@@ -1474,36 +1687,28 @@ const HubEngine = (() => {
       const feed = document.getElementById('hub-overview-announcements-feed');
       if (!feed) return;
 
-      const source = Array.isArray(items) ? items.slice(0, 5) : [];
-      const html = source.map((ann, i) => {
-        const dotClass = ann.type === 'urgent' ? 'ann-dot-urgent'
-                       : ann.type === 'warning' ? 'ann-dot-warning'
-                       : ann.type === 'success' ? 'ann-dot-success'
-                       : 'ann-dot-info';
-
-        const typeClass = ann.type === 'urgent' ? 'bg-[#FF2A55]/20 text-[#FF2A55]'
-                        : ann.type === 'warning' ? 'bg-[#FFB800]/20 text-[#FFB800]'
-                        : ann.type === 'success' ? 'bg-[#00FF66]/20 text-[#00FF66]'
-                        : 'bg-white/10 text-gray-300';
-
-        const isLast = i === source.length - 1;
-
+      const source = _sortAnnouncementsCanonical(items).slice(0, 5);
+      const html = source.map((ann, index) => {
+        const type = String(ann?.type || 'info').toLowerCase();
+        const iconClass = OVERVIEW_ANN_ICON_CLASS[type] || OVERVIEW_ANN_ICON_CLASS.info;
+        const cardToneClass = index === 0 ? OVERVIEW_ANN_ITEM_LATEST_CLASS : OVERVIEW_ANN_ITEM_DEFAULT_CLASS;
+        const timeLabel = _resolveAnnouncementTimeLabel(ann);
         return `
-          <div class="relative pl-6 border-l border-white/5 ${isLast ? '' : 'pb-6'}">
-            <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full -ml-[5px] ${dotClass}"></div>
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              ${ann.is_pinned ? '<span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Pinned</span>' : ''}
-              ${ann.is_important ? '<span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF8AA0] text-[8px] font-black uppercase">Important</span>' : ''}
-              <span class="px-1.5 py-0.5 rounded ${typeClass} text-[8px] font-black uppercase">${_esc(ann.type || 'Info')}</span>
-              ${ann.symbol ? `<span class="text-sm leading-none">${_esc(ann.symbol)}</span>` : ''}
-              <span class="text-[10px] text-gray-500" style="font-family:'Space Grotesk',monospace;">${_esc(ann.time_ago || '')}</span>
+          <article class="${OVERVIEW_ANN_ITEM_CLASS} ${cardToneClass}">
+            <div class="${iconClass} mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg border">
+              <i data-lucide="${_esc(ann.icon || 'megaphone')}" class="w-3.5 h-3.5"></i>
             </div>
-            ${ann.title ? `<p class="font-bold text-white text-sm mb-1 flex items-center gap-1.5">${ann.icon ? `<i data-lucide="${_esc(ann.icon)}" class="w-3.5 h-3.5 text-cyan-200"></i>` : ''}<span>${_esc(ann.title)}</span></p>` : ''}
-            <p class="text-xs text-gray-400 leading-relaxed">${_esc(ann.message || '')}</p>
-          </div>`;
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <p class="truncate text-sm font-semibold text-white">${_esc(ann.title || 'Announcement')}</p>
+                <span class="shrink-0 font-mono text-[9px] text-zinc-500" data-ann-created-at="${_esc(ann.created_at || '')}">${_esc(timeLabel)}</span>
+              </div>
+              <p class="mt-1 text-[11px] leading-relaxed text-zinc-400">${_esc(ann.message || '')}</p>
+            </div>
+          </article>`;
       }).join('');
 
-      feed.innerHTML = html || '<div class="flex flex-col items-center justify-center py-12 text-center"><i data-lucide="radio" class="w-10 h-10 text-gray-700 mb-3"></i><p class="text-sm text-gray-500 font-medium">No announcements yet</p><p class="text-xs text-gray-600 mt-1">Organizer updates will appear here.</p></div>';
+      feed.innerHTML = html || '<div class="flex flex-col items-center justify-center rounded-xl border border-white/8 bg-black/20 py-10 text-center"><i data-lucide="radio" class="mb-3 h-8 w-8 text-zinc-700"></i><p class="text-sm text-zinc-500">No announcements yet</p><p class="mt-1 text-xs text-zinc-600">Organizer updates will appear here.</p></div>';
   }
 
   // ──────────────────────────────────────────────────────────
@@ -2278,30 +2483,451 @@ const HubEngine = (() => {
     return _dismissedOutcomeKeys.has(normalized);
   }
 
+  function _normalizeGameAlias(rawValue) {
+    return String(rawValue || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function _resolveOverviewGameBranding() {
+    if (_overviewGameBranding) {
+      return _overviewGameBranding;
+    }
+
+    const rawSlug = String(_shell?.dataset.gameSlug || '').trim();
+    const rawName = String(_shell?.dataset.gameName || '').trim();
+    const candidates = [rawSlug, rawName];
+
+    let normalized = '';
+    let logoFile = '';
+    for (const raw of candidates) {
+      const candidate = _normalizeGameAlias(raw);
+      if (!candidate) continue;
+      if (HUB_GAME_LOGO_MAP[candidate]) {
+        normalized = candidate;
+        logoFile = HUB_GAME_LOGO_MAP[candidate];
+        break;
+      }
+      if (!normalized) {
+        normalized = candidate;
+      }
+    }
+
+    _overviewGameBranding = {
+      normalized,
+      displayName: rawName || rawSlug || 'Tournament',
+      logoFile,
+      logoUrl: logoFile ? `${GAME_LOGO_BASE_PATH}${logoFile}` : '',
+    };
+    return _overviewGameBranding;
+  }
+
+  function _applyOverviewGameBranding() {
+    const branding = _resolveOverviewGameBranding();
+    const logoSlots = [
+      'hub-overview-game-logo',
+      'hub-overview-intel-game-logo',
+      'hub-overview-outcome-spotlight-logo',
+      'hub-overview-share-preview-logo',
+    ];
+
+    logoSlots.forEach((id) => {
+      const img = document.getElementById(id);
+      if (!img) return;
+      const fallback = img.parentElement ? img.parentElement.querySelector('i[data-lucide]') : null;
+
+      if (branding.logoUrl) {
+        img.src = branding.logoUrl;
+        img.alt = `${branding.displayName} logo`;
+        img.classList.remove('hidden');
+        if (fallback) {
+          fallback.classList.add('hidden');
+        }
+      } else {
+        img.removeAttribute('src');
+        img.classList.add('hidden');
+        if (fallback) {
+          fallback.classList.remove('hidden');
+        }
+      }
+    });
+
+    const ghost = document.getElementById('hub-overview-outcome-spotlight-ghost');
+    if (ghost) {
+      ghost.style.backgroundImage = branding.logoUrl ? `url("${branding.logoUrl}")` : '';
+      ghost.classList.toggle('is-empty', !branding.logoUrl);
+    }
+
+    const heroGameName = document.getElementById('hub-overview-hero-game-name');
+    if (heroGameName && branding.displayName) {
+      heroGameName.textContent = branding.displayName;
+    }
+  }
+
+  function _stopOverviewHeroFx() {
+    if (_heroFxAnimId) {
+      cancelAnimationFrame(_heroFxAnimId);
+      _heroFxAnimId = null;
+    }
+
+    const canvas = document.getElementById('hub-overview-hero-fx-canvas');
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      _heroFxParticles = [];
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+    }
+    _heroFxParticles = [];
+  }
+
+  function _startOverviewHeroFx() {
+    const card = document.getElementById('hub-overview-action-card');
+    const canvas = document.getElementById('hub-overview-hero-fx-canvas');
+    if (!card || !canvas || typeof canvas.getContext !== 'function') return;
+
+    const reducedMotion = Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (card.classList.contains('hidden') || reducedMotion) {
+      _stopOverviewHeroFx();
+      return;
+    }
+
+    if (_heroFxAnimId) {
+      return;
+    }
+
+    const ratio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const resizeCanvas = () => {
+      const rect = card.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { width, height };
+    };
+
+    let bounds = resizeCanvas();
+    const desiredCount = Math.max(16, Math.round(bounds.width / 52));
+    _heroFxParticles = Array.from({ length: desiredCount }).map(() => ({
+      x: Math.random() * bounds.width,
+      y: Math.random() * bounds.height,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: -(Math.random() * 0.26 + 0.06),
+      size: Math.random() * 1.7 + 0.6,
+      alpha: Math.random() * 0.26 + 0.08,
+      decay: Math.random() * 0.0014 + 0.0005,
+    }));
+
+    const frame = () => {
+      if (!canvas.isConnected || card.classList.contains('hidden')) {
+        _stopOverviewHeroFx();
+        return;
+      }
+
+      const nextRect = card.getBoundingClientRect();
+      if (Math.abs(nextRect.width - bounds.width) > 1 || Math.abs(nextRect.height - bounds.height) > 1) {
+        bounds = resizeCanvas();
+      }
+
+      ctx.clearRect(0, 0, bounds.width, bounds.height);
+
+      _heroFxParticles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha = Math.max(0, p.alpha - p.decay);
+
+        if (p.y < -8 || p.alpha <= 0) {
+          p.x = Math.random() * bounds.width;
+          p.y = bounds.height + (Math.random() * 16);
+          p.alpha = Math.random() * 0.26 + 0.08;
+          p.size = Math.random() * 1.7 + 0.6;
+        }
+
+        if (p.x < -10) p.x = bounds.width + 8;
+        if (p.x > bounds.width + 10) p.x = -8;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(56, 189, 248, ${Math.max(0.04, p.alpha)})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(34, 211, 238, 0.24)';
+        ctx.fill();
+      });
+
+      ctx.shadowBlur = 0;
+      _heroFxAnimId = requestAnimationFrame(frame);
+    };
+
+    frame();
+  }
+
   function _mountOutcomeSpotlightToBody() {
-    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
-    if (!spotlight) return;
-    if (spotlight.dataset.portalMounted === '1') return;
+    const overlay = document.getElementById('hub-overview-outcome-spotlight');
+    if (!overlay || overlay.dataset.portalMounted === '1') return;
     try {
-      document.body.appendChild(spotlight);
-      spotlight.dataset.portalMounted = '1';
+      document.body.appendChild(overlay);
+      overlay.dataset.portalMounted = '1';
     } catch (_err) {
       // Keep inline rendering fallback if body append fails.
     }
   }
 
-  function _dismissOutcomeSpotlight() {
+  function _stopOutcomeSpotlightFx() {
+    if (_outcomeFxAnimId) {
+      cancelAnimationFrame(_outcomeFxAnimId);
+      _outcomeFxAnimId = null;
+    }
+    const canvas = document.getElementById('hub-overview-spotlight-fx-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext && canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+    _outcomeFxParticles = [];
+  }
+
+  function _startOutcomeSpotlightFx() {
+    const canvas = document.getElementById('hub-overview-spotlight-fx-canvas');
+    if (!canvas || typeof canvas.getContext !== 'function') return;
+
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    const state = String(spotlight?.getAttribute('data-outcome-state') || 'advanced').toLowerCase();
+    const isEliminated = state === 'eliminated';
+    const ratio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+    const resizeCanvas = () => {
+      const width = window.innerWidth || document.documentElement.clientWidth || 1;
+      const height = window.innerHeight || document.documentElement.clientHeight || 1;
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+    };
+
+    resizeCanvas();
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    _outcomeFxParticles = Array.from({ length: isEliminated ? 28 : 44 }).map(() => ({
+      x: Math.random() * (window.innerWidth || 1),
+      y: isEliminated ? Math.random() * (window.innerHeight || 1) : (window.innerHeight || 1) + (Math.random() * 160),
+      vx: (Math.random() - 0.5) * (isEliminated ? 0.22 : 0.62),
+      vy: isEliminated ? (Math.random() * 0.34 + 0.08) : -(Math.random() * 1.45 + 0.42),
+      size: isEliminated ? (Math.random() * 1.4 + 0.5) : (Math.random() * 2.4 + 0.7),
+      alpha: isEliminated ? (Math.random() * 0.3 + 0.08) : (Math.random() * 0.45 + 0.24),
+      decay: isEliminated ? 0.0004 : 0.0031,
+    }));
+
+    const baseColor = isEliminated ? '182, 190, 204' : '0, 229, 255';
+
+    const frame = () => {
+      if (!document.body.classList.contains('hub-outcome-open')) {
+        _stopOutcomeSpotlightFx();
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      _outcomeFxParticles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha = Math.max(0, p.alpha - p.decay);
+
+        if (isEliminated) {
+          if (p.y > (window.innerHeight || 1) + 12 || p.alpha <= 0) {
+            p.y = -10;
+            p.x = Math.random() * (window.innerWidth || 1);
+            p.alpha = Math.random() * 0.28 + 0.08;
+          }
+        } else if (p.y < -15 || p.alpha <= 0) {
+          p.y = (window.innerHeight || 1) + 12;
+          p.x = Math.random() * (window.innerWidth || 1);
+          p.alpha = Math.random() * 0.45 + 0.25;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${baseColor}, ${Math.max(0.04, p.alpha)})`;
+        ctx.shadowBlur = isEliminated ? 0 : 10;
+        ctx.shadowColor = isEliminated ? 'transparent' : `rgba(${baseColor}, 0.7)`;
+        ctx.fill();
+      });
+
+      ctx.shadowBlur = 0;
+      _outcomeFxAnimId = requestAnimationFrame(frame);
+    };
+
+    frame();
+  }
+
+  function _openOutcomeSpotlight({ force = false } = {}) {
     const spotlight = document.getElementById('hub-overview-outcome-spotlight');
     if (!spotlight) return;
+
+    _dismissOutcomeShareModal();
+
     const key = String(spotlight.dataset.outcomeKey || '').trim();
-    if (key) {
+    if (!key) return;
+    if (!force && _isOutcomeDismissed(key)) return;
+
+    document.body.classList.add('hub-outcome-open');
+    spotlight.classList.remove('hidden');
+    spotlight.classList.remove('is-open');
+    void spotlight.offsetWidth;
+    spotlight.classList.add('is-open');
+    spotlight.setAttribute('aria-hidden', 'false');
+
+    _startOutcomeSpotlightFx();
+  }
+
+  function _dismissOutcomeSpotlight(options = {}) {
+    const persist = options?.persist !== false;
+    _dismissOutcomeShareModal();
+    document.body.classList.remove('hub-outcome-open');
+    _stopOutcomeSpotlightFx();
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    if (!spotlight) return;
+
+    const key = String(spotlight.dataset.outcomeKey || '').trim();
+    if (persist && key) {
       _dismissedOutcomeKeys.add(key);
       _persistOutcomeDismissState();
     }
-    document.body.classList.remove('hub-outcome-open');
+
     spotlight.classList.remove('is-open');
     spotlight.classList.add('hidden');
     spotlight.setAttribute('aria-hidden', 'true');
+  }
+
+  function openOutcomeSpotlight() {
+    _openOutcomeSpotlight({ force: true });
+  }
+
+  function _dismissOutcomeShareModal() {
+    document.body.classList.remove('hub-share-open');
+    const shareTrigger = document.getElementById('hub-overview-outcome-spotlight-share-trigger');
+    if (shareTrigger) {
+      shareTrigger.setAttribute('aria-expanded', 'false');
+    }
+    const actionBar = document.getElementById('hub-overview-outcome-spotlight-action-bar');
+    if (actionBar) {
+      actionBar.classList.remove('hidden');
+    }
+    const modal = document.getElementById('hub-overview-share-modal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function _openOutcomeShareModal() {
+    const modal = document.getElementById('hub-overview-share-modal');
+    if (!modal) return;
+
+    if (!_outcomeSharePayload) {
+      _emitToast('info', 'No result spotlight is available to share yet.');
+      return;
+    }
+
+    const previewTitle = document.getElementById('hub-overview-share-preview-title');
+    const previewBody = document.getElementById('hub-overview-share-preview-body');
+    const caption = document.getElementById('hub-overview-share-caption');
+    const actionBar = document.getElementById('hub-overview-outcome-spotlight-action-bar');
+    const shareTrigger = document.getElementById('hub-overview-outcome-spotlight-share-trigger');
+
+    if (previewTitle) {
+      previewTitle.textContent = _outcomeSharePayload.title || 'Result Spotlight';
+    }
+    if (previewBody) {
+      previewBody.textContent = _outcomeSharePayload.body || 'Post your moment to the community feed.';
+    }
+    if (caption) {
+      caption.value = _outcomeSharePayload.caption || '';
+    }
+
+    _applyOverviewGameBranding();
+
+    const spotlight = document.getElementById('hub-overview-outcome-spotlight');
+    if (spotlight && spotlight.classList.contains('hidden')) {
+      _openOutcomeSpotlight({ force: true });
+      if (spotlight.classList.contains('hidden')) {
+        _emitToast('info', 'Open the result spotlight before editing your caption.');
+        return;
+      }
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.remove('is-open');
+    void modal.offsetWidth;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (actionBar) {
+      actionBar.classList.add('hidden');
+    }
+    if (shareTrigger) {
+      shareTrigger.setAttribute('aria-expanded', 'true');
+    }
+    document.body.classList.add('hub-share-open');
+
+    if (caption) {
+      setTimeout(() => {
+        caption.focus();
+        caption.setSelectionRange(caption.value.length, caption.value.length);
+      }, 40);
+    }
+  }
+
+  async function _copyOutcomeShareCaption() {
+    const caption = document.getElementById('hub-overview-share-caption');
+    const text = String(caption?.value || _outcomeSharePayload?.caption || '').trim();
+    if (!text) {
+      _emitToast('warning', 'Caption is empty.');
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.style.position = 'fixed';
+        helper.style.left = '-9999px';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+      }
+      _emitToast('success', 'Share caption copied.');
+    } catch (_err) {
+      _emitToast('warning', 'Copy failed. Select the caption manually.');
+    }
+  }
+
+  function _submitOutcomeShare() {
+    const caption = document.getElementById('hub-overview-share-caption');
+    const text = String(caption?.value || '').trim();
+    if (!text) {
+      _emitToast('warning', 'Add a caption before posting.');
+      return;
+    }
+    _outcomeSharePayload = {
+      ...(_outcomeSharePayload || {}),
+      caption: text,
+    };
+    _emitToast('success', 'Caption is ready to post in community channels.');
+    _dismissOutcomeShareModal();
   }
 
   function _markAvatarUrlBroken(url) {
@@ -2426,24 +3052,7 @@ const HubEngine = (() => {
     if (!pill) return;
 
     const type = String(phaseEvent?.type || 'info').toLowerCase();
-    const styles = {
-      danger: {
-        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2A55]/15 border border-[#FF2A55]/25 mb-3',
-        label: 'text-[10px] font-black text-[#FF8AA0] uppercase tracking-widest',
-        dot: 'w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse',
-      },
-      success: {
-        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/25 mb-3',
-        label: 'text-[10px] font-black text-[#66FFAE] uppercase tracking-widest',
-        dot: 'w-2 h-2 rounded-full bg-[#00FF66] animate-pulse',
-      },
-      info: {
-        wrap: 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/25 mb-3',
-        label: 'text-[10px] font-black text-[#8AF6FF] uppercase tracking-widest',
-        dot: 'w-2 h-2 rounded-full bg-[#00F0FF]',
-      },
-    };
-    const current = styles[type] || styles.info;
+    const current = OVERVIEW_PHASE_STYLES[type] || OVERVIEW_PHASE_STYLES.info;
     pill.className = current.wrap;
 
     const dotEl = pill.querySelector('span');
@@ -2652,50 +3261,65 @@ const HubEngine = (() => {
 
     const progress = document.getElementById('hub-lifecycle-progress');
     if (progress && Number.isFinite(Number(pipeline.progress_percent))) {
-      progress.style.width = `${Number(pipeline.progress_percent)}%`;
+      const pct = Math.max(0, Math.min(100, Number(pipeline.progress_percent)));
+      progress.style.width = `${pct}%`;
     }
 
     pipeline.steps.forEach((step) => {
       const root = document.getElementById(`hub-pipeline-step-${step.key}`);
       if (!root) return;
 
-      root.classList.toggle('animate-slide-right', Boolean(step.active));
-      root.classList.toggle('opacity-50', !step.active && !step.completed);
+      root.classList.remove('is-active', 'is-completed', 'is-upcoming');
+      if (step.active) {
+        root.classList.add('is-active');
+      } else if (step.completed) {
+        root.classList.add('is-completed');
+      } else {
+        root.classList.add('is-upcoming');
+      }
 
       const circle = root.querySelector('[data-pipeline-circle]');
       const label = root.querySelector('[data-pipeline-label]');
 
       if (circle) {
         if (step.active) {
-          circle.className = 'w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#08080A] border-2 border-cyan-300 text-cyan-200 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(0,240,255,0.35)] animate-pulse';
-          circle.innerHTML = `<i data-lucide="${_esc(step.icon || 'crosshair')}" class="w-4 h-4 md:w-5 md:h-5"></i>`;
+          circle.className = OVERVIEW_PIPELINE_NODE_CLASS.active;
+          circle.innerHTML = '<span class="hub-overview-pipeline-core"></span>';
         } else if (step.completed) {
-          circle.className = 'w-7 h-7 md:w-8 md:h-8 rounded-full bg-cyan-300 text-black flex items-center justify-center z-10';
-          circle.innerHTML = '<i data-lucide="check" class="w-3 h-3 md:w-4 md:h-4 font-black"></i>';
+          circle.className = OVERVIEW_PIPELINE_NODE_CLASS.completed;
+          circle.innerHTML = '<span class="hub-overview-pipeline-core"></span>';
         } else {
-          circle.className = 'w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#0B0D12] border border-white/20 text-gray-500 flex items-center justify-center z-10';
-          circle.innerHTML = `<i data-lucide="${_esc(step.icon || 'circle')}" class="w-3 h-3 md:w-4 md:h-4"></i>`;
+          circle.className = OVERVIEW_PIPELINE_NODE_CLASS.upcoming;
+          circle.innerHTML = '<span class="hub-overview-pipeline-core"></span>';
         }
       }
 
       if (label) {
         label.textContent = step.label || '';
         if (step.active) {
-          label.className = 'text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest mt-1 text-center';
+          label.className = OVERVIEW_PIPELINE_LABEL_CLASS.active;
         } else if (step.completed) {
-          label.className = 'text-[8px] md:text-[9px] font-bold text-cyan-200 uppercase tracking-widest text-center';
+          label.className = OVERVIEW_PIPELINE_LABEL_CLASS.completed;
         } else {
-          label.className = 'text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest text-center';
+          label.className = OVERVIEW_PIPELINE_LABEL_CLASS.upcoming;
         }
       }
     });
-
-    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   function _runOverviewCommandAction(rawAction, backendCommand) {
     const action = String(rawAction || 'view_schedule').toLowerCase();
     const command = backendCommand || {};
+
+    if (action === 'open_result_spotlight' || action === 'view_result_spotlight') {
+      _openOutcomeSpotlight({ force: true });
+      return;
+    }
+
+    if (action === 'open_outcome_share' || action === 'share_result') {
+      _openOutcomeShareModal();
+      return;
+    }
 
     if (action === 'check_in') {
       performCheckIn();
@@ -2748,37 +3372,81 @@ const HubEngine = (() => {
 
   function _renderOutcomeCtaButtons(containerEl, ctas, backendCommand, variant) {
     if (!containerEl) return;
-    const rows = Array.isArray(ctas) ? ctas.slice(0, 4) : [];
-    if (!rows.length) {
+    if (variant === 'spotlight') {
       containerEl.innerHTML = '';
       return;
     }
+    const rows = Array.isArray(ctas) ? ctas : [];
 
     const outcomeState = String(backendCommand?.outcome_state || backendCommand?.outcome_experience?.state || '').toLowerCase();
     const iconMap = {
+      enter_lobby: 'swords',
       open_bracket: 'git-branch',
       open_matches: 'swords',
       view_next_assignment: 'crosshair',
       open_announcements: 'megaphone',
       open_standings: 'list-ordered',
       open_support: 'life-buoy',
+      open_result_spotlight: 'sparkles',
+      open_outcome_share: 'send',
+      share_result: 'send',
     };
 
-    const primarySpotlightClass = outcomeState === 'eliminated'
-      ? 'px-4 py-2.5 rounded-lg border border-amber-300/45 bg-amber-300/18 text-amber-100 text-[10px] font-black uppercase tracking-[0.09em] hover:bg-amber-300/24 transition-colors'
-      : 'px-4 py-2.5 rounded-lg border border-[#00FF66]/45 bg-[#00FF66]/18 text-[#D7FFE9] text-[10px] font-black uppercase tracking-[0.09em] hover:bg-[#00FF66]/24 transition-colors';
-    const secondarySpotlightClass = 'px-3.5 py-2.5 rounded-lg border border-white/22 bg-white/8 text-[10px] font-black uppercase tracking-[0.085em] text-white hover:bg-white/14 transition-colors';
-    const persistentClass = outcomeState === 'eliminated'
-      ? 'px-3 py-1.5 rounded-md border border-amber-300/28 bg-amber-300/10 text-[10px] font-black uppercase tracking-[0.085em] text-amber-100 hover:bg-amber-300/16 transition-colors'
-      : 'px-3 py-1.5 rounded-md border border-cyan-300/28 bg-cyan-300/10 text-[10px] font-black uppercase tracking-[0.085em] text-cyan-100 hover:bg-cyan-300/16 transition-colors';
+    const normalizeRows = (inputRows) => {
+      const unique = new Map();
+      inputRows.forEach((cta) => {
+        const action = String(cta?.action || '').trim().toLowerCase();
+        if (!action || unique.has(action)) return;
+        const label = String(cta?.label || action || 'Open').trim() || 'Open';
+        unique.set(action, { action, label });
+      });
+      return Array.from(unique.values());
+    };
 
-    containerEl.innerHTML = rows.map((cta, index) => {
+    let actionRows = [];
+    if (variant === 'spotlight') {
+      const spotlightRows = normalizeRows(rows.filter((cta) => {
+        const action = String(cta?.action || '').toLowerCase();
+        return action !== 'open_outcome_share' && action !== 'share_result';
+      }));
+
+      const priorityOrder = outcomeState === 'eliminated'
+        ? ['open_standings', 'open_bracket', 'open_support', 'open_announcements', 'open_matches']
+        : ['enter_lobby', 'open_matches', 'view_next_assignment', 'open_bracket', 'open_announcements', 'open_standings', 'open_support'];
+
+      const seenActions = new Set();
+      priorityOrder.forEach((action) => {
+        const row = spotlightRows.find((item) => item.action === action);
+        if (!row || seenActions.has(action)) return;
+        seenActions.add(action);
+        actionRows.push(row);
+      });
+
+      spotlightRows.forEach((row) => {
+        if (seenActions.has(row.action)) return;
+        seenActions.add(row.action);
+        actionRows.push(row);
+      });
+
+      if (!actionRows.length) {
+        actionRows.push({
+          action: outcomeState === 'eliminated' ? 'open_standings' : 'open_bracket',
+          label: outcomeState === 'eliminated' ? 'View Standings' : 'View Bracket',
+        });
+      }
+
+      actionRows = actionRows.slice(0, 2);
+    } else {
+      actionRows = normalizeRows(rows).slice(0, 4);
+    }
+
+    containerEl.innerHTML = actionRows.map((cta, index) => {
       const action = String(cta?.action || '').trim().toLowerCase();
       const label = String(cta?.label || action || 'Open').trim() || 'Open';
       const icon = iconMap[action] || 'arrow-up-right';
       const buttonClass = variant === 'spotlight'
-        ? (index === 0 ? primarySpotlightClass : secondarySpotlightClass)
-        : persistentClass;
+        ? `hub-outcome-cta-btn ${index === 0 ? 'primary' : 'secondary'}`
+        : 'hub-outcome-cta-btn secondary';
       return `<button type="button" data-outcome-action="${_esc(action)}" class="${buttonClass}"><i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${_esc(label)}</span></button>`;
     }).join('');
 
@@ -2794,38 +3462,90 @@ const HubEngine = (() => {
     }
   }
 
-  function _renderOutcomeExperience(backendCommand) {
+  function _resolveOutcomeMatchContext(backendCommand, source, target) {
+    const allMatches = [
+      ...((source && Array.isArray(source.active_matches)) ? source.active_matches : []),
+      ...((source && Array.isArray(source.match_history)) ? source.match_history : []),
+    ];
+
+    const desiredId = String(backendCommand?.match_id || '').trim();
+    let selected = null;
+    if (desiredId) {
+      selected = allMatches.find((item) => String(item?.id || '') === desiredId) || null;
+    }
+    if (!selected && target) {
+      selected = target;
+    }
+    if (!selected) {
+      selected = allMatches.find((item) => ['completed', 'forfeit', 'disputed', 'pending_result'].includes(String(item?.state || '').toLowerCase())) || null;
+    }
+
+    const opponentName = String(
+      backendCommand?.opponent_name
+      || selected?.opponent_name
+      || selected?.p2_name
+      || selected?.p1_name
+      || 'Pending Opponent'
+    ).trim();
+
+    const yourScore = selected?.your_score;
+    const oppScore = selected?.opponent_score;
+    const p1Score = selected?.p1_score;
+    const p2Score = selected?.p2_score;
+    const hasPerspectiveScore = Number.isFinite(Number(yourScore)) && Number.isFinite(Number(oppScore));
+    const hasPairScore = Number.isFinite(Number(p1Score)) && Number.isFinite(Number(p2Score));
+    const scoreline = hasPerspectiveScore
+      ? `${yourScore} - ${oppScore}`
+      : (hasPairScore ? `${p1Score} - ${p2Score}` : 'Awaiting Verification');
+
+    const stageParts = [];
+    if (backendCommand?.match_stage_label || selected?.stage_label || selected?.match_stage_label) {
+      stageParts.push(backendCommand?.match_stage_label || selected?.stage_label || selected?.match_stage_label);
+    }
+    if (backendCommand?.match_round_name || selected?.round_name) {
+      stageParts.push(backendCommand?.match_round_name || selected?.round_name);
+    }
+    if (backendCommand?.match_number || selected?.match_number) {
+      stageParts.push(`Match #${backendCommand?.match_number || selected?.match_number}`);
+    }
+
+    return {
+      selected,
+      opponentName,
+      scoreline,
+      stageText: stageParts.join(' · ') || 'Bracket Stage',
+    };
+  }
+
+  function _renderOutcomeExperience(backendCommand, context = {}) {
     const spotlight = document.getElementById('hub-overview-outcome-spotlight');
-    const persistent = document.getElementById('hub-overview-outcome-persistent');
-    const persistentKicker = document.getElementById('hub-overview-outcome-persistent-kicker');
-    const persistentState = document.getElementById('hub-overview-outcome-persistent-state');
-    const persistentTitle = document.getElementById('hub-overview-outcome-persistent-title');
-    const persistentBody = document.getElementById('hub-overview-outcome-persistent-body');
-    const persistentCta = document.getElementById('hub-overview-outcome-persistent-cta');
-    const communityDraft = document.getElementById('hub-overview-community-draft');
-    const communityWrap = communityDraft ? communityDraft.closest('.hub-outcome-community') : null;
-    const spotlightBadge = document.getElementById('hub-overview-outcome-spotlight-badge');
+    const heroSpotlightBtn = document.getElementById('hub-overview-spotlight-btn');
+    const spotlightState = document.getElementById('hub-overview-outcome-spotlight-state');
     const spotlightIcon = document.getElementById('hub-overview-outcome-spotlight-icon');
     const spotlightTitle = document.getElementById('hub-overview-outcome-spotlight-title');
     const spotlightBody = document.getElementById('hub-overview-outcome-spotlight-body');
-    const spotlightCta = document.getElementById('hub-overview-outcome-spotlight-cta');
+    const spotlightStage = document.getElementById('hub-overview-outcome-spotlight-stage');
+    const spotlightPlayer = document.getElementById('hub-overview-outcome-spotlight-player');
+    const spotlightOpponent = document.getElementById('hub-overview-outcome-spotlight-opponent');
+    const spotlightScore = document.getElementById('hub-overview-outcome-spotlight-score');
+    const spotlightTournament = document.getElementById('hub-overview-outcome-spotlight-tournament');
     const spotlightDismiss = document.getElementById('hub-overview-outcome-spotlight-dismiss');
 
     const experience = backendCommand && typeof backendCommand === 'object'
       ? (backendCommand.outcome_experience || null)
       : null;
+    _latestOutcomeCommand = backendCommand || null;
+    _latestOutcomeContext = context || null;
 
     if (!experience || !experience.enabled) {
-      if (persistent) {
-        persistent.classList.add('hidden');
-        persistent.removeAttribute('data-outcome-state');
+      _outcomeSharePayload = null;
+      if (heroSpotlightBtn) {
+        heroSpotlightBtn.classList.add('hidden');
       }
       if (spotlight) {
-        document.body.classList.remove('hub-outcome-open');
-        spotlight.classList.remove('is-open');
-        spotlight.classList.add('hidden');
+        _dismissOutcomeSpotlight({ persist: false });
+        spotlight.removeAttribute('data-outcome-key');
         spotlight.removeAttribute('data-outcome-state');
-        spotlight.setAttribute('aria-hidden', 'true');
       }
       return;
     }
@@ -2834,73 +3554,50 @@ const HubEngine = (() => {
     const key = String(experience.key || '').trim();
     const spotlightData = experience.spotlight || {};
     const persistentData = experience.persistent || {};
-    const ctas = Array.isArray(experience.ctas) ? experience.ctas : [];
+    const tournamentName = String(_shell?.dataset.tournamentName || spotlightTournament?.textContent || '').trim();
+    const gameName = String(_shell?.dataset.gameName || '').trim();
+    const titleText = String(spotlightData.title || persistentData.title || (state === 'eliminated' ? 'Run Complete' : 'Victory Confirmed'));
+    const bodyText = String(spotlightData.body || persistentData.body || backendCommand?.subtitle || '');
+    const suggestion = String(experience.community_post_suggestion || '').trim();
+    const outcomeContext = _resolveOutcomeMatchContext(backendCommand, context?.source || null, context?.target || null);
 
-    if (persistent) {
-      persistent.classList.remove('hidden');
-      persistent.setAttribute('data-outcome-state', state || 'neutral');
-    }
+    const fallbackCaption = [
+      titleText,
+      tournamentName,
+      gameName,
+    ].filter(Boolean).join(' | ');
 
-    if (persistentKicker) {
-      persistentKicker.textContent = state === 'eliminated' ? 'Tournament Moment' : 'Journey Update';
-    }
-    if (persistentState) {
-      if (state === 'eliminated') {
-        persistentState.className = 'hub-outcome-persistent-state';
-        persistentState.textContent = 'Eliminated';
-      } else {
-        persistentState.className = 'hub-outcome-persistent-state';
-        persistentState.textContent = 'Advanced';
-      }
-    }
-    if (persistentTitle) {
-      persistentTitle.textContent = String(persistentData.title || (state === 'eliminated' ? 'Run Complete' : 'Victory Confirmed'));
-    }
-    if (persistentBody) {
-      persistentBody.textContent = String(persistentData.body || '');
-    }
-    if (communityDraft) {
-      const suggestion = String(experience.community_post_suggestion || '').trim();
-      communityDraft.textContent = suggestion;
-      if (communityWrap) {
-        communityWrap.classList.toggle('hidden', !suggestion);
-      }
-    }
-
-    _renderOutcomeCtaButtons(persistentCta, ctas, backendCommand, 'persistent');
+    _outcomeSharePayload = {
+      title: titleText,
+      body: bodyText,
+      caption: suggestion || fallbackCaption,
+    };
 
     const spotlightEnabled = Boolean(spotlightData.enabled);
-    const shouldShowSpotlight = Boolean(
-      spotlight
-      && spotlightEnabled
-      && key
-      && !_isOutcomeDismissed(key)
-      && _currentTab === 'overview'
-    );
+    if (heroSpotlightBtn) {
+      const canOpenSpotlight = Boolean(spotlightEnabled && key);
+      heroSpotlightBtn.classList.toggle('hidden', !canOpenSpotlight);
+      heroSpotlightBtn.classList.toggle('is-fresh', Boolean(canOpenSpotlight && !_isOutcomeDismissed(key)));
+      heroSpotlightBtn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>Reveal</span>';
+      heroSpotlightBtn.onclick = canOpenSpotlight
+        ? () => _openOutcomeSpotlight({ force: true })
+        : null;
+    }
 
     if (!spotlight) {
       return;
     }
 
-    if (!shouldShowSpotlight) {
-      document.body.classList.remove('hub-outcome-open');
-      spotlight.classList.remove('is-open');
-      spotlight.classList.add('hidden');
-      spotlight.setAttribute('aria-hidden', 'true');
+    if (!spotlightEnabled || !key) {
+      _dismissOutcomeSpotlight({ persist: false });
       return;
     }
 
     spotlight.dataset.outcomeKey = key;
     spotlight.setAttribute('data-outcome-state', state || 'neutral');
-    document.body.classList.add('hub-outcome-open');
-    spotlight.classList.remove('hidden');
-    spotlight.classList.remove('is-open');
-    void spotlight.offsetWidth;
-    spotlight.classList.add('is-open');
-    spotlight.setAttribute('aria-hidden', 'false');
 
-    if (spotlightBadge) {
-      spotlightBadge.textContent = state === 'eliminated' ? 'Respect Spotlight' : 'Result Spotlight';
+    if (spotlightState) {
+      spotlightState.textContent = String(spotlightData.stat_line || (state === 'eliminated' ? 'Run Complete' : 'Advanced'));
     }
     if (spotlightIcon) {
       if (state === 'eliminated') {
@@ -2910,20 +3607,1022 @@ const HubEngine = (() => {
       }
     }
     if (spotlightTitle) {
-      spotlightTitle.textContent = String(spotlightData.title || persistentData.title || 'Result Spotlight');
+      spotlightTitle.textContent = titleText;
+    }
+    if (spotlightStage) {
+      spotlightStage.textContent = outcomeContext.stageText;
     }
     if (spotlightBody) {
-      spotlightBody.textContent = String(spotlightData.body || persistentData.body || '');
+      spotlightBody.textContent = bodyText;
+    }
+    if (spotlightPlayer) {
+      spotlightPlayer.textContent = _shell?.dataset.username || spotlightPlayer.textContent || 'Competitor';
+    }
+    if (spotlightTournament) {
+      spotlightTournament.textContent = tournamentName || spotlightTournament.textContent || 'Tournament';
+    }
+    if (spotlightOpponent) {
+      spotlightOpponent.textContent = `vs ${outcomeContext.opponentName}`;
+    }
+    if (spotlightScore) {
+      spotlightScore.textContent = outcomeContext.scoreline;
     }
     if (spotlightDismiss) {
-      spotlightDismiss.textContent = String(spotlightData.dismiss_label || 'Dismiss');
+      spotlightDismiss.setAttribute('aria-label', String(spotlightData.dismiss_label || 'Close spotlight'));
     }
+    _applyOverviewGameBranding();
 
-    _renderOutcomeCtaButtons(spotlightCta, ctas, backendCommand, 'spotlight');
+    const shouldAutoShow = Boolean(
+      _currentTab === 'overview'
+      && key
+      && !_isOutcomeDismissed(key)
+    );
+
+    if (shouldAutoShow) {
+      _openOutcomeSpotlight();
+    } else {
+      _dismissOutcomeSpotlight({ persist: false });
+    }
 
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
+  }
+
+  function _setOverviewBadgeTone(el, tone, label) {
+    if (!el) return;
+    const safeTone = ['danger', 'success', 'warning', 'info'].includes(tone) ? tone : 'info';
+    const toneClass = OVERVIEW_BADGE_TONE_CLASS[safeTone] || OVERVIEW_BADGE_TONE_CLASS.info;
+    el.className = `${OVERVIEW_BADGE_BASE_CLASS} ${toneClass}`.trim();
+    el.textContent = label || 'Standby';
+  }
+
+  function _renderOverviewHeroTitle(titleEl, rawTitle, outcomeState = '') {
+    if (!titleEl) return;
+
+    const titleText = String(rawTitle || '').trim() || 'Standby';
+    const words = titleText.split(/\s+/).filter(Boolean);
+    if (words.length < 2 || titleText.includes(':') || titleText.includes('/')) {
+      titleEl.textContent = titleText;
+      return;
+    }
+
+    const state = String(outcomeState || '').toLowerCase();
+    const normalizedWords = words.map((word) => word.replace(/[^A-Za-z]/g, '').toLowerCase());
+    let accentIndex = words.length - 1;
+
+    if (state === 'advanced') {
+      const preferred = ['bracket', 'qualified', 'advanced', 'advance'];
+      const idx = normalizedWords.findIndex((word) => preferred.includes(word));
+      if (idx >= 0) accentIndex = idx;
+    } else if (state === 'eliminated') {
+      const preferred = ['eliminated', 'complete', 'closed', 'out'];
+      const idx = normalizedWords.findIndex((word) => preferred.includes(word));
+      if (idx >= 0) accentIndex = idx;
+    }
+
+    const accentWord = words[accentIndex] || '';
+    if (!/^[A-Za-z][A-Za-z0-9_-]{1,}$/.test(accentWord)) {
+      titleEl.textContent = titleText;
+      return;
+    }
+
+    const leadText = words.slice(0, accentIndex).join(' ');
+    const tailText = words.slice(accentIndex + 1).join(' ');
+    const accentClass = state === 'advanced'
+      ? 'is-advanced'
+      : state === 'eliminated'
+        ? 'is-eliminated'
+        : (state === 'live' || state === 'ready')
+          ? 'is-live'
+          : (state === 'pending' || state === 'standby' || state === 'waiting')
+            ? 'is-pending'
+            : (state === 'season_complete' || state === 'complete')
+              ? 'is-complete'
+              : 'is-neutral';
+
+    const htmlChunks = [];
+    if (leadText) {
+      htmlChunks.push(`<span class="hub-overview-hero-title-main">${_esc(leadText)}</span>`);
+    }
+    htmlChunks.push(`<span class="hub-overview-hero-title-accent ${accentClass}">${_esc(accentWord)}</span>`);
+    if (tailText) {
+      htmlChunks.push(`<span class="hub-overview-hero-title-main">${_esc(tailText)}</span>`);
+    }
+    titleEl.innerHTML = htmlChunks.join(' ');
+  }
+
+  function _setOverviewPrimaryAction(buttonEl, config = {}, backendCommand = null) {
+    if (!buttonEl) return;
+    const action = String(config.action || 'view_schedule').toLowerCase();
+    const label = String(config.label || 'View Schedule');
+    const tone = ['danger', 'success', 'warning', 'info'].includes(config.tone) ? config.tone : 'info';
+    const disabled = Boolean(config.disabled);
+    const iconMap = {
+      check_in: 'shield-alert',
+      enter_lobby: 'swords',
+      open_matches: 'crosshair',
+      open_bracket: 'git-branch',
+      open_standings: 'list-ordered',
+      open_support: 'life-buoy',
+      open_announcements: 'megaphone',
+      respond_reschedule: 'clock-3',
+      view_schedule: 'calendar',
+      open_result_spotlight: 'sparkles',
+      open_outcome_share: 'send',
+    };
+    const icon = config.icon || iconMap[action] || 'calendar';
+
+    buttonEl.className = OVERVIEW_PRIMARY_BTN_BASE_CLASS;
+    buttonEl.dataset.tone = tone;
+    buttonEl.dataset.hubAction = action;
+    buttonEl.disabled = disabled;
+    buttonEl.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i><span>${_esc(label)}</span>`;
+    buttonEl.onclick = () => {
+      if (buttonEl.disabled) return;
+      if (typeof config.onClick === 'function') {
+        config.onClick();
+        return;
+      }
+      _runOverviewCommandAction(action, backendCommand || {});
+    };
+  }
+
+  function _setOverviewSecondaryAction(buttonEl, config = {}, backendCommand = null) {
+    if (!buttonEl) return;
+    const show = config.show !== false;
+    const variantClass = config.variant === 'tertiary' ? OVERVIEW_TERTIARY_BTN_CLASS : OVERVIEW_SECONDARY_BTN_CLASS;
+    buttonEl.className = show ? variantClass : `${variantClass} hidden`;
+    if (!show) {
+      buttonEl.onclick = null;
+      return;
+    }
+
+    const action = String(config.action || 'open_matches').toLowerCase();
+    const label = String(config.label || 'View Next Assignment');
+    const iconMap = {
+      open_matches: 'crosshair',
+      open_bracket: 'git-branch',
+      open_standings: 'list-ordered',
+      open_support: 'life-buoy',
+      open_announcements: 'megaphone',
+      open_result_spotlight: 'sparkles',
+      open_outcome_share: 'send',
+    };
+    const icon = config.icon || iconMap[action] || 'arrow-right';
+
+    buttonEl.dataset.hubAction = action;
+    buttonEl.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i><span>${_esc(label)}</span>`;
+    buttonEl.onclick = () => {
+      if (typeof config.onClick === 'function') {
+        config.onClick();
+        return;
+      }
+      _runOverviewCommandAction(action, backendCommand || {});
+    };
+  }
+
+  function _matchFormToken(match) {
+    const explicitWin = match?.is_winner;
+    if (explicitWin === true) return 'W';
+    if (explicitWin === false) return 'L';
+
+    const yourScore = Number(match?.your_score);
+    const oppScore = Number(match?.opponent_score);
+    if (Number.isFinite(yourScore) && Number.isFinite(oppScore)) {
+      if (yourScore > oppScore) return 'W';
+      if (yourScore < oppScore) return 'L';
+      return 'D';
+    }
+
+    if (match?.is_staff_view) {
+      const p1Score = Number(match?.p1_score);
+      const p2Score = Number(match?.p2_score);
+      if (Number.isFinite(p1Score) && Number.isFinite(p2Score)) {
+        if (p1Score > p2Score) return 'W';
+        if (p1Score < p2Score) return 'L';
+        return 'D';
+      }
+    }
+
+    const result = String(match?.result || match?.outcome || '').toLowerCase();
+    if (result.includes('win')) return 'W';
+    if (result.includes('loss') || result.includes('lose')) return 'L';
+    if (result.includes('draw') || result.includes('tie')) return 'D';
+    return '-';
+  }
+
+  function _rerenderOverviewIntelFromCache() {
+    const source = _matchesCache || {};
+    const allMatches = [
+      ...(Array.isArray(source.active_matches) ? source.active_matches : []),
+      ...(Array.isArray(source.match_history) ? source.match_history : []),
+    ];
+    const target = _pickOverviewTargetMatch(allMatches);
+    _renderOverviewIntelligence(target, source, _lastPolledState);
+  }
+
+  function setOverviewIntelView(view = 'auto') {
+    const normalized = String(view || '').toLowerCase();
+    if (normalized === 'my' || normalized === 'opponent') {
+      _overviewIntelViewMode = normalized;
+    } else {
+      _overviewIntelViewMode = 'auto';
+    }
+    _rerenderOverviewIntelFromCache();
+  }
+
+  function _renderOverviewIntelligence(target, source, stateData = null) {
+    const opponentEl = document.getElementById('hub-overview-intel-opponent');
+    const stageEl = document.getElementById('hub-overview-intel-stage');
+    const kickerEl = document.getElementById('hub-overview-intel-kicker');
+    const microLabelEl = document.getElementById('hub-overview-intel-micro-label');
+    const formLabelEl = document.querySelector('#hub-overview-intel-card .hub-overview-intel-form-label');
+    const formEl = document.getElementById('hub-overview-intel-form');
+    const winrateEl = document.getElementById('hub-overview-intel-stat-winrate');
+    const recordEl = document.getElementById('hub-overview-intel-stat-record');
+    const liveEl = document.getElementById('hub-overview-intel-stat-live');
+    const winrateLabelEl = document.getElementById('hub-overview-intel-stat-winrate-label');
+    const recordLabelEl = document.getElementById('hub-overview-intel-stat-record-label');
+    const liveLabelEl = document.getElementById('hub-overview-intel-stat-live-label');
+    const signalsEl = document.getElementById('hub-overview-intel-signals');
+    const noteTitleEl = document.getElementById('hub-overview-intel-note-title');
+    const noteEl = document.getElementById('hub-overview-intel-note');
+    const intelAvatarEl = document.getElementById('hub-overview-intel-avatar');
+    const intelAvatarFallbackEl = document.getElementById('hub-overview-intel-avatar-fallback');
+    const toggleMyBtn = document.getElementById('hub-overview-intel-toggle-my');
+    const toggleOpponentBtn = document.getElementById('hub-overview-intel-toggle-opponent');
+    if (!opponentEl || !stageEl || !formEl || !winrateEl || !recordEl || !liveEl || !noteEl) {
+      return;
+    }
+
+    const getPathValue = (obj, path) => {
+      if (!obj || !path) return undefined;
+      return String(path)
+        .split('.')
+        .reduce((acc, key) => (acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : undefined), obj);
+    };
+
+    const firstNonEmptyValue = (...values) => {
+      for (const value of values) {
+        if (value === null || value === undefined) continue;
+        const text = String(value).trim();
+        if (text) return value;
+      }
+      return '';
+    };
+
+    const readNumber = (value) => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(String(value).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const normalizeMetric = (value, { percent = false, precision = 1 } = {}) => {
+      const text = String(value ?? '').trim();
+      if (!text) return '';
+      if (percent) {
+        if (text.includes('%')) return text;
+        const percentNum = readNumber(text);
+        if (percentNum === null) return '';
+        return `${Math.round(percentNum)}%`;
+      }
+      const asNumber = readNumber(text);
+      if (asNumber === null) return text;
+      if (Number.isInteger(asNumber)) return String(asNumber);
+      return asNumber.toFixed(precision);
+    };
+
+    const averageFromHistory = (paths, { precision = 1 } = {}) => {
+      const values = [];
+      orderedHistory.forEach((match) => {
+        const raw = firstNonEmptyValue(...paths.map((path) => getPathValue(match, path)));
+        const parsed = readNumber(raw);
+        if (parsed !== null) values.push(parsed);
+      });
+      if (!values.length) return '';
+      const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+      return Number.isInteger(avg) ? String(avg) : avg.toFixed(precision);
+    };
+
+    const sumFromHistory = (paths) => {
+      let total = 0;
+      let found = false;
+      orderedHistory.forEach((match) => {
+        const raw = firstNonEmptyValue(...paths.map((path) => getPathValue(match, path)));
+        const parsed = readNumber(raw);
+        if (parsed === null) return;
+        total += parsed;
+        found = true;
+      });
+      return found ? total : null;
+    };
+
+    const ratioFromHistory = (numeratorPaths, denominatorPaths, precision = 2) => {
+      const numerator = sumFromHistory(numeratorPaths);
+      const denominator = sumFromHistory(denominatorPaths);
+      if (numerator === null || denominator === null || denominator <= 0) return '';
+      const ratio = numerator / denominator;
+      return Number.isInteger(ratio) ? String(ratio) : ratio.toFixed(precision);
+    };
+
+    const resolveTargetMetric = (paths, opts = {}) => {
+      if (!target || typeof target !== 'object') return '';
+      const raw = firstNonEmptyValue(...paths.map((path) => getPathValue(target, path)));
+      return normalizeMetric(raw, opts);
+    };
+
+    const normalizeAvatarCandidateUrl = (value) => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+
+      if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
+      if (raw.startsWith('//')) return `${window.location.protocol}${raw}`;
+      if (raw.startsWith('/')) return raw;
+
+      const cleaned = raw.replace(/^\.\/?/, '');
+      if (!cleaned) return '';
+      if (cleaned.startsWith('user_avatars/') || cleaned.startsWith('team_logos/')) {
+        return `/media/${cleaned}`;
+      }
+      return `/${cleaned}`;
+    };
+
+    const areAvatarUrlsEqual = (left, right) => {
+      const a = normalizeAvatarCandidateUrl(left);
+      const b = normalizeAvatarCandidateUrl(right);
+      return Boolean(a && b && a === b);
+    };
+
+    const resolveNavbarAvatarUrl = () => {
+      const el = document.querySelector('#hub-navbar a[href="/dashboard/"] img');
+      return normalizeAvatarCandidateUrl(el?.getAttribute('src') || '');
+    };
+
+    const resolveSelfAvatarUrl = (match) => {
+      const navbarAvatar = resolveNavbarAvatarUrl();
+      if (!match || typeof match !== 'object') return navbarAvatar;
+
+      const opponentLogo = normalizeAvatarCandidateUrl(match.opponent_logo_url);
+      const p1Logo = normalizeAvatarCandidateUrl(match.p1_logo_url);
+      const p2Logo = normalizeAvatarCandidateUrl(match.p2_logo_url);
+
+      if (opponentLogo && p1Logo && areAvatarUrlsEqual(opponentLogo, p1Logo) && p2Logo) {
+        return p2Logo;
+      }
+      if (opponentLogo && p2Logo && areAvatarUrlsEqual(opponentLogo, p2Logo) && p1Logo) {
+        return p1Logo;
+      }
+
+      const sideCandidates = [p1Logo, p2Logo]
+        .filter(Boolean)
+        .filter((url) => !areAvatarUrlsEqual(url, opponentLogo));
+
+      const candidates = [
+        match.profile_avatar_url,
+        match.avatar_url,
+        navbarAvatar,
+        ...sideCandidates,
+        match.team_avatar_url,
+        match.logo_url,
+        match.team_logo_url,
+      ];
+
+      for (const candidate of candidates) {
+        const normalized = normalizeAvatarCandidateUrl(candidate);
+        if (normalized) return normalized;
+      }
+      return '';
+    };
+
+    const resolveOpponentAvatarUrl = (match) => {
+      if (!match || typeof match !== 'object') return '';
+
+      const directCandidates = [
+        match.opponent_avatar_url,
+        match.opponent_profile_avatar_url,
+        match.opponent_logo_url,
+        match.opponent_photo_url,
+      ];
+      for (const candidate of directCandidates) {
+        const normalized = normalizeAvatarCandidateUrl(candidate);
+        if (normalized) return normalized;
+      }
+
+      const inferredSelf = resolveSelfAvatarUrl(match);
+      const sideCandidates = [
+        match.p1_logo_url,
+        match.p2_logo_url,
+      ]
+        .map((url) => normalizeAvatarCandidateUrl(url))
+        .filter(Boolean)
+        .filter((url) => !areAvatarUrlsEqual(url, inferredSelf));
+      if (sideCandidates.length) {
+        return sideCandidates[0];
+      }
+
+      const fallbackCandidates = [
+        match.team_logo_url,
+        match.team_avatar_url,
+        match.logo_url,
+        match.avatar_url,
+      ];
+      for (const candidate of fallbackCandidates) {
+        const normalized = normalizeAvatarCandidateUrl(candidate);
+        if (normalized && !areAvatarUrlsEqual(normalized, inferredSelf)) return normalized;
+      }
+      return '';
+    };
+
+    const resolveIntelAvatarUrl = (match, preference = 'auto') => {
+      const mode = String(preference || 'auto').toLowerCase();
+      if (mode === 'self') {
+        return resolveSelfAvatarUrl(match);
+      }
+      if (mode === 'opponent') {
+        return resolveOpponentAvatarUrl(match);
+      }
+      return resolveOpponentAvatarUrl(match) || resolveSelfAvatarUrl(match);
+    };
+
+    const syncIntelAvatar = (displayName, match, preference = 'auto') => {
+      if (!intelAvatarEl && !intelAvatarFallbackEl) return;
+
+      const avatarShell = intelAvatarEl ? intelAvatarEl.closest('.hub-overview-intel-avatar') : null;
+
+      const safeName = String(displayName || '').trim();
+      const initials = safeName
+        ? safeName
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.charAt(0))
+            .join('')
+            .toUpperCase()
+        : 'OP';
+
+      if (intelAvatarFallbackEl) {
+        intelAvatarFallbackEl.textContent = initials || 'OP';
+      }
+
+      if (!intelAvatarEl) return;
+
+      const avatarUrl = resolveIntelAvatarUrl(match, preference);
+      if (avatarUrl && !_brokenAvatarUrls.has(avatarUrl)) {
+        intelAvatarEl.onerror = null;
+        intelAvatarEl.src = avatarUrl;
+        intelAvatarEl.alt = safeName ? `${safeName} avatar` : 'Intel avatar';
+        intelAvatarEl.classList.remove('hidden');
+        if (avatarShell) {
+          avatarShell.classList.add('has-image');
+        }
+        if (intelAvatarFallbackEl) {
+          intelAvatarFallbackEl.classList.add('hidden');
+        }
+        intelAvatarEl.onerror = () => {
+          _markAvatarUrlBroken(avatarUrl);
+          intelAvatarEl.removeAttribute('src');
+          intelAvatarEl.classList.add('hidden');
+          if (intelAvatarFallbackEl) {
+            intelAvatarFallbackEl.classList.remove('hidden');
+          }
+        };
+        return;
+      }
+
+      intelAvatarEl.removeAttribute('src');
+      intelAvatarEl.classList.add('hidden');
+      if (avatarShell) {
+        avatarShell.classList.remove('has-image');
+      }
+      if (intelAvatarFallbackEl) {
+        intelAvatarFallbackEl.classList.remove('hidden');
+      }
+    };
+
+    const normalizeFormTokens = (tokens) => {
+      const normalized = Array.isArray(tokens)
+        ? tokens
+            .map((token) => String(token || '').trim().toUpperCase())
+            .map((token) => (token === 'W' || token === 'L' || token === 'D' ? token : '-'))
+        : [];
+      while (normalized.length < 4) {
+        normalized.push('-');
+      }
+      return normalized.slice(0, 4);
+    };
+
+    const renderFormTokens = (tokens) => {
+      const normalized = normalizeFormTokens(tokens);
+      formEl.innerHTML = normalized
+        .map((token) => {
+          if (token === 'W') return `<span class="${OVERVIEW_FORM_PILL_CLASS.win}">W</span>`;
+          if (token === 'L') return `<span class="${OVERVIEW_FORM_PILL_CLASS.loss}">L</span>`;
+          if (token === 'D') return `<span class="${OVERVIEW_FORM_PILL_CLASS.draw}">D</span>`;
+          return `<span class="${OVERVIEW_FORM_PILL_CLASS.muted}">-</span>`;
+        })
+        .join('');
+    };
+
+    const branding = _resolveOverviewGameBranding();
+    const gameKey = String(branding?.normalized || '').toLowerCase();
+    const username = String(_shell?.dataset.username || '').trim();
+
+    const resolveGameProfile = (key) => {
+      const value = String(key || '').toLowerCase();
+      if (['efootball', 'pes', 'proevolutionsoccer', 'fifa', 'fc24'].some((item) => value.includes(item))) {
+        return 'football';
+      }
+      if (['valorant', 'cs2', 'csgo', 'rainbowsix', 'r6'].some((item) => value.includes(item))) {
+        return 'tactical';
+      }
+      if (['pubg', 'pubgm', 'pubgmobile', 'freefire', 'ff', 'fortnite', 'apex'].some((item) => value.includes(item))) {
+        return 'battle-royale';
+      }
+      if (['dota', 'dota2', 'league', 'lol'].some((item) => value.includes(item))) {
+        return 'moba';
+      }
+      return 'generic';
+    };
+
+    const gameProfile = resolveGameProfile(gameKey);
+    const intelCardEl = document.getElementById('hub-overview-intel-card');
+    if (intelCardEl) {
+      intelCardEl.setAttribute('data-intel-game-profile', gameProfile);
+    }
+
+    const historyMatches = Array.isArray(source?.match_history) ? source.match_history : [];
+    const orderedHistory = historyMatches.slice().sort((a, b) => {
+      const aDate = _toValidDate(a?.scheduled_at);
+      const bDate = _toValidDate(b?.scheduled_at);
+      const aTs = aDate ? aDate.getTime() : 0;
+      const bTs = bDate ? bDate.getTime() : 0;
+      if (aTs !== bTs) return aTs - bTs;
+      return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+
+    const latestHistory = orderedHistory.length ? orderedHistory[orderedHistory.length - 1] : null;
+    const tournamentStatus = String(stateData?.tournament_status || _shell?.dataset.tournamentStatus || '').toLowerCase();
+    const outcomeState = String(stateData?.command_center?.outcome_state || stateData?.command_center?.outcome_experience?.state || '').toLowerCase();
+    const runEnded = outcomeState === 'eliminated' || ['completed', 'complete', 'finished', 'closed', 'archived'].includes(tournamentStatus);
+
+    const resolveOpponentIdentity = (match) => {
+      if (!match || typeof match !== 'object') {
+        return { name: '', isVerified: false };
+      }
+
+      let name = String(match?.opponent_name || '').trim();
+      const p1Name = String(match?.p1_name || '').trim();
+      const p2Name = String(match?.p2_name || '').trim();
+      const userLower = username.toLowerCase();
+
+      if (!name) {
+        const candidates = [p1Name, p2Name].filter(Boolean);
+        const external = candidates.find((candidate) => String(candidate).toLowerCase() !== userLower);
+        name = external || candidates[0] || '';
+      }
+
+      const lowered = String(name || '').toLowerCase();
+      const isPlaceholder = !name
+        || lowered === 'tbd'
+        || lowered.includes('awaiting')
+        || lowered.includes('pending');
+
+      return {
+        name: name || 'Stand By',
+        isVerified: !isPlaceholder,
+      };
+    };
+
+    const formatMatchContext = (match) => {
+      if (!match || typeof match !== 'object') return '';
+      const parts = [];
+      if (match?.stage_label || match?.match_stage_label) parts.push(match.stage_label || match.match_stage_label);
+      if (match?.round_name) parts.push(match.round_name);
+      if (match?.match_number) parts.push(`Match #${match.match_number}`);
+      return parts.join(' · ');
+    };
+
+    const resolveLastResult = (match) => {
+      const token = _matchFormToken(match);
+      if (token === 'W') return 'Win';
+      if (token === 'L') return 'Loss';
+      if (token === 'D') return 'Draw';
+      return 'Data Pending';
+    };
+
+    const resolveScoreline = (match) => {
+      if (!match || typeof match !== 'object') return 'Data Pending';
+      const yourScore = readNumber(match?.your_score);
+      const oppScore = readNumber(match?.opponent_score);
+      if (yourScore !== null && oppScore !== null) return `${yourScore}-${oppScore}`;
+      const p1Score = readNumber(match?.p1_score);
+      const p2Score = readNumber(match?.p2_score);
+      if (p1Score !== null && p2Score !== null) return `${p1Score}-${p2Score}`;
+      return 'Data Pending';
+    };
+
+    const extractOpponentFormTokens = (match) => {
+      if (!match || typeof match !== 'object') return ['-', '-', '-', '-'];
+      const candidates = [
+        match.opponent_recent_form,
+        match.opponent_form,
+        match.opponent_last_results,
+      ];
+
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate) && candidate.length) {
+          return normalizeFormTokens(candidate);
+        }
+        if (typeof candidate === 'string' && candidate.trim()) {
+          const split = candidate
+            .split(/[^a-zA-Z]+/)
+            .filter(Boolean)
+            .map((token) => token.trim().toUpperCase());
+          if (split.length) {
+            return normalizeFormTokens(split);
+          }
+        }
+      }
+
+      return ['-', '-', '-', '-'];
+    };
+
+    const scorePairFor = (match) => {
+      if (!match) return null;
+
+      const yourScore = Number(match?.your_score);
+      const oppScore = Number(match?.opponent_score);
+      if (Number.isFinite(yourScore) && Number.isFinite(oppScore)) {
+        return { scored: yourScore, conceded: oppScore };
+      }
+
+      const p1Score = Number(match?.p1_score);
+      const p2Score = Number(match?.p2_score);
+      if (Number.isFinite(p1Score) && Number.isFinite(p2Score)) {
+        return { scored: p1Score, conceded: p2Score };
+      }
+
+      return null;
+    };
+
+    const scoredHistory = orderedHistory
+      .map((item) => {
+        const pair = scorePairFor(item);
+        if (!pair) return null;
+        return { ...pair, token: _matchFormToken(item) };
+      })
+      .filter(Boolean);
+
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    orderedHistory.forEach((item) => {
+      const token = _matchFormToken(item);
+      if (token === 'W') wins += 1;
+      if (token === 'L') losses += 1;
+      if (token === 'D') draws += 1;
+    });
+
+    const myRecentTokens = orderedHistory.slice(-4).reverse().map((item) => _matchFormToken(item));
+
+    const resolvedMatches = wins + losses + draws;
+    const decisiveMatches = wins + losses;
+    const totalGoals = scoredHistory.reduce((sum, row) => sum + row.scored, 0);
+    const cleanSheets = scoredHistory.filter((row) => row.conceded === 0).length;
+    const avgGoals = scoredHistory.length ? (totalGoals / scoredHistory.length).toFixed(1) : '';
+
+    const myWinRate = resolvedMatches > 0
+      ? `${decisiveMatches > 0 ? Math.round((wins / decisiveMatches) * 100) : 0}%`
+      : 'Awaiting Data';
+    const hasReliableHistory = resolvedMatches > 0;
+
+    const makePendingStats = (base) => ({
+      ...base,
+      winrateValue: 'Data Pending',
+      recordValue: 'Data Pending',
+      liveValue: 'Data Pending',
+    });
+
+    const resolvePlayerStats = () => {
+      if (gameProfile === 'football') {
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Goals / Match',
+          liveLabel: 'Clean Sheets',
+          winrateValue: hasReliableHistory ? myWinRate : 'Data Pending',
+          recordValue: hasReliableHistory ? (avgGoals || 'N/A') : 'Data Pending',
+          liveValue: hasReliableHistory ? String(cleanSheets) : 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'tactical') {
+        const avgRounds = averageFromHistory([
+          'your_avg_rounds_won',
+          'stats.avg_rounds_won',
+          'player_stats.avg_rounds_won',
+          'avg_rounds_won',
+        ]);
+        const kdFromRows = averageFromHistory([
+          'your_kd',
+          'stats.kd',
+          'player_stats.kd',
+          'kd_ratio',
+          'your_kd_ratio',
+        ], { precision: 2 });
+        const kdFromTotals = ratioFromHistory(
+          ['your_kills', 'kills', 'stats.kills', 'player_stats.kills'],
+          ['your_deaths', 'deaths', 'stats.deaths', 'player_stats.deaths'],
+          2,
+        );
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Rounds Won / Match',
+          liveLabel: 'K/D',
+          winrateValue: hasReliableHistory ? myWinRate : 'Data Pending',
+          recordValue: avgRounds || (hasReliableHistory ? (avgGoals || 'N/A') : 'Data Pending'),
+          liveValue: kdFromRows || kdFromTotals || 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'battle-royale') {
+        const avgPlacement = averageFromHistory([
+          'your_avg_placement',
+          'placement',
+          'stats.placement',
+          'player_stats.placement',
+        ]);
+        const avgKills = averageFromHistory([
+          'your_avg_kills',
+          'your_kills',
+          'kills',
+          'stats.kills',
+          'player_stats.kills',
+        ]);
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Placement',
+          liveLabel: 'Avg Kills / Match',
+          winrateValue: hasReliableHistory ? myWinRate : 'Data Pending',
+          recordValue: avgPlacement || 'Data Pending',
+          liveValue: avgKills || 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'moba') {
+        const avgKills = averageFromHistory([
+          'your_avg_kills',
+          'your_kills',
+          'kills',
+          'stats.kills',
+          'player_stats.kills',
+        ]);
+        const kdaFromRows = averageFromHistory([
+          'your_kda',
+          'stats.kda',
+          'player_stats.kda',
+        ], { precision: 2 });
+        const kdaFromTotals = ratioFromHistory(
+          ['your_kills', 'kills', 'stats.kills', 'player_stats.kills'],
+          ['your_deaths', 'deaths', 'stats.deaths', 'player_stats.deaths'],
+          2,
+        );
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Kills / Match',
+          liveLabel: 'KDA',
+          winrateValue: hasReliableHistory ? myWinRate : 'Data Pending',
+          recordValue: avgKills || 'Data Pending',
+          liveValue: kdaFromRows || kdaFromTotals || 'Data Pending',
+        };
+      }
+
+      return {
+        winrateLabel: 'Win Rate',
+        recordLabel: 'Avg Score / Match',
+        liveLabel: 'Matches Played',
+        winrateValue: hasReliableHistory ? myWinRate : 'Data Pending',
+        recordValue: hasReliableHistory ? (avgGoals || 'N/A') : 'Data Pending',
+        liveValue: hasReliableHistory ? String(resolvedMatches) : 'Data Pending',
+      };
+    };
+
+    const resolveOpponentStats = () => {
+      if (gameProfile === 'football') {
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Goals / Match',
+          liveLabel: 'Clean Sheets',
+          winrateValue: resolveTargetMetric(['opponent_win_rate', 'opponent_winrate', 'opponent_stats.win_rate', 'opponent_stats.winrate'], { percent: true }) || 'Data Pending',
+          recordValue: resolveTargetMetric(['opponent_avg_goals', 'opponent_stats.avg_goals', 'opponent_avg_score', 'opponent_stats.avg_score']) || 'Data Pending',
+          liveValue: resolveTargetMetric(['opponent_clean_sheets', 'opponent_stats.clean_sheets']) || 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'tactical') {
+        const kdValue = resolveTargetMetric(['opponent_kd', 'opponent_avg_kd', 'opponent_kd_ratio', 'opponent_stats.kd', 'opponent_stats.kd_ratio'], { precision: 2 });
+        const cleanMaps = resolveTargetMetric(['opponent_clean_wins', 'opponent_stats.clean_wins', 'opponent_stats.clean_maps']);
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Rounds Won / Match',
+          liveLabel: kdValue ? 'K/D' : 'Clean Wins / Maps',
+          winrateValue: resolveTargetMetric(['opponent_win_rate', 'opponent_winrate', 'opponent_stats.win_rate', 'opponent_stats.winrate'], { percent: true }) || 'Data Pending',
+          recordValue: resolveTargetMetric(['opponent_avg_rounds_won', 'opponent_rounds_won_avg', 'opponent_stats.avg_rounds_won', 'opponent_stats.avg_round_wins']) || 'Data Pending',
+          liveValue: kdValue || cleanMaps || 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'battle-royale') {
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Placement',
+          liveLabel: 'Avg Kills / Match',
+          winrateValue: resolveTargetMetric(['opponent_win_rate', 'opponent_winrate', 'opponent_stats.win_rate', 'opponent_stats.winrate'], { percent: true }) || 'Data Pending',
+          recordValue: resolveTargetMetric(['opponent_avg_placement', 'opponent_placement_avg', 'opponent_stats.avg_placement']) || 'Data Pending',
+          liveValue: resolveTargetMetric(['opponent_avg_kills', 'opponent_kills_avg', 'opponent_stats.avg_kills']) || 'Data Pending',
+        };
+      }
+
+      if (gameProfile === 'moba') {
+        const kdaValue = resolveTargetMetric(['opponent_kda', 'opponent_stats.kda', 'opponent_kd', 'opponent_stats.kd'], { precision: 2 });
+        const deathsValue = resolveTargetMetric(['opponent_avg_deaths', 'opponent_stats.avg_deaths']);
+        return {
+          winrateLabel: 'Win Rate',
+          recordLabel: 'Avg Kills / Match',
+          liveLabel: kdaValue ? 'KDA' : 'Avg Deaths / Match',
+          winrateValue: resolveTargetMetric(['opponent_win_rate', 'opponent_winrate', 'opponent_stats.win_rate', 'opponent_stats.winrate'], { percent: true }) || 'Data Pending',
+          recordValue: resolveTargetMetric(['opponent_avg_kills', 'opponent_stats.avg_kills']) || 'Data Pending',
+          liveValue: kdaValue || deathsValue || 'Data Pending',
+        };
+      }
+
+      return {
+        winrateLabel: 'Win Rate',
+        recordLabel: 'Avg Score / Match',
+        liveLabel: 'Match Record',
+        winrateValue: resolveTargetMetric(['opponent_win_rate', 'opponent_winrate', 'opponent_stats.win_rate', 'opponent_stats.winrate'], { percent: true }) || 'Data Pending',
+        recordValue: resolveTargetMetric(['opponent_avg_score', 'opponent_stats.avg_score', 'opponent_avg_goals', 'opponent_stats.avg_goals']) || 'Data Pending',
+        liveValue: String(firstNonEmptyValue(
+          getPathValue(target, 'opponent_record'),
+          getPathValue(target, 'opponent_stats.record'),
+          getPathValue(target, 'opponent_stats.wins') && getPathValue(target, 'opponent_stats.losses')
+            ? `${getPathValue(target, 'opponent_stats.wins')}W-${getPathValue(target, 'opponent_stats.losses')}L`
+            : '',
+        ) || 'Data Pending'),
+      };
+    };
+
+    const mySnapshot = {
+      kicker: '',
+      microLabel: '',
+      profileName: username || 'You',
+      stageLine: hasReliableHistory
+        ? 'Recent verified form available.'
+        : 'Awaiting Opponent Assignment.',
+      formLabel: 'Recent Form',
+      formTokens: myRecentTokens,
+      stats: resolvePlayerStats(),
+      noteTitle: '',
+      note: hasReliableHistory
+        ? 'Last verified result and trend are ready.'
+        : 'No verified matchup is available yet.',
+      signals: [],
+      avatarName: username || 'You',
+      avatarMatch: target || latestHistory || null,
+      avatarPreference: 'self',
+      fallbackSignalLabel: '',
+    };
+
+    const fallbackSnapshot = {
+      kicker: '',
+      microLabel: '',
+      profileName: 'Awaiting Opponent Assignment',
+      stageLine: 'No verified matchup is available yet.',
+      formLabel: 'Recent Form',
+      formTokens: ['-', '-', '-', '-'],
+      stats: makePendingStats(resolvePlayerStats()),
+      noteTitle: '',
+      note: 'No verified matchup is available yet.',
+      signals: [],
+      avatarName: username || 'You',
+      avatarMatch: target || latestHistory || null,
+      avatarPreference: 'self',
+      fallbackSignalLabel: '',
+    };
+
+    const opponentIdentity = resolveOpponentIdentity(target);
+    const hasVerifiedOpponent = Boolean(opponentIdentity.isVerified);
+    const opponentFormTokens = hasVerifiedOpponent ? extractOpponentFormTokens(target) : ['-', '-', '-', '-'];
+
+    const opponentStats = resolveOpponentStats();
+    const hasOpponentMetricData = [opponentStats.winrateValue, opponentStats.recordValue, opponentStats.liveValue].some((value) => value !== 'Data Pending');
+    const hasOpponentFormData = opponentFormTokens.some((token) => token !== '-');
+    const matchContext = formatMatchContext(target);
+
+    const scoutingSnapshot = {
+      kicker: '',
+      microLabel: '',
+      profileName: hasVerifiedOpponent ? opponentIdentity.name : 'Awaiting Opponent Assignment',
+      stageLine: hasVerifiedOpponent
+        ? (matchContext || 'Recent verified form available.')
+        : 'Awaiting Opponent Assignment.',
+      formLabel: 'Recent Form',
+      formTokens: hasVerifiedOpponent ? opponentFormTokens : ['-', '-', '-', '-'],
+      stats: hasVerifiedOpponent ? opponentStats : makePendingStats(opponentStats),
+      noteTitle: '',
+      note: hasVerifiedOpponent
+        ? ((hasOpponentFormData || hasOpponentMetricData)
+          ? 'Verified scouting data is ready.'
+          : 'Limited-data scouting view.')
+        : 'Opponent scouting unlocks after assignment.',
+      signals: [],
+      avatarName: hasVerifiedOpponent ? opponentIdentity.name : 'OP',
+      avatarMatch: hasVerifiedOpponent ? target : null,
+      avatarPreference: 'opponent',
+      fallbackSignalLabel: '',
+    };
+
+    const scoutingRecapSnapshot = {
+      kicker: '',
+      microLabel: '',
+      profileName: 'No Active Opponent',
+      stageLine: 'Opponent scouting unavailable.',
+      formLabel: 'Recent Form',
+      formTokens: myRecentTokens,
+      stats: {
+        winrateLabel: 'Last Result',
+        recordLabel: 'Final Round',
+        liveLabel: 'Scoreline',
+        winrateValue: resolveLastResult(latestHistory),
+        recordValue: firstNonEmptyValue(
+          latestHistory?.round_name,
+          latestHistory?.stage_label,
+          latestHistory?.match_stage_label,
+          'Data Pending',
+        ),
+        liveValue: resolveScoreline(latestHistory),
+      },
+      noteTitle: '',
+      note: 'Review final standings for full recap context.',
+      signals: [],
+      avatarName: username || 'You',
+      avatarMatch: latestHistory || target || null,
+      avatarPreference: 'self',
+      fallbackSignalLabel: '',
+    };
+
+    const requestedView = (_overviewIntelViewMode === 'my' || _overviewIntelViewMode === 'opponent')
+      ? _overviewIntelViewMode
+      : 'auto';
+    const selectedView = requestedView === 'auto'
+      ? ((hasVerifiedOpponent || runEnded) ? 'opponent' : 'my')
+      : requestedView;
+
+    let snapshot = mySnapshot;
+    if (selectedView === 'opponent') {
+      snapshot = runEnded && !hasVerifiedOpponent ? scoutingRecapSnapshot : scoutingSnapshot;
+    } else if (selectedView === 'my' && !hasReliableHistory && !hasVerifiedOpponent && !runEnded) {
+      snapshot = fallbackSnapshot;
+    }
+
+    if (toggleMyBtn) {
+      const myActive = selectedView === 'my';
+      toggleMyBtn.classList.toggle('active', myActive);
+      toggleMyBtn.setAttribute('aria-pressed', myActive ? 'true' : 'false');
+      toggleMyBtn.disabled = false;
+    }
+    if (toggleOpponentBtn) {
+      const opponentActive = selectedView === 'opponent';
+      toggleOpponentBtn.classList.toggle('active', opponentActive);
+      toggleOpponentBtn.classList.toggle('is-waiting', !hasVerifiedOpponent && !runEnded);
+      toggleOpponentBtn.setAttribute('aria-pressed', opponentActive ? 'true' : 'false');
+      toggleOpponentBtn.disabled = false;
+    }
+
+    if (kickerEl) kickerEl.textContent = snapshot.kicker;
+    if (microLabelEl) microLabelEl.textContent = snapshot.microLabel;
+    opponentEl.textContent = snapshot.profileName;
+    stageEl.textContent = snapshot.stageLine;
+    if (formLabelEl) formLabelEl.textContent = snapshot.formLabel;
+    renderFormTokens(snapshot.formTokens);
+
+    if (winrateLabelEl) winrateLabelEl.textContent = snapshot.stats.winrateLabel;
+    if (recordLabelEl) recordLabelEl.textContent = snapshot.stats.recordLabel;
+    if (liveLabelEl) liveLabelEl.textContent = snapshot.stats.liveLabel;
+    winrateEl.textContent = snapshot.stats.winrateValue;
+    recordEl.textContent = snapshot.stats.recordValue;
+    liveEl.textContent = snapshot.stats.liveValue;
+
+    if (noteTitleEl) noteTitleEl.textContent = snapshot.noteTitle;
+    noteEl.textContent = snapshot.note;
+    if (signalsEl) {
+      signalsEl.innerHTML = '';
+    }
+    syncIntelAvatar(
+      snapshot.avatarName || opponentEl.textContent,
+      snapshot.avatarMatch,
+      snapshot.avatarPreference || 'auto',
+    );
   }
 
   function _renderOverviewActionCard(matchPayload, stateData = null) {
@@ -2942,13 +4641,21 @@ const HubEngine = (() => {
     const badge = document.getElementById('hub-overview-action-badge');
     const title = document.getElementById('hub-overview-action-title');
     const subtitle = document.getElementById('hub-overview-action-subtitle');
+    const meta = document.getElementById('hub-overview-action-meta');
     const timeLabel = document.getElementById('hub-overview-action-time-label');
     const timeValue = document.getElementById('hub-overview-action-time');
     const actionBtn = document.getElementById('hub-overview-action-btn');
+    const secondaryBtn = document.getElementById('hub-overview-secondary-btn');
+    const heroOutcome = document.getElementById('hub-overview-hero-outcome');
     const statusLabel = document.getElementById('hub-overview-status-label');
     const backendCommand = stateData?.command_center;
+    const setHeroTitle = (text, state = '') => {
+      _renderOverviewHeroTitle(title, text, state || card.dataset.outcomeState || '');
+    };
 
-    _renderOutcomeExperience(backendCommand || null);
+    _renderOutcomeExperience(backendCommand || null, { source, target });
+    _applyOverviewGameBranding();
+    _renderOverviewIntelligence(target, source, stateData);
 
     if (statusLabel && stateData?.user_status) {
       statusLabel.textContent = stateData.user_status;
@@ -2960,64 +4667,88 @@ const HubEngine = (() => {
       if (standbyCard) {
         standbyCard.classList.toggle('hidden', showCard);
       }
-
       if (!showCard) {
+        _startOverviewHeroFx();
         return;
       }
 
       const tone = String(backendCommand.badge_tone || 'info').toLowerCase();
-      const toneMap = {
-        danger: {
-          border: 'rgba(255, 42, 85, 0.35)',
-          bg: 'linear-gradient(135deg, rgba(255, 42, 85, 0.12) 0%, rgba(14, 10, 16, 0.94) 80%)',
-          shadow: '0 14px 40px rgba(255, 42, 85, 0.16)',
-          btn: 'bg-[#FF2A55]/15 text-[#FF8AA0] border border-[#FF2A55] shadow-[0_0_24px_rgba(255,42,85,0.25)]',
-        },
-        success: {
-          border: 'rgba(0, 255, 102, 0.35)',
-          bg: 'linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 15, 12, 0.92) 82%)',
-          shadow: '0 14px 40px rgba(0, 255, 102, 0.14)',
-          btn: 'bg-cyan-300 text-black border border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.35)]',
-        },
-        warning: {
-          border: 'rgba(255, 184, 0, 0.35)',
-          bg: 'linear-gradient(135deg, rgba(255, 184, 0, 0.12) 0%, rgba(24, 18, 6, 0.92) 82%)',
-          shadow: '0 14px 40px rgba(255, 184, 0, 0.12)',
-          btn: 'bg-amber-300/15 text-amber-300 border border-amber-300 shadow-[0_0_20px_rgba(255,184,0,0.2)]',
-        },
-        info: {
-          border: 'rgba(0, 240, 255, 0.22)',
-          bg: 'linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(8, 12, 24, 0.88) 80%)',
-          shadow: '0 14px 38px rgba(0, 240, 255, 0.10)',
-          btn: 'bg-white/10 text-white border border-white/20',
-        },
-      };
-      const toneStyle = toneMap[tone] || toneMap.info;
+      card.dataset.tone = ['danger', 'success', 'warning', 'info'].includes(tone) ? tone : 'info';
+      _setOverviewBadgeTone(badge, tone, backendCommand.badge_label || 'Standby');
 
-      card.style.borderColor = toneStyle.border;
-      card.style.background = toneStyle.bg;
-      card.style.boxShadow = toneStyle.shadow;
+      const outcomeState = String(backendCommand.outcome_state || backendCommand.outcome_experience?.state || '').toLowerCase();
+      const experience = backendCommand.outcome_experience || {};
+      card.dataset.outcomeState = outcomeState || '';
+      const lobbyState = String(backendCommand.lobby_state || '').toLowerCase();
+      const countdownMode = String(backendCommand.countdown_mode || '').toLowerCase();
+      const targetState = String(target?.state || '').toLowerCase();
+      const seasonComplete = ['completed', 'complete', 'finished', 'closed', 'archived'].includes(status);
+      const hasVerifiedTarget = Boolean(target && !['completed', 'forfeit', 'cancelled'].includes(targetState));
 
-      if (badge) {
-        const badgeLabel = backendCommand.badge_label || 'Standby';
-        if (tone === 'danger') {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
-        } else if (tone === 'success') {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/35 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
-        } else if (tone === 'warning') {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300/35 bg-amber-300/15 text-[9px] font-black uppercase tracking-[0.12em] text-amber-300';
+      let heroScenario = 'pending';
+      let resolvedTitle = backendCommand.title || 'Standing By';
+      let resolvedSubtitle = backendCommand.subtitle || 'No immediate match action is required. Monitor announcements and schedule updates.';
+
+      if (outcomeState === 'eliminated') {
+        heroScenario = 'eliminated';
+        resolvedTitle = 'Run Complete';
+        resolvedSubtitle = 'Your tournament run has ended. Review final standings, bracket outcomes, and support options if needed.';
+      } else if (seasonComplete) {
+        heroScenario = 'season_complete';
+        resolvedTitle = 'Season Complete';
+        resolvedSubtitle = 'Tournament operations are complete. Review final results, announcements, and records.';
+      } else if (countdownMode === 'live' || lobbyState === 'live' || targetState === 'live') {
+        heroScenario = 'live';
+        resolvedTitle = 'Live Ops';
+        resolvedSubtitle = 'Your tournament session is active. Review assignment details and complete required actions.';
+      } else if (outcomeState === 'advanced') {
+        if (hasVerifiedTarget) {
+          heroScenario = 'advanced';
+          resolvedTitle = 'Advanced in Bracket';
+          resolvedSubtitle = 'Victory secured. Keep momentum and watch for your next assignment update.';
         } else {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
+          heroScenario = 'pending';
+          resolvedTitle = 'Assignment Pending';
+          resolvedSubtitle = 'You advanced successfully. Your next verified matchup will appear once the bracket updates.';
         }
-        badge.textContent = badgeLabel;
+      } else if (status === 'live' && hasVerifiedTarget) {
+        heroScenario = 'live';
+        resolvedTitle = 'Live Ops';
+        resolvedSubtitle = 'Your tournament session is active. Review assignment details and complete required actions.';
+      } else {
+        heroScenario = 'standby';
+        resolvedTitle = 'Standing By';
+        resolvedSubtitle = 'No immediate match action is required. Monitor announcements and schedule updates.';
       }
 
-      if (title) {
-        title.textContent = backendCommand.title || 'Waiting For Matchups';
+      const scenarioState = heroScenario === 'advanced'
+        ? 'advanced'
+        : heroScenario === 'eliminated'
+          ? 'eliminated'
+          : heroScenario === 'season_complete'
+            ? 'season_complete'
+            : heroScenario === 'live'
+              ? 'live'
+              : 'pending';
+
+      setHeroTitle(resolvedTitle, scenarioState);
+      if (subtitle) subtitle.textContent = resolvedSubtitle;
+
+      const metaParts = [];
+      if (backendCommand.match_stage_label) metaParts.push(backendCommand.match_stage_label);
+      if (backendCommand.match_round_name) metaParts.push(backendCommand.match_round_name);
+      if (backendCommand.match_number) metaParts.push(`Match #${backendCommand.match_number}`);
+      if (meta) {
+        meta.textContent = metaParts.join(' · ');
+        meta.classList.toggle('hidden', !meta.textContent);
       }
 
-      if (subtitle) {
-        subtitle.textContent = backendCommand.subtitle || 'As soon as matches are generated, your next action will appear here.';
+      if (heroOutcome) {
+        if (heroScenario === 'advanced') heroOutcome.textContent = 'Advanced';
+        else if (heroScenario === 'eliminated') heroOutcome.textContent = 'Run Ended';
+        else if (heroScenario === 'season_complete') heroOutcome.textContent = 'Season Complete';
+        else if (heroScenario === 'live') heroOutcome.textContent = 'Live Ops';
+        else heroOutcome.textContent = 'Standing By';
       }
 
       if (timeLabel) {
@@ -3050,35 +4781,35 @@ const HubEngine = (() => {
         }
       }
 
-      if (actionBtn) {
-        const action = String(backendCommand.cta_action || 'view_schedule').toLowerCase();
-        const label = backendCommand.cta_label || 'View Schedule';
-        const iconMap = {
-          check_in: 'shield-alert',
-          enter_lobby: 'swords',
-          open_matches: 'clock-3',
-          open_bracket: 'git-branch',
-          open_standings: 'list-ordered',
-          open_support: 'life-buoy',
-          open_announcements: 'megaphone',
-          respond_reschedule: 'clock-3',
-          view_schedule: 'calendar',
-        };
-        const iconName = iconMap[action] || 'calendar';
-        const baseBtn = 'w-full md:w-auto min-h-[52px] px-8 rounded-xl flex items-center justify-center gap-3 text-xs md:text-sm tracking-widest uppercase font-black transition-all';
+      _setOverviewPrimaryAction(actionBtn, {
+        action: backendCommand.cta_action || 'view_schedule',
+        label: backendCommand.cta_label || 'View Schedule',
+        tone,
+        disabled: Boolean(backendCommand.cta_disabled),
+      }, backendCommand);
 
-        actionBtn.className = `${baseBtn} ${toneStyle.btn}`;
-        actionBtn.dataset.hubAction = action;
-        actionBtn.disabled = Boolean(backendCommand.cta_disabled);
-        actionBtn.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i><span>${_esc(label)}</span>`;
-
-        actionBtn.onclick = () => {
-          if (actionBtn.disabled) return;
-          _runOverviewCommandAction(action, backendCommand);
-        };
+      if (outcomeState === 'eliminated') {
+        _setOverviewSecondaryAction(secondaryBtn, {
+          action: 'open_standings',
+          label: 'View Standings',
+          icon: 'list-ordered',
+        }, backendCommand);
+      } else if (outcomeState === 'advanced') {
+        _setOverviewSecondaryAction(secondaryBtn, {
+          action: 'open_matches',
+          label: 'View Next Assignment',
+          icon: 'crosshair',
+        }, backendCommand);
+      } else {
+        _setOverviewSecondaryAction(secondaryBtn, {
+          action: 'open_bracket',
+          label: 'Open Bracket',
+          icon: 'git-branch',
+        }, backendCommand);
       }
 
       if (typeof lucide !== 'undefined') lucide.createIcons();
+      _startOverviewHeroFx();
       return;
     }
 
@@ -3086,19 +4817,34 @@ const HubEngine = (() => {
       standbyCard.classList.add('hidden');
     }
     card.classList.remove('hidden');
+    card.dataset.tone = 'info';
+    card.dataset.outcomeState = '';
 
     if (!target) {
-      if (badge) {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
-        badge.textContent = status === 'live' ? 'Live Window' : 'Standby';
-      }
-      if (title) {
-        title.textContent = status === 'live' ? 'LIVE / IN PROGRESS' : 'Waiting For Matchups';
+      const seasonComplete = ['completed', 'complete', 'finished', 'closed', 'archived'].includes(status);
+      const runEnded = String(stateData?.command_center?.outcome_state || '').toLowerCase() === 'eliminated';
+      _setOverviewBadgeTone(badge, 'info', status === 'live' ? 'Live Window' : 'Standby');
+      if (runEnded) {
+        setHeroTitle('Run Complete', 'eliminated');
+      } else if (seasonComplete) {
+        setHeroTitle('Season Complete', 'season_complete');
+      } else {
+        setHeroTitle('Standing By', 'pending');
       }
       if (subtitle) {
-        subtitle.textContent = status === 'live'
-          ? 'The tournament is live. Waiting for your next matchup assignment.'
-          : 'As soon as matches are generated, your next action will appear here.';
+        if (runEnded) {
+          subtitle.textContent = 'Your tournament run has ended. Review final standings, bracket outcomes, and support options if needed.';
+        } else if (seasonComplete) {
+          subtitle.textContent = 'Tournament operations are complete. Review final results, announcements, and records.';
+        } else {
+          subtitle.textContent = 'No immediate match action is required. Monitor announcements and schedule updates.';
+        }
+      }
+      if (meta) meta.classList.add('hidden');
+      if (heroOutcome) {
+        if (runEnded) heroOutcome.textContent = 'Run Ended';
+        else if (seasonComplete) heroOutcome.textContent = 'Season Complete';
+        else heroOutcome.textContent = 'Standing By';
       }
       if (timeLabel) {
         const phaseLabel = stateData?.phase_event?.label;
@@ -3107,11 +4853,24 @@ const HubEngine = (() => {
       if (timeValue) {
         timeValue.dataset.matchTime = '';
         timeValue.textContent = stateData?.phase_event?.target ? '--:--' : 'Awaiting schedule';
+        timeValue.classList.remove('text-red-400');
       }
-      if (actionBtn) {
-        actionBtn.textContent = 'View Schedule';
-        actionBtn.onclick = () => switchTab('schedule');
-      }
+      _setOverviewPrimaryAction(actionBtn, {
+        action: 'open_bracket',
+        label: 'Open Bracket',
+        tone: 'info',
+        icon: 'git-branch',
+        onClick: () => switchTab('bracket'),
+      });
+      _setOverviewSecondaryAction(secondaryBtn, {
+        action: 'open_matches',
+        label: 'View Next Assignment',
+        icon: 'crosshair',
+        onClick: () => switchTab('matches'),
+      });
+      _stopOverviewCountdown();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      _startOverviewHeroFx();
       return;
     }
 
@@ -3124,43 +4883,32 @@ const HubEngine = (() => {
         ? `${target.p1_name || 'TBD'} vs ${target.p2_name || 'TBD'}`
         : `vs ${target.opponent_name || 'TBD'}`;
 
-      if (card) {
-        card.style.borderColor = 'rgba(255, 184, 0, 0.38)';
-        card.style.background = 'linear-gradient(135deg, rgba(255, 184, 0, 0.14) 0%, rgba(21, 15, 6, 0.95) 82%)';
-        card.style.boxShadow = '0 14px 40px rgba(255, 184, 0, 0.16)';
-      }
-
-      if (badge) {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300/35 bg-amber-300/15 text-[9px] font-black uppercase tracking-[0.12em] text-amber-200';
-        badge.textContent = 'Response Required';
-      }
-
-      if (title) {
-        title.textContent = `Reschedule Request: ${matchup}`;
-      }
-
-      if (subtitle) {
-        subtitle.textContent = `Your opponent proposed a new match time. Review and accept or reject this request.`;
-      }
-
-      if (timeLabel) {
-        timeLabel.textContent = 'Proposed For';
-      }
-
+      card.dataset.tone = 'warning';
+      _setOverviewBadgeTone(badge, 'warning', 'Response Required');
+        setHeroTitle(`Reschedule Request: ${matchup}`);
+      if (subtitle) subtitle.textContent = 'Your opponent proposed a new match time. Review and accept or reject this request.';
+      if (meta) meta.classList.add('hidden');
+      if (heroOutcome) heroOutcome.textContent = 'Response Required';
+      if (timeLabel) timeLabel.textContent = 'Proposed For';
       if (timeValue) {
         timeValue.dataset.matchTime = '';
         timeValue.textContent = proposedLabel;
+        timeValue.classList.remove('text-red-400');
       }
-
-      if (actionBtn) {
-        actionBtn.className = 'w-full md:w-auto min-h-[52px] px-8 rounded-xl flex items-center justify-center gap-3 text-xs md:text-sm tracking-widest uppercase font-black transition-all bg-amber-300/20 text-amber-100 border border-amber-300/40 shadow-[0_0_24px_rgba(255,184,0,0.26)]';
-        actionBtn.dataset.hubAction = 'respond_reschedule';
-        actionBtn.disabled = false;
-        actionBtn.innerHTML = `<i data-lucide="clock-3" class="w-5 h-5"></i><span>Review Proposal</span>`;
-        actionBtn.onclick = () => respondReschedule(target.id);
-      }
-
+      _setOverviewPrimaryAction(actionBtn, {
+        action: 'respond_reschedule',
+        label: 'Review Proposal',
+        tone: 'warning',
+        icon: 'clock-3',
+        onClick: () => respondReschedule(target.id),
+      });
+      _setOverviewSecondaryAction(secondaryBtn, {
+        action: 'open_matches',
+        label: 'Open Match Lobby',
+      });
+      _stopOverviewCountdown();
       if (typeof lucide !== 'undefined') lucide.createIcons();
+      _startOverviewHeroFx();
       return;
     }
 
@@ -3171,40 +4919,78 @@ const HubEngine = (() => {
     const matchup = isStaffPerspective
       ? `${target.p1_name || 'TBD'} vs ${target.p2_name || 'TBD'}`
       : `vs ${target.opponent_name || 'TBD'}`;
-    const _staticLobby = _resolveLobbyWindow(target);
-    const _staticLobbyClosed = _staticLobby.isClosed;
-
-    if (badge) {
-      if (isLive) {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
-        badge.textContent = 'Live';
-      } else if (_staticLobbyClosed) {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/25 bg-[#FF2A55]/10 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
-        badge.textContent = 'Lobby Closed';
-      } else if (isReady) {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
-        badge.textContent = 'Ready';
-      } else {
-        badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
-        badge.textContent = 'Up Next';
-      }
-    }
-
-    if (title) {
-      title.textContent = isLive ? `Live Match: ${matchup}` : (_staticLobbyClosed ? `Lobby Expired: ${matchup}` : `Next Match: ${matchup}`);
-    }
-
     const scheduled = target.scheduled_at ? new Date(target.scheduled_at) : null;
+    const canOpenLobby = Boolean(target.match_room_url);
+    const lobbyWindow = _resolveLobbyWindow(target);
+    const isLobbyWindowOpen = canOpenLobby && lobbyWindow.isOpen;
+    const isLobbyClosed = lobbyWindow.isClosed;
+    const opensAt = lobbyWindow.opensAt;
+
+    if (isLive) {
+      card.dataset.tone = 'danger';
+      _setOverviewBadgeTone(badge, 'danger', 'Live');
+      setHeroTitle('Live Ops', 'live');
+      if (heroOutcome) heroOutcome.textContent = 'Live Ops';
+    } else if (isLobbyClosed) {
+      card.dataset.tone = 'danger';
+      _setOverviewBadgeTone(badge, 'danger', 'Lobby Closed');
+      setHeroTitle('Assignment Pending', 'pending');
+      if (heroOutcome) heroOutcome.textContent = 'Window Closed';
+    } else if (isLobbyWindowOpen) {
+      card.dataset.tone = 'success';
+      _setOverviewBadgeTone(badge, 'success', 'Lobby Open');
+      setHeroTitle('Live Ops', 'live');
+      if (heroOutcome) heroOutcome.textContent = 'Action Ready';
+    } else if (isReady) {
+      card.dataset.tone = 'success';
+      _setOverviewBadgeTone(badge, 'success', 'Ready');
+      setHeroTitle('Live Ops', 'live');
+      if (heroOutcome) heroOutcome.textContent = 'Action Ready';
+    } else {
+      card.dataset.tone = 'info';
+      _setOverviewBadgeTone(badge, 'info', opensAt ? 'Upcoming' : 'Up Next');
+      setHeroTitle('Assignment Pending', 'pending');
+      if (heroOutcome) heroOutcome.textContent = 'Pending';
+    }
+
+    if (meta) {
+      const metaParts = [];
+      if (target.stage_label || target.match_stage_label) metaParts.push(target.stage_label || target.match_stage_label);
+      if (target.round_name) metaParts.push(target.round_name);
+      if (target.match_number) metaParts.push(`Match #${target.match_number}`);
+      meta.textContent = metaParts.join(' · ');
+      meta.classList.toggle('hidden', !meta.textContent);
+    }
+
     if (subtitle) {
       const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
       const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
-        ? `Scheduled ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+        ? `Match starts ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
         : 'Schedule time pending.';
-      subtitle.textContent = `${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+
+      if (isLive) {
+        subtitle.textContent = 'Your tournament session is active. Review assignment details and complete required actions.';
+      } else if (isLobbyClosed) {
+        subtitle.textContent = 'Your lobby window has closed for this assignment. Request a reschedule or contact support if needed.';
+      } else if (isLobbyWindowOpen) {
+        subtitle.textContent = `Your assignment is active for pre-match operations. Enter lobby and complete setup.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+      } else if (isReady) {
+        subtitle.textContent = `Your next verified matchup is ready. Enter the lobby and prepare for kickoff.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+      } else if (opensAt) {
+        subtitle.textContent = `Assignment pending. Lobby unlocks ${_formatCountdownLabel(opensAt)} before this match.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+      } else {
+        subtitle.textContent = `Assignment pending. ${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
+      }
     }
 
     if (timeLabel) {
-      timeLabel.textContent = isLive ? 'Status' : (_staticLobbyClosed ? 'Status' : 'Starts In');
+      if (isLive || isLobbyClosed) {
+        timeLabel.textContent = 'Status';
+      } else if (isLobbyWindowOpen) {
+        timeLabel.textContent = 'Match Starts In';
+      } else {
+        timeLabel.textContent = opensAt ? 'Lobby Opens In' : 'Starts In';
+      }
     }
 
     if (timeValue) {
@@ -3213,11 +4999,19 @@ const HubEngine = (() => {
         timeValue.textContent = 'LIVE NOW';
         timeValue.classList.remove('text-red-400');
         _stopOverviewCountdown();
-      } else if (_staticLobbyClosed) {
-        timeValue.dataset.matchTime = '';
+      } else if (isLobbyClosed) {
+        timeValue.dataset.matchTime = 'closed';
         timeValue.textContent = 'EXPIRED';
         timeValue.classList.add('text-red-400');
         _stopOverviewCountdown();
+      } else if (isLobbyWindowOpen) {
+        timeValue.dataset.matchTime = 'countdown';
+        timeValue.classList.remove('text-red-400');
+        _startOverviewCountdown(scheduled);
+      } else if (opensAt) {
+        timeValue.dataset.matchTime = 'countdown';
+        timeValue.classList.remove('text-red-400');
+        _startOverviewCountdown(opensAt);
       } else {
         timeValue.dataset.matchTime = 'countdown';
         timeValue.classList.remove('text-red-400');
@@ -3225,145 +5019,68 @@ const HubEngine = (() => {
       }
     }
 
-    if (actionBtn) {
-      const canOpenLobby = Boolean(target.match_room_url);
-      const lobbyWindow = _resolveLobbyWindow(target);
-      const isLobbyWindowOpen = canOpenLobby && lobbyWindow.isOpen;
-      const isLobbyClosed = lobbyWindow.isClosed;
-      const opensAt = lobbyWindow.opensAt;
-
-      if (card) {
-        if (isLive) {
-          card.style.borderColor = 'rgba(255, 42, 85, 0.35)';
-          card.style.background = 'linear-gradient(135deg, rgba(255, 42, 85, 0.12) 0%, rgba(14, 10, 16, 0.94) 80%)';
-          card.style.boxShadow = '0 14px 40px rgba(255, 42, 85, 0.16)';
-        } else if (isLobbyClosed) {
-          card.style.borderColor = 'rgba(255, 42, 85, 0.25)';
-          card.style.background = 'linear-gradient(135deg, rgba(255, 42, 85, 0.08) 0%, rgba(14, 10, 16, 0.94) 80%)';
-          card.style.boxShadow = '0 14px 40px rgba(255, 42, 85, 0.08)';
-        } else if (isLobbyWindowOpen) {
-          card.style.borderColor = 'rgba(0, 255, 102, 0.35)';
-          card.style.background = 'linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 15, 12, 0.92) 82%)';
-          card.style.boxShadow = '0 14px 40px rgba(0, 255, 102, 0.14)';
-        } else {
-          card.style.borderColor = 'rgba(0, 240, 255, 0.22)';
-          card.style.background = 'linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(8, 12, 24, 0.88) 80%)';
-          card.style.boxShadow = '0 14px 38px rgba(0, 240, 255, 0.10)';
-        }
-      }
-
-      if (badge) {
-        if (isLive) {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
-          badge.textContent = 'Live';
-        } else if (isLobbyClosed) {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#FF2A55]/25 bg-[#FF2A55]/10 text-[9px] font-black uppercase tracking-[0.12em] text-[#FF8AA0]';
-          badge.textContent = 'Lobby Closed';
-        } else if (isLobbyWindowOpen) {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/35 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
-          badge.textContent = 'Lobby Open';
-        } else if (isReady) {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#00FF66]/30 bg-[#00FF66]/15 text-[9px] font-black uppercase tracking-[0.12em] text-[#66FFAE]';
-          badge.textContent = 'Ready';
-        } else {
-          badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200';
-          badge.textContent = opensAt ? 'Upcoming' : 'Up Next';
-        }
-      }
-
-      if (title) {
-        if (isLive) {
-          title.textContent = `Live Match: ${matchup}`;
-        } else if (isLobbyClosed) {
-          title.textContent = `Lobby Expired: ${matchup}`;
-        } else if (isLobbyWindowOpen) {
-          title.textContent = `Lobby Open: ${matchup}`;
-        } else {
-          title.textContent = `Next Match: ${matchup}`;
-        }
-      }
-
-      if (subtitle) {
-        const lobbyCode = target.lobby_info?.lobby_code || target.lobby_code || '';
-        const scheduledLabel = scheduled && !Number.isNaN(scheduled.getTime())
-          ? `Match starts ${_formatDateTime(scheduled, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
-          : 'Schedule time pending.';
-
-        if (isLobbyClosed) {
-          subtitle.textContent = `The lobby window has expired. Request a reschedule or contact the organizer.`;
-        } else if (isLobbyWindowOpen) {
-          subtitle.textContent = `Lobby unlocked ${lobbyWindow.minutesBefore} minutes before kickoff. Enter now and coordinate check-in.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
-        } else if (opensAt) {
-          subtitle.textContent = `Lobby unlocks ${_formatCountdownLabel(opensAt)} before this match.${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
-        } else {
-          subtitle.textContent = `${scheduledLabel}${lobbyCode ? ` Lobby ${lobbyCode}.` : ''}`;
-        }
-      }
-
-      if (timeLabel) {
-        if (isLive) {
-          timeLabel.textContent = 'Status';
-        } else if (isLobbyClosed) {
-          timeLabel.textContent = 'Status';
-        } else if (isLobbyWindowOpen) {
-          timeLabel.textContent = 'Match Starts In';
-        } else {
-          timeLabel.textContent = opensAt ? 'Lobby Opens In' : 'Starts In';
-        }
-      }
-
-      if (timeValue) {
-        if (isLive) {
-          timeValue.dataset.matchTime = 'live';
-          timeValue.textContent = 'LIVE NOW';
-          _stopOverviewCountdown();
-        } else if (isLobbyClosed) {
-          timeValue.dataset.matchTime = 'closed';
-          timeValue.textContent = 'EXPIRED';
-          timeValue.style.color = '#FF8AA0';
-          _stopOverviewCountdown();
-        } else if (isLobbyWindowOpen) {
-          timeValue.dataset.matchTime = 'countdown';
-          timeValue.style.color = '';
-          _startOverviewCountdown(scheduled);
-        } else if (opensAt) {
-          timeValue.dataset.matchTime = 'countdown';
-          timeValue.style.color = '';
-          _startOverviewCountdown(opensAt);
-        } else {
-          timeValue.dataset.matchTime = 'countdown';
-          timeValue.style.color = '';
-          _startOverviewCountdown(scheduled);
-        }
-      }
-
-      if (isLobbyClosed) {
-        actionBtn.textContent = 'Request Reschedule';
-        actionBtn.onclick = () => { switchTab('matches'); };
-      } else if (isLive || isReady || isLobbyWindowOpen) {
-        actionBtn.textContent = canOpenLobby ? 'Enter Lobby' : 'Open Match Lobby';
-        actionBtn.onclick = () => {
-          if (canOpenLobby) { _openMatchRoom(target.match_room_url); return; }
+    if (isLobbyClosed) {
+      _setOverviewPrimaryAction(actionBtn, {
+        action: 'open_matches',
+        label: 'Request Reschedule',
+        tone: 'warning',
+        icon: 'clock-3',
+        onClick: () => switchTab('matches'),
+      });
+      _setOverviewSecondaryAction(secondaryBtn, {
+        action: 'open_support',
+        label: 'Open Support',
+      });
+    } else if (isLive || isReady || isLobbyWindowOpen) {
+      _setOverviewPrimaryAction(actionBtn, {
+        action: 'enter_lobby',
+        label: canOpenLobby ? 'Enter Lobby' : 'Open Match Lobby',
+        tone: isLive ? 'danger' : 'success',
+        icon: 'swords',
+        onClick: () => {
+          if (canOpenLobby) {
+            _openMatchRoom(target.match_room_url);
+            return;
+          }
           switchTab('matches');
-        };
-      } else {
-        actionBtn.textContent = 'View Schedule';
-        actionBtn.onclick = () => { switchTab('schedule'); };
-      }
+        },
+      });
+      _setOverviewSecondaryAction(secondaryBtn, {
+        action: 'open_bracket',
+        label: 'Open Bracket',
+      });
+    } else {
+      _setOverviewPrimaryAction(actionBtn, {
+        action: 'open_bracket',
+        label: 'Open Bracket',
+        tone: 'info',
+        icon: 'git-branch',
+        onClick: () => switchTab('bracket'),
+      });
+      _setOverviewSecondaryAction(secondaryBtn, {
+        action: 'open_matches',
+        label: 'View Next Assignment',
+        icon: 'crosshair',
+      });
     }
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+    _startOverviewHeroFx();
   }
 
   async function _refreshOverviewActionCard({ forceFetch = false, stateData = null } = {}) {
     const hasBackendCommand = Boolean(
       stateData?.command_center && Object.prototype.hasOwnProperty.call(stateData.command_center, 'show')
     );
-    if (hasBackendCommand) {
-      _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
-      return;
-    }
+    const hasHydratedPayload = Boolean(
+      _matchesCache
+      && (Array.isArray(_matchesCache.active_matches) || Array.isArray(_matchesCache.match_history))
+    );
 
     const freshEnough = _matchesCache && (Date.now() - _matchesCacheFetchedAt) < 60000;
-    if (!forceFetch && freshEnough) {
+    if (!forceFetch && freshEnough && (!hasBackendCommand || hasHydratedPayload)) {
       _renderOverviewActionCard(_matchesCache, stateData || _lastPolledState);
       return;
     }
@@ -6976,6 +8693,7 @@ const HubEngine = (() => {
   // Cleanup (if SPA navigates away)
   // ──────────────────────────────────────────────────────────
   function destroy() {
+    _stopOverviewHeroFx();
     _stopPolling();
     if (_countdownId) clearInterval(_countdownId);
     if (_wsPingId) clearInterval(_wsPingId);
@@ -7817,6 +9535,8 @@ const HubEngine = (() => {
     closeTicketModal,
     downloadTicketPass,
     dismissGuide,
+    openOutcomeSpotlight,
+    setOverviewIntelView,
     // Module 12: Support & Disputes
     selectSupportCategory,
     submitSupportRequest,

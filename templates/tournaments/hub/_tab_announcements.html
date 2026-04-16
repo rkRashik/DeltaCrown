@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <div class="space-y-5" id="hub-announcements-feed">
+  <div class="space-y-5">
     {% if stage_display and effective_status == 'live' %}
     <div class="premium-card p-6 md:p-8 border-l-4 border-l-[#FFB800] relative overflow-hidden">
       <div class="absolute right-0 top-0 p-6 opacity-5 pointer-events-none">
@@ -62,11 +62,10 @@
     <div id="hub-ann-intelligence" class="hidden premium-card p-5 md:p-6 border-l-4 border-l-[#00F0FF] relative overflow-hidden">
     </div>
     {% endif %}
-    {% if hub_lifecycle_events or hub_manual_announcements or announcements %}
 
     {# ── Lifecycle Intelligence Strip ── #}
     {% if hub_lifecycle_events %}
-    <div class="space-y-1.5 mb-5">
+    <div id="hub-announcements-lifecycle-strip" class="space-y-1.5 mb-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="sparkles" class="w-3 h-3 text-gray-600"></i>
         <span class="text-[10px] font-bold text-gray-600 uppercase tracking-[0.15em]">Tournament Intelligence</span>
@@ -95,19 +94,22 @@
           <span class="text-xs font-bold text-white/90 truncate">{{ ann.title }}</span>
           <span class="hidden sm:inline text-[10px] text-gray-500 truncate">{{ ann.message }}</span>
         </div>
-        {% if ann.time_ago %}<span class="text-[9px] text-gray-700 tabular-nums flex-shrink-0">{{ ann.time_ago }}</span>{% endif %}
+        <span class="text-[9px] text-gray-700 tabular-nums flex-shrink-0" data-ann-created-at="{{ ann.created_at|default:'' }}">{{ ann.time_ago|default:'Time unavailable' }}</span>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    {# ── Manual Announcements ── #}
+    <div id="hub-announcements-feed" class="space-y-5">
+    {# ── Manual Announcements (canonical persisted feed) ── #}
     {% if hub_manual_announcements %}
+    {% if hub_lifecycle_events %}
     <div class="flex items-center gap-3 pt-2 pb-1">
       <div class="h-px flex-1 bg-white/[0.06]"></div>
       <span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Announcements</span>
       <div class="h-px flex-1 bg-white/[0.06]"></div>
     </div>
+    {% endif %}
     {% for ann in hub_manual_announcements %}
     <div class="premium-card p-6 md:p-8
       {% if ann.type == 'urgent' %}border-l-4 border-l-[#FF2A55]
@@ -134,7 +136,7 @@
           {% else %}bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30{% endif %}">
           {{ ann.type|default:"Info" }}
         </span>
-        <span class="font-mono text-[10px] text-gray-400">{{ ann.time_ago }}</span>
+        <span class="font-mono text-[10px] text-gray-400" data-ann-created-at="{{ ann.created_at|default:'' }}">{{ ann.time_ago|default:'Time unavailable' }}</span>
       </div>
 
       {% if ann.title %}
@@ -148,8 +150,6 @@
       <p class="text-sm {% if ann.type == 'urgent' %}text-gray-300{% else %}text-gray-400{% endif %} leading-relaxed relative z-10 max-w-3xl">{{ ann.message }}</p>
     </div>
     {% endfor %}
-    {% endif %}
-
     {% else %}
     <div class="premium-card p-10 flex flex-col items-center justify-center text-center">
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
@@ -159,6 +159,7 @@
       <p class="text-sm text-gray-500 max-w-md">Organizer updates will appear here in real-time.</p>
     </div>
     {% endif %}
+    </div>
   </div>
 
   {% comment %}Hidden JS binding elements — hub-engine.js writes to these{% endcomment %}

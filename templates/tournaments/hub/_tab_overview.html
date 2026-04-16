@@ -1,163 +1,121 @@
 {% comment %}
-  Premium Hub Overview
-  Blueprint translated from templates/My drafts/Hub page/dashbord_demo.html
+  Runtime Overview - clean premium dark mode variant.
 {% endcomment %}
 
-<div class="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-5 md:space-y-8">
-  <div id="hub-overview-outcome-spotlight" class="hub-outcome-spotlight-overlay hidden" aria-hidden="true">
-    <section id="hub-overview-outcome-spotlight-shell" class="hub-outcome-spotlight-shell" role="dialog" aria-modal="true" aria-labelledby="hub-overview-outcome-spotlight-title">
-      <div class="hub-outcome-spotlight-header">
-        <span id="hub-overview-outcome-spotlight-badge" class="hub-outcome-spotlight-badge">Result Spotlight</span>
-        <button id="hub-overview-outcome-spotlight-dismiss" type="button" class="hub-outcome-spotlight-dismiss">Dismiss</button>
-      </div>
-      <div class="hub-outcome-spotlight-body-wrap">
-        <div id="hub-overview-outcome-spotlight-icon" class="hub-outcome-spotlight-icon" aria-hidden="true">
-          <i data-lucide="trophy" class="w-6 h-6"></i>
+<div class="hub-overview-page p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6 md:space-y-7">
+  <div id="hub-overview-outcome-spotlight" class="hub-outcome-overlay hidden" aria-hidden="true">
+    <canvas id="hub-overview-spotlight-fx-canvas" class="hub-outcome-fx-canvas" aria-hidden="true"></canvas>
+
+    <section id="hub-overview-outcome-spotlight-shell" class="hub-outcome-shell" role="dialog" aria-modal="true" aria-labelledby="hub-overview-outcome-spotlight-title">
+      <button id="hub-overview-outcome-spotlight-dismiss" type="button" class="hub-outcome-dismiss-btn" aria-label="Close spotlight">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+
+      <div class="hub-outcome-spotlight-core">
+        <article class="hub-outcome-poster">
+          <div id="hub-overview-outcome-spotlight-ghost" class="hub-outcome-ghost-logo" aria-hidden="true"></div>
+
+          <header class="hub-outcome-poster-head">
+            <div class="hub-outcome-head-left">
+              <span id="hub-overview-outcome-spotlight-stage" class="hub-outcome-stage-sub">Bracket Stage</span>
+            </div>
+            <div id="hub-overview-outcome-spotlight-icon" class="hub-outcome-game-icon" aria-hidden="true">
+              <img id="hub-overview-outcome-spotlight-logo" src="" alt="Game logo" class="hub-overview-game-logo-img hidden">
+              <i data-lucide="trophy" class="w-6 h-6"></i>
+            </div>
+          </header>
+
+          <div class="hub-outcome-poster-body">
+            <p id="hub-overview-outcome-spotlight-state" class="hub-outcome-statline">Advanced</p>
+            <h3 id="hub-overview-outcome-spotlight-title" class="hub-outcome-title">Victory</h3>
+            <p id="hub-overview-outcome-spotlight-body" class="hub-outcome-body-copy"></p>
+          </div>
+
+          <footer class="hub-outcome-meta-band">
+            <div class="hub-outcome-meta-col">
+              <p class="hub-outcome-meta-label">Competitor</p>
+              <p id="hub-overview-outcome-spotlight-player" class="hub-outcome-meta-value">{{ request.user.username }}</p>
+              <p id="hub-overview-outcome-spotlight-opponent" class="hub-outcome-meta-sub">vs Pending Opponent</p>
+            </div>
+            <div class="hub-outcome-meta-col text-right">
+              <p class="hub-outcome-meta-label">Scoreline</p>
+              <p id="hub-overview-outcome-spotlight-score" class="hub-outcome-meta-value">Awaiting Verification</p>
+              <p id="hub-overview-outcome-spotlight-tournament" class="hub-outcome-meta-sub">{{ tournament.name }}</p>
+            </div>
+          </footer>
+        </article>
+
+        <div class="hub-outcome-controls-wrapper">
+          <div id="hub-overview-outcome-spotlight-action-bar" class="hub-outcome-action-bar">
+            <button id="hub-overview-outcome-spotlight-share-trigger" type="button" class="hub-outcome-btn hub-outcome-btn-share" aria-label="Open share options" aria-expanded="false">
+              <i data-lucide="share-2" class="w-4 h-4"></i>
+              <span>Share</span>
+            </button>
+          </div>
+
+          <div id="hub-overview-share-modal" class="hub-overview-share-suite hidden" aria-hidden="true">
+            <h3 id="hub-overview-share-title" class="hub-overview-share-title">Broadcast Result</h3>
+            <p class="hub-overview-share-sub">Publish to DeltaCrown Community</p>
+
+            <div class="hub-overview-share-preview">
+              <div class="hub-overview-share-preview-logo-wrap" aria-hidden="true">
+                <img id="hub-overview-share-preview-logo" src="" alt="Game logo" class="hub-overview-game-logo-img hidden">
+                <i data-lucide="sparkles" class="w-4 h-4 text-cyan-200"></i>
+              </div>
+              <div class="min-w-0">
+                <p id="hub-overview-share-preview-title" class="hub-overview-share-preview-title">Result Spotlight</p>
+                <p id="hub-overview-share-preview-body" class="hub-overview-share-preview-body">Post your moment to the community feed.</p>
+              </div>
+            </div>
+
+            <label for="hub-overview-share-caption" class="hub-overview-share-caption-label">Caption</label>
+            <textarea id="hub-overview-share-caption" class="hub-overview-share-caption" rows="5" placeholder="Share your result moment, opponent context, and verification note..."></textarea>
+
+            <div class="hub-overview-share-actions">
+              <button id="hub-overview-share-dismiss" type="button" class="hub-overview-share-btn secondary">
+                <i data-lucide="x" class="w-4 h-4"></i>
+                Cancel
+              </button>
+              <button id="hub-overview-share-copy" type="button" class="hub-overview-share-btn secondary">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+                Copy
+              </button>
+              <button id="hub-overview-share-post" type="button" class="hub-overview-share-btn primary">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                Post to Feed
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="hub-outcome-spotlight-copy">
-          <h3 id="hub-overview-outcome-spotlight-title" class="hub-outcome-spotlight-title">Match Result</h3>
-          <p id="hub-overview-outcome-spotlight-body" class="hub-outcome-spotlight-body"></p>
-        </div>
       </div>
-      <div id="hub-overview-outcome-spotlight-cta" class="hub-outcome-spotlight-cta"></div>
     </section>
   </div>
 
-  <div class="hidden md:block">
-    <p class="text-sm text-gray-400">Welcome back, <span class="font-bold text-white">{{ request.user.username }}</span>. Here is your operational status.</p>
-  </div>
-
-  <section class="hub-overview-glass rounded-2xl md:rounded-3xl p-4 md:p-6 overflow-hidden relative">
-    <div class="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-cyan-400/10 rounded-full blur-[60px] pointer-events-none"></div>
-
-    <div class="flex justify-between items-center mb-4 md:mb-6 gap-3">
-      <h3 class="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <i data-lucide="activity" class="w-4 h-4 text-cyan-300"></i>
-        Mission Progress
-      </h3>
-      <span id="hub-lifecycle-phase-label" class="text-[9px] md:text-[10px] font-mono text-cyan-200 border border-cyan-300/30 px-2 py-1 rounded bg-cyan-300/10">{{ hub_lifecycle_pipeline.phase_label }}</span>
-    </div>
-
-    <div class="relative w-full overflow-x-auto hide-scrollbar touch-pan-x snap-x snap-mandatory pb-2">
-      <div class="min-w-[560px] relative px-2 md:px-4">
-        <div class="absolute top-3.5 md:top-4 left-6 right-6 h-[2px] md:h-1 bg-white/10 rounded-full">
-          <div id="hub-lifecycle-progress" class="h-full bg-cyan-300 rounded-full transition-all duration-700 shadow-[0_0_12px_rgba(0,240,255,0.5)]" style="width: {{ hub_lifecycle_pipeline.progress_percent }}%;"></div>
-        </div>
-
-        <div class="relative flex justify-between">
-          {% for step in hub_lifecycle_pipeline.steps %}
-          <div id="hub-pipeline-step-{{ step.key }}" data-pipeline-step="{{ step.key }}" class="flex flex-col items-center gap-2 snap-center {% if step.active %}animate-slide-right{% endif %} {% if not step.active and not step.completed %}opacity-50{% endif %}">
-            {% if step.active %}
-            <div data-pipeline-circle class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#08080A] border-2 border-cyan-300 text-cyan-200 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(0,240,255,0.35)] animate-pulse">
-              <i data-lucide="{{ step.icon }}" class="w-4 h-4 md:w-5 md:h-5"></i>
-            </div>
-            <span data-pipeline-label class="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest mt-1 text-center">{{ step.label }}</span>
-            {% elif step.completed %}
-            <div data-pipeline-circle class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-cyan-300 text-black flex items-center justify-center z-10">
-              <i data-lucide="check" class="w-3 h-3 md:w-4 md:h-4 font-black"></i>
-            </div>
-            <span data-pipeline-label class="text-[8px] md:text-[9px] font-bold text-cyan-200 uppercase tracking-widest text-center">{{ step.label }}</span>
-            {% else %}
-            <div data-pipeline-circle class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#0B0D12] border border-white/20 text-gray-500 flex items-center justify-center z-10">
-              <i data-lucide="{{ step.icon }}" class="w-3 h-3 md:w-4 md:h-4"></i>
-            </div>
-            <span data-pipeline-label class="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest text-center">{{ step.label }}</span>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
-    <div id="hub-overview-action-card" class="lg:col-span-2 hub-overview-glass rounded-2xl md:rounded-3xl p-1 overflow-hidden relative {% if not hub_command_center.show %}hidden{% endif %}" data-lobby-state="{{ hub_command_center.lobby_state }}">
-      <div class="absolute inset-0 bg-gradient-to-r from-cyan-300/30 via-violet-500/10 to-amber-300/25 opacity-60"></div>
-      <div class="absolute inset-[1px] bg-[#08080A] rounded-[15px] md:rounded-[23px] z-0"></div>
-
-      <div class="relative z-10 p-5 md:p-7 flex flex-col md:flex-row gap-5 md:gap-6 items-center">
-        <div class="flex-1 text-center md:text-left w-full">
-          {% if phase_event.type == 'danger' %}
-          <div id="hub-overview-phase-pill" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF2A55]/15 border border-[#FF2A55]/25 mb-3">
-            <span class="w-2 h-2 rounded-full bg-[#FF2A55] animate-pulse"></span>
-            <span id="hub-overview-phase-label" class="text-[10px] font-black text-[#FF8AA0] uppercase tracking-widest">{{ phase_event.label }}</span>
-          </div>
-          {% elif phase_event.type == 'success' %}
-          <div id="hub-overview-phase-pill" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/25 mb-3">
-            <span class="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></span>
-            <span id="hub-overview-phase-label" class="text-[10px] font-black text-[#66FFAE] uppercase tracking-widest">{{ phase_event.label }}</span>
-          </div>
-          {% else %}
-          <div id="hub-overview-phase-pill" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-300/15 border border-cyan-300/25 mb-3">
-            <span class="w-2 h-2 rounded-full bg-cyan-300"></span>
-            <span id="hub-overview-phase-label" class="text-[10px] font-black text-cyan-200 uppercase tracking-widest">{{ phase_event.label }}</span>
-          </div>
-          {% endif %}
-
-          <span
-            id="hub-overview-action-badge"
-            class="mb-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-[0.12em] {% if hub_command_center.badge_tone == 'danger' %}border-[#FF2A55]/30 bg-[#FF2A55]/15 text-[#FF8AA0]{% elif hub_command_center.badge_tone == 'success' %}border-[#00FF66]/35 bg-[#00FF66]/15 text-[#66FFAE]{% elif hub_command_center.badge_tone == 'warning' %}border-amber-300/35 bg-amber-300/15 text-amber-300{% else %}border-cyan-300/30 bg-cyan-300/10 text-cyan-200{% endif %}"
-          >
-            {{ hub_command_center.badge_label|default:'Standby' }}
+  <section id="hub-overview-action-card" class="hub-overview-hero-card premium-glass-card {% if not hub_command_center.show %}hidden{% endif %}" data-lobby-state="{{ hub_command_center.lobby_state }}" data-outcome-state="{{ hub_command_center.outcome_state|default:'' }}">
+    <canvas id="hub-overview-hero-fx-canvas" class="hub-overview-hero-fx-canvas" aria-hidden="true"></canvas>
+    <div class="hub-overview-hero-grid">
+      <div class="hub-overview-hero-left">
+        <p class="hub-overview-hero-welcome">
+          <span class="hub-overview-hero-welcome-icon" aria-hidden="true">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
           </span>
+          <span class="hub-overview-hero-welcome-copy">Welcome back</span>
+          <span class="hub-overview-hero-welcome-user">{{ request.user.username }}</span>
+          <span class="hub-overview-hero-welcome-sep" aria-hidden="true">•</span>
+          <span class="hub-overview-hero-tourney">{{ tournament.name }}</span>
+        </p>
 
-          <h2 id="hub-overview-title" class="font-black text-2xl md:text-4xl text-white tracking-tight uppercase leading-tight mb-2" style="font-family:Outfit,sans-serif;">
-            {% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}
-              {{ hub_command_center.title }}
-            {% elif effective_status == 'live' and stage_display %}
-              {{ stage_display }} — Live
-            {% elif effective_status == 'live' %}
-              Live / In Progress
-            {% elif effective_status == 'registration_open' %}
-              Registration Open
-            {% elif effective_status == 'registration_closed' %}
-              Awaiting Start
-            {% elif effective_status == 'completed' %}
-              Tournament Complete
-            {% else %}
-              {{ tournament.name }}
-            {% endif %}
-          </h2>
+        <h1 id="hub-overview-title" class="sr-only">{{ tournament.name }}</h1>
 
-          {% if participant_progression %}
-          {% if participant_progression.advanced %}
-          <div class="mb-4 p-4 rounded-xl border border-[#00FF66]/30 bg-gradient-to-r from-[#00FF66]/10 via-[#00FF66]/5 to-transparent relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-[#00FF66]/10 rounded-full blur-[40px] pointer-events-none"></div>
-            <div class="flex items-center gap-3 relative z-10">
-              <div class="w-10 h-10 rounded-xl bg-[#00FF66]/20 flex items-center justify-center border border-[#00FF66]/30 shrink-0">
-                <i data-lucide="trophy" class="w-5 h-5 text-[#00FF66]"></i>
-              </div>
-              <div class="flex-1">
-                <p class="text-[10px] font-black text-[#00FF66] uppercase tracking-widest">Advanced to Knockout</p>
-                <p class="text-sm font-bold text-white mt-0.5">You qualified from {{ participant_progression.group_name }} (Rank #{{ participant_progression.rank }}) — Knockout Stage is live!</p>
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <div class="mb-4 p-4 rounded-xl border border-gray-500/20 bg-gradient-to-r from-gray-500/5 to-transparent relative overflow-hidden">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gray-500/10 flex items-center justify-center border border-gray-500/20 shrink-0">
-                <i data-lucide="eye" class="w-5 h-5 text-gray-400"></i>
-              </div>
-              <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Eliminated — Group Stage</p>
-                <p class="text-sm font-medium text-gray-400 mt-0.5">Finished {{ participant_progression.group_name }} at Rank #{{ participant_progression.rank }}. Watch the Knockout bracket unfold.</p>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-          {% endif %}
+        <h2 id="hub-overview-action-title" class="hub-overview-hero-title leading-[0.95]">{{ hub_command_center.title }}</h2>
+        <p id="hub-overview-action-subtitle" class="hub-overview-hero-copy">{{ hub_command_center.subtitle }}</p>
+        <p id="hub-overview-action-meta" class="hub-overview-hero-meta">
+          {% if hub_command_center.match_stage_label %}{{ hub_command_center.match_stage_label }}{% endif %}
+          {% if hub_command_center.match_round_name %} &middot; {{ hub_command_center.match_round_name }}{% endif %}
+          {% if hub_command_center.match_number %} &middot; Match #{{ hub_command_center.match_number }}{% endif %}
+        </p>
 
-          <h3 id="hub-overview-action-title" class="font-black text-2xl md:text-4xl text-white uppercase tracking-wide mb-2 leading-none">{{ hub_command_center.title }}</h3>
-          {% if hub_command_center.match_stage_label or hub_command_center.match_round_name %}
-          <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">
-            {% if hub_command_center.match_stage_label %}{{ hub_command_center.match_stage_label }}{% endif %}
-            {% if hub_command_center.match_round_name %} · {{ hub_command_center.match_round_name }}{% endif %}
-            {% if hub_command_center.match_number %} · Match #{{ hub_command_center.match_number }}{% endif %}
-          </p>
-          {% endif %}
-          <p id="hub-overview-action-subtitle" class="text-[11px] md:text-xs text-gray-300 font-medium mb-5 md:mb-6">{{ hub_command_center.subtitle }}</p>
-
+        <div class="hub-overview-hero-actions">
           <button
             id="hub-overview-action-btn"
             data-hub-action="{{ hub_command_center.cta_action }}"
@@ -165,7 +123,7 @@
             {% if hub_command_center.cta_action == 'check_in' %}
               data-click="HubEngine.performCheckIn"
             {% elif hub_command_center.cta_action == 'enter_lobby' and hub_command_center.cta_url %}
-               data-click-href="{{ hub_command_center.cta_url }}"
+              data-click-href="{{ hub_command_center.cta_url }}"
             {% elif hub_command_center.cta_action == 'respond_reschedule' and hub_command_center.match_id %}
               data-click="HubEngine.respondReschedule" data-click-args='["{{ hub_command_center.match_id }}"]'
             {% elif hub_command_center.cta_action == 'open_matches' %}
@@ -181,33 +139,56 @@
             {% else %}
               data-click="HubEngine.switchTab" data-click-args='["schedule"]'
             {% endif %}
-            class="w-full md:w-auto min-h-[52px] px-8 rounded-xl flex items-center justify-center gap-3 text-xs md:text-sm tracking-widest uppercase font-black transition-all {% if hub_command_center.badge_tone == 'warning' %}bg-amber-300/15 text-amber-300 border border-amber-300 shadow-[0_0_20px_rgba(255,184,0,0.2)]{% elif hub_command_center.badge_tone == 'success' %}bg-cyan-300 text-black border border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.35)]{% elif hub_command_center.badge_tone == 'danger' %}bg-[#FF2A55]/15 text-[#FF8AA0] border border-[#FF2A55] shadow-[0_0_24px_rgba(255,42,85,0.25)]{% else %}bg-white/10 text-white border border-white/20{% endif %}"
+            class="hub-overview-btn primary"
           >
             {% if hub_command_center.cta_action == 'check_in' %}
-              <i data-lucide="shield-alert" class="w-5 h-5"></i>
+              <i data-lucide="shield-alert" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'enter_lobby' %}
-              <i data-lucide="swords" class="w-5 h-5"></i>
+              <i data-lucide="swords" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'respond_reschedule' %}
-              <i data-lucide="clock-3" class="w-5 h-5"></i>
+              <i data-lucide="clock-3" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'open_bracket' %}
-              <i data-lucide="git-branch" class="w-5 h-5"></i>
+              <i data-lucide="git-branch" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'open_standings' %}
-              <i data-lucide="list-ordered" class="w-5 h-5"></i>
+              <i data-lucide="list-ordered" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'open_support' %}
-              <i data-lucide="life-buoy" class="w-5 h-5"></i>
+              <i data-lucide="life-buoy" class="w-4 h-4"></i>
             {% elif hub_command_center.cta_action == 'open_announcements' %}
-              <i data-lucide="megaphone" class="w-5 h-5"></i>
+              <i data-lucide="megaphone" class="w-4 h-4"></i>
             {% else %}
-              <i data-lucide="calendar" class="w-5 h-5"></i>
+              <i data-lucide="calendar" class="w-4 h-4"></i>
             {% endif %}
             <span>{{ hub_command_center.cta_label }}</span>
           </button>
+
+          <button id="hub-overview-secondary-btn" type="button" class="hub-overview-btn secondary" data-click="HubEngine.switchTab" data-click-args='["matches"]'>
+            <i data-lucide="crosshair" class="w-4 h-4"></i>
+            <span>View Next Assignment</span>
+          </button>
+
+          <button id="hub-overview-spotlight-btn" type="button" class="hub-overview-btn tertiary hub-overview-btn-reveal hidden" data-click="HubEngine.openOutcomeSpotlight">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Reveal</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="hub-overview-hero-right">
+        <div class="hub-overview-hero-tile">
+          <div class="hub-overview-hero-tile-head">
+            <p class="hub-overview-hero-tile-label">Status</p>
+            <div class="hub-overview-game-logo-wrap" aria-hidden="true">
+              <img id="hub-overview-game-logo" src="" alt="Game logo" class="hub-overview-game-logo-img hidden">
+              <i data-lucide="gamepad-2" class="w-4 h-4 text-cyan-200"></i>
+            </div>
+          </div>
+          <p id="hub-overview-hero-outcome" class="hub-overview-hero-tile-value">Standby</p>
+          <p id="hub-overview-hero-game-name" class="hub-overview-hero-tile-sub">{{ game_name|default:'Tournament' }}</p>
         </div>
 
-        <div class="hub-overview-glass-card p-5 md:p-6 rounded-2xl w-full md:w-[270px] text-center shrink-0 bg-black/50 border-white/10">
-          <i data-lucide="clock-3" class="w-5 h-5 md:w-6 md:h-6 text-gray-400 mx-auto mb-2"></i>
-          <p id="hub-overview-action-time-label" class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ hub_command_center.countdown_label }}</p>
-          <p id="hub-overview-action-time" class="font-mono font-black text-3xl md:text-4xl text-white mb-3 tracking-tight" data-match-time="{% if hub_command_center.countdown_mode == 'live' %}live{% elif hub_command_center.countdown_target %}countdown{% endif %}">
+        <div class="hub-overview-hero-tile">
+          <p id="hub-overview-action-time-label" class="hub-overview-hero-tile-label">{{ hub_command_center.countdown_label }}</p>
+          <p id="hub-overview-action-time" class="hub-overview-hero-time" data-match-time="{% if hub_command_center.countdown_mode == 'live' %}live{% elif hub_command_center.countdown_target %}countdown{% endif %}">
             {% if hub_command_center.countdown_mode == 'live' %}
               LIVE NOW
             {% elif hub_command_center.countdown_target %}
@@ -216,228 +197,223 @@
               {{ hub_command_center.countdown_text }}
             {% endif %}
           </p>
-          <div class="h-px w-full bg-white/10 mb-3"></div>
-          <p class="text-[9px] md:text-[10px] text-gray-400 leading-relaxed px-2">{{ hub_command_center.hint }}</p>
+          <p class="hub-overview-hero-tile-sub">{{ hub_command_center.hint }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="hub-overview-standby-card" class="hub-overview-standby-card hub-overview-system-card premium-glass-card {% if hub_command_center.show %}hidden{% endif %}">
+    <div class="hub-overview-card-head">
+      <div class="hub-overview-section-title">
+        <p class="hub-overview-title-eyebrow">Command Center</p>
+        <h3 class="hub-overview-card-title">
+          <span class="hub-overview-title-icon is-cyan" aria-hidden="true">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </span>
+          <span class="hub-overview-title-text">No Immediate Match Action</span>
+        </h3>
+      </div>
+      <span class="hub-overview-action-badge info">Pipeline Focus</span>
+    </div>
+    <p class="hub-overview-standby-copy">Tournament is currently in {{ effective_status_display|default:tournament.get_status_display }} phase. Mission progress stays highlighted until your next assignment unlocks.</p>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <button type="button" data-click="HubEngine.switchTab" data-click-args='["schedule"]' class="hub-overview-btn secondary">View Schedule</button>
+      <button type="button" data-click="HubEngine.switchTab" data-click-args='["announcements"]' class="hub-overview-btn tertiary">Announcements</button>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
+    <div class="lg:col-span-8 hub-overview-mission-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head">
+        <div class="hub-overview-section-title">
+          <p class="hub-overview-title-eyebrow">Tournament Flow</p>
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon is-cyan" aria-hidden="true">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </span>
+            <span class="hub-overview-title-text">Mission Progress</span>
+          </h3>
+        </div>
+        <span id="hub-lifecycle-phase-label" class="hub-overview-chip">{{ hub_lifecycle_pipeline.phase_label }}</span>
+      </div>
+
+      <div class="hub-overview-mission-stack">
+        <div class="hub-overview-mission-rail" style="--step-count: {% if hub_lifecycle_pipeline.steps|length %}{{ hub_lifecycle_pipeline.steps|length }}{% else %}1{% endif %};">
+          <div class="hub-overview-mission-track" aria-hidden="true">
+            <div class="hub-overview-mission-track-base"></div>
+            <div id="hub-lifecycle-progress" class="hub-overview-progress-fill" style="width: {{ hub_lifecycle_pipeline.progress_percent }}%;"></div>
+          </div>
+
+          <div class="hub-overview-pipeline-rail">
+            {% for step in hub_lifecycle_pipeline.steps %}
+            <div id="hub-pipeline-step-{{ step.key }}" data-pipeline-step="{{ step.key }}" class="hub-overview-pipeline-step {% if step.active %}is-active{% elif step.completed %}is-completed{% else %}is-upcoming{% endif %}">
+              {% if step.active %}
+              <div data-pipeline-circle class="hub-overview-pipeline-node is-active is-pulsing">
+                <span class="hub-overview-pipeline-core"></span>
+              </div>
+              <span data-pipeline-label class="hub-overview-pipeline-label active">{{ step.label }}</span>
+              {% elif step.completed %}
+              <div data-pipeline-circle class="hub-overview-pipeline-node is-completed">
+                <span class="hub-overview-pipeline-core"></span>
+              </div>
+              <span data-pipeline-label class="hub-overview-pipeline-label completed">{{ step.label }}</span>
+              {% else %}
+              <div data-pipeline-circle class="hub-overview-pipeline-node is-upcoming">
+                <span class="hub-overview-pipeline-core"></span>
+              </div>
+              <span data-pipeline-label class="hub-overview-pipeline-label upcoming">{{ step.label }}</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
 
-    <div id="hub-overview-standby-card" class="lg:col-span-2 hub-overview-glass rounded-2xl md:rounded-3xl p-6 md:p-8 {% if hub_command_center.show %}hidden{% endif %}">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <p class="text-[10px] font-black text-cyan-200 uppercase tracking-widest">Command Center</p>
-        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-200">Pipeline Focus</span>
-      </div>
-      <h3 class="text-xl md:text-2xl font-black text-white" style="font-family:Outfit,sans-serif;">No immediate match action</h3>
-      <p class="text-sm text-gray-300 mt-2 leading-relaxed">Tournament is currently in {{ effective_status_display|default:tournament.get_status_display }} phase. Mission progress stays highlighted until a match enters your 15-60 minute command window.</p>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["schedule"]' class="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10 transition-colors">View Schedule</button>
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["announcements"]' class="px-4 py-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-xs font-black uppercase tracking-wider text-cyan-200 hover:bg-cyan-300/15 transition-colors">Announcements</button>
-      </div>
-    </div>
-
-    <div id="hub-overview-outcome-persistent" class="hidden lg:col-span-2 hub-outcome-persistent">
-      <div class="hub-outcome-persistent-head">
-        <div>
-          <p id="hub-overview-outcome-persistent-kicker" class="hub-outcome-persistent-kicker">Journey Update</p>
-          <h4 id="hub-overview-outcome-persistent-title" class="hub-outcome-persistent-title">Result Summary</h4>
-        </div>
-        <span id="hub-overview-outcome-persistent-state" class="hub-outcome-persistent-state">Updated</span>
-      </div>
-      <p id="hub-overview-outcome-persistent-body" class="hub-outcome-persistent-body"></p>
-      <div id="hub-overview-outcome-persistent-cta" class="hub-outcome-persistent-cta"></div>
-      <div class="hub-outcome-community">
-        <p class="hub-outcome-community-label">Suggested Community Post</p>
-        <p id="hub-overview-community-draft" class="hub-outcome-community-text"></p>
-      </div>
-    </div>
-
-    <div class="hub-overview-id-pass rounded-2xl md:rounded-3xl p-5 md:p-6 flex flex-col justify-between shadow-[0_0_30px_rgba(0,240,255,0.05)]">
+    <aside class="lg:col-span-4 hub-overview-id-pass hub-overview-system-card premium-glass-card p-5 md:p-6 flex flex-col justify-between">
       <div class="flex justify-between items-start">
         <div class="pr-2 min-w-0">
-          <p class="text-[9px] md:text-[10px] font-black text-cyan-300 uppercase tracking-widest mb-1">Official Pass</p>
-          <h3 class="font-black text-xl md:text-2xl text-white leading-none truncate" style="font-family:Outfit,sans-serif;">{{ hub_official_pass.display_name }}</h3>
-          <p class="text-[9px] md:text-[10px] font-mono text-gray-300 mt-1.5 truncate">{{ hub_official_pass.participant_label }}</p>
+          <p class="hub-overview-title-eyebrow mb-1">Official Pass</p>
+          <h3 class="hub-overview-pass-name">{{ hub_official_pass.display_name }}</h3>
+          <p class="hub-overview-pass-meta">{{ hub_official_pass.participant_label }}</p>
         </div>
-        <div class="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
-          <i data-lucide="qr-code" class="w-5 h-5 md:w-6 md:h-6 text-white"></i>
+        <div class="hub-overview-pass-qr">
+          <i data-lucide="qr-code" class="w-5 h-5 md:w-6 md:h-6 text-zinc-300"></i>
         </div>
       </div>
 
-      <div class="mt-5 md:mt-6 space-y-2.5">
-        <div class="flex justify-between items-center bg-black/40 px-3 py-2.5 rounded-lg border border-white/5">
-          <span class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest">Entry</span>
+      <div class="mt-5 md:mt-6 space-y-1">
+        <div class="hub-overview-pass-row">
+          <span class="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Entry</span>
           <span class="text-[10px] md:text-xs font-bold {% if hub_official_pass.entry_verified %}text-[#66FFAE]{% else %}text-amber-300{% endif %} flex items-center gap-1.5">
             <i data-lucide="{% if hub_official_pass.entry_verified %}check-circle{% else %}hourglass{% endif %}" class="w-3.5 h-3.5"></i>
             {{ hub_official_pass.entry_status_label }}
           </span>
         </div>
-        <div class="flex justify-between items-center bg-black/40 px-3 py-2.5 rounded-lg border border-white/5">
-          <span class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest">Fee</span>
+        <div class="hub-overview-pass-row">
+          <span class="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Fee</span>
           <span class="text-[10px] md:text-xs font-bold text-white font-mono">{{ hub_official_pass.fee_text }}</span>
         </div>
-        <div class="flex justify-between items-center bg-black/40 px-3 py-2.5 rounded-lg border border-white/5">
-          <span class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest">Status</span>
-          <span id="hub-overview-status-label" class="text-[10px] md:text-xs font-bold text-cyan-200 uppercase tracking-wide">{{ user_status }}</span>
+        <div class="hub-overview-pass-row">
+          <span class="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Status</span>
+          <span id="hub-overview-status-label" class="text-[10px] md:text-xs font-bold text-zinc-200 uppercase tracking-wide">{{ user_status }}</span>
         </div>
-        <div class="flex justify-between items-center bg-black/40 px-3 py-2.5 rounded-lg border border-white/5">
-          <span class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest">Participants</span>
+        <div class="hub-overview-pass-row">
+          <span class="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Participants</span>
           <span id="hub-reg-count" class="text-[10px] md:text-xs font-bold text-white font-mono">{{ reg_count }}</span>
         </div>
-        <button id="openTicketModal" type="button" data-click="HubEngine.openTicketModal" class="w-full mt-1.5 min-h-[44px] rounded-lg border border-cyan-300/40 bg-cyan-300/10 hover:bg-cyan-300/20 text-cyan-200 text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+        <button id="openTicketModal" type="button" data-click="HubEngine.openTicketModal" class="hub-overview-btn tertiary w-full mt-2 justify-center">
           <i data-lucide="ticket" class="w-4 h-4"></i>
           View Ticket Pass
         </button>
       </div>
-    </div>
+    </aside>
   </section>
 
-  {% if phase_event.target %}
-  <div id="hub-countdown" class="mt-2 flex items-center justify-center gap-2 digital-clock" data-target="{{ phase_event.target }}">
-    <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span id="hub-cd-hours" class="countdown-val">--</span></div>
-    <span class="text-lg text-gray-600 font-bold">:</span>
-    <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span id="hub-cd-minutes" class="countdown-val">--</span></div>
-    <span class="text-lg text-gray-600 font-bold">:</span>
-    <div class="countdown-block {% if phase_event.type == 'danger' %}danger{% endif %}"><span id="hub-cd-seconds" class="countdown-val">--</span></div>
-  </div>
-  {% else %}
-  <div id="hub-countdown" class="hidden mt-2 items-center justify-center gap-2 digital-clock" data-target="">
-    <div class="countdown-block"><span id="hub-cd-hours" class="countdown-val">--</span></div>
-    <span class="text-lg text-gray-600 font-bold">:</span>
-    <div class="countdown-block"><span id="hub-cd-minutes" class="countdown-val">--</span></div>
-    <span class="text-lg text-gray-600 font-bold">:</span>
-    <div class="countdown-block"><span id="hub-cd-seconds" class="countdown-val">--</span></div>
-  </div>
-  {% endif %}
-
-  <section>
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-        <i data-lucide="help-circle" class="w-4 h-4 text-[#66FFAE]"></i>
-        Quick Start Guide
-      </h3>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
-      <div class="hub-overview-glass-card p-4 md:p-5 rounded-2xl flex md:flex-col items-center md:items-start gap-4 md:gap-3 relative overflow-hidden group">
-        <div class="absolute -right-3 -top-3 text-white/5 font-black text-6xl md:text-7xl group-hover:scale-110 transition-transform pointer-events-none">1</div>
-        <div class="w-10 h-10 md:w-9 md:h-9 shrink-0 rounded-full bg-amber-300/15 text-amber-300 flex items-center justify-center font-black text-sm border border-amber-300/30">
-          <i data-lucide="mouse-pointer-click" class="w-4 h-4 md:w-3.5 md:h-3.5"></i>
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
+    <div id="hub-overview-intel-card" class="lg:col-span-7 hub-overview-intel-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head hub-overview-card-head--compact">
+        <div class="hub-overview-section-title">
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon is-cyan" aria-hidden="true">
+              <i data-lucide="radar" class="w-4 h-4"></i>
+            </span>
+            <span id="hub-overview-intel-title" class="hub-overview-title-text">Target Intel</span>
+          </h3>
         </div>
-        <div class="flex-1">
-          <p class="font-bold text-white text-sm mb-0.5">Check In</p>
-          <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Confirm your attendance before the window closes.</p>
-        </div>
-      </div>
-      <div class="hub-overview-glass-card p-4 md:p-5 rounded-2xl flex md:flex-col items-center md:items-start gap-4 md:gap-3 relative overflow-hidden group {% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}opacity-40{% endif %}">
-        <div class="absolute -right-3 -top-3 text-white/5 font-black text-6xl md:text-7xl group-hover:scale-110 transition-transform pointer-events-none">2</div>
-        <div class="w-10 h-10 md:w-9 md:h-9 shrink-0 rounded-full {% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}bg-red-400/15 text-red-300 border-red-400/30{% else %}bg-cyan-300/15 text-cyan-200 border-cyan-300/30{% endif %} flex items-center justify-center font-black text-sm border">
-          <i data-lucide="{% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}clock-3{% else %}swords{% endif %}" class="w-4 h-4 md:w-3.5 md:h-3.5"></i>
-        </div>
-        <div class="flex-1">
-          <p class="font-bold text-white text-sm mb-0.5">{% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}Lobby Expired{% else %}Enter Lobby{% endif %}</p>
-          <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">{% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}The lobby window has closed. Request a reschedule if needed.{% else %}Coordinate with opponent and complete pre-match setup.{% endif %}</p>
-        </div>
-      </div>
-      <div class="hub-overview-glass-card p-4 md:p-5 rounded-2xl flex md:flex-col items-center md:items-start gap-4 md:gap-3 relative overflow-hidden group">
-        <div class="absolute -right-3 -top-3 text-white/5 font-black text-6xl md:text-7xl group-hover:scale-110 transition-transform pointer-events-none">3</div>
-        <div class="w-10 h-10 md:w-9 md:h-9 shrink-0 rounded-full bg-violet-500/15 text-violet-300 flex items-center justify-center font-black text-sm border border-violet-500/30">
-          <i data-lucide="gamepad-2" class="w-4 h-4 md:w-3.5 md:h-3.5"></i>
-        </div>
-        <div class="flex-1">
-          <p class="font-bold text-white text-sm mb-0.5">Play Match</p>
-          <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Complete the match under the configured tournament rules.</p>
-        </div>
-      </div>
-      <div class="hub-overview-glass-card p-4 md:p-5 rounded-2xl flex md:flex-col items-center md:items-start gap-4 md:gap-3 relative overflow-hidden group">
-        <div class="absolute -right-3 -top-3 text-white/5 font-black text-6xl md:text-7xl group-hover:scale-110 transition-transform pointer-events-none">4</div>
-        <div class="w-10 h-10 md:w-9 md:h-9 shrink-0 rounded-full bg-[#66FFAE]/15 text-[#66FFAE] flex items-center justify-center font-black text-sm border border-[#66FFAE]/30">
-          <i data-lucide="camera" class="w-4 h-4 md:w-3.5 md:h-3.5"></i>
-        </div>
-        <div class="flex-1">
-          <p class="font-bold text-white text-sm mb-0.5">Report Score</p>
-          <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Submit score evidence and finalize your result flow.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="overflow-x-auto hide-scrollbar touch-pan-x snap-x snap-mandatory">
-    <div class="grid grid-flow-col auto-cols-[minmax(210px,1fr)] md:grid-flow-row md:grid-cols-4 gap-3 md:gap-4 min-w-[860px] md:min-w-0">
-      <div class="hub-overview-game-cover rounded-2xl p-4 md:p-5 flex flex-col justify-end min-h-[120px] md:min-h-[140px] relative overflow-hidden group snap-center" style="background-image:linear-gradient(to top,rgba(2,2,3,0.95) 10%,rgba(2,2,3,0.2) 100%),url('{% if game_card_url %}{{ game_card_url }}{% else %}https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop{% endif %}');">
-        <div class="absolute inset-0 bg-cyan-300/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <p class="text-[9px] font-black text-cyan-200 uppercase tracking-widest relative z-10">Game</p>
-        <h4 class="font-black text-base md:text-lg text-white relative z-10" style="font-family:Outfit,sans-serif;">{{ game_name|default:'TBD' }}</h4>
       </div>
 
-      <div class="hub-overview-glass-card rounded-2xl p-4 md:p-5 flex flex-col justify-center items-center text-center snap-center">
-        <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-2 border border-amber-500/20">
-          <i data-lucide="trophy" class="w-4 h-4 md:w-5 md:h-5 text-amber-400"></i>
-        </div>
-        <p class="text-[8px] md:text-[9px] font-black text-gray-500 uppercase tracking-widest">Prize Pool</p>
-        <p class="font-black text-lg md:text-xl text-white mt-0.5" style="font-family:Outfit,sans-serif;">
-          {% if tournament.prize_pool %}
-            {{ tournament.prize_pool }} <span class="text-[10px] md:text-xs text-gray-500 font-sans">{{ tournament.prize_currency }}</span>
-          {% else %}
-            TBA
-          {% endif %}
-        </p>
-      </div>
-
-      <div class="hub-overview-glass-card rounded-2xl p-4 md:p-5 flex flex-col justify-center items-center text-center snap-center">
-        <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-violet-500/10 flex items-center justify-center mb-2 border border-violet-500/20">
-          <i data-lucide="git-merge" class="w-4 h-4 md:w-5 md:h-5 text-violet-300"></i>
-        </div>
-        <p class="text-[8px] md:text-[9px] font-black text-gray-500 uppercase tracking-widest">Format</p>
-        <p class="font-bold text-white text-xs md:text-sm mt-0.5">{{ tournament.get_format_display|default:tournament.format|default:'TBD' }}</p>
-        <p class="text-[9px] md:text-[10px] text-gray-500 font-mono mt-0.5">{{ platform_display_text|default:'Any Platform' }}</p>
-      </div>
-
-      <div class="hub-overview-glass-card rounded-2xl p-4 md:p-5 flex flex-col justify-center snap-center">
-        <div class="flex justify-between items-center mb-2.5">
-          <p class="text-[8px] md:text-[9px] font-black text-gray-500 uppercase tracking-widest">{% if is_team %}Your Roster{% else %}Profile{% endif %}</p>
-          <i data-lucide="users" class="w-3.5 h-3.5 text-gray-500"></i>
-        </div>
-        <div class="flex items-center gap-2.5 bg-white/5 p-2 rounded-lg border border-white/5">
-          <div class="w-6 h-6 md:w-7 md:h-7 rounded bg-cyan-300/20 text-cyan-200 flex items-center justify-center text-[10px] font-bold">{{ hub_official_pass.initials }}</div>
-          <div class="flex-1 min-w-0">
-            <p class="text-[10px] md:text-xs font-bold text-white truncate">
-              {% if is_team and team_name %}
-                {{ team_name }}{% if is_captain %} <span class="text-amber-300 text-[8px]">(C)</span>{% endif %}
-              {% else %}
-                {{ request.user.username }}
-              {% endif %}
-            </p>
-          </div>
-          <span class="w-2 h-2 rounded-full {% if squad_ready or not is_team %}bg-[#66FFAE] shadow-[0_0_8px_#66FFAE]{% else %}bg-amber-300 shadow-[0_0_8px_rgba(255,184,0,0.6)]{% endif %} shrink-0"></span>
-        </div>
-        <button type="button" class="text-[9px] text-center text-gray-400 mt-2.5 hover:text-white transition-colors" data-click="HubEngine.switchTab" data-click-args='["{% if is_team %}squad{% else %}participants{% endif %}"]'>Open {% if is_team %}Squad{% else %}Participants{% endif %} -&gt;</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
-    <div class="lg:col-span-2 hub-overview-glass-card rounded-2xl md:rounded-3xl p-5 md:p-6">
-      <div class="flex items-center justify-between mb-4 md:mb-5 border-b border-white/5 pb-3 md:pb-4">
-        <h3 class="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-          <i data-lucide="radio" class="w-4 h-4 text-cyan-300"></i>
-          Live Announcements
-        </h3>
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["announcements"]' class="text-[9px] md:text-[10px] font-bold text-cyan-200 bg-cyan-300/10 px-3 py-1.5 rounded-full hover:bg-cyan-300/20 transition-colors">View All</button>
-      </div>
-
-      <div id="hub-overview-announcements-feed" class="space-y-3 md:space-y-4">
-        {% for ann in announcements|slice:":5" %}
-        <div class="flex items-start gap-3 md:gap-4 group">
-          <div class="w-7 h-7 md:w-8 md:h-8 rounded-full {% if ann.type == 'urgent' %}bg-[#FF2A55]/10 border border-[#FF2A55]/20{% elif ann.type == 'warning' %}bg-amber-300/10 border border-amber-300/20{% elif ann.type == 'success' %}bg-[#66FFAE]/10 border border-[#66FFAE]/20{% else %}bg-cyan-300/10 border border-cyan-300/20{% endif %} flex items-center justify-center shrink-0 mt-0.5 md:mt-0">
-            <i data-lucide="{{ ann.icon|default:'megaphone' }}" class="w-3 h-3 md:w-3.5 md:h-3.5 {% if ann.type == 'urgent' %}text-[#FF8AA0]{% elif ann.type == 'warning' %}text-amber-300{% elif ann.type == 'success' %}text-[#66FFAE]{% else %}text-cyan-200{% endif %}"></i>
-          </div>
-          <div class="flex-1 bg-white/5 p-3 md:p-3.5 rounded-xl border border-transparent group-hover:border-white/10 transition-all">
-            <div class="flex justify-between items-start md:items-center mb-1.5 md:mb-1 gap-2">
-              <p class="text-xs md:text-sm font-bold text-white leading-tight">{{ ann.title|default:'Announcement' }}</p>
-              <span class="text-[9px] md:text-[10px] font-mono text-gray-500 whitespace-nowrap">{{ ann.time_ago }}</span>
+      <div class="hub-overview-intel-shell">
+        <div class="hub-overview-intel-top">
+          <div class="hub-overview-intel-profile">
+            <div class="hub-overview-intel-avatar" aria-hidden="true">
+              <img id="hub-overview-intel-avatar" src="" alt="Opponent avatar" class="hub-overview-intel-avatar-img hidden">
+              <span id="hub-overview-intel-avatar-fallback" class="hub-overview-intel-avatar-fallback">OP</span>
             </div>
-            <p class="text-[10px] md:text-[11px] text-gray-400 leading-relaxed">{{ ann.message }}</p>
+
+            <div class="hub-overview-intel-opponent-meta min-w-0">
+              <p id="hub-overview-intel-opponent" class="hub-overview-intel-opponent">Stand By</p>
+              <p id="hub-overview-intel-stage" class="hub-overview-intel-context">No verified matchup is available yet.</p>
+              <p id="hub-overview-intel-kicker" class="hidden"></p>
+              <p id="hub-overview-intel-micro-label" class="hidden"></p>
+              <div id="hub-overview-intel-signals" class="hidden"></div>
+            </div>
+          </div>
+
+          <div id="hub-overview-intel-view-toggle" class="hub-overview-intel-view-toggle" role="tablist" aria-label="Intel mode">
+            <button id="hub-overview-intel-toggle-opponent" type="button" data-click="HubEngine.setOverviewIntelView" data-click-args='["opponent"]' class="hub-overview-intel-toggle-btn" aria-pressed="false">Scouting</button>
+            <button id="hub-overview-intel-toggle-my" type="button" data-click="HubEngine.setOverviewIntelView" data-click-args='["my"]' class="hub-overview-intel-toggle-btn active" aria-pressed="true">My Snapshot</button>
           </div>
         </div>
+
+        <div class="hub-overview-intel-form-row">
+          <p class="hub-overview-intel-form-label">Recent Form</p>
+          <div id="hub-overview-intel-form" class="hub-overview-intel-form">
+            <span class="hub-overview-form-pill muted">-</span>
+            <span class="hub-overview-form-pill muted">-</span>
+            <span class="hub-overview-form-pill muted">-</span>
+            <span class="hub-overview-form-pill muted">-</span>
+          </div>
+        </div>
+
+        <div class="hub-overview-intel-stats-clean">
+          <div class="hub-overview-intel-stat-clean">
+            <p id="hub-overview-intel-stat-winrate-label" class="hub-overview-intel-stat-label">Win Rate</p>
+            <p id="hub-overview-intel-stat-winrate" class="hub-overview-intel-stat-value">Data Pending</p>
+          </div>
+          <div class="hub-overview-intel-stat-clean">
+            <p id="hub-overview-intel-stat-record-label" class="hub-overview-intel-stat-label">Avg Goals / Match</p>
+            <p id="hub-overview-intel-stat-record" class="hub-overview-intel-stat-value">Data Pending</p>
+          </div>
+          <div class="hub-overview-intel-stat-clean">
+            <p id="hub-overview-intel-stat-live-label" class="hub-overview-intel-stat-label">Clean Sheets</p>
+            <p id="hub-overview-intel-stat-live" class="hub-overview-intel-stat-value">Data Pending</p>
+          </div>
+        </div>
+
+        <p id="hub-overview-intel-note" class="hub-overview-intel-support-line">No verified matchup is available yet.</p>
+        <p id="hub-overview-intel-note-title" class="hidden"></p>
+
+        <div class="hub-overview-intel-actions">
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["matches"]' class="hub-overview-intel-action-btn">
+            Open Matches
+          </button>
+          <button type="button" data-click="HubEngine.switchTab" data-click-args='["bracket"]' class="hub-overview-intel-action-btn secondary">
+            View Bracket
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5 hub-overview-feed-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head hub-overview-card-head--compact">
+        <div class="hub-overview-section-title">
+          <p class="hub-overview-title-eyebrow">Operations Feed</p>
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon hub-overview-title-icon--ghost is-cyan" aria-hidden="true">
+              <i data-lucide="radio" class="w-4 h-4"></i>
+            </span>
+            <span class="hub-overview-title-text">Live Announcements</span>
+          </h3>
+        </div>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["announcements"]' class="hub-overview-chip-btn">View All</button>
+      </div>
+
+      <div id="hub-overview-announcements-feed" class="space-y-0">
+        {% for ann in announcements|slice:":5" %}
+        <article class="hub-overview-ann-item {% if forloop.first %}latest{% endif %}">
+          <div class="hub-overview-ann-icon {% if ann.type == 'urgent' %}urgent{% elif ann.type == 'warning' %}warning{% elif ann.type == 'success' %}success{% else %}info{% endif %}">
+            <i data-lucide="{{ ann.icon|default:'megaphone' }}" class="w-3.5 h-3.5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between gap-3 mb-1">
+              <p class="hub-overview-ann-title text-xs md:text-sm font-bold text-white truncate">{{ ann.title|default:'Announcement' }}</p>
+              <span class="hub-overview-ann-time text-[9px] md:text-[10px] font-mono text-gray-500 whitespace-nowrap" data-ann-created-at="{{ ann.created_at|default:'' }}">{{ ann.time_ago }}</span>
+            </div>
+            <p class="hub-overview-ann-body text-[11px] text-zinc-400 leading-relaxed">{{ ann.message }}</p>
+          </div>
+        </article>
         {% empty %}
         <div class="text-center py-8">
           <p class="text-sm text-gray-500">No announcements yet</p>
@@ -446,48 +422,113 @@
         {% endfor %}
       </div>
     </div>
+  </section>
 
-    <div class="hub-overview-glass-card rounded-2xl md:rounded-3xl p-5 md:p-6 flex flex-col">
-      <h3 class="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-white/5 pb-3 md:pb-4">
-        <i data-lucide="book-open" class="w-4 h-4 text-gray-400"></i>
-        Rules and Resources
-      </h3>
-
-      <div class="space-y-2 flex-1">
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["rulebook"]' class="w-full text-left flex items-center gap-3 p-2.5 md:p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
-          <div class="w-8 h-8 rounded-lg bg-[#FF2A55]/10 flex items-center justify-center shrink-0">
-            <i data-lucide="shield-alert" class="w-4 h-4 text-[#FF8AA0]"></i>
-          </div>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
+    <div class="hub-overview-lower-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head hub-overview-card-head--compact">
+        <div class="hub-overview-section-title">
+          <p class="hub-overview-title-eyebrow">Operator Onboarding</p>
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon hub-overview-title-icon--ghost is-emerald" aria-hidden="true">
+              <i data-lucide="help-circle" class="w-4 h-4"></i>
+            </span>
+            <span class="hub-overview-title-text">Quick Start Guide</span>
+          </h3>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="hub-overview-guide-item">
+          <div class="hub-overview-guide-index">1</div>
           <div>
+            <p class="font-bold text-white text-sm mb-0.5">Check In</p>
+            <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Confirm your attendance before the window closes.</p>
+          </div>
+        </div>
+
+        <div class="hub-overview-guide-item {% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}opacity-55{% endif %}">
+          <div class="hub-overview-guide-index">2</div>
+          <div>
+            <p class="font-bold text-white text-sm mb-0.5">{% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}Lobby Expired{% else %}Enter Lobby{% endif %}</p>
+            <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">{% if hub_command_center.lobby_state == 'lobby_closed' or hub_command_center.lobby_state == 'forfeit_review' %}The lobby window has closed. Request a reschedule if needed.{% else %}Coordinate with your opponent and complete pre-match setup.{% endif %}</p>
+          </div>
+        </div>
+
+        <div class="hub-overview-guide-item">
+          <div class="hub-overview-guide-index">3</div>
+          <div>
+            <p class="font-bold text-white text-sm mb-0.5">Play Match</p>
+            <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Complete the match under the configured tournament rules.</p>
+          </div>
+        </div>
+
+        <div class="hub-overview-guide-item">
+          <div class="hub-overview-guide-index">4</div>
+          <div>
+            <p class="font-bold text-white text-sm mb-0.5">Report Score</p>
+            <p class="text-[10px] md:text-[11px] text-gray-400 leading-snug">Submit score evidence and finalize your result flow.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hub-overview-lower-card hub-overview-system-card premium-glass-card">
+      <div class="hub-overview-card-head hub-overview-card-head--compact">
+        <div class="hub-overview-section-title">
+          <p class="hub-overview-title-eyebrow">Mission Resources</p>
+          <h3 class="hub-overview-card-title">
+            <span class="hub-overview-title-icon hub-overview-title-icon--ghost is-amber" aria-hidden="true">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+            </span>
+            <span class="hub-overview-title-text">Rules and Resources</span>
+          </h3>
+        </div>
+      </div>
+
+      <div class="space-y-2.5 flex-1">
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["rulebook"]' class="hub-overview-resource-item">
+          <div class="hub-overview-resource-icon danger">
+            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          </div>
+          <div class="hub-overview-resource-copy">
             <p class="text-xs font-bold text-white">Rulebook</p>
             <p class="text-[9px] md:text-[10px] text-gray-500">Review anti-cheat and submission rules.</p>
           </div>
+          <span class="hub-overview-resource-arrow" aria-hidden="true">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          </span>
         </button>
 
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["schedule"]' class="w-full text-left flex items-center gap-3 p-2.5 md:p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
-          <div class="w-8 h-8 rounded-lg bg-amber-300/10 flex items-center justify-center shrink-0">
-            <i data-lucide="clock" class="w-4 h-4 text-amber-300"></i>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["schedule"]' class="hub-overview-resource-item">
+          <div class="hub-overview-resource-icon warning">
+            <i data-lucide="clock" class="w-4 h-4"></i>
           </div>
-          <div>
+          <div class="hub-overview-resource-copy">
             <p class="text-xs font-bold text-white">Timeline and Schedule</p>
             <p class="text-[9px] md:text-[10px] text-gray-500">Track all windows and round timings.</p>
           </div>
+          <span class="hub-overview-resource-arrow" aria-hidden="true">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          </span>
         </button>
 
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["support"]' class="w-full text-left flex items-center gap-3 p-2.5 md:p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
-          <div class="w-8 h-8 rounded-lg bg-cyan-300/10 flex items-center justify-center shrink-0">
-            <i data-lucide="life-buoy" class="w-4 h-4 text-cyan-200"></i>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["support"]' class="hub-overview-resource-item">
+          <div class="hub-overview-resource-icon info">
+            <i data-lucide="life-buoy" class="w-4 h-4"></i>
           </div>
-          <div>
+          <div class="hub-overview-resource-copy">
             <p class="text-xs font-bold text-white">Support and Disputes</p>
             <p class="text-[9px] md:text-[10px] text-gray-500">Open support ticket for urgent match issues.</p>
           </div>
+          <span class="hub-overview-resource-arrow" aria-hidden="true">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          </span>
         </button>
       </div>
 
-      <div class="mt-5 flex gap-2.5">
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["resources"]' class="flex-1 min-h-[44px] rounded-xl border border-white/10 text-[9px] md:text-[10px] font-bold text-white hover:bg-white/10 transition-colors uppercase tracking-widest">Resources</button>
-        <button type="button" data-click="HubEngine.switchTab" data-click-args='["support"]' class="flex-1 min-h-[44px] rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-[9px] md:text-[10px] font-bold text-cyan-200 hover:bg-cyan-300/20 transition-colors uppercase tracking-widest">Support</button>
+      <div class="mt-4 flex gap-2">
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["resources"]' class="hub-overview-btn secondary flex-1 justify-center">Resources</button>
+        <button type="button" data-click="HubEngine.switchTab" data-click-args='["support"]' class="hub-overview-btn tertiary flex-1 justify-center">Support</button>
       </div>
     </div>
   </section>

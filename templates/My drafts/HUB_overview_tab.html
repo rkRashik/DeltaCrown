@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltaCrown - Smart Dynamic Overview</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono'] },
+          colors: { dc: { bg: '#09090b' } }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #09090b; color: #f4f4f5; }
+    .premium-card {
+      background: rgba(18, 18, 20, 0.6);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 1rem;
+      box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.03);
+    }
+
+    /* Demo Controls Panel */
+    .demo-controls {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+      padding: 10px 20px; border-radius: 100px; border: 1px solid #333;
+      z-index: 100; display: flex; gap: 20px;
+    }
+    .demo-btn { font-size: 10px; text-transform: uppercase; font-weight: bold; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: #888; }
+    .demo-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .demo-btn.active { color: #fff; background: rgba(255,255,255,0.2); }
+    .demo-group { display: flex; gap: 8px; align-items: center; border-right: 1px solid #333; padding-right: 20px; }
+  </style>
+</head>
+<body class="p-8 pt-24 min-h-screen">
+
+  <div class="demo-controls">
+    <div class="demo-group">
+      <span class="text-[9px] text-zinc-500 uppercase">Hero State:</span>
+      <button class="demo-btn active" onclick="setHero('advanced')">Advanced</button>
+      <button class="demo-btn" onclick="setHero('eliminated')">Eliminated</button>
+      <button class="demo-btn" onclick="setHero('pending')">Pending</button>
+    </div>
+    <div class="demo-group border-none pr-0">
+      <span class="text-[9px] text-zinc-500 uppercase">Game Intel:</span>
+      <button class="demo-btn active" onclick="setGame('efootball')">eFootball</button>
+      <button class="demo-btn" onclick="setGame('valorant')">Valorant</button>
+      <button class="demo-btn" onclick="setGame('pubg')">PUBG / BR</button>
+      <button class="demo-btn" onclick="setGame('cs2')">CS2</button>
+      <button class="demo-btn" onclick="setGame('dota')">Dota 2</button>
+    </div>
+  </div>
+
+  <div class="w-full max-w-[1000px] mx-auto space-y-8">
+
+    <section id="hero-card" class="premium-card relative overflow-hidden flex flex-col justify-end p-8 min-h-[280px] border-t-[3px]">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-0"></div>
+
+      <div class="relative z-10 flex justify-between items-end">
+        <div>
+          <p id="hero-kicker" class="text-xs font-mono uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full animate-pulse"></span> Welcome, Tower_Tareq
+          </p>
+
+          <h1 id="hero-title" class="font-display text-5xl md:text-6xl font-black tracking-tighter leading-[1.1] mb-3"></h1>
+
+          <p id="hero-copy" class="text-sm max-w-lg leading-relaxed"></p>
+        </div>
+      </div>
+    </section>
+
+
+    <div class="premium-card p-6 lg:p-8">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="radar" class="w-4 h-4 text-zinc-500"></i> <span id="intel-section-title">Target Intel</span>
+        </h2>
+        <span id="intel-game-badge" class="px-2 py-1 rounded bg-zinc-800 text-zinc-300 text-[9px] font-bold uppercase tracking-widest border border-white/5">Game</span>
+      </div>
+
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/5">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden">
+            <i id="intel-avatar-icon" data-lucide="user" class="w-5 h-5 text-zinc-500"></i>
+          </div>
+          <div>
+            <p id="intel-target-label" class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Next Opponent</p>
+            <p id="intel-target-name" class="font-display text-xl font-bold text-white tracking-wide">Opponent Name</p>
+          </div>
+        </div>
+
+        <div id="intel-form-cluster" class="flex flex-col md:items-end">
+          <p class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1.5">Recent Form</p>
+          <div class="flex gap-1.5">
+            <span class="w-6 h-6 rounded bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/20">W</span>
+            <span class="w-6 h-6 rounded bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold border border-emerald-500/20">W</span>
+            <span class="w-6 h-6 rounded bg-red-500/10 text-red-400 flex items-center justify-center text-[10px] font-bold border border-red-500/20">L</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden mb-5">
+
+        <div class="bg-zinc-900/80 p-5 text-center">
+          <p id="stat-1-label" class="text-[10px] text-zinc-400 uppercase tracking-widest font-bold mb-1.5">Stat 1</p>
+          <p id="stat-1-val" class="font-mono text-2xl font-bold text-white">0</p>
+        </div>
+
+        <div class="bg-zinc-900/80 p-5 text-center">
+          <p id="stat-2-label" class="text-[10px] text-zinc-400 uppercase tracking-widest font-bold mb-1.5">Stat 2</p>
+          <p id="stat-2-val" class="font-mono text-2xl font-bold text-white">0</p>
+        </div>
+
+        <div class="bg-zinc-900/80 p-5 text-center">
+          <p id="stat-3-label" class="text-[10px] text-zinc-400 uppercase tracking-widest font-bold mb-1.5">Stat 3</p>
+          <p id="stat-3-val" class="font-mono text-2xl font-bold text-white">0</p>
+        </div>
+
+      </div>
+
+      <p id="intel-footer-note" class="text-xs text-zinc-500 font-medium"></p>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // 1. HERO STATE LOGIC
+    const heroStates = {
+      advanced: {
+        color: 'emerald',
+        borderColor: 'border-t-emerald-500/50',
+        title: '<span class="text-white">Advanced in</span><br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Bracket</span>',
+        copy: '<span class="text-emerald-400 font-bold">Victory secured.</span> Keep momentum and watch for your next assignment update.',
+        dotColor: 'bg-emerald-500',
+        kickerColor: 'text-zinc-400'
+      },
+      eliminated: {
+        color: 'red',
+        borderColor: 'border-t-red-500/50',
+        title: '<span class="text-white">Tournament</span><br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-400">Eliminated</span>',
+        copy: '<span class="text-red-400 font-bold">Run Ended.</span> Your tournament run has concluded. Review bracket outcomes and final standings.',
+        dotColor: 'bg-red-500',
+        kickerColor: 'text-zinc-400'
+      },
+      pending: {
+        color: 'cyan',
+        borderColor: 'border-t-cyan-500/50',
+        title: '<span class="text-white">Awaiting</span><br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">Deployment</span>',
+        copy: 'Your roster is locked. Stand by for bracket confirmation and opponent assignment.',
+        dotColor: 'bg-cyan-500',
+        kickerColor: 'text-zinc-400'
+      }
+    };
+
+    function setHero(state) {
+      const data = heroStates[state];
+      const card = document.getElementById('hero-card');
+
+      card.className = `premium-card relative overflow-hidden flex flex-col justify-end p-8 min-h-[280px] border-t-[3px] ${data.borderColor}`;
+      document.getElementById('hero-title').innerHTML = data.title;
+      document.getElementById('hero-copy').innerHTML = data.copy;
+      document.getElementById('hero-kicker').innerHTML = `<span class="w-2 h-2 rounded-full animate-pulse ${data.dotColor}"></span> <span class="${data.kickerColor}">Welcome, Tower_Tareq</span>`;
+
+      updateDemoButtons(event.target);
+    }
+
+    // 2. TARGET INTEL LOGIC (GAME SPECIFIC)
+    const gameIntel = {
+      efootball: {
+        badge: "eFootball",
+        title: "Target Intel",
+        label: "Next Opponent",
+        name: "X_Sniper_Elite",
+        icon: "user",
+        showForm: true,
+        stats: [ { l: "Win Rate", v: "72%" }, { l: "Avg Goals", v: "2.4" }, { l: "Clean Sheets", v: "4" } ],
+        note: "Verified 1v1 scouting data is ready."
+      },
+      valorant: {
+        badge: "Valorant",
+        title: "Team Intel",
+        label: "Opponent Roster",
+        name: "Sentinels NA",
+        icon: "users",
+        showForm: true,
+        stats: [ { l: "Win Rate", v: "68%" }, { l: "Avg ACS", v: "245" }, { l: "Headshot", v: "28%" } ],
+        note: "5v5 team tactical data and recent form available."
+      },
+      pubg: {
+        badge: "PUBG / FreeFire",
+        title: "Lobby Intel",
+        label: "Deployment Zone",
+        name: "Erangel - Lobby Alpha",
+        icon: "map",
+        showForm: false, // BR doesn't have 1v1 form
+        stats: [ { l: "Lobby Avg KD", v: "1.8" }, { l: "Avg Survival", v: "18m" }, { l: "Active Squads", v: "16" } ],
+        note: "Battle Royale lobby metrics aggregated from assigned squads."
+      },
+      cs2: {
+        badge: "CS2",
+        title: "Team Intel",
+        label: "Opponent Roster",
+        name: "Navi_Academy",
+        icon: "users",
+        showForm: true,
+        stats: [ { l: "Win Rate", v: "61%" }, { l: "ADR", v: "84.2" }, { l: "Utility Dmg", v: "22.5" } ],
+        note: "Verified CS2 team metrics loaded."
+      },
+      dota: {
+        badge: "Dota 2",
+        title: "Team Intel",
+        label: "Opponent Roster",
+        name: "Dire_Wolves",
+        icon: "users",
+        showForm: true,
+        stats: [ { l: "Win Rate", v: "55%" }, { l: "Avg GPM", v: "510" }, { l: "First Blood", v: "60%" } ],
+        note: "MOBA team progression and farming stats ready."
+      }
+    };
+
+    function setGame(game) {
+      const data = gameIntel[game];
+
+      document.getElementById('intel-section-title').innerText = data.title;
+      document.getElementById('intel-game-badge').innerText = data.badge;
+      document.getElementById('intel-target-label').innerText = data.label;
+      document.getElementById('intel-target-name').innerText = data.name;
+
+      // Update Icon
+      const iconWrap = document.getElementById('intel-avatar-icon');
+      iconWrap.setAttribute('data-lucide', data.icon);
+      lucide.createIcons();
+
+      // Toggle Form Cluster (Hide for BR games)
+      document.getElementById('intel-form-cluster').style.display = data.showForm ? 'flex' : 'none';
+
+      // Update Stats
+      document.getElementById('stat-1-label').innerText = data.stats[0].l;
+      document.getElementById('stat-1-val').innerText = data.stats[0].v;
+      document.getElementById('stat-2-label').innerText = data.stats[1].l;
+      document.getElementById('stat-2-val').innerText = data.stats[1].v;
+      document.getElementById('stat-3-label').innerText = data.stats[2].l;
+      document.getElementById('stat-3-val').innerText = data.stats[2].v;
+
+      document.getElementById('intel-footer-note').innerText = data.note;
+
+      updateDemoButtons(event.target);
+    }
+
+    function updateDemoButtons(clickedBtn) {
+      if(!clickedBtn) return;
+      const parent = clickedBtn.parentElement;
+      parent.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      clickedBtn.classList.add('active');
+    }
+
+    // Init defaults
+    setHero('advanced');
+    setGame('efootball');
+  </script>
+</body>
+</html>

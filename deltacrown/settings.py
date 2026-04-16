@@ -663,7 +663,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5 MB (Django default)
 # -----------------------------------------------------------------------------
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "deltacrown.storage.RobustStaticFilesStorage",
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "deltacrown.storage.RobustStaticFilesStorage"
+        ),
     },
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"
