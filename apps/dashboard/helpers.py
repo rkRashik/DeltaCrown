@@ -9,6 +9,8 @@ from urllib.parse import quote
 from django.apps import apps
 from django.utils.timesince import timesince as _timesince
 
+from apps.common.media_urls import normalize_media_url
+
 
 def _safe_model(label: str):
     """Return model class or None — never raises."""
@@ -44,12 +46,9 @@ def _build_game_lookup():
         return {}
 
 
-def _logo_url(obj, field="logo"):
-    try:
-        f = getattr(obj, field, None)
-        return f.url if f else None
-    except Exception:
-        return None
+def _normalize_media_url(raw_url: str, file_name: str = "") -> str:
+    """Normalize media URL via shared resolver."""
+    return normalize_media_url(raw_url, file_name)
 
 
 def _ts(dt, now):
@@ -66,7 +65,9 @@ def _img_url(obj, field="logo"):
     """Safely extract image URL from a model field."""
     try:
         f = getattr(obj, field, None)
-        return f.url if f else None
+        if not f:
+            return None
+        return _normalize_media_url(getattr(f, "url", ""), getattr(f, "name", "")) or None
     except Exception:
         return None
 

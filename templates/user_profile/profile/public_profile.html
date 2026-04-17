@@ -288,9 +288,15 @@
                 <!-- Avatar with modern overlap -->
                 <div class="relative shrink-0">
                     <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group border-4 border-z-bg">
+                        {% if profile.avatar_url %}
+                        <img src="{{ profile.avatar_url }}"
+                            class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}"
+                            onerror="this.onerror=null; this.src='{% static 'img/user_avatar/default-avatar.png' %}';">
+                        {% else %}
                         {% user_avatar_url profile_user as avatar_url %}
-                        <img src="{{ avatar_url }}" 
-                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
+                        <img src="{{ avatar_url }}"
+                            class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
+                        {% endif %}
                         
                         <div class="absolute -bottom-2 -right-2 bg-z-bg p-1 rounded-xl">
                             <div class="bg-z-gold text-black font-black font-display text-xs md:text-sm px-2 md:px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
@@ -409,11 +415,11 @@
                 
                 <div class="flex justify-between items-center mb-4 relative z-10">
                     <h3 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h3>
-                    <div class="bg-z-gold/20 text-z-gold px-2 py-1 rounded text-xs font-bold border border-z-gold/30">{{ completion_data.percentage }}%</div>
+                    <div class="px-2 py-1 rounded text-xs font-bold border" style="background: rgba(255, 214, 10, 0.2); color: #FFD60A; border-color: rgba(255, 214, 10, 0.35);">{{ completion_percentage }}%</div>
                 </div>
                 
                 <div class="relative w-full h-3 bg-white/10 rounded-full mb-4 overflow-hidden">
-                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-z-gold to-[#FF9F0A] rounded-full" style="width: {{ completion_data.percentage }}%"></div>
+                    <div class="absolute top-0 left-0 h-full rounded-full" style="width: {{ completion_percentage }}%; background: linear-gradient(90deg, #FFD60A 0%, #FF9F0A 100%);"></div>
                 </div>
                 
                 {% if completion_data.next_action %}

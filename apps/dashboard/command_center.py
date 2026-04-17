@@ -28,6 +28,8 @@ def build_cc_data(context, user, now):
         except (TypeError, ValueError):
             starts_in_minutes = 0
         starts_in_minutes = max(starts_in_minutes, 0)
+        scheduled_at = imminent.get('scheduled_time')
+        scheduled_at_iso = scheduled_at.isoformat() if hasattr(scheduled_at, 'isoformat') else ''
         lobby_alert = {
             'id': 'lobby-alert-%s' % imminent.get('match_id'),
             'title': 'Enter Match Lobby',
@@ -43,6 +45,7 @@ def build_cc_data(context, user, now):
             'lobbyCode': imminent.get('lobby_code', ''),
             'startsInLabel': '%s min' % starts_in_minutes,
             'startsInMinutes': starts_in_minutes,
+            'scheduledAt': scheduled_at_iso,
             'gameIcon': imminent.get('game_icon', ''),
         }
     if nmi:
@@ -154,6 +157,7 @@ def build_cc_data(context, user, now):
         match_lobby_url = ''
         match_state = ''
         match_time = ''
+        match_scheduled_at = ''
         lobby_status = ''
         if (
             slug
@@ -163,7 +167,11 @@ def build_cc_data(context, user, now):
         ):
             match_state = nmi.get('state', '')
             if nmi.get('scheduled_time'):
-                match_time = _ts(nmi.get('scheduled_time'), now)
+                scheduled = nmi.get('scheduled_time')
+                if hasattr(scheduled, 'isoformat'):
+                    match_scheduled_at = scheduled.isoformat()
+                elif scheduled:
+                    match_scheduled_at = str(scheduled)
             if nmi.get('lobby_open'):
                 lobby_status = 'open'
             elif nmi.get('lobby_status'):
@@ -203,6 +211,7 @@ def build_cc_data(context, user, now):
             'currentStage': cur_stage,
             'matchState': match_state,
             'matchTime': match_time,
+            'matchScheduledAt': match_scheduled_at,
             'lobbyStatus': lobby_status,
         })
 

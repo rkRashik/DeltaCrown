@@ -402,9 +402,6 @@
                       <template x-if="tourney.matchTime">
                         <span class="text-gray-400 font-medium"><i class="fa-solid fa-clock text-dc-textMuted mr-1"></i> Next: <span x-text="tourney.matchTime" class="text-white font-bold"></span></span>
                       </template>
-                      <template x-if="!tourney.matchTime && tourney.startDate">
-                        <span class="text-gray-400 font-medium"><i class="fa-regular fa-clock mr-1"></i> <span x-text="tourney.startDate"></span></span>
-                      </template>
                     </div>
                   </div>
 
@@ -469,7 +466,7 @@
             <div class="flex gap-3 flex-wrap" x-show="myOrgs.length > 0">
               <template x-for="org in myOrgs" :key="org.id">
                 <a :href="'/orgs/' + org.slug + '/'" class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-dc-accent/50 hover:bg-white/[0.05] transition-all group no-underline">
-                  <img :src="org.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(org.name) + '&background=1a1a2e&color=fff&size=64'" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" alt="">
+                  <img :src="orgLogoSrc(org)" @error="handleOrgLogoError(org, $event)" class="w-8 h-8 rounded-lg border border-white/[0.1] object-cover" alt="">
                   <div class="text-left">
                     <div class="flex items-center gap-1.5">
                       <div class="text-sm font-bold text-white group-hover:text-dc-accent transition-colors" x-text="org.name"></div>
@@ -507,7 +504,7 @@
 
                 <div class="flex justify-between items-start mb-4">
                   <div class="flex items-center gap-3">
-                    <img :src="team.logo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(team.name) + '&background=1a1a2e&color=fff&size=80&bold=true'" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium" alt="">
+                    <img :src="teamLogoSrc(team)" @error="handleTeamLogoError(team, $event)" class="w-12 h-12 rounded-xl border border-white/[0.1] object-cover shadow-premium" alt="">
                     <div>
                       <div class="flex items-center gap-2">
                         <h3 class="font-bold text-white text-base leading-tight group-hover:text-gray-200 transition-colors" x-text="team.name"></h3>
@@ -521,7 +518,7 @@
                         <span class="text-white/[0.15]">&middot;</span>
                         <template x-if="team.org">
                           <a :href="'/orgs/' + team.org.slug + '/'" class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-dc-accent transition-colors no-underline" @click.stop>
-                            <img x-show="team.org.logo" :src="team.org.logo" class="w-3.5 h-3.5 rounded object-cover" alt="">
+                            <img x-show="team.org.logo" :src="team.org.logo" @error="if (team.org) team.org.logo = ''" class="w-3.5 h-3.5 rounded object-cover" alt="">
                             <span x-text="team.org.name"></span>
                             <i x-show="team.org.verified" class="fa-solid fa-circle-check text-dc-accent text-[8px]"></i>
                           </a>
@@ -614,7 +611,7 @@
               <div class="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/[0.15] transition-all group">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner-light shrink-0 border border-white/[0.1]"
                      :style="'background: ' + gp.gameColor + '15'">
-                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="game-icon-lg" alt="">
+                  <img x-show="gp.gameIcon" :src="gp.gameIcon" class="w-full h-full rounded-[10px] object-cover" alt="">
                   <i x-show="!gp.gameIcon" class="fa-solid fa-gamepad text-dc-textMuted"></i>
                 </div>
                 <div class="flex-1 min-w-0">

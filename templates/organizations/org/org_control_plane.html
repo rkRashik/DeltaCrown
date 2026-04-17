@@ -2025,10 +2025,14 @@
   <script nonce="{{ request.csp_nonce }}">
     // ---- Config injected from Django ----
     const ORG_SLUG = "{{ org_slug|escapejs }}";
+    const CSRF_TOKEN = "{{ csrf_token|escapejs }}";
 
     function getCsrfToken() {
+      if (CSRF_TOKEN && CSRF_TOKEN !== 'NOTPROVIDED') {
+        return CSRF_TOKEN;
+      }
       const cookie = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
-      return cookie ? cookie.split('=')[1] : '';
+      return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
     }
 
     function showToast(message, type) {

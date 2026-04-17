@@ -24,6 +24,7 @@ import logging
 from apps.user_profile.models import UserProfile, UserProfileStats, UserActivity, PrivacySettings
 from apps.user_profile.services.privacy_policy import ProfileVisibilityPolicy
 from apps.user_profile.utils import get_user_profile_safe
+from apps.common.media_urls import field_file_url
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -179,8 +180,8 @@ def _build_basic_profile_data(
     }
     
     # Avatar and banner (URLs, not file objects)
-    data['avatar_url'] = profile.avatar.url if profile.avatar else None
-    data['banner_url'] = profile.banner.url if profile.banner else None
+    data['avatar_url'] = field_file_url(profile.avatar) or None
+    data['banner_url'] = field_file_url(profile.banner) or None
     
     # Location (if visible)
     if 'country' in visible_fields:

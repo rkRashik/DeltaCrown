@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q
 
-from .helpers import _safe_model, _safe_int, _img_url, _logo_url, _avatar_fallback
+from .helpers import _safe_model, _safe_int, _img_url, _avatar_fallback
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -219,7 +219,7 @@ def _load_organizations(user, Team) -> dict:
                     "id": org.id,
                     "name": org.name,
                     "slug": org.slug,
-                    "logo_url": _logo_url(org),
+                    "logo_url": _img_url(org),
                     "role": om.role,
                     "is_verified": getattr(org, "is_verified", False),
                     "team_count": team_count_in_org,

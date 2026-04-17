@@ -1951,11 +1951,22 @@ def update_organization_settings(request: Request, org_slug: str) -> Response:
     try:
         from apps.organizations.models import Organization
         org = Organization.objects.get(slug=org_slug)
+
+        payload = {}
+        if hasattr(request.data, 'keys'):
+            for key in request.data.keys():
+                payload[key] = request.data.get(key)
+        else:
+            payload = dict(request.data or {})
+
+        if hasattr(request, 'FILES'):
+            for key in request.FILES.keys():
+                payload[key] = request.FILES.get(key)
         
         result = OrganizationService.update_organization_settings(
             organization_id=org.id,
             updated_by_user_id=request.user.id,
-            settings=dict(request.data),
+            settings=payload,
         )
         
         logger.info(

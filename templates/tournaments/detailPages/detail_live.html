@@ -980,34 +980,6 @@ Inspired by FotMob live matches + VCT brackets:
 
 {% endblock %}
 
-{% block sidebar_cta %}
-<!-- Live Phase Sidebar CTA -->
-{% if is_registered %}
-<div class="space-y-2">
-    {% if user_next_match and user_next_match_lobby_open %}
-    <a href="{% url 'tournaments:match_room' tournament.slug user_next_match.id %}"
-         class="live-cta-btn live-cta-primary w-full text-center">
-        Enter Lobby
-    </a>
-    {% endif %}
-    {% if user_next_match and not user_next_match_lobby_open %}
-    <div class="live-cta-btn live-cta-disabled w-full text-center">
-        Lobby Opens {% if user_next_match_lobby_opens_at %}{{ user_next_match_lobby_opens_at|date:"g:i A" }}{% else %}Soon{% endif %}
-    </div>
-    <p class="text-[10px] text-gray-400">Available 30 minutes before match time.</p>
-    {% endif %}
-    <a href="{% url 'tournaments:tournament_hub' tournament.slug %}"
-       class="live-cta-btn live-cta-secondary w-full text-center">
-        Open HUB
-    </a>
-</div>
-{% else %}
-<div class="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">
-    <i data-lucide="eye" class="w-4 h-4"></i> Spectating
-</div>
-{% endif %}
-{% endblock %}
-
 {% block sidebar_extra %}
 <!-- Live Stats -->
 <div class="glass p-4 rounded-2xl">

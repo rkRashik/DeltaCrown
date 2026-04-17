@@ -187,8 +187,14 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if context['is_owner']:
         completion_data = SettingsCompletionService.calculate(user_profile)
         context['completion_data'] = completion_data
+        try:
+            completion_percentage = int(completion_data.get('percentage', 0))
+        except Exception:
+            completion_percentage = 0
+        context['completion_percentage'] = max(0, min(100, completion_percentage))
     else:
         context['completion_data'] = None
+        context['completion_percentage'] = 0
     
     # UP.2 FIX PASS #2 + #5: Social Links proper wiring with URL filtering
     from apps.user_profile.models import SocialLink
@@ -520,7 +526,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # PHASE-4D: Career Context Service - Modern portfolio view
     from apps.user_profile.services.career_context import build_career_context, get_game_passports_for_career
     
-    career_data = build_career_context(user_profile, is_owner=permissions.get('is_owner', False))
+    career_data = build_career_context(user_profile, is_owner=context['is_owner'])
     context.update(career_data)  # Adds current_teams, team_history, career_timeline, has_teams
     
     # Add game passports preview for Career tab (top 3)
@@ -557,7 +563,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     career_profile, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
     hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=user_profile)
     
-    is_owner = permissions.get('is_owner', False)
+    is_owner = context['is_owner']
     
     # Build privacy-aware about_fields dict
     about_fields = {

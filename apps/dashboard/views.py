@@ -15,7 +15,7 @@ from django.utils import timezone
 from .forms import MyMatchesFilterForm
 from .helpers import (
     _safe_model, _safe_qs, _safe_int,
-    _build_game_lookup, _logo_url, _ts, _img_url, _avatar_fallback,
+    _build_game_lookup, _ts, _img_url, _avatar_fallback,
 )
 from .command_center import build_cc_data as _build_cc_data
 
@@ -93,16 +93,8 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         if Profile:
             profile = Profile.objects.filter(user=user).first()
         if profile:
-            avatar = None
-            banner = None
-            try:
-                avatar = profile.avatar.url if profile.avatar else None
-            except Exception:
-                pass
-            try:
-                banner = profile.banner.url if profile.banner else None
-            except Exception:
-                pass
+            avatar = _img_url(profile, "avatar")
+            banner = _img_url(profile, "banner")
             profile_data = {
                 "display_name": getattr(profile, "display_name", "") or user.get_full_name() or user.username,
                 "avatar_url": avatar,
@@ -238,7 +230,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                 "id": inv.id,
                 "team_name": inv.team.name,
                 "team_slug": inv.team.slug,
-                "team_logo": _logo_url(inv.team),
+                "team_logo": _img_url(inv.team),
                 "role": inv.role,
                 "inviter": inv.inviter.username if inv.inviter else "Unknown",
                 "created_at": inv.created_at,

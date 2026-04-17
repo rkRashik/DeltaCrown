@@ -139,7 +139,7 @@ class TournamentDetailView(DetailView):
             context['registration_action_label'] = 'Go to HUB'
 
         # Slots info
-        from apps.tournaments.models import Registration
+        from apps.tournaments.models import Registration, Match
         slots_filled = Registration.objects.filter(
             tournament=tournament,
             status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
@@ -148,6 +148,16 @@ class TournamentDetailView(DetailView):
         context['slots_filled'] = slots_filled
         context['slots_total'] = tournament.max_participants
         context['slots_percentage'] = (slots_filled / tournament.max_participants * 100) if tournament.max_participants > 0 else 0
+        context['organizer_pending_count'] = Registration.objects.filter(
+            tournament=tournament,
+            status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED],
+            is_deleted=False
+        ).count()
+        context['organizer_issue_count'] = Match.objects.filter(
+            tournament=tournament,
+            state='disputed',
+            is_deleted=False
+        ).count()
 
         # Announcements
         announcements = TournamentAnnouncement.objects.filter(
@@ -209,6 +219,9 @@ class TournamentDetailView(DetailView):
 
         # Phase-specific context
         context.update(self._get_phase_context(tournament, user))
+
+        # Unified hero/sidebar CTA state (single source of truth for action precedence).
+        context.update(_build_detail_action_context(tournament, user, context=context))
 
         # Detailed registration status (wire up the dead code at _get_registration_status)
         if user.is_authenticated and context.get('is_registered'):
@@ -317,6 +330,19 @@ class TournamentDetailView(DetailView):
         phase_ctx['show_checkin_info'] = status == 'registration_closed'
         phase_ctx['is_pre_registration'] = status in ['draft', 'pending_approval', 'published']
 
+        phase_ctx.update({
+            'user_next_match': None,
+            'user_next_match_lobby_open': False,
+            'user_next_match_lobby_opens_at': None,
+            'user_next_match_lobby_closes_at': None,
+            'user_next_match_lobby_state': None,
+            'viewer_participant_ids': [],
+            'viewer_is_registered_participant': False,
+        })
+
+        if status not in ['completed', 'archived', 'cancelled']:
+            phase_ctx.update(_resolve_user_next_match_context(tournament, user, now=now))
+
         # Registration phase extras
         if phase_ctx['is_registration_phase']:
             # Countdown targets
@@ -422,31 +448,6 @@ class TournamentDetailView(DetailView):
                 phase_ctx['total_rounds'] = bracket.total_rounds
             except Exception:
                 phase_ctx['total_rounds'] = None
-
-            # User's next match (if participant)
-            phase_ctx['user_next_match'] = None
-            phase_ctx['user_next_match_lobby_open'] = False
-            phase_ctx['user_next_match_lobby_opens_at'] = None
-            if user.is_authenticated:
-                from apps.tournaments.models import Registration
-                user_reg = Registration.objects.filter(
-                    tournament=tournament, user=user, is_deleted=False,
-                    status__in=['confirmed', 'pending', 'payment_submitted']
-                ).first()
-                if user_reg:
-                    from django.db.models import Q
-                    pid = user_reg.team_id or user.id
-                    user_next = Match.objects.filter(
-                        tournament=tournament, is_deleted=False,
-                        state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result']
-                    ).filter(
-                        Q(participant1_id=pid) | Q(participant2_id=pid)
-                    ).order_by('round_number', 'match_number').first()
-                    if user_next:
-                        lobby_window = _resolve_match_lobby_window(user_next, now=now)
-                        phase_ctx['user_next_match'] = user_next
-                        phase_ctx['user_next_match_lobby_open'] = lobby_window['is_open']
-                        phase_ctx['user_next_match_lobby_opens_at'] = lobby_window['opens_at']
 
         # Completed phase extras
         if phase_ctx['is_completed_phase']:
@@ -1396,14 +1397,7 @@ _DETAIL_STATUS_LABELS = {
 }
 
 MATCH_LOBBY_OPEN_LEAD_MINUTES = 30
-MATCH_LOBBY_ALWAYS_OPEN_STATES = {
-    'live',
-    'pending_result',
-    'completed',
-    'forfeit',
-    'disputed',
-    'cancelled',
-}
+MATCH_LOBBY_CLOSE_GRACE_MINUTES = 15
 
 
 def _format_display_datetime(value, time_format='12h'):
@@ -1444,13 +1438,317 @@ def _relative_match_time(scheduled_time, now, is_completed):
 
 
 def _resolve_match_lobby_window(match, *, now=None):
-    """Delegate to canonical lobby state helper."""
-    from apps.tournaments.services.match_lobby_service import resolve_lobby_state
+    """Resolve detail-page lobby access with detail-specific close grace (+15 min)."""
+    from apps.tournaments.services.match_lobby_service import (
+        FORCED_OPEN_MATCH_STATES,
+        TERMINAL_MATCH_STATES,
+        resolve_lobby_state,
+    )
+
+    now = now or timezone.now()
     lobby = resolve_lobby_state(match, now=now)
+
+    match_state = str(getattr(match, 'state', '') or '').lower()
+    scheduled_time = getattr(match, 'scheduled_time', None)
+
+    opens_at = None
+    closes_at = None
+    if scheduled_time:
+        opens_at = scheduled_time - timedelta(minutes=MATCH_LOBBY_OPEN_LEAD_MINUTES)
+        closes_at = scheduled_time + timedelta(minutes=MATCH_LOBBY_CLOSE_GRACE_MINUTES)
+
+    if match_state in TERMINAL_MATCH_STATES:
+        is_open = False
+    elif match_state in FORCED_OPEN_MATCH_STATES:
+        is_open = True
+    elif not scheduled_time:
+        is_open = False
+    elif str(lobby.get('state') or '') == 'forfeit_review':
+        is_open = False
+    else:
+        is_open = bool(opens_at and closes_at and opens_at <= now < closes_at)
+
+    if is_open:
+        if match_state in FORCED_OPEN_MATCH_STATES:
+            lobby_state = str(lobby.get('state') or 'live_grace_or_ready')
+        else:
+            lobby_state = 'lobby_open'
+    else:
+        if not scheduled_time or (opens_at and now < opens_at):
+            lobby_state = 'upcoming_not_open'
+        elif str(lobby.get('state') or '') == 'forfeit_review':
+            lobby_state = 'forfeit_review'
+        elif match_state in TERMINAL_MATCH_STATES:
+            lobby_state = 'completed'
+        else:
+            lobby_state = 'lobby_closed'
+
     return {
-        'is_open': lobby['is_open'],
-        'opens_at': lobby['opens_at'],
-        'lobby_state': lobby['state'],
+        'is_open': is_open,
+        'opens_at': opens_at,
+        'closes_at': closes_at,
+        'lobby_state': lobby_state,
+        'policy_summary': (
+            f'Lobby opens {MATCH_LOBBY_OPEN_LEAD_MINUTES} min before match time '
+            f'and closes {MATCH_LOBBY_CLOSE_GRACE_MINUTES} min after.'
+        ),
+    }
+
+
+def _resolve_user_registration_for_detail(tournament, user):
+    """Return viewer registration row when one exists for this tournament."""
+    if not user or not user.is_authenticated:
+        return None
+
+    from apps.tournaments.models import Registration
+
+    return (
+        Registration.objects.filter(
+            tournament=tournament,
+            user=user,
+            is_deleted=False,
+        )
+        .exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED, Registration.NO_SHOW]
+        )
+        .first()
+    )
+
+
+def _resolve_viewer_participant_ids_for_detail(tournament, user, *, registration=None):
+    """Resolve match participant ids that represent the current viewer."""
+    participant_ids = set()
+    if not user or not user.is_authenticated:
+        return participant_ids
+
+    if tournament.participation_type == Tournament.TEAM:
+        if registration is not None and getattr(registration, 'team_id', None):
+            participant_ids.add(int(registration.team_id))
+
+        try:
+            from apps.organizations.models import TeamMembership
+
+            member_team_ids = set(
+                TeamMembership.objects.filter(
+                    user=user,
+                    status=TeamMembership.Status.ACTIVE,
+                ).values_list('team_id', flat=True)
+            )
+        except Exception:
+            member_team_ids = set()
+
+        if member_team_ids:
+            from apps.tournaments.models import Registration
+
+            registered_team_ids = set(
+                Registration.objects.filter(
+                    tournament=tournament,
+                    team_id__in=member_team_ids,
+                    is_deleted=False,
+                )
+                .exclude(
+                    status__in=[Registration.CANCELLED, Registration.REJECTED, Registration.NO_SHOW]
+                )
+                .values_list('team_id', flat=True)
+            )
+            participant_ids.update(int(team_id) for team_id in registered_team_ids if team_id)
+    elif getattr(user, 'id', None):
+        participant_ids.add(int(user.id))
+
+    return participant_ids
+
+
+def _resolve_user_next_match_context(tournament, user, *, now=None):
+    """Resolve viewer participant identity + next match lobby state for detail CTAs."""
+    result = {
+        'user_next_match': None,
+        'user_next_match_lobby_open': False,
+        'user_next_match_lobby_opens_at': None,
+        'user_next_match_lobby_closes_at': None,
+        'user_next_match_lobby_state': None,
+        'viewer_participant_ids': [],
+        'viewer_is_registered_participant': False,
+    }
+
+    if not user or not user.is_authenticated:
+        return result
+
+    from django.db.models import Q
+    from apps.tournaments.models import Match
+
+    now = now or timezone.now()
+    registration = _resolve_user_registration_for_detail(tournament, user)
+    participant_ids = _resolve_viewer_participant_ids_for_detail(
+        tournament,
+        user,
+        registration=registration,
+    )
+
+    result['viewer_participant_ids'] = sorted(participant_ids)
+    result['viewer_is_registered_participant'] = bool(participant_ids)
+    if not participant_ids:
+        return result
+
+    user_next_match = (
+        Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result'],
+        )
+        .filter(
+            Q(participant1_id__in=participant_ids) | Q(participant2_id__in=participant_ids)
+        )
+        .order_by('scheduled_time', 'round_number', 'match_number')
+        .first()
+    )
+    if user_next_match is None:
+        return result
+
+    lobby_window = _resolve_match_lobby_window(user_next_match, now=now)
+    result.update({
+        'user_next_match': user_next_match,
+        'user_next_match_lobby_open': bool(lobby_window['is_open']),
+        'user_next_match_lobby_opens_at': lobby_window['opens_at'],
+        'user_next_match_lobby_closes_at': lobby_window['closes_at'],
+        'user_next_match_lobby_state': lobby_window['lobby_state'],
+    })
+    return result
+
+
+def _build_detail_action_context(tournament, user, *, context):
+    """Build shared CTA payload for both hero and sidebar surfaces."""
+
+    def _action(*, label, url='', icon='arrow-right', tone='muted', disabled=False, kind=''):
+        return {
+            'label': label,
+            'url': url,
+            'icon': icon,
+            'tone': tone,
+            'disabled': bool(disabled),
+            'kind': kind,
+        }
+
+    status = str(context.get('effective_status') or tournament.status or '').lower()
+    is_organizer = bool(context.get('is_organizer'))
+    is_registered = bool(context.get('is_registered'))
+    viewer_is_participant = bool(context.get('viewer_is_registered_participant')) or is_registered
+    can_register = bool(context.get('can_register'))
+
+    user_next_match = context.get('user_next_match')
+    lobby_open = bool(context.get('user_next_match_lobby_open'))
+
+    registration_action_url = str(context.get('registration_action_url') or '')
+    registration_action_label = str(context.get('registration_action_label') or 'Register Now')
+    registration_status_reason = str(
+        context.get('registration_status_reason') or 'Registration is currently closed.'
+    )
+
+    state = 'closed'
+    heading = 'Registration Closed'
+    note = registration_status_reason
+    primary = _action(
+        label='Registration Closed',
+        icon='lock',
+        tone='closed',
+        disabled=True,
+        kind='closed',
+    )
+    secondary = None
+
+    if user_next_match is not None and lobby_open:
+        state = 'lobby_open'
+        heading = 'Lobby Open'
+        note = 'Your match lobby is open now. Enter before the access window closes.'
+        primary = _action(
+            label='Enter Lobby',
+            url=reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': user_next_match.id}),
+            icon='door-open',
+            tone='urgent',
+            kind='enter_lobby',
+        )
+        if is_organizer:
+            secondary = _action(
+                label='Manage',
+                url=f'/toc/{tournament.slug}/',
+                icon='settings',
+                tone='manage',
+                kind='manage',
+            )
+        elif viewer_is_participant:
+            secondary = _action(
+                label='Open HUB',
+                url=reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
+                icon='layout-dashboard',
+                tone='hub',
+                kind='hub',
+            )
+    elif is_organizer:
+        state = 'organizer'
+        heading = 'Organizer Access'
+        note = 'Management controls are available for this tournament.'
+        primary = _action(
+            label='Manage',
+            url=f'/toc/{tournament.slug}/',
+            icon='settings',
+            tone='manage',
+            kind='manage',
+        )
+        secondary = _action(
+            label='Open HUB',
+            url=reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
+            icon='layout-dashboard',
+            tone='hub',
+            kind='hub',
+        )
+    elif viewer_is_participant:
+        state = 'hub'
+        heading = 'Participant Access'
+        if user_next_match is not None and context.get('user_next_match_lobby_opens_at'):
+            note = 'Your next match is scheduled. Lobby access will unlock at the correct runtime window.'
+        else:
+            note = 'You are registered for this tournament. Open HUB for match and check-in updates.'
+        primary = _action(
+            label='Open HUB',
+            url=reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
+            icon='layout-dashboard',
+            tone='hub',
+            kind='hub',
+        )
+    elif can_register:
+        state = 'register'
+        heading = 'Registration Open'
+        slots_percentage = float(context.get('slots_percentage') or 0)
+        if slots_percentage >= 85:
+            note = 'Slots are nearly full. Register now to secure entry.'
+        else:
+            note = registration_status_reason or 'Registration is currently open.'
+        primary = _action(
+            label=registration_action_label,
+            url=registration_action_url,
+            icon='rocket',
+            tone='register',
+            kind='register',
+        )
+    else:
+        closed_label = 'Registration Closed'
+        if status in ('completed', 'archived'):
+            closed_label = 'Tournament Completed'
+        elif status == 'cancelled':
+            closed_label = 'Tournament Cancelled'
+        primary = _action(
+            label=closed_label,
+            icon='lock',
+            tone='closed',
+            disabled=True,
+            kind='closed',
+        )
+
+    return {
+        'detail_cta_state': state,
+        'detail_cta_heading': heading,
+        'detail_cta_note': note,
+        'detail_cta_primary': primary,
+        'detail_cta_secondary': secondary,
     }
 
 
@@ -1483,10 +1781,6 @@ def _detail_status_context(tournament, slots_filled, slots_total, live_match_cou
 
 
 def _mobile_cta_payload(tournament, user):
-    from django.db.models import Q
-
-    from apps.tournaments.models import Match, Registration
-
     if tournament.status in ('completed', 'archived'):
         return {
             'label': 'View Results',
@@ -1503,80 +1797,39 @@ def _mobile_cta_payload(tournament, user):
             'kind': 'disabled',
         }
 
-    if user.is_authenticated:
-        registration = Registration.objects.filter(
-            tournament=tournament,
-            user=user,
-            is_deleted=False,
-        ).exclude(
-            status__in=[Registration.CANCELLED, Registration.REJECTED]
-        ).first()
-        if registration is not None:
-            if tournament.status == 'live':
-                participant_id = registration.team_id or user.id
-                user_next_match = (
-                    Match.objects.filter(
-                        tournament=tournament,
-                        is_deleted=False,
-                        state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result'],
-                    )
-                    .filter(Q(participant1_id=participant_id) | Q(participant2_id=participant_id))
-                    .order_by('round_number', 'match_number')
-                    .first()
-                )
-                if user_next_match is not None:
-                    lobby_window = _resolve_match_lobby_window(user_next_match)
-                    if not lobby_window['is_open']:
-                        return {
-                            'label': 'Go to HUB',
-                            'url': reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
-                            'disabled': False,
-                            'kind': 'hub',
-                        }
-                    return {
-                        'label': 'Enter Lobby',
-                        'url': reverse('tournaments:match_room', kwargs={'slug': tournament.slug, 'match_id': user_next_match.id}),
-                        'disabled': False,
-                        'kind': 'enter_match',
-                    }
-
-            return {
-                'label': 'Go to HUB',
-                'url': reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug}),
-                'disabled': False,
-                'kind': 'hub',
-            }
-
     from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
 
     eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
     default_label = 'Register Team' if tournament.participation_type == Tournament.TEAM else 'Register Now'
     action_label = eligibility.get('action_label') or default_label
     action_url = eligibility.get('action_url') or f'/tournaments/{tournament.slug}/register/'
-    eligibility_status = str(eligibility.get('status') or '').lower()
-    can_register = bool(eligibility.get('can_register'))
+    context = {
+        'effective_status': tournament.status,
+        'is_organizer': bool(
+            user.is_authenticated and (
+                user == tournament.organizer or user.is_staff or user.is_superuser
+            )
+        ),
+        'is_registered': eligibility.get('registration') is not None,
+        'can_register': bool(eligibility.get('can_register')),
+        'registration_status_reason': eligibility.get('reason') or 'Registration is currently closed.',
+        'registration_action_url': action_url,
+        'registration_action_label': action_label,
+    }
+    context.update(_resolve_user_next_match_context(tournament, user, now=timezone.now()))
 
-    if eligibility_status in ('waitlist_open', 'waitlist', 'full_waitlist'):
-        return {
-            'label': action_label,
-            'url': action_url,
-            'disabled': False,
-            'kind': 'waitlist',
-        }
-
-    if can_register:
-        return {
-            'label': action_label,
-            'url': action_url,
-            'disabled': False,
-            'kind': 'primary',
-        }
-
-    return {
+    action_context = _build_detail_action_context(tournament, user, context=context)
+    primary = action_context.get('detail_cta_primary') or {
         'label': action_label,
-        'url': action_url if action_url and action_url != '#' else '',
+        'url': action_url,
         'disabled': True,
         'kind': 'disabled',
+    }
+    return {
+        'label': primary.get('label') or action_label,
+        'url': primary.get('url') or '',
+        'disabled': bool(primary.get('disabled')),
+        'kind': primary.get('kind') or 'disabled',
     }
 
 

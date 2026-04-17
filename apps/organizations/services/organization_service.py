@@ -1117,12 +1117,12 @@ class OrganizationService:
         Update organization settings from control plane.
 
         Accepted settings keys:
-            Organization fields: name, description, website, enforce_brand
+                        Organization fields: name, description, website, enforce_brand, logo, banner
             OrganizationProfile fields: discord_link, facebook, instagram, brand_color, currency
             JSON config: org_take (int → saved as revenue_split_config.org_take)
 
         Note: slug changes excluded for safety (needs dedicated endpoint with cooldown).
-              Logo/banner file uploads handled via separate multipart endpoint.
+                            This endpoint accepts JSON and multipart payloads.
 
         Returns:
             dict with updated_org_fields and updated_profile_fields lists
@@ -1137,13 +1137,25 @@ class OrganizationService:
         from apps.organizations.models.organization_profile import OrganizationProfile
         import re
 
+        # Normalize incoming payload values (QueryDict/FormData can yield list values).
+        normalized_settings = {}
+        for key, value in (settings or {}).items():
+            if isinstance(value, (list, tuple)):
+                normalized_settings[key] = value[-1] if value else None
+            else:
+                normalized_settings[key] = value
+        settings = normalized_settings
+
         # Field allowlists
         ORG_FIELDS = {'name', 'description', 'website', 'enforce_brand'}
+        ORG_MEDIA_FIELDS = {'logo', 'banner'}
         PROFILE_FIELDS = {'discord_link', 'facebook', 'instagram', 'brand_color', 'currency'}
 
         # Validate brand_color if provided
         brand_color = settings.get('brand_color')
-        if brand_color and not re.match(r'^#[0-9a-fA-F]{6}$', brand_color):
+        if isinstance(brand_color, str):
+            brand_color = brand_color.strip()
+        if brand_color and not re.match(r'^#[0-9a-fA-F]{6}$', str(brand_color)):
             raise ValidationError(
                 message="Invalid color format. Must be hex format like #ff5733",
                 error_code="INVALID_COLOR_FORMAT",
@@ -1167,7 +1179,8 @@ class OrganizationService:
                 user_id=updated_by_user_id
             ).first()
 
-            if not updater_membership or updater_membership.role not in ['CEO', 'MANAGER']:
+            is_org_ceo = org.ceo_id == updated_by_user_id
+            if not is_org_ceo and (not updater_membership or updater_membership.role not in ['CEO', 'MANAGER']):
                 raise PermissionDeniedError(
                     message="Only CEO or Managers can update organization settings",
                     error_code="INSUFFICIENT_PERMISSIONS",
@@ -1180,20 +1193,47 @@ class OrganizationService:
                 if field in settings:
                     val = settings[field]
                     if field == 'enforce_brand':
-                        val = bool(val)
+                        if isinstance(val, bool):
+                            pass
+                        elif isinstance(val, (int, float)):
+                            val = bool(val)
+                        else:
+                            token = str(val or '').strip().lower()
+                            if token in {'1', 'true', 'yes', 'on'}:
+                                val = True
+                            elif token in {'0', 'false', 'no', 'off', ''}:
+                                val = False
+                            else:
+                                val = bool(val)
                     setattr(org, field, val)
                     updated_org_fields.append(field)
 
+            # Update organization media assets when multipart files are present.
+            for field in ORG_MEDIA_FIELDS:
+                media_file = settings.get(field)
+                if media_file:
+                    setattr(org, field, media_file)
+                    updated_org_fields.append(field)
+
             # Handle revenue split config (JSON)
-            if 'org_take' in settings:
-                org_take = max(0, min(100, int(settings['org_take'])))
+            if 'org_take' in settings and settings.get('org_take') not in (None, ''):
+                try:
+                    org_take_raw = int(settings['org_take'])
+                except (TypeError, ValueError):
+                    raise ValidationError(
+                        message="org_take must be an integer between 0 and 100",
+                        error_code="INVALID_ORG_TAKE",
+                        details={"org_take": settings.get('org_take')},
+                    )
+
+                org_take = max(0, min(100, org_take_raw))
                 config = org.revenue_split_config or {}
                 config['org_take'] = org_take
                 org.revenue_split_config = config
                 updated_org_fields.append('revenue_split_config')
 
             if updated_org_fields:
-                org.save(update_fields=updated_org_fields + ['updated_at'])
+                org.save(update_fields=list(dict.fromkeys(updated_org_fields + ['updated_at'])))
 
             # Update OrganizationProfile fields
             updated_profile_fields = []

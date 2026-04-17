@@ -1,8 +1,9 @@
 # apps/siteui/templatetags/dc_avatar.py
-import os
-from django import template
-from django.conf import settings
 from urllib.parse import quote
+
+from django import template
+
+from apps.common.media_urls import field_file_url, normalize_media_url
 
 register = template.Library()
 
@@ -66,6 +67,43 @@ def _get(obj, name):
             return None
     return v
 
+
+def _append_candidate(candidates, value):
+    if not value:
+        return
+
+    url = ""
+    try:
+        # FieldFile / ImageField values
+        url = field_file_url(value)
+    except Exception:
+        url = ""
+
+    if not url:
+        try:
+            url = normalize_media_url(str(value), "")
+        except Exception:
+            url = ""
+
+    if url and url not in candidates:
+        candidates.append(url)
+
+
+def _avatar_candidates(user):
+    candidates = []
+
+    # Profile avatar is the primary source of truth.
+    profile = _get(user, "profile")
+    if profile:
+        for name in ("avatar", "photo", "image", "picture", "avatar_url"):
+            _append_candidate(candidates, _get(profile, name))
+
+    # Fallback to user-level fields for compatibility.
+    for name in ("avatar", "photo", "image", "picture", "avatar_url"):
+        _append_candidate(candidates, _get(user, name))
+
+    return candidates
+
 @register.simple_tag
 def user_avatar_url(user, default=None):
     """
@@ -74,41 +112,15 @@ def user_avatar_url(user, default=None):
     - If no avatar: returns colorful SVG with user initials (like Facebook/Discord)
     Never raises; always returns a usable string.
     """
-    if not getattr(user, "is_authenticated", False):
-        return default or _generate_initials_avatar(user) if user else DEFAULT_AVATAR_DATA_URI
+    if not user:
+        return default or DEFAULT_AVATAR_DATA_URI
 
-    candidates = []
+    if getattr(user, "is_authenticated", False):
+        for candidate in _avatar_candidates(user):
+            if candidate:
+                return candidate
 
-    # Common user fields
-    for name in ("avatar_url", "avatar", "photo", "image", "picture"):
-        v = _get(user, name)
-        if v:
-            candidates.append(getattr(v, "url", v))
-
-    # Profile object & common profile fields
-    profile = _get(user, "profile")
-    if profile:
-        for name in ("avatar_url", "avatar", "photo", "image", "picture"):
-            v = _get(profile, name)
-            if v:
-                candidates.append(getattr(v, "url", v))
-
-    # Return the first non-empty string whose file actually exists
-    for c in candidates:
-        if not c:
-            continue
-        url = getattr(c, "url", None)
-        s = url if url else str(c)
-        if s.strip():
-            # Verify the media file exists on disk to prevent 404s
-            if s.startswith(settings.MEDIA_URL):
-                rel_path = s[len(settings.MEDIA_URL):]
-                full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
-                if not os.path.isfile(full_path):
-                    continue  # skip missing files
-            return s
-
-    # No avatar found - generate modern initials avatar
+    # No usable avatar found - generate modern initials avatar.
     return default or _generate_initials_avatar(user)
 
 # Legacy constant for backward compatibility
