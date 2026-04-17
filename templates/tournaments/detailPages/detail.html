@@ -1502,23 +1502,13 @@
                     </button>
                 </div>
 
-                <!-- Organizer Tools (only visible to organizer) -->
-                {% if is_organizer %}
+                <!-- Management Tools -->
+                {% if viewer_can_manage %}
                 <div class="glass p-4 rounded-2xl border border-dc-purple/20 space-y-2">
                     <h4 class="text-[10px] font-bold text-dc-purple uppercase tracking-widest mb-2 flex items-center gap-1">
                         <i data-lucide="settings" class="w-3 h-3"></i> Organizer Tools
                     </h4>
-                    <a href="/tournaments/{{ tournament.slug }}/organizer/" class="block w-full py-2 px-3 bg-dc-purple/10 border border-dc-purple/20 text-dc-purple rounded-lg text-xs font-bold hover:bg-dc-purple/20 transition text-center">
-                        Open Management Hub
-                    </a>
-                    <div class="grid grid-cols-2 gap-2">
-                        <a href="/tournaments/{{ tournament.slug }}/organizer/participants/" class="py-2 px-2 bg-dc-card border border-white/[0.06] rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-dc-card-hover transition text-center">
-                            Participants
-                        </a>
-                        <a href="/tournaments/{{ tournament.slug }}/organizer/brackets/" class="py-2 px-2 bg-dc-card border border-white/[0.06] rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-dc-card-hover transition text-center">
-                            Brackets
-                        </a>
-                    </div>
+                    <a href="/toc/{{ tournament.slug }}/" class="block w-full py-2 px-3 bg-dc-purple/10 border border-dc-purple/20 text-dc-purple rounded-lg text-xs font-bold hover:bg-dc-purple/20 transition text-center">Open Management Hub</a>
                 </div>
                 {% endif %}
 

@@ -220,8 +220,15 @@ class TournamentDetailView(DetailView):
         # Phase-specific context
         context.update(self._get_phase_context(tournament, user))
 
-        # Unified hero/sidebar CTA state (single source of truth for action precedence).
-        context.update(_build_detail_action_context(tournament, user, context=context))
+        # Unified hero/sidebar/runtime CTA inputs (single source of truth for viewer state).
+        detail_action_input_context = _build_detail_action_input_context(
+            tournament,
+            user,
+            base_context=context,
+            now=timezone.now(),
+        )
+        context.update(detail_action_input_context)
+        context.update(_build_detail_action_context(tournament, user, context=detail_action_input_context))
 
         # Detailed registration status (wire up the dead code at _get_registration_status)
         if user.is_authenticated and context.get('is_registered'):
@@ -569,7 +576,8 @@ class TournamentDetailView(DetailView):
     def _get_participants_context(self, tournament, user):
         """Get context data for Participants tab."""
         if tournament.status in ('completed', 'archived'):
-            cache_key = f'detail_participants_{tournament.id}'
+            cache_user_key = user.id if user.is_authenticated else 'anon'
+            cache_key = f'detail_participants_{tournament.id}_{cache_user_key}'
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
@@ -709,23 +717,17 @@ class TournamentDetailView(DetailView):
         confirmed_count = registrations_qs.filter(status=Registration.CONFIRMED).count()
         waitlist_count = 0
 
-        is_organizer = user.is_authenticated and (
-            user == tournament.organizer or
-            user.is_staff or
-            user.is_superuser
-        )
-
         result = {
             'participants': participants_list,
             'participants_total': len(participants_list),
             'participants_confirmed': confirmed_count,
             'participants_waitlist': waitlist_count,
             'current_user_registration': current_user_registration,
-            'is_organizer': is_organizer,
         }
 
         if tournament.status in ('completed', 'archived'):
-            cache.set(f'detail_participants_{tournament.id}', result, 3600)
+            cache_user_key = user.id if user.is_authenticated else 'anon'
+            cache.set(f'detail_participants_{tournament.id}_{cache_user_key}', result, 3600)
 
         return result
 
@@ -1495,6 +1497,19 @@ def _resolve_match_lobby_window(match, *, now=None):
     }
 
 
+def _viewer_can_manage_tournament(tournament, user):
+    """Return True only for organizer/staff/superuser of the current viewer."""
+    if not user or not user.is_authenticated:
+        return False
+
+    user_id = getattr(user, 'id', None)
+    organizer_id = getattr(tournament, 'organizer_id', None)
+    if user_id is not None and organizer_id is not None and int(user_id) == int(organizer_id):
+        return True
+
+    return bool(getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False))
+
+
 def _resolve_user_registration_for_detail(tournament, user):
     """Return viewer registration row when one exists for this tournament."""
     if not user or not user.is_authenticated:
@@ -1552,7 +1567,7 @@ def _resolve_viewer_participant_ids_for_detail(tournament, user, *, registration
                 .values_list('team_id', flat=True)
             )
             participant_ids.update(int(team_id) for team_id in registered_team_ids if team_id)
-    elif getattr(user, 'id', None):
+    elif registration is not None and getattr(user, 'id', None):
         participant_ids.add(int(user.id))
 
     return participant_ids
@@ -1615,6 +1630,55 @@ def _resolve_user_next_match_context(tournament, user, *, now=None):
     return result
 
 
+def _build_detail_action_input_context(tournament, user, *, base_context=None, now=None):
+    """Build canonical viewer-state inputs reused by all detail CTA surfaces."""
+    base_context = dict(base_context or {})
+    now = now or timezone.now()
+
+    effective_status = str(
+        base_context.get('effective_status')
+        or getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+        or tournament.status
+    ).lower()
+
+    viewer_can_manage = _viewer_can_manage_tournament(tournament, user)
+    registration = _resolve_user_registration_for_detail(tournament, user)
+
+    from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
+
+    try:
+        eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
+    except Exception:
+        eligibility = {
+            'can_register': False,
+            'reason': 'Registration is currently closed.',
+            'action_url': '',
+            'action_label': '',
+        }
+
+    default_label = 'Register Team' if tournament.participation_type == Tournament.TEAM else 'Register Now'
+    registration_action_url = eligibility.get('action_url') or f'/tournaments/{tournament.slug}/register/'
+    registration_action_label = eligibility.get('action_label') or default_label
+    if registration is not None:
+        registration_action_url = reverse('tournaments:tournament_hub', kwargs={'slug': tournament.slug})
+        registration_action_label = 'Go to HUB'
+
+    action_context = {
+        'effective_status': effective_status,
+        'viewer_can_manage': viewer_can_manage,
+        'is_organizer': viewer_can_manage,
+        'is_registered': registration is not None,
+        'user_registration': registration,
+        'can_register': bool(eligibility.get('can_register')),
+        'registration_status_reason': eligibility.get('reason') or 'Registration is currently closed.',
+        'registration_action_url': registration_action_url,
+        'registration_action_label': registration_action_label,
+        'slots_percentage': float(base_context.get('slots_percentage') or 0),
+    }
+    action_context.update(_resolve_user_next_match_context(tournament, user, now=now))
+    return action_context
+
+
 def _build_detail_action_context(tournament, user, *, context):
     """Build shared CTA payload for both hero and sidebar surfaces."""
 
@@ -1629,7 +1693,11 @@ def _build_detail_action_context(tournament, user, *, context):
         }
 
     status = str(context.get('effective_status') or tournament.status or '').lower()
-    is_organizer = bool(context.get('is_organizer'))
+    is_organizer = bool(
+        context.get('viewer_can_manage')
+        if 'viewer_can_manage' in context
+        else context.get('is_organizer')
+    )
     is_registered = bool(context.get('is_registered'))
     viewer_is_participant = bool(context.get('viewer_is_registered_participant')) or is_registered
     can_register = bool(context.get('can_register'))
@@ -1780,53 +1848,21 @@ def _detail_status_context(tournament, slots_filled, slots_total, live_match_cou
     return 'Awaiting schedule details.'
 
 
-def _mobile_cta_payload(tournament, user):
-    if tournament.status in ('completed', 'archived'):
-        return {
-            'label': 'View Results',
-            'url': reverse('tournaments:results', kwargs={'slug': tournament.slug}),
-            'disabled': False,
-            'kind': 'results',
-        }
-
-    if tournament.status == 'cancelled':
-        return {
-            'label': 'Tournament Cancelled',
-            'url': '',
-            'disabled': True,
-            'kind': 'disabled',
-        }
-
-    from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
-
-    eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
-    default_label = 'Register Team' if tournament.participation_type == Tournament.TEAM else 'Register Now'
-    action_label = eligibility.get('action_label') or default_label
-    action_url = eligibility.get('action_url') or f'/tournaments/{tournament.slug}/register/'
-    context = {
-        'effective_status': tournament.status,
-        'is_organizer': bool(
-            user.is_authenticated and (
-                user == tournament.organizer or user.is_staff or user.is_superuser
-            )
-        ),
-        'is_registered': eligibility.get('registration') is not None,
-        'can_register': bool(eligibility.get('can_register')),
-        'registration_status_reason': eligibility.get('reason') or 'Registration is currently closed.',
-        'registration_action_url': action_url,
-        'registration_action_label': action_label,
-    }
-    context.update(_resolve_user_next_match_context(tournament, user, now=timezone.now()))
-
-    action_context = _build_detail_action_context(tournament, user, context=context)
-    primary = action_context.get('detail_cta_primary') or {
-        'label': action_label,
-        'url': action_url,
+def _mobile_cta_payload(tournament, user, *, action_context=None):
+    action_context = action_context or _build_detail_action_input_context(
+        tournament,
+        user,
+        now=timezone.now(),
+    )
+    detail_cta = _build_detail_action_context(tournament, user, context=action_context)
+    primary = detail_cta.get('detail_cta_primary') or {
+        'label': 'Registration Closed',
+        'url': '',
         'disabled': True,
         'kind': 'disabled',
     }
     return {
-        'label': primary.get('label') or action_label,
+        'label': primary.get('label') or 'Registration Closed',
         'url': primary.get('url') or '',
         'disabled': bool(primary.get('disabled')),
         'kind': primary.get('kind') or 'disabled',
@@ -1840,8 +1876,10 @@ def tournament_detail_mobile_state(request, slug):
         slug=slug,
     )
 
+    effective_status = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
+
     cache_user_key = request.user.id if request.user.is_authenticated else 'anon'
-    cache_key = f'detail_mobile_state_v1_{tournament.id}_{cache_user_key}'
+    cache_key = f'detail_mobile_state_v2_{tournament.id}_{cache_user_key}'
     cached_payload = cache.get(cache_key)
     if cached_payload is not None:
         return JsonResponse(cached_payload)
@@ -1905,9 +1943,20 @@ def tournament_detail_mobile_state(request, slug):
             'starts_at_relative': _relative_match_time(scheduled_time, now, status_key == 'completed'),
         })
 
+    action_input_context = _build_detail_action_input_context(
+        tournament,
+        request.user,
+        base_context={
+            'effective_status': effective_status,
+            'slots_percentage': slots_percentage,
+        },
+        now=now,
+    )
+    detail_cta = _build_detail_action_context(tournament, request.user, context=action_input_context)
+
     payload = {
-        'status_key': tournament.status,
-        'status_label': _DETAIL_STATUS_LABELS.get(tournament.status, 'Upcoming'),
+        'status_key': effective_status,
+        'status_label': _DETAIL_STATUS_LABELS.get(effective_status, 'Upcoming'),
         'status_context': _detail_status_context(tournament, slots_filled, slots_total, live_match_count, _tf),
         'slots_filled': slots_filled,
         'slots_total': slots_total,
@@ -1915,7 +1964,8 @@ def tournament_detail_mobile_state(request, slug):
         'slots_filling_fast': slots_filling_fast,
         'start_display': _format_display_datetime(tournament.tournament_start, _tf),
         'live_match_count': live_match_count,
-        'cta': _mobile_cta_payload(tournament, request.user),
+        'cta': _mobile_cta_payload(tournament, request.user, action_context=action_input_context),
+        'detail_cta': detail_cta,
         'matches': matches_payload,
         'updated_at': timezone.now().isoformat(),
     }

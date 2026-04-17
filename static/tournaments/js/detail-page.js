@@ -134,9 +134,12 @@
   function _initMobileDetail() {
     var root = document.getElementById('dc-mobile-detail');
     if (!root) return;
+    if (root.getAttribute('data-detail-init') === '1') return;
+    root.setAttribute('data-detail-init', '1');
 
     var hero = document.getElementById('dc-mobile-hero');
     var mobileHeader = document.getElementById('dc-mobile-header');
+    var mobileViewportQuery = window.matchMedia ? window.matchMedia('(max-width: 1023px)') : null;
     var tabButtons = Array.prototype.slice.call(root.querySelectorAll('[data-mobile-tab]'));
     var panelEls = Array.prototype.slice.call(root.querySelectorAll('[data-mobile-panel]'));
     var panelMap = {};
@@ -155,6 +158,7 @@
     var activeTab = tabOrder[0] || 'overview';
     var sheetOpenCount = 0;
     var pollInFlight = false;
+    var pollTimerId = null;
     var stickyOffsetRafId = null;
 
     function setTextById(id, value) {
@@ -513,6 +517,49 @@
 
     scheduleTabStickyOffsetSync();
 
+    function isPollingEligible() {
+      if (document.hidden) return false;
+      if (!root.isConnected) return false;
+      if (window.getComputedStyle(root).display === 'none') return false;
+      if (mobileViewportQuery && !mobileViewportQuery.matches) return false;
+      return true;
+    }
+
+    function stopPolling() {
+      if (!pollTimerId) return;
+      clearInterval(pollTimerId);
+      pollTimerId = null;
+    }
+
+    function startPolling() {
+      if (pollTimerId || !isPollingEligible()) return;
+      pollState();
+      pollTimerId = setInterval(function () {
+        if (!isPollingEligible()) {
+          stopPolling();
+          return;
+        }
+        pollState();
+      }, 20000);
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    }
+
+    function handleViewportChange() {
+      if (isPollingEligible()) {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+      scheduleTabStickyOffsetSync();
+    }
+
     async function pollState() {
       var stateUrl = root.getAttribute('data-state-url');
       if (!stateUrl || pollInFlight) return;
@@ -535,8 +582,19 @@
     }
 
     activateTab(activeTab);
-    pollState();
-    setInterval(pollState, 20000);
+    startPolling();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', stopPolling);
+    window.addEventListener('beforeunload', stopPolling);
+
+    if (mobileViewportQuery) {
+      if (typeof mobileViewportQuery.addEventListener === 'function') {
+        mobileViewportQuery.addEventListener('change', handleViewportChange);
+      } else if (typeof mobileViewportQuery.addListener === 'function') {
+        mobileViewportQuery.addListener(handleViewportChange);
+      }
+    }
   }
 
   /* ==========================================================
