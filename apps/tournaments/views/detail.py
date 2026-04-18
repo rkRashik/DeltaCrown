@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from datetime import timedelta
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from apps.tournaments.models import Tournament, TournamentAnnouncement
 from apps.tournaments.services.registration_service import RegistrationService
@@ -704,7 +704,7 @@ class TournamentDetailView(DetailView):
     def _get_matches_context(self, tournament):
         """Build matches context for Matches tab."""
         if tournament.status in ('completed', 'archived'):
-            cache_key = f'detail_matches_{tournament.id}'
+            cache_key = f'detail_matches_v3_{tournament.id}'
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
@@ -755,6 +755,39 @@ class TournamentDetailView(DetailView):
         now = timezone.now()
         _tf = getattr(getattr(self, 'request', None), 'user_platform_prefs', {}).get('time_format', '12h') if hasattr(self, 'request') else '12h'
 
+        # Resolve the latest knockout round once so single-elimination labels
+        # can be derived correctly (Final/Semi/Quarter) instead of hard-coding.
+        knockout_round_numbers = []
+        for row in matches_qs:
+            if not row.round_number:
+                continue
+            if tournament.format == tournament.GROUP_PLAYOFF and row.bracket_id is None:
+                continue
+            knockout_round_numbers.append(row.round_number)
+        knockout_round_max = max(knockout_round_numbers) if knockout_round_numbers else None
+
+        def _normalize_round_label(label: str) -> str:
+            value = str(label or '').strip()
+            if not value:
+                return ''
+
+            replacements = {
+                'Quarterfinals': 'Quarter Final',
+                'Quarter Finals': 'Quarter Final',
+                'Quarter-Finals': 'Quarter Final',
+                'Quarterfinal': 'Quarter Final',
+                'Quarter-Final': 'Quarter Final',
+                'Semifinals': 'Semi Final',
+                'Semi Finals': 'Semi Final',
+                'Semi-Finals': 'Semi Final',
+                'Semifinal': 'Semi Final',
+                'Semi-Final': 'Semi Final',
+                'Finals': 'Final',
+            }
+            for source, target in replacements.items():
+                value = value.replace(source, target)
+            return value
+
         for match in matches_qs:
             if tournament.format == tournament.GROUP_PLAYOFF:
                 phase = 'group_stage' if match.bracket is None else 'knockout_stage'
@@ -803,23 +836,51 @@ class TournamentDetailView(DetailView):
                     }
                     round_label = de_round_labels.get(match.round_number, f'Round {match.round_number}')
                 else:
-                    # Single-elim: highest round_number = final
-                    if match.round_number == 1:
-                        round_label = 'Final'
-                    elif match.round_number == 2:
-                        round_label = 'Semi-Finals'
-                    elif match.round_number == 3:
-                        round_label = 'Quarter-Finals'
+                    bracket_round_label = ''
+                    if getattr(match, 'bracket_id', None) and getattr(match, 'bracket', None):
+                        try:
+                            bracket_round_label = _normalize_round_label(
+                                match.bracket.get_round_name(match.round_number)
+                            )
+                        except Exception:
+                            bracket_round_label = ''
+
+                    if bracket_round_label:
+                        round_label = bracket_round_label
                     else:
-                        round_label = f'Round of {2 ** match.round_number}'
+                        # Single-elim: highest round_number is final, lower rounds
+                        # step backwards through semi/quarter/round-of labels.
+                        if knockout_round_max is not None:
+                            steps_from_final = knockout_round_max - match.round_number
+                            if steps_from_final == 0:
+                                round_label = 'Final'
+                            elif steps_from_final == 1:
+                                round_label = 'Semi Final'
+                            elif steps_from_final == 2:
+                                round_label = 'Quarter Final'
+                            elif steps_from_final == 3:
+                                round_label = 'Round of 16'
+                            elif steps_from_final == 4:
+                                round_label = 'Round of 32'
+                            else:
+                                round_size = 2 ** (steps_from_final + 1)
+                                round_label = f'Round of {round_size}'
+                        else:
+                            round_label = f'Round {match.round_number}'
+
+            round_label = _normalize_round_label(round_label)
 
             stage_label = ''
             if phase == 'group_stage' and group_name:
-                stage_label = group_name
+                stage_label = f"Group Stage - {group_name}"
                 if match.round_number:
-                    stage_label += f" — Round {match.round_number}"
+                    stage_label += f" - Round {match.round_number}"
+            elif phase == 'group_stage':
+                stage_label = 'Group Stage'
             elif phase == 'knockout_stage' and round_label:
                 stage_label = round_label
+            elif phase == 'knockout_stage':
+                stage_label = 'Knockout Stage'
             elif match.round_number:
                 stage_label = f"Round {match.round_number}"
 
@@ -848,6 +909,18 @@ class TournamentDetailView(DetailView):
 
             team1_is_winner = winner == 1
             team2_is_winner = winner == 2
+            winner_name = p1_name if team1_is_winner else p2_name if team2_is_winner else ''
+
+            if ui_status == 'live':
+                status_label = 'LIVE'
+            elif ui_status == 'completed':
+                status_label = 'FT'
+            else:
+                status_label = 'UPCOMING'
+
+            score1_value = match.participant1_score if show_scores else None
+            score2_value = match.participant2_score if show_scores else None
+            scoreline_display = f"{score1_value if score1_value is not None else '-'}-{score2_value if score2_value is not None else '-'}"
 
             starts_at = match.scheduled_time
             starts_at_relative = ''
@@ -873,6 +946,21 @@ class TournamentDetailView(DetailView):
                             starts_at_relative = f"Finished {hours}h ago"
                         else:
                             starts_at_relative = "Finished recently"
+
+            if starts_at:
+                local_starts_at = timezone.localtime(starts_at)
+                schedule_day_key = local_starts_at.date().isoformat()
+                schedule_day_label = local_starts_at.strftime('%a, %b %d')
+            else:
+                schedule_day_key = 'tba'
+                schedule_day_label = 'Date TBA'
+
+            if phase == 'group_stage':
+                schedule_phase_label = 'Group Stage'
+            elif phase == 'knockout_stage':
+                schedule_phase_label = 'Knockout Stage'
+            else:
+                schedule_phase_label = 'Match Stage'
 
             lobby_info = match.lobby_info or {}
             best_of_label = ''
@@ -913,6 +1001,9 @@ class TournamentDetailView(DetailView):
                 'match_label': match_label,
                 'group_name': group_name,
                 'group_id': group_id,
+                'schedule_day_key': schedule_day_key,
+                'schedule_day_label': schedule_day_label,
+                'schedule_phase_label': schedule_phase_label,
                 'start_time_display': start_time_display,
                 'starts_at': starts_at,
                 'starts_at_display': start_time_display,
@@ -925,8 +1016,11 @@ class TournamentDetailView(DetailView):
                 'team2_logo_url': p2_logo,
                 'team1_is_winner': team1_is_winner,
                 'team2_is_winner': team2_is_winner,
-                'score1': match.participant1_score if show_scores else None,
-                'score2': match.participant2_score if show_scores else None,
+                'score1': score1_value,
+                'score2': score2_value,
+                'scoreline_display': scoreline_display,
+                'winner_name': winner_name,
+                'status_label': status_label,
                 'best_of_label': best_of_label,
                 'stream_url': match.stream_url,
                 'vod_url': None,
@@ -1029,10 +1123,94 @@ class TournamentDetailView(DetailView):
                 m['team2_stats'] = []
                 m['map_player_stats'] = []
 
-        result = {'matches': matches_list, 'matches_reversed': list(reversed(matches_list))}
+        bracket_matches = [
+            m for m in matches_list
+            if not (tournament.format == Tournament.GROUP_PLAYOFF and m.get('phase') != 'knockout_stage')
+        ]
+
+        sorted_bracket_matches = sorted(
+            bracket_matches,
+            key=lambda item: (
+                item.get('round_number') is None,
+                item.get('round_number') or 9999,
+                item.get('match_number') is None,
+                item.get('match_number') or 9999,
+                item.get('id') or 0,
+            )
+        )
+
+        bracket_rounds: List[Dict[str, Any]] = []
+        round_lookup: Dict[str, Dict[str, Any]] = {}
+        for match_row in sorted_bracket_matches:
+            round_number = match_row.get('round_number')
+            if round_number is None:
+                round_key = f"stage:{match_row.get('stage_label') or match_row.get('match_label') or 'round'}"
+            else:
+                round_key = f"round:{round_number}"
+
+            round_entry = round_lookup.get(round_key)
+            if round_entry is None:
+                round_label = _normalize_round_label(
+                    match_row.get('round_label') or match_row.get('stage_label') or ''
+                )
+                if not round_label:
+                    round_label = f"Round {round_number}" if round_number is not None else 'Bracket Round'
+
+                round_entry = {
+                    'round_key': round_key,
+                    'round_number': round_number,
+                    'round_label': round_label,
+                    'matches': [],
+                    'match_count': 0,
+                    'status': 'upcoming',
+                    'lane': 'main',
+                    'is_final_round': False,
+                }
+                round_lookup[round_key] = round_entry
+                bracket_rounds.append(round_entry)
+
+            round_entry['matches'].append(match_row)
+
+        for idx, round_entry in enumerate(bracket_rounds):
+            round_entry['match_count'] = len(round_entry['matches'])
+
+            live_count = sum(1 for item in round_entry['matches'] if item.get('ui_status') == 'live')
+            completed_count = sum(1 for item in round_entry['matches'] if item.get('ui_status') == 'completed')
+            if live_count:
+                round_entry['status'] = 'live'
+            elif round_entry['matches'] and completed_count == len(round_entry['matches']):
+                round_entry['status'] = 'completed'
+            else:
+                round_entry['status'] = 'upcoming'
+
+            round_label_key = str(round_entry.get('round_label') or '').lower().strip()
+            is_named_final = (
+                round_label_key in {'final', 'grand final', 'grand finals'}
+                or 'grand final' in round_label_key
+            )
+            round_entry['is_final_round'] = idx == len(bracket_rounds) - 1 or is_named_final
+
+            lane = 'main'
+            if tournament.format == Tournament.DOUBLE_ELIM:
+                lane = 'winners'
+                if any(item.get('bracket_type') == 'losers' for item in round_entry['matches']):
+                    lane = 'losers'
+                if is_named_final:
+                    lane = 'grand_final'
+            round_entry['lane'] = lane
+
+        has_bracket_rounds = len(bracket_rounds) > 0
+
+        result = {
+            'matches': matches_list,
+            'matches_reversed': list(reversed(matches_list)),
+            'bracket_matches': bracket_matches,
+            'bracket_rounds': bracket_rounds,
+            'has_bracket_rounds': has_bracket_rounds,
+        }
 
         if tournament.status in ('completed', 'archived'):
-            cache.set(f'detail_matches_{tournament.id}', result, 3600)
+            cache.set(f'detail_matches_v3_{tournament.id}', result, 3600)
 
         return result
 

@@ -15,8 +15,9 @@
 
     body {
         background:
-            radial-gradient(1200px 700px at 50% -10%, rgba(var(--theme-rgb), 0.18), transparent 62%),
-            radial-gradient(900px 540px at 100% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+            radial-gradient(1100px 620px at 50% -8%, rgba(var(--theme-rgb), 0.24), transparent 64%),
+            radial-gradient(780px 460px at 100% 0%, rgba(var(--theme-rgb), 0.14), transparent 62%),
+            radial-gradient(900px 520px at 10% 0%, rgba(255, 255, 255, 0.05), transparent 65%),
             #030305;
         color: #FAFAFA;
         overflow-x: hidden;
@@ -49,8 +50,8 @@
     .glass-extreme {
         background: rgba(14, 14, 18, 0.65);
         backdrop-filter: blur(24px) saturate(120%);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(var(--theme-rgb), 0.07);
         transition: all 0.3s ease;
     }
 
@@ -66,25 +67,31 @@
     }
 
     .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(3, 3, 5, 0.82) 24%, rgba(3, 3, 5, 0.42) 66%, rgba(3, 3, 5, 0.08) 100%);
+        background: linear-gradient(to top, #030305 0%, rgba(3, 3, 5, 0.76) 30%, rgba(3, 3, 5, 0.28) 70%, rgba(3, 3, 5, 0.02) 100%);
     }
 
     .theme-valorant .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(16, 6, 8, 0.86) 24%, rgba(28, 8, 10, 0.5) 64%, rgba(255, 70, 85, 0.12) 100%);
+        background: linear-gradient(to top, #030305 0%, rgba(16, 6, 8, 0.8) 30%, rgba(28, 8, 10, 0.36) 70%, rgba(255, 70, 85, 0.14) 100%);
     }
 
     .theme-pubgm .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(18, 14, 5, 0.86) 24%, rgba(38, 24, 6, 0.5) 64%, rgba(242, 169, 0, 0.12) 100%);
+        background: linear-gradient(to top, #030305 0%, rgba(18, 14, 5, 0.8) 30%, rgba(38, 24, 6, 0.36) 70%, rgba(242, 169, 0, 0.14) 100%);
     }
 
     .theme-efootball .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(4, 10, 15, 0.86) 24%, rgba(6, 20, 25, 0.5) 64%, rgba(0, 229, 255, 0.12) 100%);
+        background: linear-gradient(to top, #030305 0%, rgba(4, 10, 15, 0.8) 30%, rgba(6, 20, 25, 0.36) 70%, rgba(0, 229, 255, 0.14) 100%);
     }
 
     .mood-surface {
-        background: linear-gradient(140deg, rgba(var(--theme-rgb), 0.18), rgba(15, 15, 20, 0.86));
-        border: 1px solid rgba(var(--theme-rgb), 0.26);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+        background: linear-gradient(140deg, rgba(var(--theme-rgb), 0.24), rgba(15, 15, 20, 0.84));
+        border: 1px solid rgba(var(--theme-rgb), 0.32);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(var(--theme-rgb), 0.12);
+    }
+
+    .runtime-strip {
+        background: linear-gradient(135deg, rgba(var(--theme-rgb), 0.16), rgba(7, 7, 10, 0.78));
+        border: 1px solid rgba(var(--theme-rgb), 0.28);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
     }
 
     .mood-pulse {
@@ -140,12 +147,560 @@
         color: #86efac;
     }
 
-    .bracket-connector {
-        border-right: 2px solid rgba(255,255,255,0.1);
-        border-top: 2px solid rgba(255,255,255,0.1);
-        border-bottom: 2px solid rgba(255,255,255,0.1);
-        border-left: none;
-        border-radius: 0 8px 8px 0;
+    .bracket-canvas-shell {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.26) transparent;
+    }
+
+    .bracket-stage-grid {
+        display: flex;
+        gap: 5.25rem;
+        min-width: max-content;
+        padding: 1.9rem 2rem 2.4rem;
+    }
+
+    .bracket-round-column {
+        width: 17.1rem;
+        flex-shrink: 0;
+    }
+
+    .bracket-round-track {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .bracket-round-track.is-single {
+        justify-content: center;
+        gap: 0;
+        min-height: 28rem;
+    }
+
+    .bracket-round-track.is-double {
+        justify-content: space-around;
+        gap: 4rem;
+        min-height: 32rem;
+    }
+
+    .bracket-round-track.is-triple {
+        gap: 2.45rem;
+    }
+
+    .bracket-round-track.is-dense {
+        gap: 1.15rem;
+    }
+
+    .bracket-round-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.17);
+        background: rgba(10, 10, 14, 0.78);
+        padding: 0.38rem 0.72rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .bracket-node {
+        background-color: #111116;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        position: relative;
+        width: 100%;
+        overflow: visible;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    }
+
+    .bracket-node.match-expired {
+        border-color: rgba(239, 68, 68, 0.42);
+    }
+
+    .bracket-node.match-active {
+        border-color: rgba(var(--theme-rgb), 0.62);
+        box-shadow: 0 0 20px rgba(var(--theme-rgb), 0.2), 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    .bracket-node.match-upcoming {
+        border-color: rgba(250, 204, 21, 0.4);
+    }
+
+    .bracket-node.is-finals-node {
+        border-color: rgba(250, 204, 21, 0.55);
+        box-shadow: 0 0 24px rgba(250, 204, 21, 0.14), 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .bracket-line-right::after {
+        content: '';
+        position: absolute;
+        right: -2.6rem;
+        top: 50%;
+        width: 2.6rem;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .bracket-line-top::before {
+        content: '';
+        position: absolute;
+        right: -2.6rem;
+        top: 50%;
+        width: 1px;
+        height: 50%;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .bracket-line-bottom::before {
+        content: '';
+        position: absolute;
+        right: -2.6rem;
+        bottom: 50%;
+        width: 1px;
+        height: 50%;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .bracket-line-left::before {
+        content: '';
+        position: absolute;
+        left: -2.6rem;
+        top: 50%;
+        width: 2.6rem;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .bracket-tree-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        min-width: 0;
+        transform-origin: top left;
+        transition: transform 0.16s ease;
+    }
+
+    .bracket-zoom-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+        color: #9ca3af;
+        transition: all 0.16s ease;
+    }
+
+    .bracket-zoom-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border-color: rgba(var(--theme-rgb), 0.45);
+    }
+
+    .bk-label {
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+        margin-top: 1.5rem;
+        border-radius: 0.5rem;
+        border-left: 3px solid;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .bk-label:first-child {
+        margin-top: 0;
+    }
+
+    .bk-ub {
+        color: #00ff66;
+        border-left-color: #00ff66;
+        background: rgba(0, 255, 102, 0.04);
+    }
+
+    .bk-lb {
+        color: #ff2a55;
+        border-left-color: #ff2a55;
+        background: rgba(255, 42, 85, 0.04);
+    }
+
+    .bk-gf {
+        color: #ffb800;
+        border-left-color: #ffb800;
+        background: rgba(255, 184, 0, 0.04);
+    }
+
+    .bk-section {
+        display: flex;
+        gap: 2.5rem;
+        overflow-x: auto;
+        padding: 0.5rem 0 1rem;
+        position: relative;
+        min-width: max-content;
+    }
+
+    .bk-col {
+        flex: 0 0 auto;
+        min-width: 260px;
+        z-index: 2;
+        position: relative;
+    }
+
+    .bk-col-title {
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 0.85rem;
+        text-align: center;
+    }
+
+    .bk-col-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 0.65rem;
+    }
+
+    .bk-match {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(14, 14, 20, 0.95) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 0.75rem;
+        overflow: visible;
+        margin: 6px 0;
+        transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+        position: relative;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .bk-match:hover {
+        border-color: rgba(var(--theme-rgb), 0.42);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(var(--theme-rgb), 0.14);
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(17, 17, 24, 0.95) 100%);
+        transform: translateY(-1px);
+    }
+
+    .bk-match.bk-live {
+        border-color: rgba(255, 42, 85, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 24px rgba(255, 42, 85, 0.15);
+        animation: bkPulseCard 2s ease-in-out infinite alternate;
+    }
+
+    .bk-match.bk-done {
+        opacity: 0.92;
+    }
+
+    .bk-match.bk-done:hover {
+        opacity: 1;
+    }
+
+    .bk-match.bk-tbd {
+        border-color: rgba(255, 255, 255, 0.1);
+        opacity: 0.65;
+        background: rgba(255, 255, 255, 0.025);
+        box-shadow: none;
+    }
+
+    .bk-match.bk-sched {
+        border-color: rgba(255, 184, 0, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 12px rgba(255, 184, 0, 0.06);
+        background: linear-gradient(160deg, rgba(255, 184, 0, 0.04) 0%, rgba(14, 14, 20, 0.95) 100%);
+    }
+
+    .bk-match.bk-sched:hover {
+        border-color: rgba(255, 184, 0, 0.35);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 184, 0, 0.12);
+    }
+
+    .bk-match-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 12px 3px;
+        min-height: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .bk-mnum {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.4);
+        font-family: 'Space Grotesk', monospace;
+    }
+
+    .bk-badge-live {
+        font-size: 0.45rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        color: #ff2a55;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .bk-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #ff2a55;
+        animation: bkDot 1.5s ease-in-out infinite;
+    }
+
+    .bk-badge-ft {
+        font-size: 0.45rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: #4b5563;
+    }
+
+    .bk-badge-up {
+        font-size: 0.45rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: rgba(255, 184, 0, 0.72);
+    }
+
+    .bk-badge-up.bk-badge-sched-dt {
+        font-size: 0.5rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: rgba(219, 234, 254, 0.85);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 10rem;
+    }
+
+    .bk-badge-up.bk-badge-tbd {
+        color: #374151;
+    }
+
+    .bk-team {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 12px;
+    }
+
+    .bk-team-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .bk-team-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .bk-team-avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .bk-team-avatar-initial {
+        font-size: 0.55rem;
+        font-weight: 800;
+        color: #9ca3af;
+        text-transform: uppercase;
+        line-height: 1;
+    }
+
+    .bk-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #e5e7eb;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 155px;
+    }
+
+    .bk-w .bk-name {
+        color: #ffffff;
+        font-weight: 700;
+    }
+
+    .bk-sc {
+        font-size: 0.85rem;
+        font-weight: 800;
+        font-family: 'Space Grotesk', sans-serif;
+        color: #9ca3af;
+        min-width: 1.4rem;
+        text-align: center;
+    }
+
+    .bk-w .bk-sc {
+        color: #00ff66;
+        text-shadow: 0 0 8px rgba(0, 255, 102, 0.3);
+    }
+
+    .bk-vs {
+        text-align: center;
+        padding: 2px 0;
+        font-size: 0.55rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: rgba(255, 255, 255, 0.25);
+        user-select: none;
+    }
+
+    .bk-live .bk-vs {
+        color: rgba(var(--theme-rgb), 0.52);
+    }
+
+    .bk-svg {
+        overflow: visible;
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .bk-line {
+        stroke: rgba(255, 255, 255, 0.35);
+        stroke-width: 2;
+        fill: none;
+    }
+
+    @keyframes bkDot {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.25; }
+    }
+
+    @keyframes bkPulseCard {
+        from { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 14px rgba(255, 42, 85, 0.1); }
+        to { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 28px rgba(255, 42, 85, 0.2); }
+    }
+
+    .match-feed-card {
+        border-radius: 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(165deg, rgba(22, 22, 28, 0.92), rgba(8, 8, 12, 0.96));
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+    }
+
+    .match-feed-card.is-live {
+        border-color: rgba(239, 68, 68, 0.46);
+        box-shadow: 0 0 24px rgba(239, 68, 68, 0.14), 0 10px 26px rgba(0, 0, 0, 0.35);
+    }
+
+    .match-feed-card.is-completed {
+        border-color: rgba(34, 197, 94, 0.36);
+    }
+
+    .match-feed-card.is-upcoming {
+        border-color: rgba(148, 163, 184, 0.35);
+    }
+
+    .match-score-core {
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(3, 3, 6, 0.68);
+        border-radius: 0.95rem;
+        padding: 1rem 1.35rem;
+    }
+
+    .match-feed-team.is-winner {
+        border-color: rgba(var(--theme-rgb), 0.45);
+        background: rgba(var(--theme-rgb), 0.12);
+    }
+
+    .match-feed-team.is-loser {
+        opacity: 0.82;
+    }
+
+    .match-context-pill {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 999px;
+        padding: 0.26rem 0.58rem;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #cbd5e1;
+        font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+        .bracket-stage-grid {
+            gap: 3.5rem;
+            padding: 1rem 1rem 1.5rem;
+        }
+
+        .bracket-round-column {
+            width: 15.4rem;
+        }
+
+        .bracket-line-right::after {
+            right: -1.8rem;
+            width: 1.8rem;
+        }
+
+        .bracket-line-top::before,
+        .bracket-line-bottom::before {
+            right: -1.8rem;
+        }
+
+        .bracket-line-left::before {
+            left: -1.8rem;
+            width: 1.8rem;
+        }
+
+        .bk-section {
+            gap: 1.25rem;
+            padding-bottom: 1.5rem;
+        }
+
+        .bk-col {
+            min-width: 210px;
+        }
+
+        .bk-match {
+            margin: 3px 0;
+        }
+
+        .bk-name {
+            max-width: 110px;
+            font-size: 0.7rem;
+        }
+
+        .bk-team-avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        .bk-team-avatar-initial {
+            font-size: 0.5rem;
+        }
+
+        .bk-sc {
+            font-size: 0.72rem;
+        }
+
+        .bk-col-title {
+            font-size: 0.58rem;
+        }
+
+        .bk-label {
+            font-size: 0.55rem;
+            padding: 0.25rem 0.75rem;
+        }
     }
 
     @keyframes shimmer {
@@ -177,9 +732,10 @@
     x-init="init()"
     class="relative {% if game_spec.slug and 'valorant' in game_spec.slug %}theme-valorant{% elif game_spec.slug and 'pubg' in game_spec.slug %}theme-pubgm{% else %}theme-efootball{% endif %}"
     data-state-url="{{ mobile_state_url|default:'' }}"
+    data-detail-bracket-api-url="{% url 'tournaments:hub_bracket_api' slug=tournament.slug %}"
 >
     <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none z-[-2]"></div>
-    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-10 animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-[0.14] animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
 
     <nav class="fixed top-0 w-full z-50 glass-extreme border-b border-white/5">
         <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -232,17 +788,17 @@
             </a>
             {% else %}
             {% if tournament.banner_image %}
-            <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-65 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-80 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% elif tournament.thumbnail_image %}
-            <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-60 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-74 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% else %}
-            <img src="{% static 'siteui/og/default.png' %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-45 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{% static 'siteui/og/default.png' %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-56 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% endif %}
             {% endif %}
 
             <div class="absolute inset-0 hero-mask"></div>
-            <div class="absolute inset-0 bg-gradient-to-b from-black/25 via-black/10 to-[#030305]"></div>
-            <div class="absolute inset-0 opacity-[0.12] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-black/8 via-black/5 to-[#030305]/96"></div>
+            <div class="absolute inset-0 opacity-[0.08] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
             <div class="absolute left-[-12%] top-[8%] w-[34rem] h-[34rem] rounded-full blur-[120px] opacity-35 pointer-events-none theme-bg"></div>
         </div>
 
@@ -322,32 +878,32 @@
                 </div>
 
                 <div class="lg:col-span-4 flex lg:justify-end">
-                    <div class="flex flex-wrap lg:flex-col gap-6 lg:gap-8 mood-surface backdrop-blur-xl rounded-[2rem] p-8 w-full lg:w-auto shadow-2xl">
+                    <div class="flex flex-wrap lg:flex-col gap-4 lg:gap-5 mood-surface backdrop-blur-xl rounded-[1.7rem] p-5 lg:p-6 w-full lg:w-auto shadow-2xl">
                         <div>
                             <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
                             <div class="flex items-baseline gap-2">
-                                <p class="font-display font-black text-5xl text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
+                                <p class="font-display font-black text-4xl lg:text-[2.9rem] text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
-                                <p class="text-sm font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} DC</p>
+                                <p class="text-xs font-bold text-dc-cyan bg-dc-cyan/10 px-2 py-1 rounded">+ {{ tournament.prize_deltacoin|intcomma }} DC</p>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="h-px w-full bg-gradient-to-r from-white/20 to-transparent hidden lg:block"></div>
-                        <div class="flex gap-12">
+                        <div class="flex gap-8">
                             <div>
                                 <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="swords" class="w-4 h-4 theme-text"></i> Format</p>
-                                <p class="font-display font-bold text-2xl text-white">{{ tournament_format_label }}</p>
+                                <p class="font-display font-bold text-xl text-white">{{ tournament_format_label }}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-dc-purple"></i> Participants</p>
-                                <p class="font-display font-bold text-2xl text-white"><span data-slots-filled>{{ slots_filled }}</span><span class="text-gray-600 text-lg">/<span data-slots-total>{{ slots_total }}</span></span></p>
+                                <p class="font-display font-bold text-xl text-white"><span data-slots-filled>{{ slots_filled }}</span><span class="text-gray-600 text-base">/<span data-slots-total>{{ slots_total }}</span></span></p>
                             </div>
                         </div>
                         {% if has_streams and featured_stream %}
-                        <div class="rounded-xl bg-black/45 border border-white/10 px-4 py-3 space-y-1">
+                        <div class="rounded-xl bg-black/45 border border-white/10 px-3 py-2.5 space-y-1">
                             <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400">Featured Broadcast</p>
                             <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="flex items-center justify-between text-white hover:theme-text transition-colors">
-                                <span class="text-sm font-bold">{{ featured_stream.platform|upper }} Stream</span>
+                                <span class="text-xs font-bold">{{ featured_stream.platform|upper }} Stream</span>
                                 <i data-lucide="external-link" class="w-4 h-4"></i>
                             </a>
                         </div>
@@ -360,7 +916,9 @@
 
     <div class="sticky top-16 z-40 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl transition-all">
         <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar" role="tablist" aria-label="Tournament tabs">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar" role="tablist" aria-label="Tournament tabs">
                 <button data-detail-tab="overview" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'overview' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('overview')">
                     Overview
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'overview' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
@@ -422,13 +980,44 @@
                     <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'matches' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
                 </button>
                 {% endif %}
+                    </div>
+                </div>
+
+                <div class="hidden lg:flex shrink-0 items-center py-2">
+                    <div class="runtime-strip rounded-xl px-3 py-2 min-w-[280px] max-w-[360px]">
+                        <p id="nd-tab-runtime-primary" class="text-[10px] font-bold uppercase tracking-widest text-white" {% if user_next_match or countdown_target %}data-runtime-locked="true"{% endif %}>
+                            {% if user_next_match %}
+                            Next {{ user_next_match.stage_label|default:'Match' }}
+                            {% elif countdown_target and countdown_label %}
+                            {{ countdown_label }}
+                            {% elif effective_status == 'live' %}
+                            Live Runtime
+                            {% else %}
+                            Tournament Runtime
+                            {% endif %}
+                        </p>
+                        <p id="nd-tab-runtime-secondary" class="text-[10px] font-mono text-gray-200 mt-1" {% if user_next_match or countdown_target %}data-runtime-locked="true"{% endif %}>
+                            {% if user_next_match and user_next_match_lobby_open and user_next_match_lobby_closes_at %}
+                            Lobby open | closes {{ user_next_match_lobby_closes_at|date:'g:i A' }}
+                            {% elif user_next_match and user_next_match_lobby_opens_at %}
+                            Lobby opens {{ user_next_match_lobby_opens_at|date:'g:i A' }}
+                            {% elif countdown_target and countdown_label %}
+                            <span data-runtime-countdown data-target="{{ countdown_target }}">--:--:--</span>
+                            {% elif effective_status == 'live' %}
+                            Bracket execution is active
+                            {% else %}
+                            {{ effective_status_display }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12 relative">
-            <div class="xl:col-span-8 space-y-10 min-h-[800px]">
+            <div class="space-y-10 min-h-[800px]" :class="activeTab === 'bracket' ? 'xl:col-span-12' : 'xl:col-span-8'">
                 <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-8" x-cloak>
                     <div class="flex flex-wrap gap-3">
                         <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="server" class="w-3 h-3 text-dc-cyan"></i> Live Updates Enabled</span>
@@ -446,57 +1035,55 @@
                         {% endif %}
                     </div>
 
-                    {% if announcements %}
-                    <div class="glass-panel p-6 rounded-2xl border border-white/10">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-display font-bold text-xl text-white flex items-center gap-2"><i data-lucide="megaphone" class="w-5 h-5 theme-text"></i> Announcements</h3>
-                            <span class="text-[10px] uppercase tracking-widest text-gray-500">Latest updates</span>
-                        </div>
-                        <div class="space-y-3">
-                            {% for ann in announcements|slice:":3" %}
-                            <article class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <h4 class="font-semibold text-white text-sm">{{ ann.title }}</h4>
-                                    {% if ann.is_pinned %}<span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-dc-gold/15 text-dc-gold border border-dc-gold/30">Pinned</span>{% endif %}
-                                    {% if ann.is_important %}<span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">Important</span>{% endif %}
+                        <div class="mood-surface p-7 md:p-9 rounded-[2rem] relative overflow-hidden">
+                            <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
+                            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 relative z-10">
+                                <div class="lg:col-span-3 max-w-3xl">
+                                    <h3 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h3>
+                                    <div class="prose prose-invert prose-sm md:prose-base max-w-none text-gray-200 leading-relaxed">
+                                        {% if tournament.description %}
+                                        <div>{{ tournament.description|safe }}</div>
+                                        {% else %}
+                                        <p>Organizer has not published a detailed description yet.</p>
+                                        {% endif %}
+                                    </div>
+                                    <p class="mt-4 text-sm text-gray-300 leading-relaxed max-w-2xl">Runtime state is synchronized with registration, bracket, and match execution. Confirm your readiness before check-in closes to avoid automatic no-show handling.</p>
                                 </div>
-                                <p class="text-sm text-gray-300">{{ ann.message }}</p>
-                            </article>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <div class="mood-surface p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
-                        <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
-                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 relative z-10">
-                            <div class="lg:col-span-3">
-                                <h3 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h3>
-                                <div class="prose prose-invert max-w-none text-gray-200">
-                                    {% if tournament.description %}
-                                    <div>{{ tournament.description|safe }}</div>
-                                    {% else %}
-                                    <p>Organizer has not published a detailed description yet.</p>
-                                    {% endif %}
+                                <div class="lg:col-span-2 space-y-3">
+                                    <div class="glass-panel rounded-xl p-4 border border-white/10">
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Runtime Status</p>
+                                        <p class="text-lg font-bold text-white">{{ effective_status_display }}</p>
+                                        <p class="mt-1 text-xs text-gray-300">
+                                            {% if user_next_match and user_next_match_lobby_open %}
+                                            Lobby is currently open for your next match.
+                                            {% elif user_next_match and user_next_match_lobby_opens_at %}
+                                            Lobby opens at {{ user_next_match_lobby_opens_at|date:"g:i A" }}.
+                                            {% elif effective_status == 'live' %}
+                                            Tournament execution is in progress.
+                                            {% elif effective_status == 'registration_open' %}
+                                            Registration is active and accepting entries.
+                                            {% else %}
+                                            Runtime status is tracked from live tournament state.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="glass-panel rounded-xl p-4 border border-white/10">
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Phase Timing</p>
+                                        <p class="text-sm font-semibold text-white">
+                                            {% if user_next_match and user_next_match.scheduled_time %}
+                                            Next match {{ user_next_match.scheduled_time|date:"M d, Y • H:i" }}
+                                            {% elif tournament_phase == 'registration_open' and tournament.registration_end %}
+                                            Registration closes {{ tournament.registration_end|date:"M d, Y • H:i" }}
+                                            {% elif tournament.tournament_start %}
+                                            Tournament starts {{ tournament.tournament_start|date:"M d, Y • H:i" }}
+                                            {% else %}
+                                            Schedule pending organizer publish
+                                            {% endif %}
+                                        </p>
+                                    </div>
                                 </div>
-                                <p class="mt-4 text-sm text-gray-300 leading-relaxed">Runtime status is synchronized with live bracket/match state. Participants should complete check-in before the configured deadline to avoid no-show enforcement.</p>
                             </div>
-                            <div class="lg:col-span-2 space-y-3">
-                                <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Current State</p>
-                                    <p class="text-lg font-bold text-white">{{ effective_status_display }}</p>
-                                </div>
-                                <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Start Time</p>
-                                    <p class="text-sm font-semibold text-white">{% if tournament.tournament_start %}{{ tournament.tournament_start|date:"M d, Y • H:i" }}{% else %}TBA{% endif %}</p>
-                                </div>
-                                <div class="glass-panel rounded-xl p-4 border border-white/10">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Last Update</p>
-                                    <p class="text-sm font-semibold text-white">{{ tournament.updated_at|date:"M d, Y • H:i" }}</p>
-                                </div>
-                            </div>
                         </div>
-                    </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
@@ -679,78 +1266,94 @@
 
                 {% if show_schedule %}
                 <div x-show="activeTab === 'schedule'" x-transition.opacity class="space-y-6" x-cloak>
-                    <div class="glass-extreme p-10 rounded-[2rem] border-white/5">
-                        <h3 class="font-display font-bold text-3xl text-white mb-10 flex items-center gap-3">
-                            <i data-lucide="calendar-clock" class="w-7 h-7 theme-text"></i> Official Operations Timeline
-                        </h3>
-
-                        <div class="relative pl-8 space-y-12 z-10">
-                            <div class="absolute top-2 bottom-2 left-[39px] w-[2px] bg-gradient-to-b from-white/20 via-white/10 to-transparent"></div>
-
-                            {% if tournament.registration_end %}
-                            <div class="relative group">
-                                <div class="absolute -left-8 top-0 w-12 h-12 rounded-full border-4 border-dc-bg flex items-center justify-center transition-colors duration-300 {% if tournament_phase == 'registration_open' %}theme-bg theme-glow{% elif tournament_phase == 'draft' or tournament_phase == 'pending_approval' or tournament_phase == 'published' %}bg-gray-800{% else %}bg-green-500{% endif %}">
-                                    {% if tournament_phase == 'registration_open' %}
-                                    <span class="w-3 h-3 bg-black rounded-full animate-pulse"></span>
-                                    {% elif tournament_phase == 'draft' or tournament_phase == 'pending_approval' or tournament_phase == 'published' %}
-                                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                                    {% else %}
-                                    <i data-lucide="check" class="w-5 h-5 text-black"></i>
-                                    {% endif %}
-                                </div>
-                                <div class="pl-12">
-                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-                                        <h4 class="text-xl font-bold {% if tournament_phase == 'registration_open' %}text-white{% else %}text-gray-300{% endif %}">Registration Closes</h4>
-                                        <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest {% if tournament_phase == 'registration_open' %}bg-white/10 text-white border border-white/20{% else %}bg-black text-gray-500 border border-white/5{% endif %}">{{ tournament.registration_end|date:"M d, H:i" }}</span>
-                                    </div>
-                                    <p class="text-sm text-gray-400 max-w-2xl leading-relaxed">Rosters lock permanently after this timestamp.</p>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            {% if tournament.tournament_start %}
-                            <div class="relative group">
-                                <div class="absolute -left-8 top-0 w-12 h-12 rounded-full border-4 border-dc-bg flex items-center justify-center transition-colors duration-300 {% if tournament_phase == 'registration_closed' %}theme-bg theme-glow{% elif is_live_phase or is_completed_phase %}bg-green-500{% else %}bg-gray-800{% endif %}">
-                                    {% if tournament_phase == 'registration_closed' %}
-                                    <span class="w-3 h-3 bg-black rounded-full animate-pulse"></span>
-                                    {% elif is_live_phase or is_completed_phase %}
-                                    <i data-lucide="check" class="w-5 h-5 text-black"></i>
-                                    {% else %}
-                                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                                    {% endif %}
-                                </div>
-                                <div class="pl-12">
-                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-                                        <h4 class="text-xl font-bold {% if tournament_phase == 'registration_closed' %}text-white{% else %}text-gray-300{% endif %}">Check-In Phase</h4>
-                                        <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest {% if tournament_phase == 'registration_closed' %}bg-white/10 text-white border border-white/20{% else %}bg-black text-gray-500 border border-white/5{% endif %}">{{ tournament.tournament_start|date:"M d, H:i" }}</span>
-                                    </div>
-                                    <p class="text-sm text-gray-400 max-w-2xl leading-relaxed">Captains must confirm attendance before lobby opens.</p>
-                                    <div class="mt-3 flex gap-3">
-                                        <span class="px-2 py-1 bg-black/50 rounded text-[10px] font-mono text-gray-400">Check-in window: {{ tournament.check_in_minutes_before|default:15 }} min</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="relative group">
-                                <div class="absolute -left-8 top-0 w-12 h-12 rounded-full border-4 border-dc-bg flex items-center justify-center transition-colors duration-300 {% if is_live_phase %}theme-bg theme-glow{% elif is_completed_phase %}bg-green-500{% else %}bg-gray-800{% endif %}">
-                                    {% if is_live_phase %}
-                                    <span class="w-3 h-3 bg-black rounded-full animate-pulse"></span>
-                                    {% elif is_completed_phase %}
-                                    <i data-lucide="check" class="w-5 h-5 text-black"></i>
-                                    {% else %}
-                                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                                    {% endif %}
-                                </div>
-                                <div class="pl-12">
-                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-                                        <h4 class="text-xl font-bold {% if is_live_phase %}text-white{% else %}text-gray-300{% endif %}">Playoffs (Live)</h4>
-                                        <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest {% if is_live_phase %}bg-white/10 text-white border border-white/20{% else %}bg-black text-gray-500 border border-white/5{% endif %}">{{ tournament.tournament_start|date:"M d, H:i" }}</span>
-                                    </div>
-                                    <p class="text-sm text-gray-400 max-w-2xl leading-relaxed">Main bracket execution and score verification in real time.</p>
-                                </div>
-                            </div>
-                            {% endif %}
+                    <div class="glass-extreme p-6 md:p-8 rounded-[2rem] border-white/10">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                            <h3 class="font-display font-bold text-2xl md:text-3xl text-white flex items-center gap-3">
+                                <i data-lucide="calendar-clock" class="w-6 h-6 theme-text"></i> Competition Schedule
+                            </h3>
+                            <p class="text-[10px] uppercase tracking-widest text-gray-400">{{ tournament_format_label }} | {{ tournament_participation_label }}</p>
                         </div>
+
+                        {% if matches %}
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                            <div class="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total Fixtures</p>
+                                <p class="mt-1 text-2xl font-display font-bold text-white">{{ matches|length }}</p>
+                            </div>
+                            <div class="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Next Kickoff</p>
+                                <p class="mt-1 text-sm font-semibold text-white">{{ matches.0.starts_at_display|default:matches.0.start_time_display|default:'TBA' }}</p>
+                            </div>
+                            <div class="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Schedule Mode</p>
+                                <p class="mt-1 text-sm font-semibold text-white">Timeline by day and phase</p>
+                            </div>
+                        </div>
+
+                        {% regroup matches by schedule_day_key as schedule_day_groups %}
+                        <div class="space-y-5">
+                            {% for day_group in schedule_day_groups %}
+                            <section class="rounded-2xl border border-white/10 bg-black/35 overflow-hidden">
+                                <div class="px-5 py-3.5 border-b border-white/10 bg-black/45 flex items-center justify-between">
+                                    <h4 class="text-sm font-bold uppercase tracking-widest text-white">{{ day_group.list.0.schedule_day_label|default:'Date TBA' }}</h4>
+                                    <span class="text-[10px] uppercase tracking-widest text-gray-500">{{ day_group.list|length }} fixtures</span>
+                                </div>
+
+                                {% regroup day_group.list by phase as day_phase_groups %}
+                                <div class="p-3 md:p-4 space-y-3">
+                                    {% for phase_group in day_phase_groups %}
+                                    <div class="rounded-xl border border-white/10 bg-black/40 overflow-hidden">
+                                        <div class="px-4 py-2.5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                                                {% if phase_group.grouper == 'group_stage' %}
+                                                Group Stage
+                                                {% elif phase_group.grouper == 'knockout_stage' %}
+                                                Knockout Stage
+                                                {% else %}
+                                                Match Stage
+                                                {% endif %}
+                                            </p>
+                                            <span class="text-[10px] uppercase tracking-widest text-gray-500">{{ phase_group.list|length }} matches</span>
+                                        </div>
+
+                                        <div class="divide-y divide-white/5">
+                                            {% for match in phase_group.list %}
+                                            <article class="px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                                                <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                                                    <div class="md:w-40 shrink-0">
+                                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Kickoff</p>
+                                                        <p class="text-sm font-semibold text-white">{{ match.starts_at_display|default:match.start_time_display|default:'TBA' }}</p>
+                                                        <p class="text-[10px] text-gray-400 mt-0.5">{{ match.starts_at_relative|default:'Awaiting schedule' }}</p>
+                                                    </div>
+
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{{ match.stage_label|default:match.match_label }}</p>
+                                                        <p class="text-sm font-semibold text-white truncate">{{ match.team1_name }} <span class="text-gray-500">vs</span> {{ match.team2_name }}</p>
+                                                    </div>
+
+                                                    <div class="md:w-36 shrink-0 md:text-right">
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest {% if match.ui_status == 'live' %}match-state-live{% elif match.ui_status == 'completed' %}match-state-completed{% else %}match-state-upcoming{% endif %}">{{ match.ui_status }}</span>
+                                                        {% if match.ui_status == 'completed' %}
+                                                        <p class="mt-1 text-[11px] font-bold text-gray-300">FT {{ match.score1|default:0 }}-{{ match.score2|default:0 }}</p>
+                                                        {% elif match.ui_status == 'live' %}
+                                                        <p class="mt-1 text-[11px] font-bold theme-text">In progress now</p>
+                                                        {% else %}
+                                                        <p class="mt-1 text-[11px] text-gray-400">Scheduled fixture</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </article>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </section>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="rounded-2xl border border-white/10 bg-black/35 p-5 text-sm text-gray-300">Match schedule will appear after fixtures are generated.</div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -886,8 +1489,8 @@
                 <div x-show="activeTab === 'participants'" x-transition.opacity class="space-y-6" x-cloak>
                     <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
                         <div class="relative w-full md:w-96">
-                            <input type="text" placeholder="Search teams or players..." class="w-full bg-[#0A0A0E] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:theme-border focus:outline-none transition-colors" disabled>
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                            <input type="text" placeholder="Search teams or players..." class="w-full bg-[#0A0A0E] border border-white/10 rounded-xl pl-12 pr-4 py-2.5 text-sm leading-5 text-white focus:theme-border focus:outline-none transition-colors" disabled>
+                            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"></i>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-xs font-mono text-gray-500 px-2">Showing <span class="text-white font-bold" data-slots-filled>{{ participants_total|default:slots_filled }}</span> Entries</span>
@@ -897,10 +1500,10 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {% for p in participants %}
-                        <div class="glass-panel p-6 rounded-[2rem] border-l-4 transition-all duration-300 group {% if p.rank and p.rank <= 2 %}border-l-dc-gold hover:theme-border hover:shadow-[0_10px_30px_rgba(255,215,0,0.1)]{% else %}border-l-transparent hover:theme-border hover:-translate-y-1{% endif %}">
-                            <div class="flex justify-between items-start mb-6">
+                        <div class="glass-panel p-4 rounded-2xl border-l-4 transition-all duration-300 group {% if p.rank and p.rank <= 2 %}border-l-dc-gold hover:theme-border hover:shadow-[0_10px_30px_rgba(255,215,0,0.1)]{% else %}border-l-transparent hover:theme-border hover:-translate-y-1{% endif %}">
+                            <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center gap-4 min-w-0">
-                                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-black border border-white/10 overflow-hidden flex items-center justify-center text-white font-black text-2xl shadow-xl group-hover:scale-105 transition-transform">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800 to-black border border-white/10 overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-xl group-hover:scale-105 transition-transform">
                                         {% if p.type == 'team' and p.logo %}
                                         <img src="{{ p.logo }}" alt="{{ p.name|default:p.display_name }}" class="w-full h-full object-cover">
                                         {% elif p.type == 'solo' and p.avatar %}
@@ -911,25 +1514,24 @@
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <h4 class="font-display font-bold text-2xl text-white group-hover:theme-text transition-colors truncate">{{ p.name|default:p.display_name }}</h4>
+                                            <h4 class="font-display font-bold text-xl text-white group-hover:theme-text transition-colors truncate">{{ p.name|default:p.display_name }}</h4>
                                             <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-white/5 text-gray-300 border border-white/10">{{ p.badge_label|default:'Entry' }}</span>
                                         </div>
                                         <p class="text-xs text-gray-400 mt-1 truncate">{{ p.sub_label|default:tournament_participation_label }}</p>
-                                        <div class="flex items-center gap-3 mt-2">
-                                            {% if p.rank %}<span class="px-2 py-0.5 bg-white/5 rounded text-[10px] font-bold text-gray-400 uppercase tracking-widest">Rank #{{ p.rank }}</span>{% endif %}
-                                            {% if p.type == 'team' and p.roster_count %}<span class="px-2 py-0.5 bg-white/5 rounded text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ p.roster_count }} Players</span>{% endif %}
-                                            {% if p.game_id %}<span class="px-2 py-0.5 bg-black/50 rounded text-[10px] font-bold text-gray-300 uppercase tracking-widest border border-white/10">{{ p.game_id }}</span>{% endif %}
+                                        <div class="flex items-center gap-2 mt-1.5">
+                                            {% if p.rank %}<span class="px-2 py-0.5 bg-white/5 rounded text-[9px] font-bold text-gray-400 uppercase tracking-widest">Rank #{{ p.rank }}</span>{% endif %}
+                                            {% if p.type == 'team' and p.roster_count %}<span class="px-2 py-0.5 bg-white/5 rounded text-[9px] font-bold text-gray-400 uppercase tracking-widest">{{ p.roster_count }} Players</span>{% endif %}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="w-8 h-8 rounded-full {% if p.checked_in %}bg-green-500/10 border border-green-500/20{% else %}bg-white/5 border border-white/10{% endif %} flex items-center justify-center" title="Entry Status">
+                                <div class="w-7 h-7 rounded-full {% if p.checked_in %}bg-green-500/10 border border-green-500/20{% else %}bg-white/5 border border-white/10{% endif %} flex items-center justify-center" title="Entry Status">
                                     <i data-lucide="{% if p.checked_in %}check{% else %}clock-3{% endif %}" class="w-4 h-4 {% if p.checked_in %}text-green-500{% else %}text-gray-400{% endif %}"></i>
                                 </div>
                             </div>
 
                             {% if p.type == 'team' and p.roster_summary %}
-                            <div class="space-y-2 bg-black/40 p-4 rounded-xl border border-white/5">
-                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-2">Active Roster</p>
+                            <div class="space-y-2 bg-black/40 p-3 rounded-xl border border-white/5">
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2 pl-1">Active Roster</p>
                                 {% for member in p.roster_summary|slice:":5" %}
                                 <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors">
                                     <div class="flex items-center gap-3 min-w-0">
@@ -939,11 +1541,6 @@
                                     <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border {% if member.role == 'Captain' %}bg-dc-gold/10 text-dc-gold border-dc-gold/20{% else %}bg-white/5 text-gray-500 border-white/10{% endif %}">{{ member.role }}</span>
                                 </div>
                                 {% endfor %}
-                            </div>
-                            {% elif p.type == 'solo' %}
-                            <div class="bg-black/40 p-4 rounded-xl border border-white/5">
-                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Player Identity</p>
-                                <p class="text-sm text-gray-300">{% if p.game_id %}In-game ID: <span class="text-white font-semibold">{{ p.game_id }}</span>{% else %}In-game ID not submitted yet.{% endif %}</p>
                             </div>
                             {% endif %}
                         </div>
@@ -956,7 +1553,62 @@
 
                 {% if show_standings and standings_primary %}
                 <div x-show="activeTab === 'standings'" x-transition.opacity class="space-y-6" x-cloak>
-                    <div class="glass-extreme rounded-[2rem] overflow-hidden border-white/10">
+                    {% if is_group_playoff %}
+                    {% regroup standings_primary by group_name as grouped_standings %}
+                    <div class="space-y-5">
+                        {% for standings_group in grouped_standings %}
+                        <div class="glass-extreme rounded-[2rem] overflow-hidden border border-white/10">
+                            <div class="px-6 py-4 border-b border-white/10 bg-black/35 flex items-center justify-between gap-2">
+                                <h3 class="font-display font-bold text-xl text-white flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" class="w-5 h-5 theme-text"></i> {{ standings_group.grouper|default:'Group' }}
+                                </h3>
+                                <span class="text-[10px] uppercase tracking-widest text-gray-400">Group Standings</span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-black/40 text-gray-400 uppercase tracking-widest text-[10px]">
+                                        <tr>
+                                            <th class="px-5 py-3 text-left">Rank</th>
+                                            <th class="px-5 py-3 text-left">Participant</th>
+                                            <th class="px-5 py-3 text-right">MP</th>
+                                            <th class="px-5 py-3 text-right">W</th>
+                                            <th class="px-5 py-3 text-right">D</th>
+                                            <th class="px-5 py-3 text-right">L</th>
+                                            <th class="px-5 py-3 text-right">Pts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-white/5">
+                                        {% for row in standings_group.list %}
+                                        <tr class="hover:bg-white/[0.02] transition-colors">
+                                            <td class="px-5 py-4 font-display font-bold text-white">#{{ row.rank }}</td>
+                                            <td class="px-5 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-8 h-8 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                                        {% if row.logo_url %}
+                                                        <img src="{{ row.logo_url }}" alt="{{ row.name }}" class="w-full h-full object-cover">
+                                                        {% else %}
+                                                        {{ row.name|slice:":1"|upper }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <span class="font-semibold text-white">{{ row.name }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-5 py-4 text-right text-gray-300">{{ row.matches_played|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-green-300">{{ row.wins|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-blue-300">{{ row.draws|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-red-300">{{ row.losses|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right font-bold {% if row.points and row.points > 0 %}theme-text{% else %}text-gray-300{% endif %}">{{ row.points|default:0 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="glass-extreme rounded-[2rem] overflow-hidden border border-white/10">
                         <div class="px-6 py-5 border-b border-white/10 bg-black/35 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <h3 class="font-display font-bold text-2xl text-white flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-6 h-6 theme-text"></i> Competition Standings</h3>
                             <span class="text-[10px] uppercase tracking-widest text-gray-400">Source: {{ standings_source|default:'runtime' }}</span>
@@ -968,7 +1620,6 @@
                                     <tr>
                                         <th class="px-5 py-3 text-left">Rank</th>
                                         <th class="px-5 py-3 text-left">Participant</th>
-                                        <th class="px-5 py-3 text-left">Group</th>
                                         <th class="px-5 py-3 text-right">MP</th>
                                         <th class="px-5 py-3 text-right">W</th>
                                         <th class="px-5 py-3 text-right">L</th>
@@ -991,7 +1642,6 @@
                                                 <span class="font-semibold text-white">{{ row.name }}</span>
                                             </div>
                                         </td>
-                                        <td class="px-5 py-4 text-gray-400">{{ row.group_name|default:'-' }}</td>
                                         <td class="px-5 py-4 text-right text-gray-300">{{ row.matches_played|default:0 }}</td>
                                         <td class="px-5 py-4 text-right text-green-300">{{ row.wins|default:0 }}</td>
                                         <td class="px-5 py-4 text-right text-red-300">{{ row.losses|default:0 }}</td>
@@ -1002,6 +1652,7 @@
                             </table>
                         </div>
                     </div>
+                    {% endif %}
 
                     {% if group_standings_summary %}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1061,181 +1712,494 @@
                 {% endif %}
 
                 {% if show_bracket %}
-                <div x-show="activeTab === 'bracket'" x-transition.opacity class="glass-extreme p-8 rounded-[2.5rem] min-h-[700px] overflow-hidden relative border-white/5" x-cloak>
-                    <div class="flex justify-between items-center mb-8 relative z-20">
-                        <div>
-                            <h3 class="font-display font-bold text-3xl text-white">Championship Playoffs</h3>
-                            <p class="text-xs text-gray-400 mt-1">{{ tournament_format_label }} • {{ tournament_participation_label }}</p>
+                <div
+                    x-show="activeTab === 'bracket'"
+                    x-transition.opacity
+                    class="glass-extreme rounded-[2rem] border border-white/10 overflow-hidden"
+                    x-cloak
+                >
+                    <div class="p-4 md:p-8 lg:p-10 w-full max-w-[1500px] mx-auto">
+                        <div class="flex justify-between items-end mb-12">
+                            <div>
+                                <h2 class="font-display font-black text-4xl text-white tracking-wide">Championship Bracket</h2>
+                                <p class="font-mono text-xs text-gray-400 mt-2">
+                                    <span id="bracket-format-label">{{ tournament_format_label }}</span>
+                                </p>
+                            </div>
+                            <div id="bracket-zoom-controls" class="flex gap-2">
+                                <button type="button" @click="bracketZoomOut()" class="bracket-zoom-btn" title="Zoom Out">
+                                    <i data-lucide="zoom-out" class="w-5 h-5"></i>
+                                </button>
+                                <button type="button" @click="bracketZoomIn()" class="bracket-zoom-btn" title="Zoom In">
+                                    <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    {% if matches %}
-                    <div class="w-full h-[600px] overflow-auto no-scrollbar cursor-grab active:cursor-grabbing relative z-10" id="bracket-canvas">
-                        <div class="flex gap-14 min-w-max p-4 pb-20">
-                            {% regroup matches|dictsort:"round_number" by round_number as rounds %}
-                            {% for round in rounds %}
-                            <div class="flex flex-col justify-around gap-8 w-72 relative">
-                                <div class="text-[10px] font-bold uppercase tracking-widest absolute -top-8 left-0 {% if forloop.last %}theme-text{% else %}text-gray-500{% endif %}">{% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif round.grouper %}Round {{ round.grouper }}{% else %}Round{% endif %}</div>
-                                {% if not forloop.first %}
-                                <div class="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-[68%] border-r-2 border-t-2 border-b-2 border-white/10 rounded-r-xl pointer-events-none"></div>
+                        {% if tournament.format == 'round_robin' or tournament.format == 'swiss' %}
+                        <div class="rounded-2xl border border-white/10 bg-black/35 overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-white/10 bg-black/45 flex items-center justify-between">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300">Competition Matrix</p>
+                                <span class="text-[10px] uppercase tracking-widest text-gray-500">Standings-driven format</span>
+                            </div>
+                            {% if standings_primary %}
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-black/40 text-gray-400 uppercase tracking-widest text-[10px]">
+                                        <tr>
+                                            <th class="px-5 py-3 text-left">Pos</th>
+                                            <th class="px-5 py-3 text-left">Participant</th>
+                                            <th class="px-5 py-3 text-right">P</th>
+                                            <th class="px-5 py-3 text-right">W</th>
+                                            <th class="px-5 py-3 text-right">D</th>
+                                            <th class="px-5 py-3 text-right">L</th>
+                                            <th class="px-5 py-3 text-right">Diff</th>
+                                            <th class="px-5 py-3 text-right">Pts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-white/5">
+                                        {% for row in standings_primary %}
+                                        <tr class="hover:bg-white/[0.02] transition-colors">
+                                            <td class="px-5 py-4 font-display font-bold text-white">#{{ row.rank|default:row.global_rank|default:forloop.counter }}</td>
+                                            <td class="px-5 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-8 h-8 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                                        {% if row.logo_url %}<img src="{{ row.logo_url }}" alt="{{ row.name }}" class="w-full h-full object-cover">{% else %}{{ row.name|slice:":1"|upper }}{% endif %}
+                                                    </div>
+                                                    <span class="font-semibold text-white">{{ row.name }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-5 py-4 text-right text-gray-300">{{ row.matches_played|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-green-300">{{ row.wins|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-blue-300">{{ row.draws|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-red-300">{{ row.losses|default:0 }}</td>
+                                            <td class="px-5 py-4 text-right text-gray-300">{{ row.goal_difference|default:row.map_differential|default:row.kill_difference|default:'-' }}</td>
+                                            <td class="px-5 py-4 text-right font-bold theme-text">{{ row.points|default:0 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-14 px-6">
+                                <i data-lucide="table-2" class="w-10 h-10 text-gray-600 mx-auto mb-4"></i>
+                                <p class="text-gray-300 text-sm font-semibold">Standings matrix is not available yet.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="overflow-x-auto pb-16 no-scrollbar">
+                            {% if has_bracket_rounds %}
+                            <div id="detail-bracket-tree" class="bracket-tree-container" :style="'transform: scale(' + bracketZoom + ')'">
+                                {% if tournament.format == 'double_elimination' %}
+                                <div class="bk-label bk-ub">Upper Bracket</div>
                                 {% endif %}
-                                {% for match in round.list %}
-                                <article class="bg-[#0A0A0E] border {% if forloop.parentloop.last %}theme-border{% else %}border-white/10{% endif %} rounded-2xl overflow-hidden shadow-lg relative">
-                                    {% if match.is_live %}
-                                    <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold match-state-live">Live</span>
-                                    {% endif %}
-                                    <div class="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
-                                        <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ match.match_label }}{% if match.best_of_label %} • {{ match.best_of_label }}{% endif %}</p>
+                                <div class="bk-section" data-sec="main">
+                                    {% for round in bracket_rounds %}
+                                    {% if tournament.format != 'double_elimination' or round.lane == 'winners' %}
+                                    <div class="bk-col">
+                                        <div class="bk-col-title">{{ round.round_label }}</div>
+                                        <div class="bk-col-body" style="height:{% if round.match_count == 1 %}180px{% elif round.match_count == 2 %}300px{% elif round.match_count == 3 %}420px{% else %}560px{% endif %}">
+                                            {% for match in round.matches %}
+                                            <article class="bk-match {% if match.ui_status == 'live' %}bk-live{% elif match.ui_status == 'completed' %}bk-done{% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}bk-tbd{% else %}bk-sched{% endif %}" data-mid="{{ match.id }}">
+                                                <div class="bk-match-head">
+                                                    <span class="bk-mnum">{% if match.match_number %}M{{ match.match_number }}{% endif %}</span>
+                                                    {% if match.ui_status == 'live' %}
+                                                    <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
+                                                    {% elif match.ui_status == 'completed' %}
+                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
+                                                    <span class="bk-badge-up bk-badge-tbd">TBD</span>
+                                                    {% elif match.starts_at_display %}
+                                                    <span class="bk-badge-up bk-badge-sched-dt">{{ match.starts_at_display }}</span>
+                                                    {% else %}
+                                                    <span class="bk-badge-up">UPCOMING</span>
+                                                    {% endif %}
+                                                </div>
+
+                                                <div class="bk-team {% if match.team1_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team1_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team1_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team1_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team1_logo_url %}
+                                                            <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team1_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+
+                                                <div class="bk-vs">VS</div>
+
+                                                <div class="bk-team {% if match.team2_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team2_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team2_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team2_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team2_logo_url %}
+                                                            <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team2_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+                                            </article>
+                                            {% endfor %}
+                                        </div>
                                     </div>
-                                    <div class="divide-y divide-white/5">
-                                        <div class="flex justify-between items-center p-3 {% if match.team1_is_winner %}bg-white/[0.04]{% endif %}">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <div class="w-6 h-6 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white">
-                                                    {% if match.team1_logo_url %}
-                                                    <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                                {% if tournament.format == 'double_elimination' %}
+                                <div class="bk-label bk-lb">Lower Bracket</div>
+                                <div class="bk-section" data-sec="lower">
+                                    {% for round in bracket_rounds %}
+                                    {% if round.lane == 'losers' %}
+                                    <div class="bk-col">
+                                        <div class="bk-col-title">{{ round.round_label }}</div>
+                                        <div class="bk-col-body" style="height:{% if round.match_count == 1 %}180px{% elif round.match_count == 2 %}300px{% elif round.match_count == 3 %}420px{% else %}560px{% endif %}">
+                                            {% for match in round.matches %}
+                                            <article class="bk-match {% if match.ui_status == 'live' %}bk-live{% elif match.ui_status == 'completed' %}bk-done{% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}bk-tbd{% else %}bk-sched{% endif %}" data-mid="{{ match.id }}">
+                                                <div class="bk-match-head">
+                                                    <span class="bk-mnum">{% if match.match_number %}M{{ match.match_number }}{% endif %}</span>
+                                                    {% if match.ui_status == 'live' %}
+                                                    <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
+                                                    {% elif match.ui_status == 'completed' %}
+                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
+                                                    <span class="bk-badge-up bk-badge-tbd">TBD</span>
+                                                    {% elif match.starts_at_display %}
+                                                    <span class="bk-badge-up bk-badge-sched-dt">{{ match.starts_at_display }}</span>
                                                     {% else %}
-                                                    {{ match.team1_name|slice:":1"|upper }}
+                                                    <span class="bk-badge-up">UPCOMING</span>
                                                     {% endif %}
                                                 </div>
-                                                <span class="text-sm font-bold truncate {% if match.team1_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ match.team1_name }}</span>
-                                            </div>
-                                            <span class="text-sm font-mono font-bold {% if match.team1_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score1|default:'-' }}</span>
+
+                                                <div class="bk-team {% if match.team1_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team1_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team1_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team1_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team1_logo_url %}
+                                                            <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team1_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+
+                                                <div class="bk-vs">VS</div>
+
+                                                <div class="bk-team {% if match.team2_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team2_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team2_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team2_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team2_logo_url %}
+                                                            <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team2_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+                                            </article>
+                                            {% endfor %}
                                         </div>
-                                        <div class="flex justify-between items-center p-3 {% if match.team2_is_winner %}bg-white/[0.04]{% endif %}">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <div class="w-6 h-6 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white">
-                                                    {% if match.team2_logo_url %}
-                                                    <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                                <div class="bk-label bk-gf">Grand Final</div>
+                                <div class="bk-section" data-sec="grand">
+                                    {% for round in bracket_rounds %}
+                                    {% if round.lane == 'grand_final' %}
+                                    <div class="bk-col">
+                                        <div class="bk-col-title">{{ round.round_label }}</div>
+                                        <div class="bk-col-body" style="height:{% if round.match_count == 1 %}180px{% elif round.match_count == 2 %}300px{% elif round.match_count == 3 %}420px{% else %}560px{% endif %}">
+                                            {% for match in round.matches %}
+                                            <article class="bk-match {% if match.ui_status == 'live' %}bk-live{% elif match.ui_status == 'completed' %}bk-done{% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}bk-tbd{% else %}bk-sched{% endif %}" data-mid="{{ match.id }}">
+                                                <div class="bk-match-head">
+                                                    <span class="bk-mnum">{% if match.match_number %}M{{ match.match_number }}{% endif %}</span>
+                                                    {% if match.ui_status == 'live' %}
+                                                    <span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>
+                                                    {% elif match.ui_status == 'completed' %}
+                                                    <span class="bk-badge-ft">FT</span>
+                                                    {% elif match.team1_name == 'TBD' and match.team2_name == 'TBD' %}
+                                                    <span class="bk-badge-up bk-badge-tbd">TBD</span>
+                                                    {% elif match.starts_at_display %}
+                                                    <span class="bk-badge-up bk-badge-sched-dt">{{ match.starts_at_display }}</span>
                                                     {% else %}
-                                                    {{ match.team2_name|slice:":1"|upper }}
+                                                    <span class="bk-badge-up">UPCOMING</span>
                                                     {% endif %}
                                                 </div>
-                                                <span class="text-sm font-bold truncate {% if match.team2_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ match.team2_name }}</span>
-                                            </div>
-                                            <span class="text-sm font-mono font-bold {% if match.team2_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score2|default:'-' }}</span>
+
+                                                <div class="bk-team {% if match.team1_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team1_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team1_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team1_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team1_logo_url %}
+                                                            <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team1_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team1_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team1_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score1|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+
+                                                <div class="bk-vs">VS</div>
+
+                                                <div class="bk-team {% if match.team2_is_winner and match.ui_status == 'completed' %}bk-w{% endif %}" {% if match.ui_status == 'completed' and not match.team2_is_winner %}style="opacity:0.5;"{% endif %}>
+                                                    <div class="bk-team-meta">
+                                                        {% if match.team2_is_winner and match.ui_status == 'completed' %}<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>{% endif %}
+                                                        <div class="bk-team-avatar {% if match.team2_is_winner and match.ui_status == 'completed' %}border border-[#00FF66]/40{% endif %}">
+                                                            {% if match.team2_logo_url %}
+                                                            <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name|default:'TBD' }}" class="bk-team-avatar-img">
+                                                            {% else %}
+                                                            <span class="bk-team-avatar-initial">{{ match.team2_name|default:'TBD'|slice:":1"|upper }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="bk-name" {% if match.team2_name == 'TBD' %}style="color:#4B5563;font-style:italic;"{% endif %}>{{ match.team2_name|default:'TBD' }}</span>
+                                                    </div>
+                                                    <span class="bk-sc">{% if match.ui_status == 'live' or match.ui_status == 'completed' %}{{ match.score2|default:'-' }}{% else %}–{% endif %}</span>
+                                                </div>
+                                            </article>
+                                            {% endfor %}
                                         </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="flex items-center justify-center min-h-[400px]">
+                                <div class="text-center">
+                                    <div class="bg-transparent border-2 border-dashed border-white/10 rounded-xl overflow-hidden flex flex-col items-center justify-center p-10 h-[150px] mx-auto max-w-xs">
+                                        <i data-lucide="trophy" class="w-8 h-8 text-gray-600 mb-3"></i>
+                                        <span class="font-mono text-xs text-gray-500 uppercase tracking-widest">Awaiting Bracket Generation</span>
+                                    </div>
+                                    <p class="text-sm text-gray-500 max-w-md mt-6">
+                                        The tournament bracket will appear here once the organizer generates matchups.
+                                        This typically happens after check-in closes.
+                                    </p>
+                                    {% if tournament.format == 'group_playoff' %}
+                                    <div class="mt-5 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300 max-w-md mx-auto">
+                                        <i data-lucide="info" class="w-4 h-4 inline mr-1 -mt-0.5"></i>
+                                        This tournament uses a Group + Playoff format. The knockout bracket appears after group stage completion.
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if tournament.format == 'group_playoff' and group_standings_summary %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-8">
+                                {% for group in group_standings_summary %}
+                                <article class="glass-panel rounded-2xl border border-white/10 p-5">
+                                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                                        <h4 class="font-display font-bold text-lg text-white">{{ group.name }}</h4>
+                                        <span class="text-[9px] uppercase tracking-widest text-gray-500">{{ group.advancers|length }} Advancer{{ group.advancers|length|pluralize }}</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        {% for entry in group.advancers %}
+                                        <div class="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-2">
+                                            <span class="text-sm font-bold text-white truncate">{{ entry.name }}</span>
+                                            <span class="text-xs font-bold text-green-300">#{{ entry.rank }}</span>
+                                        </div>
+                                        {% endfor %}
                                     </div>
                                 </article>
                                 {% endfor %}
                             </div>
-                            {% endfor %}
+                            {% endif %}
+                            {% endif %}
                         </div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="text-center text-gray-400 text-sm">Bracket has not been generated yet.</div>
-                    {% endif %}
                 </div>
                 {% endif %}
 
                 {% if show_matches %}
                 <div x-show="activeTab === 'matches'" x-transition.opacity class="space-y-6" x-cloak>
-                    {% if is_live_phase %}
-                    {% for match in matches %}
-                    {% if match.is_live %}
-                    <div class="glass-extreme rounded-[2rem] border theme-border overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.6)] mb-10">
-                        <div class="p-10 relative z-10">
-                            <div class="flex justify-between items-center mb-8">
-                                <span class="px-3 py-1 bg-val-red/20 border border-val-red/50 text-val-red text-[10px] font-black uppercase tracking-widest rounded animate-pulse">Match Live</span>
-                                <span class="text-xs font-bold text-white">{{ match.stage_label|default:match.match_label }}{% if match.best_of_label %} • {{ match.best_of_label }}{% endif %}</span>
+                    <div class="glass-extreme rounded-[2rem] border border-white/10 p-5 md:p-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                                <h3 class="font-display font-bold text-2xl text-white">Match Center</h3>
+                                <p class="text-xs text-gray-400 mt-1">Score-first feed focused on live momentum, results, and stage context.</p>
                             </div>
-
-                            <div class="flex items-center justify-between max-w-2xl mx-auto">
-                                <div class="text-center flex-1">
-                                    <div class="mx-auto mb-2 w-14 h-14 rounded-full bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center text-xl font-bold text-white">
-                                        {% if match.team1_logo_url %}
-                                        <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">
-                                        {% else %}
-                                        {{ match.team1_name|slice:":1"|upper }}
-                                        {% endif %}
-                                    </div>
-                                    <h3 class="font-display font-bold text-3xl text-white mb-2">{{ match.team1_name }}</h3>
-                                </div>
-
-                                <div class="px-8 text-center">
-                                    <div class="flex items-center justify-center gap-4 mb-2">
-                                        <span class="font-display font-black text-6xl text-white">{{ match.score1|default:0 }}</span>
-                                        <span class="text-3xl text-gray-600">-</span>
-                                        <span class="font-display font-black text-6xl text-white">{{ match.score2|default:0 }}</span>
-                                    </div>
-                                    <p class="text-[10px] font-bold theme-text uppercase tracking-widest bg-black/50 px-3 py-1 rounded-full border border-white/10">{{ match.starts_at_relative|default:'Live score feed active' }}</p>
-                                </div>
-
-                                <div class="text-center flex-1">
-                                    <div class="mx-auto mb-2 w-14 h-14 rounded-full bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center text-xl font-bold text-white">
-                                        {% if match.team2_logo_url %}
-                                        <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">
-                                        {% else %}
-                                        {{ match.team2_name|slice:":1"|upper }}
-                                        {% endif %}
-                                    </div>
-                                    <h3 class="font-display font-bold text-3xl text-white mb-2">{{ match.team2_name }}</h3>
-                                </div>
+                            <div class="inline-flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                                <span class="match-context-pill">Live</span>
+                                <span class="match-context-pill">Completed</span>
+                                <span class="match-context-pill">Upcoming</span>
                             </div>
-
-                            {% if match.map_scores %}
-                            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                {% for mp in match.map_scores|slice:":3" %}
-                                <div class="bg-black/45 border border-white/10 rounded-xl px-3 py-2 text-center">
-                                    <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ mp.map_name|default:'Map' }}</p>
-                                    <p class="text-sm font-bold text-white">{{ mp.p1_score|default:0 }} - {{ mp.p2_score|default:0 }}</p>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
-                    {% endif %}
-                    {% endfor %}
-                    {% endif %}
 
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-display font-bold text-2xl text-white">Match Feed</h3>
-                        <p class="text-xs uppercase tracking-widest text-gray-500">Game-aware cards</p>
-                    </div>
-
+                    {% if is_live_phase %}
                     <div class="space-y-4">
+                        {% for match in matches %}
+                        {% if match.is_live %}
+                        <article class="glass-extreme rounded-[2rem] border border-red-500/45 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+                            <div class="px-6 md:px-8 py-5 border-b border-white/10 bg-black/45 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300">{{ match.stage_label|default:match.match_label }}</p>
+                                <div class="flex items-center gap-2">
+                                    {% if match.best_of_label %}<span class="px-2 py-1 rounded-md border border-white/10 bg-black/45 text-[10px] font-bold uppercase tracking-widest text-gray-300">{{ match.best_of_label }}</span>{% endif %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest match-state-live">{{ match.status_label|default:'LIVE' }}</span>
+                                </div>
+                            </div>
+
+                            <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                                <div class="lg:col-span-4 rounded-xl border border-white/10 bg-black/35 p-4 match-feed-team {% if match.team1_is_winner %}is-winner{% elif match.team2_is_winner %}is-loser{% endif %}">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-12 h-12 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-sm font-bold text-white">
+                                            {% if match.team1_logo_url %}<img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">{% else %}{{ match.team1_name|default:'TBD'|slice:":1"|upper }}{% endif %}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-xs text-gray-500 uppercase tracking-widest">Side A</p>
+                                            <h4 class="font-display font-bold text-xl truncate {% if match.team1_is_winner %}text-white{% else %}text-gray-300{% endif %}">{{ match.team1_name|default:'TBD' }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="lg:col-span-4 text-center">
+                                    <div class="match-score-core">
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Live Scoreline</p>
+                                        <div class="flex items-center justify-center gap-3">
+                                            <span class="font-display font-black text-6xl {% if match.team1_is_winner %}theme-text{% else %}text-white{% endif %}">{{ match.score1|default:'-' }}</span>
+                                            <span class="text-2xl text-gray-600">-</span>
+                                            <span class="font-display font-black text-6xl {% if match.team2_is_winner %}theme-text{% else %}text-white{% endif %}">{{ match.score2|default:'-' }}</span>
+                                        </div>
+                                        <p class="mt-2 text-[11px] font-semibold theme-text">Live now • score feed active</p>
+                                    </div>
+                                </div>
+
+                                <div class="lg:col-span-4 rounded-xl border border-white/10 bg-black/35 p-4 match-feed-team {% if match.team2_is_winner %}is-winner{% elif match.team1_is_winner %}is-loser{% endif %}">
+                                    <div class="flex items-center gap-3 min-w-0 justify-end lg:justify-start">
+                                        <div class="w-12 h-12 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-sm font-bold text-white order-1 lg:order-none">
+                                            {% if match.team2_logo_url %}<img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">{% else %}{{ match.team2_name|default:'TBD'|slice:":1"|upper }}{% endif %}
+                                        </div>
+                                        <div class="min-w-0 text-right lg:text-left">
+                                            <p class="text-xs text-gray-500 uppercase tracking-widest">Side B</p>
+                                            <h4 class="font-display font-bold text-xl truncate {% if match.team2_is_winner %}text-white{% else %}text-gray-300{% endif %}">{{ match.team2_name|default:'TBD' }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-5">
                         {% for match in matches_reversed|default:matches %}
-                        <article class="glass-panel rounded-2xl p-6 hover:bg-white/[0.02] transition-colors border-l-2 {% if match.ui_status == 'live' %}border-l-red-500{% elif match.ui_status == 'completed' %}border-l-green-500{% else %}border-l-blue-500{% endif %}" data-mobile-match-id="{{ match.id }}">
-                            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                            <div class="w-full md:w-[22%]">
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{{ match.stage_label|default:match.match_label }}</p>
-                                <p class="text-sm font-bold text-gray-300">{{ match.starts_at_display|default:match.start_time_display|default:'TBA' }}</p>
-                                <div class="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest {% if match.ui_status == 'live' %}match-state-live{% elif match.ui_status == 'completed' %}match-state-completed{% else %}match-state-upcoming{% endif %}">{{ match.ui_status }}</div>
-                            </div>
-                            <div class="flex-1 flex items-center justify-center gap-6 w-full">
-                                <div class="flex items-center gap-3 text-right flex-1 justify-end min-w-0">
-                                    <h4 class="font-bold text-xl {% if match.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ match.team1_name }}</h4>
-                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
-                                        {% if match.team1_logo_url %}<img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">{% else %}{{ match.team1_name|slice:":1"|upper }}{% endif %}
-                                    </div>
+                        <article class="match-feed-card p-5 md:p-6 {% if match.ui_status == 'live' %}is-live{% elif match.ui_status == 'completed' %}is-completed{% else %}is-upcoming{% endif %}" data-mobile-match-id="{{ match.id }}">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-white/10">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">{{ match.stage_label|default:match.match_label }}</p>
+                                    <p class="text-sm font-semibold text-gray-300">{{ match.starts_at_display|default:match.start_time_display|default:'TBA' }}</p>
                                 </div>
-                                <div class="flex items-center gap-3 px-5 py-2 bg-black/60 rounded-xl border border-white/5">
-                                    <span class="font-display font-bold text-2xl {% if match.team1_is_winner %}theme-text{% else %}text-gray-500{% endif %}">{{ match.score1|default:0 }}</span>
-                                    <span class="text-gray-600">-</span>
-                                    <span class="font-display font-bold text-2xl {% if match.team2_is_winner %}theme-text{% else %}text-gray-500{% endif %}">{{ match.score2|default:0 }}</span>
-                                </div>
-                                <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
-                                        {% if match.team2_logo_url %}<img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">{% else %}{{ match.team2_name|slice:":1"|upper }}{% endif %}
-                                    </div>
-                                    <h4 class="font-bold text-xl {% if match.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ match.team2_name }}</h4>
+                                <div class="flex items-center gap-2">
+                                    {% if match.best_of_label %}
+                                    {% if not game_spec.slug or 'football' not in game_spec.slug %}
+                                    <span class="px-2 py-1 rounded-md border border-white/10 bg-black/45 text-[10px] font-bold uppercase tracking-widest text-gray-300">{{ match.best_of_label }}</span>
+                                    {% endif %}
+                                    {% endif %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest {% if match.ui_status == 'live' %}match-state-live{% elif match.ui_status == 'completed' %}match-state-completed{% else %}match-state-upcoming{% endif %}">{{ match.status_label|default:match.ui_status }}</span>
                                 </div>
                             </div>
-                            <div class="w-full md:w-[26%] text-right bg-black/30 p-3 rounded-lg border border-white/5">
-                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Series Intel</p>
-                                {% if match.best_of_label %}<p class="text-[11px] text-gray-300 font-mono mb-0.5">{{ match.best_of_label }}</p>{% endif %}
+
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4 items-center">
+                                <div class="lg:col-span-4 rounded-xl border border-white/10 bg-black/35 p-4 match-feed-team {% if match.team1_is_winner %}is-winner{% elif match.team2_is_winner %}is-loser{% endif %}">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-11 h-11 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-xs font-bold text-white">
+                                            {% if match.team1_logo_url %}<img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">{% else %}{{ match.team1_name|default:'TBD'|slice:":1"|upper }}{% endif %}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-xs text-gray-500 uppercase tracking-widest">Side A</p>
+                                            <h4 class="font-bold text-lg truncate {% if match.team1_is_winner %}text-white{% else %}text-gray-300{% endif %}">{{ match.team1_name|default:'TBD' }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="lg:col-span-4 text-center">
+                                    <div class="match-score-core">
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Scoreline</p>
+                                        <div class="flex items-center justify-center gap-3">
+                                            <span class="font-display font-black text-5xl {% if match.team1_is_winner %}theme-text{% else %}text-gray-300{% endif %}">{{ match.score1|default:'-' }}</span>
+                                            <span class="text-xl text-gray-600">-</span>
+                                            <span class="font-display font-black text-5xl {% if match.team2_is_winner %}theme-text{% else %}text-gray-300{% endif %}">{{ match.score2|default:'-' }}</span>
+                                        </div>
+                                        {% if match.ui_status == 'completed' and match.winner_name %}
+                                        <p class="mt-2 text-[11px] font-semibold theme-text">Winner: {{ match.winner_name }}</p>
+                                        {% elif match.ui_status == 'live' %}
+                                        <p class="mt-2 text-[11px] font-semibold theme-text">Live now</p>
+                                        {% else %}
+                                        <p class="mt-2 text-[11px] text-gray-400">{{ match.starts_at_relative|default:'Awaiting kickoff' }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="lg:col-span-4 rounded-xl border border-white/10 bg-black/35 p-4 match-feed-team {% if match.team2_is_winner %}is-winner{% elif match.team1_is_winner %}is-loser{% endif %}">
+                                    <div class="flex items-center gap-3 min-w-0 justify-end lg:justify-start">
+                                        <div class="w-11 h-11 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-xs font-bold text-white order-1 lg:order-none">
+                                            {% if match.team2_logo_url %}<img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">{% else %}{{ match.team2_name|default:'TBD'|slice:":1"|upper }}{% endif %}
+                                        </div>
+                                        <div class="min-w-0 text-right lg:text-left">
+                                            <p class="text-xs text-gray-500 uppercase tracking-widest">Side B</p>
+                                            <h4 class="font-bold text-lg truncate {% if match.team2_is_winner %}text-white{% else %}text-gray-300{% endif %}">{{ match.team2_name|default:'TBD' }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 rounded-xl border border-white/10 bg-black/35 p-3.5">
+                                {% if game_spec.slug and 'football' in game_spec.slug %}
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span class="match-context-pill">{{ match.stage_label|default:'Match Stage' }}</span>
+                                    <span class="match-context-pill">{{ match.starts_at_display|default:'TBA' }}</span>
+                                    <span class="match-context-pill">{{ match.status_label|default:match.ui_status }}</span>
+                                </div>
+                                {% if match.ui_status == 'completed' and match.winner_name %}
+                                <p class="text-sm font-semibold theme-text">{{ match.winner_name }} secured this result.</p>
+                                {% elif match.ui_status == 'live' %}
+                                <p class="text-sm font-semibold theme-text">Live football match in progress.</p>
+                                {% else %}
+                                <p class="text-sm text-gray-300">Awaiting kickoff. Final lineups and score events appear at match start.</p>
+                                {% endif %}
+                                {% if match.stream_url %}<a href="{{ match.stream_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white transition-colors"><i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Watch</a>{% endif %}
+                                {% else %}
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span class="match-context-pill">{{ match.stage_label|default:'Match Stage' }}</span>
+                                    {% if match.best_of_label %}<span class="match-context-pill">{{ match.best_of_label }}</span>{% endif %}
+                                </div>
                                 {% if match.map_scores %}
-                                <div class="space-y-1">
-                                    {% for mp in match.map_scores|slice:":2" %}
-                                    <p class="text-[11px] text-gray-400 font-mono">{{ mp.map_name|default:'Map' }} {{ mp.p1_score|default:0 }}-{{ mp.p2_score|default:0 }}</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {% for mp in match.map_scores|slice:":3" %}
+                                    <div class="rounded-lg border border-white/10 bg-black/45 px-2.5 py-2">
+                                        <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ mp.map_name|default:'Map' }}</p>
+                                        <p class="text-sm font-semibold text-gray-200">{{ mp.p1_score|default:0 }} - {{ mp.p2_score|default:0 }}</p>
+                                    </div>
                                     {% endfor %}
                                 </div>
                                 {% else %}
-                                <p class="text-[11px] text-gray-400 font-mono">{{ match.starts_at_relative|default:'No map data yet' }}</p>
+                                <p class="text-sm text-gray-300">Series metadata pending publish.</p>
                                 {% endif %}
                                 {% if match.mvp_name %}<p class="mt-2 text-[11px] font-bold theme-text">MVP: {{ match.mvp_name }}</p>{% endif %}
                                 {% if match.stream_url %}<a href="{{ match.stream_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white transition-colors"><i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Watch</a>{% endif %}
-                            </div>
+                                {% endif %}
                             </div>
                         </article>
                         {% empty %}
@@ -1246,7 +2210,7 @@
                 {% endif %}
             </div>
 
-            <div class="xl:col-span-4 relative">
+            <div x-show="activeTab !== 'bracket'" x-transition.opacity class="xl:col-span-4 relative" x-cloak>
                 <div class="sticky top-40 space-y-6">
                     <div class="glass-extreme rounded-[2.5rem] overflow-hidden border-t-[8px] transition-all duration-500 shadow-[0_30px_60px_rgba(0,0,0,0.6)] {% if is_organizer %}border-t-dc-gold shadow-[0_20px_50px_rgba(255,215,0,0.15)]{% elif detail_cta_state == 'register' %}border-t-green-500 shadow-[0_20px_50px_rgba(34,197,94,0.15)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}border-t-yellow-500 shadow-[0_20px_50px_rgba(234,179,8,0.15)]{% elif detail_cta_state == 'lobby_open' %}theme-border theme-glow{% elif is_completed_phase %}border-t-gray-600{% else %}border-t-gray-600{% endif %}">
                         <div class="p-8 md:p-10 relative z-10">
@@ -1358,6 +2322,59 @@
                         </div>
                         <i data-lucide="chevron-right" class="w-5 h-5 text-gray-600"></i>
                     </div>
+
+                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 theme-text"></i> Runtime Insight</h4>
+                            <span class="text-[10px] uppercase tracking-widest text-gray-500">{% if viewer_is_registered_participant %}Participant{% else %}Viewer{% endif %}</span>
+                        </div>
+
+                        {% if user_next_match %}
+                        <p class="text-sm font-semibold text-white">{{ user_next_match.stage_label|default:'Next Match' }}</p>
+                        <p class="text-xs text-gray-300 mt-1">{% if user_next_match.scheduled_time %}Scheduled {{ user_next_match.scheduled_time|date:'M d, Y | g:i A' }}{% else %}Schedule pending{% endif %}</p>
+                        <p class="text-xs mt-1 {% if user_next_match_lobby_open %}text-green-300{% else %}text-gray-400{% endif %}">
+                            {% if user_next_match_lobby_open and user_next_match_lobby_closes_at %}
+                            Lobby open now | closes {{ user_next_match_lobby_closes_at|date:'g:i A' }}
+                            {% elif user_next_match_lobby_opens_at %}
+                            Lobby opens {{ user_next_match_lobby_opens_at|date:'g:i A' }}
+                            {% else %}
+                            Lobby timing will appear near kickoff
+                            {% endif %}
+                        </p>
+                        {% elif countdown_target and countdown_label %}
+                        <p class="text-sm font-semibold text-white">{{ countdown_label }}</p>
+                        <p class="text-xs text-gray-300 mt-1"><span data-runtime-countdown data-target="{{ countdown_target }}">--:--:--</span></p>
+                        {% else %}
+                        <p class="text-sm font-semibold text-white">{{ effective_status_display }}</p>
+                        <p class="text-xs text-gray-400 mt-1">{% if detail_cta_note %}{{ detail_cta_note }}{% else %}Status updates are synced from live tournament runtime.{% endif %}</p>
+                        {% endif %}
+                    </div>
+
+                    {% if announcements %}
+                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 theme-text"></i> Organizer Updates</h4>
+                            <span class="text-[10px] uppercase tracking-widest text-gray-500">Latest</span>
+                        </div>
+                        <div class="space-y-2">
+                            {% for ann in announcements|slice:":2" %}
+                            <article class="rounded-xl border border-white/10 bg-black/35 px-3 py-2.5">
+                                <p class="text-xs font-semibold text-white">{{ ann.title }}</p>
+                                <p class="text-xs text-gray-300 mt-1">{{ ann.message|truncatewords:20 }}</p>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% elif has_streams and featured_stream %}
+                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
+                        <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-2"><i data-lucide="radio" class="w-4 h-4 theme-text"></i> Watch Broadcast</h4>
+                        <p class="text-xs text-gray-300 mb-3">Featured {{ featured_stream.platform|upper }} stream is ready.</p>
+                        <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest theme-text hover:text-white transition-colors">
+                            Open Stream
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -1371,8 +2388,12 @@ document.addEventListener('alpine:init', function () {
     Alpine.data('detailPage', function () {
         return {
             activeTab: 'overview',
+            bracketZoom: 1,
+            bracketSynced: false,
+            bracketSyncInFlight: false,
             pollTimer: null,
             pollInFlight: false,
+            runtimeClock: null,
 
             init: function () {
                 var self = this;
@@ -1391,15 +2412,410 @@ document.addEventListener('alpine:init', function () {
                         if (window.lucide && typeof window.lucide.createIcons === 'function') {
                             window.lucide.createIcons();
                         }
+                        if (tab === 'bracket') {
+                            self.syncBracketFromHubApi(function () {
+                                window.requestAnimationFrame(function () {
+                                    self.drawBracketConnectors();
+                                });
+                            });
+                        }
                     });
                 });
 
+                window.addEventListener('resize', function () {
+                    if (self.activeTab === 'bracket') {
+                        self.drawBracketConnectors();
+                    }
+                });
+
+                self.startRuntimeCountdown();
                 self.startMobilePolling();
 
                 self.$nextTick(function () {
                     if (window.lucide && typeof window.lucide.createIcons === 'function') {
                         window.lucide.createIcons();
                     }
+                    if (self.activeTab === 'bracket') {
+                        self.syncBracketFromHubApi(function () {
+                            self.drawBracketConnectors();
+                        });
+                    }
+                });
+            },
+
+            syncBracketFromHubApi: function (afterSync) {
+                var self = this;
+                var done = typeof afterSync === 'function' ? afterSync : function () {};
+
+                if (self.bracketSyncInFlight || self.bracketSynced) {
+                    done();
+                    return;
+                }
+
+                var tree = self.$root.querySelector('#detail-bracket-tree');
+                if (!tree) {
+                    done();
+                    return;
+                }
+
+                var apiUrl = self.$root.getAttribute('data-detail-bracket-api-url');
+                if (!apiUrl) {
+                    done();
+                    return;
+                }
+
+                self.bracketSyncInFlight = true;
+
+                fetch(apiUrl, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Bracket API ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.generated || data.generated_mode === 'group_stage' || !Array.isArray(data.rounds) || !data.rounds.length) {
+                            return;
+                        }
+                        self.renderBracketFromHubPayload(data);
+                        self.bracketSynced = true;
+                    })
+                    .catch(function () {
+                        // Keep server-rendered bracket as fallback for guests or transient API failures.
+                    })
+                    .finally(function () {
+                        self.bracketSyncInFlight = false;
+                        self.$nextTick(function () {
+                            done();
+                        });
+                    });
+            },
+
+            escapeHtml: function (value) {
+                if (value == null) {
+                    return '';
+                }
+
+                return String(value).replace(/[&<>"']/g, function (char) {
+                    if (char === '&') {
+                        return '&amp;';
+                    }
+                    if (char === '<') {
+                        return '&lt;';
+                    }
+                    if (char === '>') {
+                        return '&gt;';
+                    }
+                    if (char === '"') {
+                        return '&quot;';
+                    }
+                    return '&#39;';
+                });
+            },
+
+            renderBracketAvatarInner: function (participant) {
+                var name = participant && participant.name ? String(participant.name) : 'TBD';
+                var logoUrl = participant && participant.logo_url ? String(participant.logo_url) : '';
+
+                if (logoUrl) {
+                    return '<img src="' + this.escapeHtml(logoUrl) + '" alt="' + this.escapeHtml(name) + '" class="bk-team-avatar-img">';
+                }
+
+                return '<span class="bk-team-avatar-initial">' + this.escapeHtml(name.slice(0, 1).toUpperCase()) + '</span>';
+            },
+
+            formatScheduledBadge: function (scheduledAt) {
+                if (!scheduledAt) {
+                    return '';
+                }
+
+                var parsed = new Date(scheduledAt);
+                if (isNaN(parsed.getTime())) {
+                    return '';
+                }
+
+                var options = {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                };
+
+                try {
+                    return parsed.toLocaleString([], options);
+                } catch (error) {
+                    return '';
+                }
+            },
+
+            renderBracketMatchCard: function (match) {
+                var p1 = match && match.participant1 ? match.participant1 : { name: 'TBD', score: null, is_winner: false, logo_url: '' };
+                var p2 = match && match.participant2 ? match.participant2 : { name: 'TBD', score: null, is_winner: false, logo_url: '' };
+
+                var state = String(match && match.state ? match.state : '').toLowerCase();
+                var isLive = state === 'live';
+                var isDone = state === 'completed' || state === 'forfeit';
+                var isPending = !isLive && !isDone;
+                var p1Name = p1 && p1.name ? String(p1.name) : 'TBD';
+                var p2Name = p2 && p2.name ? String(p2.name) : 'TBD';
+                var isTbd = isPending && p1Name === 'TBD' && p2Name === 'TBD';
+
+                var cardClass = 'bk-match';
+                if (isLive) {
+                    cardClass += ' bk-live';
+                } else if (isDone) {
+                    cardClass += ' bk-done';
+                } else if (isTbd) {
+                    cardClass += ' bk-tbd';
+                } else {
+                    cardClass += ' bk-sched';
+                }
+
+                var matchNumber = match && match.match_number ? ('M' + String(match.match_number)) : '';
+                var badgeHtml = '';
+                if (isLive) {
+                    badgeHtml = '<span class="bk-badge-live"><span class="bk-dot"></span> LIVE</span>';
+                } else if (isDone) {
+                    badgeHtml = '<span class="bk-badge-ft">FT</span>';
+                } else if (isTbd) {
+                    badgeHtml = '<span class="bk-badge-up bk-badge-tbd">TBD</span>';
+                } else {
+                    var scheduledLabel = this.formatScheduledBadge(match ? match.scheduled_at : null);
+                    if (scheduledLabel) {
+                        badgeHtml = '<span class="bk-badge-up bk-badge-sched-dt">' + this.escapeHtml(scheduledLabel) + '</span>';
+                    } else {
+                        badgeHtml = '<span class="bk-badge-up">UPCOMING</span>';
+                    }
+                }
+
+                var p1IsWinner = Boolean(p1 && p1.is_winner);
+                var p2IsWinner = Boolean(p2 && p2.is_winner);
+                var p1TeamClass = 'bk-team' + (p1IsWinner && isDone ? ' bk-w' : '');
+                var p2TeamClass = 'bk-team' + (p2IsWinner && isDone ? ' bk-w' : '');
+                var p1TeamStyle = isDone && !p1IsWinner ? ' style="opacity:0.5;"' : '';
+                var p2TeamStyle = isDone && !p2IsWinner ? ' style="opacity:0.5;"' : '';
+                var p1NameStyle = p1Name === 'TBD' ? ' style="color:#4B5563;font-style:italic;"' : '';
+                var p2NameStyle = p2Name === 'TBD' ? ' style="color:#4B5563;font-style:italic;"' : '';
+
+                var p1Score = (isLive || isDone) ? (p1 && p1.score != null ? String(p1.score) : '-') : '–';
+                var p2Score = (isLive || isDone) ? (p2 && p2.score != null ? String(p2.score) : '-') : '–';
+
+                var p1WinAccent = p1IsWinner && isDone
+                    ? '<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>'
+                    : '';
+                var p2WinAccent = p2IsWinner && isDone
+                    ? '<div style="width:3px;align-self:stretch;border-radius:2px;background:#00FF66;box-shadow:0 0 8px rgba(0,255,102,0.3);flex-shrink:0;"></div>'
+                    : '';
+                var p1AvatarClass = 'bk-team-avatar' + (p1IsWinner && isDone ? ' border border-[#00FF66]/40' : '');
+                var p2AvatarClass = 'bk-team-avatar' + (p2IsWinner && isDone ? ' border border-[#00FF66]/40' : '');
+
+                return '<article class="' + cardClass + '" data-mid="' + this.escapeHtml(match && match.id != null ? String(match.id) : '') + '">'
+                    + '<div class="bk-match-head">'
+                    + '<span class="bk-mnum">' + this.escapeHtml(matchNumber) + '</span>'
+                    + badgeHtml
+                    + '</div>'
+                    + '<div class="' + p1TeamClass + '"' + p1TeamStyle + '>'
+                    + '<div class="bk-team-meta">'
+                    + p1WinAccent
+                    + '<div class="' + p1AvatarClass + '">' + this.renderBracketAvatarInner(p1) + '</div>'
+                    + '<span class="bk-name"' + p1NameStyle + '>' + this.escapeHtml(p1Name) + '</span>'
+                    + '</div>'
+                    + '<span class="bk-sc">' + this.escapeHtml(p1Score) + '</span>'
+                    + '</div>'
+                    + '<div class="bk-vs">VS</div>'
+                    + '<div class="' + p2TeamClass + '"' + p2TeamStyle + '>'
+                    + '<div class="bk-team-meta">'
+                    + p2WinAccent
+                    + '<div class="' + p2AvatarClass + '">' + this.renderBracketAvatarInner(p2) + '</div>'
+                    + '<span class="bk-name"' + p2NameStyle + '>' + this.escapeHtml(p2Name) + '</span>'
+                    + '</div>'
+                    + '<span class="bk-sc">' + this.escapeHtml(p2Score) + '</span>'
+                    + '</div>'
+                    + '</article>';
+            },
+
+            renderBracketFromHubPayload: function (payload) {
+                var tree = this.$root.querySelector('#detail-bracket-tree');
+                if (!tree || !payload || !Array.isArray(payload.rounds)) {
+                    return;
+                }
+
+                var formatLabel = this.$root.querySelector('#bracket-format-label');
+                if (formatLabel && payload.format_display) {
+                    formatLabel.textContent = String(payload.format_display);
+                }
+
+                var rounds = payload.rounds.slice();
+                rounds.sort(function (left, right) {
+                    return (left && left.round_number ? left.round_number : 0) - (right && right.round_number ? right.round_number : 0);
+                });
+
+                var format = String(payload.format || '').toLowerCase();
+                var isDoubleElimination = format.indexOf('double') !== -1;
+                var sections = [];
+
+                if (isDoubleElimination) {
+                    var upperRounds = [];
+                    var lowerRounds = [];
+                    var grandFinalRounds = [];
+
+                    rounds.forEach(function (round) {
+                        var roundName = String(round && round.round_name ? round.round_name : '').toLowerCase();
+                        if (roundName.indexOf('grand') !== -1 || roundName.indexOf('gf') !== -1) {
+                            grandFinalRounds.push(round);
+                        } else if (roundName.indexOf('lb') !== -1 || roundName.indexOf('lower') !== -1) {
+                            lowerRounds.push(round);
+                        } else {
+                            upperRounds.push(round);
+                        }
+                    });
+
+                    if (upperRounds.length) {
+                        sections.push({ label: 'Upper Bracket', cls: 'bk-ub', rounds: upperRounds, key: 'upper' });
+                    }
+                    if (lowerRounds.length) {
+                        sections.push({ label: 'Lower Bracket', cls: 'bk-lb', rounds: lowerRounds, key: 'lower' });
+                    }
+                    if (grandFinalRounds.length) {
+                        sections.push({ label: 'Grand Final', cls: 'bk-gf', rounds: grandFinalRounds, key: 'grand' });
+                    }
+                } else {
+                    sections.push({ label: '', cls: '', rounds: rounds, key: 'main' });
+                }
+
+                var html = '';
+                var self = this;
+
+                sections.forEach(function (section) {
+                    var maxMatches = 1;
+                    section.rounds.forEach(function (round) {
+                        var count = Array.isArray(round && round.matches) ? round.matches.length : 0;
+                        if (count > maxMatches) {
+                            maxMatches = count;
+                        }
+                    });
+                    var sectionHeight = Math.max(maxMatches * 160, 200);
+
+                    if (section.label) {
+                        html += '<div class="bk-label ' + section.cls + '">' + self.escapeHtml(section.label) + '</div>';
+                    }
+
+                    html += '<div class="bk-section" data-sec="' + self.escapeHtml(section.key) + '">';
+                    section.rounds.forEach(function (round) {
+                        var roundName = round && round.round_name ? String(round.round_name) : 'Round';
+                        var matches = Array.isArray(round && round.matches) ? round.matches.slice() : [];
+                        matches.sort(function (left, right) {
+                            return (left && left.match_number ? left.match_number : 0) - (right && right.match_number ? right.match_number : 0);
+                        });
+
+                        html += '<div class="bk-col">';
+                        html += '<div class="bk-col-title">' + self.escapeHtml(roundName) + '</div>';
+                        html += '<div class="bk-col-body" style="height:' + String(sectionHeight) + 'px">';
+                        matches.forEach(function (match) {
+                            html += self.renderBracketMatchCard(match);
+                        });
+                        html += '</div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                });
+
+                tree.innerHTML = html;
+
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+
+                this.drawBracketConnectors();
+            },
+
+            bracketZoomIn: function () {
+                this.bracketZoom = Math.min(2, Math.round((this.bracketZoom + 0.2) * 100) / 100);
+                var self = this;
+                this.$nextTick(function () {
+                    self.drawBracketConnectors();
+                });
+            },
+
+            bracketZoomOut: function () {
+                this.bracketZoom = Math.max(0.3, Math.round((this.bracketZoom - 0.2) * 100) / 100);
+                var self = this;
+                this.$nextTick(function () {
+                    self.drawBracketConnectors();
+                });
+            },
+
+            drawBracketConnectors: function () {
+                var tree = this.$root.querySelector('#detail-bracket-tree');
+                if (!tree) {
+                    return;
+                }
+
+                var sections = Array.prototype.slice.call(tree.querySelectorAll('.bk-section'));
+                sections.forEach(function (section) {
+                    Array.prototype.slice.call(section.querySelectorAll('.bk-svg')).forEach(function (oldSvg) {
+                        oldSvg.remove();
+                    });
+
+                    var cols = section.querySelectorAll('.bk-col');
+                    if (!cols || cols.length < 2) {
+                        return;
+                    }
+
+                    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.classList.add('bk-svg');
+                    svg.style.position = 'absolute';
+                    svg.style.top = '0';
+                    svg.style.left = '0';
+                    svg.style.width = '100%';
+                    svg.style.height = '100%';
+                    svg.style.pointerEvents = 'none';
+                    svg.style.zIndex = '1';
+                    svg.style.overflow = 'visible';
+
+                    var secRect = section.getBoundingClientRect();
+
+                    for (var ci = 0; ci < cols.length - 1; ci++) {
+                        var curCards = cols[ci].querySelectorAll('.bk-match');
+                        var nxtCards = cols[ci + 1].querySelectorAll('.bk-match');
+                        if (!curCards.length || !nxtCards.length) {
+                            continue;
+                        }
+
+                        var ratio = Math.max(1, Math.ceil(curCards.length / nxtCards.length));
+
+                        for (var ni = 0; ni < nxtCards.length; ni++) {
+                            var nextCard = nxtCards[ni];
+                            var nextRect = nextCard.getBoundingClientRect();
+                            var nextY = nextRect.top + (nextRect.height / 2) - secRect.top;
+                            var nextX = nextRect.left - secRect.left;
+
+                            for (var j = 0; j < ratio; j++) {
+                                var sourceIndex = (ni * ratio) + j;
+                                if (sourceIndex >= curCards.length) {
+                                    break;
+                                }
+
+                                var currentCard = curCards[sourceIndex];
+                                var currentRect = currentCard.getBoundingClientRect();
+                                var currentX = currentRect.right - secRect.left;
+                                var currentY = currentRect.top + (currentRect.height / 2) - secRect.top;
+                                var midX = (currentX + nextX) / 2;
+
+                                var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                path.setAttribute('d', 'M' + currentX + ',' + currentY + ' H' + midX + ' V' + nextY + ' H' + nextX);
+                                path.classList.add('bk-line');
+                                svg.appendChild(path);
+                            }
+                        }
+                    }
+
+                    section.appendChild(svg);
                 });
             },
 
@@ -1418,6 +2834,62 @@ document.addEventListener('alpine:init', function () {
 
             tabExists: function (tab) {
                 return Boolean(this.$root.querySelector('[data-detail-tab="' + tab + '"]'));
+            },
+
+            startRuntimeCountdown: function () {
+                var self = this;
+                var countdownNodes = Array.prototype.slice.call(self.$root.querySelectorAll('[data-runtime-countdown]'));
+                if (!countdownNodes.length) {
+                    return;
+                }
+
+                var renderCountdowns = function () {
+                    countdownNodes.forEach(function (node) {
+                        var targetRaw = node.getAttribute('data-target');
+                        if (!targetRaw) {
+                            return;
+                        }
+
+                        var target = new Date(targetRaw);
+                        if (isNaN(target.getTime())) {
+                            return;
+                        }
+
+                        var diffMs = target.getTime() - Date.now();
+                        if (diffMs <= 0) {
+                            node.textContent = '00:00:00';
+                            return;
+                        }
+
+                        var totalSeconds = Math.floor(diffMs / 1000);
+                        var days = Math.floor(totalSeconds / 86400);
+                        var hours = Math.floor((totalSeconds % 86400) / 3600);
+                        var minutes = Math.floor((totalSeconds % 3600) / 60);
+                        var seconds = totalSeconds % 60;
+
+                        if (days > 0) {
+                            node.textContent = String(days) + 'd ' + String(hours).padStart(2, '0') + 'h';
+                        } else {
+                            node.textContent = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                        }
+                    });
+                };
+
+                renderCountdowns();
+                if (self.runtimeClock) {
+                    window.clearInterval(self.runtimeClock);
+                }
+                self.runtimeClock = window.setInterval(renderCountdowns, 1000);
+
+                var stopClock = function () {
+                    if (self.runtimeClock) {
+                        window.clearInterval(self.runtimeClock);
+                        self.runtimeClock = null;
+                    }
+                };
+
+                window.addEventListener('beforeunload', stopClock);
+                window.addEventListener('pagehide', stopClock);
             },
 
             startMobilePolling: function () {
@@ -1521,6 +2993,16 @@ document.addEventListener('alpine:init', function () {
 
                 this.setText('nd-status-label', payload.status_label);
                 this.setText('nd-status-context', payload.status_context);
+
+                var runtimePrimary = document.getElementById('nd-tab-runtime-primary');
+                if (runtimePrimary && payload.status_label && !runtimePrimary.hasAttribute('data-runtime-locked')) {
+                    runtimePrimary.textContent = String(payload.status_label);
+                }
+
+                var runtimeSecondary = document.getElementById('nd-tab-runtime-secondary');
+                if (runtimeSecondary && payload.status_context && !runtimeSecondary.hasAttribute('data-runtime-locked')) {
+                    runtimeSecondary.textContent = String(payload.status_context);
+                }
 
                 if (payload.slots_filled != null && payload.slots_total != null) {
                     this.updateSlots(payload.slots_filled, payload.slots_total, payload.slots_percentage || 0);

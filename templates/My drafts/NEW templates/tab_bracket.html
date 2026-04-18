@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" class="dark antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Professional Tournament Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#00E5FF',
+                        'dc-purple': '#9D00FF',
+                        'dc-gold': '#FFD700',
+                        'dc-bg': '#030305',
+                        'dc-surface': '#0A0A0E',
+                        'dc-card': '#111116',
+                        'val-red': '#FF4655',
+                        'val-dark': '#0F1923',
+                        'ef-blue': '#0052cc',
+                        'pubg-yellow': '#F2A900',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M0 0h40v40H0V0zm1 1h38v38H1V1z\" fill=\"rgba(255,255,255,0.02)\" fill-rule=\"evenodd\"/%3E%3C/svg%3E')",
+                    },
+                    animation: {
+                        'shimmer': 'shimmer 2.5s linear infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'gradient-x': 'gradientX 3s ease infinite',
+                    },
+                    keyframes: {
+                        shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
+                        gradientX: { '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' }, '50%': { 'background-size': '200% 200%', 'background-position': 'right center' } }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body { background-color: #030305; color: #FAFAFA; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030305; }
+        ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
+
+        /* Theme Variables */
+        .theme-valorant { --theme-primary: #FF4655; --theme-rgb: 255, 70, 85; }
+        .theme-efootball { --theme-primary: #00E5FF; --theme-rgb: 0, 229, 255; }
+        .theme-pubgm { --theme-primary: #F2A900; --theme-rgb: 242, 169, 0; }
+
+        .theme-text { color: var(--theme-primary) !important; }
+        .theme-bg { background-color: var(--theme-primary) !important; }
+        .theme-border { border-color: var(--theme-primary) !important; }
+        .theme-glow { box-shadow: 0 0 30px rgba(var(--theme-rgb), 0.3) !important; }
+
+        .official-glow { background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700); background-size: 200% 200%; animation: gradientX 3s ease infinite; }
+
+        .glass-extreme { background: rgba(14, 14, 18, 0.65); backdrop-filter: blur(24px) saturate(120%); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.5); transition: all 0.3s ease; }
+        .glass-panel { background: rgba(20, 20, 25, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-panel:hover { border-color: rgba(var(--theme-rgb), 0.3); background: rgba(25, 25, 30, 0.6); }
+        .hero-mask { background: linear-gradient(to top, #030305 0%, rgba(3,3,5,0.95) 20%, rgba(3,3,5,0.6) 60%, transparent 100%); }
+
+        /* ADVANCED BRACKET STYLES */
+        .bracket-node { background-color: #111116; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); position: relative; width: 260px; }
+        .bracket-node.match-expired { border-color: rgba(255, 70, 85, 0.4); }
+        .bracket-node.match-active { border-color: #00E5FF; box-shadow: 0 0 15px rgba(0, 229, 255, 0.15); }
+        .bracket-node.match-upcoming { border-color: rgba(255, 215, 0, 0.4); }
+
+        .bracket-line-right::after { content: ''; position: absolute; right: -2rem; top: 50%; width: 2rem; height: 1px; background: rgba(255, 255, 255, 0.1); }
+        .bracket-line-top::before { content: ''; position: absolute; right: -2rem; top: 50%; width: 1px; height: 50%; background: rgba(255, 255, 255, 0.1); }
+        .bracket-line-bottom::before { content: ''; position: absolute; right: -2rem; bottom: 50%; width: 1px; height: 50%; background: rgba(255, 255, 255, 0.1); }
+        .bracket-line-left::before { content: ''; position: absolute; left: -2rem; top: 50%; width: 2rem; height: 1px; background: rgba(255, 255, 255, 0.1); }
+
+        .dev-panel { position: fixed; bottom: 20px; left: 20px; z-index: 99999; background: rgba(5,5,5,0.95); border: 1px solid var(--theme-primary); border-radius: 12px; padding: 20px; width: 340px; backdrop-filter: blur(20px); box-shadow: 0 10px 50px rgba(0,0,0,0.8); }
+        .dev-select { background: #111; color: #fff; border: 1px solid #333; padding: 8px; border-radius: 8px; width: 100%; margin-bottom: 12px; font-size: 12px; outline: none; }
+        .dev-select:focus { border-color: var(--theme-primary); }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body x-data="tournamentEngine()" :class="themeClass" class="relative">
+
+    <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none z-[-2]"></div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-10 animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
+
+    <div class="dev-panel" x-show="showDevTools" x-transition x-cloak>
+        <div class="flex justify-between items-center mb-4 pb-3 border-b border-white/10">
+            <h3 class="theme-text font-bold text-xs uppercase tracking-widest flex items-center gap-2"><i data-lucide="terminal" class="w-4 h-4"></i> Admin Sandbox</h3>
+            <button @click="showDevTools = false" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+
+        <label class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 block">Game Universe</label>
+        <select x-model="game" class="dev-select">
+            <option value="valorant">Valorant</option>
+            <option value="efootball">eFootball 2026</option>
+            <option value="pubgm">PUBG Mobile</option>
+        </select>
+        <label class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 block">Tournament Phase</label>
+        <select x-model="phase" class="dev-select">
+            <option value="registration">Registration Open</option>
+            <option value="checkin">Check-In Phase</option>
+            <option value="live">Live / Ongoing</option>
+            <option value="completed">Completed</option>
+        </select>
+        <label class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 block">User Identity</label>
+        <select x-model="role" class="dev-select">
+            <option value="guest">Guest / Spectator</option>
+            <option value="registered">Registered Player</option>
+            <option value="organizer">Organizer</option>
+        </select>
+    </div>
+    <button x-show="!showDevTools" @click="showDevTools = true" class="fixed bottom-6 left-6 z-[99999] theme-bg text-black p-4 rounded-full shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.5)] hover:scale-110 transition-transform">
+        <i data-lucide="sliders" class="w-6 h-6"></i>
+    </button>
+
+    <nav class="fixed top-0 w-full z-50 glass-extreme border-b border-white/5">
+        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-display font-black text-white shadow-[0_0_15px_rgba(0,229,255,0.3)]">D</div>
+                    <span class="font-display font-bold text-xl tracking-widest text-white hidden md:block">DELTACROWN</span>
+                </a>
+            </div>
+            <div class="flex items-center gap-5">
+                <span class="text-[10px] font-mono text-gray-400 border border-white/10 px-3 py-1.5 rounded-full hidden sm:flex items-center gap-2 bg-black/50">
+                    <span class="w-2 h-2 rounded-full animate-pulse" :class="phase === 'live' ? 'theme-bg' : (phase === 'registration' ? 'bg-green-500' : 'bg-gray-500')"></span>
+                    <span class="text-white font-bold uppercase tracking-wider" x-text="phase"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="relative w-full min-h-[600px] lg:min-h-[750px] flex flex-col justify-end pt-24 border-b border-white/5">
+        <div class="absolute inset-0 z-0 overflow-hidden bg-black">
+            <img :src="tData.heroImg" class="w-full h-full object-cover opacity-50 mix-blend-luminosity transform scale-105 transition-transform duration-[20s]">
+            <div class="absolute inset-0 hero-mask"></div>
+            <div class="absolute inset-0 opacity-[0.15] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+        </div>
+
+        <div class="relative z-10 max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+                <div class="lg:col-span-8">
+                    <h1 class="font-display font-black text-6xl md:text-8xl lg:text-[100px] text-white tracking-tighter leading-[0.85] mb-6 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] uppercase">
+                        <span x-text="tData.titlePart1"></span><br>
+                        <span class="theme-text theme-glow-text" x-text="tData.titlePart2"></span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky top-16 z-40 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl transition-all">
+        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
+                <button class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group text-gray-500 hover:text-gray-300" @click="activeTab = 'overview'">Overview</button>
+
+                <button class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group text-white" @click="activeTab = 'bracket'">
+                    Bracket Data
+                    <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300 scale-x-100 theme-glow"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12 relative">
+
+            <div class="xl:col-span-12 space-y-10 min-h-[800px]">
+
+                <div x-show="activeTab === 'bracket'" x-transition.opacity class="space-y-6" x-cloak>
+
+                    <div class="glass-panel rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 class="font-display font-bold text-2xl text-white">Championship Dashboard</h3>
+                            <p class="text-xs text-gray-400 mt-1">Select bracket format to view progress.</p>
+                        </div>
+                        <div class="flex bg-black/50 p-1 rounded-xl border border-white/5">
+                            <button @click="bracketView = 'single'" :class="bracketView === 'single' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Single Elim</button>
+                            <button @click="bracketView = 'roundrobin'" :class="bracketView === 'roundrobin' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Round Robin</button>
+                            <button @click="bracketView = 'groups'" :class="bracketView === 'groups' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Groups + Knockout</button>
+                        </div>
+                    </div>
+
+                    <div x-show="bracketView === 'single'" class="glass-extreme p-8 rounded-[2.5rem] min-h-[700px] overflow-hidden relative border-white/5">
+                        <div class="w-full h-full overflow-auto no-scrollbar cursor-grab active:cursor-grabbing relative z-10 p-8" id="bracket-canvas">
+                            <div class="flex gap-24 min-w-max">
+
+                                <div class="flex flex-col justify-around gap-8 relative">
+                                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest text-center mb-6">Quarter Finals</div>
+                                    <template x-for="match in tData.advancedBracket.quarters">
+                                        <div class="bracket-node bracket-line-right shadow-xl" :class="match.styleClass">
+
+                                            <div class="flex justify-between items-center px-4 py-2 border-b border-white/5">
+                                                <span class="text-xs font-mono font-bold text-gray-500" x-text="match.id"></span>
+                                                <span class="text-[10px] font-bold uppercase tracking-widest" :class="match.statusColor" x-text="match.statusText"></span>
+                                            </div>
+
+                                            <div class="flex justify-between items-center px-4 py-3 border-b border-white/5" :class="match.t1.score > match.t2.score ? 'bg-white/[0.02]' : ''">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="match.t1.avatar" class="w-6 h-6 rounded border border-white/10 object-cover">
+                                                    <span class="text-sm font-bold" :class="match.t1.score > match.t2.score ? 'text-white' : 'text-gray-400'" x-text="match.t1.name"></span>
+                                                </div>
+                                                <span class="text-sm font-mono font-bold" :class="match.t1.score > match.t2.score ? 'text-green-500' : 'text-gray-600'" x-text="match.t1.score !== null ? match.t1.score : '-'"></span>
+                                            </div>
+
+                                            <div class="flex justify-between items-center px-4 py-3" :class="match.t2.score > match.t1.score ? 'bg-white/[0.02]' : ''">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="match.t2.avatar" class="w-6 h-6 rounded border border-white/10 object-cover">
+                                                    <span class="text-sm font-bold" :class="match.t2.score > match.t1.score ? 'text-white' : 'text-gray-400'" x-text="match.t2.name"></span>
+                                                </div>
+                                                <span class="text-sm font-mono font-bold" :class="match.t2.score > match.t1.score ? 'text-green-500' : 'text-gray-600'" x-text="match.t2.score !== null ? match.t2.score : '-'"></span>
+                                            </div>
+
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="flex flex-col justify-around gap-16 relative">
+                                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest text-center mb-6">Semi Finals</div>
+                                    <template x-for="(match, idx) in tData.advancedBracket.semis">
+                                        <div class="bracket-node bracket-line-left bracket-line-right shadow-xl"
+                                             :class="[match.styleClass, idx % 2 === 0 ? 'bracket-line-top' : 'bracket-line-bottom']">
+
+                                            <div class="flex justify-between items-center px-4 py-2 border-b border-white/5">
+                                                <span class="text-xs font-mono font-bold text-gray-500" x-text="match.id"></span>
+                                                <span class="text-[10px] font-bold uppercase tracking-widest" :class="match.statusColor" x-text="match.statusText"></span>
+                                            </div>
+
+                                            <div class="flex justify-between items-center px-4 py-3 border-b border-white/5">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="match.t1.avatar" class="w-6 h-6 rounded border border-white/10 object-cover" x-show="match.t1.name !== 'TBD'">
+                                                    <div class="w-6 h-6 rounded border border-white/10 bg-white/5 flex items-center justify-center" x-show="match.t1.name === 'TBD'"><span class="text-[8px] text-gray-600">TBD</span></div>
+                                                    <span class="text-sm font-bold" :class="match.t1.name === 'TBD' ? 'text-gray-600' : 'text-white'" x-text="match.t1.name"></span>
+                                                </div>
+                                                <span class="text-sm font-mono font-bold text-gray-600">-</span>
+                                            </div>
+
+                                            <div class="flex justify-between items-center px-4 py-3">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="match.t2.avatar" class="w-6 h-6 rounded border border-white/10 object-cover" x-show="match.t2.name !== 'TBD'">
+                                                    <div class="w-6 h-6 rounded border border-white/10 bg-white/5 flex items-center justify-center" x-show="match.t2.name === 'TBD'"><span class="text-[8px] text-gray-600">TBD</span></div>
+                                                    <span class="text-sm font-bold text-white" x-text="match.t2.name"></span>
+                                                </div>
+                                                <span class="text-sm font-mono font-bold text-gray-600">-</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="flex flex-col justify-center relative">
+                                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest text-center mb-6">Finals</div>
+                                    <div class="bracket-node bracket-line-left bracket-line-top shadow-xl">
+                                        <div class="flex justify-between items-center px-4 py-2 border-b border-white/5">
+                                            <span class="text-xs font-mono font-bold text-gray-500">M1</span>
+                                            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-600">TBD</span>
+                                        </div>
+                                        <div class="flex justify-between items-center px-4 py-3 border-b border-white/5">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-6 h-6 rounded border border-white/10 bg-white/5 flex items-center justify-center"><span class="text-[8px] text-gray-600">TBD</span></div>
+                                                <span class="text-sm font-bold text-gray-600">TBD</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold text-gray-600">-</span>
+                                        </div>
+                                        <div class="flex justify-between items-center px-4 py-3">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-6 h-6 rounded border border-white/10 bg-white/5 flex items-center justify-center"><span class="text-[8px] text-gray-600">TBD</span></div>
+                                                <span class="text-sm font-bold text-gray-600">TBD</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold text-gray-600">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="bracketView === 'roundrobin'" class="glass-extreme p-8 rounded-[2.5rem] border-white/5">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-white/10">
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Pos</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Team</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-center">P</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-center">W</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-center">D</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-center">L</th>
+                                        <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-center">GD</th>
+                                        <th class="p-4 text-xs font-bold theme-text uppercase tracking-widest text-center">Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="team in tData.roundRobinData">
+                                        <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                            <td class="p-4 font-mono text-gray-400" x-text="team.pos"></td>
+                                            <td class="p-4">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="team.avatar" class="w-8 h-8 rounded border border-white/10">
+                                                    <span class="font-bold text-white" x-text="team.name"></span>
+                                                    <span x-show="team.isUser" class="bg-dc-cyan/20 text-dc-cyan text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-bold">You</span>
+                                                </div>
+                                            </td>
+                                            <td class="p-4 text-center font-mono text-gray-300" x-text="team.p"></td>
+                                            <td class="p-4 text-center font-mono text-green-500" x-text="team.w"></td>
+                                            <td class="p-4 text-center font-mono text-gray-500" x-text="team.d"></td>
+                                            <td class="p-4 text-center font-mono text-red-500" x-text="team.l"></td>
+                                            <td class="p-4 text-center font-mono text-gray-400" x-text="team.gd"></td>
+                                            <td class="p-4 text-center font-display font-bold text-xl text-white" x-text="team.pts"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div x-show="bracketView === 'groups'" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <template x-for="group in ['A', 'B', 'C', 'D']">
+                            <div class="glass-panel p-6 rounded-2xl">
+                                <h4 class="font-display font-bold text-xl text-white border-b border-white/10 pb-3 mb-4" x-text="'Group ' + group"></h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-2 rounded hover:bg-white/5 cursor-pointer">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 text-center text-xs font-mono text-gray-500">1</span>
+                                            <img src="https://ui-avatars.com/api/?name=RM&background=fff&color=000" class="w-5 h-5 rounded-sm">
+                                            <span class="text-sm font-bold text-white">Los Blancos</span>
+                                        </div>
+                                        <span class="text-sm font-mono font-bold text-dc-cyan">9</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 rounded hover:bg-white/5 cursor-pointer">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 text-center text-xs font-mono text-gray-500">2</span>
+                                            <img src="https://ui-avatars.com/api/?name=RR&background=00E5FF&color=fff" class="w-5 h-5 rounded-sm">
+                                            <span class="text-sm font-bold text-white">rkrashik</span>
+                                        </div>
+                                        <span class="text-sm font-mono font-bold text-dc-cyan">6</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 rounded hover:bg-white/5 cursor-pointer opacity-50">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 text-center text-xs font-mono text-gray-500">3</span>
+                                            <div class="w-5 h-5 rounded-sm bg-gray-800"></div>
+                                            <span class="text-sm font-bold text-white">City FC</span>
+                                        </div>
+                                        <span class="text-sm font-mono font-bold text-gray-500">3</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 rounded hover:bg-white/5 cursor-pointer opacity-50">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 text-center text-xs font-mono text-gray-500">4</span>
+                                            <div class="w-5 h-5 rounded-sm bg-gray-800"></div>
+                                            <span class="text-sm font-bold text-white">Gunners</span>
+                                        </div>
+                                        <span class="text-sm font-mono font-bold text-gray-500">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('tournamentEngine', () => ({
+                showDevTools: false,
+                game: 'efootball', // Defaulting to efootball for context
+                phase: 'live',
+                role: 'registered',
+                tourneyMode: 'online',
+                isPrivate: false,
+                isOfficial: true,
+                activeTab: 'bracket',
+                bracketView: 'single', // 'single', 'roundrobin', 'groups'
+
+                get tData() {
+                    const data = {
+                        efootball: {
+                            gameName: 'eFootball 2026', platform: 'Mobile', platformIcon: 'smartphone',
+                            titlePart1: 'eFootball', titlePart2: 'Genesis Cup',
+                            heroImg: 'https://images.unsplash.com/photo-1518605368461-1e1e38ce7197?q=80&w=2000',
+
+                            // ADVANCED BRACKET DATA DRIVING THE UI
+                            advancedBracket: {
+                                quarters: [
+                                    {
+                                        id: 'M1', statusText: 'EXPIRED', statusColor: 'text-red-500', styleClass: 'match-expired opacity-70',
+                                        t1: { name: 'Mastaan', avatar: 'https://ui-avatars.com/api/?name=M&background=222&color=fff', score: null },
+                                        t2: { name: 'Shadow', avatar: 'https://ui-avatars.com/api/?name=S&background=111&color=fff', score: null }
+                                    },
+                                    {
+                                        id: 'M2', statusText: 'FT', statusColor: 'text-gray-600', styleClass: '',
+                                        t1: { name: 'Tower_Tareq', avatar: 'https://ui-avatars.com/api/?name=TT&background=444&color=fff', score: 2 },
+                                        t2: { name: 'SIUU', avatar: 'https://ui-avatars.com/api/?name=S&background=fff&color=000', score: 1 }
+                                    },
+                                    {
+                                        id: 'M3', statusText: 'FT', statusColor: 'text-gray-600', styleClass: '',
+                                        t1: { name: 'Pistol_Pappu', avatar: 'https://ui-avatars.com/api/?name=PP&background=9D00FF&color=fff', score: 3 },
+                                        t2: { name: 'Toofan', avatar: 'https://ui-avatars.com/api/?name=T&background=0052cc&color=fff', score: 2 }
+                                    },
+                                    {
+                                        id: 'M4', statusText: '★ YOUR MATCH', statusColor: 'text-dc-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]', styleClass: 'match-active',
+                                        t1: { name: 'rkrashik', avatar: 'https://ui-avatars.com/api/?name=R&background=00E5FF&color=000', score: 3 },
+                                        t2: { name: 'Nawab', avatar: 'https://ui-avatars.com/api/?name=N&background=333&color=fff', score: 0 }
+                                    }
+                                ],
+                                semis: [
+                                    {
+                                        id: 'M1', statusText: 'UPCOMING', statusColor: 'text-yellow-500', styleClass: 'match-upcoming',
+                                        t1: { name: 'TBD', avatar: '', score: null },
+                                        t2: { name: 'Tower_Tareq', avatar: 'https://ui-avatars.com/api/?name=TT&background=444&color=fff', score: null }
+                                    },
+                                    {
+                                        id: 'M2', statusText: '★ YOUR MATCH', statusColor: 'text-dc-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]', styleClass: 'match-upcoming',
+                                        t1: { name: 'Pistol_Pappu', avatar: 'https://ui-avatars.com/api/?name=PP&background=9D00FF&color=fff', score: null },
+                                        t2: { name: 'rkrashik', avatar: 'https://ui-avatars.com/api/?name=R&background=00E5FF&color=000', score: null }
+                                    }
+                                ]
+                            },
+                            roundRobinData: [
+                                { pos: 1, name: 'Los Blancos', avatar: 'https://ui-avatars.com/api/?name=RM&background=fff&color=000', p: 5, w: 5, d: 0, l: 0, gd: '+12', pts: 15, isUser: false },
+                                { pos: 2, name: 'rkrashik', avatar: 'https://ui-avatars.com/api/?name=R&background=00E5FF&color=000', p: 5, w: 4, d: 0, l: 1, gd: '+8', pts: 12, isUser: true },
+                                { pos: 3, name: 'SIUU Squad', avatar: 'https://ui-avatars.com/api/?name=SS&background=333&color=fff', p: 5, w: 2, d: 1, l: 2, gd: '-1', pts: 7, isUser: false },
+                                { pos: 4, name: 'Tower_Tareq', avatar: 'https://ui-avatars.com/api/?name=TT&background=444&color=fff', p: 5, w: 1, d: 2, l: 2, gd: '-3', pts: 5, isUser: false },
+                                { pos: 5, name: 'Nawab', avatar: 'https://ui-avatars.com/api/?name=N&background=222&color=fff', p: 5, w: 0, d: 2, l: 3, gd: '-6', pts: 2, isUser: false },
+                                { pos: 6, name: 'Mastaan', avatar: 'https://ui-avatars.com/api/?name=M&background=111&color=fff', p: 5, w: 0, d: 1, l: 4, gd: '-10', pts: 1, isUser: false },
+                            ]
+                        },
+                        valorant: { titlePart1: 'Valorant', titlePart2: 'Major', heroImg: '', advancedBracket: { quarters: [], semis: [] }, roundRobinData: [] },
+                        pubgm: { titlePart1: 'PUBGM', titlePart2: 'Series', heroImg: '', advancedBracket: { quarters: [], semis: [] }, roundRobinData: [] }
+                    };
+                    return data[this.game];
+                },
+
+                get themeClass() { return `theme-${this.game}`; },
+
+                init() {
+                    // Small delay to ensure Alpine has rendered the DOM before lucide parses
+                    this.$watch('activeTab', () => { setTimeout(() => lucide.createIcons(), 50); });
+                    this.$watch('bracketView', () => { setTimeout(() => lucide.createIcons(), 50); });
+                    setTimeout(() => lucide.createIcons(), 50);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>
