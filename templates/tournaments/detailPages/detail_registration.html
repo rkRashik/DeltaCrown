@@ -68,10 +68,10 @@ Inspired by Battlefy/FACEIT tournament listings with:
 
 {% block phase_nav %}
 <!-- Sticky Sub-Nav for Registration Phase -->
-<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-white/[0.06]" style="background: rgba(6,6,8,0.95);">
-    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
+<div class="dc-phase-nav dc-phase-nav--registration sticky top-[64px] z-40 backdrop-blur-xl border-b border-white/[0.06]" style="background: rgba(6,6,8,0.95);">
+    <div class="dc-phase-nav-shell max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="dc-phase-nav-inner flex items-center justify-between py-3">
+            <div class="dc-phase-nav-tabs flex items-center gap-6 overflow-x-auto no-scrollbar">
                 <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 transition-all" style="border-color: var(--game-color);" data-click="scrollToSection" data-click-args='["info"]'>Info</button>
                 <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["prizes"]'>Prizes</button>
                 {% if show_participants %}<button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["participants"]'>Participants <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">{{ slots_filled }}</span></button>{% endif %}
@@ -79,7 +79,7 @@ Inspired by Battlefy/FACEIT tournament listings with:
                 <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" data-click="scrollToSection" data-click-args='["schedule"]'>Schedule</button>
             </div>
 
-            <div class="hidden lg:flex items-center gap-3">
+            <div class="dc-phase-nav-meta hidden lg:flex items-center gap-3">
                 {% if show_registration_cta and countdown_target %}
                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Closes in:</span>
                 <span class="font-mono text-sm font-bold game-accent px-2 py-1 rounded border" style="background: rgba(var(--game-color-rgb), 0.1); border-color: rgba(var(--game-color-rgb), 0.2);">

@@ -24,37 +24,19 @@ from apps.games.services import game_service
 
 class TournamentDetailView(DetailView):
     """
-    FE-T-002: Tournament Detail Page — Dynamic Status-Aware Routing
+    FE-T-002: Tournament Detail Page — Unified Master Template
 
     URL: /tournaments/<slug>/
-    Template: Routes to phase-specific templates based on tournament.status:
-        - draft/pending_approval/published → detail_registration.html
-        - registration_open              → detail_registration.html (CTA active)
-        - registration_closed            → detail_registration.html (check-in mode)
-        - live                           → detail_live.html
-        - completed/archived             → detail_completed.html
-        - cancelled                      → detail_cancelled.html
+    Template: tournaments/detailPages/detail.html
 
-    Fallback: tournaments/detailPages/detail.html (original monolith)
+    View state and section visibility are still status-aware via context flags,
+    but rendering now always uses one canonical template.
     """
     model = Tournament
-    template_name = 'tournaments/detailPages/detail.html'  # fallback
+    template_name = 'tournaments/detailPages/detail.html'
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
-
-    # Status → template mapping
-    PHASE_TEMPLATES = {
-        'draft':               'tournaments/detailPages/detail_registration.html',
-        'pending_approval':    'tournaments/detailPages/detail_registration.html',
-        'published':           'tournaments/detailPages/detail_registration.html',
-        'registration_open':   'tournaments/detailPages/detail_registration.html',
-        'registration_closed': 'tournaments/detailPages/detail_registration.html',
-        'live':                'tournaments/detailPages/detail_live.html',
-        'completed':           'tournaments/detailPages/detail_completed.html',
-        'archived':            'tournaments/detailPages/detail_completed.html',
-        'cancelled':           'tournaments/detailPages/detail_cancelled.html',
-    }
 
     def get_queryset(self):
         return super().get_queryset().select_related('game', 'organizer')
@@ -80,19 +62,7 @@ class TournamentDetailView(DetailView):
         return self._cached_object
 
     def get_template_names(self):
-        """Route to phase-specific template based on tournament effective status."""
-        tournament = self.object
-        effective = getattr(tournament, 'get_effective_status', lambda: tournament.status)()
-        if effective in self.PHASE_TEMPLATES:
-            phase_template = self.PHASE_TEMPLATES[effective]
-            # Try phase template first, fall back to monolith
-            from django.template.loader import get_template
-            from django.template import TemplateDoesNotExist
-            try:
-                get_template(phase_template)
-                return [phase_template]
-            except TemplateDoesNotExist:
-                pass
+        """Render the unified detail page for all tournament phases."""
         return [self.template_name]
 
     def get_context_data(self, **kwargs):

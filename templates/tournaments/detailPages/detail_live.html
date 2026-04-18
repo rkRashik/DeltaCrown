@@ -110,10 +110,10 @@ Inspired by FotMob live matches + VCT brackets:
 
 {% block phase_nav %}
 <!-- Live Tournament Sub-Nav -->
-<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-red-500/10" style="background: rgba(6,6,8,0.95);">
-    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
+<div class="dc-phase-nav dc-phase-nav--live sticky top-[64px] z-40 backdrop-blur-xl border-b border-red-500/10" style="background: rgba(6,6,8,0.95);">
+    <div class="dc-phase-nav-shell max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="dc-phase-nav-inner flex items-center justify-between py-3">
+            <div class="dc-phase-nav-tabs flex items-center gap-6 overflow-x-auto no-scrollbar">
                 <div class="live-badge">
                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
                     Live
@@ -134,7 +134,7 @@ Inspired by FotMob live matches + VCT brackets:
                 {% endif %}
             </div>
 
-            <div class="hidden lg:flex items-center gap-4">
+            <div class="dc-phase-nav-meta hidden lg:flex items-center gap-4">
                 <span class="text-xs text-gray-500">
                     <span class="text-white font-bold">{{ completed_match_count }}</span>/{{ total_match_count }} matches complete
                 </span>

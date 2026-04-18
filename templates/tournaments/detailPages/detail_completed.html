@@ -131,10 +131,10 @@ Features:
 
 {% block phase_nav %}
 <!-- Completed Tournament Sub-Nav (Mobile-optimized) -->
-<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-emerald-500/10" style="background: rgba(6,6,8,0.95); -webkit-backdrop-filter: blur(20px);">
-    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-0 sm:py-1">
-            <div class="flex items-center gap-1 sm:gap-4 overflow-x-auto no-scrollbar -webkit-overflow-scrolling-touch flex-1 py-2.5 sm:py-3" role="tablist" aria-label="Tournament sections" style="-webkit-overflow-scrolling: touch;">
+<div class="dc-phase-nav dc-phase-nav--completed sticky top-[64px] z-40 backdrop-blur-xl border-b border-emerald-500/10" style="background: rgba(6,6,8,0.95); -webkit-backdrop-filter: blur(20px);">
+    <div class="dc-phase-nav-shell max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="dc-phase-nav-inner flex items-center justify-between py-0 sm:py-1">
+            <div class="dc-phase-nav-tabs flex items-center gap-1 sm:gap-4 overflow-x-auto no-scrollbar -webkit-overflow-scrolling-touch flex-1 py-2.5 sm:py-3" role="tablist" aria-label="Tournament sections" style="-webkit-overflow-scrolling: touch;">
                 <button role="tab" aria-selected="true" aria-controls="section-champion" class="phase-tab active text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-emerald-500 transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["champion"]'>Champion</button>
                 <button role="tab" aria-selected="false" aria-controls="section-results" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["results"]'>Results</button>
                 <button role="tab" aria-selected="false" aria-controls="section-bracket" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["bracket"]'>Bracket</button>
@@ -145,7 +145,7 @@ Features:
                 <button role="tab" aria-selected="false" aria-controls="section-rules" class="phase-tab text-gray-500 text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center px-1.5 sm:px-0" data-click="scrollToSection" data-click-args='["rules"]'>Rules</button>
                 {% endif %}
             </div>
-            <button data-click-copy="window.location.href" class="hidden sm:flex text-xs text-gray-500 hover:text-white transition items-center gap-1.5 flex-shrink-0 ml-3">
+            <button data-click-copy="window.location.href" class="dc-phase-nav-meta hidden sm:flex text-xs text-gray-500 hover:text-white transition items-center gap-1.5 flex-shrink-0 ml-3">
                 <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
             </button>
         </div>

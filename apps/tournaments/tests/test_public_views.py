@@ -96,7 +96,7 @@ class TestTournamentDetailView:
         
         assert response.status_code == 200
         template_names = [t.name for t in response.templates]
-        assert 'tournaments/detailPages/detail_registration.html' in template_names
+        assert 'tournaments/detailPages/detail.html' in template_names
     
     def test_detail_view_shows_tournament_info(self, client, published_tournament):
         """Detail view should show tournament information."""

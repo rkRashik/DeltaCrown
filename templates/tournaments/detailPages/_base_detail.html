@@ -24,6 +24,9 @@
 <div class="ambient-mesh"></div>
 <!-- Noise texture overlay -->
 <div class="noise-overlay"></div>
+<div class="detail-grid-overlay"></div>
+<div class="detail-ambient-orb detail-ambient-orb--primary"></div>
+<div class="detail-ambient-orb detail-ambient-orb--secondary"></div>
 <!-- Toast notification container -->
 <div id="dc-toast" class="dc-toast"><i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="dc-toast-msg"></span></div>
 
@@ -31,145 +34,166 @@
 
 <div class="hidden lg:block">
 
-<!-- HERO SECTION — Adaptive Cover Banner -->
+<!-- HERO SECTION — Cinematic Premium Layout -->
 <div class="hero-infinity relative w-full overflow-hidden">
-    <!-- Banner Image — responsive heights, aspect-ratio preserved via object-cover -->
     {% if tournament.banner_image %}
-    <img src="{{ tournament.banner_image.url }}" class="w-full h-64 md:h-80 lg:h-[450px] object-cover object-center" alt="{{ tournament.name }}">
+    <img src="{{ tournament.banner_image.url }}" class="w-full h-full object-cover object-center" alt="{{ tournament.name }}">
     {% else %}
-    <div class="w-full h-64 md:h-80 lg:h-[450px]" style="background: linear-gradient(135deg, var(--game-color-secondary), #020204 60%);"></div>
+    <div class="w-full h-full" style="background: linear-gradient(135deg, var(--game-color-secondary), #020204 60%);"></div>
     {% endif %}
-    <!-- Left edge dissolution -->
-    <div class="fade-left absolute inset-0 z-10"></div>
-    <!-- Bottom gradient: blends banner into page background -->
-    <div class="absolute inset-0 z-10 bg-gradient-to-t from-[#020204] via-[#020204]/40 to-transparent"></div>
 
-    <!-- Hero Content — gracefully overlaid on gradient -->
-    <div class="absolute bottom-0 left-0 right-0 z-20 max-w-[1800px] mx-auto px-6 lg:px-12 pb-10 lg:pb-12">
-        <!-- Ambient Glow -->
+    <div class="fade-left absolute inset-0 z-10"></div>
+    <div class="hero-grid-lines absolute inset-0 z-10"></div>
+    <div class="hero-mask absolute inset-0 z-10"></div>
+    <div class="hero-noise absolute inset-0 z-10"></div>
+
+    <div class="absolute inset-x-0 bottom-0 z-20 max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12 pt-24 pb-10 lg:pb-14">
         <div class="ambient-glow"></div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-end">
 
             <!-- Left Column: Info -->
-            <div class="lg:col-span-8 space-y-5">
+            <div class="lg:col-span-8 space-y-5 lg:space-y-7">
 
-                <!-- Status + Game Badges (pill style) -->
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 fade-up">
                     {% if effective_status == 'live' %}
-                    <div class="badge-live px-4 py-1.5 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="badge-live px-3 py-1.5 rounded-md backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span></span>
                         Live Now
                     </div>
                     {% elif effective_status == 'registration_open' %}
-                    <div class="badge-open px-4 py-1.5 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="badge-open px-3 py-1.5 rounded-md backdrop-blur-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
                         Registration Open
                     </div>
                     {% elif effective_status == 'registration_closed' %}
-                    <div class="px-4 py-1.5 rounded-full bg-amber-500/12 border border-amber-500/20 backdrop-blur-md text-amber-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-amber-500/12 border border-amber-500/20 backdrop-blur-md text-amber-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="lock" class="w-3 h-3"></i> Registration Closed
                     </div>
                     {% elif effective_status == 'completed' %>
-                    <div class="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md text-emerald-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md text-emerald-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="check-circle-2" class="w-3 h-3"></i> Completed
                     </div>
                     {% elif effective_status == 'cancelled' %}
-                    <div class="px-4 py-1.5 rounded-full bg-red-900/20 border border-red-800/25 backdrop-blur-md text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-red-900/20 border border-red-800/25 backdrop-blur-md text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="x-circle" class="w-3 h-3"></i> Cancelled
                     </div>
                     {% elif effective_status == 'archived' %>
-                    <div class="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 backdrop-blur-md text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="archive" class="w-3 h-3"></i> Archived
                     </div>
                     {% elif effective_status == 'published' %}
-                    <div class="px-4 py-1.5 rounded-full bg-blue-500/12 border border-blue-500/20 backdrop-blur-md text-blue-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-blue-500/12 border border-blue-500/20 backdrop-blur-md text-blue-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="eye" class="w-3 h-3"></i> Published
                     </div>
                     {% else %}
-                    <div class="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 backdrop-blur-md text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <i data-lucide="file-edit" class="w-3 h-3"></i> Draft
                     </div>
                     {% endif %}
 
                     <!-- Game Badge -->
-                    <div class="badge-game px-4 py-1.5 rounded-full backdrop-blur-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                    <div class="badge-game px-3 py-1.5 rounded-md backdrop-blur-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
                         {% if game_spec.icon %}
-                        <img src="{{ game_spec.icon.url }}" class="w-4 h-4 rounded-full" alt="{{ game_spec.display_name }}">
+                        <img src="{{ game_spec.icon.url }}" class="w-4 h-4 rounded" alt="{{ game_spec.display_name }}">
                         {% endif %}
                         {{ game_spec.display_name }}
                     </div>
 
                     <!-- Platform Badge -->
-                    <div class="px-4 py-1.5 rounded-full bg-white/5 border border-white/8 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-black/55 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
                         <i data-lucide="{% if tournament.platform == 'mobile' %}smartphone{% elif tournament.platform == 'ps5' %}gamepad{% elif tournament.platform == 'xbox' %}gamepad{% else %}monitor{% endif %}" class="w-3 h-3 game-accent"></i>
                         {{ tournament.get_platform_display }}
                     </div>
 
+                    <div class="px-3 py-1.5 rounded-md bg-black/55 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="{% if tournament.mode == 'lan' %}map-pin{% elif tournament.mode == 'hybrid' %}network{% else %}wifi{% endif %}" class="w-3 h-3 game-accent"></i>
+                        {{ tournament.get_mode_display }}
+                    </div>
+
                     {% if tournament.is_official %}
-                    <div class="px-4 py-1.5 rounded-full bg-dc-gold/20 border border-dc-gold/30 backdrop-blur-md text-dc-gold text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-md bg-dc-gold/20 border border-dc-gold/30 backdrop-blur-md text-dc-gold text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
                         <i data-lucide="badge-check" class="w-3 h-3"></i> Official
                     </div>
                     {% endif %}
 
-                    <div class="px-4 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                    {% if tournament.visibility == 'private' or tournament.is_private %}
+                    <div class="px-3 py-1.5 rounded-md bg-red-900/35 border border-red-500/30 backdrop-blur-md text-red-200 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="lock" class="w-3 h-3"></i> Invite Only
+                    </div>
+                    {% endif %}
+
+                    <div class="px-3 py-1.5 rounded-md bg-black/55 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
                         <i data-lucide="users" class="w-3 h-3 game-accent"></i> {{ tournament.get_participation_type_display }}
                     </div>
                 </div>
 
                 <!-- Title -->
-                <h1 class="font-gaming text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] leading-[0.9] tracking-tight text-white fade-up delay-1" style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.7));">
+                <h1 class="dc-hero-title font-display text-white fade-up delay-1" style="filter: drop-shadow(0 6px 24px rgba(0,0,0,0.8));">
                     {{ tournament.name|upper }}
                 </h1>
 
                 {% block hero_extra %}{% endblock %}
 
-                <!-- Glass Pill Stats -->
-                <div class="glass-pill fade-up delay-2">
-                    <div class="flex flex-wrap items-center">
-                        <!-- Prize Pool -->
-                        <div class="px-5 sm:px-6 py-3 flex flex-col items-center">
-                            <span class="text-label flex items-center gap-1.5 mb-1">
-                                <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i> Prize Pool
-                            </span>
-                            <span class="text-xl sm:text-2xl font-bold text-glow-gold" style="color: #facc15;">
-                                {% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}—{% endif %}
-                            </span>
-                        </div>
-                        <div class="hidden sm:block w-px h-10 bg-white/10"></div>
-                        <!-- Kickoff -->
-                        <div class="px-5 sm:px-6 py-3 flex flex-col items-center">
-                            <span class="text-label flex items-center gap-1.5 mb-1">
-                                <i data-lucide="calendar-clock" class="w-3.5 h-3.5 game-accent"></i> Kickoff
-                            </span>
-                            <span class="text-lg sm:text-xl font-bold text-white">
-                                {{ tournament.tournament_start|date:"M j" }} <span class="text-xs text-[--text-muted]">{{ tournament.tournament_start|date:"g:i A" }}</span>
-                            </span>
-                        </div>
-                        <div class="hidden sm:block w-px h-10 bg-white/10"></div>
-                        <!-- Capacity -->
-                        <div class="px-5 sm:px-6 py-3 flex flex-col items-center">
-                            <span class="text-label flex items-center gap-1.5 mb-1">
-                                <i data-lucide="users-2" class="w-3.5 h-3.5 game-accent"></i> Capacity
-                            </span>
-                            <span class="text-lg sm:text-xl font-bold text-white">{{ slots_filled }}<span class="text-[--text-muted]">/{{ slots_total }}</span></span>
-                        </div>
-                        <div class="hidden sm:block w-px h-10 bg-white/10"></div>
-                        <!-- Entry Fee -->
-                        <div class="px-5 sm:px-6 py-3 flex flex-col items-center">
-                            <span class="text-label flex items-center gap-1.5 mb-1">
-                                <i data-lucide="ticket" class="w-3.5 h-3.5 game-accent"></i> Entry
-                            </span>
-                            <span class="text-lg sm:text-xl font-bold {% if not tournament.has_entry_fee or not tournament.entry_fee_amount %}text-emerald-400{% else %}text-white{% endif %}">
-                                {% if tournament.has_entry_fee and tournament.entry_fee_amount %}৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}
-                            </span>
-                        </div>
+                <div class="dc-hero-organizer fade-up delay-2">
+                    <div class="dc-hero-organizer-avatar">
+                        {% if tournament.is_official %}
+                        <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="DeltaCrown" class="w-6 h-6" data-fallback="hide-show-next">
+                        <i data-lucide="crown" class="w-4 h-4 text-amber-300 hidden items-center justify-center"></i>
+                        {% elif tournament.organizer.profile.avatar %}
+                        <img src="{{ tournament.organizer.profile.avatar.url }}" alt="{{ tournament.organizer.username }}" class="w-full h-full object-cover">
+                        {% else %}
+                        {{ tournament.organizer.username|truncatechars:2|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="dc-hero-organizer-label">Organized By</p>
+                        <p class="dc-hero-organizer-name">
+                            {% if tournament.is_official %}
+                            DeltaCrown
+                            {% else %}
+                            {% firstof tournament.organizer.get_full_name tournament.organizer.profile.display_name tournament.organizer.username %}
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Actions -->
-            <div class="lg:col-span-4 flex flex-col items-start lg:items-end justify-end pb-2 gap-3">
+            <div class="lg:col-span-4 flex flex-col items-stretch lg:items-end justify-end gap-4">
+                <div class="dc-hero-summary glass-strong fade-up delay-1">
+                    <div class="dc-hero-summary-head">
+                        <p class="dc-hero-summary-kicker">
+                            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                            Prize Pool
+                        </p>
+                        <p class="dc-hero-summary-prize text-glow-gold">
+                            {% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}—{% endif %}
+                        </p>
+                    </div>
+
+                    <div class="dc-hero-summary-grid">
+                        <div class="dc-hero-summary-metric">
+                            <p class="dc-hero-summary-label"><i data-lucide="swords" class="w-3.5 h-3.5 game-accent"></i> Format</p>
+                            <p class="dc-hero-summary-value">{{ tournament.get_format_display }}</p>
+                        </div>
+                        <div class="dc-hero-summary-metric">
+                            <p class="dc-hero-summary-label"><i data-lucide="users" class="w-3.5 h-3.5 text-indigo-300"></i> Participants</p>
+                            <p class="dc-hero-summary-value">{{ slots_filled }}<span class="text-gray-600">/{{ slots_total }}</span></p>
+                        </div>
+                        <div class="dc-hero-summary-metric">
+                            <p class="dc-hero-summary-label"><i data-lucide="calendar-clock" class="w-3.5 h-3.5 game-accent"></i> Kickoff</p>
+                            <p class="dc-hero-summary-value">{{ tournament.tournament_start|date:"M j" }}{% if tournament.tournament_start %}<span class="text-xs text-gray-500"> {{ tournament.tournament_start|date:"g:i A" }}</span>{% endif %}</p>
+                        </div>
+                        <div class="dc-hero-summary-metric">
+                            <p class="dc-hero-summary-label"><i data-lucide="ticket" class="w-3.5 h-3.5 text-emerald-300"></i> Entry</p>
+                            <p class="dc-hero-summary-value {% if not tournament.has_entry_fee or not tournament.entry_fee_amount %}text-emerald-400{% endif %}">
+                                {% if tournament.has_entry_fee and tournament.entry_fee_amount %}৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {% if detail_cta_primary %}
                 <div class="dc-hero-cta-wrap">
                     <p class="dc-hero-cta-kicker">{{ detail_cta_heading }}</p>
@@ -236,16 +260,16 @@
 {% block phase_nav %}{% endblock %}
 
 <!-- MAIN CONTENT AREA -->
-<div class="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative">
+<div class="dc-detail-main w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 relative">
 
         <!-- LEFT COLUMN (8/12) -->
-        <div class="lg:col-span-8 space-y-6 min-h-[600px]">
+        <div class="dc-detail-primary lg:col-span-8 space-y-8 min-h-[700px]">
             {% block phase_content %}{% endblock %}
         </div>
 
         <!-- RIGHT SIDEBAR (4/12) -->
-        <div class="lg:col-span-4 space-y-4 lg:sticky lg:top-[140px] lg:self-start">
+        <div class="dc-detail-sidebar lg:col-span-4 space-y-5 lg:sticky lg:top-[120px] lg:self-start">
 
             {% block sidebar_top %}{% endblock %}
 
