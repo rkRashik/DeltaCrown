@@ -13,7 +13,14 @@
         --theme-rgb: {{ game_spec.primary_color_rgb|default:"0, 229, 255" }};
     }
 
-    body { background-color: #030305; color: #FAFAFA; overflow-x: hidden; }
+    body {
+        background:
+            radial-gradient(1200px 700px at 50% -10%, rgba(var(--theme-rgb), 0.18), transparent 62%),
+            radial-gradient(900px 540px at 100% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+            #030305;
+        color: #FAFAFA;
+        overflow-x: hidden;
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #030305; }
     ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 4px; }
@@ -59,7 +66,78 @@
     }
 
     .hero-mask {
-        background: linear-gradient(to top, #030305 0%, rgba(3,3,5,0.95) 20%, rgba(3,3,5,0.6) 60%, transparent 100%);
+        background: linear-gradient(to top, #030305 0%, rgba(3, 3, 5, 0.82) 24%, rgba(3, 3, 5, 0.42) 66%, rgba(3, 3, 5, 0.08) 100%);
+    }
+
+    .theme-valorant .hero-mask {
+        background: linear-gradient(to top, #030305 0%, rgba(16, 6, 8, 0.86) 24%, rgba(28, 8, 10, 0.5) 64%, rgba(255, 70, 85, 0.12) 100%);
+    }
+
+    .theme-pubgm .hero-mask {
+        background: linear-gradient(to top, #030305 0%, rgba(18, 14, 5, 0.86) 24%, rgba(38, 24, 6, 0.5) 64%, rgba(242, 169, 0, 0.12) 100%);
+    }
+
+    .theme-efootball .hero-mask {
+        background: linear-gradient(to top, #030305 0%, rgba(4, 10, 15, 0.86) 24%, rgba(6, 20, 25, 0.5) 64%, rgba(0, 229, 255, 0.12) 100%);
+    }
+
+    .mood-surface {
+        background: linear-gradient(140deg, rgba(var(--theme-rgb), 0.18), rgba(15, 15, 20, 0.86));
+        border: 1px solid rgba(var(--theme-rgb), 0.26);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .mood-pulse {
+        box-shadow: 0 0 0 rgba(var(--theme-rgb), 0.45);
+        animation: moodPulse 2.4s ease-out infinite;
+    }
+
+    .status-step {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(7, 7, 10, 0.62);
+    }
+
+    .status-step.is-active {
+        border-color: rgba(var(--theme-rgb), 0.45);
+        background: rgba(var(--theme-rgb), 0.13);
+    }
+
+    .status-step.is-complete {
+        border-color: rgba(34, 197, 94, 0.35);
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .status-dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.35);
+    }
+
+    .status-step.is-active .status-dot {
+        background: var(--theme-primary);
+    }
+
+    .status-step.is-complete .status-dot {
+        background: #22c55e;
+    }
+
+    .match-state-live {
+        background: rgba(239, 68, 68, 0.16);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+    }
+
+    .match-state-upcoming {
+        background: rgba(59, 130, 246, 0.16);
+        border: 1px solid rgba(59, 130, 246, 0.38);
+        color: #93c5fd;
+    }
+
+    .match-state-completed {
+        background: rgba(34, 197, 94, 0.14);
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        color: #86efac;
     }
 
     .bracket-connector {
@@ -78,6 +156,12 @@
     @keyframes gradientX {
         0%, 100% { background-size: 200% 200%; background-position: left center; }
         50% { background-size: 200% 200%; background-position: right center; }
+    }
+
+    @keyframes moodPulse {
+        0% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb), 0.45); }
+        70% { box-shadow: 0 0 0 22px rgba(var(--theme-rgb), 0); }
+        100% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb), 0); }
     }
 
     .animate-shimmer {
@@ -137,27 +221,29 @@
         </div>
     </nav>
 
-    <div class="relative w-full min-h-[600px] lg:min-h-[750px] flex flex-col justify-end pt-24 border-b border-white/5">
+    <div class="relative w-full min-h-[600px] lg:min-h-[760px] flex flex-col justify-end pt-24 border-b border-white/5">
         <div class="absolute inset-0 z-0 overflow-hidden bg-black">
             {% if tournament.promo_video_url and is_registration_phase %}
-            <a href="{{ tournament.promo_video_url }}" target="_blank" rel="noopener" class="absolute inset-0 w-full h-full opacity-40 block">
-                <div class="absolute inset-0 flex items-center justify-center border border-white/10 m-20 rounded-[2rem] bg-black/50 backdrop-blur-md">
+            <a href="{{ tournament.promo_video_url }}" target="_blank" rel="noopener" class="absolute inset-0 w-full h-full opacity-45 block">
+                <div class="absolute inset-0 flex items-center justify-center border border-white/10 m-16 rounded-[2rem] bg-black/35 backdrop-blur-md">
                     <i data-lucide="play-circle" class="w-24 h-24 text-white/30"></i>
-                    <p class="absolute mt-32 text-gray-400 font-mono text-sm">Promo Video Available</p>
+                    <p class="absolute mt-32 text-gray-300 font-mono text-sm">Promo Video Available</p>
                 </div>
             </a>
             {% else %}
             {% if tournament.banner_image %}
-            <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-50 mix-blend-luminosity transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-65 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% elif tournament.thumbnail_image %}
-            <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-50 mix-blend-luminosity transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-60 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% else %}
-            <img src="{% static 'siteui/og/default.png' %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-35 mix-blend-luminosity transform scale-105 hover:scale-100 transition-transform duration-[20s]">
+            <img src="{% static 'siteui/og/default.png' %}" alt="{{ tournament.name }}" class="w-full h-full object-cover opacity-45 mix-blend-screen transform scale-105 hover:scale-100 transition-transform duration-[20s]">
             {% endif %}
             {% endif %}
 
             <div class="absolute inset-0 hero-mask"></div>
-            <div class="absolute inset-0 opacity-[0.15] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-black/25 via-black/10 to-[#030305]"></div>
+            <div class="absolute inset-0 opacity-[0.12] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+            <div class="absolute left-[-12%] top-[8%] w-[34rem] h-[34rem] rounded-full blur-[120px] opacity-35 pointer-events-none theme-bg"></div>
         </div>
 
         <div class="relative z-10 max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
@@ -195,26 +281,50 @@
                             <i data-lucide="{% if tournament.mode == 'online' %}wifi{% elif tournament.mode == 'lan' %}map-pin{% else %}network{% endif %}" class="w-3 h-3 theme-text"></i>
                             <span>{{ tournament_mode_label }}</span>
                         </div>
+
+                        {% if has_streams and featured_stream %}
+                        <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded border border-white/10 bg-black/60 text-[10px] font-bold uppercase tracking-widest text-gray-200 flex items-center gap-2 hover:border-white/20 transition-colors">
+                            <span class="inline-flex items-center gap-1.5 {% if featured_stream.is_live %}theme-text{% endif %}">
+                                <span class="w-1.5 h-1.5 rounded-full {% if featured_stream.is_live %}theme-bg mood-pulse{% else %}bg-gray-400{% endif %}"></span>
+                                {% if featured_stream.is_live %}Live{% else %}Stream{% endif %}
+                            </span>
+                            <span>{{ featured_stream.platform|upper }}</span>
+                        </a>
+                        {% endif %}
                     </div>
 
-                    <h1 class="font-display font-black text-6xl md:text-8xl lg:text-[100px] text-white tracking-tighter leading-[0.85] mb-6 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] uppercase">
-                        <span>{{ tournament.name }}</span><br>
-                        <span class="theme-text theme-glow-text">{{ game_spec.display_name }}</span>
+                    <h1 class="font-display font-black text-white tracking-tighter mb-6 drop-shadow-[0_12px_36px_rgba(0,0,0,0.75)] uppercase leading-[0.92]">
+                        <span class="block text-4xl md:text-6xl lg:text-7xl">{{ tournament.name }}</span>
+                        <span class="block mt-2 font-gaming text-sm md:text-base tracking-[0.38em] theme-text theme-glow-text">{{ game_spec.display_name }} Championship Circuit</span>
                     </h1>
 
-                    <div class="flex items-center gap-4 mb-8 bg-black/30 w-max pr-6 pl-2 py-2 rounded-full border border-white/5 backdrop-blur-md">
-                        <img src="https://ui-avatars.com/api/?name={% if tournament.is_official %}DC{% else %}{{ tournament.organizer.username|urlencode }}{% endif %}&background=fff&color=000" alt="Organizer" class="w-8 h-8 rounded-full border-2 border-white">
+                    <div class="flex flex-wrap items-center gap-4 mb-8 bg-black/35 w-max pr-6 pl-2 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                        <div class="w-9 h-9 rounded-full border-2 border-white overflow-hidden">
+                            {% if tournament.is_official %}
+                            <img src="https://ui-avatars.com/api/?name=DC&background=fff&color=000" alt="Organizer" class="w-full h-full object-cover">
+                            {% elif tournament.organizer.profile.avatar %}
+                            <img src="{{ tournament.organizer.profile.avatar.url }}" alt="Organizer" class="w-full h-full object-cover">
+                            {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ tournament.organizer.username|urlencode }}&background=fff&color=000" alt="Organizer" class="w-full h-full object-cover">
+                            {% endif %}
+                        </div>
                         <div>
                             <p class="text-[9px] text-gray-400 uppercase tracking-widest leading-none mb-0.5">Organized By</p>
                             <p class="text-sm font-bold text-white leading-none">{% if tournament.is_official %}DeltaCrown Official{% else %}{{ tournament.organizer.username }}{% endif %}</p>
                         </div>
+                        {% if tournament.contact_email %}
+                        <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-black/30 border border-white/10 text-xs text-gray-300">
+                            <i data-lucide="mail" class="w-3.5 h-3.5 theme-text"></i>
+                            <span>{{ tournament.contact_email }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="lg:col-span-4 flex lg:justify-end">
-                    <div class="flex flex-wrap lg:flex-col gap-6 lg:gap-8 bg-black/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 w-full lg:w-auto shadow-2xl">
+                    <div class="flex flex-wrap lg:flex-col gap-6 lg:gap-8 mood-surface backdrop-blur-xl rounded-[2rem] p-8 w-full lg:w-auto shadow-2xl">
                         <div>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
+                            <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i> Prize Pool</p>
                             <div class="flex items-baseline gap-2">
                                 <p class="font-display font-black text-5xl text-white tracking-tight">{% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</p>
                                 {% if tournament.prize_deltacoin %}
@@ -225,14 +335,23 @@
                         <div class="h-px w-full bg-gradient-to-r from-white/20 to-transparent hidden lg:block"></div>
                         <div class="flex gap-12">
                             <div>
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="swords" class="w-4 h-4 theme-text"></i> Format</p>
+                                <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="swords" class="w-4 h-4 theme-text"></i> Format</p>
                                 <p class="font-display font-bold text-2xl text-white">{{ tournament_format_label }}</p>
                             </div>
                             <div>
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-dc-purple"></i> Participants</p>
+                                <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-dc-purple"></i> Participants</p>
                                 <p class="font-display font-bold text-2xl text-white"><span data-slots-filled>{{ slots_filled }}</span><span class="text-gray-600 text-lg">/<span data-slots-total>{{ slots_total }}</span></span></p>
                             </div>
                         </div>
+                        {% if has_streams and featured_stream %}
+                        <div class="rounded-xl bg-black/45 border border-white/10 px-4 py-3 space-y-1">
+                            <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400">Featured Broadcast</p>
+                            <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="flex items-center justify-between text-white hover:theme-text transition-colors">
+                                <span class="text-sm font-bold">{{ featured_stream.platform|upper }} Stream</span>
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -275,6 +394,20 @@
                 </button>
                 {% endif %}
 
+                {% if show_standings and standings_primary %}
+                <button data-detail-tab="standings" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'standings' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('standings')">
+                    Standings
+                    <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'standings' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
+                </button>
+                {% endif %}
+
+                {% if has_streams %}
+                <button data-detail-tab="media" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'media' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('media')">
+                    Media
+                    <div class="absolute bottom-0 left-0 w-full h-1 theme-bg transform origin-left transition-transform duration-300" :class="activeTab === 'media' ? 'scale-x-100 theme-glow' : 'scale-x-0 group-hover:scale-x-50 opacity-50'"></div>
+                </button>
+                {% endif %}
+
                 {% if show_bracket %}
                 <button data-detail-tab="bracket" class="relative py-5 px-4 text-sm font-gaming font-bold uppercase tracking-[0.15em] transition-colors whitespace-nowrap group" :class="activeTab === 'bracket' ? 'text-white' : 'text-gray-500 hover:text-gray-300'" @click="setTab('bracket')">
                     Bracket
@@ -305,42 +438,192 @@
                         {% if has_social_links %}
                         <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-3 h-3 text-dc-purple"></i> Community Links Active</span>
                         {% endif %}
+                        {% if show_standings and standings_primary %}
+                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-3 h-3 theme-text"></i> Standings Available</span>
+                        {% endif %}
+                        {% if has_streams and featured_stream %}
+                        <span class="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 {% if featured_stream.is_live %}theme-text{% else %}text-gray-400{% endif %}"><i data-lucide="radio" class="w-3 h-3"></i> {% if featured_stream.is_live %}Broadcast Live{% else %}Broadcast Ready{% endif %}</span>
+                        {% endif %}
                     </div>
 
-                    <div class="glass-panel p-8 md:p-10 rounded-[2rem]">
-                        <h3 class="font-display font-bold text-3xl text-white mb-6">About Tournament</h3>
-                        <div class="prose prose-invert max-w-none text-gray-300">
-                            {% if tournament.description %}
-                            <div>{{ tournament.description|safe }}</div>
-                            {% else %}
-                            <p>Organizer has not published a detailed description yet.</p>
-                            {% endif %}
-                            <p class="mt-4">Prepare for the competitive runtime. Check-in opens before match start, and all participant actions are tracked in DeltaCrown HUB.</p>
+                    {% if announcements %}
+                    <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-display font-bold text-xl text-white flex items-center gap-2"><i data-lucide="megaphone" class="w-5 h-5 theme-text"></i> Announcements</h3>
+                            <span class="text-[10px] uppercase tracking-widest text-gray-500">Latest updates</span>
+                        </div>
+                        <div class="space-y-3">
+                            {% for ann in announcements|slice:":3" %}
+                            <article class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-semibold text-white text-sm">{{ ann.title }}</h4>
+                                    {% if ann.is_pinned %}<span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-dc-gold/15 text-dc-gold border border-dc-gold/30">Pinned</span>{% endif %}
+                                    {% if ann.is_important %}<span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">Important</span>{% endif %}
+                                </div>
+                                <p class="text-sm text-gray-300">{{ ann.message }}</p>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mood-surface p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
+                        <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[100px] opacity-30 theme-bg"></div>
+                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 relative z-10">
+                            <div class="lg:col-span-3">
+                                <h3 class="font-display font-bold text-3xl text-white mb-4">Tournament Brief</h3>
+                                <div class="prose prose-invert max-w-none text-gray-200">
+                                    {% if tournament.description %}
+                                    <div>{{ tournament.description|safe }}</div>
+                                    {% else %}
+                                    <p>Organizer has not published a detailed description yet.</p>
+                                    {% endif %}
+                                </div>
+                                <p class="mt-4 text-sm text-gray-300 leading-relaxed">Runtime status is synchronized with live bracket/match state. Participants should complete check-in before the configured deadline to avoid no-show enforcement.</p>
+                            </div>
+                            <div class="lg:col-span-2 space-y-3">
+                                <div class="glass-panel rounded-xl p-4 border border-white/10">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Current State</p>
+                                    <p class="text-lg font-bold text-white">{{ effective_status_display }}</p>
+                                </div>
+                                <div class="glass-panel rounded-xl p-4 border border-white/10">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Start Time</p>
+                                    <p class="text-sm font-semibold text-white">{% if tournament.tournament_start %}{{ tournament.tournament_start|date:"M d, Y • H:i" }}{% else %}TBA{% endif %}</p>
+                                </div>
+                                <div class="glass-panel rounded-xl p-4 border border-white/10">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Last Update</p>
+                                    <p class="text-sm font-semibold text-white">{{ tournament.updated_at|date:"M d, Y • H:i" }}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
                             <i data-lucide="layout-grid" class="w-5 h-5 text-gray-500 mb-3"></i>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Bracket Type</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Tournament Format</p>
                             <p class="font-bold text-white text-sm">{{ tournament_format_label }}</p>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
                             <i data-lucide="users" class="w-5 h-5 text-gray-500 mb-3"></i>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Team Size</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Participation Type</p>
                             <p class="font-bold text-white text-sm">{{ tournament_participation_label }}</p>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
-                            <i data-lucide="user-plus" class="w-5 h-5 text-gray-500 mb-3"></i>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Guest Teams</p>
-                            <p class="font-bold text-white text-sm">Not Allowed (0)</p>
+                            <i data-lucide="monitor" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Platform / Mode</p>
+                            <p class="font-bold text-white text-sm">{{ tournament_platform_label }} • {{ tournament_mode_label }}</p>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center border-l-2 theme-border">
-                            <i data-lucide="alert-circle" class="w-5 h-5 theme-text mb-3"></i>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Auto-Forfeit</p>
-                            <p class="font-bold text-white text-sm">Active ({{ tournament.check_in_minutes_before|default:5 }} min limit)</p>
+                            <i data-lucide="wallet" class="w-5 h-5 theme-text mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Entry</p>
+                            <p class="font-bold text-white text-sm">{% if tournament.has_entry_fee %}{{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0|intcomma }}{% else %}Free Entry{% endif %}</p>
+                        </div>
+
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
+                            <i data-lucide="users-round" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Slot Fill</p>
+                            <p class="font-bold text-white text-sm"><span data-slots-filled>{{ slots_filled }}</span> / <span data-slots-total>{{ slots_total }}</span> ({{ slots_percentage|floatformat:0 }}%)</p>
+                        </div>
+
+                        {% if tournament.check_in_minutes_before %}
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
+                            <i data-lucide="timer-reset" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Check-In Window</p>
+                            <p class="font-bold text-white text-sm">{{ tournament.check_in_minutes_before }} min before start</p>
+                        </div>
+                        {% endif %}
+
+                        {% if game_spec.tournament_config.default_match_format %}
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
+                            <i data-lucide="swords" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Series Format</p>
+                            <p class="font-bold text-white text-sm">{{ game_spec.tournament_config.default_match_format }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if game_spec.tournament_config.default_scoring_type %}
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-center">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-gray-500 mb-3"></i>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Scoring Model</p>
+                            <p class="font-bold text-white text-sm">{{ game_spec.tournament_config.default_scoring_type|cut:"_" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="glass-extreme p-8 rounded-[2rem] border-white/5">
+                        <h3 class="font-display font-bold text-2xl text-white mb-6 flex items-center gap-3">
+                            <i data-lucide="activity" class="w-6 h-6 theme-text"></i>
+                            Event Status Timeline
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div class="status-step rounded-xl p-4 {% if tournament_phase == 'registration_open' %}is-active{% elif tournament_phase == 'registration_closed' or is_live_phase or is_completed_phase or is_cancelled %}is-complete{% endif %}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Registration</p>
+                                    <span class="status-dot"></span>
+                                </div>
+                                <p class="text-xs text-gray-400">{% if tournament.registration_end %}Closes {{ tournament.registration_end|date:"M d, H:i" }}{% else %}Window TBD{% endif %}</p>
+                            </div>
+                            <div class="status-step rounded-xl p-4 {% if tournament_phase == 'registration_closed' %}is-active{% elif is_live_phase or is_completed_phase or is_cancelled %}is-complete{% endif %}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Check-In</p>
+                                    <span class="status-dot"></span>
+                                </div>
+                                <p class="text-xs text-gray-400">{% if tournament.check_in_minutes_before %}{{ tournament.check_in_minutes_before }} min pre-match{% else %}Policy managed by organizer{% endif %}</p>
+                            </div>
+                            <div class="status-step rounded-xl p-4 {% if is_live_phase %}is-active{% elif is_completed_phase %}is-complete{% endif %}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Live Bracket</p>
+                                    <span class="status-dot"></span>
+                                </div>
+                                <p class="text-xs text-gray-400">{% if is_live_phase %}Execution in progress{% elif is_completed_phase %}Run completed{% else %}Awaiting start{% endif %}</p>
+                            </div>
+                            <div class="status-step rounded-xl p-4 {% if is_completed_phase %}is-active is-complete{% endif %}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-widest text-gray-300">Finalization</p>
+                                    <span class="status-dot"></span>
+                                </div>
+                                <p class="text-xs text-gray-400">{% if is_completed_phase %}Results published{% else %}Pending closure{% endif %}</p>
+                            </div>
                         </div>
                     </div>
+
+                    {% if has_streams and featured_stream %}
+                    <div class="glass-extreme rounded-[2rem] overflow-hidden border border-white/10">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/40">
+                            <h3 class="font-display font-bold text-xl text-white flex items-center gap-2"><i data-lucide="radio" class="w-5 h-5 theme-text"></i> Broadcast Surface</h3>
+                            <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="text-xs font-bold uppercase tracking-wider theme-text hover:text-white transition-colors">Open External</a>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-0">
+                            <div class="lg:col-span-2 bg-black aspect-video">
+                                <iframe src="{{ featured_stream.embed_url }}" title="Tournament Stream" class="w-full h-full" allowfullscreen loading="lazy" referrerpolicy="no-referrer"></iframe>
+                            </div>
+                            <div class="p-6 space-y-4 bg-black/35 border-l border-white/10">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Platform</p>
+                                    <p class="text-white font-semibold">{{ featured_stream.platform|upper }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Status</p>
+                                    <p class="{% if featured_stream.is_live %}theme-text{% else %}text-gray-300{% endif %} font-semibold">{% if featured_stream.is_live %}Live Now{% else %}Ready{% endif %}</p>
+                                </div>
+                                {% if additional_streams %}
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Alternate Feeds</p>
+                                    <div class="space-y-2">
+                                        {% for stream in additional_streams %}
+                                        <a href="{{ stream.url }}" target="_blank" rel="noopener" class="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors border border-white/10 rounded-lg px-3 py-2">
+                                            <span>{{ stream.platform|upper }}</span>
+                                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     {% if tournament.mode == 'lan' or tournament.mode == 'hybrid' %}
                     <div class="glass-extreme p-8 rounded-[2rem] border-t-4 border-t-dc-purple relative overflow-hidden">
@@ -607,7 +890,8 @@
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="text-xs font-mono text-gray-500 px-4">Showing <span class="text-white font-bold" data-slots-filled>{{ participants_total|default:slots_filled }}</span> Teams</span>
+                            <span class="text-xs font-mono text-gray-500 px-2">Showing <span class="text-white font-bold" data-slots-filled>{{ participants_total|default:slots_filled }}</span> Entries</span>
+                            <span class="text-xs font-mono text-gray-500 px-2">Confirmed <span class="text-white font-bold">{{ participants_confirmed|default:0 }}</span></span>
                         </div>
                     </div>
 
@@ -615,13 +899,26 @@
                         {% for p in participants %}
                         <div class="glass-panel p-6 rounded-[2rem] border-l-4 transition-all duration-300 group {% if p.rank and p.rank <= 2 %}border-l-dc-gold hover:theme-border hover:shadow-[0_10px_30px_rgba(255,215,0,0.1)]{% else %}border-l-transparent hover:theme-border hover:-translate-y-1{% endif %}">
                             <div class="flex justify-between items-start mb-6">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-white font-black text-2xl shadow-xl group-hover:scale-105 transition-transform">{{ p.name|default:p.display_name|slice:":2"|upper }}</div>
-                                    <div>
-                                        <h4 class="font-display font-bold text-2xl text-white group-hover:theme-text transition-colors">{{ p.name|default:p.display_name }}</h4>
-                                        <div class="flex items-center gap-3 mt-1">
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-black border border-white/10 overflow-hidden flex items-center justify-center text-white font-black text-2xl shadow-xl group-hover:scale-105 transition-transform">
+                                        {% if p.type == 'team' and p.logo %}
+                                        <img src="{{ p.logo }}" alt="{{ p.name|default:p.display_name }}" class="w-full h-full object-cover">
+                                        {% elif p.type == 'solo' and p.avatar %}
+                                        <img src="{{ p.avatar }}" alt="{{ p.name|default:p.display_name }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                        {{ p.name|default:p.display_name|slice:":2"|upper }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h4 class="font-display font-bold text-2xl text-white group-hover:theme-text transition-colors truncate">{{ p.name|default:p.display_name }}</h4>
+                                            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-white/5 text-gray-300 border border-white/10">{{ p.badge_label|default:'Entry' }}</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1 truncate">{{ p.sub_label|default:tournament_participation_label }}</p>
+                                        <div class="flex items-center gap-3 mt-2">
                                             {% if p.rank %}<span class="px-2 py-0.5 bg-white/5 rounded text-[10px] font-bold text-gray-400 uppercase tracking-widest">Rank #{{ p.rank }}</span>{% endif %}
                                             {% if p.type == 'team' and p.roster_count %}<span class="px-2 py-0.5 bg-white/5 rounded text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ p.roster_count }} Players</span>{% endif %}
+                                            {% if p.game_id %}<span class="px-2 py-0.5 bg-black/50 rounded text-[10px] font-bold text-gray-300 uppercase tracking-widest border border-white/10">{{ p.game_id }}</span>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -635,13 +932,18 @@
                                 <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-2">Active Roster</p>
                                 {% for member in p.roster_summary|slice:":5" %}
                                 <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                    <div class="flex items-center gap-3">
-                                        <img src="https://ui-avatars.com/api/?name={{ member.name|urlencode }}&background=random" alt="{{ member.name }}" class="w-7 h-7 rounded-full border border-white/10">
-                                        <span class="text-sm font-bold text-gray-300">{{ member.name }}</span>
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-7 h-7 rounded-full border border-white/10 bg-black/40 flex items-center justify-center text-[10px] font-bold text-white">{{ member.name|slice:":1"|upper }}</div>
+                                        <span class="text-sm font-bold text-gray-300 truncate">{{ member.name }}</span>
                                     </div>
                                     <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border {% if member.role == 'Captain' %}bg-dc-gold/10 text-dc-gold border-dc-gold/20{% else %}bg-white/5 text-gray-500 border-white/10{% endif %}">{{ member.role }}</span>
                                 </div>
                                 {% endfor %}
+                            </div>
+                            {% elif p.type == 'solo' %}
+                            <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Player Identity</p>
+                                <p class="text-sm text-gray-300">{% if p.game_id %}In-game ID: <span class="text-white font-semibold">{{ p.game_id }}</span>{% else %}In-game ID not submitted yet.{% endif %}</p>
                             </div>
                             {% endif %}
                         </div>
@@ -649,6 +951,112 @@
                         <div class="glass-panel p-6 rounded-[2rem] text-gray-400 text-sm">No participants are registered yet.</div>
                         {% endfor %}
                     </div>
+                </div>
+                {% endif %}
+
+                {% if show_standings and standings_primary %}
+                <div x-show="activeTab === 'standings'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="glass-extreme rounded-[2rem] overflow-hidden border-white/10">
+                        <div class="px-6 py-5 border-b border-white/10 bg-black/35 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <h3 class="font-display font-bold text-2xl text-white flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-6 h-6 theme-text"></i> Competition Standings</h3>
+                            <span class="text-[10px] uppercase tracking-widest text-gray-400">Source: {{ standings_source|default:'runtime' }}</span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-black/40 text-gray-400 uppercase tracking-widest text-[10px]">
+                                    <tr>
+                                        <th class="px-5 py-3 text-left">Rank</th>
+                                        <th class="px-5 py-3 text-left">Participant</th>
+                                        <th class="px-5 py-3 text-left">Group</th>
+                                        <th class="px-5 py-3 text-right">MP</th>
+                                        <th class="px-5 py-3 text-right">W</th>
+                                        <th class="px-5 py-3 text-right">L</th>
+                                        <th class="px-5 py-3 text-right">Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    {% for row in standings_primary %}
+                                    <tr class="hover:bg-white/[0.02] transition-colors">
+                                        <td class="px-5 py-4 font-display font-bold text-white">#{{ row.rank }}</td>
+                                        <td class="px-5 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                                    {% if row.logo_url %}
+                                                    <img src="{{ row.logo_url }}" alt="{{ row.name }}" class="w-full h-full object-cover">
+                                                    {% else %}
+                                                    {{ row.name|slice:":1"|upper }}
+                                                    {% endif %}
+                                                </div>
+                                                <span class="font-semibold text-white">{{ row.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-5 py-4 text-gray-400">{{ row.group_name|default:'-' }}</td>
+                                        <td class="px-5 py-4 text-right text-gray-300">{{ row.matches_played|default:0 }}</td>
+                                        <td class="px-5 py-4 text-right text-green-300">{{ row.wins|default:0 }}</td>
+                                        <td class="px-5 py-4 text-right text-red-300">{{ row.losses|default:0 }}</td>
+                                        <td class="px-5 py-4 text-right font-bold {% if row.points and row.points > 0 %}theme-text{% else %}text-gray-300{% endif %}">{{ row.points|default:0 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if group_standings_summary %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for group in group_standings_summary %}
+                        <div class="glass-panel rounded-2xl p-5 border border-white/10">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-display font-bold text-lg text-white">{{ group.name }}</h4>
+                                <span class="text-[10px] uppercase tracking-widest text-gray-500">Advancers</span>
+                            </div>
+                            <div class="space-y-2">
+                                {% for entry in group.advancers %}
+                                <div class="flex items-center justify-between bg-black/35 border border-white/10 rounded-lg px-3 py-2">
+                                    <span class="text-sm text-white font-semibold">{{ entry.name }}</span>
+                                    <span class="text-xs text-green-300 font-bold">#{{ entry.rank }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if has_streams %}
+                <div x-show="activeTab === 'media'" x-transition.opacity class="space-y-6" x-cloak>
+                    {% if featured_stream %}
+                    <div class="glass-extreme rounded-[2rem] overflow-hidden border border-white/10">
+                        <div class="px-6 py-5 border-b border-white/10 bg-black/35 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <h3 class="font-display font-bold text-2xl text-white flex items-center gap-2"><i data-lucide="radio" class="w-6 h-6 theme-text"></i> Featured Stream</h3>
+                            <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="text-[11px] uppercase tracking-widest theme-text hover:text-white transition-colors">Open External</a>
+                        </div>
+                        <div class="bg-black aspect-video">
+                            <iframe src="{{ featured_stream.embed_url }}" title="Tournament Stream" class="w-full h-full" allowfullscreen loading="lazy" referrerpolicy="no-referrer"></iframe>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if additional_streams %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for stream in additional_streams %}
+                        <div class="glass-panel rounded-2xl p-5 border border-white/10">
+                            <p class="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Alternate Feed</p>
+                            <a href="{{ stream.url }}" target="_blank" rel="noopener" class="flex items-center justify-between text-white hover:theme-text transition-colors">
+                                <span class="font-bold">{{ stream.platform|upper }} Stream</span>
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if not featured_stream and not additional_streams %}
+                    <div class="glass-panel rounded-2xl p-6 text-sm text-gray-400">No stream sources are currently configured for this tournament.</div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -663,22 +1071,51 @@
 
                     {% if matches %}
                     <div class="w-full h-[600px] overflow-auto no-scrollbar cursor-grab active:cursor-grabbing relative z-10" id="bracket-canvas">
-                        <div class="flex gap-16 min-w-max p-4 pb-20">
+                        <div class="flex gap-14 min-w-max p-4 pb-20">
                             {% regroup matches|dictsort:"round_number" by round_number as rounds %}
                             {% for round in rounds %}
-                            <div class="flex flex-col justify-around gap-8 w-64 relative">
-                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest absolute -top-8 left-0">{% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif round.grouper %}Round {{ round.grouper }}{% else %}Round{% endif %}</div>
+                            <div class="flex flex-col justify-around gap-8 w-72 relative">
+                                <div class="text-[10px] font-bold uppercase tracking-widest absolute -top-8 left-0 {% if forloop.last %}theme-text{% else %}text-gray-500{% endif %}">{% if round.list.0.round_label %}{{ round.list.0.round_label }}{% elif round.grouper %}Round {{ round.grouper }}{% else %}Round{% endif %}</div>
+                                {% if not forloop.first %}
+                                <div class="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-[68%] border-r-2 border-t-2 border-b-2 border-white/10 rounded-r-xl pointer-events-none"></div>
+                                {% endif %}
                                 {% for match in round.list %}
-                                <div class="bg-[#0A0A0E] border border-white/10 rounded-xl overflow-hidden shadow-lg">
-                                    <div class="flex justify-between items-center p-3 border-b border-white/5 {% if match.team1_is_winner %}bg-white/[0.04]{% endif %}">
-                                        <span class="text-sm font-bold {% if match.team1_is_winner %}text-white{% else %}text-gray-500{% endif %}">{{ match.team1_name }}</span>
-                                        <span class="text-sm font-mono font-bold {% if match.team1_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score1|default:'-' }}</span>
+                                <article class="bg-[#0A0A0E] border {% if forloop.parentloop.last %}theme-border{% else %}border-white/10{% endif %} rounded-2xl overflow-hidden shadow-lg relative">
+                                    {% if match.is_live %}
+                                    <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold match-state-live">Live</span>
+                                    {% endif %}
+                                    <div class="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
+                                        <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ match.match_label }}{% if match.best_of_label %} • {{ match.best_of_label }}{% endif %}</p>
                                     </div>
-                                    <div class="flex justify-between items-center p-3 {% if match.team2_is_winner %}bg-white/[0.04]{% endif %}">
-                                        <span class="text-sm font-bold {% if match.team2_is_winner %}text-white{% else %}text-gray-500{% endif %}">{{ match.team2_name }}</span>
-                                        <span class="text-sm font-mono font-bold {% if match.team2_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score2|default:'-' }}</span>
+                                    <div class="divide-y divide-white/5">
+                                        <div class="flex justify-between items-center p-3 {% if match.team1_is_winner %}bg-white/[0.04]{% endif %}">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="w-6 h-6 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white">
+                                                    {% if match.team1_logo_url %}
+                                                    <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">
+                                                    {% else %}
+                                                    {{ match.team1_name|slice:":1"|upper }}
+                                                    {% endif %}
+                                                </div>
+                                                <span class="text-sm font-bold truncate {% if match.team1_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ match.team1_name }}</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold {% if match.team1_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score1|default:'-' }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 {% if match.team2_is_winner %}bg-white/[0.04]{% endif %}">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="w-6 h-6 rounded-full overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white">
+                                                    {% if match.team2_logo_url %}
+                                                    <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">
+                                                    {% else %}
+                                                    {{ match.team2_name|slice:":1"|upper }}
+                                                    {% endif %}
+                                                </div>
+                                                <span class="text-sm font-bold truncate {% if match.team2_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ match.team2_name }}</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold {% if match.team2_is_winner %}theme-text{% else %}text-gray-600{% endif %}">{{ match.score2|default:'-' }}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                </article>
                                 {% endfor %}
                             </div>
                             {% endfor %}
@@ -704,6 +1141,13 @@
 
                             <div class="flex items-center justify-between max-w-2xl mx-auto">
                                 <div class="text-center flex-1">
+                                    <div class="mx-auto mb-2 w-14 h-14 rounded-full bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center text-xl font-bold text-white">
+                                        {% if match.team1_logo_url %}
+                                        <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                        {{ match.team1_name|slice:":1"|upper }}
+                                        {% endif %}
+                                    </div>
                                     <h3 class="font-display font-bold text-3xl text-white mb-2">{{ match.team1_name }}</h3>
                                 </div>
 
@@ -717,39 +1161,83 @@
                                 </div>
 
                                 <div class="text-center flex-1">
+                                    <div class="mx-auto mb-2 w-14 h-14 rounded-full bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center text-xl font-bold text-white">
+                                        {% if match.team2_logo_url %}
+                                        <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                        {{ match.team2_name|slice:":1"|upper }}
+                                        {% endif %}
+                                    </div>
                                     <h3 class="font-display font-bold text-3xl text-white mb-2">{{ match.team2_name }}</h3>
                                 </div>
                             </div>
+
+                            {% if match.map_scores %}
+                            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% for mp in match.map_scores|slice:":3" %}
+                                <div class="bg-black/45 border border-white/10 rounded-xl px-3 py-2 text-center">
+                                    <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ mp.map_name|default:'Map' }}</p>
+                                    <p class="text-sm font-bold text-white">{{ mp.p1_score|default:0 }} - {{ mp.p2_score|default:0 }}</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endif %}
                     {% endfor %}
                     {% endif %}
 
-                    <h3 class="font-display font-bold text-2xl text-white mb-6">Recent Match Results</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-display font-bold text-2xl text-white">Match Feed</h3>
+                        <p class="text-xs uppercase tracking-widest text-gray-500">Game-aware cards</p>
+                    </div>
 
                     <div class="space-y-4">
                         {% for match in matches_reversed|default:matches %}
-                        <div class="glass-panel rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-6 hover:bg-white/[0.02] transition-colors cursor-pointer border-l-2 border-l-transparent hover:theme-border" data-mobile-match-id="{{ match.id }}">
-                            <div class="w-full md:w-1/4">
+                        <article class="glass-panel rounded-2xl p-6 hover:bg-white/[0.02] transition-colors border-l-2 {% if match.ui_status == 'live' %}border-l-red-500{% elif match.ui_status == 'completed' %}border-l-green-500{% else %}border-l-blue-500{% endif %}" data-mobile-match-id="{{ match.id }}">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div class="w-full md:w-[22%]">
                                 <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{{ match.stage_label|default:match.match_label }}</p>
                                 <p class="text-sm font-bold text-gray-300">{{ match.starts_at_display|default:match.start_time_display|default:'TBA' }}</p>
+                                <div class="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest {% if match.ui_status == 'live' %}match-state-live{% elif match.ui_status == 'completed' %}match-state-completed{% else %}match-state-upcoming{% endif %}">{{ match.ui_status }}</div>
                             </div>
                             <div class="flex-1 flex items-center justify-center gap-6 w-full">
-                                <h4 class="font-bold text-xl text-right flex-1 {% if match.team1_is_winner %}text-white{% else %}text-gray-500{% endif %}">{{ match.team1_name }}</h4>
+                                <div class="flex items-center gap-3 text-right flex-1 justify-end min-w-0">
+                                    <h4 class="font-bold text-xl {% if match.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ match.team1_name }}</h4>
+                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                        {% if match.team1_logo_url %}<img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="w-full h-full object-cover">{% else %}{{ match.team1_name|slice:":1"|upper }}{% endif %}
+                                    </div>
+                                </div>
                                 <div class="flex items-center gap-3 px-5 py-2 bg-black/60 rounded-xl border border-white/5">
                                     <span class="font-display font-bold text-2xl {% if match.team1_is_winner %}theme-text{% else %}text-gray-500{% endif %}">{{ match.score1|default:0 }}</span>
                                     <span class="text-gray-600">-</span>
                                     <span class="font-display font-bold text-2xl {% if match.team2_is_winner %}theme-text{% else %}text-gray-500{% endif %}">{{ match.score2|default:0 }}</span>
                                 </div>
-                                <h4 class="font-bold text-xl text-left flex-1 {% if match.team2_is_winner %}text-white{% else %}text-gray-500{% endif %}">{{ match.team2_name }}</h4>
+                                <div class="flex items-center gap-3 text-left flex-1 min-w-0">
+                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                        {% if match.team2_logo_url %}<img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="w-full h-full object-cover">{% else %}{{ match.team2_name|slice:":1"|upper }}{% endif %}
+                                    </div>
+                                    <h4 class="font-bold text-xl {% if match.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ match.team2_name }}</h4>
+                                </div>
                             </div>
-                            <div class="w-full md:w-1/4 text-right bg-black/30 p-3 rounded-lg border border-white/5">
-                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Status</p>
-                                <p class="text-[11px] text-gray-400 font-mono mb-0.5">{{ match.ui_status|upper }}</p>
-                                {% if match.best_of_label %}<p class="text-[11px] text-gray-400 font-mono">{{ match.best_of_label }}</p>{% endif %}
+                            <div class="w-full md:w-[26%] text-right bg-black/30 p-3 rounded-lg border border-white/5">
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Series Intel</p>
+                                {% if match.best_of_label %}<p class="text-[11px] text-gray-300 font-mono mb-0.5">{{ match.best_of_label }}</p>{% endif %}
+                                {% if match.map_scores %}
+                                <div class="space-y-1">
+                                    {% for mp in match.map_scores|slice:":2" %}
+                                    <p class="text-[11px] text-gray-400 font-mono">{{ mp.map_name|default:'Map' }} {{ mp.p1_score|default:0 }}-{{ mp.p2_score|default:0 }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p class="text-[11px] text-gray-400 font-mono">{{ match.starts_at_relative|default:'No map data yet' }}</p>
+                                {% endif %}
+                                {% if match.mvp_name %}<p class="mt-2 text-[11px] font-bold theme-text">MVP: {{ match.mvp_name }}</p>{% endif %}
+                                {% if match.stream_url %}<a href="{{ match.stream_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gray-300 hover:text-white transition-colors"><i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Watch</a>{% endif %}
                             </div>
-                        </div>
+                            </div>
+                        </article>
                         {% empty %}
                         <div class="glass-panel rounded-2xl p-6 text-gray-400 text-sm">No matches are available yet.</div>
                         {% endfor %}
