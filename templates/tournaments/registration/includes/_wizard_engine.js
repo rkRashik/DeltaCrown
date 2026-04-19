@@ -18,6 +18,18 @@
     let stepValidity = new Array(TOTAL_STEPS).fill(false);
     let guestMemberCount = 1;
 
+    function isCompletedStep(idx) {
+        return idx < currentStep && !!stepValidity[idx];
+    }
+
+    function getCommittedStepCount() {
+        let count = 0;
+        for (let i = 0; i < currentStep; i++) {
+            if (stepValidity[i]) count += 1;
+        }
+        return count;
+    }
+
     // ── Init ──────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         buildSidebar();
@@ -374,6 +386,7 @@
 
         // Prevent browser validation from targeting required fields in hidden steps
         clearHiddenRequiredAttributes();
+        syncRequiredIndicators(stepEl || document);
 
         // Sync review payload first so validation state reflects current data.
         if (key === 'review') {
@@ -406,6 +419,9 @@
                 el.classList.remove('input-error');
             }
         });
+        stepEl.querySelectorAll('input, select, textarea').forEach(function(el) {
+            setFieldInvalidUI(el, false);
+        });
     }
 
     function showStepValidationError(stepEl, message) {
@@ -424,6 +440,53 @@
             return input.parentElement;
         }
         return input;
+    }
+
+    function getFieldContainer(input) {
+        if (!input) return null;
+        return input.closest('.space-y-1\\.5, .space-y-2, .space-y-3, .space-y-4') || input.parentElement;
+    }
+
+    function findFieldLabel(input) {
+        if (!input) return null;
+        if (input.id) {
+            try {
+                const explicit = document.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+                if (explicit) return explicit;
+            } catch (_) {}
+        }
+
+        const group = getFieldContainer(input);
+        if (group) {
+            const nested = group.querySelector('label');
+            if (nested) return nested;
+        }
+
+        return input.closest('label');
+    }
+
+    function syncRequiredIndicators(root) {
+        const context = root || document;
+        context.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(input) {
+            if (input.type === 'hidden') return;
+            if (input.offsetParent === null) return;
+
+            const label = findFieldLabel(input);
+            if (label && !label.textContent.includes('*')) {
+                label.classList.add('field-required-label');
+            }
+
+            const wrapper = getFieldContainer(input);
+            if (wrapper) wrapper.classList.add('field-required-wrap');
+        });
+    }
+
+    function setFieldInvalidUI(input, isInvalid) {
+        const label = findFieldLabel(input);
+        if (label) label.classList.toggle('field-label-invalid', !!isInvalid);
+
+        const wrapper = getFieldContainer(input);
+        if (wrapper) wrapper.classList.toggle('field-invalid-wrap', !!isInvalid);
     }
 
     function getOrCreateFieldErrorNode(input) {
@@ -449,6 +512,7 @@
         node.classList.remove('hidden');
         input.classList.add('input-error');
         input.classList.remove('input-valid');
+        setFieldInvalidUI(input, true);
     }
 
     function clearInlineFieldError(input) {
@@ -460,6 +524,7 @@
             next.classList.add('hidden');
         }
         input.classList.remove('input-error');
+        setFieldInvalidUI(input, false);
     }
 
     function getFieldValidationMessage(el) {
@@ -492,16 +557,35 @@
     }
 
     function getFirstVisibleInvalidInput(stepEl) {
-        if (!stepEl) return null;
-        const candidates = stepEl.querySelectorAll('input[required], select[required], textarea[required]');
+        const invalid = getVisibleInvalidInputs(stepEl);
+        return invalid.length ? invalid[0] : null;
+    }
+
+    function getVisibleInvalidInputs(stepEl) {
+        if (!stepEl) return [];
+        const invalid = [];
+        const candidates = stepEl.querySelectorAll('input, select, textarea');
         for (const input of candidates) {
             if (input.offsetParent === null) continue;
             if (input.disabled || input.readOnly) continue;
+            if (input.type === 'hidden') continue;
+            if (input.type === 'radio' || input.type === 'checkbox' || input.type === 'file') continue;
             const value = (input.value || '').trim();
-            if (!value) return input;
-            if (input.validity && !input.validity.valid) return input;
+
+            const message = getFieldValidationMessage(input);
+            if (message) {
+                invalid.push(input);
+                continue;
+            }
+            if (input.hasAttribute('required') && !value) {
+                invalid.push(input);
+                continue;
+            }
+            if (input.validity && value && !input.validity.valid) {
+                invalid.push(input);
+            }
         }
-        return null;
+        return invalid;
     }
 
     function guardCurrentStepBeforeAdvance(targetIdx) {
@@ -515,12 +599,19 @@
             return true;
         }
 
-        const invalidInput = getFirstVisibleInvalidInput(currentEl);
-        if (invalidInput) {
-            invalidInput.dataset.touched = 'true';
-            applyFieldFeedback(invalidInput, true);
-            invalidInput.focus();
-            showStepValidationError(currentEl, 'This field is required before moving to the next step.');
+        const invalidInputs = getVisibleInvalidInputs(currentEl);
+        if (invalidInputs.length) {
+            invalidInputs.forEach(function(input) {
+                input.dataset.touched = 'true';
+                applyFieldFeedback(input, true);
+            });
+            invalidInputs[0].focus();
+            showStepValidationError(
+                currentEl,
+                invalidInputs.length === 1
+                    ? 'This field is required before moving to the next step.'
+                    : `Please complete ${invalidInputs.length} required fields before moving to the next step.`
+            );
         } else {
             showStepValidationError(currentEl, 'Please complete all required information in this step before continuing.');
         }
@@ -583,7 +674,7 @@
                 if (label) { label.style.color = 'white'; label.style.fontWeight = '800'; }
                 if (subtitle) subtitle.style.color = 'rgba(var(--accent-rgb), 0.6)';
                 if (checkBadge) checkBadge.style.display = 'none';
-            } else if (stepValidity[idx]) {
+            } else if (isCompletedStep(idx)) {
                 // Completed step — green check
                 sidebarItem.style.background = 'transparent';
                 sidebarItem.style.border = '1px solid transparent';
@@ -623,7 +714,7 @@
         }
         const mobilePct = document.getElementById('mobile-pct');
         if (mobilePct) {
-            const completedCount = stepValidity.filter(v => v).length;
+            const completedCount = getCommittedStepCount();
             mobilePct.textContent = Math.round((completedCount / TOTAL_STEPS) * 100) + '%';
         }
         document.querySelectorAll('[data-mobile-step]').forEach((dot, idx) => {
@@ -631,7 +722,7 @@
             if (idx === currentStep) {
                 dot.style.cssText = 'background: rgba(var(--accent-rgb), 0.15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3);';
                 if (numSpan) numSpan.style.cssText = 'background: var(--accent); color: black;';
-            } else if (stepValidity[idx]) {
+            } else if (isCompletedStep(idx)) {
                 dot.style.cssText = 'background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2);';
                 if (numSpan) numSpan.style.cssText = 'background: rgba(74,222,128,0.2); color: #4ade80;';
             } else {
@@ -677,7 +768,7 @@
 
     // ── Progress Bar + Ring ──────────────────────────────────
     function updateProgress() {
-        const completedSteps = stepValidity.filter(v => v).length;
+        const completedSteps = getCommittedStepCount();
         const pct = Math.round((completedSteps / TOTAL_STEPS) * 100);
 
         const bar = document.getElementById('readiness-bar');
@@ -696,10 +787,11 @@
         // Status text
         const statusText = document.getElementById('progress-status-text');
         if (statusText) {
-            if (pct === 0) statusText.textContent = 'Getting started...';
-            else if (pct < 50) statusText.textContent = `${completedSteps} of ${TOTAL_STEPS} steps complete`;
-            else if (pct < 100) statusText.textContent = 'Almost there!';
-            else statusText.textContent = 'Ready to submit!';
+            if (completedSteps >= TOTAL_STEPS) {
+                statusText.textContent = 'Ready to submit!';
+            } else {
+                statusText.textContent = `Step ${currentStep + 1} of ${TOTAL_STEPS} - ${completedSteps} complete`;
+            }
         }
     }
 
@@ -1872,6 +1964,12 @@
     function validateTerms() {
         const cb = document.getElementById('terms-checkbox');
         const submitBtn = document.getElementById('btn-submit');
+        const termsError = document.getElementById('terms-inline-error');
+
+        if (termsError && cb && cb.checked) {
+            termsError.textContent = '';
+            termsError.classList.add('hidden');
+        }
 
         if (cb && submitBtn) {
             if (cb.checked) {
@@ -2105,9 +2203,23 @@
         if (event) event.preventDefault();
 
         const terms = document.getElementById('terms-checkbox');
+        const termsError = document.getElementById('terms-inline-error');
         if (!terms || !terms.checked) {
-            alert('Please accept the rules and terms before submitting.');
+            if (termsError) {
+                termsError.textContent = 'You must accept the rules and agreements before submitting.';
+                termsError.classList.remove('hidden');
+            }
+            const termsCard = document.getElementById('terms-checkbox-card');
+            if (termsCard) {
+                termsCard.style.borderColor = 'rgba(248, 113, 113, 0.35)';
+                termsCard.style.background = 'rgba(248, 113, 113, 0.06)';
+            }
             return false;
+        }
+
+        if (termsError) {
+            termsError.textContent = '';
+            termsError.classList.add('hidden');
         }
 
         // Run all validations
@@ -2119,10 +2231,13 @@
                 showStep(i);
                 const stepEl = document.querySelector(`[data-wizard-step="${stepsConfig[i].key}"]`);
                 if (stepEl) {
-                    const firstInvalid = stepEl.querySelector('input:invalid, select:invalid, textarea:invalid');
-                    if (firstInvalid) {
-                        firstInvalid.focus();
-                        firstInvalid.classList.add('input-error');
+                    const invalidInputs = getVisibleInvalidInputs(stepEl);
+                    if (invalidInputs.length) {
+                        invalidInputs.forEach(function(input) {
+                            input.dataset.touched = 'true';
+                            applyFieldFeedback(input, true);
+                        });
+                        invalidInputs[0].focus();
                     }
                 }
                 break;
@@ -2165,6 +2280,8 @@
     function initLiveValidation() {
         const form = document.querySelector('form');
         if (!form) return;
+
+        syncRequiredIndicators(form);
 
         // Delegate input/change events to the form for all interactive fields
         form.addEventListener('input', debounce(handleLiveInput, 150));
@@ -2247,10 +2364,12 @@
             el.style.boxShadow = '0 0 0 1px rgba(74, 222, 128, 0.08)';
             el.classList.add('input-valid');
             el.classList.remove('input-error');
+            setFieldInvalidUI(el, false);
         } else {
             el.style.borderColor = 'rgba(255,255,255,0.08)';
             el.style.boxShadow = 'none';
             el.classList.remove('input-valid');
+            setFieldInvalidUI(el, false);
         }
     }
 
@@ -2307,6 +2426,7 @@
 
             // Final pass: remove required from hidden-step fields to avoid native invalid focus traps
             clearHiddenRequiredAttributes();
+            syncRequiredIndicators();
             checkStep('coordinator');
         }
 
@@ -2327,6 +2447,7 @@
         setTimeout(initLiveValidation, 200);
         setTimeout(initPreferredContactValidation, 250);
         setTimeout(clearHiddenRequiredAttributes, 300);
+        setTimeout(syncRequiredIndicators, 320);
     });
 
 })();

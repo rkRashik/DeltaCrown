@@ -534,31 +534,50 @@
             const channels = payload.communication_channels || [];
             const isTeam = state.previewMode === 'team';
 
-            const fields = ['Display Name', 'Email', (game.game_id_label || 'Game ID')];
-            if (payload.enable_age_field) fields.push('Age');
-            if (payload.enable_country_field) fields.push('Country');
-            if (payload.enable_platform_field) fields.push('Platform / Server');
-            if (payload.enable_rank_field) fields.push('Rank / Tier');
+            const fields = [];
+            const keyedIndex = {};
 
-            if (isTeam) {
-                fields.push('Team Name');
-                if (payload.enable_team_logo_upload) fields.push('Team Logo');
-                if (payload.enable_team_banner_upload) fields.push('Team Banner');
-                if (payload.enable_team_bio) fields.push('Team Bio');
-                if (payload.enable_captain_whatsapp_field) fields.push('Captain WhatsApp');
-                if (payload.enable_captain_phone_field) fields.push('Captain Phone');
-                if (payload.enable_captain_discord_field) fields.push('Captain Discord');
-            } else {
-                if (payload.enable_phone_field) fields.push('Phone');
-                if (payload.enable_discord_field) fields.push('Discord');
-                if (payload.enable_preferred_contact_field) fields.push('Preferred Contact');
+            function pushField(label, key) {
+                if (key && Object.prototype.hasOwnProperty.call(keyedIndex, key)) {
+                    fields[keyedIndex[key]] = label;
+                    return;
+                }
+                if (key) {
+                    keyedIndex[key] = fields.length;
+                }
+                fields.push(label);
             }
 
-            if (payload.enable_payment_mobile_number_field) fields.push('Payment Number');
-            if (payload.enable_payment_screenshot_field) fields.push('Payment Screenshot');
-            if (payload.enable_payment_notes_field) fields.push('Payment Notes');
+            pushField('Display Name');
+            pushField('Email', 'email');
+            pushField(game.game_id_label || 'Game ID');
+            if (payload.enable_age_field) pushField('Age');
+            if (payload.enable_country_field) pushField('Country');
+            if (payload.enable_platform_field) pushField('Platform / Server');
+            if (payload.enable_rank_field) pushField('Rank / Tier');
+
+            if (isTeam) {
+                pushField('Team Name');
+                if (payload.enable_team_logo_upload) pushField('Team Logo');
+                if (payload.enable_team_banner_upload) pushField('Team Banner');
+                if (payload.enable_team_bio) pushField('Team Bio');
+                if (payload.enable_captain_whatsapp_field) pushField('Captain WhatsApp', 'whatsapp');
+                if (payload.enable_captain_phone_field) pushField('Captain Phone', 'phone');
+                if (payload.enable_captain_discord_field) pushField('Captain Discord', 'discord');
+            } else {
+                if (payload.enable_phone_field) pushField('Phone', 'phone');
+                if (payload.enable_discord_field) pushField('Discord', 'discord');
+                if (payload.enable_preferred_contact_field) pushField('Preferred Contact');
+            }
+
+            if (payload.enable_payment_mobile_number_field) pushField('Payment Number');
+            if (payload.enable_payment_screenshot_field) pushField('Payment Screenshot');
+            if (payload.enable_payment_notes_field) pushField('Payment Notes');
             channels.forEach(function (ch) {
-                fields.push(ch.label + (ch.required ? ' *' : ''));
+                const key = String(ch.key || '').trim().toLowerCase();
+                if (!key) return;
+                const label = String(ch.label || '').trim() || key.replace(/_/g, ' ').replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+                pushField(label + (ch.required ? ' *' : ''), key);
             });
 
             fieldsRoot.innerHTML = fields.map(function (field) {
@@ -566,7 +585,11 @@
             }).join('');
 
             const alerts = [];
-            if (isTeam && !payload.enable_captain_whatsapp_field && !payload.enable_captain_phone_field && !payload.enable_captain_discord_field) {
+            const hasTeamContactFromChannels = channels.some(function (ch) {
+                const key = String(ch.key || '').trim().toLowerCase();
+                return key === 'phone' || key === 'whatsapp' || key === 'discord';
+            });
+            if (isTeam && !payload.enable_captain_whatsapp_field && !payload.enable_captain_phone_field && !payload.enable_captain_discord_field && !hasTeamContactFromChannels) {
                 alerts.push('No captain contact methods enabled.');
             }
             if (payload.enable_payment_mobile_number_field && !payload.enable_payment_screenshot_field) {

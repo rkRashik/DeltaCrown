@@ -240,13 +240,31 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         form_config_ctx = form_config.to_template_context()
         communication_channels = form_config.get_communication_channels()
         contact_channel_requirements: dict[str, bool] = {}
-        contact_channel_labels: dict[str, str] = {}
+        contact_channel_labels: dict[str, str] = {
+            'phone': 'Phone',
+            'whatsapp': 'WhatsApp',
+            'discord': 'Discord',
+            'email': 'Email',
+        }
+        contact_channel_placeholders: dict[str, str] = {
+            'phone': '+880 1XXX-XXXXXX',
+            'whatsapp': '+880 1XXX-XXXXXX',
+            'discord': 'username#0000 or username',
+            'email': 'name@example.com',
+        }
         for channel in communication_channels:
             key = str(channel.get('key') or '').strip().lower()
             if not key:
                 continue
             contact_channel_requirements[key] = bool(channel.get('required'))
-            contact_channel_labels[key] = str(channel.get('label') or key.title())
+            label = str(channel.get('label') or '').strip()
+            if label:
+                contact_channel_labels[key] = label
+            elif key not in contact_channel_labels:
+                contact_channel_labels[key] = key.title()
+            placeholder = str(channel.get('placeholder') or '').strip()
+            if placeholder:
+                contact_channel_placeholders[key] = placeholder
 
         # Contact field visibility is driven by organizer config with channel-aware fallbacks.
         # This prevents required channels from being hidden in runtime registration screens.
@@ -433,6 +451,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'form_config': form_config_ctx,
             'contact_channel_requirements': contact_channel_requirements,
             'contact_channel_labels': contact_channel_labels,
+            'contact_channel_placeholders': contact_channel_placeholders,
             'contact_field_visibility': contact_field_visibility,
             'required_contact_channels': required_contact_channels,
             # ── NEW: Game roster config ──
@@ -853,14 +872,29 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     raise ValidationError("Please enter a valid age.")
 
         # ── Captain contact fields ──
+        captain_whatsapp = (
+            form_data.get('captain_whatsapp', '').strip()
+            or form_data.get('whatsapp', '').strip()
+            or form_data.get('comm_whatsapp', '').strip()
+        )
+        captain_phone = (
+            form_data.get('captain_phone', '').strip()
+            or form_data.get('phone', '').strip()
+            or form_data.get('comm_phone', '').strip()
+        )
+        captain_discord = (
+            form_data.get('captain_discord', '').strip()
+            or form_data.get('discord', '').strip()
+            or form_data.get('comm_discord', '').strip()
+        )
         if form_config.enable_captain_display_name_field:
             registration_data['captain_display_name'] = form_data.get('captain_display_name', '').strip()
         if form_config.enable_captain_whatsapp_field:
-            registration_data['captain_whatsapp'] = form_data.get('captain_whatsapp', '').strip()
+            registration_data['captain_whatsapp'] = captain_whatsapp
         if form_config.enable_captain_phone_field:
-            registration_data['captain_phone'] = form_data.get('captain_phone', '').strip()
+            registration_data['captain_phone'] = captain_phone
         if form_config.enable_captain_discord_field:
-            registration_data['captain_discord'] = form_data.get('captain_discord', '').strip()
+            registration_data['captain_discord'] = captain_discord
 
         # ── Dynamic communication channels ──
         channels = form_config.get_communication_channels()
