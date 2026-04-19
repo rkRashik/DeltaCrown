@@ -1,0 +1,195 @@
+<div x-show="canManageWidgets && (widgetSaveError || widgetSaveSuccess)" class="rounded-xl border px-3 py-2 text-xs" :class="widgetSaveError ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'" x-cloak>
+    <p x-show="widgetSaveError" x-text="widgetSaveError"></p>
+    <p x-show="!widgetSaveError" x-text="widgetSaveSuccess"></p>
+</div>
+
+<section x-show="shouldShowSponsorWidget()" class="glass-panel p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
+    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('sponsor')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit sponsor widget"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="badge-check" class="w-3.5 h-3.5 text-dc-gold"></i> Hardware Sponsor Showcase</p>
+
+    <div x-show="!widgetUi.sponsor.isEditing" class="mt-3">
+        <template x-if="primarySponsor()">
+            <div class="rounded-xl border border-white/10 bg-black/45 px-3 py-3 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-lg border border-white/10 bg-white text-black flex items-center justify-center overflow-hidden text-sm font-black">
+                    <img x-show="primarySponsor().logoUrl" :src="primarySponsor().logoUrl" alt="Sponsor logo" class="w-full h-full object-cover">
+                    <span x-show="!primarySponsor().logoUrl" x-text="sponsorBadgeText()"></span>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-white truncate" x-text="primarySponsor().title || 'Official Sponsor'"></p>
+                    <p class="text-[11px] text-gray-300 truncate" x-text="primarySponsor().subtitle || 'Sponsor details coming soon.'"></p>
+                </div>
+            </div>
+        </template>
+        <p x-show="!primarySponsor()" class="rounded-xl border border-dashed border-white/20 bg-black/35 px-3 py-3 text-xs text-gray-400">No sponsor is published for this event yet.</p>
+    </div>
+
+    <template x-if="canManageWidgets && widgetUi.sponsor.isEditing">
+        <div class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
+            <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Sponsor Name</label>
+            <input type="text" :value="(tData.sponsors[0] && tData.sponsors[0].title) || ''" @input="setSponsorFieldFromEvent('title', $event)" class="edit-input" placeholder="Logitech G Series">
+            <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Description / Offer</label>
+            <input type="text" :value="(tData.sponsors[0] && tData.sponsors[0].subtitle) || ''" @input="setSponsorFieldFromEvent('subtitle', $event)" class="edit-input" placeholder="MVP receives official gear">
+            <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Badge (2-4 chars)</label>
+            <input type="text" :value="(tData.sponsors[0] && tData.sponsors[0].badge) || ''" @input="setSponsorFieldFromEvent('badge', $event)" maxlength="4" class="edit-input" placeholder="LG">
+            <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Logo URL</label>
+            <input type="url" :value="(tData.sponsors[0] && tData.sponsors[0].logoUrl) || ''" @input="setSponsorFieldFromEvent('logoUrl', $event)" class="edit-input" placeholder="https://...">
+            <div class="flex items-center gap-2 mt-2">
+                <button type="button" @click.prevent="saveWidgetSection('sponsor')" class="flex-1 bg-dc-cyan text-black py-1.5 rounded font-bold text-xs uppercase tracking-widest">Save</button>
+                <button type="button" @click.prevent="clearSponsor()" class="px-3 py-1.5 rounded border border-white/20 text-gray-200 text-xs font-bold uppercase tracking-widest">Clear</button>
+                <label class="text-xs text-gray-400 inline-flex items-center gap-1.5"><input type="checkbox" :checked="widgetUi.sponsor.show" @change="setWidgetVisibilityFromEvent('sponsor', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
+            </div>
+        </div>
+    </template>
+</section>
+
+<section x-show="shouldShowTalentWidget()" class="glass-panel p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
+    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('talent')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit broadcast talent"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="mic" class="w-3.5 h-3.5 theme-text"></i> Broadcast Talent</p>
+
+    <div x-show="!widgetUi.talent.isEditing" class="mt-3 flex items-center gap-2.5 flex-wrap">
+        <template x-for="(talent, index) in tData.talents" :key="(talent.id || talent.name || 'talent') + '-' + index">
+            <div class="relative" :title="talent.name + ' - ' + talent.role">
+                <div class="w-10 h-10 rounded-full border-2 border-white/15 overflow-hidden bg-black/50 flex items-center justify-center text-[11px] font-bold text-white">
+                    <img x-show="talent.avatar" :src="talent.avatar" :alt="talent.name" class="w-full h-full object-cover">
+                    <span x-show="!talent.avatar" x-text="(talent.name || 'T').slice(0, 1).toUpperCase()"></span>
+                </div>
+                <span class="absolute -bottom-1 -right-1 rounded bg-black/85 border border-white/20 text-[8px] px-1 py-0.5 uppercase tracking-widest" x-text="talent.role"></span>
+            </div>
+        </template>
+        <p x-show="!tData.talents.length" class="text-xs text-gray-400">No talent lineup published yet.</p>
+    </div>
+
+    <div x-show="canManageWidgets && widgetUi.talent.isEditing" class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
+        <template x-for="(talent, index) in tData.talents" :key="index">
+            <div class="grid grid-cols-12 gap-2 mb-2">
+                <input type="text" :value="talent.name" @input="setTalentFieldFromEvent(index, 'name', $event)" class="edit-input !mb-0 col-span-5" placeholder="Name">
+                <input type="text" :value="talent.role" @input="setTalentFieldFromEvent(index, 'role', $event)" class="edit-input !mb-0 col-span-3" placeholder="Role">
+                <input type="url" :value="talent.avatar" @input="setTalentFieldFromEvent(index, 'avatar', $event)" class="edit-input !mb-0 col-span-3" placeholder="Avatar URL">
+                <button type="button" class="col-span-1 rounded border border-red-500/30 text-red-300 bg-black/50 inline-flex items-center justify-center" @click.prevent="removeTalent(index)"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </div>
+        </template>
+        <button type="button" class="w-full mt-1 py-2 rounded-lg border border-dashed border-white/20 text-xs font-bold text-gray-300 hover:text-white hover:border-white/40 inline-flex items-center justify-center gap-2" @click.prevent="addTalentDraftRow()"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Talent</button>
+        <div class="flex items-center gap-2 mt-3">
+            <label class="text-xs text-gray-400 inline-flex items-center gap-1.5 mr-auto"><input type="checkbox" :checked="widgetUi.talent.show" @change="setWidgetVisibilityFromEvent('talent', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
+            <button type="button" @click.prevent="saveWidgetSection('talent')" class="px-4 py-1.5 rounded bg-white/15 text-white text-xs font-bold uppercase tracking-widest">Done</button>
+        </div>
+    </div>
+</section>
+
+<section x-show="shouldShowBountyWidget()" class="bounty-widget p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
+    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('bounty')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit bounty"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+
+    <div x-show="!widgetUi.bounty.isEditing">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="crosshair" class="w-3.5 h-3.5 theme-text"></i> Game-Specific Bounty</p>
+        <h4 class="mt-2 text-xl font-display font-bold text-white" x-text="tData.bounty.title"></h4>
+        <p class="mt-2 text-xs text-gray-200 leading-relaxed" x-text="tData.bounty.task"></p>
+        <div class="mt-3 inline-flex items-center gap-2 rounded-lg bg-black/55 border border-white/20 px-3 py-1.5">
+            <span class="text-[10px] text-gray-400 uppercase tracking-widest">Reward</span>
+            <span class="text-sm font-bold text-dc-gold flex items-center gap-1"><i data-lucide="coins" class="w-3.5 h-3.5"></i> <span x-text="tData.bounty.reward + ' DC'"></span></span>
+        </div>
+    </div>
+
+    <div x-show="canManageWidgets && widgetUi.bounty.isEditing" class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Bounty Title</label>
+        <input type="text" :value="tData.bounty.title" @input="setBountyFieldFromEvent('title', $event)" class="edit-input" placeholder="Prime Impact Bounty">
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Bounty Description</label>
+        <textarea :value="tData.bounty.task" @input="setBountyFieldFromEvent('task', $event)" class="edit-input min-h-[74px]" placeholder="Describe the bounty objective"></textarea>
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Reward (DeltaCoin)</label>
+        <input type="number" min="0" step="1" :value="tData.bounty.reward" @input="setBountyFieldFromEvent('reward', $event)" class="edit-input" placeholder="1500">
+        <div class="flex items-center gap-2 mt-2">
+            <label class="text-xs text-gray-400 inline-flex items-center gap-1.5 mr-auto"><input type="checkbox" :checked="widgetUi.bounty.show" @change="setWidgetVisibilityFromEvent('bounty', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
+            <button type="button" @click.prevent="saveWidgetSection('bounty')" class="px-4 py-1.5 rounded bg-white/20 text-white text-xs font-bold uppercase tracking-widest">Save</button>
+        </div>
+    </div>
+</section>
+
+<section x-show="shouldShowFanPoll()" class="glass-panel p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
+    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('poll')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit fan poll"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+
+    <div x-show="!widgetUi.poll.isEditing">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="pie-chart" class="w-3.5 h-3.5 theme-text"></i> Fan Predictions</p>
+        <p class="text-sm font-semibold text-white mt-2" x-text="tData.fanPoll.question"></p>
+        <div class="space-y-3 mt-3">
+            <template x-for="choice in fanPollOptions()" :key="choice.name">
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-bold text-gray-200" x-text="choice.name"></span>
+                        <span class="text-[10px] font-mono text-gray-300" x-text="choice.percent + '%' "></span>
+                    </div>
+                    <div class="poll-track">
+                        <div class="poll-fill bg-gradient-to-r" :class="choice.color" :style="'width:' + choice.percent + '%' "></div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <div x-show="canManageWidgets && widgetUi.poll.isEditing" class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Poll Question</label>
+        <input type="text" :value="tData.fanPoll.question" @input="setFanPollQuestionFromEvent($event)" class="edit-input" placeholder="Who will take the crown?">
+        <div class="grid grid-cols-2 gap-2">
+            <input type="text" :value="(tData.fanPoll.options[0] && tData.fanPoll.options[0].name) || ''" @input="setFanPollOptionFieldFromEvent(0, 'name', $event)" class="edit-input" placeholder="Option A">
+            <input type="number" :value="(tData.fanPoll.options[0] && tData.fanPoll.options[0].percent) || 0" @input="setFanPollOptionFieldFromEvent(0, 'percent', $event)" min="0" max="100" step="1" class="edit-input" placeholder="A %">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <input type="text" :value="(tData.fanPoll.options[1] && tData.fanPoll.options[1].name) || ''" @input="setFanPollOptionFieldFromEvent(1, 'name', $event)" class="edit-input" placeholder="Option B">
+            <input type="number" :value="(tData.fanPoll.options[1] && tData.fanPoll.options[1].percent) || 0" @input="setFanPollOptionFieldFromEvent(1, 'percent', $event)" min="0" max="100" step="1" class="edit-input" placeholder="B %">
+        </div>
+        <div class="flex items-center gap-3 mt-2">
+            <label class="text-xs text-gray-300 inline-flex items-center gap-1.5"><input type="checkbox" :checked="tData.fanPoll.enabled" @change="setFanPollEnabledFromEvent($event)" class="rounded border-white/30 bg-black/60"> Enable poll</label>
+            <label class="text-xs text-gray-400 inline-flex items-center gap-1.5"><input type="checkbox" :checked="widgetUi.poll.show" @change="setWidgetVisibilityFromEvent('poll', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
+            <button type="button" @click.prevent="saveWidgetSection('poll')" class="ml-auto px-4 py-1.5 rounded bg-white/20 text-white text-xs font-bold uppercase tracking-widest">Update</button>
+        </div>
+    </div>
+</section>
+
+{% if tournament.enable_fee_waiver %}
+<section class="glass-panel p-5 rounded-2xl border-l-4 border-l-dc-gold">
+    <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-full border border-dc-gold/35 bg-dc-gold/12 flex items-center justify-center text-dc-gold"><i data-lucide="shield" class="w-5 h-5"></i></div>
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-dc-gold">Fee Waiver Protocol</p>
+            <p class="text-sm font-semibold text-white mt-1">Top Tier teams play free.</p>
+            <p class="text-[11px] text-gray-300 mt-1">Top {{ tournament.fee_waiver_top_n_teams|default:0 }} seed{{ tournament.fee_waiver_top_n_teams|pluralize }} can register without entry fee.</p>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section x-show="shouldShowSocialWidget()" class="glass-panel p-5 rounded-2xl editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-cloak>
+    <button x-show="canManageWidgets" @click.prevent="toggleWidgetEditor('socials')" type="button" class="widget-quick-edit-btn absolute top-3 right-3" title="Edit social links"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+
+    <div x-show="!widgetUi.socials.isEditing">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="network" class="w-3.5 h-3.5 theme-text"></i> The Vanguard Network</p>
+        <p class="text-xs text-gray-400 mt-1">Discord, Facebook and YouTube channels</p>
+        <div class="mt-3 flex items-center gap-2.5">
+            <template x-for="channel in socialLinksList()" :key="channel.key">
+                <a :href="channel.url" target="_blank" rel="noopener" class="social-orb" :title="channel.label">
+                    <template x-if="channel.key === 'discord'">
+                        <svg class="social-icon-svg text-[#5865F2]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.8 19.8 0 0 0-4.886-1.515.074.074 0 0 0-.078.037c-.212.375-.445.865-.608 1.249a18.3 18.3 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.249.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.028C.534 9.046-.319 13.58.099 18.058a.082.082 0 0 0 .032.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 13.4 13.4 0 0 0 1.226-1.994.076.076 0 0 0-.042-.106 12.3 12.3 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01 17.9 17.9 0 0 0 12.061 0 .074.074 0 0 1 .078.01c.121.099.247.198.373.292a.077.077 0 0 1-.007.127c-.598.343-1.22.644-1.873.891a.077.077 0 0 0-.04.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.87 19.87 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.062.062 0 0 0-.031-.029zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419zm7.975 0c-1.182 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.946 2.419-2.157 2.419z"/></svg>
+                    </template>
+                    <template x-if="channel.key === 'facebook'">
+                        <svg class="social-icon-svg text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.026 4.388 11.021 10.125 11.927V15.563H7.078V12.07h3.047V9.413c0-3.007 1.792-4.669 4.533-4.669 1.313 0 2.686.236 2.686.236v2.953H15.83c-1.49 0-1.955.93-1.955 1.886v2.251h3.328l-.532 3.493h-2.796V24C19.612 23.094 24 18.099 24 12.073z"/></svg>
+                    </template>
+                    <template x-if="channel.key === 'youtube'">
+                        <svg class="social-icon-svg text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a2.997 2.997 0 0 0-2.11-2.121C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.388.565A2.997 2.997 0 0 0 .502 6.186 31.04 31.04 0 0 0 0 12a31.04 31.04 0 0 0 .502 5.814 2.997 2.997 0 0 0 2.11 2.121C4.495 20.5 12 20.5 12 20.5s7.505 0 9.388-.565a2.997 2.997 0 0 0 2.11-2.121A31.04 31.04 0 0 0 24 12a31.04 31.04 0 0 0-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
+                    </template>
+                </a>
+            </template>
+        </div>
+        <p x-show="!socialLinksList().length" class="mt-2 text-xs text-gray-400">No social links configured yet.</p>
+    </div>
+
+    <div x-show="canManageWidgets && widgetUi.socials.isEditing" class="bg-black/60 p-4 rounded-xl border border-white/10 mt-3" x-cloak>
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Discord URL</label>
+        <input type="url" :value="tData.socials.discord" @input="setSocialFieldFromEvent('discord', $event)" class="edit-input" placeholder="https://discord.gg/...">
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">Facebook URL</label>
+        <input type="url" :value="tData.socials.facebook" @input="setSocialFieldFromEvent('facebook', $event)" class="edit-input" placeholder="https://facebook.com/...">
+        <label class="text-[9px] text-dc-cyan uppercase tracking-widest mb-1 block">YouTube URL</label>
+        <input type="url" :value="tData.socials.youtube" @input="setSocialFieldFromEvent('youtube', $event)" class="edit-input" placeholder="https://youtube.com/...">
+        <div class="flex items-center gap-2 mt-2">
+            <label class="text-xs text-gray-400 inline-flex items-center gap-1.5 mr-auto"><input type="checkbox" :checked="widgetUi.socials.show" @change="setWidgetVisibilityFromEvent('socials', $event)" class="rounded border-white/30 bg-black/60"> Visible</label>
+            <button type="button" @click.prevent="saveWidgetSection('socials')" class="px-4 py-1.5 rounded bg-white/20 text-white text-xs font-bold uppercase tracking-widest">Save</button>
+        </div>
+    </div>
+</section>

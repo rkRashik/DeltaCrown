@@ -17,6 +17,7 @@ from apps.tournaments.views.discovery import TournamentListView  # noqa: F401
 from apps.tournaments.views.detail import (  # noqa: F401
     TournamentDetailView,
     participant_checkin,
+    tournament_detail_widgets_save,
     tournament_detail_mobile_state,
 )
 
@@ -29,6 +30,7 @@ __all__ = [
     'TournamentListView',
     'TournamentDetailView',
     'participant_checkin',
+    'tournament_detail_widgets_save',
     'tournament_detail_mobile_state',
     
     # Registration views (FE-T-004)

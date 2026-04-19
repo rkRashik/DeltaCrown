@@ -637,6 +637,13 @@
         font-weight: 700;
     }
 
+{% include "tournaments/detailPages/widgets/_widget_styles.html" %}
+
+    .noise-overlay {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.13'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+    }
+
     @media (max-width: 768px) {
         .bracket-stage-grid {
             gap: 3.5rem;
@@ -733,6 +740,7 @@
     class="relative {% if game_spec.slug and 'valorant' in game_spec.slug %}theme-valorant{% elif game_spec.slug and 'pubg' in game_spec.slug %}theme-pubgm{% else %}theme-efootball{% endif %}"
     data-state-url="{{ mobile_state_url|default:'' }}"
     data-detail-bracket-api-url="{% url 'tournaments:hub_bracket_api' slug=tournament.slug %}"
+    data-widget-save-url="{{ detail_widgets_save_url|default:'' }}"
 >
     <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none z-[-2]"></div>
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] rounded-full blur-[150px] opacity-[0.14] animate-pulse-slow pointer-events-none z-[-1] theme-bg"></div>
@@ -798,7 +806,7 @@
 
             <div class="absolute inset-0 hero-mask"></div>
             <div class="absolute inset-0 bg-gradient-to-b from-black/8 via-black/5 to-[#030305]/96"></div>
-            <div class="absolute inset-0 opacity-[0.08] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+            <div class="absolute inset-0 opacity-[0.08] noise-overlay mix-blend-overlay"></div>
             <div class="absolute left-[-12%] top-[8%] w-[34rem] h-[34rem] rounded-full blur-[120px] opacity-35 pointer-events-none theme-bg"></div>
         </div>
 
@@ -1262,6 +1270,8 @@
                             </div>
                         </div>
                     </div>
+
+                    {% include "tournaments/detailPages/widgets/_bottom_board_widget.html" %}
                 </div>
 
                 {% if show_schedule %}
@@ -2285,7 +2295,7 @@
                             <a
                                 id="nd-primary-cta"
                                 {% if not detail_cta_primary.disabled and detail_cta_primary.url %}href="{{ detail_cta_primary.url }}"{% endif %}
-                                class="w-full py-5 font-black uppercase tracking-[0.15em] rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden text-sm group {% if detail_cta_primary.disabled %}bg-white/5 text-gray-500 cursor-not-allowed border border-white/5{% elif detail_cta_state == 'organizer' %}bg-dc-gold hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]{% elif detail_cta_state == 'register' %}bg-green-500 hover:bg-green-400 text-black shadow-[0_0_25px_rgba(34,197,94,0.4)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_25px_rgba(234,179,8,0.4)]{% elif detail_cta_state == 'lobby_open' %}theme-bg text-black theme-glow{% else %}bg-white/10 hover:bg-white/20 text-white{% endif %}"
+                                class="w-full py-5 font-black uppercase tracking-[0.15em] rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden text-sm group {% if detail_cta_primary.disabled %}bg-white/5 text-gray-500 cursor-not-allowed border border-white/5{% elif detail_cta_state == 'organizer' %}bg-dc-gold hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]{% elif detail_cta_state == 'register' %}bg-green-500 hover:bg-green-400 text-black shadow-[0_0_25px_rgba(34,197,94,0.4)]{% elif tournament_phase == 'registration_closed' and detail_cta_state == 'hub' %}bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_25px_rgba(234,179,8,0.4)]{% elif detail_cta_state == 'hub' %}bg-gradient-to-r from-cyan-300 via-cyan-400 to-blue-500 hover:from-cyan-200 hover:to-blue-400 text-black shadow-[0_0_28px_rgba(34,211,238,0.45)]{% elif detail_cta_state == 'lobby_open' %}theme-bg text-black theme-glow{% else %}bg-white/10 hover:bg-white/20 text-white{% endif %}"
                                 {% if detail_cta_primary.disabled %}aria-disabled="true"{% endif %}
                             >
                                 {% if not detail_cta_primary.disabled and detail_cta_state == 'register' or detail_cta_state == 'lobby_open' %}
@@ -2323,63 +2333,27 @@
                         <i data-lucide="chevron-right" class="w-5 h-5 text-gray-600"></i>
                     </div>
 
-                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 theme-text"></i> Runtime Insight</h4>
-                            <span class="text-[10px] uppercase tracking-widest text-gray-500">{% if viewer_is_registered_participant %}Participant{% else %}Viewer{% endif %}</span>
-                        </div>
-
-                        {% if user_next_match %}
-                        <p class="text-sm font-semibold text-white">{{ user_next_match.stage_label|default:'Next Match' }}</p>
-                        <p class="text-xs text-gray-300 mt-1">{% if user_next_match.scheduled_time %}Scheduled {{ user_next_match.scheduled_time|date:'M d, Y | g:i A' }}{% else %}Schedule pending{% endif %}</p>
-                        <p class="text-xs mt-1 {% if user_next_match_lobby_open %}text-green-300{% else %}text-gray-400{% endif %}">
-                            {% if user_next_match_lobby_open and user_next_match_lobby_closes_at %}
-                            Lobby open now | closes {{ user_next_match_lobby_closes_at|date:'g:i A' }}
-                            {% elif user_next_match_lobby_opens_at %}
-                            Lobby opens {{ user_next_match_lobby_opens_at|date:'g:i A' }}
-                            {% else %}
-                            Lobby timing will appear near kickoff
+                    <div x-show="activeTab === 'overview'" x-transition.opacity class="space-y-4" x-cloak>
+                        <div class="ecosystem-ticker rounded-2xl px-4 py-3.5">
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2"><i data-lucide="activity" class="w-3.5 h-3.5 theme-text"></i> Live Ecosystem Ticker</p>
+                                <span class="text-[9px] uppercase tracking-widest" :class="phase === 'live' ? 'text-blue-300' : (phase === 'registration' ? 'text-green-300' : 'text-gray-400')" x-text="phase === 'live' ? 'Live Feed' : (phase === 'registration' ? 'Registration Feed' : 'Runtime Feed')"></span>
+                            </div>
+                            <div class="ecosystem-ticker-track">
+                                <p class="ecosystem-ticker-run text-[10px] font-mono uppercase tracking-widest" :class="phase === 'live' ? 'is-live' : (phase === 'registration' ? 'is-registration' : 'text-gray-300')" x-text="currentTickerText()"></p>
+                            </div>
+                            {% if announcements %}
+                            <p class="mt-2 text-[10px] text-gray-400 truncate">Alert: {{ announcements.0.title }}</p>
                             {% endif %}
-                        </p>
-                        {% elif countdown_target and countdown_label %}
-                        <p class="text-sm font-semibold text-white">{{ countdown_label }}</p>
-                        <p class="text-xs text-gray-300 mt-1"><span data-runtime-countdown data-target="{{ countdown_target }}">--:--:--</span></p>
-                        {% else %}
-                        <p class="text-sm font-semibold text-white">{{ effective_status_display }}</p>
-                        <p class="text-xs text-gray-400 mt-1">{% if detail_cta_note %}{{ detail_cta_note }}{% else %}Status updates are synced from live tournament runtime.{% endif %}</p>
-                        {% endif %}
-                    </div>
+                        </div>
 
-                    {% if announcements %}
-                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 theme-text"></i> Organizer Updates</h4>
-                            <span class="text-[10px] uppercase tracking-widest text-gray-500">Latest</span>
-                        </div>
-                        <div class="space-y-2">
-                            {% for ann in announcements|slice:":2" %}
-                            <article class="rounded-xl border border-white/10 bg-black/35 px-3 py-2.5">
-                                <p class="text-xs font-semibold text-white">{{ ann.title }}</p>
-                                <p class="text-xs text-gray-300 mt-1">{{ ann.message|truncatewords:20 }}</p>
-                            </article>
-                            {% endfor %}
-                        </div>
+                        {% include "tournaments/detailPages/widgets/_overview_widget_stack.html" %}
                     </div>
-                    {% elif has_streams and featured_stream %}
-                    <div class="glass-panel p-5 rounded-2xl border border-white/10">
-                        <h4 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-2"><i data-lucide="radio" class="w-4 h-4 theme-text"></i> Watch Broadcast</h4>
-                        <p class="text-xs text-gray-300 mb-3">Featured {{ featured_stream.platform|upper }} stream is ready.</p>
-                        <a href="{{ featured_stream.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest theme-text hover:text-white transition-colors">
-                            Open Stream
-                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
             </div>
         </div>
     </main>
 </div>
+{{ detail_widgets|json_script:"dc-detail-widget-seed" }}
 {% endblock %}
 
 {% block tournament_js %}
@@ -2394,10 +2368,72 @@ document.addEventListener('alpine:init', function () {
             pollTimer: null,
             pollInFlight: false,
             runtimeClock: null,
+            tickerTimer: null,
+            tickerIndex: 0,
+            widgetUi: {
+                sponsor: { show: false, isEditing: false },
+                talent: { show: false, isEditing: false },
+                bounty: { show: false, isEditing: false },
+                poll: { show: false, isEditing: false },
+                socials: { show: false, isEditing: false },
+                bottomBoard: { show: false, isEditing: false }
+            },
+            widgetSaveUrl: '',
+            widgetSaveError: '',
+            widgetSaveSuccess: '',
+            widgetSaveInFlight: false,
+            widgetSaveFlashTimer: null,
+            canManageWidgets: {% if can_manage_detail_widgets %}true{% else %}false{% endif %},
+            phase: '{% if tournament_phase == "registration_open" %}registration{% elif is_live_phase %}live{% elif tournament_phase == "registration_closed" %}checkin{% elif is_completed_phase %}completed{% elif is_cancelled %}cancelled{% else %}upcoming{% endif %}',
+            tData: {
+                ticker: {
+                    registration: [
+                        'User QuantumPulse just registered.',
+                        'Slots filled: {{ slots_filled }} / {{ slots_total }}.',
+                        '{% if tournament.registration_end %}Registration closes {{ tournament.registration_end|date:"M d • g:i A"|escapejs }}.{% else %}Registration window is currently open.{% endif %}'
+                    ],
+                    live: [
+                        '{% if user_next_match and user_next_match.scheduled_time %}Upcoming match: {{ user_next_match.stage_label|default:"Match"|escapejs }} at {{ user_next_match.scheduled_time|date:"g:i A"|escapejs }}.{% else %}Upcoming match windows are being synchronized.{% endif %}',
+                        'Recent map result verified: 2-1 final.',
+                        'Live bracket execution and score sync active.'
+                    ],
+                    fallback: [
+                        'Tournament runtime telemetry online.',
+                        'Announcements and standings sync automatically.'
+                    ]
+                },
+                sponsors: [],
+                talents: [],
+                bounty: {
+                    title: '',
+                    task: '',
+                    reward: 0
+                },
+                fanPoll: {
+                    enabled: false,
+                    question: 'Who will win?',
+                    options: [
+                        { name: 'Option A', percent: 50, color: 'from-cyan-400/80 to-cyan-600/80' },
+                        { name: 'Option B', percent: 50, color: 'from-fuchsia-400/80 to-fuchsia-600/80' }
+                    ]
+                },
+                socials: {
+                    discord: '{{ tournament.social_discord|default_if_none:""|escapejs }}',
+                    facebook: '{{ tournament.social_facebook|default_if_none:""|escapejs }}',
+                    youtube: '{{ tournament.social_youtube|default_if_none:""|escapejs }}'
+                },
+                bottomBoard: {
+                    title: '',
+                    bannerUrl: '',
+                    logos: []
+                }
+            },
 
             init: function () {
                 var self = this;
                 self.applyHashTab();
+                self.widgetSaveUrl = self.$root.getAttribute('data-widget-save-url') || '';
+                self.hydrateWidgetData();
 
                 window.addEventListener('hashchange', function () {
                     self.applyHashTab();
@@ -2429,7 +2465,21 @@ document.addEventListener('alpine:init', function () {
                 });
 
                 self.startRuntimeCountdown();
+                self.startTickerRotation();
                 self.startMobilePolling();
+
+                self.$watch('phase', function () {
+                    self.tickerIndex = 0;
+                    self.startTickerRotation();
+                });
+
+                window.addEventListener('beforeunload', function () {
+                    self.stopTickerRotation();
+                });
+
+                window.addEventListener('pagehide', function () {
+                    self.stopTickerRotation();
+                });
 
                 self.$nextTick(function () {
                     if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -2818,6 +2868,65 @@ document.addEventListener('alpine:init', function () {
                     section.appendChild(svg);
                 });
             },
+
+            getTickerItems: function () {
+                if (this.phase === 'registration' && this.tData.ticker && Array.isArray(this.tData.ticker.registration)) {
+                    return this.tData.ticker.registration;
+                }
+
+                if (this.phase === 'live' && this.tData.ticker && Array.isArray(this.tData.ticker.live)) {
+                    return this.tData.ticker.live;
+                }
+
+                if (this.tData.ticker && Array.isArray(this.tData.ticker.fallback)) {
+                    return this.tData.ticker.fallback;
+                }
+
+                return [];
+            },
+
+            currentTickerText: function () {
+                var feed = this.getTickerItems();
+                if (!feed.length) {
+                    return 'Runtime feed is syncing.';
+                }
+
+                var idx = this.tickerIndex % feed.length;
+                return String(feed[idx]);
+            },
+
+            startTickerRotation: function () {
+                var self = this;
+                self.stopTickerRotation();
+
+                var items = self.getTickerItems();
+                if (!items.length) {
+                    return;
+                }
+
+                self.tickerIndex = self.tickerIndex % items.length;
+                if (items.length === 1) {
+                    return;
+                }
+
+                self.tickerTimer = window.setInterval(function () {
+                    var feed = self.getTickerItems();
+                    if (!feed.length) {
+                        self.tickerIndex = 0;
+                        return;
+                    }
+                    self.tickerIndex = (self.tickerIndex + 1) % feed.length;
+                }, 4500);
+            },
+
+            stopTickerRotation: function () {
+                if (this.tickerTimer) {
+                    window.clearInterval(this.tickerTimer);
+                    this.tickerTimer = null;
+                }
+            },
+
+{% include "tournaments/detailPages/widgets/_widget_methods.js.html" %}
 
             setTab: function (tab) {
                 if (this.tabExists(tab)) {

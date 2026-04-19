@@ -1,0 +1,399 @@
+{% load humanize %}
+{# Final Step: Review & Submit #}
+<div data-wizard-step="review" class="wizard-step step-hidden animate-slide-up">
+
+    <div class="mb-6 pb-4 border-b border-white/10">
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">{% if is_waitlist %}Review & Join Waitlist{% else %}Review & Submit{% endif %}</h2>
+        <p class="text-sm text-gray-400">{% if is_waitlist %}Double-check everything before joining the waitlist queue.{% else %}Double-check everything before submitting your registration.{% endif %}</p>
+    </div>
+
+    {# Registration summary card #}
+    <div class="space-y-4">
+
+        {# ── Player / Team Identity ── #}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+            <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="{% if registration_type == 'team' %}shield{% else %}user{% endif %}" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
+                    {% if registration_type == 'team' %}Team{% else %}Player{% endif %}
+                </h3>
+                <button type="button" data-go-to-step-index="0" class="text-[10px] font-bold uppercase tracking-widest hover:underline transition-colors" style="color: var(--accent);">Edit</button>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
+                {% if registration_type == 'team' and not is_guest_team %}
+                <div class="flex items-center gap-3">
+                    {% if team.logo %}
+                    <img src="{{ team.logo.url }}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="{{ team.name }}">
+                    {% endif %}
+                    <div>
+                        <p class="font-bold text-white">{{ team.name }}</p>
+                        {% if team.tag %}<p class="text-[10px] text-gray-500 font-mono">{{ team.tag }}</p>{% endif %}
+                    </div>
+                </div>
+                {% elif is_guest_team %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Guest Team:</span>
+                    <strong class="text-white" id="review-guest-name">—</strong>
+                </div>
+                {% else %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Player:</span>
+                    <strong class="text-white">{{ request.user.username }}</strong>
+                </div>
+                {% endif %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Tournament:</span>
+                    <strong class="text-white text-right max-w-[60%] truncate">{{ tournament.name }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Game:</span>
+                    <strong class="text-white">{{ tournament.game.name }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# ── Roster Summary (team only) ── #}
+        {% if registration_type == 'team' %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+            <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="users" class="w-3.5 h-3.5" style="color: var(--accent);"></i> Roster
+                </h3>
+                {% if not is_guest_team %}
+                <button type="button" data-go-to-step-key="roster" class="text-[10px] font-bold uppercase tracking-widest hover:underline transition-colors" style="color: var(--accent);">Edit</button>
+                {% endif %}
+            </div>
+            <div class="p-4">
+                {% if is_guest_team %}
+                <div id="review-guest-roster" class="space-y-1 text-sm">
+                    <p class="text-gray-500 text-xs">Guest members will appear here</p>
+                </div>
+                {% else %}
+                <div class="space-y-3" id="review-roster-categorized">
+                    {# ── Starters ── #}
+                    <div id="review-starters-section">
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-emerald-400/60 mb-1.5 flex items-center gap-1.5">
+                            <i data-lucide="swords" class="w-3 h-3"></i> Starters
+                        </div>
+                        <div class="space-y-0.5" id="review-starters-list">
+                        {% for member in roster_starters %}
+                            <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                        {% if member.user.profile.avatar %}
+                                        <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                                        {% else %}
+                                        <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                            {% if member.is_captain or member.role == 'OWNER' %}
+                                            <i data-lucide="crown" class="w-3 h-3 text-dc-gold"></i>
+                                            {% endif %}
+                                        </div>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase text-emerald-400/50" data-review-member-slot="{{ member.id }}">Starter</span>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+                    {# ── Substitutes ── #}
+                    <div id="review-subs-section" {% if not roster_substitutes %}class="hidden"{% endif %}>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-amber-400/60 mb-1.5 flex items-center gap-1.5">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Substitutes
+                        </div>
+                        <div class="space-y-0.5" id="review-subs-list">
+                        {% for member in roster_substitutes %}
+                            <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                        {% if member.user.profile.avatar %}
+                                        <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                                        {% else %}
+                                        <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase text-amber-400/50" data-review-member-slot="{{ member.id }}">Sub</span>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+                    {# ── Coaching & Staff ── #}
+                    <div id="review-staff-section" {% if not roster_staff %}class="hidden"{% endif %}>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-1.5 flex items-center gap-1.5">
+                            <i data-lucide="briefcase" class="w-3 h-3"></i> Coaching &amp; Staff
+                        </div>
+                        <div class="space-y-0.5" id="review-staff-list">
+                        {% for member in roster_staff %}
+                            <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                        {% if member.user.profile.avatar %}
+                                        <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                                        {% else %}
+                                        <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase text-purple-400/50" data-review-member-slot="{{ member.id }}">{{ member.get_role_display }}</span>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Contact / Coordinator ── #}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+            <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="{% if registration_type == 'team' %}headset{% else %}phone{% endif %}" class="w-3.5 h-3.5" style="color: var(--accent);"></i>
+                    {% if registration_type == 'team' %}Coordinator{% else %}Contact{% endif %}
+                </h3>
+                <button type="button" data-go-to-step-key="coordinator" class="text-[10px] font-bold uppercase tracking-widest hover:underline transition-colors" style="color: var(--accent);">Edit</button>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
+                {% if registration_type == 'team' %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Coordinator:</span>
+                    <strong class="text-white" id="review-coordinator">{{ request.user.username }}</strong>
+                </div>
+                {% if form_config.enable_coordinator_role %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Role:</span>
+                    <strong class="text-white" id="review-coord-role">—</strong>
+                </div>
+                {% endif %}
+                {% endif %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Phone:</span>
+                    <strong class="text-white font-mono text-xs" id="review-phone">{{ fields.phone.value|default:"—" }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Discord:</span>
+                    <strong class="text-white font-mono text-xs" id="review-discord">{{ fields.discord.value|default:"—" }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Preferred:</span>
+                    <strong class="text-white capitalize" id="review-preferred-contact">{{ fields.preferred_contact.value|default:"discord" }}</strong>
+                </div>
+                {# Dynamic comm channels #}
+                <ul class="space-y-1.5" id="review-comms-list"></ul>
+            </div>
+        </div>
+
+        {# ── Custom Questions ── #}
+        {% if custom_questions %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+            <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-3.5 h-3.5" style="color: var(--accent);"></i> Additional Info
+                </h3>
+                <button type="button" data-go-to-step-key="extras" class="text-[10px] font-bold uppercase tracking-widest hover:underline transition-colors" style="color: var(--accent);">Edit</button>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
+                {% for question in custom_questions %}
+                <div class="flex justify-between" data-review-q="{{ question.id }}">
+                    <span class="text-gray-500 max-w-[50%] truncate">{{ question.text }}:</span>
+                    <strong class="text-white text-right" id="review-q-{{ question.id }}">—</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Payment ── #}
+        {% if requires_payment_now %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+            <div class="px-4 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-3.5 h-3.5" style="color: var(--accent);"></i> Payment
+                </h3>
+                <button type="button" data-go-to-step-key="payment" class="text-[10px] font-bold uppercase tracking-widest hover:underline transition-colors" style="color: var(--accent);">Edit</button>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Amount:</span>
+                    <strong class="text-white">{{ tournament.entry_fee_amount|floatformat:0 }} {{ tournament.entry_fee_currency|default:"BDT" }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Method:</span>
+                    <strong class="text-white" id="review-gateway">—</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Trx ID:</span>
+                    <strong class="text-white font-mono text-xs tracking-wider" id="review-trxid">—</strong>
+                </div>
+                {% if form_config.enable_payment_mobile_number_field %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Your Number:</span>
+                    <strong class="text-white font-mono text-xs" id="review-payment-mobile">—</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Refund Policy ── #}
+        {% if requires_payment_now and tournament.refund_policy %}
+        <div class="p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10 text-xs text-yellow-400/80 flex items-start gap-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i>
+            <div>
+                <strong>Refund Policy:</strong> {{ refund_policy_display }}
+                {% if refund_policy_text %}<br><span class="text-yellow-500/60">{{ refund_policy_text }}</span>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Waitlist notice ── #}
+        {% if is_waitlist %}
+        <div class="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 text-xs text-orange-400 flex items-start gap-2">
+            <i data-lucide="clock" class="w-4 h-4 shrink-0 mt-0.5"></i>
+            <div>
+                <strong>Waitlisted:</strong> This tournament is full. You will be placed on the waitlist (position ~{{ waitlist_count|add:1 }}).
+                You'll be notified if a spot opens up.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Terms & Rules — Expandable Accordion #}
+    <div class="mt-6 space-y-2" id="terms-section">
+        <h3 class="text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 mb-3">
+            <i data-lucide="scroll-text" class="w-3 h-3"></i> Rules & Agreements
+        </h3>
+
+        {# ── Tournament Rules Accordion ── #}
+        {% if tournament.rules %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-rules">
+            <button type="button" data-accordion-target="accordion-rules" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-400"></i>
+                    </div>
+                    <span class="text-xs font-bold text-white">Tournament Rules</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
+            </button>
+            <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="px-4 pb-4 pt-1">
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 rules-content scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
+                        {{ tournament.rules_text|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Organizer Registration Rules Accordion (if provided) ── #}
+        {% if form_config.custom_registration_rules %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-reg-rules">
+            <button type="button" data-accordion-target="accordion-reg-rules" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-orange-400"></i>
+                    </div>
+                    <span class="text-xs font-bold text-white">Registration Rules</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
+            </button>
+            <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="px-4 pb-4 pt-1">
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
+                        {{ form_config.custom_registration_rules|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Terms of Service Accordion ── #}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-tos">
+            <button type="button" data-accordion-target="accordion-tos" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-400"></i>
+                    </div>
+                    <span class="text-xs font-bold text-white">Terms of Service</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
+            </button>
+            <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="px-4 pb-4 pt-1">
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
+                        {{ form_config.custom_tos_text|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ── Fair Play Agreement Accordion ── #}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-fairplay">
+            <button type="button" data-accordion-target="accordion-fairplay" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="handshake" class="w-3.5 h-3.5 text-green-400"></i>
+                    </div>
+                    <span class="text-xs font-bold text-white">Fair Play Agreement</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
+            </button>
+            <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="px-4 pb-4 pt-1">
+                    <div class="desc-content text-xs text-gray-400 leading-relaxed space-y-2">
+                        {# TODO: Replace trusted |safe rendering with sanitized HTML (bleach allowlist). #}
+                        {{ form_config.custom_fair_play_text|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ── Confirmation Checkbox ── #}
+        <div class="mt-4 p-4 rounded-xl border transition-all duration-300" id="terms-checkbox-card" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.05);">
+            <label class="flex items-start gap-3 cursor-pointer group">
+                <div class="relative mt-0.5 shrink-0">
+                    <input type="checkbox" id="terms-checkbox" name="terms_agreed" value="1" class="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded transition-all checked:border-green-500 checked:bg-green-500">
+                    <i data-lucide="check" class="absolute top-0.5 left-0.5 w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                </div>
+                <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
+                    I have read and agree to the <strong class="text-white">tournament rules</strong>,
+                    <strong class="text-white">terms of service</strong>, and
+                    <strong class="text-white">fair play agreement</strong>. I confirm all information is accurate
+                    and understand that false information may result in disqualification.
+                    {% if requires_payment_now %}I acknowledge the refund policy stated above.{% endif %}
+                </div>
+            </label>
+        </div>
+    </div>
+
+    {# Receipt dashed edge for visual flair #}
+    <div class="receipt-edge mt-6 -mx-5 md:-mx-8 lg:-mx-10"></div>
+</div>
+

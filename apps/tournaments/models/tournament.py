@@ -557,7 +557,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Current tournament status'
     )
     
-    # Cancellation info (referenced by detail_cancelled.html)
+    # Cancellation info surfaced on the unified public detail page.
     cancellation_reason = models.TextField(
         blank=True,
         default='',

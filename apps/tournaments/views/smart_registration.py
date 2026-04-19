@@ -248,6 +248,27 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             contact_channel_requirements[key] = bool(channel.get('required'))
             contact_channel_labels[key] = str(channel.get('label') or key.title())
 
+        # Contact field visibility is driven by organizer config with channel-aware fallbacks.
+        # This prevents required channels from being hidden in runtime registration screens.
+        contact_channel_keys = set(contact_channel_labels.keys())
+        contact_field_visibility = {
+            'team_phone': bool(form_config.enable_captain_phone_field or 'phone' in contact_channel_keys),
+            'team_whatsapp': bool(form_config.enable_captain_whatsapp_field or 'whatsapp' in contact_channel_keys),
+            'team_discord': bool(form_config.enable_captain_discord_field or 'discord' in contact_channel_keys),
+            'team_preferred_contact': bool(
+                form_config.enable_preferred_communication or form_config.enable_preferred_contact_field
+            ),
+            'solo_phone': bool(form_config.enable_phone_field or 'phone' in contact_channel_keys),
+            'solo_whatsapp': bool('whatsapp' in contact_channel_keys),
+            'solo_discord': bool(form_config.enable_discord_field or 'discord' in contact_channel_keys),
+            'solo_preferred_contact': bool(
+                form_config.enable_preferred_contact_field or form_config.enable_preferred_communication
+            ),
+        }
+        required_contact_channels = sorted([
+            key for key, required in contact_channel_requirements.items() if required
+        ])
+
         # ── Game Roster Config (game-specific limits) ──
         roster_config = {}
         try:
@@ -412,6 +433,8 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'form_config': form_config_ctx,
             'contact_channel_requirements': contact_channel_requirements,
             'contact_channel_labels': contact_channel_labels,
+            'contact_field_visibility': contact_field_visibility,
+            'required_contact_channels': required_contact_channels,
             # ── NEW: Game roster config ──
             'roster_config': roster_config,
             'roster_roles': roster_roles,

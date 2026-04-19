@@ -1,0 +1,48 @@
+<section class="glass-panel rounded-[2rem] border border-dashed border-white/20 p-6 md:p-8 editable-widget" :class="canManageWidgets ? 'is-organizer' : ''" x-show="shouldShowBottomSponsorBoard()" x-cloak>
+    <div x-show="canManageWidgets" class="absolute top-4 right-4 z-20">
+        <button type="button" class="widget-quick-edit-btn" @click.prevent="toggleWidgetEditor('bottomBoard')" title="Edit sponsor board">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+        </button>
+    </div>
+
+    <div x-show="!widgetUi.bottomBoard.isEditing">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-[0.16em] mb-5" x-text="tData.bottomBoard.title || 'Official Tournament Partners'"></h3>
+        <div class="flex flex-wrap gap-3 md:gap-4 items-center" x-show="tData.bottomBoard.logos.length">
+            <template x-for="(logo, index) in tData.bottomBoard.logos" :key="logo + '-' + index">
+                <span class="bottom-logo-pill" x-text="logo"></span>
+            </template>
+        </div>
+        <p x-show="!tData.bottomBoard.logos.length" class="text-xs text-gray-500">No partner logo has been added yet.</p>
+        <img x-show="tData.bottomBoard.bannerUrl" :src="tData.bottomBoard.bannerUrl" alt="Sponsor board banner" class="w-full max-h-52 object-cover rounded-xl border border-white/10 mt-5">
+    </div>
+
+    <div x-show="canManageWidgets && widgetUi.bottomBoard.isEditing" class="bg-black/55 p-5 rounded-xl border border-white/10" x-cloak>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+                <label class="text-[10px] text-dc-cyan uppercase tracking-widest mb-1 block">Section Title</label>
+                <input type="text" class="edit-input" :value="tData.bottomBoard.title" @input="setBottomBoardFieldFromEvent('title', $event)" placeholder="Official Tournament Partners">
+                <label class="text-[10px] text-dc-cyan uppercase tracking-widest mb-1 block mt-3">Banner Image URL</label>
+                <input type="url" class="edit-input" :value="tData.bottomBoard.bannerUrl" @input="setBottomBoardFieldFromEvent('bannerUrl', $event)" placeholder="https://...">
+            </div>
+            <div>
+                <label class="text-[10px] text-dc-cyan uppercase tracking-widest mb-1 block">Sponsor Logo Names</label>
+                <template x-for="(logo, index) in tData.bottomBoard.logos" :key="index">
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="text" class="edit-input !mb-0" :value="logo" @input="setBottomBoardLogoFromEvent(index, $event)" placeholder="BRAND_X">
+                        <button type="button" class="w-8 h-8 rounded-md border border-red-500/30 text-red-300 bg-black/50 inline-flex items-center justify-center" @click.prevent="removeBottomBoardLogo(index)">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </template>
+                <button type="button" class="w-full mt-1 py-2 rounded-lg border border-dashed border-white/20 text-xs font-bold text-gray-300 hover:text-white hover:border-white/40 inline-flex items-center justify-center gap-2" @click.prevent="addBottomBoardLogo()">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Logo
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/10">
+            <label class="text-xs text-gray-400 inline-flex items-center gap-2 mr-auto"><input type="checkbox" :checked="widgetUi.bottomBoard.show" @change="setWidgetVisibilityFromEvent('bottomBoard', $event)" class="rounded border-white/30 bg-black/60"> Enable section</label>
+            <button type="button" class="px-5 py-2 rounded-lg bg-dc-cyan text-black text-xs font-black uppercase tracking-widest" @click.prevent="saveWidgetSection('bottomBoard')">Save Layout</button>
+        </div>
+    </div>
+</section>

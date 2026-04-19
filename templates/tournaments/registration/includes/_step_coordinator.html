@@ -1,0 +1,269 @@
+{% load humanize %}
+{# Step 3 (Team) / Step 2 (Solo): Match Coordinator / Contact Info #}
+<div data-wizard-step="coordinator" class="wizard-step step-hidden animate-slide-up">
+
+    <div class="mb-6 pb-4 border-b border-white/10">
+        {% if registration_type == 'team' %}
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Match Coordinator</h2>
+        <p class="text-sm text-gray-400">Who will be the main point of contact for tournament communications?</p>
+        {% else %}
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Contact Info</h2>
+        <p class="text-sm text-gray-400">How should the organizers reach you during the tournament?</p>
+        {% endif %}
+    </div>
+
+    {% if registration_type == 'team' %}
+    {# ----------- TEAM MODE: Choose who coordinates ----------- #}
+
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="headset" class="w-4 h-4" style="color: var(--accent);"></i> Coordinator Selection
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">The coordinator receives all tournament updates, match schedules, and handles check-ins. This can be you or another team member.</p>
+
+        <div class="space-y-3">
+            {# Option A: Self #}
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_is_self" value="true" class="appearance-none w-5 h-5 mt-0.5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0" checked>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors">I'll handle it myself</p>
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-green-500/10 border border-green-500/20 text-green-400">Recommended</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Your contact info from your profile will be used.</p>
+                </div>
+            </label>
+
+            {# Option B: Delegate to a team member #}
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_is_self" value="false" class="appearance-none w-5 h-5 mt-0.5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0">
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors mb-1">Designate a team member</p>
+                    <p class="text-sm text-gray-500">Choose someone from your roster to handle tournament comms.</p>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    {# Panel: Delegate to member #}
+    <div id="coordinator-delegate-panel" class="mb-6 hidden">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="user-check" class="w-4 h-4" style="color: var(--accent);"></i> Select Coordinator
+        </h3>
+        <div class="space-y-2">
+            {% for member in roster_members %}
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_member_id" value="{{ member.id }}" class="appearance-none w-4 h-4 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0">
+                    {% if member.user.profile.avatar %}
+                    <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ member.user.username }}">
+                    {% else %}
+                    <div class="w-full h-full bg-dc-card flex items-center justify-center text-xs font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ member.display_name|default:member.user.username }}</p>
+                    <p class="text-xs text-gray-500 font-mono">@{{ member.user.username }}</p>
+                </div>
+                {% if member.is_captain or member.role == 'OWNER' %}
+                <span class="px-1.5 py-0.5 text-[10px] font-black uppercase rounded bg-dc-gold/20 text-dc-gold border border-dc-gold/30">Captain</span>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Coordinator Role (if enabled by organizer) — this is different from "who is the coordinator" #}
+    {% if form_config.enable_coordinator_role %}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="badge-check" class="w-4 h-4" style="color: var(--accent);"></i> Coordinator's Team Role
+        </h3>
+        <p class="text-sm text-gray-500 mb-3">Select the coordinator's role within the team. This helps organizers understand the team structure.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {% for role in form_config.coordinator_roles %}
+            <label class="flex items-center justify-center gap-1.5 p-3 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 text-center transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_role" value="{{ role.key }}" class="sr-only">
+                <span class="text-xs font-bold text-gray-300">{{ role.label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Contact info section — always shown, auto-filled for self or from delegate's profile #}
+    <div class="mb-4" id="coordinator-contact">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="phone" class="w-4 h-4" style="color: var(--accent);"></i> Contact Details
+        </h3>
+        <p class="text-sm text-gray-500 mb-3" id="contact-source-hint">These are auto-filled from your profile. Update if needed.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% if contact_field_visibility.team_phone %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone {% if contact_channel_requirements.phone %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if contact_channel_requirements.phone %}required{% endif %}>
+            </div>
+            {% endif %}
+
+            {% if contact_field_visibility.team_whatsapp %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.496A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.317 0-4.47-.693-6.27-1.882l-.44-.295-2.851.957.957-2.851-.295-.44A9.965 9.965 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp
+                </label>
+                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.whatsapp.value|default:'' }}" {% if contact_channel_requirements.whatsapp %}required{% endif %}>
+            </div>
+            {% endif %}
+
+            {% if contact_field_visibility.team_discord %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <i data-lucide="mail" class="w-3 h-3"></i> Email
+                </label>
+                <input type="email" name="coordinator_email" class="input-premium opacity-60 cursor-not-allowed" readonly value="{{ fields.email.value|default:'' }}" tabindex="-1">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.07.07 0 00-.032.027C.533 9.045-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+                    Discord
+                </label>
+                <input type="text" name="discord" class="input-premium {% if fields.discord.value %}bg-white/5 text-slate-400 cursor-not-allowed{% endif %}" placeholder="username#0000 or username" value="{{ fields.discord.value|default:'' }}" {% if fields.discord.value %}readonly{% endif %}>
+            </div>
+            {% endif %}
+
+            {# Dynamic communication channels from organizer config #}
+            {# Skip channels already rendered as dedicated hardcoded fields #}
+            {% for channel in form_config.communication_channels %}
+            {% if channel.key != 'phone' and channel.key != 'discord' and channel.key != 'email' and channel.key != 'whatsapp' %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">{{ channel.label }} {% if channel.required %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="text" name="comm_{{ channel.key }}" class="input-premium" data-channel-key="{{ channel.key }}" placeholder="{{ channel.placeholder|default:channel.label }}" {% if channel.required %}required{% endif %}>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {# Preferred contact method #}
+        {% if contact_field_visibility.team_preferred_contact %}
+        <div class="mt-4">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Preferred Contact Method</label>
+            <div class="flex flex-wrap gap-2">
+                {% if contact_field_visibility.team_discord %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %}> Discord
+                </label>
+                {% endif %}
+                {% if contact_field_visibility.team_phone %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %}> Phone
+                </label>
+                {% endif %}
+                {% if contact_field_visibility.team_whatsapp %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="whatsapp" class="sr-only" {% if fields.preferred_contact.value == 'whatsapp' %}checked{% endif %}> WhatsApp
+                </label>
+                {% endif %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %}> Email
+                </label>
+                {% if contact_channel_labels.facebook %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="facebook" class="sr-only" {% if fields.preferred_contact.value == 'facebook' %}checked{% endif %}> Facebook
+                </label>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    {# ----------- SOLO MODE: Just your contact info ----------- #}
+
+    <div class="mb-4">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="phone" class="w-4 h-4" style="color: var(--accent);"></i> Your Contact Details
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">These are pulled from your profile. Organizers will use them to reach you for match scheduling and announcements.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <i data-lucide="mail" class="w-3 h-3"></i> Email
+                </label>
+                <input type="email" name="coordinator_email" class="input-premium opacity-60 cursor-not-allowed" readonly value="{{ fields.email.value|default:'' }}" tabindex="-1">
+            </div>
+            {% if contact_field_visibility.solo_phone %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone</label>
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if contact_channel_requirements.phone %}required{% endif %}>
+            </div>
+            {% endif %}
+            {% if contact_field_visibility.solo_whatsapp %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.496A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.317 0-4.47-.693-6.27-1.882l-.44-.295-2.851.957.957-2.851-.295-.44A9.965 9.965 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp {% if contact_channel_requirements.whatsapp %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                <input type="tel" name="whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.whatsapp.value|default:'' }}" {% if contact_channel_requirements.whatsapp %}required{% endif %}>
+            </div>
+            {% endif %}
+            {% if contact_field_visibility.solo_discord %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.07.07 0 00-.032.027C.533 9.045-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+                    Discord
+                </label>
+                <input type="text" name="discord" class="input-premium {% if fields.discord.value %}bg-white/5 text-slate-400 cursor-not-allowed{% endif %}" placeholder="username" value="{{ fields.discord.value|default:'' }}" {% if fields.discord.value %}readonly{% endif %}>
+            </div>
+            {% endif %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Country</label>
+                <input type="text" name="country" class="input-premium" placeholder="e.g. Bangladesh" value="{{ fields.country.value|default:'' }}">
+            </div>
+
+            {# Dynamic channels — skip fields already rendered above #}
+            {% for channel in form_config.communication_channels %}
+            {% if channel.key != 'phone' and channel.key != 'discord' and channel.key != 'email' and channel.key != 'whatsapp' %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">{{ channel.label }} {% if channel.required %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="text" name="comm_{{ channel.key }}" class="input-premium" data-channel-key="{{ channel.key }}" placeholder="{{ channel.placeholder|default:channel.label }}" {% if channel.required %}required{% endif %}>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {# Preferred contact #}
+        {% if contact_field_visibility.solo_preferred_contact %}
+        <div class="mt-4">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Preferred Contact Method</label>
+            <div class="flex flex-wrap gap-2">
+                {% if contact_field_visibility.solo_discord %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %}> Discord
+                </label>
+                {% endif %}
+                {% if contact_field_visibility.solo_phone %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %}> Phone
+                </label>
+                {% endif %}
+                {% if contact_field_visibility.solo_whatsapp %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="whatsapp" class="sr-only" {% if fields.preferred_contact.value == 'whatsapp' %}checked{% endif %}> WhatsApp
+                </label>
+                {% endif %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %}> Email
+                </label>
+                {% if contact_channel_labels.facebook %}
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="facebook" class="sr-only" {% if fields.preferred_contact.value == 'facebook' %}checked{% endif %}> Facebook
+                </label>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

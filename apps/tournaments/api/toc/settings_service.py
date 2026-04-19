@@ -478,7 +478,14 @@ class TOCSettingsService:
 
         for field in bool_fields:
             if field in data and hasattr(cfg, field):
-                setattr(cfg, field, bool(data.get(field)))
+                setattr(
+                    cfg,
+                    field,
+                    TOCSettingsService._coerce_bool(
+                        data.get(field),
+                        default=bool(getattr(cfg, field, False)),
+                    ),
+                )
                 changed.append(field)
 
         if "form_type" in data:
@@ -510,7 +517,7 @@ class TOCSettingsService:
                     "label": label,
                     "placeholder": str(item.get("placeholder") or label).strip(),
                     "icon": str(item.get("icon") or "circle").strip(),
-                    "required": bool(item.get("required")),
+                    "required": TOCSettingsService._coerce_bool(item.get("required"), default=False),
                     "type": str(item.get("type") or "text").strip() or "text",
                 })
 

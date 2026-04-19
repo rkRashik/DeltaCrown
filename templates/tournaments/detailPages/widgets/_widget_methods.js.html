@@ -1,0 +1,811 @@
+            closeAllWidgetEditors: function () {
+                var self = this;
+                Object.keys(self.widgetUi || {}).forEach(function (key) {
+                    if (self.widgetUi[key]) {
+                        self.widgetUi[key].isEditing = false;
+                    }
+                });
+            },
+
+            toggleWidgetEditor: function (widgetKey) {
+                if (!this.canManageWidgets || !this.widgetUi[widgetKey]) {
+                    return;
+                }
+
+                var shouldOpen = !this.widgetUi[widgetKey].isEditing;
+                this.closeAllWidgetEditors();
+
+                if (shouldOpen) {
+                    if (widgetKey === 'sponsor') {
+                        this.ensureSponsorDraft();
+                    }
+                    if (widgetKey === 'poll') {
+                        this.ensureFanPollOptions();
+                    }
+                    this.widgetUi[widgetKey].isEditing = true;
+                }
+
+                this.$nextTick(function () {
+                    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                        window.lucide.createIcons();
+                    }
+                });
+            },
+
+            saveWidgetSection: async function (widgetKey) {
+                if (!this.canManageWidgets || this.widgetSaveInFlight) {
+                    return;
+                }
+
+                if (!this.widgetSaveUrl) {
+                    this.setWidgetSaveMessage('Widget save endpoint is unavailable.', true);
+                    return;
+                }
+
+                var payload = this.buildWidgetPayloadForSave();
+                this.widgetSaveInFlight = true;
+                this.setWidgetSaveMessage('', false);
+
+                try {
+                    var response = await fetch(this.widgetSaveUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.getCsrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            detail_widgets: payload
+                        })
+                    });
+
+                    var responseData = {};
+                    try {
+                        responseData = await response.json();
+                    } catch (parseError) {
+                        responseData = {};
+                    }
+
+                    if (!response.ok || !responseData.success) {
+                        throw new Error(responseData.error || 'Unable to save widgets right now.');
+                    }
+
+                    if (responseData.detail_widgets) {
+                        this.applyPersistedWidgets(responseData.detail_widgets);
+                    }
+
+                    if (this.widgetUi[widgetKey]) {
+                        this.widgetUi[widgetKey].isEditing = false;
+                    }
+
+                    this.setWidgetSaveMessage(responseData.message || 'Widget changes saved.', false);
+                } catch (error) {
+                    this.setWidgetSaveMessage(error && error.message ? error.message : 'Unable to save widgets right now.', true);
+                } finally {
+                    this.widgetSaveInFlight = false;
+                    this.$nextTick(function () {
+                        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                            window.lucide.createIcons();
+                        }
+                    });
+                }
+            },
+
+            buildWidgetPayloadForSave: function () {
+                this.normalizeSponsor();
+                this.normalizeTalents();
+                this.normalizeFanPoll();
+                this.normalizeBottomBoard();
+
+                var sponsor = this.primarySponsor() || {};
+                var pollOptions = this.fanPollOptions();
+
+                return {
+                    sponsor: {
+                        enabled: Boolean(this.widgetUi.sponsor && this.widgetUi.sponsor.show),
+                        title: String(sponsor.title || '').trim(),
+                        subtitle: String(sponsor.subtitle || '').trim(),
+                        badge: String(sponsor.badge || '').trim(),
+                        logo_url: String(sponsor.logoUrl || '').trim()
+                    },
+                    talent: {
+                        enabled: Boolean(this.widgetUi.talent && this.widgetUi.talent.show),
+                        items: Array.isArray(this.tData.talents)
+                            ? this.tData.talents.map(function (item) {
+                                return {
+                                    name: String((item && item.name) || '').trim(),
+                                    role: String((item && item.role) || '').trim().toUpperCase(),
+                                    avatar_url: String((item && item.avatar) || '').trim()
+                                };
+                            })
+                            : []
+                    },
+                    bounty: {
+                        enabled: Boolean(this.widgetUi.bounty && this.widgetUi.bounty.show),
+                        title: String((this.tData.bounty && this.tData.bounty.title) || '').trim(),
+                        task: String((this.tData.bounty && this.tData.bounty.task) || '').trim(),
+                        reward: Math.max(0, Math.round(Number((this.tData.bounty && this.tData.bounty.reward) || 0)))
+                    },
+                    poll: {
+                        enabled: Boolean(this.widgetUi.poll && this.widgetUi.poll.show),
+                        active: Boolean(this.tData.fanPoll && this.tData.fanPoll.enabled),
+                        question: String((this.tData.fanPoll && this.tData.fanPoll.question) || '').trim(),
+                        options: [
+                            {
+                                name: String((pollOptions[0] && pollOptions[0].name) || '').trim(),
+                                percent: Number((pollOptions[0] && pollOptions[0].percent) || 0)
+                            },
+                            {
+                                name: String((pollOptions[1] && pollOptions[1].name) || '').trim(),
+                                percent: Number((pollOptions[1] && pollOptions[1].percent) || 0)
+                            }
+                        ]
+                    },
+                    socials: {
+                        enabled: Boolean(this.widgetUi.socials && this.widgetUi.socials.show),
+                        discord: String((this.tData.socials && this.tData.socials.discord) || '').trim(),
+                        facebook: String((this.tData.socials && this.tData.socials.facebook) || '').trim(),
+                        youtube: String((this.tData.socials && this.tData.socials.youtube) || '').trim()
+                    },
+                    bottom_board: {
+                        enabled: Boolean(this.widgetUi.bottomBoard && this.widgetUi.bottomBoard.show),
+                        title: String((this.tData.bottomBoard && this.tData.bottomBoard.title) || '').trim(),
+                        banner_url: String((this.tData.bottomBoard && this.tData.bottomBoard.bannerUrl) || '').trim(),
+                        logos: Array.isArray(this.tData.bottomBoard && this.tData.bottomBoard.logos)
+                            ? this.tData.bottomBoard.logos.map(function (logo) {
+                                return String(logo || '').trim();
+                            }).filter(function (logo) {
+                                return Boolean(logo);
+                            })
+                            : []
+                    }
+                };
+            },
+
+            applyPersistedWidgets: function (persisted) {
+                if (!persisted || typeof persisted !== 'object') {
+                    return;
+                }
+
+                var sponsor = persisted.sponsor && typeof persisted.sponsor === 'object' ? persisted.sponsor : {};
+                var sponsorTitle = String(sponsor.title || '').trim();
+                var sponsorSubtitle = String(sponsor.subtitle || '').trim();
+                var sponsorLogoUrl = String(sponsor.logo_url || sponsor.logoUrl || '').trim();
+                var sponsorBadge = String(sponsor.badge || 'SP').trim().slice(0, 4).toUpperCase() || 'SP';
+
+                if (sponsorTitle || sponsorSubtitle || sponsorLogoUrl) {
+                    this.tData.sponsors = [{
+                        title: sponsorTitle,
+                        subtitle: sponsorSubtitle,
+                        badge: sponsorBadge,
+                        logoUrl: sponsorLogoUrl
+                    }];
+                } else {
+                    this.tData.sponsors = [];
+                }
+                this.widgetUi.sponsor.show = Boolean(sponsor.enabled);
+
+                var talent = persisted.talent && typeof persisted.talent === 'object' ? persisted.talent : {};
+                var talentItems = Array.isArray(talent.items) ? talent.items : [];
+                this.tData.talents = talentItems
+                    .filter(function (item) {
+                        return item && typeof item === 'object' && String(item.name || '').trim();
+                    })
+                    .map(function (item, index) {
+                        return {
+                            id: Date.now() + '-' + index + '-' + Math.random().toString(16).slice(2),
+                            name: String(item.name || '').trim(),
+                            role: String(item.role || 'CAST').trim().toUpperCase(),
+                            avatar: String(item.avatar_url || item.avatar || '').trim()
+                        };
+                    });
+                this.widgetUi.talent.show = Boolean(talent.enabled);
+
+                var bounty = persisted.bounty && typeof persisted.bounty === 'object' ? persisted.bounty : {};
+                this.tData.bounty = {
+                    title: String(bounty.title || '').trim(),
+                    task: String(bounty.task || '').trim(),
+                    reward: Math.max(0, Math.round(Number(bounty.reward || 0)))
+                };
+                this.widgetUi.bounty.show = Boolean(bounty.enabled);
+
+                var poll = persisted.poll && typeof persisted.poll === 'object' ? persisted.poll : {};
+                var pollOptions = Array.isArray(poll.options) ? poll.options : [];
+                this.tData.fanPoll = {
+                    enabled: Boolean(poll.active),
+                    question: String(poll.question || '').trim() || 'Who will win?',
+                    options: [
+                        {
+                            name: String((pollOptions[0] && pollOptions[0].name) || 'Option A').trim(),
+                            percent: Number((pollOptions[0] && pollOptions[0].percent) || 50),
+                            color: 'from-cyan-400/80 to-cyan-600/80'
+                        },
+                        {
+                            name: String((pollOptions[1] && pollOptions[1].name) || 'Option B').trim(),
+                            percent: Number((pollOptions[1] && pollOptions[1].percent) || 50),
+                            color: 'from-fuchsia-400/80 to-fuchsia-600/80'
+                        }
+                    ]
+                };
+                this.widgetUi.poll.show = Boolean(poll.enabled);
+
+                var socials = persisted.socials && typeof persisted.socials === 'object' ? persisted.socials : {};
+                this.tData.socials = {
+                    discord: String(socials.discord || '').trim(),
+                    facebook: String(socials.facebook || '').trim(),
+                    youtube: String(socials.youtube || '').trim()
+                };
+                this.widgetUi.socials.show = Boolean(socials.enabled);
+
+                var bottomBoard = persisted.bottom_board && typeof persisted.bottom_board === 'object' ? persisted.bottom_board : {};
+                this.tData.bottomBoard = {
+                    title: String(bottomBoard.title || '').trim(),
+                    bannerUrl: String(bottomBoard.banner_url || bottomBoard.bannerUrl || '').trim(),
+                    logos: Array.isArray(bottomBoard.logos)
+                        ? bottomBoard.logos.map(function (logo) {
+                            return String(logo || '').trim();
+                        }).filter(function (logo) {
+                            return Boolean(logo);
+                        })
+                        : []
+                };
+                this.widgetUi.bottomBoard.show = Boolean(bottomBoard.enabled);
+
+                this.normalizeSponsor();
+                this.normalizeTalents();
+                this.normalizeFanPoll();
+                this.normalizeBottomBoard();
+                this.closeAllWidgetEditors();
+            },
+
+            setWidgetSaveMessage: function (message, isError) {
+                if (this.widgetSaveFlashTimer) {
+                    window.clearTimeout(this.widgetSaveFlashTimer);
+                    this.widgetSaveFlashTimer = null;
+                }
+
+                if (!message) {
+                    this.widgetSaveError = '';
+                    this.widgetSaveSuccess = '';
+                    return;
+                }
+
+                if (isError) {
+                    this.widgetSaveError = String(message);
+                    this.widgetSaveSuccess = '';
+                    return;
+                }
+
+                this.widgetSaveError = '';
+                this.widgetSaveSuccess = String(message);
+
+                var self = this;
+                this.widgetSaveFlashTimer = window.setTimeout(function () {
+                    self.widgetSaveSuccess = '';
+                    self.widgetSaveFlashTimer = null;
+                }, 3200);
+            },
+
+            getCsrfToken: function () {
+                var token = '';
+                var cookieString = document.cookie || '';
+                cookieString.split(';').forEach(function (chunk) {
+                    var part = chunk.trim();
+                    if (part.indexOf('csrftoken=') === 0) {
+                        token = decodeURIComponent(part.substring('csrftoken='.length));
+                    }
+                });
+                return token;
+            },
+
+            eventInputValue: function (event) {
+                if (!event || !event.target) {
+                    return '';
+                }
+                return event.target.value;
+            },
+
+            eventCheckedValue: function (event) {
+                return Boolean(event && event.target && event.target.checked);
+            },
+
+            setWidgetVisibilityFromEvent: function (widgetKey, event) {
+                if (!this.widgetUi || !this.widgetUi[widgetKey]) {
+                    return;
+                }
+                this.widgetUi[widgetKey].show = this.eventCheckedValue(event);
+            },
+
+            setSponsorFieldFromEvent: function (field, event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureSponsorDraft();
+
+                if (!this.tData.sponsors || !this.tData.sponsors[0]) {
+                    return;
+                }
+
+                var nextValue = this.eventInputValue(event);
+                if (field === 'badge') {
+                    nextValue = String(nextValue || '').toUpperCase().slice(0, 4);
+                }
+                this.tData.sponsors[0][field] = nextValue;
+            },
+
+            setTalentFieldFromEvent: function (index, field, event) {
+                if (!this.canManageWidgets || !Array.isArray(this.tData.talents)) {
+                    return;
+                }
+
+                if (index < 0 || index >= this.tData.talents.length) {
+                    return;
+                }
+
+                var nextValue = this.eventInputValue(event);
+                if (field === 'role') {
+                    nextValue = String(nextValue || '').toUpperCase();
+                }
+                this.tData.talents[index][field] = nextValue;
+            },
+
+            setBountyFieldFromEvent: function (field, event) {
+                if (!this.canManageWidgets || !this.tData.bounty || typeof this.tData.bounty !== 'object') {
+                    return;
+                }
+
+                if (field === 'reward') {
+                    var numeric = parseInt(this.eventInputValue(event), 10);
+                    if (!isFinite(numeric) || numeric < 0) {
+                        numeric = 0;
+                    }
+                    this.tData.bounty.reward = numeric;
+                    return;
+                }
+
+                this.tData.bounty[field] = this.eventInputValue(event);
+            },
+
+            setFanPollQuestionFromEvent: function (event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollOptions();
+                this.tData.fanPoll.question = this.eventInputValue(event);
+            },
+
+            setFanPollOptionFieldFromEvent: function (index, field, event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollOptions();
+                if (!Array.isArray(this.tData.fanPoll.options) || index < 0 || index >= this.tData.fanPoll.options.length) {
+                    return;
+                }
+
+                if (field === 'percent') {
+                    var numeric = parseInt(this.eventInputValue(event), 10);
+                    if (!isFinite(numeric)) {
+                        numeric = 0;
+                    }
+                    this.tData.fanPoll.options[index].percent = this.clampPercent(numeric, 0);
+                    return;
+                }
+
+                this.tData.fanPoll.options[index][field] = this.eventInputValue(event);
+            },
+
+            setFanPollEnabledFromEvent: function (event) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                this.ensureFanPollOptions();
+                this.tData.fanPoll.enabled = this.eventCheckedValue(event);
+            },
+
+            setSocialFieldFromEvent: function (field, event) {
+                if (!this.canManageWidgets || !this.tData.socials || typeof this.tData.socials !== 'object') {
+                    return;
+                }
+
+                this.tData.socials[field] = this.eventInputValue(event);
+            },
+
+            setBottomBoardFieldFromEvent: function (field, event) {
+                if (!this.canManageWidgets || !this.tData.bottomBoard || typeof this.tData.bottomBoard !== 'object') {
+                    return;
+                }
+
+                this.tData.bottomBoard[field] = this.eventInputValue(event);
+            },
+
+            setBottomBoardLogoFromEvent: function (index, event) {
+                if (!this.canManageWidgets || !Array.isArray(this.tData.bottomBoard && this.tData.bottomBoard.logos)) {
+                    return;
+                }
+
+                if (index < 0 || index >= this.tData.bottomBoard.logos.length) {
+                    return;
+                }
+
+                this.tData.bottomBoard.logos[index] = this.eventInputValue(event);
+            },
+
+            ensureSponsorDraft: function () {
+                if (!Array.isArray(this.tData.sponsors)) {
+                    this.tData.sponsors = [];
+                }
+                if (!this.tData.sponsors.length) {
+                    this.tData.sponsors = [{
+                        title: '',
+                        subtitle: '',
+                        badge: 'SP',
+                        logoUrl: ''
+                    }];
+                }
+            },
+
+            ensureFanPollOptions: function () {
+                if (!this.tData.fanPoll || typeof this.tData.fanPoll !== 'object') {
+                    this.tData.fanPoll = {
+                        enabled: false,
+                        question: 'Who will win?',
+                        options: []
+                    };
+                }
+
+                if (!Array.isArray(this.tData.fanPoll.options)) {
+                    this.tData.fanPoll.options = [];
+                }
+
+                while (this.tData.fanPoll.options.length < 2) {
+                    this.tData.fanPoll.options.push({
+                        name: this.tData.fanPoll.options.length === 0 ? 'Option A' : 'Option B',
+                        percent: 50,
+                        color: this.tData.fanPoll.options.length === 0 ? 'from-cyan-400/80 to-cyan-600/80' : 'from-fuchsia-400/80 to-fuchsia-600/80'
+                    });
+                }
+            },
+
+            clampPercent: function (value, fallback) {
+                var numeric = Number(value);
+                if (!isFinite(numeric)) {
+                    return fallback;
+                }
+                if (numeric < 0) {
+                    return 0;
+                }
+                if (numeric > 100) {
+                    return 100;
+                }
+                return Math.round(numeric);
+            },
+
+            normalizeSponsor: function () {
+                if (!Array.isArray(this.tData.sponsors) || !this.tData.sponsors.length) {
+                    this.tData.sponsors = [];
+                    return;
+                }
+
+                var sponsor = this.tData.sponsors[0] || {};
+                var title = String(sponsor.title || '').trim();
+                var subtitle = String(sponsor.subtitle || '').trim();
+                var badge = String(sponsor.badge || 'SP').trim().slice(0, 4).toUpperCase();
+                var logoUrl = String(sponsor.logoUrl || '').trim();
+
+                if (!title && !subtitle && !logoUrl) {
+                    this.tData.sponsors = [];
+                    return;
+                }
+
+                this.tData.sponsors = [{
+                    title: title || 'Official Sponsor',
+                    subtitle: subtitle || 'Sponsor details coming soon.',
+                    badge: badge || 'SP',
+                    logoUrl: logoUrl
+                }];
+            },
+
+            normalizeTalents: function () {
+                if (!Array.isArray(this.tData.talents)) {
+                    this.tData.talents = [];
+                    return;
+                }
+
+                this.tData.talents = this.tData.talents
+                    .filter(function (item) {
+                        return item && typeof item === 'object' && String(item.name || '').trim();
+                    })
+                    .map(function (item) {
+                        return {
+                            id: item.id || (Date.now() + '-' + Math.random().toString(16).slice(2)),
+                            name: String(item.name || '').trim(),
+                            role: String(item.role || 'CAST').trim().toUpperCase() || 'CAST',
+                            avatar: String(item.avatar || '').trim()
+                        };
+                    });
+            },
+
+            normalizeFanPoll: function () {
+                this.ensureFanPollOptions();
+
+                var first = this.tData.fanPoll.options[0] || {};
+                var second = this.tData.fanPoll.options[1] || {};
+                var firstPct = this.clampPercent(first.percent, 50);
+                var secondPct = this.clampPercent(second.percent, 50);
+                var sum = firstPct + secondPct;
+
+                if (sum <= 0) {
+                    firstPct = 50;
+                    secondPct = 50;
+                } else if (sum !== 100) {
+                    firstPct = Math.round((firstPct / sum) * 100);
+                    secondPct = 100 - firstPct;
+                }
+
+                this.tData.fanPoll = {
+                    enabled: Boolean(this.tData.fanPoll.enabled),
+                    question: String(this.tData.fanPoll.question || '').trim() || 'Who will win?',
+                    options: [
+                        {
+                            name: String(first.name || 'Option A').trim() || 'Option A',
+                            percent: firstPct,
+                            color: 'from-cyan-400/80 to-cyan-600/80'
+                        },
+                        {
+                            name: String(second.name || 'Option B').trim() || 'Option B',
+                            percent: secondPct,
+                            color: 'from-fuchsia-400/80 to-fuchsia-600/80'
+                        }
+                    ]
+                };
+            },
+
+            normalizeBottomBoard: function () {
+                if (!this.tData.bottomBoard || typeof this.tData.bottomBoard !== 'object') {
+                    this.tData.bottomBoard = {
+                        title: '',
+                        bannerUrl: '',
+                        logos: []
+                    };
+                }
+
+                this.tData.bottomBoard.title = String(this.tData.bottomBoard.title || '').trim();
+                this.tData.bottomBoard.bannerUrl = String(this.tData.bottomBoard.bannerUrl || '').trim();
+
+                if (!Array.isArray(this.tData.bottomBoard.logos)) {
+                    this.tData.bottomBoard.logos = [];
+                }
+
+                this.tData.bottomBoard.logos = this.tData.bottomBoard.logos
+                    .map(function (logo) {
+                        return String(logo || '').trim();
+                    })
+                    .filter(function (logo) {
+                        return Boolean(logo);
+                    })
+                    .slice(0, 16);
+            },
+
+            addTalentDraftRow: function () {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+                if (!Array.isArray(this.tData.talents)) {
+                    this.tData.talents = [];
+                }
+                this.tData.talents.push({
+                    id: Date.now() + '-' + Math.random().toString(16).slice(2),
+                    name: '',
+                    role: 'CAST',
+                    avatar: ''
+                });
+            },
+
+            clearSponsor: function () {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+
+                if (this.widgetUi.sponsor && this.widgetUi.sponsor.isEditing) {
+                    this.tData.sponsors = [{
+                        title: '',
+                        subtitle: '',
+                        badge: 'SP',
+                        logoUrl: ''
+                    }];
+                    return;
+                }
+
+                this.tData.sponsors = [];
+            },
+
+            removeTalent: function (index) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+                if (!Array.isArray(this.tData.talents)) {
+                    return;
+                }
+                if (index < 0 || index >= this.tData.talents.length) {
+                    return;
+                }
+                this.tData.talents.splice(index, 1);
+            },
+
+            addBottomBoardLogo: function () {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+                if (!Array.isArray(this.tData.bottomBoard.logos)) {
+                    this.tData.bottomBoard.logos = [];
+                }
+                this.tData.bottomBoard.logos.push('NEW_BRAND');
+            },
+
+            removeBottomBoardLogo: function (index) {
+                if (!this.canManageWidgets) {
+                    return;
+                }
+                if (!Array.isArray(this.tData.bottomBoard.logos)) {
+                    return;
+                }
+                if (index < 0 || index >= this.tData.bottomBoard.logos.length) {
+                    return;
+                }
+                this.tData.bottomBoard.logos.splice(index, 1);
+            },
+
+            hydrateWidgetData: function () {
+                try {
+                    var seedNode = document.getElementById('dc-detail-widget-seed');
+                    if (!seedNode) {
+                        return;
+                    }
+
+                    var payload = JSON.parse(seedNode.textContent || '{}');
+                    if (!payload || typeof payload !== 'object') {
+                        return;
+                    }
+                    this.applyPersistedWidgets(payload);
+                } catch (error) {
+                    // Keep default fallback widget state when seed parsing fails.
+                }
+            },
+
+            sponsorBadgeText: function () {
+                var sponsor = this.primarySponsor();
+                if (!sponsor) {
+                    return 'SP';
+                }
+
+                var badge = String(sponsor.badge || '').trim();
+                if (badge) {
+                    return badge.slice(0, 4).toUpperCase();
+                }
+
+                var title = String(sponsor.title || '').trim();
+                if (!title) {
+                    return 'SP';
+                }
+
+                return title
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map(function (part) {
+                        return part.charAt(0).toUpperCase();
+                    })
+                    .join('')
+                    .slice(0, 4) || 'SP';
+            },
+
+            shouldShowSponsorWidget: function () {
+                if (this.canManageWidgets) {
+                    return true;
+                }
+                if (!this.widgetUi.sponsor.show) {
+                    return false;
+                }
+                return Boolean(this.primarySponsor());
+            },
+
+            primarySponsor: function () {
+                if (!Array.isArray(this.tData.sponsors) || !this.tData.sponsors.length) {
+                    return null;
+                }
+                var sponsor = this.tData.sponsors[0];
+                if (!sponsor) {
+                    return null;
+                }
+
+                var hasData = Boolean(String(sponsor.title || '').trim() || String(sponsor.subtitle || '').trim() || String(sponsor.logoUrl || '').trim());
+                return hasData ? sponsor : null;
+            },
+
+            shouldShowTalentWidget: function () {
+                if (this.canManageWidgets) {
+                    return true;
+                }
+                return this.widgetUi.talent.show && Array.isArray(this.tData.talents) && this.tData.talents.length > 0;
+            },
+
+            shouldShowBountyWidget: function () {
+                return this.canManageWidgets || this.widgetUi.bounty.show;
+            },
+
+            shouldShowFanPoll: function () {
+                if (this.canManageWidgets) {
+                    return true;
+                }
+                return this.widgetUi.poll.show && this.tData.fanPoll && this.tData.fanPoll.enabled;
+            },
+
+            fanPollOptions: function () {
+                if (this.tData.fanPoll && Array.isArray(this.tData.fanPoll.options)) {
+                    return this.tData.fanPoll.options;
+                }
+                return [];
+            },
+
+            resolvedSocials: function () {
+                var base = this.tData.socials || {};
+                return {
+                    discord: String(base.discord || '').trim(),
+                    facebook: String(base.facebook || '').trim(),
+                    youtube: String(base.youtube || '').trim()
+                };
+            },
+
+            socialLinksList: function () {
+                var links = [];
+                var resolved = this.resolvedSocials();
+
+                if (resolved.discord) {
+                    links.push({ key: 'discord', label: 'Discord', url: resolved.discord });
+                }
+                if (resolved.facebook) {
+                    links.push({ key: 'facebook', label: 'Facebook', url: resolved.facebook });
+                }
+                if (resolved.youtube) {
+                    links.push({ key: 'youtube', label: 'YouTube', url: resolved.youtube });
+                }
+
+                return links;
+            },
+
+            shouldShowSocialWidget: function () {
+                if (this.canManageWidgets) {
+                    return true;
+                }
+                return this.widgetUi.socials.show && this.socialLinksList().length > 0;
+            },
+
+            bottomBoardHasContent: function () {
+                if (!this.tData.bottomBoard || typeof this.tData.bottomBoard !== 'object') {
+                    return false;
+                }
+
+                var title = String(this.tData.bottomBoard.title || '').trim();
+                var bannerUrl = String(this.tData.bottomBoard.bannerUrl || '').trim();
+                var logos = Array.isArray(this.tData.bottomBoard.logos)
+                    ? this.tData.bottomBoard.logos.filter(function (logo) {
+                        return Boolean(String(logo || '').trim());
+                    })
+                    : [];
+
+                return Boolean(title || bannerUrl || logos.length);
+            },
+
+            shouldShowBottomSponsorBoard: function () {
+                if (this.canManageWidgets) {
+                    return true;
+                }
+                return this.widgetUi.bottomBoard.show && this.bottomBoardHasContent();
+            },

@@ -4,8 +4,12 @@ Tests for public tournament views (browse and detail pages).
 Ensures public views use correct template paths after frontend reorganization.
 """
 
+import json
+
 import pytest
+from django.test import Client
 from django.urls import reverse
+from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
@@ -136,3 +140,255 @@ class TestTournamentDetailView:
 
         assert response.status_code == 200
         assert b'Matches Starting Soon' in response.content
+
+
+@pytest.mark.django_db
+class TestTournamentDetailWidgets:
+    """Test backend-persisted detail widget flows."""
+
+    def test_detail_context_includes_widget_payload(self, client, published_tournament):
+        url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert 'detail_widgets' in response.context
+        assert isinstance(response.context['detail_widgets'], dict)
+        assert 'sponsor' in response.context['detail_widgets']
+        assert 'bottom_board' in response.context['detail_widgets']
+
+    def test_organizer_can_save_widgets_and_persist_to_config(self, client, published_tournament):
+        client.force_login(published_tournament.organizer)
+        url = reverse('tournaments:detail_widgets_save', kwargs={'slug': published_tournament.slug})
+
+        payload = {
+            'detail_widgets': {
+                'sponsor': {
+                    'enabled': True,
+                    'title': 'SteelSeries Arena',
+                    'subtitle': 'Official gear partner',
+                    'badge': 'SS',
+                    'logo_url': 'https://example.com/ss.png',
+                },
+                'talent': {
+                    'enabled': True,
+                    'items': [
+                        {
+                            'name': 'Caster Nova',
+                            'role': 'CAST',
+                            'avatar_url': 'https://example.com/caster.png',
+                        }
+                    ],
+                },
+                'bounty': {
+                    'enabled': True,
+                    'title': 'Clutch Hunter',
+                    'task': 'Win the most 1v2 rounds.',
+                    'reward': 4200,
+                },
+                'poll': {
+                    'enabled': True,
+                    'active': True,
+                    'question': 'Which team wins?',
+                    'options': [
+                        {'name': 'Alpha', 'percent': 60},
+                        {'name': 'Bravo', 'percent': 40},
+                    ],
+                },
+                'socials': {
+                    'enabled': True,
+                    'discord': 'https://discord.gg/example',
+                    'facebook': 'https://facebook.com/example',
+                    'youtube': 'https://youtube.com/@example',
+                },
+                'bottom_board': {
+                    'enabled': True,
+                    'title': 'Partners',
+                    'banner_url': 'https://example.com/banner.png',
+                    'logos': ['ACME', 'ZEN'],
+                },
+            }
+        }
+
+        response = client.post(
+            url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body.get('success') is True
+        assert body['detail_widgets']['sponsor']['title'] == 'SteelSeries Arena'
+        assert body['detail_widgets']['talent']['items'][0]['name'] == 'Caster Nova'
+        assert body['detail_widgets']['bounty']['title'] == 'Clutch Hunter'
+        assert body['detail_widgets']['poll']['question'] == 'Which team wins?'
+        assert body['detail_widgets']['socials']['discord'] == 'https://discord.gg/example'
+        assert body['detail_widgets']['bottom_board']['logos'] == ['ACME', 'ZEN']
+
+        published_tournament.refresh_from_db()
+        assert 'detail_widgets' in (published_tournament.config or {})
+        assert published_tournament.config['detail_widgets']['talent']['items'][0]['name'] == 'Caster Nova'
+        assert published_tournament.config['detail_widgets']['bounty']['reward'] == 4200
+        assert published_tournament.config['detail_widgets']['poll']['question'] == 'Which team wins?'
+        assert published_tournament.config['detail_widgets']['socials']['facebook'] == 'https://facebook.com/example'
+        assert published_tournament.config['detail_widgets']['bottom_board']['title'] == 'Partners'
+
+        detail_response = client.get(reverse('tournaments:detail', kwargs={'slug': published_tournament.slug}))
+        assert detail_response.status_code == 200
+        assert detail_response.context['detail_widgets']['sponsor']['title'] == 'SteelSeries Arena'
+        assert detail_response.context['detail_widgets']['talent']['items'][0]['name'] == 'Caster Nova'
+        assert detail_response.context['detail_widgets']['bounty']['reward'] == 4200
+        assert detail_response.context['detail_widgets']['poll']['question'] == 'Which team wins?'
+        assert detail_response.context['detail_widgets']['socials']['youtube'] == 'https://youtube.com/@example'
+        assert detail_response.context['detail_widgets']['bottom_board']['title'] == 'Partners'
+
+    def test_non_organizer_cannot_save_widgets(self, client, published_tournament):
+        non_organizer = User.objects.create_user(
+            username='random-user',
+            email='random@example.com',
+            password='testpass123',
+        )
+        client.force_login(non_organizer)
+
+        url = reverse('tournaments:detail_widgets_save', kwargs={'slug': published_tournament.slug})
+        response = client.post(
+            url,
+            data=json.dumps({'detail_widgets': {'sponsor': {'title': 'Should Fail'}}}),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        assert response.status_code == 403
+        body = response.json()
+        assert body.get('success') is False
+
+    def test_detail_page_exposes_widget_save_url_and_feedback_hooks(self, client, published_tournament):
+        detail_url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+        save_url = reverse('tournaments:detail_widgets_save', kwargs={'slug': published_tournament.slug})
+
+        response = client.get(detail_url)
+
+        assert response.status_code == 200
+        assert response.context['detail_widgets_save_url'] == save_url
+        assert response.context['can_manage_detail_widgets'] is False
+
+        html = response.content.decode('utf-8')
+        assert f'data-widget-save-url="{save_url}"' in html
+        assert 'fetch(this.widgetSaveUrl' in html
+        assert 'widgetSaveError' in html
+        assert 'widgetSaveSuccess' in html
+
+    def test_detail_page_renders_backend_seeded_widget_values_after_reload(self, client, published_tournament):
+        published_tournament.config = {
+            'detail_widgets': {
+                'sponsor': {
+                    'enabled': True,
+                    'title': 'Seeded Sponsor Title',
+                    'subtitle': 'Loaded from backend config',
+                    'badge': 'SSD',
+                    'logo_url': 'https://example.com/seeded-logo.png',
+                }
+            }
+        }
+        published_tournament.save(update_fields=['config'])
+
+        response = client.get(reverse('tournaments:detail', kwargs={'slug': published_tournament.slug}))
+
+        assert response.status_code == 200
+        assert 'detail_widgets' in response.context
+        assert response.context['detail_widgets']['sponsor']['title'] == 'Seeded Sponsor Title'
+
+        html = response.content.decode('utf-8')
+        assert 'dc-detail-widget-seed' in html
+        assert 'Seeded Sponsor Title' in html
+
+    def test_canonical_widget_edit_permission_for_organizer(self, client, published_tournament):
+        anonymous_response = client.get(reverse('tournaments:detail', kwargs={'slug': published_tournament.slug}))
+        assert anonymous_response.status_code == 200
+        assert anonymous_response.context['can_manage_detail_widgets'] is False
+
+        client.force_login(published_tournament.organizer)
+        organizer_response = client.get(reverse('tournaments:detail', kwargs={'slug': published_tournament.slug}))
+        assert organizer_response.status_code == 200
+        assert organizer_response.context['can_manage_detail_widgets'] is True
+
+    def test_canonical_widget_edit_permission_for_staff_and_superuser(self, client, published_tournament):
+        staff_user = User.objects.create_user(
+            username='staff-manager',
+            email='staff@example.com',
+            password='testpass123',
+        )
+        staff_group, _ = Group.objects.get_or_create(name='Support Staff')
+        staff_user.groups.add(staff_group)
+        staff_user.refresh_from_db()
+
+        super_user = User.objects.create_superuser(
+            username='super-manager',
+            email='super@example.com',
+            password='testpass123',
+        )
+
+        detail_url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+
+        client.force_login(staff_user)
+        staff_response = client.get(detail_url)
+        assert staff_response.status_code == 200
+        assert staff_response.context['can_manage_detail_widgets'] is True
+
+        client.force_login(super_user)
+        super_response = client.get(detail_url)
+        assert super_response.status_code == 200
+        assert super_response.context['can_manage_detail_widgets'] is True
+
+    def test_detail_page_sets_csrf_cookie_for_widget_save(self, client, published_tournament):
+        client.force_login(published_tournament.organizer)
+        detail_url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+
+        response = client.get(detail_url)
+
+        assert response.status_code == 200
+        assert 'csrftoken' in response.cookies
+        assert response.cookies['csrftoken'].value
+
+    def test_widget_save_requires_and_accepts_csrf_token(self, published_tournament):
+        secure_client = Client(enforce_csrf_checks=True)
+        secure_client.force_login(published_tournament.organizer)
+
+        detail_url = reverse('tournaments:detail', kwargs={'slug': published_tournament.slug})
+        save_url = reverse('tournaments:detail_widgets_save', kwargs={'slug': published_tournament.slug})
+
+        detail_response = secure_client.get(detail_url)
+        csrf_token = detail_response.cookies['csrftoken'].value
+
+        payload = {
+            'detail_widgets': {
+                'sponsor': {
+                    'enabled': True,
+                    'title': 'Secure Save Sponsor',
+                    'subtitle': 'CSRF validated',
+                    'badge': 'SEC',
+                    'logo_url': 'https://example.com/secure.png',
+                }
+            }
+        }
+
+        missing_token_response = secure_client.post(
+            save_url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        assert missing_token_response.status_code == 403
+
+        ok_response = secure_client.post(
+            save_url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=csrf_token,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        assert ok_response.status_code == 200
+        ok_body = ok_response.json()
+        assert ok_body.get('success') is True
+        assert ok_body['detail_widgets']['sponsor']['title'] == 'Secure Save Sponsor'

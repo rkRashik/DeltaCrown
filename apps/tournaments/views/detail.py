@@ -6,13 +6,17 @@ FE-T-003: Registration CTA States
 Extracted from main.py during Phase 3 restructure.
 """
 
+import json
+
 from django.views.generic import DetailView
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.cache import cache
 from datetime import timedelta
 from typing import Dict, Any, List
@@ -22,6 +26,7 @@ from apps.tournaments.services.registration_service import RegistrationService
 from apps.games.services import game_service
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class TournamentDetailView(DetailView):
     """
     FE-T-002: Tournament Detail Page — Unified Master Template
@@ -47,7 +52,6 @@ class TournamentDetailView(DetailView):
         effective = getattr(self.object, 'get_effective_status', lambda: self.object.status)()
         if not request.user.is_authenticated and effective in ('completed', 'archived'):
             from django.views.decorators.cache import cache_page
-            from django.utils.decorators import method_decorator
             cached_view = cache_page(3600, key_prefix='detail_page')(
                 super().dispatch
             )
@@ -263,6 +267,17 @@ class TournamentDetailView(DetailView):
         context['tournament_mode_label'] = tournament.get_mode_display()
         context['tournament_participation_label'] = tournament.get_participation_type_display()
         context['is_group_playoff'] = tournament.format == Tournament.GROUP_PLAYOFF
+
+        detail_widgets = _get_tournament_detail_widgets(
+            tournament,
+            game_spec=game_spec,
+        )
+        context['detail_widgets'] = detail_widgets
+        context['can_manage_detail_widgets'] = _viewer_can_manage_tournament(tournament, user)
+        context['detail_widgets_save_url'] = reverse(
+            'tournaments:detail_widgets_save',
+            kwargs={'slug': tournament.slug},
+        )
 
         return context
 
@@ -1548,6 +1563,301 @@ _DETAIL_STATUS_LABELS = {
 
 MATCH_LOBBY_OPEN_LEAD_MINUTES = 30
 MATCH_LOBBY_CLOSE_GRACE_MINUTES = 15
+DETAIL_WIDGETS_CONFIG_KEY = 'detail_widgets'
+
+
+def _widget_text(value, *, fallback='', max_length=240):
+    text_value = str(value or '').strip()
+    if not text_value:
+        return str(fallback or '')[:max_length]
+    return text_value[:max_length]
+
+
+def _widget_url(value, *, fallback='', max_length=500):
+    url_value = str(value or '').strip()
+    if not url_value:
+        return str(fallback or '')[:max_length]
+    return url_value[:max_length]
+
+
+def _widget_bool(value, *, fallback=False):
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, (int, float)):
+        return bool(value)
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {'1', 'true', 'yes', 'on'}:
+            return True
+        if normalized in {'0', 'false', 'no', 'off'}:
+            return False
+
+    return bool(fallback)
+
+
+def _widget_int(value, *, fallback=0, minimum=None, maximum=None):
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        parsed = int(fallback)
+
+    if minimum is not None:
+        parsed = max(minimum, parsed)
+    if maximum is not None:
+        parsed = min(maximum, parsed)
+    return parsed
+
+
+def _build_default_detail_widgets(tournament, *, game_spec=None):
+    has_social_links = bool(
+        str(getattr(tournament, 'social_discord', '') or '').strip()
+        or str(getattr(tournament, 'social_facebook', '') or '').strip()
+        or str(getattr(tournament, 'social_youtube', '') or '').strip()
+    )
+    fan_voting_enabled = bool(getattr(tournament, 'enable_fan_voting', False))
+
+    return {
+        'sponsor': {
+            'enabled': False,
+            'title': '',
+            'subtitle': '',
+            'badge': 'SP',
+            'logo_url': '',
+        },
+        'talent': {
+            'enabled': False,
+            'items': [],
+        },
+        'bounty': {
+            'enabled': False,
+            'title': '',
+            'task': '',
+            'reward': 0,
+        },
+        'poll': {
+            'enabled': fan_voting_enabled,
+            'active': fan_voting_enabled,
+            'question': 'Who will win?',
+            'options': [
+                {'name': 'Option A', 'percent': 50},
+                {'name': 'Option B', 'percent': 50},
+            ],
+        },
+        'socials': {
+            'enabled': has_social_links,
+            'discord': str(getattr(tournament, 'social_discord', '') or ''),
+            'facebook': str(getattr(tournament, 'social_facebook', '') or ''),
+            'youtube': str(getattr(tournament, 'social_youtube', '') or ''),
+        },
+        'bottom_board': {
+            'enabled': False,
+            'title': '',
+            'banner_url': '',
+            'logos': [],
+        },
+    }
+
+
+def _normalize_detail_widgets_config(raw_widgets, *, tournament, game_spec=None):
+    defaults = _build_default_detail_widgets(tournament, game_spec=game_spec)
+    payload = raw_widgets if isinstance(raw_widgets, dict) else {}
+
+    sponsor_source = payload.get('sponsor') if isinstance(payload.get('sponsor'), dict) else {}
+    sponsor = {
+        'enabled': _widget_bool(
+            sponsor_source.get('enabled', sponsor_source.get('show')),
+            fallback=defaults['sponsor']['enabled'],
+        ),
+        'title': _widget_text(
+            sponsor_source.get('title'),
+            fallback=defaults['sponsor']['title'],
+            max_length=120,
+        ),
+        'subtitle': _widget_text(
+            sponsor_source.get('subtitle'),
+            fallback=defaults['sponsor']['subtitle'],
+            max_length=180,
+        ),
+        'badge': _widget_text(
+            sponsor_source.get('badge'),
+            fallback=defaults['sponsor']['badge'],
+            max_length=4,
+        ).upper(),
+        'logo_url': _widget_url(
+            sponsor_source.get('logo_url', sponsor_source.get('logoUrl')),
+            fallback=defaults['sponsor']['logo_url'],
+            max_length=500,
+        ),
+    }
+
+    if not sponsor['badge']:
+        sponsor['badge'] = 'SP'
+
+    talent_source = payload.get('talent') if isinstance(payload.get('talent'), dict) else {}
+    raw_talent_items = talent_source.get('items') if isinstance(talent_source.get('items'), list) else []
+    talent_items = []
+    for item in raw_talent_items[:12]:
+        if not isinstance(item, dict):
+            continue
+        name = _widget_text(item.get('name'), max_length=80)
+        if not name:
+            continue
+        talent_items.append({
+            'name': name,
+            'role': _widget_text(item.get('role'), fallback='CAST', max_length=20).upper(),
+            'avatar_url': _widget_url(
+                item.get('avatar_url', item.get('avatar')),
+                max_length=500,
+            ),
+        })
+
+    talent = {
+        'enabled': _widget_bool(
+            talent_source.get('enabled', talent_source.get('show')),
+            fallback=defaults['talent']['enabled'],
+        ),
+        'items': talent_items,
+    }
+
+    bounty_source = payload.get('bounty') if isinstance(payload.get('bounty'), dict) else {}
+    bounty = {
+        'enabled': _widget_bool(
+            bounty_source.get('enabled', bounty_source.get('show')),
+            fallback=defaults['bounty']['enabled'],
+        ),
+        'title': _widget_text(
+            bounty_source.get('title'),
+            fallback=defaults['bounty']['title'],
+            max_length=120,
+        ),
+        'task': _widget_text(
+            bounty_source.get('task', bounty_source.get('description')),
+            fallback=defaults['bounty']['task'],
+            max_length=420,
+        ),
+        'reward': _widget_int(
+            bounty_source.get('reward'),
+            fallback=defaults['bounty']['reward'],
+            minimum=0,
+            maximum=999999999,
+        ),
+    }
+
+    poll_source = payload.get('poll') if isinstance(payload.get('poll'), dict) else {}
+    raw_poll_options = poll_source.get('options') if isinstance(poll_source.get('options'), list) else []
+    poll_options = []
+    for idx in range(2):
+        source_option = raw_poll_options[idx] if idx < len(raw_poll_options) and isinstance(raw_poll_options[idx], dict) else {}
+        default_option = defaults['poll']['options'][idx]
+        poll_options.append({
+            'name': _widget_text(
+                source_option.get('name'),
+                fallback=default_option['name'],
+                max_length=80,
+            ),
+            'percent': _widget_int(
+                source_option.get('percent'),
+                fallback=default_option['percent'],
+                minimum=0,
+                maximum=100,
+            ),
+        })
+
+    poll_total = poll_options[0]['percent'] + poll_options[1]['percent']
+    if poll_total <= 0:
+        poll_options[0]['percent'] = 50
+        poll_options[1]['percent'] = 50
+    elif poll_total != 100:
+        option_a = int(round((poll_options[0]['percent'] / poll_total) * 100))
+        poll_options[0]['percent'] = option_a
+        poll_options[1]['percent'] = 100 - option_a
+
+    poll = {
+        'enabled': _widget_bool(
+            poll_source.get('enabled', poll_source.get('show')),
+            fallback=defaults['poll']['enabled'],
+        ),
+        'active': _widget_bool(
+            poll_source.get('active', poll_source.get('poll_enabled')),
+            fallback=defaults['poll']['active'],
+        ),
+        'question': _widget_text(
+            poll_source.get('question'),
+            fallback=defaults['poll']['question'],
+            max_length=180,
+        ),
+        'options': poll_options,
+    }
+
+    socials_source = payload.get('socials') if isinstance(payload.get('socials'), dict) else {}
+    socials = {
+        'enabled': _widget_bool(
+            socials_source.get('enabled', socials_source.get('show')),
+            fallback=defaults['socials']['enabled'],
+        ),
+        'discord': _widget_url(
+            socials_source.get('discord'),
+            fallback=defaults['socials']['discord'],
+            max_length=500,
+        ),
+        'facebook': _widget_url(
+            socials_source.get('facebook'),
+            fallback=defaults['socials']['facebook'],
+            max_length=500,
+        ),
+        'youtube': _widget_url(
+            socials_source.get('youtube'),
+            fallback=defaults['socials']['youtube'],
+            max_length=500,
+        ),
+    }
+
+    bottom_board_source = payload.get('bottom_board') if isinstance(payload.get('bottom_board'), dict) else {}
+    raw_bottom_logos = bottom_board_source.get('logos') if isinstance(bottom_board_source.get('logos'), list) else []
+    bottom_logos = []
+    for logo in raw_bottom_logos[:16]:
+        cleaned_logo = _widget_text(logo, max_length=40)
+        if cleaned_logo:
+            bottom_logos.append(cleaned_logo)
+
+    bottom_board = {
+        'enabled': _widget_bool(
+            bottom_board_source.get('enabled', bottom_board_source.get('show')),
+            fallback=defaults['bottom_board']['enabled'],
+        ),
+        'title': _widget_text(
+            bottom_board_source.get('title'),
+            fallback=defaults['bottom_board']['title'],
+            max_length=120,
+        ),
+        'banner_url': _widget_url(
+            bottom_board_source.get('banner_url', bottom_board_source.get('bannerUrl')),
+            fallback=defaults['bottom_board']['banner_url'],
+            max_length=500,
+        ),
+        'logos': bottom_logos,
+    }
+
+    return {
+        'sponsor': sponsor,
+        'talent': talent,
+        'bounty': bounty,
+        'poll': poll,
+        'socials': socials,
+        'bottom_board': bottom_board,
+    }
+
+
+def _get_tournament_detail_widgets(tournament, *, game_spec=None):
+    config = tournament.config if isinstance(tournament.config, dict) else {}
+    raw_widgets = config.get(DETAIL_WIDGETS_CONFIG_KEY, {}) if isinstance(config, dict) else {}
+    return _normalize_detail_widgets_config(
+        raw_widgets,
+        tournament=tournament,
+        game_spec=game_spec,
+    )
 
 
 def _format_display_datetime(value, time_format='12h'):
@@ -2170,4 +2480,51 @@ def participant_checkin(request, slug):
         'success': True,
         'message': 'Successfully checked in!',
         'checked_in_at': registration.checked_in_at.isoformat()
+    })
+
+
+@login_required
+@require_POST
+def tournament_detail_widgets_save(request, slug):
+    """Persist organizer-managed detail-page widget configuration."""
+    tournament = get_object_or_404(Tournament.objects.select_related('game', 'organizer'), slug=slug)
+
+    if not _viewer_can_manage_tournament(tournament, request.user):
+        return JsonResponse({'success': False, 'error': 'You are not allowed to edit widgets for this tournament.'}, status=403)
+
+    try:
+        body = request.body.decode('utf-8') if request.body else '{}'
+        payload = json.loads(body or '{}')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON payload.'}, status=400)
+
+    if not isinstance(payload, dict):
+        return JsonResponse({'success': False, 'error': 'Request body must be a JSON object.'}, status=400)
+
+    canonical_slug = game_service.normalize_slug(tournament.game.slug)
+    game_spec = game_service.get_game(canonical_slug)
+
+    raw_widgets = payload.get('detail_widgets', payload)
+    if not isinstance(raw_widgets, dict):
+        return JsonResponse({'success': False, 'error': 'Widget payload is missing or invalid.'}, status=400)
+
+    normalized_widgets = _normalize_detail_widgets_config(
+        raw_widgets,
+        tournament=tournament,
+        game_spec=game_spec,
+    )
+
+    config = dict(tournament.config or {})
+    config[DETAIL_WIDGETS_CONFIG_KEY] = normalized_widgets
+    tournament.config = config
+    tournament.save(update_fields=['config'])
+
+    # Keep detail polling cache fresh for organizer/public viewers.
+    cache.delete(f'detail_mobile_state_v2_{tournament.id}_anon')
+    cache.delete(f'detail_mobile_state_v2_{tournament.id}_{request.user.id}')
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Detail widgets saved.',
+        'detail_widgets': normalized_widgets,
     })
